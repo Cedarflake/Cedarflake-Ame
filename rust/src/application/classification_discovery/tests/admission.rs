@@ -67,6 +67,7 @@ impl AdmissionFixture {
             })
             .collect();
         let discovery = ConceptConsolidation {
+            naming: crate::domain::classification::discovery::CategoryNaming::Unconditioned,
             comparison_policy: ContextComparisonPolicy::SelectedContexts,
             model: model(),
             cohort_revision: cohort.revision(),

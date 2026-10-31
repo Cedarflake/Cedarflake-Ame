@@ -3,7 +3,7 @@ use std::sync::atomic::AtomicBool;
 
 use crate::domain::ScanError;
 use crate::domain::classification::discovery::{
-    ConceptId, ConceptMemberSimilarity, ConceptNamingScope, DiscoveryCohort,
+    CategoryNaming, ConceptId, ConceptMemberSimilarity, ConceptNamingScope, DiscoveryCohort,
 };
 use crate::domain::classification::{CategoryScore, ClassificationRevision};
 use crate::ports::classification_encoder::ClassificationEncoderFactory;
@@ -32,6 +32,7 @@ pub struct ConceptNominationRequest<'a> {
     pub limits: ConceptConsolidationLimits,
     pub max_candidates: usize,
     pub minimum_context_relatedness: f32,
+    pub naming: &'a CategoryNaming,
 }
 
 pub struct ConceptNomination {
@@ -70,6 +71,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
         limits,
         max_candidates,
         minimum_context_relatedness,
+        naming,
     } = request;
     check_cancelled(cancelled)?;
     if !(1..=64).contains(&max_candidates)
@@ -96,7 +98,12 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     }
     let revision = retrieved.vocabulary_revision;
     check_revision(vocabulary, revision)?;
-    let graph = context_graph::collect(retrieved, limits, vocabulary, cancelled)?;
+    naming.validate(matcher.taxonomy()).map_err(naming_error)?;
+    let mut graph = context_graph::collect(retrieved, limits, vocabulary, cancelled)?;
+    for concept in graph.concepts.values_mut() {
+        check_cancelled(cancelled)?;
+        *concept = naming.project(concept);
+    }
     let mut baseline = Vec::with_capacity(cohort.member_samples().len());
     for sample in cohort.member_samples() {
         check_cancelled(cancelled)?;
@@ -130,6 +137,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
                 &members,
                 &baseline,
                 policy.criteria(),
+                naming,
             ) {
                 eligible.push(context);
             }
@@ -197,13 +205,15 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     let policy_revision = policy.revision();
     let capacity = (max_candidates as u64).to_le_bytes();
     let relatedness = minimum_context_relatedness.to_le_bytes();
+    let naming_revision = naming.revision();
     let frontier_revision = ClassificationRevision::derive(
-        "ame.classification.automatic-context-frontier.v4",
+        "ame.classification.automatic-context-frontier.v5",
         [
             taxonomy_revision.bytes().as_slice(),
             policy_revision.bytes().as_slice(),
             capacity.as_slice(),
             relatedness.as_slice(),
+            naming_revision.bytes().as_slice(),
         ]
         .into_iter()
         .chain(selected.iter().map(|id| id.bytes().as_slice())),
@@ -215,6 +225,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
         subsumed_concepts: selection.subsumed,
         candidate_limit_reached: selection.candidate_limit_reached,
         contexts: ConceptConsolidation {
+            naming: naming.clone(),
             comparison_policy: ContextComparisonPolicy::DistinctContexts {
                 minimum_relatedness: minimum_context_relatedness,
             },
@@ -225,7 +236,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
             retrieval_limits: retrieved.limits,
             frontier_revision,
             consolidation_revision: ClassificationRevision::derive(
-                "ame.classification.automatic-context-nomination.v4",
+                "ame.classification.automatic-context-nomination.v5",
                 std::iter::empty(),
             ),
             limits,
@@ -242,6 +253,7 @@ fn qualify(
     members: &[ConceptMemberSimilarity],
     baseline: &[CategoryScore],
     criteria: CategoryAdmissionCriteria,
+    naming: &CategoryNaming,
 ) -> Option<ContextSupport> {
     if contrast <= 0.0 || contrast < criteria.minimum_context_contrast {
         return None;
@@ -250,7 +262,10 @@ fn qualify(
     let mut improvement = 0.0_f64;
     for (index, (member, current)) in members.iter().zip(baseline).enumerate() {
         let gain = member.similarity - current.similarity;
-        if gain > 0.0 && gain >= criteria.minimum_improvement {
+        if naming.includes(&current.category_id)
+            && gain > 0.0
+            && gain >= criteria.minimum_improvement
+        {
             coverage.insert(index);
             improvement += f64::from(gain);
         }
@@ -271,4 +286,8 @@ fn qualify(
 
 fn feature_error(error: impl std::fmt::Display) -> ScanError {
     ScanError::new("classification_feature_mismatch", error.to_string())
+}
+
+fn naming_error(error: impl std::fmt::Display) -> ScanError {
+    ScanError::new("classification_naming_purpose_changed", error.to_string())
 }

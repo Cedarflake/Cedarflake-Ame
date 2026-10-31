@@ -33,8 +33,8 @@ pub use crate::application::classification_screening::{
 pub use crate::application::classification_verification::verify_classification_source;
 pub use crate::domain::ScanError;
 pub use crate::domain::classification::discovery::{
-    ConceptId, ConceptMemberSimilarity, ConceptNamingScope, ConceptSimilarity, DiscoveryCohort,
-    DiscoveryError, DiscoverySample, VocabularyConcept,
+    CategoryNaming, CategoryNamingPurpose, ConceptId, ConceptMemberSimilarity, ConceptNamingScope,
+    ConceptSimilarity, DiscoveryCohort, DiscoveryError, DiscoverySample, VocabularyConcept,
 };
 pub use crate::domain::classification::work::{
     ClassificationAnalysisResult, ClassificationBacklogPage, ClassificationDispatchCommand,

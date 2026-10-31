@@ -149,6 +149,31 @@ and completed cache; every terminal path retires description work. Nomination ne
 category definitions nor grants category publication. Automatic naming quality and operating-profile
 selection require their own measured admission before maintenance is enabled.
 
+### Purpose-preserving names
+
+Naming may refine an existing category while preserving its image purpose. A typed naming purpose
+binds that category's identity and semantic revision to application-owned label and comparison
+patterns. Each pattern contains one subject slot and explicit surrounding context. Vocabulary
+adapters supply a bounded subject phrase independently of the raw retrieval description; parsing
+dictionary glosses or inferring phrases from display names is outside the application contract.
+Subject metadata changes concept authority without invalidating unchanged raw description features.
+
+Nomination first resolves the original vocabulary graph, preserving retrieval provenance, then
+projects its reached concepts into the selected purpose. The complete composed descriptions are
+independently encoded and scored; raw noun scores never become scores for purpose-qualified names.
+Missing subject phrases, overlong composed names and traversal-only concepts retain graph links
+but cannot become naming candidates. No complete vocabulary pass or image decoding is repeated.
+
+The current leading category of each member must match the naming purpose before it can support
+a refinement. Other members remain explicit as a different purpose even when their topic similarity
+is high. Nomination and final admission enforce the same scope; final admission also rejects a
+missing or semantically changed parent and descriptions that do not match the bound composition.
+Display-only parent renaming preserves this semantic authority. The naming revision accompanies
+nomination and assessment, alongside the original vocabulary, taxonomy and comparison evidence.
+Unconditioned nomination remains available for evaluation and category discovery. These contracts
+do not select a fixed list of media types, make the user author patterns, or authorize category writes.
+Useful local labels and the operating composition still require measured admission.
+
 ### Candidate admission evidence
 
 Admission compares each consolidated context against the current taxonomy through the existing

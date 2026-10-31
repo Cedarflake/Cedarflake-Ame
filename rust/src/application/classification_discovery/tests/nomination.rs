@@ -1,8 +1,10 @@
 use crate::application::classification_matching::CategoryMatcher;
-use crate::domain::classification::discovery::ConceptNamingScope;
+use crate::domain::classification::discovery::{CategoryNaming, ConceptNamingScope};
 use crate::domain::classification::{CategoryDefinition, CategoryId, Taxonomy};
 
 use super::*;
+
+mod purpose;
 
 struct Harness {
     _directory: tempfile::TempDir,
@@ -15,6 +17,7 @@ struct Harness {
     matcher: CategoryMatcher,
     policy: CategoryAdmissionPolicy,
     minimum_relatedness: f32,
+    naming: CategoryNaming,
 }
 
 impl Harness {
@@ -104,6 +107,7 @@ impl Harness {
             matcher: matcher("a room", vec![0.0, 1.0]),
             policy,
             minimum_relatedness: 0.9,
+            naming: CategoryNaming::Unconditioned,
         }
     }
 
@@ -122,6 +126,7 @@ impl Harness {
                 limits,
                 max_candidates,
                 minimum_context_relatedness: self.minimum_relatedness,
+                naming: &self.naming,
             },
             &mut self.vocabulary,
             &mut self.residency,

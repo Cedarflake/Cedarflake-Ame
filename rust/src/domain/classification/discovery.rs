@@ -4,6 +4,9 @@ use super::{
     ClassificationContent, ClassificationRevision, ImageFeature, ModelCompatibility, TextFeature,
 };
 
+mod naming;
+pub use naming::{CategoryNaming, CategoryNamingPurpose};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ConceptId([u8; 32]);
 
@@ -29,6 +32,7 @@ pub struct VocabularyConcept {
     label: String,
     description: String,
     naming_scope: ConceptNamingScope,
+    subject: Option<String>,
 }
 
 impl VocabularyConcept {
@@ -49,7 +53,26 @@ impl VocabularyConcept {
             label: label.to_owned(),
             description: description.to_owned(),
             naming_scope: ConceptNamingScope::Candidate,
+            subject: None,
         })
+    }
+
+    pub fn with_subject(mut self, subject: String) -> Result<Self, DiscoveryError> {
+        let subject = subject.trim();
+        if subject.is_empty()
+            || subject.chars().count() > 256
+            || subject
+                .chars()
+                .any(|value| value.is_control() || matches!(value, '{' | '}'))
+        {
+            return Err(DiscoveryError::InvalidSubject);
+        }
+        self.subject = Some(subject.to_owned());
+        Ok(self)
+    }
+
+    pub fn subject(&self) -> Option<&str> {
+        self.subject.as_deref()
     }
 
     pub fn with_naming_scope(mut self, scope: ConceptNamingScope) -> Self {
@@ -75,11 +98,12 @@ impl VocabularyConcept {
 
     pub fn revision(&self) -> ClassificationRevision {
         ClassificationRevision::derive(
-            "ame.classification.discovery-concept.v2",
+            "ame.classification.discovery-concept.v3",
             [
                 self.id.bytes().as_slice(),
                 self.label.as_bytes(),
                 self.description.as_bytes(),
+                self.subject.as_deref().unwrap_or_default().as_bytes(),
                 match self.naming_scope {
                     ConceptNamingScope::Candidate => b"candidate".as_slice(),
                     ConceptNamingScope::TraversalOnly => b"traversal-only".as_slice(),
@@ -248,6 +272,12 @@ fn mean_cosine(mean: &[f64], feature: &TextFeature) -> f32 {
 pub enum DiscoveryError {
     #[error("The discovery concept has an invalid label or description")]
     InvalidConcept,
+    #[error("The discovery concept has an invalid subject phrase")]
+    InvalidSubject,
+    #[error("Category naming needs bounded label and comparison patterns with one subject")]
+    InvalidNamingPurpose,
+    #[error("The category used for naming is absent or its meaning has changed")]
+    NamingPurposeChanged,
     #[error("Discovery needs a nonempty cohort and comparison within the sample limit")]
     InvalidCohort,
     #[error("A content version occurs more than once in the discovery samples")]

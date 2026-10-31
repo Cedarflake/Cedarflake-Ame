@@ -20,6 +20,7 @@ mod nomination;
 #[derive(Default)]
 struct Calls {
     encoded: RefCell<Vec<String>>,
+    features: RefCell<BTreeMap<String, Vec<f32>>>,
     starts: Cell<usize>,
     retires: Cell<usize>,
     cancel_at: Cell<Option<usize>>,
@@ -85,11 +86,18 @@ impl ClassificationEncoder for Encoder {
         if self.calls.cancel_at.get() == Some(self.calls.encoded.borrow().len()) {
             cancelled.store(true, Ordering::Release);
         }
-        let values = match description {
+        let default_values = match description {
             "a classroom" => vec![1.0, 0.0],
             "a workshop" => vec![0.6, 0.8],
             _ => vec![0.0, 1.0],
         };
+        let values = self
+            .calls
+            .features
+            .borrow()
+            .get(description)
+            .cloned()
+            .unwrap_or(default_values);
         Ok(TextFeature {
             identity: model().text_identity(),
             description: if self.calls.wrong_feature.get() {

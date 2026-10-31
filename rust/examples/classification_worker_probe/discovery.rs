@@ -56,6 +56,8 @@ struct Concept {
     broader: Vec<String>,
     #[serde(default)]
     naming_scope: NamingScope,
+    #[serde(default)]
+    subject: Option<String>,
 }
 
 #[derive(Default, Deserialize)]
@@ -126,8 +128,11 @@ impl ProbeVocabulary {
                 NamingScope::Candidate => ConceptNamingScope::Candidate,
                 NamingScope::TraversalOnly => ConceptNamingScope::TraversalOnly,
             };
-            let definition = VocabularyConcept::new(id, concept.label, concept.description)?
+            let mut definition = VocabularyConcept::new(id, concept.label, concept.description)?
                 .with_naming_scope(scope);
+            if let Some(subject) = concept.subject {
+                definition = definition.with_subject(subject)?;
+            }
             if definitions.insert(id, definition).is_some() {
                 return Err("Repeated concept fixture identity".into());
             }

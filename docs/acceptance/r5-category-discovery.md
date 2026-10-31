@@ -696,3 +696,59 @@ Corrected fixture SHA-256 values, in batch order:
 Raw outputs, resource measurements and checked comparisons remain in ignored discovery storage as
 `native-general-*`; preparation and comparison are retained in `prepare_native_broad.py` and
 `check_native_broad.py`.
+
+### Purpose-bound candidate composition
+
+The native naming contract now binds an existing category's identity and semantic revision to
+application-owned label and comparison patterns. The vocabulary supplies a separate subject phrase;
+the application projects the bounded, already-retrieved context graph and scores each complete
+purpose-qualified description. Original noun scores are not reused as composed-description scores.
+Missing subjects and oversized names remain traversable without becoming candidates. Nomination
+and final assessment exclude members whose current leading category differs from the bound purpose.
+Semantic category changes invalidate the result, while display-only renaming preserves its scope.
+This boundary still has no category-write, original-image or human-decision authority.
+
+Twelve domain and 37 application regressions pass, including composition identity, retained raw
+features, malformed patterns, size limits, mixed-purpose high-scoring members, stale categories,
+raw-description rejection, cancellation and repeat cache reuse. The Release diagnostic and worker
+build pass. The read-only formatting check reports 685 files with no changes. These local native
+builds retain the unrelated pending native worktree changes; hosted checks own the committed tree.
+
+The targeted real-model comparison reuses the six previously problematic cohorts and their 27
+distinct retained image features. No original-media or held-out input is read. All raw descriptions,
+entry rules, current categories, graph limits and exploratory numerical criteria remain unchanged.
+Four explicit fixture patterns preserve reaction, illustration, screenshot and document purposes;
+they are calibration inputs, not admitted product defaults or a fixed category list.
+
+| Cohort | Composed candidate | Supporting contents | Naming observation |
+| --- | --- | ---: | --- |
+| B001 | `猫表情` | 2 of 4 | Retains reaction purpose and drops the unsupported male-animal claim. |
+| B151 | `小猫表情` | 2 of 3 | Retains reaction purpose and drops the breed; the finer age label still needs normalization. |
+| B186 | `银狐插画` | 3 of 4 | Retains illustration purpose, but the animal variety is still too specific for the character artwork. |
+| B132 | `编译器截图` | 7 of 7 | Retains screenshot purpose, but code editors and a code viewer do not establish a compiler. |
+| B075 | `monologue截图` | 2 of 4 | Separates two screenshot supporters from other-purpose members; the term is neither a useful interface category nor localized. |
+| B191 | None | 0 of 5 | Existing categories remain; the earlier printing-corrections label is not proposed. |
+
+All 12 passes preserve the exact raw retrieval results from the previous shared-media check. Repeated
+nomination and admission evidence agree, no work bound is reached, and every worker retires. Two
+otherwise competing members explicitly retain a different purpose. The first composed passes add
+1,254 text features and take 8.858–15.102 seconds each; repetitions take 0.948–1.372 seconds without
+new features. Four batch times total 83.001 seconds; peak process-tree working set is 787,562,496
+bytes. These results establish purpose isolation and cache behavior, not independent naming accuracy.
+Useful scene/interface names, local labels and measured maintenance policy remain outstanding.
+
+The reaction, illustration, screenshot and document fixture SHA-256 values are, respectively:
+
+- `2e54f39be3a6123c843b4f72cb91bf52dbdcdc540f27dc5494bbad771fe2ad84`
+- `8206ff85537ff1921f6d89a6cc75a95406dd97943c6e6f14c1a61d1dff40e7b3`
+- `685c871c3496778fa586205666c05d94a6806e888763a7ce7fc4ab2cb773eceb`
+- `5ca50fd9b3cb360cba5c705b297506429a7ab253dd9b8af286e19cab5fb289f0`
+
+Ignored `native-purpose-*` records retain raw evidence, resource measurements and binary digests;
+`prepare_native_purpose.py` and `check_native_purpose.py` retain preparation and comparison.
+
+| Affected owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Discovery concepts / naming purpose | 290 / 132 | 0 | Existing 179 / new 167 |
+| Nomination / candidate assessment | 293 / 310 | 0 | 423 plus new 181 / 417 |
+| Native diagnostic / naming / assessment | 339 / 156 / 170 | 0 | Exercises the production composition and admission boundaries |

@@ -2,7 +2,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 
 use crate::domain::ScanError;
-use crate::domain::classification::discovery::{ConceptId, ConceptNamingScope, DiscoveryCohort};
+use crate::domain::classification::discovery::{
+    CategoryNaming, ConceptId, ConceptNamingScope, DiscoveryCohort,
+};
 use crate::domain::classification::{
     CategoryScore, ClassificationContent, ClassificationRevision, ModelCompatibility,
 };
@@ -20,6 +22,7 @@ pub use policy::{CategoryAdmissionCriteria, CategoryAdmissionPolicy};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MemberAdmission {
     Supports,
+    DifferentPurpose,
     NoImprovement,
     CompetingContext,
 }
@@ -56,6 +59,7 @@ pub struct CategoryAdmissionCandidate {
 
 #[derive(Debug, PartialEq)]
 pub struct CategoryAdmission {
+    pub naming: CategoryNaming,
     pub model: ModelCompatibility,
     pub cohort_revision: ClassificationRevision,
     pub vocabulary_revision: ClassificationRevision,
@@ -85,6 +89,12 @@ pub fn assess_category_candidates(
     {
         return Err(invalid_evidence());
     }
+    discovery
+        .naming
+        .validate(matcher.taxonomy())
+        .map_err(|error| {
+            ScanError::new("classification_naming_purpose_changed", error.to_string())
+        })?;
     let scores = aligned_scores(cohort, discovery, cancelled)?;
     let minimum_context_relatedness = discovery.comparison_policy.relatedness()?;
     let mut baseline = Vec::with_capacity(cohort.member_samples().len());
@@ -116,7 +126,9 @@ pub fn assess_category_candidates(
             }
             let improvement = similarity - current.similarity;
             let separation = similarity - competing;
-            let disposition = if improvement <= 0.0 || improvement < criteria.minimum_improvement {
+            let disposition = if !discovery.naming.includes(&current.category_id) {
+                MemberAdmission::DifferentPurpose
+            } else if improvement <= 0.0 || improvement < criteria.minimum_improvement {
                 MemberAdmission::NoImprovement
             } else if separation <= 0.0 || separation < criteria.minimum_separation {
                 MemberAdmission::CompetingContext
@@ -204,6 +216,7 @@ pub fn assess_category_candidates(
     }
     check_cancelled(cancelled)?;
     Ok(CategoryAdmission {
+        naming: discovery.naming.clone(),
         model: discovery.model,
         cohort_revision: discovery.cohort_revision,
         vocabulary_revision: discovery.vocabulary_revision,
@@ -249,6 +262,9 @@ fn aligned_scores(
         let aggregate = candidate.candidate.scores;
         if !identities.insert(candidate.candidate.concept.id())
             || candidate.candidate.concept.naming_scope() != ConceptNamingScope::Candidate
+            || !discovery
+                .naming
+                .admits_description(&candidate.candidate.concept)
             || candidate.member_similarities.len() != indices.len()
             || !valid_cosine(aggregate.similarity)
             || !valid_cosine(aggregate.context_similarity)

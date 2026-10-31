@@ -3,7 +3,7 @@ use std::sync::atomic::AtomicBool;
 
 use crate::domain::ScanError;
 use crate::domain::classification::discovery::{
-    ConceptId, ConceptMemberSimilarity, DiscoveryCohort,
+    CategoryNaming, ConceptId, ConceptMemberSimilarity, DiscoveryCohort,
 };
 use crate::domain::classification::{ClassificationRevision, ModelCompatibility};
 use crate::ports::classification_encoder::ClassificationEncoderFactory;
@@ -42,6 +42,7 @@ pub struct ConsolidatedConcept {
 }
 
 pub struct ConceptConsolidation {
+    pub naming: CategoryNaming,
     pub model: ModelCompatibility,
     pub cohort_revision: ClassificationRevision,
     pub vocabulary_revision: ClassificationRevision,
@@ -154,6 +155,7 @@ fn consolidate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     check_cancelled(cancelled)?;
     check_revision(vocabulary, revision)?;
     Ok(ConceptConsolidation {
+        naming: CategoryNaming::Unconditioned,
         comparison_policy: ContextComparisonPolicy::SelectedContexts,
         model: cohort.model(),
         cohort_revision: cohort.revision(),

@@ -113,6 +113,7 @@ impl Naming {
                         limits,
                         max_candidates: *capacity,
                         minimum_context_relatedness: *minimum_relatedness,
+                        naming: &assessment.naming,
                     },
                     vocabulary,
                     residency,
@@ -135,6 +136,7 @@ impl Naming {
             .map(|prepared| prepared.assess(cohort, &result, member_ids))
             .transpose()?;
         Ok(Some(json!({
+            "naming_revision": result.naming.revision().bytes(),
             "nomination": nomination,
             "admission": assessment,
             "candidates": result.candidates.iter().map(|candidate| json!({

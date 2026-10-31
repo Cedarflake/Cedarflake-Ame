@@ -4,9 +4,10 @@ use std::time::Instant;
 
 use rust_lib_cedarflake_ame::classification::{
     CategoryAdmissionCriteria, CategoryAdmissionPolicy, CategoryDefinition, CategoryId,
-    CategoryMatcher, ClassificationEncoderFactory, ClassificationEncoderResidency,
-    ClassificationFeatureRepository, ClassificationRevision, ConceptConsolidation, DiscoveryCohort,
-    ResidencyClock, Taxonomy, assess_category_candidates, prepare_classification_matcher,
+    CategoryMatcher, CategoryNaming, CategoryNamingPurpose, ClassificationEncoderFactory,
+    ClassificationEncoderResidency, ClassificationFeatureRepository, ClassificationRevision,
+    ConceptConsolidation, DiscoveryCohort, ResidencyClock, Taxonomy, assess_category_candidates,
+    prepare_classification_matcher,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -23,6 +24,15 @@ pub(super) struct Fixture {
     minimum_separation: f32,
     minimum_context_contrast: f32,
     max_proposals: usize,
+    #[serde(default)]
+    purpose: Option<Purpose>,
+}
+
+#[derive(Deserialize)]
+struct Purpose {
+    category_id: String,
+    label_pattern: String,
+    comparison_pattern: String,
 }
 
 #[derive(Deserialize)]
@@ -35,6 +45,7 @@ struct Category {
 pub(super) struct PreparedAdmission {
     pub(super) matcher: CategoryMatcher,
     pub(super) policy: CategoryAdmissionPolicy,
+    pub(super) naming: CategoryNaming,
 }
 
 pub(super) fn prepare<F: ClassificationEncoderFactory, C: ResidencyClock>(
@@ -64,6 +75,20 @@ pub(super) fn prepare<F: ClassificationEncoderFactory, C: ResidencyClock>(
             )
         })
         .collect::<std::result::Result<Vec<_>, _>>()?;
+    let naming = match fixture.purpose {
+        Some(purpose) => {
+            let category = categories
+                .iter()
+                .find(|category| category.id().as_str() == purpose.category_id)
+                .ok_or("Naming purpose is absent from the current categories")?;
+            CategoryNaming::WithinCategory(CategoryNamingPurpose::new(
+                category,
+                purpose.label_pattern,
+                purpose.comparison_pattern,
+            )?)
+        }
+        None => CategoryNaming::Unconditioned,
+    };
     let before = cache.feature_cache_stats()?;
     let started = Instant::now();
     let matcher = prepare_classification_matcher(
@@ -82,7 +107,11 @@ pub(super) fn prepare<F: ClassificationEncoderFactory, C: ResidencyClock>(
             "worker_retired": residency.resident_kind().is_none(),
         })
     );
-    Ok(PreparedAdmission { matcher, policy })
+    Ok(PreparedAdmission {
+        matcher,
+        policy,
+        naming,
+    })
 }
 
 impl PreparedAdmission {
