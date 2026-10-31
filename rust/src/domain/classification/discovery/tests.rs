@@ -100,3 +100,64 @@ fn invalid_cohorts_and_incompatible_features_fail_before_ranking() {
         Err(DiscoveryError::InvalidCohort)
     ));
 }
+
+#[test]
+fn member_evidence_keeps_an_unsupported_image_visible_and_stable_across_input_order() {
+    let members = [sample(2, vec![-1.0, 0.0]), sample(1, vec![1.0, 0.0])];
+    let comparison = [sample(3, vec![0.0, 1.0])];
+    let cohort = DiscoveryCohort::new(model(), &members, &comparison).unwrap();
+    let text = TextFeature {
+        identity: model().text_identity(),
+        description: ClassificationRevision::description("a specific activity"),
+        embedding: Embedding::normalized(vec![1.0, 0.0]).unwrap(),
+    };
+    let evidence = cohort.member_similarities(&text).unwrap();
+    assert_eq!(cohort.score(&text).unwrap().similarity, 0.0);
+    assert_eq!(
+        evidence,
+        vec![
+            ConceptMemberSimilarity {
+                content: members[1].content.clone(),
+                similarity: 1.0,
+            },
+            ConceptMemberSimilarity {
+                content: members[0].content.clone(),
+                similarity: -1.0,
+            },
+        ]
+    );
+    let reversed = [members[1].clone(), members[0].clone()];
+    assert_eq!(
+        DiscoveryCohort::new(model(), &reversed, &comparison)
+            .unwrap()
+            .member_similarities(&text)
+            .unwrap(),
+        evidence
+    );
+}
+
+#[test]
+fn member_evidence_rejects_an_incompatible_text_feature() {
+    let cohort = DiscoveryCohort::new(
+        model(),
+        &[sample(1, vec![1.0, 0.0])],
+        &[sample(2, vec![0.0, 1.0])],
+    )
+    .unwrap();
+    let mut text = TextFeature {
+        identity: model().text_identity(),
+        description: ClassificationRevision::description("a specific activity"),
+        embedding: Embedding::normalized(vec![1.0, 0.0]).unwrap(),
+    };
+    text.identity.pipeline = ClassificationRevision::from_bytes([9; 32]);
+    assert!(matches!(
+        cohort.member_similarities(&text),
+        Err(DiscoveryError::IncompatibleFeature)
+    ));
+    text.identity = model().text_identity();
+    text.embedding = Embedding::normalized(vec![1.0]).unwrap();
+    assert!(matches!(
+        cohort.member_similarities(&text),
+        Err(DiscoveryError::IncompatibleFeature)
+    ));
+}

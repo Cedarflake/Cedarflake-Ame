@@ -433,3 +433,59 @@ the corrected title branch, Flutter, native partitions, scan/accessibility integ
 workloads and unsigned Release. The three signing/release jobs are intentionally skipped. That run
 covers the preceding retrieval/cache and sidebar commits; consolidation requires its own pushed-head
 gate.
+
+### Automatic frontier diagnosis
+
+The complete photographic sense fixture applies the same lemma-plus-definition description to all
+lexical nodes, retaining the 3,921 entry concepts. The 21,803,744-byte input has SHA-256
+`0f35020ae37704d6dbab916f212a9e224e1dedc9e8a5b734993882c034a23abe`.
+The native diagnostic now allows a result-window choice within the existing 1–64 bound, independently
+of whether consolidation is enabled. With 64 results per ranking, the four-pass Release run takes
+342.141 seconds and peaks at 763,994,112 bytes. It adds 4,746 description features to the retained
+cache. B021 scores 4,545 concepts in 324.609 seconds and repeats in 1.422 seconds; B057 scores 4,136
+in 13.805 seconds and repeats in 1.213 seconds. No work bound is exhausted and every worker retires.
+Sense descriptions remove the earlier financial ambiguity but still favor specific materials and
+activities, including claims that the photographs cannot establish.
+
+A separate automatic-frontier diagnostic traverses broader relations to four hops from these
+nearest/distinctive results. It ranks eligible translated contexts by distinct lexical origins,
+with at most 32 selected per cohort, and uses the existing native consolidation path to rescore
+their own descriptions. The union contains 63 concepts; no category names are manually chosen for
+this run. Its 24,757,162-byte fixture has SHA-256
+`1775a047c72ffaea624fb100e4b62423ac88985d6bd102aed226e38252b365fc`.
+The complete run takes 9.313 seconds, peaks at 454,201,344 bytes and adds 21 cached descriptions.
+Cache-only repetitions take 1.508 and 1.354 seconds. The first returned names remain pipes for B021
+and schoolwork for B057; unrelated candidates also remain competitive. Dictionary labels contain
+ambiguous translations, and lexical-origin counts omit potentially useful contexts with few links.
+This frontier-selection policy is not admitted. Useful-name admission needs image-level coverage,
+competition and stable meaning; the number of related words cannot establish those properties.
+These checks reuse calibration features without original-media reads, held-out evaluation, another
+model, category publication or changes to human decisions.
+
+### Per-content consolidation evidence
+
+Consolidation now retains each member's own similarity and exact-content identity alongside the
+aggregate score. The domain keeps the existing combined 512-sample limit and sorts member evidence
+by content identity; matching input order does not become publication authority. Six cohort tests
+and twelve retrieval/consolidation tests pass. The new cases keep an unsupported member visible
+despite the aggregate, preserve identity/order, reject incompatible text pipelines and dimensions,
+and verify that the application reports the broader description's member scores.
+
+The Release probe reuses the unchanged automatic-frontier fixture and its 9,733 cache entries.
+Its four passes complete in 6.093 seconds with peak process-tree working set 75,042,816 bytes.
+B021 returns 104 image scores across 26 contexts; B057 returns 69 across 23. Content identities match
+the fixture's complete member sets, and each member mean agrees with its aggregate within `1e-7`.
+All prior candidate lists, scores and retrieval bounds are preserved exactly. No cache entry is
+added, no image is read or encoded, and every pass retires its worker. Per-pass consolidation time
+including member evidence is 12–19 ms; these are cache-only observations, not cold-model timings.
+
+Member evidence enables subsequent coverage and competition checks. It does not admit the rejected
+frontier policy or make raw similarity a probability. Existing categories and human decisions remain
+unchanged. The comparison record is retained as `native-member-comparison.json` beside the probe
+outputs in ignored discovery storage.
+
+| Affected owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Discovery concepts and cohort scoring | 235 | 0 | 163 |
+| Consolidation lifecycle | 179 | 0 | 247 |
+| Native discovery diagnostic | 329 | 0 | Uses the production retrieval/consolidation/cache boundaries |

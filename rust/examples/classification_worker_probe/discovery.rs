@@ -33,6 +33,8 @@ struct Fixture {
     cohorts: Vec<Cohort>,
     #[serde(default)]
     frontier: Vec<String>,
+    #[serde(default)]
+    results: Option<usize>,
 }
 
 #[derive(Deserialize)]
@@ -209,7 +211,9 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
         edges: 65_536,
         hops: 2,
         seeds: 16,
-        results: if frontier.is_empty() { 12 } else { 64 },
+        results: fixture
+            .results
+            .unwrap_or(if frontier.is_empty() { 12 } else { 64 }),
     };
     for cohort in fixture.cohorts {
         let load = |identities: &[String]| -> Result<Vec<DiscoverySample>> {
@@ -234,8 +238,15 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
                 })
                 .collect()
         };
+        let member_features = load(&cohort.members)?;
+        let member_ids: BTreeMap<_, _> = member_features
+            .iter()
+            .zip(&cohort.members)
+            .map(|(sample, id)| (sample.content.digest, id))
+            .collect();
         let cohort_features =
-            DiscoveryCohort::new(model, &load(&cohort.members)?, &load(&cohort.comparison)?)?;
+            DiscoveryCohort::new(model, &member_features, &load(&cohort.comparison)?)?;
+        drop(member_features);
         for round in 0..2 {
             let started = Instant::now();
             let before = cache.feature_cache_stats()?;
@@ -274,6 +285,10 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
                         "similarity": candidate.candidate.scores.similarity,
                         "contrast": candidate.candidate.scores.contrast,
                         "narrower_concepts": candidate.narrower_concepts.len(),
+                        "members": candidate.member_similarities.iter().map(|member| json!({
+                            "id": member_ids[&member.content.digest],
+                            "similarity": member.similarity,
+                        })).collect::<Vec<_>>(),
                     })).collect::<Vec<_>>(),
                     "unresolved_concepts": result.unresolved_concepts.len(),
                     "visited_edges": result.visited_edges,

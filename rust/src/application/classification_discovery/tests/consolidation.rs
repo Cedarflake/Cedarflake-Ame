@@ -106,6 +106,9 @@ fn shared_context_is_rescored_instead_of_inheriting_narrow_names_or_duplicate_vo
     assert_eq!(candidate.narrower_concepts, vec![id(1), id(3)]);
     assert_eq!(candidate.candidate.scores.similarity, 0.0);
     assert_eq!(candidate.candidate.scores.contrast, -1.0);
+    assert_eq!(candidate.member_similarities.len(), 1);
+    assert_eq!(candidate.member_similarities[0].content.digest, [1; 32]);
+    assert_eq!(candidate.member_similarities[0].similarity, 0.0);
     assert_eq!(result.unresolved_concepts, vec![id(6)]);
     assert_eq!(&*harness.calls.encoded.borrow(), &["a room"]);
     assert_eq!(harness.calls.retires.get(), 1);

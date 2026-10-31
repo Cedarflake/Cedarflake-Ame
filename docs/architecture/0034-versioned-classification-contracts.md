@@ -95,7 +95,13 @@ definitions or changed cohort/model/vocabulary authority reject the proposal.
 
 Each reached context is scored again using its own description and the retained image cohort.
 Narrower-concept scores are not inherited, and multiple related words do not count as additional
-images or establish confidence. Unresolved concepts remain explicit. The result binds the original
+images or establish confidence. The cohort also retains its member embeddings within the existing
+512-sample/4,096-dimension limits: at most 511 member vectors, below 8 MiB of vector storage, or
+approximately 1.5 MiB for the selected 768-dimensional encoder. Consolidation returns each member's
+own similarity, bound to its exact content identity and ordered independently of the input. This
+keeps weak or conflicting members visible to admission policy rather than hiding them behind a mean;
+it adds no source reads or image inference and does not establish a confidence threshold.
+Unresolved concepts remain explicit. The result binds the original
 retrieval revision and limits, naming frontier, consolidation revision and resource limits. Text
 features use the shared cache and supervised encoder; every terminal path retires description work.
 This owner returns naming evidence and has no category-write or human-decision authority. Selection

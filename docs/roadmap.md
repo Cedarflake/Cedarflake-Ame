@@ -139,8 +139,11 @@ per-entry commit overhead while preserving candidate scores, cancellation and co
 Useful-name admission and category maintenance remain required before automatic first-use integration.
 Native semantic consolidation now follows broader contexts and independently scores their
 descriptions, retaining unresolved concepts and bounded work. The retained calibration probe returns
-useful construction and child-play contexts; its fixture-supplied frontier is exploratory. Automatic
-frontier selection and category admission remain the next R5-02 policy boundary.
+useful construction and child-play contexts; its fixture-supplied frontier is exploratory.
+Per-content evidence now preserves individual members alongside the aggregate. Automatic frontier
+selection based on lexical-origin counts still favors parts and unsupported meanings; it is not
+admitted. Image-level coverage/competition, useful-name admission and category maintenance remain
+the next R5-02 policy boundary.
 Card review
 indicators, image context-menu commands, continuation and real-client acceptance remain in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;

@@ -2,7 +2,9 @@ use std::collections::BTreeSet;
 use std::sync::atomic::AtomicBool;
 
 use crate::domain::ScanError;
-use crate::domain::classification::discovery::{ConceptId, DiscoveryCohort};
+use crate::domain::classification::discovery::{
+    ConceptId, ConceptMemberSimilarity, DiscoveryCohort,
+};
 use crate::domain::classification::{ClassificationRevision, ModelCompatibility};
 use crate::ports::classification_encoder::ClassificationEncoderFactory;
 use crate::ports::classification_features::ClassificationFeatureRepository;
@@ -34,6 +36,7 @@ pub struct ConceptConsolidationRequest<'a> {
 #[derive(Debug, PartialEq)]
 pub struct ConsolidatedConcept {
     pub candidate: ConceptMatch,
+    pub member_similarities: Vec<ConceptMemberSimilarity>,
     pub narrower_concepts: Vec<ConceptId>,
 }
 
@@ -119,6 +122,9 @@ fn consolidate<F: ClassificationEncoderFactory, C: ResidencyClock>(
                 concept: concept.clone(),
                 scores,
             },
+            member_similarities: cohort.member_similarities(feature).map_err(|error| {
+                ScanError::new("classification_feature_mismatch", error.to_string())
+            })?,
             narrower_concepts: narrower.into_iter().collect(),
         });
     }

@@ -68,6 +68,7 @@ impl VocabularyConcept {
     }
 }
 
+#[derive(Clone)]
 pub struct DiscoverySample {
     pub content: ClassificationContent,
     pub feature: ImageFeature,
@@ -76,7 +77,8 @@ pub struct DiscoverySample {
 pub struct DiscoveryCohort {
     model: ModelCompatibility,
     revision: ClassificationRevision,
-    members: Vec<f64>,
+    member_mean: Vec<f64>,
+    member_samples: Vec<DiscoverySample>,
     comparison: Vec<f64>,
 }
 
@@ -120,10 +122,19 @@ impl DiscoveryCohort {
                 .iter()
                 .map(|identity| identity.bytes().as_slice()),
         );
+        let mut member_samples = members.to_vec();
+        member_samples.sort_by(|left, right| {
+            left.content
+                .scheme
+                .cmp(&right.content.scheme)
+                .then_with(|| left.content.digest.cmp(&right.content.digest))
+                .then_with(|| left.content.byte_length.cmp(&right.content.byte_length))
+        });
         Ok(Self {
             model,
             revision,
-            members: mean_feature(model.dimensions(), members),
+            member_mean: mean_feature(model.dimensions(), members),
+            member_samples,
             comparison: mean_feature(model.dimensions(), comparison),
         })
     }
@@ -137,12 +148,8 @@ impl DiscoveryCohort {
     }
 
     pub fn score(&self, feature: &TextFeature) -> Result<ConceptSimilarity, DiscoveryError> {
-        if feature.identity != self.model.text_identity()
-            || feature.embedding.values().len() != self.model.dimensions()
-        {
-            return Err(DiscoveryError::IncompatibleFeature);
-        }
-        let similarity = mean_cosine(&self.members, feature);
+        self.validate_text(feature)?;
+        let similarity = mean_cosine(&self.member_mean, feature);
         let context_similarity = mean_cosine(&self.comparison, feature);
         Ok(ConceptSimilarity {
             similarity,
@@ -150,6 +157,41 @@ impl DiscoveryCohort {
             contrast: similarity - context_similarity,
         })
     }
+
+    pub fn member_similarities(
+        &self,
+        feature: &TextFeature,
+    ) -> Result<Vec<ConceptMemberSimilarity>, DiscoveryError> {
+        self.validate_text(feature)?;
+        self.member_samples
+            .iter()
+            .map(|sample| {
+                Ok(ConceptMemberSimilarity {
+                    content: sample.content.clone(),
+                    similarity: sample
+                        .feature
+                        .embedding
+                        .cosine(&feature.embedding)
+                        .map_err(|_| DiscoveryError::IncompatibleFeature)?,
+                })
+            })
+            .collect()
+    }
+
+    fn validate_text(&self, feature: &TextFeature) -> Result<(), DiscoveryError> {
+        if feature.identity != self.model.text_identity()
+            || feature.embedding.values().len() != self.model.dimensions()
+        {
+            return Err(DiscoveryError::IncompatibleFeature);
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ConceptMemberSimilarity {
+    pub content: ClassificationContent,
+    pub similarity: f32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
