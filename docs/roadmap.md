@@ -150,10 +150,11 @@ own member coverage, broader relations and naming applicability. Per-member comp
 name pruning; the cache-only probes preserve the code proposal and defer overbroad repair/play
 proposals while retaining existing categories. The completed 28-cohort shared-media check exposes
 over-specific lexical names and lost image purpose. Purpose-bound composition now independently scores
-complete descriptions and excludes other-purpose members; the six-cohort check retains image purpose
-but still finds overly specific scene/interface names and missing local labels. Complete useful naming,
-then calibrate the operating profile and connect guarded category maintenance before first-use
-integration; score-cutoff changes alone do not resolve the naming gap.
+complete descriptions and excludes other-purpose members. Complete broader-ancestor selection now
+crosses unsupported intermediates within explicit work bounds; its six-cohort check also exposes
+overly broad lexical names. Establish application-owned whole-image naming contexts and useful local
+labels separately from retrieval vocabulary, then calibrate the operating profile and connect guarded
+category maintenance before first-use integration; score-cutoff changes alone do not resolve this gap.
 Card review
 indicators, image context-menu commands, continuation and real-client acceptance remain in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;

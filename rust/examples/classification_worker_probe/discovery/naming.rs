@@ -126,6 +126,7 @@ impl Naming {
                     "eligible_concepts": result.eligible_concepts,
                     "subsumed_concepts": result.subsumed_concepts,
                     "candidate_limit_reached": result.candidate_limit_reached,
+                    "ancestry_edges": result.ancestry_edges,
                 });
                 (result.contexts, Some(counts))
             }

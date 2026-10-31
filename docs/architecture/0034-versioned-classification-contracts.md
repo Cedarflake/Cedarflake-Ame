@@ -121,7 +121,11 @@ revision; it does not alter the description's feature key or define a fixed prod
 
 The admission profile supplies the minimum repeated-content support, coverage, improvement and
 contextual contrast for nomination. A qualifying broader context subsumes finer ones only when its
-own description covers all their supported members. Closed relation cycles do not erase every
+own description covers all their supported members. This comparison follows every already-resolved
+broader ancestor, including paths through inapplicable or unsupported intermediate concepts; those
+intermediates contribute no scores or support. Per-origin visited sets prevent repeated expansion,
+and ancestor-edge work has the same explicit edge ceiling as context traversal. Exhaustion rejects
+selection without returning a partial name set. Closed relation cycles do not erase every
 candidate. Remaining contexts are selected by additional member coverage, mean supporting improvement,
 context contrast and stable identity. Each addition must cover the profile's minimum number of
 previously uncovered members, preventing closely overlapping descriptions from multiplying categories.

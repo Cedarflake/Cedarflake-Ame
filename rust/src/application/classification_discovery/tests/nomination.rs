@@ -394,6 +394,39 @@ fn exhausted_graph_work_rejects_nomination_before_encoding() {
 }
 
 #[test]
+fn exhausted_ancestor_selection_retires_the_worker_without_publishing_partial_names() {
+    let mut harness = Harness::new();
+    harness
+        .retrieved
+        .nearest
+        .retain(|candidate| candidate.concept.id() == id(4));
+    harness.retrieved.distinctive = harness.retrieved.nearest.clone();
+    for description in ["a detail", "a workshop", "a room", "a classroom"] {
+        harness
+            .calls
+            .features
+            .borrow_mut()
+            .insert(description.into(), vec![1.0, 0.0]);
+    }
+    let error = harness
+        .nominate(
+            64,
+            ConceptConsolidationLimits {
+                edges: 4,
+                ..context_limits()
+            },
+            &AtomicBool::new(false),
+        )
+        .err()
+        .unwrap();
+    assert_eq!(error.code, "classification_discovery_limit");
+    assert_eq!(harness.calls.encoded.borrow().len(), 4);
+    assert_eq!(harness.cache.feature_cache_stats().unwrap().entries, 4);
+    assert_eq!(harness.calls.retires.get(), 1);
+    assert!(harness.residency.resident_kind().is_none());
+}
+
+#[test]
 fn changed_retrieval_or_vocabulary_cannot_nominate_categories() {
     let mut harness = Harness::new();
     harness.retrieved.cohort_revision = revision(9);

@@ -42,6 +42,7 @@ pub struct ConceptNomination {
     pub eligible_concepts: usize,
     pub subsumed_concepts: usize,
     pub candidate_limit_reached: bool,
+    pub ancestry_edges: usize,
 }
 
 pub fn nominate_classification_contexts<F: ClassificationEncoderFactory, C: ResidencyClock>(
@@ -152,7 +153,8 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
         &graph.parents,
         policy.criteria().minimum_members,
         max_candidates,
-    );
+        limits.edges,
+    )?;
     check_cancelled(cancelled)?;
     let selected: BTreeSet<_> = selection.selected.iter().copied().collect();
     let descriptions: Vec<_> = selection
@@ -207,7 +209,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     let relatedness = minimum_context_relatedness.to_le_bytes();
     let naming_revision = naming.revision();
     let frontier_revision = ClassificationRevision::derive(
-        "ame.classification.automatic-context-frontier.v5",
+        "ame.classification.automatic-context-frontier.v6",
         [
             taxonomy_revision.bytes().as_slice(),
             policy_revision.bytes().as_slice(),
@@ -224,6 +226,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
         eligible_concepts,
         subsumed_concepts: selection.subsumed,
         candidate_limit_reached: selection.candidate_limit_reached,
+        ancestry_edges: selection.ancestry_edges,
         contexts: ConceptConsolidation {
             naming: naming.clone(),
             comparison_policy: ContextComparisonPolicy::DistinctContexts {
@@ -236,7 +239,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
             retrieval_limits: retrieved.limits,
             frontier_revision,
             consolidation_revision: ClassificationRevision::derive(
-                "ame.classification.automatic-context-nomination.v5",
+                "ame.classification.automatic-context-nomination.v6",
                 std::iter::empty(),
             ),
             limits,

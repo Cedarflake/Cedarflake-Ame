@@ -752,3 +752,44 @@ Ignored `native-purpose-*` records retain raw evidence, resource measurements an
 | Discovery concepts / naming purpose | 290 / 132 | 0 | Existing 179 / new 167 |
 | Nomination / candidate assessment | 293 / 310 | 0 | 423 plus new 181 / 417 |
 | Native diagnostic / naming / assessment | 339 / 156 / 170 | 0 | Exercises the production composition and admission boundaries |
+
+### Broader ancestry across unsupported intermediates
+
+A bounded 23-description diagnosis compares the retained scores behind the problematic names. It
+reuses the three code, fox-artwork and cat-sticker cohorts, adding seven missing text features but no
+image inference or source reads. The fox description improves on the current category for all four
+artwork members, as does silver fox; the intermediate red-fox description covers only two. The
+previous selector considered only immediate qualifying parents, so this intermediate prevented the
+broader fox concept from subsuming the finer name. The code comparison also finds support for all
+seven members under a programming description, with mean similarity 0.149637 versus 0.149516 for
+compiler. That useful topic does not follow the retrieved software-type ancestry; higher scores alone
+cannot supply the missing whole-image naming relation.
+
+Selection now visits all already-resolved broader ancestors through unsupported intermediates,
+requiring the selected ancestor's own member coverage throughout. Per-origin visited sets preserve
+cycles without erasing every candidate. The shared explicit edge limit bounds this additional work;
+exhaustion returns no partial selection and retires the description worker while keeping completed
+cache entries. Forty-one application regressions and the Release probe build pass, including three
+new coverage/cycle/limit cases and the terminal worker/cache boundary. Formatting reports no changes.
+
+The same six purpose fixtures complete all 12 passes with unchanged raw retrieval, repeatable
+evidence, zero new text features and retired workers. Ancestor work is 4,982, 8,506, 4,041, 437, 484
+and zero edges for B001, B151, B186, B132, B075 and B191 respectively, below the 65,536 ceiling.
+Four batches take 18.578 seconds in total and peak at 80,134,144 bytes. The build retains unrelated
+native worktree changes; committed-tree verification remains with hosted CI.
+
+Complete ancestry exposes overly broad eligible vocabulary as well as removing narrow labels:
+B001 proposes `chordate表情` for three of four members, B132 proposes `coding system截图` for seven
+of seven, and B075 proposes `语言截图` for two of four. B151's `discord表情` and B186's
+`secretaryship插画` retain zero supporters and are deferred; B191 still proposes nothing. The repair
+establishes the traversal invariant, while this exploratory raw-lexical naming policy remains
+unadmitted. Whole-image topic authority and useful local labels must constrain displayable candidates
+independently of the much wider retrieval vocabulary. Existing categories and human choices remain
+untouched; these numerical proposals do not reach smart albums.
+
+Ignored `native-ancestry-*` records retain the unchanged fixture hashes, resource and binary digests,
+and checked evidence. The bounded score diagnosis is retained as `native-purpose-ranking-*`, with
+fixture SHA-256 `8c14a0b9ba99d93f0d3db238319b0b34103a7196d5a011be0874a0d14303034b`.
+The selection owner has 145 production and 109 inline-test lines; nomination has 296 production
+lines with 456 existing and 181 purpose-specific dedicated-test lines. The naming diagnostic has
+157 production lines.
