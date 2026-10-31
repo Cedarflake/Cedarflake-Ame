@@ -156,10 +156,12 @@ overly broad lexical names. Managed context composition now separates local nami
 raw retrieval cues, preserving the existing bounded scoring and purpose checks. Topic competition
 compares original context descriptions while retaining purpose-qualified image scores. The targeted
 comparison excludes the two cat members from the portrait candidate while preserving the supported
-cat, artwork and code cohorts; panda-face naming remains unresolved. Broader collection coverage,
-context applicability and the operating profile still need calibration, followed by guarded category
-maintenance before first-use integration; an enlarged fixed context list alone does not close that
-requirement.
+cat, artwork and code cohorts. The broader 28-cohort comparison selects a three-content recurrence
+candidate for maintenance, preserving four useful distinctions while deferring the demonstrated
+portrait/code-artwork errors and useful but sparse two-content candidates. Complete guarded category
+maintenance with stable identities, cumulative budgets, overlap handling and human-choice preservation,
+then connect first use. Context coverage and integrated human-work verification remain explicit;
+an enlarged fixed context list alone does not close that requirement.
 Card review
 indicators, image context-menu commands, continuation and real-client acceptance remain in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;

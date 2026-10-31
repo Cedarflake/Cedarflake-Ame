@@ -1,0 +1,52 @@
+{
+  "status": "calibration_candidate",
+  "source_commit": "05fe07710c26f00b8337910aff3c1993679d8813",
+  "context_fixture": "r5-naming-contexts.json",
+  "context_fixture_sha256": "baa23594bed2a95b51c288f65ebb7d4f0b0e4b8957092c101ff78b9f22d23834",
+  "cohort_minimum_pair_cosine": 0.75,
+  "nomination": {
+    "algorithm_revision": "ame.classification.automatic-context-nomination.v7",
+    "max_candidates": 64,
+    "minimum_context_relatedness": 0.9
+  },
+  "admission": {
+    "minimum_members": 3,
+    "coverage_per_thousand": 500,
+    "minimum_improvement": 0.0,
+    "minimum_separation": 0.0,
+    "minimum_context_contrast": 0.0,
+    "max_proposals": 8
+  },
+  "purposes": [
+    {
+      "category_id": "illustration",
+      "label_pattern": "{subject}插画",
+      "comparison_pattern": "an anime illustration or digital artwork featuring {subject}"
+    },
+    {
+      "category_id": "comic",
+      "label_pattern": "{subject}漫画",
+      "comparison_pattern": "a manga or comic page with panels or narrative dialogue featuring {subject}"
+    },
+    {
+      "category_id": "meme",
+      "label_pattern": "{subject}表情",
+      "comparison_pattern": "a chat reaction sticker or internet meme featuring {subject}"
+    },
+    {
+      "category_id": "screenshot",
+      "label_pattern": "{subject}截图",
+      "comparison_pattern": "a screenshot of a phone or computer screen showing {subject}"
+    },
+    {
+      "category_id": "photo",
+      "label_pattern": "{subject}照片",
+      "comparison_pattern": "a real camera photograph showing {subject}"
+    },
+    {
+      "category_id": "other",
+      "label_pattern": "{subject}资料",
+      "comparison_pattern": "a document or informational graphic about {subject}"
+    }
+  ]
+}

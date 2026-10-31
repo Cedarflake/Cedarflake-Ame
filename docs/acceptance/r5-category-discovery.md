@@ -902,3 +902,63 @@ Their dedicated admission and purpose tests have 417 and 347 lines. There are no
 runtime, dependency or source-read changes. Ignored `native-views-*`, `topic-views-reached.json` and
 `native-topic-competition-*` retain the diagnosis, repeated comparison, unchanged managed-fixture
 hashes and binary digests; `prepare_topic_views.py` and `check_topic_competition.py` retain the checks.
+
+### Managed-context coverage and recurrence candidate
+
+The broader comparison reuses all 28 retained complete-link cohorts at the unchanged 0.75 threshold:
+139 of 236 distinct calibration contents, with the other 97 outside the recurring cohorts. Current
+model assignments select the eligible purpose, requiring at least two members and half the cohort;
+provisional reference labels select neither groups nor purposes. All 28 cohorts have one eligible
+purpose: ten illustration, two comic, five reaction, eight screenshot, two photographic and one
+other-content cohort. The six preceding diagnostic cohorts are included without changing their
+samples. No held-out data, original media or new image inference is used.
+
+The frozen 42-context catalog and existing four purpose patterns remain unchanged. Photographic
+and comic contexts use the additional patterns recorded in the
+[candidate profile](fixtures/r5-naming-profile.json). These are calibration compositions, not an
+active fixed category scheme. With the original two-content support criterion, ten candidates are
+proposed with 31 supporting contents. Direct inspection of retained B013 and B166 thumbnails shows
+character artwork against buildings or lanterns, not the proposed `代码插画`. B144 contains foliage
+around a character without establishing the `树林插画` scene. B027 and B234 do visibly show group
+photographs. These are targeted naming observations, not independently corrected user labels.
+
+The recurrence comparison changes only minimum support from two to three distinct contents and
+reruns complete nomination and admission. It does not merely filter the previous winners: eligibility,
+selection and competing evidence can all depend on support. Descriptions, raw retrieval, context
+definitions, model, purpose assignments, 50% coverage, strict-positive gain/separation/contrast and
+the eight-proposal ceiling stay unchanged. Its proposed additions are:
+
+| Cohort | Candidate | Supporting contents |
+| --- | --- | ---: |
+| B186 | `兽耳角色插画` | 4 of 4 |
+| B042 | `兽耳角色表情` | 5 of 6 |
+| B151 | `猫咪表情` | 3 of 3 |
+| B132 | `代码截图` | 7 of 7 |
+
+Nineteen contents support these four candidates. The remaining 120 cohort members retain their
+existing broad assignments, as do contents outside the recurring cohorts. The portrait-reaction
+candidate still appears in evidence but has only two supporters and is deferred. The code-artwork
+candidate no longer meets nomination support. The threshold also defers useful two-supporter
+construction and group-photo candidates, along with forest-artwork and game-screenshot candidates;
+new independent content can supply further recurrence. It creates no mandatory confirmation work.
+
+Select the three-content profile as the bounded candidate for guarded maintenance implementation.
+It reduces speculative additions on this calibration set while preserving the four supported
+distinctions. The four observed additions are not a prescribed category count. This selection is
+not an accuracy percentage, a confidence band or proof that every purpose/topic combination is
+useful; it leaves first-use publication, cumulative scheme budgets, overlap/retirement handling,
+human-choice preservation and integrated human-work verification with their owning requirements.
+No automatic category changes are enabled by this calibration record.
+
+Both comparisons complete 56 repeatable passes within all work bounds and retire every worker.
+The coverage run adds 29 text features, takes 91.422 seconds over six batches and peaks at
+788,221,952 bytes of process-tree working set. The three-content run adds no features, takes
+86.376 seconds and peaks at 82,804,736 bytes. Image/source reads remain zero. The native code is
+`05fe0771`; binaries retain unrelated worktree changes as in the preceding diagnostic. No product
+code, model, runtime or numerical score cutoff changes in this comparison.
+
+Ignored `native-managed-coverage-*` and `native-managed-profile3-*` retain inputs, raw results,
+resource records, binary/fixture hashes and checked summaries. `prepare_managed_coverage.py`,
+`prepare_managed_profile.py` and `check_managed_coverage.py` preserve preparation and assertions.
+The profile probe reuses one bounded temporary fixture path serially; each purpose's exact payload
+is reproducible from its retained source fixture and hashed preparation record.
