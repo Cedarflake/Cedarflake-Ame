@@ -160,6 +160,11 @@ without ending the desktop session or modifying sources. Focused tests cover con
 arrival, stale publication, starvation, foreground yielding, manual pause after restart, virtual-clock
 residency, worker termination, suspend/resume, and rule-only rematching without image inference.
 
+Retain completed runtime and local foreground measurements when advancing to the query and desktop
+slices. The paired cloud-primary browsing/classification comparison runs with the connected workflow
+in R5-07 and remains required before merge; it does not require an intermediate client run before
+R5-05. Revalidate retained package, model and fixture compatibility before that measurement.
+
 ## R5-05: Smart-album projections and coherent queries
 
 Depends on R5-03 and R5-04.
@@ -213,6 +218,8 @@ Depends on all earlier slices and reuses their valid evidence.
    Keep calibration data separate from final evaluation and include purpose/content overlap cases.
 3. Measure large-library bounded queries and two-core/8-GiB analysis while browsing and viewing.
    Record cold/warm conditions, source reads, memory/model storage, and worker cancellation/recovery.
+   Complete the paired cloud-primary foreground comparison here, reusing applicable local evidence
+   and retained test assets instead of repeating unchanged runtime-admission checks.
 4. Follow the repository's hosted exact-commit gates and scoped local desktop/source-safe verification.
    Retain completed R4 results and run only affected regression boundaries when their inputs change.
 5. Record actual evidence and remaining gaps in acceptance records, then update the roadmap's exit

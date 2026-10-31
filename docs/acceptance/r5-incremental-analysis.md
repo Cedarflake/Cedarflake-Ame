@@ -626,8 +626,13 @@ case measures 61/9 ms across two invocations, and the new cases reject wrong own
 results, assertion failures and a blocked invocation. Request validation rejects stale sequence,
 unknown phase, invalid process identity and escaping result paths. Output checks verify delayed
 writer completion, bounded lock failure and unchanged evidence. PowerShell syntax and diff whitespace
-checks pass. The integrated native interaction for this new session remains assigned to its next
-exact-head hosted gate; the earlier passing job used the previous per-phase process lifetime.
+checks pass. At `1590e2be`, the native Windows job in
+[run 41157554079](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41157554079) passes all
+ten interaction phases using the same process as preparation. Application-ready takes 3,095 ms,
+including 1,267 ms in its client-loading stage; subsequent assembly-loading stages take 1–3 ms.
+All phases remain within their parent deadline. The complete run has no assertion or cleanup error,
+confirms application exit/job closure, and removes its owned scratch storage. This result verifies
+the new session in hosted native interaction without claiming that every first-use cost disappeared.
 
 | Owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |

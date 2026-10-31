@@ -117,13 +117,16 @@ cancellation/resumption owner; targeted native events verify loaded-worker retir
 manual pause and feature reuse. The real-client case also covers the memory-pressure cooldown
 across configuration changes. A local-primary Profile comparison now exercises actual scrolling and
 original-image viewing while classification advances, including pause/resume and bounded resource
-sampling. The paired cloud-primary measurement remains in R5-04. The current-head hosted gate also
-requires the corrected archive regressions and the UIA session/output-retirement changes to pass
-their hosted gates. The preceding archive-only head passes the unchanged Windows Accessibility job.
+sampling. Continue with R5-05 smart-album queries, followed by R5-06 desktop review. Complete the
+paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;
+it remains a pre-merge acceptance condition. Reuse the retained runtime and measurement assets
+after checking their compatibility. The current-head hosted gate still requires the corrected
+archive regressions to pass. The UIA session and
+output-retirement changes pass the native Windows Accessibility job.
 The optional-review tradeoff and unsupported confidence
 bands remain explicit in the
 [calibration record](acceptance/r5-calibration.md). Integrated scheduling, foreground interference
-and actual human-work measurements retain their R5-04/R5-07 gates.
+and actual human-work measurements retain their R5-07 acceptance gates.
 The separate deferred rendering follow-up retains its bounded scope and does not reopen R4 verification.
 
 The requested notification maintenance standardizes bottom feedback and image-preview top notices
