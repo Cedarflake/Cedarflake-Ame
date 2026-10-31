@@ -12,11 +12,10 @@ use crate::ports::classification_vocabulary::ClassificationVocabulary;
 
 use super::super::classification_features::load_or_encode_descriptions;
 use super::super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
+use super::context_graph::{self, limit_error};
 use super::{
     ConceptMatch, ConceptSearchLimits, DiscoveryCandidates, check_cancelled, check_revision,
 };
-
-mod frontier;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ConceptConsolidationLimits {
@@ -102,7 +101,7 @@ fn consolidate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     }
     let revision = retrieved.vocabulary_revision;
     check_revision(vocabulary, revision)?;
-    let resolved = frontier::resolve(request, vocabulary, cancelled)?;
+    let resolved = context_graph::resolve(request, vocabulary, cancelled)?;
     let descriptions: Vec<_> = resolved
         .groups
         .keys()
@@ -169,11 +168,4 @@ fn consolidate<F: ClassificationEncoderFactory, C: ResidencyClock>(
         unresolved_concepts: resolved.unresolved,
         visited_edges: resolved.visited_edges,
     })
-}
-
-fn limit_error() -> ScanError {
-    ScanError::new(
-        "classification_discovery_limit",
-        "Concept consolidation requires complete retrieval within its resource limits",
-    )
 }

@@ -6,8 +6,9 @@ pub use crate::application::classification_discovery::{
     CategoryAdmission, CategoryAdmissionCandidate, CategoryAdmissionCriteria,
     CategoryAdmissionDisposition, CategoryAdmissionPolicy, CategoryMemberEvidence,
     ConceptConsolidation, ConceptConsolidationLimits, ConceptConsolidationRequest, ConceptMatch,
-    ConceptSearchBound, ConceptSearchLimits, ConsolidatedConcept, DiscoveryCandidates,
-    MemberAdmission, assess_category_candidates, consolidate_classification_concepts,
+    ConceptNomination, ConceptNominationRequest, ConceptSearchBound, ConceptSearchLimits,
+    ConsolidatedConcept, DiscoveryCandidates, MemberAdmission, assess_category_candidates,
+    consolidate_classification_concepts, nominate_classification_contexts,
     retrieve_classification_concepts,
 };
 pub use crate::application::classification_dispatch::{
@@ -31,8 +32,8 @@ pub use crate::application::classification_screening::{
 pub use crate::application::classification_verification::verify_classification_source;
 pub use crate::domain::ScanError;
 pub use crate::domain::classification::discovery::{
-    ConceptId, ConceptMemberSimilarity, ConceptSimilarity, DiscoveryCohort, DiscoveryError,
-    DiscoverySample, VocabularyConcept,
+    ConceptId, ConceptMemberSimilarity, ConceptNamingScope, ConceptSimilarity, DiscoveryCohort,
+    DiscoveryError, DiscoverySample, VocabularyConcept,
 };
 pub use crate::domain::classification::work::{
     ClassificationAnalysisResult, ClassificationBacklogPage, ClassificationDispatchCommand,

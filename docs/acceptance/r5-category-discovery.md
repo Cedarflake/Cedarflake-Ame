@@ -537,3 +537,58 @@ profile before integration; do not infer broad quality from these three provisio
 | Candidate assessment / immutable profile | 283 / 70 | 0 | 349 |
 | Discovery concepts and cohort scoring | 239 | 0 | Existing 163 |
 | Native discovery diagnostic / assessment diagnostic | 342 / 135 | 0 | Exercises production matching, retrieval and assessment |
+
+### Automatic context nomination
+
+The native nomination owner now collects broader contexts without a supplied frontier, scores their
+own descriptions against existing assignments, and selects bounded additional member coverage.
+Qualifying broader descriptions subsume finer ones only when they retain those members; closed
+relation cycles preserve a candidate. The shared graph owner retains the existing frontier traversal
+for callers that explicitly supply one. Thirty-one application and seven domain regressions pass,
+including unchanged consolidation, cache reuse, cancellation, work limits, current-taxonomy retention,
+scope authority and traversal through concepts that cannot become category names. Release builds
+without warnings. This establishes the native evidence boundary, not a product operating profile.
+
+The first automatic probe retained up to 64 high-coverage contexts independently. Similar names split
+support and no candidate passed final admission. Coverage-aware subsumption retained code and play
+contexts, but also selected the abstract `上限` sense of ceiling. Filtering only lexical domains did
+not remove it: the vocabulary places that sense in communication, with economic policy and reasoning
+ancestors. The final adapter fixture excludes senses in abstract domains and their descendants from
+naming, while preserving their graph paths. Naming scope belongs to the concept revision; admission
+also rejects traversal-only concepts. Description features remain reusable.
+
+The final fixtures retain 59,756 naming candidates and 22,359 traversal-only concepts. They use the
+same calibration samples, descriptions and exploratory admission profile as the preceding assessment,
+with no supplied category frontier. Photo fixture SHA-256 is
+`d5b0c827962634d04ba59acce1bd40bce33c27489ab0732b9e9f3392e0cb5944`; code fixture SHA-256 is
+`a3741296357861090d249a9475565a678a61848ade4927c96570834805d3196b`.
+
+| Cohort | Reached / nameable / eligible contexts | Selected name | Supported contents | First / repeated pass |
+| --- | ---: | --- | ---: | ---: |
+| B021, interior photographs | 167 / 129 / 115 | `repair` | 4 of 4 | 1.085 / 1.052 s |
+| B057, play/desk photographs | 172 / 145 / 106 | `游戏` | 3 of 3 | 1.121 / 1.505 s |
+| B132, code screenshots | 164 / 116 / 18 | `代码` | 6 of 7 | 0.889 / 0.874 s |
+
+The four photo passes take 5.234 seconds and peak at 79,007,744 bytes; the two code passes take
+2.313 seconds and peak at 71,344,128 bytes. Nomination plus assessment adds 31–67 ms per pass after
+retrieval. All 10,337 cached features are reused, repeated decisions and member evidence agree exactly,
+and earlier retrieval results remain unchanged. Resource limits are respected and workers retire.
+These cache-only runs read no original media or held-out samples and publish no categories or human
+decisions. Inputs, failed variants and checked output remain in ignored discovery storage under
+`native-automatic-*`, `native-frontier-*`, `native-nameable-*`, `native-grounded-*` and
+`native-nomination-comparison.json`.
+
+Support here means improvement over the retained comparison descriptions, not verified correctness.
+The completed corridor remains inside the repair proposal, and the desk remains inside play;
+the untranslated `repair` label also needs naming coverage. B219 retains its existing classification.
+The code fixture still uses term-only descriptions, whereas the photo fixture includes definitions.
+These observations narrow the remaining operating-profile, localized naming and useful-scene policy
+work; they do not establish broad automatic naming quality or a final accuracy percentage.
+
+| Affected owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Nomination / coverage selection | 249 / 127 | 0 / 54 | 326 |
+| Shared context graph / consolidation | 164 / 171 | 0 | Existing 247 |
+| Candidate assessment | 284 | 0 | 362 |
+| Discovery concepts and cohort scoring | 260 | 0 | 179 |
+| Native diagnostic / naming diagnostic | 331 / 138 | 0 | Exercises the production nomination and assessment boundaries |

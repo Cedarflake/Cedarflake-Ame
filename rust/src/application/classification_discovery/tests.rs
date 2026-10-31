@@ -15,6 +15,7 @@ use super::*;
 
 mod admission;
 mod consolidation;
+mod nomination;
 
 #[derive(Default)]
 struct Calls {

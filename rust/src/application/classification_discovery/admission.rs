@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 
 use crate::domain::ScanError;
-use crate::domain::classification::discovery::{ConceptId, DiscoveryCohort};
+use crate::domain::classification::discovery::{ConceptId, ConceptNamingScope, DiscoveryCohort};
 use crate::domain::classification::{
     CategoryScore, ClassificationContent, ClassificationRevision, ModelCompatibility,
 };
@@ -238,6 +238,7 @@ fn aligned_scores(
         check_cancelled(cancelled)?;
         let aggregate = candidate.candidate.scores;
         if !identities.insert(candidate.candidate.concept.id())
+            || candidate.candidate.concept.naming_scope() != ConceptNamingScope::Candidate
             || candidate.member_similarities.len() != indices.len()
             || !valid_cosine(aggregate.similarity)
             || !valid_cosine(aggregate.context_similarity)

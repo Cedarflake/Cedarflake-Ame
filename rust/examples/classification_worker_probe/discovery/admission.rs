@@ -33,8 +33,8 @@ struct Category {
 }
 
 pub(super) struct PreparedAdmission {
-    matcher: CategoryMatcher,
-    policy: CategoryAdmissionPolicy,
+    pub(super) matcher: CategoryMatcher,
+    pub(super) policy: CategoryAdmissionPolicy,
 }
 
 pub(super) fn prepare<F: ClassificationEncoderFactory, C: ResidencyClock>(

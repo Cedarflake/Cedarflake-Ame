@@ -15,6 +15,8 @@ use super::classification_residency::{ClassificationEncoderResidency, ResidencyC
 
 mod admission;
 mod consolidation;
+mod context_graph;
+mod nomination;
 mod ranking;
 mod search;
 
@@ -26,6 +28,9 @@ pub use admission::{
 pub use consolidation::{
     ConceptConsolidation, ConceptConsolidationLimits, ConceptConsolidationRequest,
     ConsolidatedConcept, consolidate_classification_concepts,
+};
+pub use nomination::{
+    ConceptNomination, ConceptNominationRequest, nominate_classification_contexts,
 };
 pub use ranking::{ConceptMatch, DiscoveryCandidates};
 use search::ConceptSearch;

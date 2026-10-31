@@ -5,27 +5,61 @@ use crate::domain::ScanError;
 use crate::domain::classification::discovery::{ConceptId, VocabularyConcept};
 use crate::ports::classification_vocabulary::{ClassificationVocabulary, ConceptNeighborhood};
 
-use super::super::{check_cancelled, check_revision, read_page};
-use super::{ConceptConsolidationRequest, limit_error};
+use super::{
+    ConceptConsolidationLimits, ConceptConsolidationRequest, DiscoveryCandidates, check_cancelled,
+    check_revision, read_page,
+};
 
-pub(super) struct ResolvedFrontier {
+pub(super) struct ResolvedContexts {
     pub concepts: BTreeMap<ConceptId, VocabularyConcept>,
     pub groups: BTreeMap<ConceptId, BTreeSet<ConceptId>>,
+    pub parents: BTreeMap<ConceptId, Vec<ConceptId>>,
     pub unresolved: Vec<ConceptId>,
     pub visited_edges: usize,
+}
+
+#[derive(Clone, Copy)]
+enum TraversalScope<'a> {
+    Frontier(&'a BTreeSet<ConceptId>),
+    AllContexts,
 }
 
 pub(super) fn resolve(
     request: ConceptConsolidationRequest<'_>,
     vocabulary: &mut impl ClassificationVocabulary,
     cancelled: &AtomicBool,
-) -> Result<ResolvedFrontier, ScanError> {
-    let ConceptConsolidationRequest {
+) -> Result<ResolvedContexts, ScanError> {
+    traverse(
+        request.retrieved,
+        request.limits,
+        TraversalScope::Frontier(request.frontier),
+        vocabulary,
+        cancelled,
+    )
+}
+
+pub(super) fn collect(
+    retrieved: &DiscoveryCandidates,
+    limits: ConceptConsolidationLimits,
+    vocabulary: &mut impl ClassificationVocabulary,
+    cancelled: &AtomicBool,
+) -> Result<ResolvedContexts, ScanError> {
+    traverse(
         retrieved,
-        frontier,
         limits,
-        ..
-    } = request;
+        TraversalScope::AllContexts,
+        vocabulary,
+        cancelled,
+    )
+}
+
+fn traverse(
+    retrieved: &DiscoveryCandidates,
+    limits: ConceptConsolidationLimits,
+    scope: TraversalScope<'_>,
+    vocabulary: &mut impl ClassificationVocabulary,
+    cancelled: &AtomicBool,
+) -> Result<ResolvedContexts, ScanError> {
     let revision = retrieved.vocabulary_revision;
     let mut concepts = BTreeMap::new();
     for candidate in retrieved.nearest.iter().chain(&retrieved.distinctive) {
@@ -41,9 +75,15 @@ pub(super) fn resolve(
     while let Some((id, seed, depth)) = pending.pop_front() {
         check_cancelled(cancelled)?;
         check_revision(vocabulary, revision)?;
-        if frontier.contains(&id) {
-            groups.entry(id).or_default().insert(seed);
-            continue;
+        match scope {
+            TraversalScope::Frontier(frontier) if frontier.contains(&id) => {
+                groups.entry(id).or_default().insert(seed);
+                continue;
+            }
+            TraversalScope::AllContexts => {
+                groups.entry(id).or_default().insert(seed);
+            }
+            TraversalScope::Frontier(_) => {}
         }
         if depth == limits.hops {
             continue;
@@ -86,12 +126,20 @@ pub(super) fn resolve(
         }
     }
     let covered: BTreeSet<_> = groups.values().flatten().copied().collect();
-    Ok(ResolvedFrontier {
+    Ok(ResolvedContexts {
         concepts,
         groups,
+        parents,
         unresolved: seeds.difference(&covered).copied().collect(),
         visited_edges,
     })
+}
+
+pub(super) fn limit_error() -> ScanError {
+    ScanError::new(
+        "classification_discovery_limit",
+        "Context discovery requires complete retrieval within its resource limits",
+    )
 }
 
 fn remember(

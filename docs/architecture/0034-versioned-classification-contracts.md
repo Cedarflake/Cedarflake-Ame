@@ -108,6 +108,35 @@ This owner returns naming evidence and has no category-write or human-decision a
 of useful frontiers and final category admission remain application policy evaluated against the
 collection, with existing categories retained during evaluation.
 
+### Automatic context nomination
+
+Application-owned nomination can enumerate broader contexts without a supplied naming frontier.
+It shares the consolidation graph's paging, immutable-definition, cancellation, cycle and work
+bounds, but visits every reached context through the bounded depth. Contexts are scored with their
+own descriptions in windows of at most 64 features, against the current taxonomy's matcher.
+The vocabulary adapter distinguishes naming candidates from traversal-only concepts. Abstract or
+otherwise inapplicable senses can retain their graph connections without being encoded or nominated
+as category names. This applicability belongs to the immutable concept definition and vocabulary
+revision; it does not alter the description's feature key or define a fixed product category list.
+
+The admission profile supplies the minimum repeated-content support, coverage, improvement and
+contextual contrast for nomination. A qualifying broader context subsumes finer ones only when its
+own description covers all their supported members. Closed relation cycles do not erase every
+candidate. Remaining contexts are selected by additional member coverage, mean supporting improvement,
+context contrast and stable identity. Each addition must cover the profile's minimum number of
+previously uncovered members, preventing closely overlapping descriptions from multiplying categories.
+Candidates keep their own scores; subsumption never inherits a finer description's evidence.
+At most 64 retain full member evidence, and all other eligible contexts retain only compact coverage
+and ranking data during selection. Lexical origin counts do not increase rank. The result records
+considered/nameable/eligible/subsumed counts and candidate truncation. Final admission still resolves
+competition and names among nominated contexts.
+
+Nomination binds its algorithm, profile, semantic taxonomy, selected identities and resource limits.
+Uncovered retrieval seeds remain explicit. Missing descriptions use the existing supervised worker
+and completed cache; every terminal path retires description work. Nomination neither requires user
+category definitions nor grants category publication. Automatic naming quality and operating-profile
+selection require their own measured admission before maintenance is enabled.
+
 ### Candidate admission evidence
 
 Admission compares each consolidated context against the current taxonomy through the existing
@@ -121,8 +150,8 @@ thousandths, improvement, separation, context contrast and bounded proposal coun
 least two supporting contents. These parameters have no unmeasured product defaults. Profiles and
 their measured selection remain separate from calibrated prediction confidence.
 
-The application rejects mismatched model/cohort authority, duplicate concepts, incomplete member
-sets and invalid scores before assessing any candidate. Assessment preserves unsupported members
+The application rejects mismatched model/cohort authority, traversal-only concepts, duplicate concepts,
+incomplete member sets and invalid scores before assessing any candidate. Assessment preserves unsupported members
 and the reason a candidate is deferred. Context contrast, support and coverage precede the proposal
 budget; stable ties cannot silently discard another candidate's evidence. Existing and selected
 display names are reserved case-insensitively; conflicting proposals are deferred without automatic

@@ -9,10 +9,9 @@ use std::time::{Duration, Instant};
 use rust_lib_cedarflake_ame::classification::{
     ClassificationContent, ClassificationEncoderFactory, ClassificationEncoderResidency,
     ClassificationFeatureRepository, ClassificationRecordId, ClassificationRevision,
-    ClassificationVocabulary, ConceptConsolidationLimits, ConceptConsolidationRequest, ConceptId,
-    ConceptMatch, ConceptNeighborhood, ConceptPage, ConceptSearchLimits, DiscoveryCohort,
-    DiscoverySample, Embedding, ImageFeature, MonotonicResidencyClock,
-    SqliteClassificationFeatureCache, VocabularyConcept, consolidate_classification_concepts,
+    ClassificationVocabulary, ConceptId, ConceptMatch, ConceptNamingScope, ConceptNeighborhood,
+    ConceptPage, ConceptSearchLimits, DiscoveryCohort, DiscoverySample, Embedding, ImageFeature,
+    MonotonicResidencyClock, SqliteClassificationFeatureCache, VocabularyConcept,
     retrieve_classification_concepts,
 };
 use rust_lib_cedarflake_ame::classification_worker::LocalClassificationEncoderFactory;
@@ -25,6 +24,8 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 mod admission;
 #[path = "discovery/cost.rs"]
 mod cost;
+#[path = "discovery/naming.rs"]
+mod naming;
 
 #[derive(Deserialize)]
 struct Fixture {
@@ -39,6 +40,8 @@ struct Fixture {
     results: Option<usize>,
     #[serde(default)]
     admission: Option<admission::Fixture>,
+    #[serde(default)]
+    automatic_contexts: Option<usize>,
 }
 
 #[derive(Deserialize)]
@@ -49,6 +52,16 @@ struct Concept {
     related: Vec<String>,
     #[serde(default)]
     broader: Vec<String>,
+    #[serde(default)]
+    naming_scope: NamingScope,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum NamingScope {
+    #[default]
+    Candidate,
+    TraversalOnly,
 }
 
 #[derive(Deserialize)]
@@ -107,7 +120,12 @@ impl ProbeVocabulary {
                 .map(|value| concept_id(value))
                 .collect();
             broader.insert(id, parents.into_iter().collect());
-            let definition = VocabularyConcept::new(id, concept.label, concept.description)?;
+            let scope = match concept.naming_scope {
+                NamingScope::Candidate => ConceptNamingScope::Candidate,
+                NamingScope::TraversalOnly => ConceptNamingScope::TraversalOnly,
+            };
+            let definition = VocabularyConcept::new(id, concept.label, concept.description)?
+                .with_naming_scope(scope);
             if definitions.insert(id, definition).is_some() {
                 return Err("Repeated concept fixture identity".into());
             }
@@ -209,10 +227,13 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
     if arguments[5] == "--discovery-cost" {
         return cost::measure(&vocabulary, &mut residency, &mut cache);
     }
-    let assessment = fixture
-        .admission
-        .map(|fixture| admission::prepare(fixture, &mut residency, &mut cache))
-        .transpose()?;
+    let naming = naming::Naming::prepare(
+        frontier,
+        fixture.automatic_contexts,
+        fixture.admission,
+        &mut residency,
+        &mut cache,
+    )?;
     let limits = ConceptSearchLimits {
         entry_points: 4096,
         expanded_concepts: 4096,
@@ -221,7 +242,7 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
         seeds: 16,
         results: fixture
             .results
-            .unwrap_or(if frontier.is_empty() { 12 } else { 64 }),
+            .unwrap_or(if naming.enabled() { 64 } else { 12 }),
     };
     for cohort in fixture.cohorts {
         let load = |identities: &[String]| -> Result<Vec<DiscoverySample>> {
@@ -267,46 +288,14 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
                 &AtomicBool::new(false),
             )?;
             let retrieval_seconds = started.elapsed().as_secs_f64();
-            let naming = if frontier.is_empty() {
-                None
-            } else {
-                let result = consolidate_classification_concepts(
-                    ConceptConsolidationRequest {
-                        cohort: &cohort_features,
-                        retrieved: &result,
-                        frontier: &frontier,
-                        limits: ConceptConsolidationLimits {
-                            hops: 4,
-                            concepts: 4096,
-                            edges: 65_536,
-                        },
-                    },
-                    &mut vocabulary,
-                    &mut residency,
-                    &mut cache,
-                    &AtomicBool::new(false),
-                )?;
-                let assessment = assessment
-                    .as_ref()
-                    .map(|prepared| prepared.assess(&cohort_features, &result, &member_ids))
-                    .transpose()?;
-                Some(json!({
-                    "admission": assessment,
-                    "candidates": result.candidates.iter().map(|candidate| json!({
-                        "label": candidate.candidate.concept.label(),
-                        "description": candidate.candidate.concept.description(),
-                        "similarity": candidate.candidate.scores.similarity,
-                        "contrast": candidate.candidate.scores.contrast,
-                        "narrower_concepts": candidate.narrower_concepts.len(),
-                        "members": candidate.member_similarities.iter().map(|member| json!({
-                            "id": member_ids[&member.content.digest],
-                            "similarity": member.similarity,
-                        })).collect::<Vec<_>>(),
-                    })).collect::<Vec<_>>(),
-                    "unresolved_concepts": result.unresolved_concepts.len(),
-                    "visited_edges": result.visited_edges,
-                }))
-            };
+            let named = naming.resolve(
+                &cohort_features,
+                &result,
+                &mut vocabulary,
+                &mut residency,
+                &mut cache,
+                &member_ids,
+            )?;
             let after = cache.feature_cache_stats()?;
             if residency.resident_kind().is_some() {
                 return Err("Discovery left a model resident".into());
@@ -320,7 +309,7 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
                     "bounds_reached": format!("{:?}", result.bounds_reached),
                     "cache_entries_before": before.entries, "cache_entries_after": after.entries,
                     "nearest": report(&result.nearest), "distinctive": report(&result.distinctive),
-                    "naming": naming,
+                    "naming": named,
                     "worker_retired": true, "source_reads": 0,
                 })
             );

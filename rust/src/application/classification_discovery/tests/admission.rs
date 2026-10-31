@@ -284,6 +284,19 @@ fn invalid_or_stale_evidence_is_rejected_before_admission() {
 }
 
 #[test]
+fn traversal_only_contexts_cannot_bypass_nomination_and_become_category_proposals() {
+    use crate::domain::classification::discovery::ConceptNamingScope;
+
+    let mut fixture = AdmissionFixture::new();
+    let concept = &mut fixture.discovery.candidates[0].candidate.concept;
+    *concept = concept
+        .clone()
+        .with_naming_scope(ConceptNamingScope::TraversalOnly);
+    let error = fixture.assess(criteria()).unwrap_err();
+    assert_eq!(error.code, "classification_discovery_evidence_invalid");
+}
+
+#[test]
 fn weak_context_and_cancellation_do_not_publish_a_proposal() {
     let mut fixture = AdmissionFixture::new();
     let scores = &mut fixture.discovery.candidates[0].candidate.scores;

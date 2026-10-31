@@ -17,11 +17,18 @@ impl ConceptId {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ConceptNamingScope {
+    Candidate,
+    TraversalOnly,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VocabularyConcept {
     id: ConceptId,
     label: String,
     description: String,
+    naming_scope: ConceptNamingScope,
 }
 
 impl VocabularyConcept {
@@ -41,7 +48,17 @@ impl VocabularyConcept {
             id,
             label: label.to_owned(),
             description: description.to_owned(),
+            naming_scope: ConceptNamingScope::Candidate,
         })
+    }
+
+    pub fn with_naming_scope(mut self, scope: ConceptNamingScope) -> Self {
+        self.naming_scope = scope;
+        self
+    }
+
+    pub fn naming_scope(&self) -> ConceptNamingScope {
+        self.naming_scope
     }
 
     pub fn id(&self) -> ConceptId {
@@ -58,11 +75,15 @@ impl VocabularyConcept {
 
     pub fn revision(&self) -> ClassificationRevision {
         ClassificationRevision::derive(
-            "ame.classification.discovery-concept.v1",
+            "ame.classification.discovery-concept.v2",
             [
                 self.id.bytes().as_slice(),
                 self.label.as_bytes(),
                 self.description.as_bytes(),
+                match self.naming_scope {
+                    ConceptNamingScope::Candidate => b"candidate".as_slice(),
+                    ConceptNamingScope::TraversalOnly => b"traversal-only".as_slice(),
+                },
             ],
         )
     }

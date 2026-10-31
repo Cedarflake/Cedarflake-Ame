@@ -1,6 +1,22 @@
 use super::*;
 use crate::domain::classification::{ClassificationRecordId, Embedding};
 
+#[test]
+fn naming_scope_changes_concept_authority_without_changing_description_features() {
+    let candidate = VocabularyConcept::new(
+        ConceptId::from_bytes([1; 32]),
+        "Ceiling".into(),
+        "An upper limit".into(),
+    )
+    .unwrap();
+    let traversal = candidate
+        .clone()
+        .with_naming_scope(ConceptNamingScope::TraversalOnly);
+    assert_ne!(candidate.revision(), traversal.revision());
+    assert_eq!(candidate.id(), traversal.id());
+    assert_eq!(candidate.description(), traversal.description());
+}
+
 fn model() -> ModelCompatibility {
     ModelCompatibility::new(
         ClassificationRevision::from_bytes([1; 32]),

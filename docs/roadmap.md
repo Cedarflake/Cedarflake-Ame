@@ -145,8 +145,11 @@ selection based on lexical-origin counts still favors parts and unsupported mean
 admitted. Native candidate assessment now compares per-content coverage and competing contexts
 against the current taxonomy, retaining deferred candidates and separate name authority. Its
 calibration probes preserve supported code/play suggestions while excluding isolated competing
-labels. Selection of a measured operating profile, automatic useful-name selection and guarded
-category maintenance remain the next R5-02 boundary before first-use integration.
+labels. Native automatic nomination now selects contexts without a supplied frontier, using their
+own member coverage, broader relations and naming applicability. Its cache-only probes retain code
+suggestions and exclude an abstract false name, while photographic scene membership and untranslated
+labels still require correction. A measured operating profile, localized useful-name policy and
+guarded category maintenance remain the next R5-02 boundary before first-use integration.
 Card review
 indicators, image context-menu commands, continuation and real-client acceptance remain in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;
