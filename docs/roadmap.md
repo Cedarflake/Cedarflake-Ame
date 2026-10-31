@@ -148,8 +148,10 @@ calibration probes preserve supported code/play suggestions while excluding isol
 labels. Native automatic nomination now selects contexts without a supplied frontier, using their
 own member coverage, broader relations and naming applicability. Per-member competition survives
 name pruning; the cache-only probes preserve the code proposal and defer overbroad repair/play
-proposals while retaining existing categories. Broader calibration, localized useful-name coverage
-and guarded category maintenance remain the next R5-02 boundary before first-use integration.
+proposals while retaining existing categories. The completed 28-cohort shared-media check exposes
+over-specific lexical names and lost image purpose. Complete purpose-preserving whole-image naming
+and useful local labels, then calibrate the operating profile and connect guarded category maintenance
+before first-use integration; score-cutoff changes alone do not resolve the naming gap.
 Card review
 indicators, image context-menu commands, continuation and real-client acceptance remain in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;

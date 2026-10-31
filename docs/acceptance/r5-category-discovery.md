@@ -639,3 +639,60 @@ calibration, localized category naming and guarded maintenance remain required b
 | Context comparison evidence | 201 | 0 | Covered by nomination and assessment cases below |
 | Nomination / assessment | 274 / 294 | 0 | 418 / 416 |
 | Native diagnostic / naming / assessment | 334 / 154 / 141 | 0 | Exercises the production comparison boundary |
+
+### Shared-media naming coverage
+
+The next check fixes the retained complete-link threshold at 0.75 and evaluates all 28 supported
+cohorts, covering 139 of the 236 distinct calibration contents. The other 97 contents remain outside
+these cohorts. No provisional reference label selects a cohort, and no held-out input is used.
+Comparisons use the other retained contents sharing the members' current leading categories.
+The nomination/admission parameters remain unchanged, including the exploratory relatedness cutoff
+of 0.90; this checks generalization beyond the preceding three selected cohorts.
+
+The first attempt reused the photo fixture's `A photograph showing ...` descriptions and retained
+photo-specific entry additions. That input was unsuitable for a shared-media check. Part one completed;
+part two was deliberately stopped through its owned text worker, which returned
+`classification_worker_exited`; parts three and four did not start. Completed cache entries were
+retained. This interrupted attempt is preserved as `native-broad-*` and is not a completed evaluation.
+
+The corrected input uses `An image of {noun}. {definition}.` uniformly and the existing corpus-wide
+entry rules, without cohort-specific additions: 3,921 entries and 82,115 lexical concepts. The local
+Release probe uses the discovery implementation committed in `4d13614c`; its build retains unrelated
+native worktree changes. It completes four seven-cohort batches. All 56 passes remain within work
+bounds, retire workers, and produce identical repeated retrieval, nomination and admission evidence.
+The first passes add 13,156 description features. Batch times are 313.203, 125.735, 111.187 and
+148.890 seconds; peak process-tree working set is 792,600,576 bytes. Per-cohort first passes take
+7.659–179.932 seconds, compared with 0.951–1.462 seconds on repetition. These timings include native
+retrieval and nomination; they are distinct from the earlier cache-only naming timings. Image
+features are reused, original-media reads remain zero, and no model download occurs.
+
+Ten cohorts retain nominated candidates; six pass the exploratory numerical admission criteria.
+Inspection of their six representative cached thumbnails and retained provisional member notes
+finds the following name-utility problems. This is a naming diagnosis, not an independent accuracy
+estimate or a replacement for the unfinished human labels.
+
+| Cohort | Proposed name | Supporting contents | Observed naming problem |
+| --- | --- | ---: | --- |
+| B132 | `command line interface` | 4 of 7 | Code editors and a mobile code viewer are included alongside a terminal; the name is narrower than the content. |
+| B191 | `corrigenda` | 4 of 5 | Paper forms and notes do not establish a list of printing corrections. |
+| B001 | `公猫` | 2 of 4 | Reaction-image purpose is lost; the proposed animal sex is not established. |
+| B186 | `雌狐` | 3 of 4 | Character illustrations are reduced to an animal type without retaining their purpose. |
+| B075 | `行` | 3 of 4 | A row of text describes a component shared by screenshots, not a useful whole-image category. |
+| B151 | `暹罗猫` | 3 of 3 | Stylized reaction stickers do not establish a real cat breed. |
+
+Raising a score cutoff can suppress these names, but does not supply the missing purpose or suitable
+level of abstraction. Raw lexical nomination remains evidence for a naming policy, not an admitted
+automatic category scheme. Complete purpose-preserving whole-image naming and useful local labels,
+then calibrate the profile and connect guarded maintenance. The existing categories, user decisions
+and R4 state remain unchanged throughout this diagnostic.
+
+Corrected fixture SHA-256 values, in batch order:
+
+- `a12f92fca5a9cfe2d550c27ace2d476e16dcabbd4642be1633ef529444cf0422`
+- `270ea626dfdc7bfaf95682e751b07a85b7195685304d63d1f7102373184214d1`
+- `7c69fd546ba7e0fda86014b0128e0e63ee1ac7eaaa24ba631c83337d1dbb6852`
+- `8402f1eb6a9c325ea6c63fc4f9bd8111f38fc97337b300aef7297b80811b92af`
+
+Raw outputs, resource measurements and checked comparisons remain in ignored discovery storage as
+`native-general-*`; preparation and comparison are retained in `prepare_native_broad.py` and
+`check_native_broad.py`.
