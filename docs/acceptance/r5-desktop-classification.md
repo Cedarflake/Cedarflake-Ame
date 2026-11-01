@@ -38,6 +38,27 @@ chronological organization history.
 
 ## Focused checks
 
+### All-results navigation
+
+The category rows previously provided no route into the existing unscoped smart-album query.
+The shared More menu now offers `全部分类结果` from a category or a review-filtered scope. It clears
+those two predicates through the existing query transition, retaining other conditions and sorting.
+The sidebar heading stays passive; returning through a category row restores that category's title
+and selected state. No persistence, bridge, model or source-media behavior changes.
+
+The three smart-album widget cases and three existing classification-progress widget cases pass.
+They cover an empty category returning to an unclassified image, clearing category/review scope,
+coherent heading/sidebar selection, unchanged empty headings, and explicit saved continuation.
+Scoped analysis and owned formatting pass. Real-client menu acceptance remains pending permission
+to resume operating the isolated window.
+
+The affected menu contains 232 production lines and no inline tests; the screen composition contains
+1,930 production lines, with three callback-routing lines added. The dedicated smart-album and
+progress-widget suites contain 339 and 225 lines respectively. Navigation lifetime remains in the
+existing query-transition owner.
+
+### Retained checks
+
 - The rewritten compact sidebar passed both targeted navigation tests. In the rebuilt isolated
   Profile client, clicking the plain section heading leaves the selected category unchanged.
   Comic, meme, photo, screenshot and collapse icons render correctly after rebuilding the stale

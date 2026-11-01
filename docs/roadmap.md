@@ -210,6 +210,7 @@ and the existing photo status label, with distinct review/failure details. Singl
 connects atomic progress to the viewer and context menu, with deferred confirmation and explicit
 continuation through the shared gallery. Single-image failed-analysis retry now shares the preview
 and context menus, preserves pause and human choices, and uses existing feedback and publication.
+The smart-album More menu now opens the all-results query, including items with no category.
 Real-client acceptance remains in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;
 it remains a pre-merge acceptance condition. Reuse the retained runtime and measurement assets

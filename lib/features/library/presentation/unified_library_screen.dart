@@ -823,6 +823,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             more: collection is LibrarySmartAlbumCollection
                 ? LibrarySmartAlbumMenu(
                     onSelectAll: () => _selectAll(state),
+                    onQueryChanged: (query) => unawaited(
+                      _applyQuery(query, preserveGalleryPosition: false),
+                    ),
                     surface: this,
                   )
                 : null,

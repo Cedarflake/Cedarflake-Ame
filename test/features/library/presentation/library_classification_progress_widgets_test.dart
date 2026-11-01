@@ -187,7 +187,11 @@ void main() {
       final progress = ClassificationProgressFixture();
       final container = await mount(
         tester,
-        LibrarySmartAlbumMenu(onSelectAll: () {}, surface: surface),
+        LibrarySmartAlbumMenu(
+          onSelectAll: () {},
+          onQueryChanged: (query) => unawaited(surface.showReviewQuery(query)),
+          surface: surface,
+        ),
         progress,
         ClassificationReviewFixture(),
       );

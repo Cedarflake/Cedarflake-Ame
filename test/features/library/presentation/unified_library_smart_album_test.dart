@@ -132,9 +132,86 @@ void main() {
       delayed.complete(_settings("绘画"));
       await tester.pumpAndSettle();
       expect(heading(), "绘画");
+
+      final categoryQuery = catalog.loadQueries.last;
+      await tester.tap(find.byKey(const Key("library-more-menu")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("全部分类结果"));
+      await tester.pumpAndSettle();
+      expect(
+        catalog.loadQueries.last,
+        categoryQuery.copyWith(
+          collection: const LibraryGalleryCollection.smartAlbum(),
+        ),
+      );
+      expect(heading(), "智能相册");
+      expect(tester.widget<ListTile>(smartEntry).selected, isFalse);
+      await tester.tap(find.byKey(const Key("library-more-menu")));
+      await tester.pumpAndSettle();
+      expect(find.text("全部分类结果"), findsNothing);
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+
+      await tester.tap(smartEntry);
+      await tester.pumpAndSettle();
+      expect(heading(), "绘画");
+      expect(tester.widget<ListTile>(smartEntry).selected, isTrue);
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets("an empty category can reach images without a category", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final state = populatedScreenState(totalItems: 1);
+    final catalog = _UnclassifiedCatalog(
+      LibrarySnapshot(
+        catalogPath: state.catalogPath!,
+        revision: state.catalogRevision!,
+        queryId: "all-results",
+        roots: state.roots,
+        assets: state.assets,
+      ),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(state),
+          libraryCatalogProvider.overrideWithValue(catalog),
+          libraryOrganizationProvider.overrideWithValue(
+            OrganizationServiceFixture(),
+          ),
+          libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
+          libraryClassificationSettingsProvider.overrideWith(
+            (ref) async => _settings("插画"),
+          ),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key("workbench-albums")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key("library-sidebar-smart-drawing")));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey("location-1")), findsNothing);
+
+    await tester.tap(find.byKey(const Key("library-more-menu")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("全部分类结果"));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey("location-1")), findsOneWidget);
+    expect(
+      catalog.loadQueries.last.collection,
+      const LibraryGalleryCollection.smartAlbum(),
+    );
+    expect(catalog.loadQueries.last.foldsDuplicates, isTrue);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     "empty smart albums use a noninteractive sidebar row without sample categories",
@@ -219,3 +296,44 @@ LibraryClassificationSettings _settings(String label) =>
         ),
       ],
     );
+
+class _UnclassifiedCatalog extends RecordingQueryCatalog {
+  _UnclassifiedCatalog(super.snapshot);
+
+  LibrarySnapshot _results(LibraryGalleryQuery query) {
+    final collection = query.collection;
+    if (collection is! LibrarySmartAlbumCollection ||
+        collection.categoryId == null) {
+      return snapshot;
+    }
+    return LibrarySnapshot(
+      catalogPath: snapshot.catalogPath,
+      revision: snapshot.revision,
+      queryId: "empty-category",
+      roots: snapshot.roots,
+      assets: const [],
+    );
+  }
+
+  @override
+  Future<LibrarySnapshot> load({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryCatalogCursor? after,
+    LibraryCatalogCursor? before,
+  }) async {
+    loadQueries.add(query);
+    return _results(query);
+  }
+
+  @override
+  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async {
+    final result = _results(query);
+    return LibraryTimeline(
+      revision: result.revision,
+      queryId: result.queryId,
+      totalItems: result.assets.length,
+      buckets: const [],
+    );
+  }
+}

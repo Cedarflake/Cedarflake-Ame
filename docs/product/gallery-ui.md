@@ -1254,6 +1254,10 @@ Do not open review prompts automatically or require clearing that filter before 
 decision conflicts and missing/failed analysis retain their distinct states without a guessed winner.
 
 The all-results view keeps unresolved/failed items reachable when they cannot belong to a category.
+From a category or review-filtered view, More offers `全部分类结果`. It clears the category and review
+filter through the shared gallery query while retaining search, physical scope, metadata conditions
+and sorting. The heading remains noninteractive, and selecting a category returns to that category's
+results through the existing sidebar.
 Use existing loading, empty, unavailable, retry, and task-feedback surfaces for setup and analysis.
 Short waits do not insert transient wording or shift controls. Background results preserve the
 current image and viewport anchor; a complete replacement query publishes coherently.
