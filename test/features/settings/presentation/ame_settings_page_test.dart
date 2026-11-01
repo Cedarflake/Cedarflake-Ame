@@ -34,8 +34,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final heading = find.descendant(
+      of: find.ancestor(
+        of: find.byIcon(Symbols.settings_rounded),
+        matching: find.byType(Row),
+      ),
+      matching: find.text("设置"),
+    );
+    expect(heading, findsOneWidget);
     expect(
-      tester.widget<Text>(find.text("设置")).style?.fontWeight,
+      tester.widget<Text>(heading).style?.fontWeight,
       ameFontWeightSemibold,
     );
     expect(
