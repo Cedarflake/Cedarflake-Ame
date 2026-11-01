@@ -2,6 +2,7 @@ import "dart:io";
 
 import "package:cedarflake_ame/app/bootstrap/library_synchronization_lifecycle_owner.dart";
 import "package:cedarflake_ame/app/bootstrap/rust_library_loader.dart";
+import "package:cedarflake_ame/features/library/adapters/rust_library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_foreground_reads.dart";
@@ -54,8 +55,9 @@ void main() {
     addTearDown(() => client.close());
     var settings = await client.configuration.load();
     expect(settings.mode, LibraryClassificationMode.disabled);
-    final categories = await client.configuration.initialCategories();
-    settings = await client.configuration.save(
+    final categories = await const RustLibraryClassificationConfiguration()
+        .initialCategories();
+    settings = await client.replaceConfiguration(
       operationId: "client-save-disabled",
       observed: settings,
       categories: categories,
@@ -101,11 +103,9 @@ void main() {
     final reading = foreground.acquire();
     addTearDown(reading.close);
     settings = await client.configuration.load();
-    settings = await client.configuration.save(
+    settings = await client.configuration.enable(
       operationId: "client-first-run",
       observed: settings,
-      categories: categories,
-      action: LibraryClassificationConfigurationAction.enable,
     );
     expect(settings.mode, LibraryClassificationMode.automatic);
     await Future<void>.delayed(const Duration(seconds: 4));
@@ -166,7 +166,7 @@ void main() {
       ...categories.skip(1),
     ];
     settings = await client.configuration.load();
-    settings = await client.configuration.save(
+    settings = await client.replaceConfiguration(
       operationId: "client-display-rename",
       observed: settings,
       categories: renamed,
@@ -191,7 +191,7 @@ void main() {
     final pressureClock = Stopwatch()..start();
     client.environment.didHaveMemoryPressure();
     await client.waitForWorker(resident: false);
-    settings = await client.configuration.save(
+    settings = await client.replaceConfiguration(
       operationId: "client-edited-run",
       observed: settings,
       categories: edited,

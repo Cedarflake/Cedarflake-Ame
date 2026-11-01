@@ -66,6 +66,23 @@ class ClassificationClient {
   late final LibraryClassificationConfiguration configuration;
   late final AmeAnalysisEnvironment environment;
 
+  Future<LibraryClassificationSettings> replaceConfiguration({
+    required String operationId,
+    required LibraryClassificationSettings observed,
+    required List<LibraryClassificationCategory> categories,
+    required LibraryClassificationConfigurationAction action,
+  }) async {
+    await lifecycle.changeConfiguration(
+      () => const RustLibraryClassificationConfiguration().save(
+        operationId: operationId,
+        observed: observed,
+        categories: categories,
+        action: action,
+      ),
+    );
+    return configuration.load();
+  }
+
   void allowBackground(BigInt revision) => lifecycle.updateCatalog(
     revision: revision,
     availableRoots: const {},
