@@ -356,3 +356,11 @@ replace explicit asynchronous shutdown.
 | Dart installation lifetime / native adapter | 180 / 40 | 0 | 127 |
 | Configuration facade / settings providers | 120 / 29 | 0 | 491 (shared lifecycle suite) |
 | Settings editor / installation feedback | 279 / 83 | 0 | 291 |
+
+The setup commit's [Static job](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41269515828/job/124739249864)
+rejects the operation enum's 392-byte prepared variant. That variant now owns its prepared artifact
+through a `Box`, preserving exclusive preparation, cancellation and consuming publication. No
+operation state or bridge contract changes. The existing four operation cases retain coverage;
+the replacement commit's hosted checks own compilation and lint verification. The same run's
+accessibility phase reaches verified UIA assembly loading but exceeds its parent deadline during
+the application-ready probe; that separate failure remains under investigation.

@@ -9,7 +9,7 @@ use super::{PreparedModelInstallation, prepare_managed_classification_installati
 enum PreparationState {
     New,
     Preparing,
-    Prepared(PreparedModelInstallation),
+    Prepared(Box<PreparedModelInstallation>),
     Committing,
     Closed,
 }
@@ -62,7 +62,7 @@ impl ModelInstallationOperation {
             return Err(error);
         }
         super::check_cancelled(&self.cancelled)?;
-        *state = PreparationState::Prepared(prepared?);
+        *state = PreparationState::Prepared(Box::new(prepared?));
         Ok(())
     }
 
