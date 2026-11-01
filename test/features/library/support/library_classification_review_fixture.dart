@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_classification_review.dart";
 import "package:cedarflake_ame/features/library/domain/library_classification_review.dart";
+import "package:cedarflake_ame/features/library/domain/library_classification_progress.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 
@@ -59,7 +60,25 @@ class ClassificationDraftFixture implements LibraryClassificationDraft {
   final operationIds = <String>[];
   int preparations = 0;
   int closes = 0;
+  final reviewPositions = <LibraryClassificationPosition>[];
   bool _closed = false;
+
+  @override
+  Future<LibraryClassificationProgressReceipt> applyReview(
+    String operationId,
+    LibraryClassificationPosition position,
+    LibraryClassificationCommand command,
+  ) async {
+    reviewPositions.add(position);
+    final receipt = await apply(operationId, command);
+    return LibraryClassificationProgressReceipt(
+      receipt,
+      LibraryClassificationPosition(
+        position.sessionId,
+        position.sequence + BigInt.one,
+      ),
+    );
+  }
 
   @override
   Future<void> append(List<String> ids) async => chunks.add(ids);

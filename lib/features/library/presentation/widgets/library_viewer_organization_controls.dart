@@ -4,6 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../../application/library_organization_actions.dart";
 import "../../application/library_operation_notice.dart";
 import "../../domain/library_organization.dart";
+import "../../domain/library_models.dart";
 import "../library_organization_mode.dart";
 import "library_album_viewer_action.dart";
 import "library_favorite_button.dart";
@@ -16,10 +17,12 @@ class LibraryViewerOrganizationControls extends ConsumerWidget {
   const LibraryViewerOrganizationControls({
     required this.target,
     required this.mode,
+    required this.query,
     super.key,
   });
   final LibraryOrganizationTarget target;
   final LibraryOrganizationMode mode;
+  final LibraryGalleryQuery query;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,7 +35,8 @@ class LibraryViewerOrganizationControls extends ConsumerWidget {
           LibraryAlbumViewerAction(target: target)
         else if (entry != null && entry.target == target)
           LibraryReviewActions(mode: mode, entry: entry),
-        if (!mode.isActive) LibraryViewerClassification(target: target),
+        if (!mode.isActive)
+          LibraryViewerClassification(target: target, query: query),
       ],
     );
   }

@@ -135,10 +135,15 @@ class LibraryPhotoContextMenu {
           onReveal();
         case _PhotoAction.confirmClassification:
         case _PhotoAction.correctClassification:
+        case _PhotoAction.deferClassification:
           await classification?.apply(
-            action: action == _PhotoAction.confirmClassification
-                ? LibraryPhotoClassificationAction.confirm
-                : LibraryPhotoClassificationAction.correct,
+            action: switch (action) {
+              _PhotoAction.confirmClassification =>
+                LibraryPhotoClassificationAction.confirm,
+              _PhotoAction.deferClassification =>
+                LibraryPhotoClassificationAction.defer,
+              _ => LibraryPhotoClassificationAction.correct,
+            },
             context: context,
             ref: ref,
             position: position,
@@ -220,6 +225,12 @@ class LibraryPhotoContextMenu {
         "更改分类",
         Symbols.label_rounded,
       ),
+      if (classification.canDefer)
+        const _PhotoEntry(
+          _PhotoAction.deferClassification,
+          "稍后确认",
+          Symbols.schedule_rounded,
+        ),
     ],
     const _PhotoEntry(
       _PhotoAction.information,
@@ -252,6 +263,7 @@ enum _PhotoAction {
   removeAlbum,
   confirmClassification,
   correctClassification,
+  deferClassification,
   information,
   copyPath,
   reveal;
@@ -262,7 +274,9 @@ enum _PhotoAction {
   };
 
   bool get changesClassification => switch (this) {
-    confirmClassification || correctClassification => true,
+    confirmClassification ||
+    correctClassification ||
+    deferClassification => true,
     _ => false,
   };
 }

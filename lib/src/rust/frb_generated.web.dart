@@ -10,6 +10,7 @@ import 'api/catalog.dart';
 import 'api/classification.dart';
 import 'api/classification_installation.dart';
 import 'api/classification_maintenance.dart';
+import 'api/classification_progress.dart';
 import 'api/classification_review.dart';
 import 'api/classification_settings.dart';
 import 'api/exact_duplicate_review.dart';
@@ -312,6 +313,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationReviewPosition
+  dco_decode_box_autoadd_classification_review_position(dynamic raw);
+
+  @protected
   ClassificationReviewReason
   dco_decode_box_autoadd_classification_review_reason(dynamic raw);
 
@@ -520,6 +525,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_classification_configuration_action(dynamic raw);
 
   @protected
+  ClassificationContinuation dco_decode_classification_continuation(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationContinuationStatus
+  dco_decode_classification_continuation_status(dynamic raw);
+
+  @protected
   ClassificationControlAction dco_decode_classification_control_action(
     dynamic raw,
   );
@@ -539,7 +553,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ClassificationItemState dco_decode_classification_item_state(dynamic raw);
 
   @protected
+  ClassificationProgressReceipt dco_decode_classification_progress_receipt(
+    dynamic raw,
+  );
+
+  @protected
   ClassificationReviewFilter dco_decode_classification_review_filter(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationReviewPosition dco_decode_classification_review_position(
     dynamic raw,
   );
 
@@ -1473,6 +1497,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationReviewPosition
+  sse_decode_box_autoadd_classification_review_position(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ClassificationReviewReason
   sse_decode_box_autoadd_classification_review_reason(
     SseDeserializer deserializer,
@@ -1747,6 +1777,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   sse_decode_classification_configuration_action(SseDeserializer deserializer);
 
   @protected
+  ClassificationContinuation sse_decode_classification_continuation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationContinuationStatus
+  sse_decode_classification_continuation_status(SseDeserializer deserializer);
+
+  @protected
   ClassificationControlAction sse_decode_classification_control_action(
     SseDeserializer deserializer,
   );
@@ -1772,7 +1811,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationProgressReceipt sse_decode_classification_progress_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ClassificationReviewFilter sse_decode_classification_review_filter(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationReviewPosition sse_decode_classification_review_position(
     SseDeserializer deserializer,
   );
 
@@ -2908,6 +2957,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_classification_review_position(
+    ClassificationReviewPosition self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_classification_review_reason(
     ClassificationReviewReason self,
     SseSerializer serializer,
@@ -3232,6 +3287,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_classification_continuation(
+    ClassificationContinuation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_continuation_status(
+    ClassificationContinuationStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_classification_control_action(
     ClassificationControlAction self,
     SseSerializer serializer,
@@ -3262,8 +3329,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_classification_progress_receipt(
+    ClassificationProgressReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_classification_review_filter(
     ClassificationReviewFilter self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_review_position(
+    ClassificationReviewPosition self,
     SseSerializer serializer,
   );
 

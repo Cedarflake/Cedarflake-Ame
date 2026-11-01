@@ -11,6 +11,7 @@ import '../domain/gallery_metadata_filter.dart';
 import '../domain/organization.dart';
 import '../domain/organization_queue.dart';
 import '../frb_generated.dart';
+import 'classification_progress.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `identifier`
@@ -59,12 +60,28 @@ abstract class ClassificationSelectionDraft implements RustOpaqueInterface {
 
   Future<ClassificationWriteReceipt> confirm({required String operationId});
 
+  Future<ClassificationProgressReceipt> confirmReview({
+    required String operationId,
+    required ClassificationReviewPosition position,
+  });
+
   Future<ClassificationWriteReceipt> correct({
     required String operationId,
     required String categoryId,
   });
 
+  Future<ClassificationProgressReceipt> correctReview({
+    required String operationId,
+    required ClassificationReviewPosition position,
+    required String categoryId,
+  });
+
   Future<ClassificationWriteReceipt> defer({required String operationId});
+
+  Future<ClassificationProgressReceipt> deferReview({
+    required String operationId,
+    required ClassificationReviewPosition position,
+  });
 
   Future<ClassificationSelectionSummary> prepare();
 

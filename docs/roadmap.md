@@ -206,8 +206,10 @@ Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Smart-album image context menus now share guarded confirmation/correction and operation-specific undo
 with selection and preview controls. Card review indicators now share bounded classification reads
-and the existing photo status label, with distinct review/failure details. Continuation and real-client acceptance
-remain in this slice. Complete the
+and the existing photo status label, with distinct review/failure details. Single-image review now
+connects atomic progress to the viewer and context menu, with deferred confirmation and explicit
+continuation through the shared gallery. Failed-analysis retry and real-client acceptance remain
+in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;
 it remains a pre-merge acceptance condition. Reuse the retained runtime and measurement assets
 after checking their compatibility. The complete `20cb3978` hosted gate passes, including the archive

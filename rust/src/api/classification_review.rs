@@ -1,3 +1,4 @@
+use super::classification_progress::{ClassificationProgressReceipt, ClassificationReviewPosition};
 use crate::application::classification_selection::ClassificationSelectionSession;
 use crate::domain::classification::{CategoryId, ClassificationAction, ClassificationRecordId};
 use crate::domain::classification_catalog::ClassificationWriteReceipt;
@@ -47,6 +48,52 @@ pub fn undo_classification_change(
 }
 
 impl ClassificationSelectionDraft {
+    pub fn confirm_review(
+        &self,
+        operation_id: String,
+        position: ClassificationReviewPosition,
+    ) -> Result<ClassificationProgressReceipt, ScanError> {
+        self.inner
+            .apply_review(
+                identifier(operation_id)?,
+                position.try_into()?,
+                ClassificationAction::Confirm,
+            )
+            .map(Into::into)
+    }
+
+    pub fn correct_review(
+        &self,
+        operation_id: String,
+        position: ClassificationReviewPosition,
+        category_id: String,
+    ) -> Result<ClassificationProgressReceipt, ScanError> {
+        let category = CategoryId::new(category_id).map_err(|error| {
+            ScanError::new("classification_category_invalid", error.to_string())
+        })?;
+        self.inner
+            .apply_review(
+                identifier(operation_id)?,
+                position.try_into()?,
+                ClassificationAction::Correct(category),
+            )
+            .map(Into::into)
+    }
+
+    pub fn defer_review(
+        &self,
+        operation_id: String,
+        position: ClassificationReviewPosition,
+    ) -> Result<ClassificationProgressReceipt, ScanError> {
+        self.inner
+            .apply_review(
+                identifier(operation_id)?,
+                position.try_into()?,
+                ClassificationAction::Defer,
+            )
+            .map(Into::into)
+    }
+
     pub fn append_targets(&self, targets: Vec<OrganizationSelection>) -> Result<(), ScanError> {
         self.inner.append_targets(targets)
     }

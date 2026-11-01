@@ -1,10 +1,12 @@
 import "../../../src/rust/api/classification_review.dart" as api;
+import "../../../src/rust/api/classification_progress.dart" as progress;
 import "../../../src/rust/domain.dart" as rust;
 import "../../../src/rust/domain/classification_selection.dart" as dto;
 import "../../../src/rust/domain/organization.dart" as organization;
 import "../application/library_catalog.dart";
 import "../application/library_classification_review.dart";
 import "../domain/library_classification_review.dart";
+import "../domain/library_classification_progress.dart";
 import "../domain/library_organization.dart";
 
 class RustLibraryClassificationReview
@@ -89,6 +91,43 @@ class _Draft implements LibraryClassificationDraft {
   _Draft(this.native);
   final api.ClassificationSelectionDraft native;
   Future<void>? _closing;
+
+  @override
+  Future<LibraryClassificationProgressReceipt> applyReview(
+    String operationId,
+    LibraryClassificationPosition position,
+    LibraryClassificationCommand command,
+  ) => _call(() async {
+    final cursor = progress.ClassificationReviewPosition(
+      sessionId: position.sessionId,
+      sequence: position.sequence,
+    );
+    final receipt = await switch (command) {
+      LibraryConfirmClassification() => native.confirmReview(
+        operationId: operationId,
+        position: cursor,
+      ),
+      LibraryCorrectClassification(:final categoryId) => native.correctReview(
+        operationId: operationId,
+        position: cursor,
+        categoryId: categoryId,
+      ),
+      LibraryDeferClassification() => native.deferReview(
+        operationId: operationId,
+        position: cursor,
+      ),
+    };
+    return LibraryClassificationProgressReceipt(
+      LibraryClassificationReceipt(
+        receipt.operation.operationId,
+        receipt.operation.changedGroups.toInt(),
+      ),
+      LibraryClassificationPosition(
+        receipt.position.sessionId,
+        receipt.position.sequence,
+      ),
+    );
+  });
 
   @override
   Future<void> appendTargets(List<LibraryOrganizationTarget> targets) => _call(

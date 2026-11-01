@@ -3,8 +3,45 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import '../domain.dart';
 import '../frb_generated.dart';
+import 'gallery_metadata_filter.dart';
+import 'organization.dart';
+import 'organization_queue.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+
+class ClassificationContinuation {
+  final ClassificationContinuationStatus status;
+  final GalleryQuery? query;
+  final OrganizationSelection? target;
+
+  const ClassificationContinuation({
+    required this.status,
+    this.query,
+    this.target,
+  });
+
+  @override
+  int get hashCode => status.hashCode ^ query.hashCode ^ target.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ClassificationContinuation &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          query == other.query &&
+          target == other.target;
+}
+
+enum ClassificationContinuationStatus {
+  noActivity,
+  ready,
+  anchorUnavailable,
+  scopeUnavailable,
+  emptyScope,
+  endOfScope,
+}
 
 class ClassificationCounts {
   final BigInt total;

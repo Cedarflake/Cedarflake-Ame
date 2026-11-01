@@ -539,6 +539,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                             asset: viewerAsset,
                             organizationActions:
                                 LibraryViewerOrganizationControls(
+                                  query: state.query,
                                   target: LibraryOrganizationTarget.fromAsset(
                                     viewerAsset,
                                   ),
@@ -814,7 +815,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         child: LibraryGalleryViewport(
           header: LibraryGalleryHeader(
             more: collection is LibrarySmartAlbumCollection
-                ? LibrarySmartAlbumMenu(onSelectAll: () => _selectAll(state))
+                ? LibrarySmartAlbumMenu(
+                    onSelectAll: () => _selectAll(state),
+                    surface: this,
+                  )
                 : null,
             isReviewing: _review.isActive,
             reviewToolbar: _review.isActive

@@ -46,7 +46,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 116938695;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1351777899;
 
 // Section: executor
 
@@ -214,6 +214,32 @@ fn wire__crate__api__classification_review__ClassificationSelectionDraft_confirm
         },
     )
 }
+fn wire__crate__api__classification_review__ClassificationSelectionDraft_confirm_review_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "ClassificationSelectionDraft_confirm_review", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>>>::sse_decode(&mut deserializer);
+let api_operation_id = <String>::sse_decode(&mut deserializer);
+let api_position = <crate::api::classification_progress::ClassificationReviewPosition>::sse_decode(&mut deserializer);deserializer.end(); move |context|  {
+                    transform_result_sse::<_, crate::domain::ScanError>((move ||  {
+                        let mut api_that_guard = None;
+let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false)]);
+        for i in decode_indices_ {
+            match i {
+                0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                _ => unreachable!(),
+            }
+        }
+        let api_that_guard = api_that_guard.unwrap();
+ let output_ok = crate::api::classification_review::ClassificationSelectionDraft::confirm_review(&*api_that_guard, api_operation_id, api_position)?;   Ok(output_ok)
+                    })())
+                } })
+}
 fn wire__crate__api__classification_review__ClassificationSelectionDraft_correct_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -272,6 +298,33 @@ fn wire__crate__api__classification_review__ClassificationSelectionDraft_correct
         },
     )
 }
+fn wire__crate__api__classification_review__ClassificationSelectionDraft_correct_review_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "ClassificationSelectionDraft_correct_review", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>>>::sse_decode(&mut deserializer);
+let api_operation_id = <String>::sse_decode(&mut deserializer);
+let api_position = <crate::api::classification_progress::ClassificationReviewPosition>::sse_decode(&mut deserializer);
+let api_category_id = <String>::sse_decode(&mut deserializer);deserializer.end(); move |context|  {
+                    transform_result_sse::<_, crate::domain::ScanError>((move ||  {
+                        let mut api_that_guard = None;
+let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false)]);
+        for i in decode_indices_ {
+            match i {
+                0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                _ => unreachable!(),
+            }
+        }
+        let api_that_guard = api_that_guard.unwrap();
+ let output_ok = crate::api::classification_review::ClassificationSelectionDraft::correct_review(&*api_that_guard, api_operation_id, api_position, api_category_id)?;   Ok(output_ok)
+                    })())
+                } })
+}
 fn wire__crate__api__classification_review__ClassificationSelectionDraft_defer_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -327,6 +380,32 @@ fn wire__crate__api__classification_review__ClassificationSelectionDraft_defer_i
             }
         },
     )
+}
+fn wire__crate__api__classification_review__ClassificationSelectionDraft_defer_review_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "ClassificationSelectionDraft_defer_review", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
+            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
+            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>>>::sse_decode(&mut deserializer);
+let api_operation_id = <String>::sse_decode(&mut deserializer);
+let api_position = <crate::api::classification_progress::ClassificationReviewPosition>::sse_decode(&mut deserializer);deserializer.end(); move |context|  {
+                    transform_result_sse::<_, crate::domain::ScanError>((move ||  {
+                        let mut api_that_guard = None;
+let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false)]);
+        for i in decode_indices_ {
+            match i {
+                0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                _ => unreachable!(),
+            }
+        }
+        let api_that_guard = api_that_guard.unwrap();
+ let output_ok = crate::api::classification_review::ClassificationSelectionDraft::defer_review(&*api_that_guard, api_operation_id, api_position)?;   Ok(output_ok)
+                    })())
+                } })
 }
 fn wire__crate__api__classification_review__ClassificationSelectionDraft_prepare_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1717,6 +1796,42 @@ fn wire__crate__api__organization_cleanup__apply_organization_cleanup_impl(
         },
     )
 }
+fn wire__crate__api__classification_progress__begin_classification_review_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "begin_classification_review",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_query = <crate::domain::GalleryQuery>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok =
+                        crate::api::classification_progress::begin_classification_review(
+                            api_query,
+                        )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__organization_review__begin_organization_review_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2024,6 +2139,48 @@ fn wire__crate__api__organization__change_organization_impl(
         },
     )
 }
+fn wire__crate__api__classification_progress__checkpoint_classification_review_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "checkpoint_classification_review",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_position =
+                <crate::api::classification_progress::ClassificationReviewPosition>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_target =
+                <crate::domain::organization::OrganizationSelection>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok =
+                        crate::api::classification_progress::checkpoint_classification_review(
+                            api_position,
+                            api_target,
+                        )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__organization_review__checkpoint_organization_review_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2309,6 +2466,41 @@ fn wire__crate__api__organization__delete_organization_album_impl(
                         api_operation_id,
                         api_expected_revision,
                         api_album_id,
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__classification_progress__end_classification_review_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "end_classification_review",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_session_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::classification_progress::end_classification_review(
+                        api_session_id,
                     )?;
                     Ok(output_ok)
                 })())
@@ -2729,6 +2921,39 @@ fn wire__crate__api__classification_review__load_classification_annotations_impl
                             api_catalog_revision,
                             api_selections,
                         )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__classification_progress__load_classification_continuation_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "load_classification_continuation",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok =
+                        crate::api::classification_progress::load_classification_continuation()?;
                     Ok(output_ok)
                 })())
             }
@@ -5469,6 +5694,40 @@ impl SseDecode for crate::domain::classification_configuration::ClassificationCo
     }
 }
 
+impl SseDecode for crate::domain::classification_review::ClassificationContinuation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_status =
+            <crate::domain::classification_review::ClassificationContinuationStatus>::sse_decode(
+                deserializer,
+            );
+        let mut var_query = <Option<crate::domain::GalleryQuery>>::sse_decode(deserializer);
+        let mut var_target =
+            <Option<crate::domain::organization::OrganizationSelection>>::sse_decode(deserializer);
+        return crate::domain::classification_review::ClassificationContinuation {
+            status: var_status,
+            query: var_query,
+            target: var_target,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::classification_review::ClassificationContinuationStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::classification_review::ClassificationContinuationStatus::NoActivity,
+1 => crate::domain::classification_review::ClassificationContinuationStatus::Ready,
+2 => crate::domain::classification_review::ClassificationContinuationStatus::AnchorUnavailable,
+3 => crate::domain::classification_review::ClassificationContinuationStatus::ScopeUnavailable,
+4 => crate::domain::classification_review::ClassificationContinuationStatus::EmptyScope,
+5 => crate::domain::classification_review::ClassificationContinuationStatus::EndOfScope,
+            _ => unreachable!("Invalid variant for ClassificationContinuationStatus: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for crate::domain::classification_configuration::ClassificationControlAction {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -5550,6 +5809,24 @@ impl SseDecode for crate::domain::classification_selection::ClassificationItemSt
     }
 }
 
+impl SseDecode for crate::api::classification_progress::ClassificationProgressReceipt {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_operation =
+            <crate::domain::classification_catalog::ClassificationWriteReceipt>::sse_decode(
+                deserializer,
+            );
+        let mut var_position =
+            <crate::api::classification_progress::ClassificationReviewPosition>::sse_decode(
+                deserializer,
+            );
+        return crate::api::classification_progress::ClassificationProgressReceipt {
+            operation: var_operation,
+            position: var_position,
+        };
+    }
+}
+
 impl SseDecode for crate::domain::classification_review::ClassificationReviewFilter {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -5559,6 +5836,18 @@ impl SseDecode for crate::domain::classification_review::ClassificationReviewFil
             1 => crate::domain::classification_review::ClassificationReviewFilter::Pending,
             2 => crate::domain::classification_review::ClassificationReviewFilter::Confirmed,
             _ => unreachable!("Invalid variant for ClassificationReviewFilter: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::classification_progress::ClassificationReviewPosition {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_sessionId = <String>::sse_decode(deserializer);
+        let mut var_sequence = <u64>::sse_decode(deserializer);
+        return crate::api::classification_progress::ClassificationReviewPosition {
+            session_id: var_sessionId,
+            sequence: var_sequence,
         };
     }
 }
@@ -8744,102 +9033,109 @@ fn pde_ffi_dispatcher_primary_impl(
 2 => wire__crate__api__classification_review__ClassificationSelectionDraft_append_targets_impl(port, ptr, rust_vec_len, data_len),
 3 => wire__crate__api__classification_review__ClassificationSelectionDraft_close_impl(port, ptr, rust_vec_len, data_len),
 4 => wire__crate__api__classification_review__ClassificationSelectionDraft_confirm_impl(port, ptr, rust_vec_len, data_len),
-5 => wire__crate__api__classification_review__ClassificationSelectionDraft_correct_impl(port, ptr, rust_vec_len, data_len),
-6 => wire__crate__api__classification_review__ClassificationSelectionDraft_defer_impl(port, ptr, rust_vec_len, data_len),
-7 => wire__crate__api__classification_review__ClassificationSelectionDraft_prepare_impl(port, ptr, rust_vec_len, data_len),
-11 => wire__crate__api__classification__DesktopClassificationSession_close_impl(port, ptr, rust_vec_len, data_len),
-14 => wire__crate__api__classification__DesktopClassificationSession_root_available_impl(port, ptr, rust_vec_len, data_len),
-15 => wire__crate__api__classification__DesktopClassificationSession_run_impl(port, ptr, rust_vec_len, data_len),
-17 => wire__crate__api__classification_installation__DesktopModelInstallation_commit_impl(port, ptr, rust_vec_len, data_len),
-18 => wire__crate__api__classification_installation__DesktopModelInstallation_prepare_impl(port, ptr, rust_vec_len, data_len),
-22 => wire__crate__api__organization_batch__OrganizationSelectionDraft_append_ids_impl(port, ptr, rust_vec_len, data_len),
-23 => wire__crate__api__organization_batch__OrganizationSelectionDraft_apply_impl(port, ptr, rust_vec_len, data_len),
-24 => wire__crate__api__organization_batch__OrganizationSelectionDraft_close_impl(port, ptr, rust_vec_len, data_len),
-25 => wire__crate__api__organization_batch__OrganizationSelectionDraft_prepare_impl(port, ptr, rust_vec_len, data_len),
-26 => wire__crate__api__organization_batch__OrganizationSelectionDraft_progress_impl(port, ptr, rust_vec_len, data_len),
-27 => wire__crate__api__organization_batch__OrganizationSelectionDraft_refresh_impl(port, ptr, rust_vec_len, data_len),
-29 => wire__crate__api__classification_maintenance__PreparedClassificationMaintenance_commit_impl(port, ptr, rust_vec_len, data_len),
-30 => wire__crate__api__viewer_source__ViewerSourceReadLease_close_impl(port, ptr, rust_vec_len, data_len),
-31 => wire__crate__api__viewer_source__ViewerSourceReadLease_source_path_impl(port, ptr, rust_vec_len, data_len),
-32 => wire__crate__api__viewer_source__acquire_viewer_source_impl(port, ptr, rust_vec_len, data_len),
-33 => wire__crate__api__exact_duplicates__analyze_exact_duplicates_impl(port, ptr, rust_vec_len, data_len),
-34 => wire__crate__api__organization_cleanup__apply_organization_cleanup_impl(port, ptr, rust_vec_len, data_len),
-35 => wire__crate__api__organization_review__begin_organization_review_impl(port, ptr, rust_vec_len, data_len),
-36 => wire__crate__api__storage__cancel_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
-37 => wire__crate__api__exact_duplicates__cancel_exact_duplicate_analysis_impl(port, ptr, rust_vec_len, data_len),
-40 => wire__crate__api__catalog__cancel_retained_library_scan_impl(port, ptr, rust_vec_len, data_len),
-41 => wire__crate__api__classification_settings__change_classification_control_impl(port, ptr, rust_vec_len, data_len),
-42 => wire__crate__api__organization_review__change_current_organization_review_impl(port, ptr, rust_vec_len, data_len),
-43 => wire__crate__api__organization__change_organization_impl(port, ptr, rust_vec_len, data_len),
-44 => wire__crate__api__organization_review__checkpoint_organization_review_impl(port, ptr, rust_vec_len, data_len),
-45 => wire__crate__api__storage__clear_preview_cache_impl(port, ptr, rust_vec_len, data_len),
-46 => wire__crate__api__storage__clear_retired_preview_cache_impl(port, ptr, rust_vec_len, data_len),
-48 => wire__crate__api__organization__create_organization_album_impl(port, ptr, rust_vec_len, data_len),
-51 => wire__crate__api__organization__delete_organization_album_impl(port, ptr, rust_vec_len, data_len),
-52 => wire__crate__api__organization_review__end_organization_review_impl(port, ptr, rust_vec_len, data_len),
-53 => wire__crate__api__organization_archive__export_organization_archive_impl(port, ptr, rust_vec_len, data_len),
-54 => wire__crate__api__organization__find_organization_album_impl(port, ptr, rust_vec_len, data_len),
-55 => wire__crate__api__initialization__init_app_impl(port, ptr, rust_vec_len, data_len),
-56 => wire__crate__api__classification_settings__initial_classification_categories_impl(port, ptr, rust_vec_len, data_len),
-57 => wire__crate__api__organization_archive__inspect_organization_archive_impl(port, ptr, rust_vec_len, data_len),
-58 => wire__crate__api__organization_cleanup__inspect_organization_cleanup_impl(port, ptr, rust_vec_len, data_len),
-59 => wire__crate__api__organization__inspect_organization_selection_impl(port, ptr, rust_vec_len, data_len),
-60 => wire__crate__api__storage__load_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
-61 => wire__crate__api__classification_review__load_classification_annotations_impl(port, ptr, rust_vec_len, data_len),
-62 => wire__crate__api__classification_review__load_classification_items_impl(port, ptr, rust_vec_len, data_len),
-63 => wire__crate__api__classification_settings__load_classification_settings_impl(port, ptr, rust_vec_len, data_len),
-64 => wire__crate__api__exact_duplicates__load_exact_duplicate_groups_impl(port, ptr, rust_vec_len, data_len),
-65 => wire__crate__api__exact_duplicates__load_exact_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
-66 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
-67 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locations_impl(port, ptr, rust_vec_len, data_len),
-68 => wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
-69 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(port, ptr, rust_vec_len, data_len),
-70 => wire__crate__api__catalog__load_library_asset_by_id_impl(port, ptr, rust_vec_len, data_len),
-71 => wire__crate__api__catalog__load_library_catalog_impl(port, ptr, rust_vec_len, data_len),
-72 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(port, ptr, rust_vec_len, data_len),
-73 => wire__crate__api__catalog__load_library_catalog_around_location_impl(port, ptr, rust_vec_len, data_len),
-74 => wire__crate__api__catalog__load_library_catalog_at_time_impl(port, ptr, rust_vec_len, data_len),
-75 => wire__crate__api__catalog__load_library_folder_page_impl(port, ptr, rust_vec_len, data_len),
-76 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(port, ptr, rust_vec_len, data_len),
-77 => wire__crate__api__catalog__load_library_gallery_timeline_impl(port, ptr, rust_vec_len, data_len),
-78 => wire__crate__api__catalog__load_library_query_snapshot_impl(port, ptr, rust_vec_len, data_len),
-79 => wire__crate__api__catalog__load_library_time_snapshot_impl(port, ptr, rust_vec_len, data_len),
-80 => wire__crate__api__organization_review__load_organization_admission_boundary_impl(port, ptr, rust_vec_len, data_len),
-81 => wire__crate__api__organization__load_organization_albums_impl(port, ptr, rust_vec_len, data_len),
-82 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(port, ptr, rust_vec_len, data_len),
-83 => wire__crate__api__organization_conflicts__load_organization_conflict_annotations_impl(port, ptr, rust_vec_len, data_len),
-84 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(port, ptr, rust_vec_len, data_len),
-85 => wire__crate__api__organization_review__load_organization_continuation_impl(port, ptr, rust_vec_len, data_len),
-86 => wire__crate__api__organization__load_organization_history_impl(port, ptr, rust_vec_len, data_len),
-87 => wire__crate__api__catalog__load_paused_library_scan_impl(port, ptr, rust_vec_len, data_len),
-88 => wire__crate__api__catalog__load_recoverable_library_scan_impl(port, ptr, rust_vec_len, data_len),
-89 => wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len),
-90 => wire__crate__api__preview__materialize_library_preview_impl(port, ptr, rust_vec_len, data_len),
-91 => wire__crate__api__classification_review__open_classification_selection_impl(port, ptr, rust_vec_len, data_len),
-92 => wire__crate__api__classification__open_classification_session_impl(port, ptr, rust_vec_len, data_len),
-93 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(port, ptr, rust_vec_len, data_len),
-95 => wire__crate__api__synchronization__poll_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-96 => wire__crate__api__organization__prepare_organization_selection_impl(port, ptr, rust_vec_len, data_len),
-97 => wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len),
-98 => wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len),
-99 => wire__crate__api__organization__rename_organization_album_impl(port, ptr, rust_vec_len, data_len),
-100 => wire__crate__api__sidebar_order__reorder_sidebar_entry_impl(port, ptr, rust_vec_len, data_len),
-103 => wire__crate__api__organization_archive__restore_organization_archive_impl(port, ptr, rust_vec_len, data_len),
-104 => wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len),
-105 => wire__crate__api__classification_settings__save_classification_settings_impl(port, ptr, rust_vec_len, data_len),
-106 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-107 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
-108 => wire__crate__api__classification__select_classification_installation_impl(port, ptr, rust_vec_len, data_len),
-109 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(port, ptr, rust_vec_len, data_len),
-110 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(port, ptr, rust_vec_len, data_len),
-111 => wire__crate__api__organization__set_organization_favorite_impl(port, ptr, rust_vec_len, data_len),
-112 => wire__crate__api__storage__start_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
-113 => wire__crate__api__synchronization__start_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-114 => wire__crate__api__organization__step_organization_history_impl(port, ptr, rust_vec_len, data_len),
-115 => wire__crate__api__synchronization__stop_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-117 => wire__crate__api__classification_review__undo_classification_change_impl(port, ptr, rust_vec_len, data_len),
-118 => wire__crate__api__organization__undo_organization_operation_impl(port, ptr, rust_vec_len, data_len),
-119 => wire__crate__api__storage__update_storage_settings_impl(port, ptr, rust_vec_len, data_len),
+5 => wire__crate__api__classification_review__ClassificationSelectionDraft_confirm_review_impl(port, ptr, rust_vec_len, data_len),
+6 => wire__crate__api__classification_review__ClassificationSelectionDraft_correct_impl(port, ptr, rust_vec_len, data_len),
+7 => wire__crate__api__classification_review__ClassificationSelectionDraft_correct_review_impl(port, ptr, rust_vec_len, data_len),
+8 => wire__crate__api__classification_review__ClassificationSelectionDraft_defer_impl(port, ptr, rust_vec_len, data_len),
+9 => wire__crate__api__classification_review__ClassificationSelectionDraft_defer_review_impl(port, ptr, rust_vec_len, data_len),
+10 => wire__crate__api__classification_review__ClassificationSelectionDraft_prepare_impl(port, ptr, rust_vec_len, data_len),
+14 => wire__crate__api__classification__DesktopClassificationSession_close_impl(port, ptr, rust_vec_len, data_len),
+17 => wire__crate__api__classification__DesktopClassificationSession_root_available_impl(port, ptr, rust_vec_len, data_len),
+18 => wire__crate__api__classification__DesktopClassificationSession_run_impl(port, ptr, rust_vec_len, data_len),
+20 => wire__crate__api__classification_installation__DesktopModelInstallation_commit_impl(port, ptr, rust_vec_len, data_len),
+21 => wire__crate__api__classification_installation__DesktopModelInstallation_prepare_impl(port, ptr, rust_vec_len, data_len),
+25 => wire__crate__api__organization_batch__OrganizationSelectionDraft_append_ids_impl(port, ptr, rust_vec_len, data_len),
+26 => wire__crate__api__organization_batch__OrganizationSelectionDraft_apply_impl(port, ptr, rust_vec_len, data_len),
+27 => wire__crate__api__organization_batch__OrganizationSelectionDraft_close_impl(port, ptr, rust_vec_len, data_len),
+28 => wire__crate__api__organization_batch__OrganizationSelectionDraft_prepare_impl(port, ptr, rust_vec_len, data_len),
+29 => wire__crate__api__organization_batch__OrganizationSelectionDraft_progress_impl(port, ptr, rust_vec_len, data_len),
+30 => wire__crate__api__organization_batch__OrganizationSelectionDraft_refresh_impl(port, ptr, rust_vec_len, data_len),
+32 => wire__crate__api__classification_maintenance__PreparedClassificationMaintenance_commit_impl(port, ptr, rust_vec_len, data_len),
+33 => wire__crate__api__viewer_source__ViewerSourceReadLease_close_impl(port, ptr, rust_vec_len, data_len),
+34 => wire__crate__api__viewer_source__ViewerSourceReadLease_source_path_impl(port, ptr, rust_vec_len, data_len),
+35 => wire__crate__api__viewer_source__acquire_viewer_source_impl(port, ptr, rust_vec_len, data_len),
+36 => wire__crate__api__exact_duplicates__analyze_exact_duplicates_impl(port, ptr, rust_vec_len, data_len),
+37 => wire__crate__api__organization_cleanup__apply_organization_cleanup_impl(port, ptr, rust_vec_len, data_len),
+38 => wire__crate__api__classification_progress__begin_classification_review_impl(port, ptr, rust_vec_len, data_len),
+39 => wire__crate__api__organization_review__begin_organization_review_impl(port, ptr, rust_vec_len, data_len),
+40 => wire__crate__api__storage__cancel_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
+41 => wire__crate__api__exact_duplicates__cancel_exact_duplicate_analysis_impl(port, ptr, rust_vec_len, data_len),
+44 => wire__crate__api__catalog__cancel_retained_library_scan_impl(port, ptr, rust_vec_len, data_len),
+45 => wire__crate__api__classification_settings__change_classification_control_impl(port, ptr, rust_vec_len, data_len),
+46 => wire__crate__api__organization_review__change_current_organization_review_impl(port, ptr, rust_vec_len, data_len),
+47 => wire__crate__api__organization__change_organization_impl(port, ptr, rust_vec_len, data_len),
+48 => wire__crate__api__classification_progress__checkpoint_classification_review_impl(port, ptr, rust_vec_len, data_len),
+49 => wire__crate__api__organization_review__checkpoint_organization_review_impl(port, ptr, rust_vec_len, data_len),
+50 => wire__crate__api__storage__clear_preview_cache_impl(port, ptr, rust_vec_len, data_len),
+51 => wire__crate__api__storage__clear_retired_preview_cache_impl(port, ptr, rust_vec_len, data_len),
+53 => wire__crate__api__organization__create_organization_album_impl(port, ptr, rust_vec_len, data_len),
+56 => wire__crate__api__organization__delete_organization_album_impl(port, ptr, rust_vec_len, data_len),
+57 => wire__crate__api__classification_progress__end_classification_review_impl(port, ptr, rust_vec_len, data_len),
+58 => wire__crate__api__organization_review__end_organization_review_impl(port, ptr, rust_vec_len, data_len),
+59 => wire__crate__api__organization_archive__export_organization_archive_impl(port, ptr, rust_vec_len, data_len),
+60 => wire__crate__api__organization__find_organization_album_impl(port, ptr, rust_vec_len, data_len),
+61 => wire__crate__api__initialization__init_app_impl(port, ptr, rust_vec_len, data_len),
+62 => wire__crate__api__classification_settings__initial_classification_categories_impl(port, ptr, rust_vec_len, data_len),
+63 => wire__crate__api__organization_archive__inspect_organization_archive_impl(port, ptr, rust_vec_len, data_len),
+64 => wire__crate__api__organization_cleanup__inspect_organization_cleanup_impl(port, ptr, rust_vec_len, data_len),
+65 => wire__crate__api__organization__inspect_organization_selection_impl(port, ptr, rust_vec_len, data_len),
+66 => wire__crate__api__storage__load_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
+67 => wire__crate__api__classification_review__load_classification_annotations_impl(port, ptr, rust_vec_len, data_len),
+68 => wire__crate__api__classification_progress__load_classification_continuation_impl(port, ptr, rust_vec_len, data_len),
+69 => wire__crate__api__classification_review__load_classification_items_impl(port, ptr, rust_vec_len, data_len),
+70 => wire__crate__api__classification_settings__load_classification_settings_impl(port, ptr, rust_vec_len, data_len),
+71 => wire__crate__api__exact_duplicates__load_exact_duplicate_groups_impl(port, ptr, rust_vec_len, data_len),
+72 => wire__crate__api__exact_duplicates__load_exact_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
+73 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
+74 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locations_impl(port, ptr, rust_vec_len, data_len),
+75 => wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
+76 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(port, ptr, rust_vec_len, data_len),
+77 => wire__crate__api__catalog__load_library_asset_by_id_impl(port, ptr, rust_vec_len, data_len),
+78 => wire__crate__api__catalog__load_library_catalog_impl(port, ptr, rust_vec_len, data_len),
+79 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(port, ptr, rust_vec_len, data_len),
+80 => wire__crate__api__catalog__load_library_catalog_around_location_impl(port, ptr, rust_vec_len, data_len),
+81 => wire__crate__api__catalog__load_library_catalog_at_time_impl(port, ptr, rust_vec_len, data_len),
+82 => wire__crate__api__catalog__load_library_folder_page_impl(port, ptr, rust_vec_len, data_len),
+83 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(port, ptr, rust_vec_len, data_len),
+84 => wire__crate__api__catalog__load_library_gallery_timeline_impl(port, ptr, rust_vec_len, data_len),
+85 => wire__crate__api__catalog__load_library_query_snapshot_impl(port, ptr, rust_vec_len, data_len),
+86 => wire__crate__api__catalog__load_library_time_snapshot_impl(port, ptr, rust_vec_len, data_len),
+87 => wire__crate__api__organization_review__load_organization_admission_boundary_impl(port, ptr, rust_vec_len, data_len),
+88 => wire__crate__api__organization__load_organization_albums_impl(port, ptr, rust_vec_len, data_len),
+89 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(port, ptr, rust_vec_len, data_len),
+90 => wire__crate__api__organization_conflicts__load_organization_conflict_annotations_impl(port, ptr, rust_vec_len, data_len),
+91 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(port, ptr, rust_vec_len, data_len),
+92 => wire__crate__api__organization_review__load_organization_continuation_impl(port, ptr, rust_vec_len, data_len),
+93 => wire__crate__api__organization__load_organization_history_impl(port, ptr, rust_vec_len, data_len),
+94 => wire__crate__api__catalog__load_paused_library_scan_impl(port, ptr, rust_vec_len, data_len),
+95 => wire__crate__api__catalog__load_recoverable_library_scan_impl(port, ptr, rust_vec_len, data_len),
+96 => wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len),
+97 => wire__crate__api__preview__materialize_library_preview_impl(port, ptr, rust_vec_len, data_len),
+98 => wire__crate__api__classification_review__open_classification_selection_impl(port, ptr, rust_vec_len, data_len),
+99 => wire__crate__api__classification__open_classification_session_impl(port, ptr, rust_vec_len, data_len),
+100 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(port, ptr, rust_vec_len, data_len),
+102 => wire__crate__api__synchronization__poll_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+103 => wire__crate__api__organization__prepare_organization_selection_impl(port, ptr, rust_vec_len, data_len),
+104 => wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len),
+105 => wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len),
+106 => wire__crate__api__organization__rename_organization_album_impl(port, ptr, rust_vec_len, data_len),
+107 => wire__crate__api__sidebar_order__reorder_sidebar_entry_impl(port, ptr, rust_vec_len, data_len),
+110 => wire__crate__api__organization_archive__restore_organization_archive_impl(port, ptr, rust_vec_len, data_len),
+111 => wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len),
+112 => wire__crate__api__classification_settings__save_classification_settings_impl(port, ptr, rust_vec_len, data_len),
+113 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+114 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
+115 => wire__crate__api__classification__select_classification_installation_impl(port, ptr, rust_vec_len, data_len),
+116 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(port, ptr, rust_vec_len, data_len),
+117 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(port, ptr, rust_vec_len, data_len),
+118 => wire__crate__api__organization__set_organization_favorite_impl(port, ptr, rust_vec_len, data_len),
+119 => wire__crate__api__storage__start_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
+120 => wire__crate__api__synchronization__start_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+121 => wire__crate__api__organization__step_organization_history_impl(port, ptr, rust_vec_len, data_len),
+122 => wire__crate__api__synchronization__stop_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+124 => wire__crate__api__classification_review__undo_classification_change_impl(port, ptr, rust_vec_len, data_len),
+125 => wire__crate__api__organization__undo_organization_operation_impl(port, ptr, rust_vec_len, data_len),
+126 => wire__crate__api__storage__update_storage_settings_impl(port, ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
 }
@@ -8852,25 +9148,25 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-                        8 => wire__crate__api__classification_review__ClassificationSelectionDraft_progress_impl(ptr, rust_vec_len, data_len),
-9 => wire__crate__api__classification__DesktopClassificationSession_browsing_activity_impl(ptr, rust_vec_len, data_len),
-10 => wire__crate__api__classification__DesktopClassificationSession_catalog_changed_impl(ptr, rust_vec_len, data_len),
-12 => wire__crate__api__classification__DesktopClassificationSession_foreground_changed_impl(ptr, rust_vec_len, data_len),
-13 => wire__crate__api__classification__DesktopClassificationSession_request_close_impl(ptr, rust_vec_len, data_len),
-16 => wire__crate__api__classification_installation__DesktopModelInstallation_cancel_impl(ptr, rust_vec_len, data_len),
-19 => wire__crate__api__classification_installation__DesktopModelInstallation_progress_impl(ptr, rust_vec_len, data_len),
-20 => wire__crate__api__organization_archive__OrganizationArchiveTask_cancel_impl(ptr, rust_vec_len, data_len),
-21 => wire__crate__api__organization_cleanup__OrganizationCleanupTask_cancel_impl(ptr, rust_vec_len, data_len),
-28 => wire__crate__api__classification_maintenance__PreparedClassificationMaintenance_cancel_impl(ptr, rust_vec_len, data_len),
-38 => wire__crate__api__catalog__cancel_library_scan_impl(ptr, rust_vec_len, data_len),
-39 => wire__crate__api__storage__cancel_preview_cache_cleanup_impl(ptr, rust_vec_len, data_len),
-47 => wire__crate__api__classification_installation__create_model_installation_impl(ptr, rust_vec_len, data_len),
-49 => wire__crate__api__organization_archive__create_organization_archive_task_impl(ptr, rust_vec_len, data_len),
-50 => wire__crate__api__organization_cleanup__create_organization_cleanup_task_impl(ptr, rust_vec_len, data_len),
-94 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-101 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(ptr, rust_vec_len, data_len),
-102 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(ptr, rust_vec_len, data_len),
-116 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+                        11 => wire__crate__api__classification_review__ClassificationSelectionDraft_progress_impl(ptr, rust_vec_len, data_len),
+12 => wire__crate__api__classification__DesktopClassificationSession_browsing_activity_impl(ptr, rust_vec_len, data_len),
+13 => wire__crate__api__classification__DesktopClassificationSession_catalog_changed_impl(ptr, rust_vec_len, data_len),
+15 => wire__crate__api__classification__DesktopClassificationSession_foreground_changed_impl(ptr, rust_vec_len, data_len),
+16 => wire__crate__api__classification__DesktopClassificationSession_request_close_impl(ptr, rust_vec_len, data_len),
+19 => wire__crate__api__classification_installation__DesktopModelInstallation_cancel_impl(ptr, rust_vec_len, data_len),
+22 => wire__crate__api__classification_installation__DesktopModelInstallation_progress_impl(ptr, rust_vec_len, data_len),
+23 => wire__crate__api__organization_archive__OrganizationArchiveTask_cancel_impl(ptr, rust_vec_len, data_len),
+24 => wire__crate__api__organization_cleanup__OrganizationCleanupTask_cancel_impl(ptr, rust_vec_len, data_len),
+31 => wire__crate__api__classification_maintenance__PreparedClassificationMaintenance_cancel_impl(ptr, rust_vec_len, data_len),
+42 => wire__crate__api__catalog__cancel_library_scan_impl(ptr, rust_vec_len, data_len),
+43 => wire__crate__api__storage__cancel_preview_cache_cleanup_impl(ptr, rust_vec_len, data_len),
+52 => wire__crate__api__classification_installation__create_model_installation_impl(ptr, rust_vec_len, data_len),
+54 => wire__crate__api__organization_archive__create_organization_archive_task_impl(ptr, rust_vec_len, data_len),
+55 => wire__crate__api__organization_cleanup__create_organization_cleanup_task_impl(ptr, rust_vec_len, data_len),
+101 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
+108 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(ptr, rust_vec_len, data_len),
+109 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(ptr, rust_vec_len, data_len),
+123 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
 }
@@ -9458,6 +9754,63 @@ impl
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart
+    for crate::domain::classification_review::ClassificationContinuation
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.status.into_into_dart().into_dart(),
+            self.query.into_into_dart().into_dart(),
+            self.target.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::classification_review::ClassificationContinuation
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::classification_review::ClassificationContinuation,
+    > for crate::domain::classification_review::ClassificationContinuation
+{
+    fn into_into_dart(self) -> crate::domain::classification_review::ClassificationContinuation {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::classification_review::ClassificationContinuationStatus
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::NoActivity => 0.into_dart(),
+            Self::Ready => 1.into_dart(),
+            Self::AnchorUnavailable => 2.into_dart(),
+            Self::ScopeUnavailable => 3.into_dart(),
+            Self::EmptyScope => 4.into_dart(),
+            Self::EndOfScope => 5.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::classification_review::ClassificationContinuationStatus
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::classification_review::ClassificationContinuationStatus,
+    > for crate::domain::classification_review::ClassificationContinuationStatus
+{
+    fn into_into_dart(
+        self,
+    ) -> crate::domain::classification_review::ClassificationContinuationStatus {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
     for crate::domain::classification_configuration::ClassificationControlAction
 {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
@@ -9593,6 +9946,31 @@ impl
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart
+    for crate::api::classification_progress::ClassificationProgressReceipt
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.operation.into_into_dart().into_dart(),
+            self.position.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::classification_progress::ClassificationProgressReceipt
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::api::classification_progress::ClassificationProgressReceipt,
+    > for crate::api::classification_progress::ClassificationProgressReceipt
+{
+    fn into_into_dart(self) -> crate::api::classification_progress::ClassificationProgressReceipt {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
     for crate::domain::classification_review::ClassificationReviewFilter
 {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
@@ -9614,6 +9992,31 @@ impl
     > for crate::domain::classification_review::ClassificationReviewFilter
 {
     fn into_into_dart(self) -> crate::domain::classification_review::ClassificationReviewFilter {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::api::classification_progress::ClassificationReviewPosition
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.session_id.into_into_dart().into_dart(),
+            self.sequence.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::classification_progress::ClassificationReviewPosition
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::api::classification_progress::ClassificationReviewPosition,
+    > for crate::api::classification_progress::ClassificationReviewPosition
+{
+    fn into_into_dart(self) -> crate::api::classification_progress::ClassificationReviewPosition {
         self
     }
 }
@@ -13425,6 +13828,34 @@ crate::domain::classification_configuration::ClassificationConfigurationAction::
     }
 }
 
+impl SseEncode for crate::domain::classification_review::ClassificationContinuation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::classification_review::ClassificationContinuationStatus>::sse_encode(
+            self.status,
+            serializer,
+        );
+        <Option<crate::domain::GalleryQuery>>::sse_encode(self.query, serializer);
+        <Option<crate::domain::organization::OrganizationSelection>>::sse_encode(
+            self.target,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::classification_review::ClassificationContinuationStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(match self {crate::domain::classification_review::ClassificationContinuationStatus::NoActivity => { 0 }
+crate::domain::classification_review::ClassificationContinuationStatus::Ready => { 1 }
+crate::domain::classification_review::ClassificationContinuationStatus::AnchorUnavailable => { 2 }
+crate::domain::classification_review::ClassificationContinuationStatus::ScopeUnavailable => { 3 }
+crate::domain::classification_review::ClassificationContinuationStatus::EmptyScope => { 4 }
+crate::domain::classification_review::ClassificationContinuationStatus::EndOfScope => { 5 }
+ _ => { unimplemented!(""); }}, serializer);
+    }
+}
+
 impl SseEncode for crate::domain::classification_configuration::ClassificationControlAction {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -13502,6 +13933,20 @@ impl SseEncode for crate::domain::classification_selection::ClassificationItemSt
     }
 }
 
+impl SseEncode for crate::api::classification_progress::ClassificationProgressReceipt {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::classification_catalog::ClassificationWriteReceipt>::sse_encode(
+            self.operation,
+            serializer,
+        );
+        <crate::api::classification_progress::ClassificationReviewPosition>::sse_encode(
+            self.position,
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for crate::domain::classification_review::ClassificationReviewFilter {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -13516,6 +13961,14 @@ impl SseEncode for crate::domain::classification_review::ClassificationReviewFil
             },
             serializer,
         );
+    }
+}
+
+impl SseEncode for crate::api::classification_progress::ClassificationReviewPosition {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.session_id, serializer);
+        <u64>::sse_encode(self.sequence, serializer);
     }
 }
 

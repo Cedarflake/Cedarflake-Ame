@@ -4,11 +4,13 @@ import "package:flutter/foundation.dart";
 
 import "../domain/library_classification_review.dart";
 import "library_classification_review.dart";
+import "library_classification_review_session.dart";
 
 class LibraryClassificationSelection {
-  LibraryClassificationSelection(this.service, this.scope);
+  LibraryClassificationSelection(this.service, this.scope, {this.reviewEntry});
   final LibraryClassificationReviewService service;
   final LibraryClassificationScope scope;
+  final LibraryClassificationReviewEntry? reviewEntry;
   LibraryClassificationDraft? _draft;
   Future<LibraryClassificationSummary>? _preparing;
   bool _closed = false;
@@ -63,6 +65,15 @@ class LibraryClassificationSelection {
     final draft = _draft;
     if (draft == null) {
       throw StateError("Classification selection has not been prepared");
+    }
+    final entry = reviewEntry;
+    entry?.owner.requireCurrent(entry);
+    if (entry != null) {
+      final position = await entry.owner.checkpoint(entry);
+      _requireActive();
+      final receipt = await draft.applyReview(operationId, position, command);
+      entry.owner.accept(entry, receipt);
+      return receipt.operation;
     }
     return draft.apply(operationId, command);
   }

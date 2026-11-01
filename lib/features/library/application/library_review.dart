@@ -3,14 +3,14 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../../../src/rust/api/organization_review.dart" as api;
 import "../../../src/rust/domain.dart" as rust;
 import "../../../src/rust/domain/organization.dart" as organization;
-import "../../../src/rust/domain/organization_queue.dart" as queue;
+
 import "../../../src/rust/domain/organization_review.dart" as dto;
 import "../domain/library_models.dart";
 import "../domain/library_organization.dart";
 import "../domain/library_review.dart";
 import "library_catalog.dart";
-import "library_gallery_collection_mapping.dart";
-import "library_metadata_filter_mapping.dart";
+import "library_gallery_query_mapping.dart";
+
 import "library_organization.dart";
 
 abstract interface class LibraryReview {
@@ -94,7 +94,7 @@ class RustLibraryReview implements LibraryReview {
         dto.OrganizationContinuationStatus.endOfQueue =>
           LibraryContinuationStatus.endOfQueue,
       },
-      query: value.query == null ? null : _query(value.query!),
+      query: value.query == null ? null : mapRustGalleryQuery(value.query!),
       target: target == null
           ? null
           : LibraryOrganizationTarget(
@@ -155,36 +155,6 @@ class RustLibraryReview implements LibraryReview {
         sessionId: value.sessionId,
         positionSequence: value.sequence,
       );
-
-  LibraryGalleryQuery _query(rust.GalleryQuery value) => LibraryGalleryQuery(
-    collection: mapRustCollection(value.collection),
-    organizationQueue: switch (value.organizationQueue) {
-      null => null,
-      queue.OrganizationQueue.pending => LibraryOrganizationQueue.pending,
-      queue.OrganizationQueue.deferred_ => LibraryOrganizationQueue.deferred,
-      queue.OrganizationQueue.ignored => LibraryOrganizationQueue.ignored,
-    },
-    rootId: value.rootId,
-    newSinceAdmission: value.newSinceAdmission,
-    folderRelativePath: value.folderRelativePath,
-    includeDescendants: value.includeDescendants,
-    searchText: value.searchText,
-    metadataFilter: mapRustMetadataFilter(value.metadataFilter),
-    sortKey: switch (value.sortKey) {
-      rust.GallerySortKey.captureTime => LibraryGallerySortKey.captureTime,
-      rust.GallerySortKey.createdTime => LibraryGallerySortKey.createdTime,
-      rust.GallerySortKey.modifiedTime => LibraryGallerySortKey.modifiedTime,
-      rust.GallerySortKey.fileName => LibraryGallerySortKey.fileName,
-      rust.GallerySortKey.libraryAdmission =>
-        LibraryGallerySortKey.libraryAdmission,
-    },
-    sortDirection: value.sortDirection == rust.GallerySortDirection.ascending
-        ? LibraryGallerySortDirection.ascending
-        : LibraryGallerySortDirection.descending,
-    duplicateMode: value.duplicateMode == rust.GalleryDuplicateMode.all
-        ? LibraryGalleryDuplicateMode.all
-        : LibraryGalleryDuplicateMode.merged,
-  );
 }
 
 organization.OrganizationAction mapLibraryProgressAction(

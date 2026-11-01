@@ -65,6 +65,7 @@ void main() {
                           Align(
                             alignment: Alignment.bottomCenter,
                             child: LibraryViewerOrganizationControls(
+                              query: surface.library.query,
                               mode: mode,
                               target: LibraryOrganizationTarget.fromAsset(
                                 surface.library.assets.single,

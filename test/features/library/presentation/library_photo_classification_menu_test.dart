@@ -4,6 +4,7 @@ import "package:cedarflake_ame/app/notifications/ame_notification_controller.dar
 import "package:cedarflake_ame/features/library/application/library_classification_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_review.dart";
+import "package:cedarflake_ame/features/library/application/library_classification_progress.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_settings.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
@@ -16,10 +17,12 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_classification_review_fixture.dart";
+import "../support/library_classification_progress_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
 void main() {
   late ClassificationReviewFixture service;
+  late ClassificationProgressFixture progress;
   late OrganizationServiceFixture organization;
   late _Library library;
   late ProviderContainer container;
@@ -27,6 +30,7 @@ void main() {
   final target = organizationTarget("one");
 
   setUp(() {
+    progress = ClassificationProgressFixture();
     service = ClassificationReviewFixture()
       ..summary = const LibraryClassificationSummary(
         groups: 1,
@@ -38,6 +42,7 @@ void main() {
     library = _Library();
     container = ProviderContainer(
       overrides: [
+        libraryClassificationProgressProvider.overrideWithValue(progress),
         libraryClassificationReviewServiceProvider.overrideWithValue(service),
         libraryOrganizationProvider.overrideWithValue(organization),
         libraryControllerProvider.overrideWith(() => library),
@@ -108,6 +113,8 @@ void main() {
       expect(draft.targets, [target]);
       expect(draft.commands.single, isA<LibraryConfirmClassification>());
       expect(draft.closes, 1);
+      expect(progress.targets, [target]);
+      expect(draft.reviewPositions, hasLength(1));
       expect(service.scopes.single.allMatching, isFalse);
       expect(organization.writes, isEmpty);
       expect(organization.memberships, isEmpty);
@@ -124,6 +131,37 @@ void main() {
       expect(actions.handleNotification(notice), isTrue);
       await tester.pumpAndSettle();
       expect(service.undos, [draft.operationIds.single]);
+    },
+  );
+
+  testWidgets(
+    "context deferral saves classification progress without organization changes",
+    (tester) async {
+      service.summary = const LibraryClassificationSummary(
+        groups: 1,
+        confirmable: 1,
+        confirmed: 0,
+        commonCategoryId: "drawing",
+        singleItem: LibraryClassificationItem(
+          assetId: "asset-one",
+          review: LibraryClassificationReview.needsReview,
+          canConfirm: true,
+        ),
+      );
+      await open(tester);
+      await tester.tap(find.text("稍后确认"));
+      await tester.pumpAndSettle();
+      expect(
+        service.drafts.single.commands.single,
+        isA<LibraryDeferClassification>(),
+      );
+      expect(progress.targets, [target]);
+      expect(progress.ended, ["review"]);
+      expect(organization.writes, isEmpty);
+      expect(
+        container.read(libraryClassificationActionsProvider).notice?.title,
+        "已留待确认",
+      );
     },
   );
 

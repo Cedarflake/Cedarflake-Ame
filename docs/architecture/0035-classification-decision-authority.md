@@ -152,6 +152,15 @@ includes it; deferral or leaving the selected category/review filter records an 
 R5-05 owns resolving that anchor through the bounded smart-album projection. R4's session, bookmark,
 album decisions and Favorite fields are independent.
 
+The desktop begins a classification review session on an explicit single-image classification
+command in a smart-album scope. Reading a card or opening a menu does not create saved activity.
+Frozen selection evidence reaches the existing atomic review command through a bounded single-group
+adapter. Refreshing controls retains their review entry and never repeats its checkpoint. A still-open
+image may accept another command using the latest committed sequence; after-current placement controls
+resumption, not that image's live command authority. The bookmarked group, session and field guards
+still reject old or unrelated commands. Continuation is an explicit bounded gallery transition and
+does not restore ordinary selection state.
+
 Removing a source retires scopes bound to it. A global bookmark may use a surviving copy of the same
 group. Compatible root reassociation remaps retained scopes without treating paths as identity.
 Unresolved-record cleanup includes category/review fields and the classification bookmark in its

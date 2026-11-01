@@ -1302,6 +1302,14 @@ the existing contextual More/continuation pattern only after prior activity and 
 it does not silently restore ordinary selections on primary-sidebar switches. The organizing
 Library retains its own mode, selection, and position when visiting these Albums views.
 
+The preview category menu and smart-album image context menu offer `稍后确认` for unfinished items
+that have not already been deferred. A single-image confirmation, correction or deferral records its
+classification scope and position; simply opening an image or menu does not. After saved activity,
+`更多` offers `继续确认分类`. This action revalidates the saved scope and opens the eligible image
+through the shared gallery. An unavailable or exhausted scope uses the existing bottom feedback.
+Control refresh leaves the bookmark unchanged; another explicit command on a retained image updates
+the decision and continuation together without changing the viewed image.
+
 The accepted sketch establishes section placement, shared canvas, contextual batch actions, top
 viewer entry, and reuse of the album tray. Its sample images/counts and substitute icons are not
 production assets or requirements. Follow the installed SDK, existing icon library, and component

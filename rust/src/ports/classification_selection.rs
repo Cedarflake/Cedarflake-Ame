@@ -4,6 +4,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::domain::ScanError;
 use crate::domain::classification::{ClassificationAction, ClassificationRecordId};
 use crate::domain::classification_catalog::ClassificationWriteReceipt;
+use crate::domain::classification_review::{
+    ClassificationReviewReceipt, ClassificationReviewSession,
+};
 use crate::domain::classification_selection::{
     ClassificationSelectionPhase, ClassificationSelectionProgress, ClassificationSelectionSummary,
 };
@@ -20,6 +23,12 @@ pub(crate) trait ClassificationSelectionRepository: Send {
         id: &ClassificationRecordId,
         action: &ClassificationAction,
     ) -> Result<ClassificationWriteReceipt, ScanError>;
+    fn apply_review(
+        &mut self,
+        id: &ClassificationRecordId,
+        session: &ClassificationReviewSession,
+        action: &ClassificationAction,
+    ) -> Result<ClassificationReviewReceipt, ScanError>;
 }
 
 pub(crate) struct ClassificationSelectionControl {

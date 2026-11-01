@@ -8,6 +8,7 @@ import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_classification_actions.dart";
 import "../../application/library_classification_review.dart";
 import "../../application/library_classification_selection.dart";
+import "../../application/library_classification_review_session.dart";
 import "../../application/library_classification_settings.dart";
 import "../../domain/library_classification_review.dart";
 import "../../domain/library_organization_batch.dart";
@@ -20,12 +21,14 @@ class LibraryClassificationControls extends ConsumerStatefulWidget {
     required this.enabled,
     this.onCommitted,
     this.viewer = false,
+    this.reviewEntry,
     super.key,
   });
   final LibraryClassificationScope scope;
   final bool enabled;
   final VoidCallback? onCommitted;
   final bool viewer;
+  final LibraryClassificationReviewEntry? reviewEntry;
 
   @override
   ConsumerState<LibraryClassificationControls> createState() =>
@@ -61,6 +64,7 @@ class _LibraryClassificationControlsState
     final selection = LibraryClassificationSelection(
       ref.read(libraryClassificationReviewServiceProvider),
       widget.scope,
+      reviewEntry: widget.reviewEntry,
     );
     _selection = selection;
     _summary = null;
@@ -121,6 +125,13 @@ class _LibraryClassificationControlsState
     final enabled = widget.enabled && !saving && !_working;
     final ready = enabled && _summary != null;
     final canConfirm = ready && _summary!.confirmable > 0;
+    final review = _summary?.singleItem?.review;
+    final canDefer =
+        widget.viewer &&
+        ready &&
+        review != null &&
+        review != LibraryClassificationReview.confirmed &&
+        review != LibraryClassificationReview.deferred;
     final categoryId = _summary?.commonCategoryId;
     final categoryName = categories
         .where((category) => category.id == categoryId)
@@ -129,6 +140,7 @@ class _LibraryClassificationControlsState
     final label = widget.viewer ? categoryName ?? "分类" : "更改分类";
     final labels = [
       if (widget.viewer) "确认分类",
+      if (canDefer) "稍后确认",
       for (final category in categories) category.label,
     ];
     final menu = AmePopupMenuButton<String>(
@@ -137,11 +149,11 @@ class _LibraryClassificationControlsState
       leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
       onOpenChanged: (open) => _menuOpen = open,
       onSelected: (choice) => unawaited(
-        _apply(
-          choice == "confirm"
-              ? const LibraryConfirmClassification()
-              : LibraryCorrectClassification(choice.substring(9)),
-        ),
+        _apply(switch (choice) {
+          "confirm" => const LibraryConfirmClassification(),
+          "defer" => const LibraryDeferClassification(),
+          _ => LibraryCorrectClassification(choice.substring(9)),
+        }),
       ),
       items: [
         if (widget.viewer) ...[
@@ -153,6 +165,14 @@ class _LibraryClassificationControlsState
               icon: Symbols.check_rounded,
             ),
           ),
+          if (canDefer)
+            const PopupMenuItem(
+              value: "defer",
+              child: AmeMenuItemContent(
+                label: "稍后确认",
+                icon: Symbols.schedule_rounded,
+              ),
+            ),
           const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
         ],
         ...libraryClassificationCategoryItems(

@@ -129,8 +129,8 @@ The [category evidence](r5-category-discovery.md#joined-desktop-maintenance-publ
 native/client lifecycle checks; model-backed first-use interaction remains pending. The roadmap owns
 the remaining context coverage and integrated quality acceptance.
 
-Classification continuation and real-client
-acceptance of contextual review retain their R5-06 scope. Integrated quality, scale and the paired
+Failed-analysis retry and real-client acceptance of contextual review retain their R5-06 scope.
+Classification continuation is connected through the workflow below. Integrated quality, scale and the paired
 cloud-primary comparison remain in R5-07. These focused checks do not close the stage.
 
 ## Smart-album image context menus
@@ -186,3 +186,54 @@ Production ownership is 130 lines for native annotations, 97 for the shared proj
 work completion/control, 158 for the native review facade, 71 for the Dart window reader, 44 for
 the shared label, 26 for its classification binding and 441 for the existing photo tile. No inline
 tests are added. Dedicated annotation tests contain 143/128 native and 143/117 Dart lines.
+
+## Connected classification continuation
+
+Single-image commands in the viewer and smart-album context menu now start a classification session
+with the observed category, review filter, physical scope, search and ordering. Preparation is passive.
+The existing frozen selection reaches the native review transaction through a single-group adapter,
+so its field changes and continuation position commit together. Ordinary batch writes retain their
+separate bounded command owner. No schema, dependency, model, media-read or source-write changes are
+required.
+
+Refreshing a retained image's controls preserves its review entry. Later commands use the latest
+committed sequence without repeating the checkpoint; after-current placement affects resumption,
+while the active session, exact group and field guards continue to authorize the displayed image.
+Old sessions, positions, evidence and cancelled selections cannot publish a new decision. Context
+menu retirement awaits a pending session opening and ends only that matching session.
+
+`稍后确认` is available for unfinished, non-deferred images through the category and context menus.
+`更多` offers `继续确认分类` after saved activity. Explicit continuation reloads the saved target,
+uses the existing bounded gallery transition and opens that image. Replaced or disposed views retire
+late reads; ordinary selections are not restored. Unavailable and exhausted scopes use shared bottom
+feedback. R4 organization actions and its bookmark remain independent.
+
+Seventeen native checks pass: nine frozen-selection/review checks, five existing review/recovery
+checks, two bounded-continuation checks and one smart-album scope-normalization check. They cover grouped deferral, committed retries, repeated
+retained-image correction, stale evidence/session rejection, cancellation, control refresh, restart
+and R4 preservation. The initial two new fixture failures were missing display publication and a
+configuration operation counted as a review write; both fixtures now establish the actual boundary.
+
+Thirty-nine Flutter checks pass across classification sessions, explicit continuation, viewer and
+context-menu controls, shared feedback and the existing R4 viewer controls. The affected session and
+menu checks were repeated after connecting subsequent retained-image commands. Focused analysis
+reports no issues. All 46 asynchronous bridge contracts and their rejection fixtures pass; generation
+adds seven entrypoints and removes none. The shared reverse gallery-query mapper retains the exact
+former R4 mapping body. An initial generator pass exposed a misplaced Dart import; the corrected
+generation completes without the failed build step. The final targeted checks also preserve prepared
+controls across ordinary viewer rebuilds and report failed continuation publication without opening
+an image. Smart-album progress normalizes the retained duplicate preference to its actual folded
+query while preserving the other filters and ordering.
+
+The previous head's hosted Static job found an untyped empty category-list fallback in the smart-album
+sidebar. The explicit typed fallback is separately committed in `1f39b270`; focused analysis passes
+and its hosted gate is running. Real-window review remains pending under the existing Computer Use
+restriction. Failed-analysis retry and integrated quality acceptance retain their roadmap scope.
+
+The native batch facade has 168 production lines, its batch-command owner 84 and its single-review
+adapter 40. Application progress/selection owners have 54/170 lines and their bridge facades 72/139.
+The Dart review session and continuation navigation contain 109/51 lines; classification controls,
+viewer binding, More menu and photo-menu owner contain 247/103/210/120. Existing photo-menu composition
+is 289 lines. The 1,921-line gallery screen gains four net lines of dependency wiring and no new
+workflow responsibility. No inline tests are added. Dedicated native batch-review/scope fixtures
+contain 254/32 lines; Dart session/navigation/widget fixtures contain 161/147/221 lines.

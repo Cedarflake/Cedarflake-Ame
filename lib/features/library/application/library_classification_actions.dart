@@ -108,6 +108,7 @@ class LibraryClassificationActions
     if (code == "classification_selection_cancelled") return;
     final message = switch (code) {
       "classification_changed" ||
+      "classification_review_changed" ||
       "organization_selection_changed" => "图片或分类已变化，请重新选择后重试",
       "classification_not_configured" => "请先在设置中启用智能相册",
       "classification_selection_empty" => "所选图片已不在当前范围",

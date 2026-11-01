@@ -6,6 +6,9 @@ use crate::domain::GalleryQuery;
 use crate::domain::ScanError;
 use crate::domain::classification::{ClassificationAction, ClassificationRecordId};
 use crate::domain::classification_catalog::ClassificationWriteReceipt;
+use crate::domain::classification_review::{
+    ClassificationReviewReceipt, ClassificationReviewSession,
+};
 use crate::domain::classification_selection::ClassificationItemState;
 use crate::domain::classification_selection::{
     ClassificationAnnotation, ClassificationSelectionPhase, ClassificationSelectionProgress,
@@ -132,6 +135,15 @@ impl ClassificationSelectionSession {
 
     pub(crate) fn progress(&self) -> ClassificationSelectionProgress {
         self.control.snapshot()
+    }
+
+    pub(crate) fn apply_review(
+        &self,
+        id: ClassificationRecordId,
+        session: ClassificationReviewSession,
+        action: ClassificationAction,
+    ) -> Result<ClassificationReviewReceipt, ScanError> {
+        self.with_repository(|repository| repository.apply_review(&id, &session, &action))
     }
 
     pub(crate) fn close(&self) -> Result<(), ScanError> {

@@ -47,9 +47,8 @@ pub(super) fn apply(
         return Err(stale());
     }
     let bookmark = position::load(connection)?.ok_or_else(stale)?;
-    if bookmark.after_current {
-        return Err(stale());
-    }
+    // Resume placement is independent of a still-displayed image's command authority.
+    // The session sequence and bookmarked group above/below retain that authority.
     let selected = prepared.selections.first().ok_or_else(stale)?;
     let matches: bool = connection
         .query_row(
