@@ -1,0 +1,485 @@
+[
+  {
+    "id": "cats",
+    "label": "猫咪",
+    "subject": "cats",
+    "cues": [
+      "cat",
+      "feline",
+      "kitten",
+      "kitty"
+    ]
+  },
+  {
+    "id": "dogs",
+    "label": "狗狗",
+    "subject": "dogs",
+    "cues": [
+      "dog",
+      "canine",
+      "puppy"
+    ]
+  },
+  {
+    "id": "rabbits",
+    "label": "兔子",
+    "subject": "rabbits",
+    "cues": [
+      "rabbit",
+      "bunny",
+      "hare"
+    ]
+  },
+  {
+    "id": "birds",
+    "label": "鸟类",
+    "subject": "birds",
+    "cues": [
+      "bird",
+      "parrot",
+      "sparrow",
+      "duck"
+    ]
+  },
+  {
+    "id": "wildlife",
+    "label": "野生动物",
+    "subject": "wild animals in their natural habitat",
+    "cues": [
+      "wildlife",
+      "wild animal",
+      "zoo",
+      "safari"
+    ]
+  },
+  {
+    "id": "animal_characters",
+    "label": "动物角色",
+    "subject": "cartoon animal characters",
+    "cues": [
+      "animal",
+      "character",
+      "cartoon",
+      "mascot"
+    ]
+  },
+  {
+    "id": "animal_eared_characters",
+    "label": "兽耳角色",
+    "subject": "characters with animal ears and tails",
+    "cues": [
+      "fox",
+      "feline",
+      "wolf",
+      "cat",
+      "canine",
+      "ear",
+      "tail"
+    ]
+  },
+  {
+    "id": "portraits",
+    "label": "人物肖像",
+    "subject": "a close-up portrait of a person",
+    "cues": [
+      "portrait",
+      "face",
+      "head",
+      "person"
+    ]
+  },
+  {
+    "id": "groups",
+    "label": "多人合影",
+    "subject": "a group of people posing together",
+    "cues": [
+      "group",
+      "crowd",
+      "family",
+      "portrait"
+    ]
+  },
+  {
+    "id": "costumes",
+    "label": "角色扮演",
+    "subject": "people dressed in character costumes",
+    "cues": [
+      "costume",
+      "disguise",
+      "cosplay",
+      "dress"
+    ]
+  },
+  {
+    "id": "performances",
+    "label": "舞台表演",
+    "subject": "a live performance on stage",
+    "cues": [
+      "stage",
+      "concert",
+      "performance",
+      "dance",
+      "singer"
+    ]
+  },
+  {
+    "id": "sports",
+    "label": "体育运动",
+    "subject": "people playing sports or exercising",
+    "cues": [
+      "sport",
+      "exercise",
+      "athlete",
+      "ball",
+      "running"
+    ]
+  },
+  {
+    "id": "children_playing",
+    "label": "儿童游玩",
+    "subject": "children playing games together",
+    "cues": [
+      "child",
+      "play",
+      "playground",
+      "toy",
+      "game"
+    ]
+  },
+  {
+    "id": "toys",
+    "label": "玩具",
+    "subject": "toys, dolls and figurines",
+    "cues": [
+      "toy",
+      "doll",
+      "figurine",
+      "puppet",
+      "teddy"
+    ]
+  },
+  {
+    "id": "food",
+    "label": "餐饮美食",
+    "subject": "prepared food and meals",
+    "cues": [
+      "food",
+      "dish",
+      "meal",
+      "restaurant",
+      "cooking"
+    ]
+  },
+  {
+    "id": "mountains",
+    "label": "山野风光",
+    "subject": "mountains and open natural landscapes",
+    "cues": [
+      "mountain",
+      "hill",
+      "valley",
+      "landscape"
+    ]
+  },
+  {
+    "id": "coast",
+    "label": "海滨风光",
+    "subject": "a beach and the sea",
+    "cues": [
+      "beach",
+      "ocean",
+      "sea",
+      "coast"
+    ]
+  },
+  {
+    "id": "forests",
+    "label": "树林",
+    "subject": "trees in a forest or woodland",
+    "cues": [
+      "forest",
+      "woodland",
+      "tree"
+    ]
+  },
+  {
+    "id": "flowers",
+    "label": "花草",
+    "subject": "flowers and plants",
+    "cues": [
+      "flower",
+      "plant",
+      "garden",
+      "blossom"
+    ]
+  },
+  {
+    "id": "streets",
+    "label": "城市街景",
+    "subject": "city streets and urban buildings",
+    "cues": [
+      "street",
+      "city",
+      "road",
+      "town"
+    ]
+  },
+  {
+    "id": "buildings",
+    "label": "建筑",
+    "subject": "the exterior of buildings and architecture",
+    "cues": [
+      "building",
+      "architecture",
+      "house",
+      "tower"
+    ]
+  },
+  {
+    "id": "interiors",
+    "label": "室内空间",
+    "subject": "rooms and indoor living spaces",
+    "cues": [
+      "room",
+      "interior",
+      "furniture",
+      "bedroom",
+      "kitchen"
+    ]
+  },
+  {
+    "id": "construction",
+    "label": "建筑施工",
+    "subject": "construction work on buildings",
+    "cues": [
+      "construction",
+      "scaffolding",
+      "crane",
+      "brick",
+      "building"
+    ]
+  },
+  {
+    "id": "vehicles",
+    "label": "车辆",
+    "subject": "cars and other road vehicles",
+    "cues": [
+      "car",
+      "vehicle",
+      "truck",
+      "bus",
+      "motorcycle"
+    ]
+  },
+  {
+    "id": "programming",
+    "label": "代码",
+    "subject": "programming code in an editor or terminal",
+    "cues": [
+      "code",
+      "source code",
+      "programming",
+      "compiler",
+      "program",
+      "terminal",
+      "command line interface"
+    ]
+  },
+  {
+    "id": "messaging",
+    "label": "聊天",
+    "subject": "a conversation in a messaging app",
+    "cues": [
+      "chat",
+      "conversation",
+      "message",
+      "dialogue",
+      "instant messaging"
+    ]
+  },
+  {
+    "id": "gaming",
+    "label": "游戏",
+    "subject": "video game gameplay and game interfaces",
+    "cues": [
+      "game",
+      "video game",
+      "computer game",
+      "player"
+    ]
+  },
+  {
+    "id": "reading",
+    "label": "阅读",
+    "subject": "written articles, books and reading passages",
+    "cues": [
+      "reading",
+      "book",
+      "article",
+      "paragraph",
+      "text",
+      "monologue"
+    ]
+  },
+  {
+    "id": "web",
+    "label": "网页",
+    "subject": "web pages in a browser",
+    "cues": [
+      "web page",
+      "website",
+      "browser",
+      "web browser"
+    ]
+  },
+  {
+    "id": "settings",
+    "label": "系统设置",
+    "subject": "device settings and configuration menus",
+    "cues": [
+      "settings",
+      "configuration",
+      "menu",
+      "operating system"
+    ]
+  },
+  {
+    "id": "maps",
+    "label": "地图导航",
+    "subject": "maps and navigation directions",
+    "cues": [
+      "map",
+      "navigation",
+      "atlas",
+      "route"
+    ]
+  },
+  {
+    "id": "spreadsheets",
+    "label": "表格",
+    "subject": "spreadsheet tables with rows and columns",
+    "cues": [
+      "spreadsheet",
+      "table",
+      "column",
+      "row",
+      "database"
+    ]
+  },
+  {
+    "id": "documents",
+    "label": "文档",
+    "subject": "documents and printed forms",
+    "cues": [
+      "document",
+      "form",
+      "paper",
+      "report",
+      "corrigenda",
+      "worksheet"
+    ]
+  },
+  {
+    "id": "charts",
+    "label": "图表",
+    "subject": "charts, diagrams and data visualizations",
+    "cues": [
+      "chart",
+      "diagram",
+      "graph",
+      "plot"
+    ]
+  },
+  {
+    "id": "notes",
+    "label": "手写笔记",
+    "subject": "handwritten notes on paper or a whiteboard",
+    "cues": [
+      "note",
+      "notebook",
+      "handwriting",
+      "whiteboard",
+      "blackboard"
+    ]
+  },
+  {
+    "id": "mathematics",
+    "label": "数学",
+    "subject": "mathematical formulas and worked exercises",
+    "cues": [
+      "mathematics",
+      "formula",
+      "equation",
+      "calculation"
+    ]
+  },
+  {
+    "id": "music",
+    "label": "乐谱",
+    "subject": "written sheet music and musical notation",
+    "cues": [
+      "sheet music",
+      "score",
+      "notation",
+      "music"
+    ]
+  },
+  {
+    "id": "shopping",
+    "label": "购物",
+    "subject": "product listings and online shopping pages",
+    "cues": [
+      "shopping",
+      "product",
+      "catalog",
+      "price",
+      "shop"
+    ]
+  },
+  {
+    "id": "receipts",
+    "label": "票据",
+    "subject": "receipts, tickets and invoices",
+    "cues": [
+      "receipt",
+      "ticket",
+      "invoice",
+      "bill"
+    ]
+  },
+  {
+    "id": "interface_design",
+    "label": "界面设计",
+    "subject": "user interface designs and layouts",
+    "cues": [
+      "interface",
+      "layout",
+      "design",
+      "window",
+      "button"
+    ]
+  },
+  {
+    "id": "logos",
+    "label": "标志设计",
+    "subject": "logos, icons and graphic symbols",
+    "cues": [
+      "logo",
+      "icon",
+      "emblem",
+      "symbol"
+    ]
+  },
+  {
+    "id": "film",
+    "label": "影视画面",
+    "subject": "scenes from films and television shows",
+    "cues": [
+      "film",
+      "television",
+      "movie",
+      "actor",
+      "scene"
+    ]
+  }
+]

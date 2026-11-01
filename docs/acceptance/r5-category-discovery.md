@@ -1621,3 +1621,36 @@ contents. All four foreground-index migration cases pass, covering repeated reop
 invalid authority. Only two assertion-roster lines change in the 359-line dedicated test file;
 production migrations and retained-data assertions remain unchanged. The repository format check
 passes with 690 Dart files unchanged, and `git diff --check` passes.
+
+### Bundled vocabulary distribution
+
+The Windows build now produces the retained vocabulary from pinned OMW English WordNet 2.0 and
+Chinese Open WordNet 1.1 archives. The tracked manifest binds archive, member, naming-context and
+output identities. The six-file bundle contains the resource, both upstream licenses, both citations
+and Ame's modification notice. The archives and generated 23,249,187-byte resource remain outside Git.
+The production naming-context input retains the frozen calibration fixture's exact bytes; packaging
+does not enlarge its coverage or establish automatic category maintenance.
+
+Offline preparation from the retained archives reproduces the admitted resource's SHA-256 exactly.
+The production CMake target prepares and verifies the resource in the normal Windows build tree.
+No model inference, new source download, catalog or original-media access occurs. Normal hosted
+Release retains ownership of the complete application build and installed payload.
+
+Five focused fixtures pass for noun relations and Chinese alias preference, regular and unique
+archive members, corrupt/extra output, atomic publication failure, bounded and reusable downloads,
+and retained manifest identity. Unsigned payload, portable archive and installer component checks
+pass, including omission of each of the six new files and the added directory's ACL ownership.
+The first packaging checks exposed old fixed file/component counts; their exact expectations now
+include the new files and directory. No required payload or rejection case is removed.
+
+The restricted test run could not use the system temporary directory or publish hard links. Fixture
+storage now stays under repository build storage; the unchanged hard-link and junction checks pass
+under the normal Windows token. Source/output hashes also match with LF repository normalization.
+PowerShell syntax and the read-only repository format check pass with 690 Dart files unchanged.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Vocabulary preparation / lexical transformation | 93 / 148 | 0 | 188 shared fixture lines |
+| Artifact admission and atomic publication | 168 | 0 | Included above |
+| PowerShell artifact contract / preparation entrypoint | 40 / 28 | 0 | Shared packaging checks |
+| CMake dependency/install module | 12 | 0 | Production target and hosted Release |

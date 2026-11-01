@@ -254,11 +254,21 @@ which continues to own context nomination and category authority. Canonical revi
 entry points and each relationship independently of file order; display/relationship changes leave
 unchanged description-feature keys reusable.
 
-This resource contract adds no model, data download, source-media read, catalog write or background
-enablement. The discovery probe can consume the same adapter for retained calibration comparisons.
-Distribution admission still belongs to the selected resource manifest, upstream notices, compatible
-context evidence and first-use installation; accepting a file format does not admit a lexical release
-or freeze the category set.
+The Windows bundle supplies this resource from the pinned OMW English WordNet 2.0 and Chinese Open
+WordNet 1.1 archives recorded in the distribution manifest. Their WordNet-style licenses permit
+modified redistribution with the copyright notices and disclaimers retained. The bundle carries
+both licenses, source citations and a modification notice. Source concepts remain traversal cues;
+the separate application-owned naming definitions retain their measured context authority.
+
+A build-only Python 3.11-or-later standard-library converter reproduces the admitted noun graph,
+Chinese labels, entry points and context links. Local builds resolve the installed interpreter
+through `uv`; hosted builds may use their installed Python. No interpreter is shipped or downloaded.
+The build verifies archive, member and output identities, reads named regular archive members without
+extracting paths, and writes only derived build storage. Runtime loading uses the expected BLAKE3
+digest through the existing reader. Neither preparation nor loading enables analysis, reads source
+media or changes a catalog. Updating this resource requires compatible context evidence and new
+artifact identities; packaging the retained contexts does not close the broader coverage requirement
+or fix the number of categories in a user's library.
 
 ### Candidate admission evidence
 

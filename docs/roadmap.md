@@ -193,8 +193,9 @@ unsigned, portable and installer packaging. Native managed model installation no
 downloads in separate local storage, retains verified files across retry and publishes the selected
 installation only after runtime retirement. Desktop settings now connects explicit download and
 enablement through a joined installation lifetime and the shared bottom feedback host, without
-directory selection or first-use category authoring. Vocabulary distribution admission, maintenance
-scheduling and real-client first-use verification remain.
+directory selection or first-use category authoring. The Windows build also prepares the pinned
+vocabulary and retained notices, with deterministic output verification and required payloads in all
+three packaging paths. Maintenance scheduling and real-client first-use verification remain.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review

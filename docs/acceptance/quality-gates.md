@@ -1295,6 +1295,17 @@ namespace and output-scope checks through Static. The native distribution-contra
 the packaging DLL pins to the worker's compiled pins. Normal unsigned Release verifies the connected
 application build; no local full Release run is added by this dependency.
 
+The same target invokes `./tool/release_prepare_classification_vocabulary.ps1
+-OutputDirectory <repository-build-subdirectory>` for the admitted lexical resource and its notices.
+The build-only converter uses installed Python 3.11 or later, resolved through local `uv` when present.
+It downloads only the two pinned source archives into repository build storage, verifies their exact
+members and deterministically checks all six output files. `-SourceDirectory <local-archive-directory>`
+supports offline preparation; existing output is reused only after complete verification.
+`./tool/release_test_classification_vocabulary.ps1` supplies archive, download, conversion and atomic
+publication fixtures through Static. Unsigned, portable and installer checks require the resource,
+both licenses, both citations and the modification notice. Model execution and media reads are outside
+this build step; the normal hosted Release job owns the complete application build.
+
 The application-and-broker MSI is built by `./tool/release_package_installer_windows.ps1` from
 an exact passing unsigned Release manifest. Supply the version tag, bundle/evidence paths,
 the pinned WiX 7.0.0 SDK, UI-extension and bootstrapper-extension packages with their matching extracted directories,
