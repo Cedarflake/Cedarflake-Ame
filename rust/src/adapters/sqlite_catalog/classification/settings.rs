@@ -12,7 +12,9 @@ use crate::ports::classification_configuration::ClassificationConfigurationRepos
 use super::super::{SqliteCatalog, database_error};
 use super::{changed, codec, configuration, operations, setup, work::control};
 
+mod authority;
 mod maintenance;
+mod retirement;
 
 impl ClassificationConfigurationRepository for SqliteCatalog {
     fn load_classification_configuration(

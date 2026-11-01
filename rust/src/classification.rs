@@ -13,7 +13,8 @@ pub use crate::application::classification_discovery::{
     ContextualVocabulary, DiscoveryCandidates, MemberAdmission, NamingContext,
     NamingContextCatalog, assess_category_candidates, assess_category_scheme,
     consolidate_classification_concepts, nominate_classification_contexts,
-    prepare_category_expansion, retrieve_classification_concepts,
+    prepare_category_expansion, prepare_equivalent_category_retirement,
+    retrieve_classification_concepts,
 };
 pub use crate::application::classification_dispatch::{
     ClassificationDispatchClock, ClassificationDispatchSignals, ClassificationDispatchStep,
@@ -40,7 +41,8 @@ pub use crate::domain::classification::discovery::{
     ConceptSimilarity, DiscoveryCohort, DiscoveryError, DiscoverySample, VocabularyConcept,
 };
 pub use crate::domain::classification::maintenance::{
-    CategoryExpansionPlan, CategoryExpansionSnapshot, ManagedCategoryOrigin,
+    CategoryExpansionPlan, CategoryExpansionSnapshot, CategoryRetirementPlan,
+    CategoryRetirementSnapshot, EquivalentCategoryRetirement, ManagedCategoryOrigin,
 };
 pub use crate::domain::classification::work::{
     ClassificationAnalysisResult, ClassificationBacklogPage, ClassificationDispatchCommand,
@@ -70,7 +72,9 @@ pub use crate::domain::classification_review::{
 };
 pub use crate::ports::classification::ClassificationRepository;
 pub use crate::ports::classification_availability::ClassificationAvailabilityRepository;
-pub use crate::ports::classification_configuration::CategoryExpansionRepository;
+pub use crate::ports::classification_configuration::{
+    CategoryExpansionRepository, CategoryRetirementRepository,
+};
 pub use crate::ports::classification_encoder::{
     ClassificationEncoder, ClassificationEncoderFactory, ClassificationEncoderKind,
 };

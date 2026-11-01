@@ -4,14 +4,16 @@ use crate::domain::ScanError;
 
 use super::{current_schema, database_error, schema_shape};
 
-const OBJECTS: &[(&str, &str)] = &[
-    ("classification_maintenance_evidence", "CREATE TABLE classification_maintenance_evidence (
+pub(super) const EVIDENCE_TABLE_V71: &str = "CREATE TABLE classification_maintenance_evidence (
         operation_id TEXT PRIMARY KEY NOT NULL REFERENCES classification_operations(operation_id),
         run_id TEXT NOT NULL REFERENCES classification_runs(run_id),
         evidence_revision TEXT NOT NULL CHECK(length(evidence_revision) = 64),
         payload TEXT NOT NULL CHECK(json_valid(payload) AND json_extract(payload, '$.version') IS 1
             AND length(CAST(payload AS BLOB)) BETWEEN 1 AND 524288)
-    ) STRICT, WITHOUT ROWID"),
+    ) STRICT, WITHOUT ROWID";
+
+const OBJECTS: &[(&str, &str)] = &[
+    ("classification_maintenance_evidence", EVIDENCE_TABLE_V71),
     ("classification_managed_categories", "CREATE TABLE classification_managed_categories (
         category_id TEXT PRIMARY KEY NOT NULL REFERENCES classification_categories(category_id),
         concept_id TEXT NOT NULL CHECK(length(concept_id) = 64 AND concept_id NOT GLOB '*[^0-9a-f]*'),
@@ -45,7 +47,13 @@ pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), S
 }
 
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
+    let version = schema_shape::schema_version(connection)?;
     for (name, statement) in OBJECTS {
+        let statement = if *name == "classification_maintenance_evidence" && version >= 72 {
+            super::classification_retirement::EVIDENCE_TABLE
+        } else {
+            statement
+        };
         if !schema_shape::schema_object_sql_matches(connection, "table", name, statement)? {
             return Err(invalid());
         }
@@ -80,6 +88,7 @@ fn invalid() -> ScanError {
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v70_for_test(connection: &Connection) {
+    super::classification_retirement::downgrade_to_v71_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() != 71 {
         return;
     }

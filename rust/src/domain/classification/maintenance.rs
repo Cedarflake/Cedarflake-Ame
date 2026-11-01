@@ -9,6 +9,11 @@ use crate::domain::classification_configuration::{
     ClassificationConfigurationChange, ClassificationConfigurationSnapshot,
 };
 
+mod retirement;
+pub use retirement::{
+    CategoryRetirementPlan, CategoryRetirementSnapshot, EquivalentCategoryRetirement,
+};
+
 pub struct CategoryExpansionSnapshot {
     pub configuration: ClassificationConfigurationSnapshot,
     pub model: Option<ModelCompatibility>,

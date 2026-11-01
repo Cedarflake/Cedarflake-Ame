@@ -28,7 +28,8 @@ descriptions of at most 1,024 characters. These are resource/admission limits, n
 count. Exact duplicate descriptions within a category and duplicate category IDs are rejected.
 Shared descriptions across different categories are allowed and can produce an ambiguous tie.
 
-Definitions can be added or retired explicitly. Retirement removes a definition from future
+Definitions can be added or retired by explicit user commands or admitted managed-maintenance plans.
+Retirement removes a definition from future
 matching; persistence retains its identity and description history for saved human choices. Remapping
 a retired human choice is a separate explicit command, never a side effect of refreshing the active
 taxonomy. An empty active scheme has no classifier and produces no invented `其他` result.
@@ -265,7 +266,7 @@ preserves the result and revision. Cancellation returns no partial assessment.
 
 This bounded comparison has no model, source-read, persistence or runtime-enablement capability.
 Its selected window does not establish whole-library category usefulness or authorize retirement.
-Persistent cumulative budgets, guarded merge/retirement publication, scheduling and first use retain
+Persistent cumulative budgets, non-equivalent overlap policy, scheduling and first use retain
 their separate maintenance requirements. Measured counterfactual budgets do not select a default.
 
 ### Guarded category additions
@@ -286,7 +287,7 @@ the category addition and run replacement. No source-file access occurs in this 
 The changed category set creates an explicitly uncalibrated immutable setup; a screening profile
 for the previous category set is not transferred. Existing runs and human decisions remain retained.
 The addition boundary preserves the 256-category contract bound and per-assessment proposal limit.
-Cumulative soft budgets, overlap/retirement policy and automatic scheduling are separate requirements
+Cumulative soft budgets, non-equivalent overlap policy and automatic scheduling are separate requirements
 before enabling managed maintenance in first use.
 
 Schema 71 records immutable discovery evidence once per addition operation and a separate durable
@@ -302,6 +303,35 @@ model evidence. Versions 1–5 remain readable and do not grant automatic author
 categories. Restoration cannot weaken existing protection or replace a conflicting origin. Missing
 local discovery evidence requires fresh assessment before automatic maintenance; restoration itself
 does not enable classification or recreate the source cohort.
+
+### Equivalent-category retirement
+
+The application can consolidate existing definitions with exactly the same complete description set
+and naming purpose. This proves equal matching scores independently of the sampled images; a similar
+label, similar embedding or small occupancy supplies no retirement authority. A generated category
+is eligible only while its current name and semantic revision match its recorded origin. Missing
+origins, explicit definition protection, a current human classification reference and use as an active
+generated category's purpose all retain the definition. Protected equivalents can coexist.
+
+Within an equivalence group, protected definitions have retention priority, followed by canonical
+identity. At most 64 eligible definitions retire in one operation, with a stable retained identity
+across subsequent rounds. Definitions, semantic history, origins, accepted human evidence and operation
+history remain stored. No human choice is remapped and no original image is read or modified.
+
+Preparation reads the bounded active taxonomy, origins and indexed human-category references.
+Publication repeats the decision within the configuration transaction and requires the exact saved
+catalog/dispatch state, origin/protection data, human references and compatible active run. Pause,
+manual changes, stale run authority or cancellation reject uncommitted work. Categories, an explicitly
+uncalibrated replacement run, the operation receipt and immutable retirement evidence commit together.
+A committed retry returns current state without reactivating a later stop. Automatic retirement does
+not become a manual edit or weaken an existing protection flag.
+
+Schema 72 preserves version-1 admission evidence while admitting version-2 equivalent-retirement
+records in the same bounded evidence table. Each retirement record identifies the former and retained
+definition, their semantic revisions and labels, generated origin, human-category protection and new
+run. Portable recovery continues to retain definitions/origins and omit derived maintenance evidence.
+Non-equivalent overlap decisions, cumulative usefulness budgets and runtime scheduling remain separate
+requirements; this equivalence proof does not supply their thresholds or enable maintenance itself.
 
 ## Features and matching
 

@@ -166,8 +166,11 @@ recovery retains protection without importing model evidence or claiming legacy 
 whole-scheme comparison now measures additions jointly against existing definitions, recomputing
 independent support after overlap and budget decisions. The retained cache-only comparison preserves
 input-order stability and exposes category-set effects; it does not select a cumulative product budget
-or retire existing categories. Persistent maintenance policy and its publication/runtime integration
-remain before automatic first use.
+or retire existing categories. Equivalent generated definitions now have a guarded retirement path
+that preserves protected definitions, human classifications, purpose parents and historical evidence.
+The configuration/run replacement and versioned retirement record share one transaction. Cumulative
+usefulness budgets, non-equivalent overlap policy and runtime integration remain before automatic
+first use.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review

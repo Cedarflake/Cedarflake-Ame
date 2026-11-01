@@ -12,6 +12,7 @@ use crate::ports::classification_work::ClassificationWorkRepository;
 use super::*;
 
 mod maintenance;
+mod retirement;
 
 fn request(
     catalog: &SqliteCatalog,

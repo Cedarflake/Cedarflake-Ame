@@ -1108,3 +1108,57 @@ it. There is no schema, bridge, model, dependency or desktop change in this deli
 Persistent cumulative budgets, guarded merge/retirement publication, runtime scheduling, first-use
 integration and measured reduction of human work remain in the canonical queue. This bounded window
 does not authorize deleting an existing category or replacing a human decision.
+
+### Equivalent-definition retirement and recovery
+
+Existing generated categories with the same complete descriptions and naming purpose now have a
+native preparation/publication path. It retains any category with an unknown origin, explicit
+protection, a changed definition, a human classification reference or an active purpose dependency.
+Protected equivalents remain available together. Other equivalents use one retained canonical
+identity, with at most 64 retirements per transaction. Distinct descriptions and purposes are kept
+separate. No image count, embedding similarity or low occupancy is used as retirement proof.
+
+Publication rereads the complete bounded configuration and protection snapshot and repeats the
+decision within the shared configuration transaction. Retirement removes only active rule membership;
+historical definitions, runs, origins, human choices and independent Favorites remain. The replacement
+run has no inherited calibration profile. A committed retry returns the current configuration and
+preserves a later stop. The shared active-run authority check is extracted without changing the
+existing addition boundary's catalog/dispatch/model checks.
+
+Schema 72 extends the bounded evidence table with version-2 retirement records while preserving
+version-1 payload bytes and foreign-key identities. The migration rebuilds only that derived-evidence
+table transactionally; it neither rescans media nor removes category history or manual protection.
+Retirement evidence records both identities, names and semantic revisions, the generated origin,
+human-category protection, the previous rule set and the new run. Portable format 6 remains unchanged.
+
+Focused diagnostics cover durable retirement/restart, idempotent retry after stopping, retained human
+classification and Favorites, manual/legacy/edited definitions, pause/protection/choice races,
+mid-transaction cancellation, failed evidence insertion, bounded repeated rounds, purpose parents,
+different purposes, cancelled preparation and obsolete run authority. Forward-migration cases check
+old payload/configuration preservation, rejection of unsupported or empty retirement records, failed
+upgrade rollback and successful retry. Existing configuration/addition/protection/recovery regressions
+exercise the shared active-run owner and earlier migration path.
+
+The first transaction diagnostic passed 27 cases and exposed four successful-publication failures at
+the version-1 evidence constraint. Schema 72 addresses that owning constraint; failure-injection cases
+also check the specific injected/cancellation error, so an unrelated constraint failure cannot stand
+in for a passing rollback case. All diagnostics use isolated temporary catalogs, with no original
+media, runtime/model downloads or desktop interaction.
+
+After the migration repair, all 33 settings cases pass, including eight retirement cases and the
+existing configuration/addition/protection checks. Both new retirement-migration cases and both
+earlier maintenance-migration cases pass: 37 focused cases, zero failures. The repository format
+check passes with 685 Dart files unchanged; `git diff --check` passes. Hosted CI retains full-suite
+and lint ownership for the delivered commit.
+
+The retirement application owner has 133 production lines, its domain types 37, the shared active-run
+guard 21, SQLite publication 125 and evidence encoding 50, with no inline tests. Dedicated retirement
+tests and fixtures have 483 lines. The new migration has 41 production lines and 27 test-only helper,
+import and module-registration lines, with 125 dedicated test lines. The existing migration registry
+has 4,173 lines before its 2,290-line inline test module; the catalog facade has 3,333 total lines with
+its tests in a dedicated module. Changes there only register the migration and current schema version;
+retirement policy and transaction ownership remain in the dedicated owners above.
+
+This establishes exact-description retirement. Persistent cumulative usefulness budgets,
+non-equivalent overlap decisions, automatic maintenance scheduling and first-use integration retain
+their canonical scope.

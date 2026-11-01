@@ -21,6 +21,7 @@ mod context_vocabulary;
 mod maintenance;
 mod nomination;
 mod ranking;
+mod retirement;
 mod scheme;
 mod search;
 
@@ -44,6 +45,8 @@ pub use nomination::{
     ConceptNomination, ConceptNominationRequest, nominate_classification_contexts,
 };
 pub use ranking::{ConceptMatch, DiscoveryCandidates};
+pub(crate) use retirement::equivalent_retirements;
+pub use retirement::prepare_equivalent_category_retirement;
 pub use scheme::{
     CategorySchemeAssessment, CategorySchemeCandidate, CategorySchemeDisposition,
     CategorySchemeMember, assess_category_scheme,

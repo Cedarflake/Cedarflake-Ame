@@ -14,7 +14,7 @@ use crate::ports::classification_configuration::CategoryExpansionRepository;
 
 use super::super::super::exact_duplicates::queries::CURRENT_LOCATIONS;
 use super::super::maintenance;
-use super::{SqliteCatalog, changed, codec, database_error, operations, setup};
+use super::{SqliteCatalog, changed, codec, database_error, operations};
 
 impl CategoryExpansionRepository for SqliteCatalog {
     fn load_category_expansion_snapshot(
@@ -73,16 +73,7 @@ fn snapshot(
         ));
     }
     let configuration = super::load(connection)?;
-    let model = match configuration.dispatch.run_id.as_ref() {
-        Some(run_id) => setup::load(connection, run_id.as_str())?
-            .filter(|setup| {
-                configuration.catalog.active_run_id.as_deref() == Some(run_id.as_str())
-                    && configuration.catalog.configuration == Some(setup.run().configuration())
-                    && configuration.catalog.taxonomy.as_ref() == Some(setup.primary())
-            })
-            .map(|setup| setup.run().model()),
-        None => None,
-    };
+    let model = super::authority::active_model(connection, &configuration)?;
     let encoded =
         serde_json::to_string(&proposed.iter().map(CategoryId::as_str).collect::<Vec<_>>())
             .map_err(|_| changed())?;
