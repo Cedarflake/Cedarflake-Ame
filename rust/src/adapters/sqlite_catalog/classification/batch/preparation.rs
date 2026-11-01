@@ -64,10 +64,11 @@ impl SqliteClassificationSelection {
                 let observation = observations::for_target(&transaction, &target, &state)?;
                 if group_count == 1 {
                     summary.single_item = Some(selection::item_state(
-                        &target.representative.asset_id,
+                        &transaction,
+                        &target.representative,
                         &observation,
                         taxonomy,
-                    ));
+                    )?);
                 }
                 let effective = observation.effective();
                 let category = effective

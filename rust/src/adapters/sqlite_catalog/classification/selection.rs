@@ -10,7 +10,7 @@ use crate::domain::classification_selection::{
 use crate::domain::organization::{OrganizationSelection, validate_selections};
 use rusqlite::Connection;
 
-use super::super::organization;
+use super::super::{gallery::classification_annotations, organization};
 use super::{configuration, observations};
 
 pub(super) fn can_confirm(observation: &ClassificationObservation, taxonomy: &Taxonomy) -> bool {
@@ -42,20 +42,21 @@ pub(super) fn load(
             organization::selection::prepare(&transaction, std::slice::from_ref(selection))?;
         let target = prepared.groups.first().ok_or_else(super::changed)?;
         let observation = observations::for_target(&transaction, target, &state)?;
-        result.push(item_state(&selection.asset_id, &observation, taxonomy));
+        result.push(item_state(&transaction, selection, &observation, taxonomy)?);
     }
     transaction.commit().map_err(super::super::database_error)?;
     Ok(result)
 }
 
 pub(super) fn item_state(
-    asset_id: &str,
+    connection: &Connection,
+    selection: &OrganizationSelection,
     observation: &ClassificationObservation,
     taxonomy: &Taxonomy,
-) -> ClassificationItemState {
+) -> Result<ClassificationItemState, ScanError> {
     let effective = observation.effective();
-    ClassificationItemState {
-        asset_id: asset_id.into(),
+    Ok(ClassificationItemState {
+        asset_id: selection.asset_id.clone(),
         category_id: effective.category.map(|category| category.as_str().into()),
         review: match effective.review {
             ClassificationReview::Unclassified => ClassificationItemReview::Unclassified,
@@ -67,7 +68,11 @@ pub(super) fn item_state(
         },
         can_confirm: can_confirm(observation, taxonomy),
         review_reason: match effective.review {
-            ClassificationReview::Confirmed | ClassificationReview::Unclassified => None,
+            ClassificationReview::Confirmed => None,
+            ClassificationReview::Unclassified => {
+                classification_annotations::has_failed_work(connection, selection)?
+                    .then_some(ClassificationReviewReason::AnalysisFailed)
+            }
             ClassificationReview::Conflict => Some(ClassificationReviewReason::Conflict),
             ClassificationReview::Deferred => Some(ClassificationReviewReason::Deferred),
             ClassificationReview::Suggested | ClassificationReview::NeedsReview => observation
@@ -78,5 +83,5 @@ pub(super) fn item_state(
                     ReviewRecommendation::LowSeparation => ClassificationReviewReason::Uncertain,
                 }),
         },
-    }
+    })
 }

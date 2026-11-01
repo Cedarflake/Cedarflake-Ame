@@ -83,7 +83,8 @@ choices retain their narrower selection-indicator measurement. The real client d
 confirmation label. A rendered-text regression fails before the change and passes afterward;
 the two control cases and three progress-widget cases pass, as does scoped fatal-info analysis.
 The affected control has 294 production lines, no inline tests, and 143 dedicated test lines.
-Failed-analysis retry and the remaining integrated desktop cases still require their own evidence.
+Failed-analysis retry is verified below; batch review and the remaining integrated desktop cases
+retain their own evidence requirements.
 
 The hosted Flutter run for `83f7f69f` also found that a settings typography assertion matched both
 the page title and the new settings action. Commit `d60469a8` scopes that assertion to the title row;
@@ -179,8 +180,8 @@ Application-managed discovery and guarded category maintenance now join the desk
 retirement/publication boundary, with pinned vocabulary and runtime resources in the build payload.
 First-use setup supplies managed model installation without manual directory or category entry.
 The [category evidence](r5-category-discovery.md#joined-desktop-maintenance-publication) records the
-native/client lifecycle checks; model-backed first-use interaction remains pending. The roadmap owns
-the remaining context coverage and integrated quality acceptance.
+native/client lifecycle checks; the isolated first-use interaction is recorded above. The roadmap
+owns the remaining context coverage and integrated quality acceptance.
 
 Real-client acceptance of contextual review retains its R5-06 scope. Classification continuation
 and single-image failed-analysis retry are connected through the workflows below. Integrated quality, scale and the paired
@@ -318,5 +319,38 @@ The native retry owner has 99 production lines with 17 application and 10 bridge
 service/actions have 27/138 lines; existing classification controls, context scope and context menu
 have 293/135/301. The 1,927-line gallery screen adds only six lines of notice routing. No inline tests
 are added. Dedicated native retry tests contain 199 lines; Dart action/widget tests 142/143 and the
-affected context-menu suite 309. Real-window interaction remains pending under the Computer Use
-restriction; the recovery entrypoints have not yet received connected-client acceptance.
+affected context-menu suite 309. The subsequent real-client check below covers these recovery
+entrypoints and the missing native failure-state connection.
+
+### Failure status in real menu preparation — 2026-11-01
+
+The isolated client imports the retained 48-file measurement fixture alongside the three-file
+metadata fixture. It publishes 35 content predictions and 15 terminal `classification_image_limit`
+failures. Failed cards remain browseable. Pausing through More persists `paused` without changing
+the saved human category or deferred review.
+
+Opening a failed image exposes a missing native connection: card annotations include terminal work
+failures, while direct item reads and frozen single-group preparation previously omitted them.
+The shared annotation owner now supplies its existing configuration/source/content failure predicate
+to both single-item paths in their current read transaction. Human decisions and compatible
+predictions retain precedence; failure status grants no classification or retry mutation authority.
+The retry command still revalidates dispatch and source versions independently.
+
+Both focused native regressions fail before this repair and pass afterward. They compare the card,
+direct-item and frozen-selection results for failed source work, shared duplicate content, retry
+clearing the failure, successful publication and a human correction. The annotation, single-item and
+batch-preparation owners contain 156/87/113 production lines, with no inline tests; their dedicated
+work-annotation fixture contains 181 lines. Formatting and whitespace checks pass.
+
+The rebuilt isolated Profile client retains manual pause across restart. Its preview category menu
+now exposes `重新分析` for the failed image. Activating it displays the shared top notice
+`已安排重试，继续分析后处理`; only one content task becomes queued, and the action disappears for
+that queued image. The context menu on a second failed image gives the same result through the
+shared bottom host. Read-only before/after snapshots show exactly one changed work row per command,
+with identical dispatch, human classification and continuation records throughout both requests.
+
+Explicit Continue consumes both queued tasks. Their unchanged oversized inputs produce the same
+bounded `classification_image_limit` outcome, and both card labels return to `分析失败` without
+losing browsing or human choices. All 51 original fixture file lengths and SHA-256 hashes remain
+unchanged. These observations establish retry scheduling, pause persistence and truthful failure
+publication; they do not raise the admitted image-size limit.

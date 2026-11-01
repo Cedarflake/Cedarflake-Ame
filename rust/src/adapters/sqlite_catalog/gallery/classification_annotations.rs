@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use rusqlite::{params_from_iter, types::Value};
+use rusqlite::{Connection, OptionalExtension, params, params_from_iter, types::Value};
 
 use crate::domain::ScanError;
 use crate::domain::classification_selection::{
@@ -91,6 +91,32 @@ impl SqliteCatalog {
         transaction.commit().map_err(database_error)?;
         Ok(result)
     }
+}
+
+pub(in super::super) fn has_failed_work(
+    connection: &Connection,
+    selection: &OrganizationSelection,
+) -> Result<bool, ScanError> {
+    let query = format!(
+        "SELECT {} FROM asset_locations AS locations
+         JOIN library_roots AS roots ON roots.active_scan_id = locations.scan_id
+         WHERE locations.location_id = ?1 AND locations.asset_id = ?2
+           AND locations.source_generation = ?3",
+        failed_work("locations")
+    );
+    connection
+        .query_row(
+            &query,
+            params![
+                selection.location_id,
+                selection.asset_id,
+                sqlite_integer(selection.source_generation, "source generation")?,
+            ],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(database_error)?
+        .ok_or_else(stale_selection)
 }
 
 fn failed_work(location: &str) -> String {
