@@ -4,6 +4,7 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -11,6 +12,32 @@ import "support/library_screen_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
 void main() {
+  testWidgets("keyboard select all uses the complete query", (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            populatedScreenState(totalItems: 79013),
+          ),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    expect(find.text("已选择 79013 个项目"), findsOneWidget);
+  });
+
   testWidgets("reveals a checkbox on hover and keeps selection visible", (
     tester,
   ) async {

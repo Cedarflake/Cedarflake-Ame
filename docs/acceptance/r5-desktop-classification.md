@@ -83,8 +83,8 @@ choices retain their narrower selection-indicator measurement. The real client d
 confirmation label. A rendered-text regression fails before the change and passes afterward;
 the two control cases and three progress-widget cases pass, as does scoped fatal-info analysis.
 The affected control has 294 production lines, no inline tests, and 143 dedicated test lines.
-Failed-analysis retry is verified below; batch review and the remaining integrated desktop cases
-retain their own evidence requirements.
+Failed-analysis retry and batch review are verified below; integrated quality and constrained-device
+measurements retain their R5-07 evidence requirements.
 
 The hosted Flutter run for `83f7f69f` also found that a settings typography assertion matched both
 the page title and the new settings action. Commit `d60469a8` scopes that assertion to the title row;
@@ -150,8 +150,8 @@ smart albums: an existing neutral album icon and one short line, `还没有创�
 page of a larger collection. Smart-album collapse also hides its empty row, and configured categories
 replace it without a sample-definition fallback. The two updated smart-sidebar cases and two existing
 album creation/undo cases pass, including the empty row's disappearance and return. The isolated
-Profile build is updated. The user stopped Computer Use with Escape during the window update; the
-final rows have not received a new real-window interaction check.
+Profile build is updated. The initial real-window check was interrupted; the later isolated
+first-use workflow above supplies the connected configuration and category-navigation evidence.
 
 Line counts exclude generated bridges. UI tests are dedicated suites, not inline production code.
 
@@ -183,9 +183,9 @@ The [category evidence](r5-category-discovery.md#joined-desktop-maintenance-publ
 native/client lifecycle checks; the isolated first-use interaction is recorded above. The roadmap
 owns the remaining context coverage and integrated quality acceptance.
 
-Real-client acceptance of contextual review retains its R5-06 scope. Classification continuation
-and single-image failed-analysis retry are connected through the workflows below. Integrated quality, scale and the paired
-cloud-primary comparison remain in R5-07. These focused checks do not close the stage.
+Real-client first use, contextual and batch review, continuation, and failed-analysis retry have the
+observations recorded in this document. Integrated quality, scale and the paired cloud-primary
+comparison remain in R5-07. These checks do not close the stage.
 
 ## Smart-album image context menus
 
@@ -201,7 +201,8 @@ late inspection after navigation, an already-open command after navigation, and 
 with successful reopening. The two existing classification-control and five original photo-menu
 cases also pass. Focused analysis reports no issues, owned formatting and whitespace checks pass.
 Successful classification stays outside notification history; read failure uses the existing
-notification controller and clears after a successful retry. Real-window interaction remains pending.
+notification controller and clears after a successful retry. Real-window confirmation, correction
+and undo are recorded below.
 
 The photo-menu composition has 275 production lines, its classification scope/lifetime owner 85,
 shared category entries 34 and existing classification controls 227. No inline tests are added;
@@ -233,8 +234,8 @@ including 500-item batching, retired-window work, failed
 batch recovery, coexisting labels, hover/open behavior, quiet routine suggestions, original album
 conflict feedback and card focus. Focused analysis reports no issues. The generated bridge passes
 all 39 asynchronous contracts and the rejecting contract fixtures. The contract fixture's roster
-was updated with the added annotation entrypoint. Real-window interaction remains pending under
-the existing Computer Use restriction; focused checks do not establish that acceptance.
+was updated with the added annotation entrypoint. The later isolated first-use, retry and batch
+workflows verify the real card states and their committed transitions.
 
 Production ownership is 130 lines for native annotations, 97 for the shared projection, 167/274 for
 work completion/control, 158 for the native review facade, 71 for the Dart window reader, 44 for
@@ -280,9 +281,9 @@ an image. Smart-album progress normalizes the retained duplicate preference to i
 query while preserving the other filters and ordering.
 
 The previous head's hosted Static job found an untyped empty category-list fallback in the smart-album
-sidebar. The explicit typed fallback is separately committed in `1f39b270`; focused analysis passes
-and its hosted gate is running. Real-window review remains pending under the existing Computer Use
-restriction. Failed-analysis retry and integrated quality acceptance retain their roadmap scope.
+sidebar. The explicit typed fallback is committed in `1f39b270`; focused analysis and the later
+`58d68688` hosted Static job pass. The isolated workflow above verifies real-window continuation;
+failed-analysis retry is covered below. Integrated quality retains its roadmap scope.
 
 The native batch facade has 168 production lines, its batch-command owner 84 and its single-review
 adapter 40. Application progress/selection owners have 54/170 lines and their bridge facades 72/139.
@@ -354,3 +355,34 @@ bounded `classification_image_limit` outcome, and both card labels return to `�
 losing browsing or human choices. All 51 original fixture file lengths and SHA-256 hashes remain
 unchanged. These observations establish retry scheduling, pause persistence and truthful failure
 publication; they do not raise the admitted image-size limit.
+
+### Batch review and manual organization independence — 2026-11-01
+
+The isolated Profile client built from `58d68688` selects two current suggestions and adds them to
+Favorites, then creates a manual album through the existing destination tray and assigns both
+groups. The tray contains only the manual album. Both collections display the same two groups.
+
+Batch confirmation retains both selected groups and removes their attention labels. The all-results
+pending count decreases from 31 to 29. Batch correction to another category and the bottom notice's
+Undo both commit successfully. Read-only snapshots show the original confirmed choices restored,
+with identical album, Favorite, organization revision/history and classification bookmark records.
+
+The confirmed filter displays three groups: the earlier individual correction and these two batch
+confirmations. The pending filter displays 29 groups. A confirmed image's context menu omits
+confirmation and retains correction; its correction and operation-specific Undo both complete.
+Confirming another image through the pending view's context menu removes that card only after
+commit and changes both displayed counts to 28. The same two Favorite and manual-album groups
+remain present. Classification success and undo do not appear in the notification history.
+
+A full process restart retains the manual album, both Favorites and the two confirmed categories.
+Startup returns to ordinary browsing rather than opening a review viewer. Original-source safety
+retains the 51-file length/hash comparison above; these additional actions only change virtual
+decisions. Fixture predictions are used to exercise state transitions, not measure model accuracy.
+
+An injected Ctrl+A did not activate selection in this desktop session. Temporary logging in the
+isolated launcher records Control released before the A event, with `isControlPressed == false`
+when A arrives. The application receives no held-Control combination in that attempt. A focused
+framework regression selects the complete 79,013-item query with Ctrl+A, and all four selection
+tests pass. In the native client, Down followed by Return selects all 50 folded groups through More.
+Viewer arrow navigation is covered above. No production input remapping is introduced; the temporary
+launcher logging is removed afterward.

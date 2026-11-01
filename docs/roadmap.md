@@ -90,138 +90,55 @@ R3's selected workflow are handled at their owning layer under the repository co
 ## Current execution queue
 
 R4 is integrated into `main`. Preserve the verified album, Favorite, organization, sidebar-management
-and recovery behavior. R5 is active, following its
-[implementation sequence](#r5-implementation-sequence). Its requirements include the `智能相册`
-section, usable initial-screening suggestions, optional classification review, and the approved
-shared gallery/viewer interaction. R5-01 metadata and structured search are verified through
-`44d54b6a`. R5-02 has established the category/encoder contracts, selected runtime and measured
-initial-screening operating candidate. R5-03 durable classification and recovery are implemented;
-their five Catalog archive regression fixtures are corrected and await hosted execution. Independent
-R5-04 work connects encoder residency and
-durable task admission under [ADR 0036](architecture/0036-durable-classification-dispatch.md), with
-[incremental-analysis evidence](acceptance/r5-incremental-analysis.md). Source verification, compatible
-feature reuse and guarded content execution now have native owners. Native image input has a frozen-policy
-comparison, and per-file background admission is shared with exact analysis. A native dispatch loop
-now connects demand loading, quiet admission, foreground yielding, retries and idle retirement.
-Complete setup restoration, separately checkpointed new-content admission and scoped availability
-recovery are connected to the native runtime. Unavailable copies can yield to another verified copy;
-root/source recovery retains pause, stop and source-generation guards. Durable scan-publication
-receipts admit sources whose generations became visible after an admission cursor had passed them.
-Desktop startup, foreground reads, catalog/availability wakeups and joined shutdown are wired through
-an opaque native session. Typed configuration entrypoints connect local installation, editable
-categories, explicit enablement and manual controls; category/run replacement commits atomically and
-desktop reconfiguration joins the old session before reopening. The native Windows client now verifies
-real-model enablement, foreground inhibition, durable pause/stop, shared duplicate results and
-description rematching with retained features. Windows power notifications now feed the same
-cancellation/resumption owner; targeted native events verify loaded-worker retirement, retained
-manual pause and feature reuse. The real-client case also covers the memory-pressure cooldown
-across configuration changes. A local-primary Profile comparison now exercises actual scrolling and
-original-image viewing while classification advances, including pause/resume and bounded resource
-sampling. R5-05 now connects effective category/review membership to the shared gallery query,
-bounded continuation and catalog publication; its [query evidence](acceptance/r5-smart-albums.md)
-records the query boundary. R5-06 navigation, coherent counts, local configuration and guarded batch/viewer
-review are being connected to the accepted desktop sketch; its
-[desktop evidence](acceptance/r5-desktop-classification.md) records focused checks. The category setup
-requires correction before R5-06 acceptance: its six starting screening definitions still need
-application-managed discovery and useful category maintenance without user setup. Complete the
-missing R5-02 discovery/naming/admission policy at its owning boundary, preserving the admitted
-encoder/runtime and existing R5-03 through R5-05 evidence, then connect it to first use. An editable
-or enlarged fixed list does not close that gap. The bounded
-[discovery probes](acceptance/r5-category-discovery.md) establish that visual grouping still needs
-semantic consolidation. Both small naming candidates produce unsupported or overly specific names;
-comparison with existing descriptions also admits false names, while the caption-based probe loses
-useful distinctions. Lexical retrieval with content context retains a recurring code candidate and
-rejects several spurious names, but photograph proposals still name parts or objects rather than
-useful scenes. Complete whole-scene/use naming and consolidation before dependent integration,
-retaining existing categories while a candidate is evaluated. Bounded native retrieval now connects
-the versioned vocabulary and existing feature cache, with focused invariant/lifecycle coverage.
-The complete Release retrieval and its cache-only repetitions pass. Bounded cache windows remove
-per-entry commit overhead while preserving candidate scores, cancellation and completed work.
-Useful-name admission and category maintenance remain required before automatic first-use integration.
-Native semantic consolidation now follows broader contexts and independently scores their
-descriptions, retaining unresolved concepts and bounded work. The retained calibration probe returns
-useful construction and child-play contexts; its fixture-supplied frontier is exploratory.
-Per-content evidence now preserves individual members alongside the aggregate. Automatic frontier
-selection based on lexical-origin counts still favors parts and unsupported meanings; it is not
-admitted. Native candidate assessment now compares per-content coverage and competing contexts
-against the current taxonomy, retaining deferred candidates and separate name authority. Its
-calibration probes preserve supported code/play suggestions while excluding isolated competing
-labels. Native automatic nomination now selects contexts without a supplied frontier, using their
-own member coverage, broader relations and naming applicability. Per-member competition survives
-name pruning; the cache-only probes preserve the code proposal and defer overbroad repair/play
-proposals while retaining existing categories. The completed 28-cohort shared-media check exposes
-over-specific lexical names and lost image purpose. Purpose-bound composition now independently scores
-complete descriptions and excludes other-purpose members. Complete broader-ancestor selection now
-crosses unsupported intermediates within explicit work bounds; its six-cohort check also exposes
-overly broad lexical names. Managed context composition now separates local naming definitions from
-raw retrieval cues, preserving the existing bounded scoring and purpose checks. Topic competition
-compares original context descriptions while retaining purpose-qualified image scores. The targeted
-comparison excludes the two cat members from the portrait candidate while preserving the supported
-cat, artwork and code cohorts. The broader 28-cohort comparison selects a three-content recurrence
-candidate for maintenance, preserving four useful distinctions while deferring the demonstrated
-portrait/code-artwork errors and useful but sparse two-content candidates. Native category additions
-now preserve stable identities, retired definitions and human choices, revalidate support/comparison
-sources, and atomically replace the active setup with retry/cancellation guards. Generated
-origins, immutable admission evidence and manual-definition protection now persist together; portable
-recovery retains protection without importing model evidence or claiming legacy categories. Bounded
-whole-scheme comparison now measures additions jointly against existing definitions, recomputing
-independent support after overlap and budget decisions. The retained cache-only comparison preserves
-input-order stability and exposes category-set effects; it does not select a cumulative product budget
-or retire existing categories. Equivalent generated definitions now have a guarded retirement path
-that preserves protected definitions, human classifications, purpose parents and historical evidence.
-The configuration/run replacement and versioned retirement record share one transaction. Category
-publication now shares joint candidate selection, counts active generated definitions against an
-explicit cumulative budget and revalidates that count during commit. Native cohort formation now
-recovers the retained discovery groups and purpose-aware comparisons directly from bounded cached
-features, with deterministic ordering, cancellation and explicit sparse/capacity deferrals. Native
-single-category withdrawal comparison now exposes affected contents, alternate categories and
-similarity losses; the retained comparison rules out small score gaps or a common fallback as
-sufficient reasons to remove useful distinctions. Fresh admission can now reactivate an automatically
-retired generated category using its original identity and origin, with transactional protection,
-capacity and source checks; manual retirement remains protected. A bounded catalog survey now counts
-distinct current contents and compatible final suggestions, retaining incomplete coverage and rejecting
-cross-page publication changes. A guarded merge now returns a sparse generated refinement to its
-recorded original purpose only with complete current coverage and compatible alternatives, preserving
-human choices, meaning and history through atomic publication. Automatic addition capacity now derives
-from distinct verified contents and the admitted recurrence requirement, preserving retained definitions
-and revalidating the count's catalog authority at publication. Sparse refinements now also have a
-guarded merge into an existing broader context of the same purpose, retaining declared containment,
-complete alternatives, recurrent target support and human protection. Prepared maintenance submissions
-now share the native retirement gate with explicit configuration changes, preserving the existing
-close/commit/reopen lifecycle. Native vocabulary resources now supply verified, versioned lexical
-cues and separate naming definitions through the existing discovery port. The Windows build now
-prepares and bundles the admitted CPU runtime and its notices, with payload-presence checks across
-unsigned, portable and installer packaging. Native managed model installation now prepares pinned
-downloads in separate local storage, retains verified files across retry and publishes the selected
-installation only after runtime retirement. Desktop settings now connects explicit download and
-enablement through a joined installation lifetime and the shared bottom feedback host, without
-directory selection or first-use category authoring. The Windows build also prepares the pinned
-vocabulary and retained notices, with deterministic output verification and required payloads in all
-three packaging paths. Native idle discovery now follows ready image work through the same quiet,
-foreground and cancellation admission, returning a prepared addition only after worker retirement.
-After an addition-free pass, the same owner schedules guarded equivalent retirement and sparse
-purpose/context merging. Desktop handoff/publication now joins the old session before applying an
-immutable plan and reopening with the current environment. Real-client first-use verification remains.
-Context coverage and integrated human-work verification remain explicit;
-an enlarged fixed context list alone does not close that requirement.
-Smart-album image context menus now share guarded confirmation/correction and operation-specific undo
-with selection and preview controls. Card review indicators now share bounded classification reads
-and the existing photo status label, with distinct review/failure details. Single-image review now
-connects atomic progress to the viewer and context menu, with deferred confirmation and explicit
-continuation through the shared gallery. Single-image failed-analysis retry now shares the preview
-and context menus, preserves pause and human choices, and uses existing feedback and publication.
-The smart-album More menu now opens the all-results query, including items with no category.
-Real-client acceptance remains in this slice. Complete the
-paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;
-it remains a pre-merge acceptance condition. Reuse the retained runtime and measurement assets
-after checking their compatibility. The complete `20cb3978` hosted gate passes, including the archive
-corrections, smart-album title branch, sidebar empty state, native partitions, Flutter/static checks,
-Windows integrations, synthetic workloads and unsigned Release. Remaining desktop and native
-consolidation changes require their own hosted gate after delivery.
-The optional-review tradeoff and unsupported confidence
-bands remain explicit in the
-[calibration record](acceptance/r5-calibration.md). Integrated scheduling, foreground interference
-and actual human-work measurements retain their R5-07 acceptance gates.
+and recovery behavior. R5 remains active on `codex/r5-smart-albums` and follows its
+[implementation sequence](#r5-implementation-sequence); no later product stage is active.
+
+R5-01 metadata and structured search are verified through `44d54b6a`. R5-02 has admitted the selected
+encoder/runtime boundary and initial-screening operating candidate, with
+[runtime evidence](acceptance/r5-runtime-admission.md) and
+[separated calibration](acceptance/r5-calibration.md). Category discovery and maintenance now have
+bounded native owners for cohort formation, purpose/context naming, competing-category comparison,
+addition capacity, protected retirement and compatible merging. The
+[discovery evidence](acceptance/r5-category-discovery.md) retains both rejected naming approaches and
+the admitted comparisons. First use supplies application-managed definitions and discovery, without
+manual model/runtime directories or category authoring. Context coverage and actual human-work
+reduction remain integrated acceptance questions; a larger fixed list does not settle them.
+
+R5-03 durable whole-group classification, independent review/continuation and portable recovery are
+connected under [ADR 0035](architecture/0035-classification-decision-authority.md). The corrected archive
+fixtures pass the retained hosted gate. R5-04 connects verified source admission, shared compatible
+work, feature reuse, guarded publication, durable manual controls and joined worker lifetimes under
+[ADR 0036](architecture/0036-durable-classification-dispatch.md). Its
+[incremental-analysis evidence](acceptance/r5-incremental-analysis.md) includes real-model Windows
+control/restart checks, power/pressure handling and the local-primary foreground comparison. Managed
+model installation, bundled runtime/vocabulary and automatic maintenance use the same retirement and
+publication boundary.
+
+R5-05 supplies coherent effective-category/review queries, counts, pages, selection and viewer scope
+through the shared gallery, with [query evidence](acceptance/r5-smart-albums.md). R5-06 now connects the
+accepted sidebar, first-use setup, all-results entry, contextual and batch review, preview actions,
+explicit continuation, shared feedback and failed-image retry. The
+[desktop acceptance](acceptance/r5-desktop-classification.md) records the isolated native workflow:
+real predictions, folded duplicates, confirmation/correction/undo, deferred continuation across
+restart, scoped retry while paused, coherent review filters and unchanged Favorite/manual-album
+records. The observed menu-width and missing failure-state connections are repaired. Keyboard menu
+selection and viewer navigation work; the injected Ctrl+A attempt is separately accounted for by
+native key-event evidence and a passing framework shortcut regression.
+
+The next scheduled slice is R5-07, retaining its existing order and required outcomes:
+
+1. Complete integrated source-lifecycle and recovery coverage using the delivered R5-03 through R5-06
+   boundaries and applicable retained evidence. Preserve original media and durable R4/R5 decisions.
+2. Measure context coverage, optional checks/corrections and actual human work through the connected
+   review flow. Retain the provisional label authority and unsupported confidence bands in the
+   calibration record; do not repeat an unchanged broad model comparison or tune on sealed holdouts.
+3. Complete bounded large-library checks and the paired cloud-primary browsing/classification
+   comparison. The two-core/8-GiB comparison remains a pre-merge condition. Check retained runtime,
+   model and measurement-asset compatibility before reuse.
+4. Complete the applicable hosted gate for the final submitted head and record the R5 exit decision.
+   The retained `20cb3978` gate passes; the newer `58d68688` gate is still running, with Static,
+   Windows Scan and Windows Accessibility passed. Earlier results cover only their unchanged inputs.
+
 The separate deferred rendering follow-up retains its bounded scope and does not reopen R4 verification.
 
 The requested notification maintenance standardizes bottom feedback and image-preview top notices
