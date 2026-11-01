@@ -176,8 +176,10 @@ class _LibraryClassificationControlsState
     ];
     final menu = AmePopupMenuButton<String>(
       labels: labels,
-      hasContentIcon: false,
-      leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
+      hasContentIcon: widget.viewer,
+      leadingIconWidth: widget.viewer
+          ? 0
+          : AmeMenuMetrics.selectionIndicatorSlotWidth,
       onOpenChanged: (open) => _menuOpen = open,
       onSelected: (choice) {
         if (choice == "retry") {

@@ -6,6 +6,7 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/domain/library_classification_review.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_classification_controls.dart";
 import "package:flutter/material.dart";
+import "package:flutter/rendering.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -124,6 +125,12 @@ void main() {
         ),
       );
       expect(confirm.enabled, isFalse);
+      expect(
+        tester
+            .renderObject<RenderParagraph>(find.text("确认分类"))
+            .didExceedMaxLines,
+        isFalse,
+      );
       expect(
         tester
             .widget<Semantics>(find.byKey(const ValueKey("menu-choice-插画")))

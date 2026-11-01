@@ -49,13 +49,45 @@ and selected state. No persistence, bridge, model or source-media behavior chang
 The three smart-album widget cases and three existing classification-progress widget cases pass.
 They cover an empty category returning to an unclassified image, clearing category/review scope,
 coherent heading/sidebar selection, unchanged empty headings, and explicit saved continuation.
-Scoped analysis and owned formatting pass. Real-client menu acceptance remains pending permission
-to resume operating the isolated window.
+Scoped analysis and owned formatting pass. The isolated Profile client subsequently verifies the
+empty-category route into all results, as recorded below.
 
 The affected menu contains 232 production lines and no inline tests; the screen composition contains
 1,930 production lines, with three callback-routing lines added. The dedicated smart-album and
 progress-widget suites contain 339 and 225 lines respectively. Navigation lifetime remains in the
 existing query-transition owner.
+
+### Isolated first use and review continuation — 2026-11-01
+
+The Profile client uses the production entrypoint with in-memory preferences and the existing
+native isolated-storage switch. Its catalog, previews and managed model cache stay under
+`build/test/derived/r5-smart-album-client/profile`. The existing three-file metadata fixture is
+imported through the Windows folder picker. Verified retained model artifacts are reused; this
+check does not measure a fresh network download.
+
+First-use Settings offers download/enablement without artifact-directory selection or category
+authoring. Successful installation publishes automatic dispatch and two real predictions for the
+three files, with the duplicate pair sharing one content result. The empty photo category reaches
+all results through More, displaying two folded groups and coherent counts.
+
+The viewer confirms and corrects a category while retaining the current image. Keyboard navigation
+opens the duplicate group. Deferring that group displays the shared top notice; its Undo restores
+the prior review state and reports success. Repeating deferral produces one pending group in the
+gallery. After a first-image correction and full process restart, ordinary startup does not open a
+viewer. The corrected category remains present. Explicit continuation from another category restores
+the saved all-results scope and opens the saved first image with its human category intact.
+
+The preview menu originally measured icon-bearing commands as text-only choices and clipped
+`确认分类` and `稍后确认`. Its composition now includes the command icon width, while batch category
+choices retain their narrower selection-indicator measurement. The real client displays the full
+confirmation label. A rendered-text regression fails before the change and passes afterward;
+the two control cases and three progress-widget cases pass, as does scoped fatal-info analysis.
+The affected control has 294 production lines, no inline tests, and 143 dedicated test lines.
+Failed-analysis retry and the remaining integrated desktop cases still require their own evidence.
+
+The hosted Flutter run for `83f7f69f` also found that a settings typography assertion matched both
+the page title and the new settings action. Commit `d60469a8` scopes that assertion to the title row;
+all 15 tests in that settings suite pass locally. Its push-triggered hosted gate remains pending.
 
 ### Retained checks
 
