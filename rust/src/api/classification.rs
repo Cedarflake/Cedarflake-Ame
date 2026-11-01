@@ -1,3 +1,4 @@
+use super::classification_maintenance::PreparedClassificationMaintenance;
 use crate::domain::ScanError;
 
 #[cfg(all(windows, feature = "classification-worker"))]
@@ -39,10 +40,12 @@ pub fn select_classification_installation(
 }
 
 impl DesktopClassificationSession {
-    pub fn run(&self) -> Result<(), ScanError> {
+    pub fn run(&self) -> Result<Option<PreparedClassificationMaintenance>, ScanError> {
         #[cfg(all(windows, feature = "classification-worker"))]
         {
-            self.inner.run()
+            self.inner
+                .run()
+                .map(|plan| plan.map(|inner| PreparedClassificationMaintenance { inner }))
         }
         #[cfg(not(all(windows, feature = "classification-worker")))]
         {

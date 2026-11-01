@@ -198,7 +198,8 @@ vocabulary and retained notices, with deterministic output verification and requ
 three packaging paths. Native idle discovery now follows ready image work through the same quiet,
 foreground and cancellation admission, returning a prepared addition only after worker retirement.
 After an addition-free pass, the same owner schedules guarded equivalent retirement and sparse
-purpose/context merging. Desktop handoff/publication and real-client first-use verification remain.
+purpose/context merging. Desktop handoff/publication now joins the old session before applying an
+immutable plan and reopening with the current environment. Real-client first-use verification remains.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review

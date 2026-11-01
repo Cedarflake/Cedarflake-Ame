@@ -103,12 +103,25 @@ if ($masked.Length -ne $rustLiteral.Length -or $masked -match 'literal|comment')
 }
 Get-AmeBridgeClosingDelimiter $masked ($masked.IndexOf('{')) '{' '}' | Out-Null
 $contracts = @(Get-AmeAsyncBridgeContracts)
-if ($contracts.Count -ne 27 -or
+if ($contracts.Count -ne 28 -or
     @($contracts | Where-Object Module -eq "viewer_source").Count -ne 3 -or
     @($contracts | Where-Object Module -eq "classification").Count -ne 4 -or
     @($contracts | Where-Object Module -eq "classification_settings").Count -ne 4 -or
-    @($contracts | Where-Object Module -eq "classification_installation").Count -ne 2) {
+    @($contracts | Where-Object Module -eq "classification_installation").Count -ne 2 -or
+    @($contracts | Where-Object Module -eq "classification_maintenance").Count -ne 1) {
     throw "The complete asynchronous bridge contract roster changed unexpectedly"
+}
+$handoffContracts = @($contracts | Where-Object {
+    $_.Module -eq "classification" -and $_.RustName -eq "run" -and
+    $_.Owner -eq "DesktopClassificationSession" -and
+    $_.ReturnType -eq "PreparedClassificationMaintenance?"
+})
+$maintenanceContracts = @($contracts | Where-Object {
+    $_.Module -eq "classification_maintenance" -and $_.RustName -eq "commit" -and
+    $_.Owner -eq "PreparedClassificationMaintenance" -and $_.ReturnType -eq "bool"
+})
+if ($handoffContracts.Count -ne 1 -or $maintenanceContracts.Count -ne 1) {
+    throw "Classification maintenance must retain its asynchronous handoff and publication contracts"
 }
 foreach ($installationMethod in @("prepare", "commit")) {
     $installationContracts = @($contracts | Where-Object {

@@ -248,6 +248,19 @@ retains at most 64 members per category, including all members of an eligible sp
 unchanged completed pass waits for a catalog notification. Cancellation retains the reduction phase
 for a later admitted turn. All three plan variants use the same retirement and publication boundary.
 
+The desktop run returns an opaque prepared-maintenance handle after dropping its native runtime.
+The client joins source-availability recovery and closes the old session before committing that
+handle, then opens a fresh session with current foreground and availability state. Explicit settings
+changes and shutdown cancel pending maintenance and join an admitted commit; they cannot wait on
+themselves or overlap a replacement session. A superseded or cancelled plan is discarded without
+rebasing its observed authority. Retirement and persistence failures remain errors, and every exit
+disposes the handle. Manual dispatch state still governs the replacement.
+
+`LibraryClassificationSessionLifetime` owns opening, joined retirement, maintenance and explicit
+configuration transitions. `LibraryClassificationEnvironment` owns foreground state, pressure
+cooldown and coalesced root recovery across those transitions. The existing lifecycle facade exposes
+their application operations and error notification without duplicating either state machine.
+
 ## Validation and replacement
 
 Migration checks preserve prior human records and prove atomic rollback. Repository tests exercise

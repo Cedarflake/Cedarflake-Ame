@@ -97,7 +97,7 @@ fn paused_startup_close_before_run_and_joined_shutdown_preserve_intent_without_l
     );
     session.close().unwrap();
     assert_eq!(
-        session.run().unwrap_err().code,
+        session.run().err().unwrap().code,
         "classification_session_started"
     );
     drop(session);

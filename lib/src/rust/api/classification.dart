@@ -5,6 +5,7 @@
 
 import '../domain.dart';
 import '../frb_generated.dart';
+import 'classification_maintenance.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 Future<DesktopClassificationSession?> openClassificationSession() =>
@@ -41,5 +42,5 @@ abstract class DesktopClassificationSession implements RustOpaqueInterface {
     required BigInt generation,
   });
 
-  Future<void> run();
+  Future<PreparedClassificationMaintenance?> run();
 }

@@ -11,9 +11,9 @@ use crate::ports::classification_work::ClassificationWorkRepository;
 
 mod maintenance;
 mod signals;
-pub use maintenance::{
-    ClassificationDispatchEvent, ClassificationMaintenance, ClassificationMaintenanceStep,
-};
+#[cfg(test)]
+pub use maintenance::ClassificationDispatchEvent;
+pub use maintenance::{ClassificationMaintenance, ClassificationMaintenanceStep};
 use signals::Admission;
 pub use signals::{
     ClassificationDispatchClock, ClassificationDispatchSignals, ClassificationForegroundState,

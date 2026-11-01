@@ -1693,9 +1693,9 @@ No schema, bridge, user-interface or original-media behavior changes.
 
 The managed native entrypoint now composes ready queue execution with bounded discovery windows.
 It uses the bundled vocabulary's manifest/digest and the retained naming-policy inputs, shares the
-executor's feature cache and encoder residency, and returns an addition plan after worker retirement.
-The existing submission gate still requires the enclosing runtime to be dropped. The desktop session
-continues to use its existing entrypoint until its joined handoff is connected.
+executor's feature cache and encoder residency, and returns a maintenance plan after worker retirement.
+The existing submission gate still requires the enclosing runtime to be dropped. The joined desktop
+handoff below connects that entrypoint to publication and reopening.
 
 All 13 queue/maintenance cases pass, including the seven retained dispatch regressions. The six
 maintenance cases cover work priority, quiet/foreground/pause/close admission, cancellation, a pause
@@ -1740,5 +1740,41 @@ No production source guard changed. These cases use isolated catalogs without im
 The native discovery owner has 192 production lines, reduction preparation 48, submission 60 and
 the plan domain 168. The discovery facade has 265 production lines plus two test-registration lines.
 There are no inline tests; the new reduction fixture has 143 dedicated lines, the affected native
-submission fixture 157, and its existing merge/retirement fixture owners 309/483. Desktop handoff
-and actual first-use acceptance remain in the current queue.
+submission fixture 157, and its existing merge/retirement fixture owners 309/483. Actual first-use
+acceptance remains in the current queue.
+
+### Joined desktop maintenance publication
+
+The desktop session now returns an opaque plan after native retirement. The client joins root recovery,
+closes and disposes that session, commits the unchanged plan and reopens the saved configuration.
+Explicit reconfiguration and shutdown cancel pending plans and join admitted commits. Superseded
+plans are discarded; runtime-ownership and persistence failures remain errors. The replacement receives
+current foreground, pressure and source-availability state. No notification layout or category UI changes.
+
+All 21 lifecycle cases pass, including seven new maintenance races and cleanup cases. Six native
+publication/desktop cases pass, preserving pause, cancellation, stale rejection, idempotent replay
+and active-runtime errors. A separate real idle-dispatch case returns and commits an equivalent
+retirement in 5.30 seconds using an empty isolated catalog and absent worker/model/vocabulary paths;
+it creates no feature cache. Its initial test path-ownership type error was corrected before execution.
+These checks do not substitute for model-backed first-use interaction.
+
+The bridge adds an asynchronous maintenance commit and a typed session-run result. All 28 asynchronous
+contracts and the rejecting method-boundary fixtures pass. The explicit contract roster is updated
+from 27 to 28. Independent generation from committed source plus this handoff verifies the same 28
+contracts while excluding unfinished desktop-review changes; its six changed generated files are
+staged separately. One working-tree generation attempt returned Windows mapping error 1224 before
+writing output; the diagnostic invocation succeeded, with the original transient cause unestablished.
+Focused Dart analysis reports no issues; the final read-only format and whitespace checks pass.
+
+The preceding `cc25a830` hosted Static job rejected the dispatch event re-export as unused in
+non-test builds. That event is now re-exported only for its actual test consumers; dispatch behavior
+and warning policy are unchanged. Focused library Clippy with all features and warnings denied passes.
+Generated wire entrypoints retain the existing set and add only maintenance commit/cancel; the pinned
+formatter preserves the generated dispatcher layout.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Desktop lifecycle facade / session lifetime / environment | 62 / 145 / 149 | 0 | 677 shared lifecycle lines |
+| Native desktop session / maintenance handle | 204 / 53 | 0 | 297 maintenance lines plus retained desktop fixtures |
+
+The real-client first-use check and integrated R5 quality/resource acceptance remain open.

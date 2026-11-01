@@ -345,6 +345,186 @@ void main() {
     expect(secondRan, isFalse);
     fixture.dispose();
   });
+
+  testWidgets(
+    "maintenance joins recovery and retirement before commit and reopen",
+    (tester) async {
+      final fixture = _Fixture();
+      final plan = _Maintenance();
+      fixture.session.maintenance = plan;
+      fixture.session.recoveryGate = Completer<void>();
+      fixture.session.closeGate = Completer<void>();
+      fixture.update(1, roots: {"root": BigInt.one});
+      fixture.owner.startInBackground();
+      fixture.service.opened.complete(fixture.session);
+      await tester.pump();
+      fixture.session.finished.complete();
+      await tester.pump();
+      expect(plan.commits, 0);
+      expect(fixture.service.opens, 1);
+      fixture.session.recoveryGate!.complete();
+      await tester.pump();
+      expect(plan.commits, 0);
+      fixture.session.closeGate!.complete();
+      await tester.pump();
+      expect(fixture.session.closed, isTrue);
+      expect(plan.commits, 1);
+      expect(fixture.service.opens, 1);
+      fixture.owner.memoryPressure();
+      final replacement = _Session();
+      fixture.service.reopened.complete(replacement);
+      plan.finished.complete();
+      await tester.pump();
+      expect(plan.disposed, isTrue);
+      expect(replacement.runs, 1);
+      expect(replacement.activityAtRun, (false, false, false, true));
+      expect(replacement.recovered, [("root", BigInt.one)]);
+      await fixture.owner.close();
+      fixture.dispose();
+    },
+  );
+
+  testWidgets(
+    "explicit settings discard a prepared plan while retirement is pending",
+    (tester) async {
+      final fixture = _Fixture();
+      final plan = _Maintenance();
+      fixture.session.maintenance = plan;
+      fixture.session.closeGate = Completer<void>();
+      fixture.owner.startInBackground();
+      fixture.service.opened.complete(fixture.session);
+      await tester.pump();
+      fixture.session.finished.complete();
+      await tester.pump();
+      var saved = false;
+      final change = fixture.owner.changeConfiguration(() async {
+        saved = true;
+      });
+      await tester.pump();
+      expect(plan.cancelled, isTrue);
+      expect(saved, isFalse);
+      fixture.service.reopened.complete(null);
+      fixture.session.closeGate!.complete();
+      await tester.pump();
+      await change;
+      expect(saved, isTrue);
+      expect(plan.commits, 0);
+      expect(plan.disposed, isTrue);
+      await fixture.owner.close();
+      fixture.dispose();
+    },
+  );
+
+  testWidgets(
+    "shutdown joins an admitted maintenance commit and prevents reopening",
+    (tester) async {
+      final fixture = _Fixture();
+      final plan = _Maintenance();
+      fixture.session.maintenance = plan;
+      fixture.owner.startInBackground();
+      fixture.service.opened.complete(fixture.session);
+      await tester.pump();
+      fixture.session.finished.complete();
+      await tester.pump();
+      expect(plan.commits, 1);
+      var closed = false;
+      final closing = fixture.owner.close().then((_) {
+        closed = true;
+      });
+      await tester.pump();
+      expect(plan.cancelled, isTrue);
+      expect(closed, isFalse);
+      plan.finished.complete();
+      await tester.pump();
+      await closing;
+      expect(plan.disposed, isTrue);
+      expect(fixture.service.opens, 1);
+      fixture.dispose();
+    },
+  );
+
+  testWidgets(
+    "explicit configuration waits for an admitted maintenance commit",
+    (tester) async {
+      final fixture = _Fixture();
+      final plan = _Maintenance();
+      fixture.session.maintenance = plan;
+      fixture.owner.startInBackground();
+      fixture.service.opened.complete(fixture.session);
+      await tester.pump();
+      fixture.session.finished.complete();
+      await tester.pump();
+      var saved = false;
+      final change = fixture.owner.changeConfiguration(() async {
+        saved = true;
+      });
+      await tester.pump();
+      expect(plan.cancelled, isTrue);
+      expect(saved, isFalse);
+      fixture.service.reopened.complete(null);
+      plan.finished.complete();
+      await tester.pump();
+      await change;
+      expect(saved, isTrue);
+      expect(plan.disposed, isTrue);
+      expect(fixture.service.opens, 2);
+      await fixture.owner.close();
+      fixture.dispose();
+    },
+  );
+
+  for (final failure in ["close request", "retirement", "commit"]) {
+    testWidgets("failed $failure releases maintenance without reopening", (
+      tester,
+    ) async {
+      final fixture = _Fixture();
+      final plan = _Maintenance();
+      fixture.session.maintenance = plan;
+      fixture.session.failCloseRequest = failure == "close request";
+      fixture.session.closeGate = Completer<void>();
+      fixture.owner.startInBackground();
+      fixture.service.opened.complete(fixture.session);
+      await tester.pump();
+      fixture.session.finished.complete();
+      await tester.pump();
+      if (failure == "close request") {
+        fixture.session.closeGate!.complete();
+      } else if (failure == "retirement") {
+        fixture.session.closeGate!.completeError(
+          StateError("retirement failed"),
+        );
+      } else {
+        fixture.session.closeGate!.complete();
+        await tester.pump();
+        plan.finished.completeError(StateError("commit failed"));
+      }
+      await tester.pump();
+      expect(fixture.owner.error, isStateError);
+      expect(plan.commits, failure == "commit" ? 1 : 0);
+      expect(plan.disposed, isTrue);
+      expect(fixture.service.opens, 1);
+      await expectLater(fixture.owner.close(), throwsStateError);
+      fixture.dispose();
+    });
+  }
+}
+
+class _Maintenance implements LibraryClassificationMaintenance {
+  final finished = Completer<void>();
+  int commits = 0;
+  bool cancelled = false;
+  bool disposed = false;
+
+  @override
+  Future<void> commit() {
+    commits++;
+    return finished.future;
+  }
+
+  @override
+  void cancel() => cancelled = true;
+  @override
+  void dispose() => disposed = true;
 }
 
 class _SetupConfiguration implements LibraryClassificationConfigurationService {
@@ -442,6 +622,8 @@ class _Session implements LibraryClassificationSession {
   bool autoFinish = true;
   bool closeRequested = false;
   bool closed = false;
+  bool failCloseRequest = false;
+  LibraryClassificationMaintenance? maintenance;
   int runs = 0;
   int catalogNotifications = 0;
   final recovered = <(String, BigInt)>[];
@@ -449,10 +631,11 @@ class _Session implements LibraryClassificationSession {
   (bool, bool, bool, bool)? activityAtRun;
 
   @override
-  Future<void> run() {
+  Future<LibraryClassificationMaintenance?> run() async {
     runs++;
     activityAtRun = activity;
-    return finished.future;
+    await finished.future;
+    return maintenance;
   }
 
   @override
@@ -478,6 +661,9 @@ class _Session implements LibraryClassificationSession {
   @override
   void requestClose() {
     closeRequested = true;
+    if (failCloseRequest) {
+      throw StateError("close request failed");
+    }
     if (autoFinish && !finished.isCompleted) {
       finished.complete();
     }

@@ -1,4 +1,5 @@
 import "../../../src/rust/api/classification.dart" as native;
+import "../../../src/rust/api/classification_maintenance.dart" as maintenance;
 import "../application/library_classification.dart";
 
 class RustLibraryClassification implements LibraryClassification {
@@ -16,7 +17,10 @@ class _RustSession implements LibraryClassificationSession {
   final native.DesktopClassificationSession _session;
 
   @override
-  Future<void> run() => _session.run();
+  Future<LibraryClassificationMaintenance?> run() async {
+    final plan = await _session.run();
+    return plan == null ? null : _RustMaintenance(plan);
+  }
 
   @override
   void foregroundChanged({
@@ -49,4 +53,20 @@ class _RustSession implements LibraryClassificationSession {
     await _session.close();
     _session.dispose();
   }
+}
+
+class _RustMaintenance implements LibraryClassificationMaintenance {
+  _RustMaintenance(this._plan);
+  final maintenance.PreparedClassificationMaintenance _plan;
+
+  @override
+  Future<void> commit() async {
+    await _plan.commit();
+  }
+
+  @override
+  void cancel() => _plan.cancel();
+
+  @override
+  void dispose() => _plan.dispose();
 }
