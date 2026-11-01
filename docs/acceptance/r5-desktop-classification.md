@@ -509,3 +509,12 @@ activity. The native domain failure policy owner has 142 lines; failure persiste
 61/115. No inline tests are added. Dedicated lifecycle/notification/setup/context/preview/card
 fixtures contain 744/103/346/147/141/59 lines; native work/automatic-recovery fixtures contain
 488/189. The gallery facade loses wiring; classification annotation/retry presentation is removed.
+
+## Archive version rejection fixture — 2026-11-01
+
+The Catalog job for `63e2997b` passes 902 tests and fails the archive malformed-input test. Its
+future-version mutation still replaces version 5 after the writer advanced to version 6, leaving
+the valid archive unchanged. The fixture now derives the unsupported version from the codec's
+current version and requires each malformed sample to differ from its input. All six focused codec
+tests pass, including truncation, digest/count corruption, unsupported fields/kinds and cancellation.
+No archive reader, format, stored record or restoration policy changes. Hosted CI follows the fix.

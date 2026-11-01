@@ -79,7 +79,10 @@ fn archive_codec_rejects_tampering_trailing_data_and_wrong_counts() {
 fn archive_codec_rejects_future_versions_unknown_fields_and_kinds() {
     let text = String::from_utf8(archive()).unwrap();
     for altered in [
-        text.replace("\"version\":5", "\"version\":6"),
+        text.replace(
+            &format!("\"version\":{VERSION}"),
+            &format!("\"version\":{}", VERSION + 1),
+        ),
         text.replace(
             "\"source_schema\":52",
             "\"source_schema\":52,\"script\":\"ignored\"",
@@ -87,6 +90,10 @@ fn archive_codec_rejects_future_versions_unknown_fields_and_kinds() {
         text.replace("\"kind\":\"album\"", "\"kind\":\"future_kind\""),
         text.replace("\"values\":[", "\"values\":[null,"),
     ] {
+        assert_ne!(
+            altered, text,
+            "invalid archive fixture must change its input"
+        );
         assert!(validate(Cursor::new(altered), &mut |_| Ok(())).is_err());
     }
 }
