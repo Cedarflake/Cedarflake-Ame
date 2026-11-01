@@ -19,6 +19,8 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[path = "scheme/cohorts.rs"]
 pub(super) mod cohorts;
+#[path = "scheme/withdrawal.rs"]
+pub(super) mod withdrawal;
 
 #[derive(Deserialize)]
 struct Fixture {

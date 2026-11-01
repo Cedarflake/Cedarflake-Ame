@@ -1263,3 +1263,53 @@ schema, public desktop bridge or source-file behavior changes.
 Runtime sample scheduling and automatic category maintenance remain the next integration boundary.
 This native grouping preserves the measured discovery input without selecting the cumulative
 category budget or claiming useful names from similarity alone.
+
+### Native single-category withdrawal effects
+
+The next comparison measures each current category's withdrawal independently against the complete
+unchanged scheme. For every affected content, the native owner retains its former similarity, the
+best remaining category and the score difference. The alternative follows the existing canonical
+tie-break. Categories absent from this bounded window remain explicit with no affected members;
+neither sample absence nor a score gap grants retirement authority.
+
+Four focused regressions pass. The main case independently rebuilds and rematches the taxonomy after
+each single removal and checks every changed and unchanged sample. Other cases cover zero-loss ties,
+stable alternative identities, input-order invariance, display/score/content evidence,
+duplicate and oversized windows, incompatible features, missing alternatives and pre-cancellation.
+The assessment retains at most 512 affected contents across all categories and has no source,
+model-execution, persistence or desktop dependency.
+
+The existing probe's `--withdrawal` mode uses the retained 236-content, ten-category fixture
+`native-scheme-fixture.json` with SHA-256
+`2acb51ba7e4002fdac0ca52a572259de422d72a902062c186303f31a7ca0edd9`.
+All 236 initial assignments match the earlier whole-scheme assessment. Reversing the input preserves
+the complete assessment and revision. One Debug comparison takes 0.0628 seconds; original-image
+reads, new inference and held-out use remain zero. The ignored `native-withdrawal.json` retains the
+complete category destinations and per-content scores.
+
+| Generated definition | Affected contents | Mean similarity loss | Contents above 0.01 loss | Contents above 0.02 loss |
+| --- | --- | --- | --- | --- |
+| 兽耳角色插画 | 16 | 0.01135 | 7 | 3 |
+| 兽耳角色表情 | 34 | 0.01437 | 20 | 9 |
+| 猫咪表情 | 5 | 0.02553 | 4 | 2 |
+| 代码截图 | 17 | 0.01891 | 8 | 7 |
+
+All 17 code images would return to the broad screenshot category. A single shared alternative
+therefore cannot by itself establish redundant meaning: this case loses a retained useful distinction.
+Combining a 0.02 minimum loss with the earlier three-content recurrence rule would also discard the
+cat-reaction distinction retained by the preceding calibration comparison. These are counterfactual
+threshold checks, not admitted confidence bands or measured classification-error rates. The code
+does not merge or retire any definition and does not alter human decisions or R4 state.
+
+This establishes measurable removal effects for the remaining non-equivalent overlap policy.
+Naming relationships, useful independent coverage, protection and publication must still determine
+whether a replacement is admissible. Several single-category results cannot be combined into a
+joint retirement without reassessing the complete replacement scheme. The cumulative default budget,
+automatic maintenance and first-use integration retain their canonical requirements.
+
+The withdrawal owner has 139 production lines plus two dedicated-test registration lines and 218
+dedicated test lines. The discovery facade has 250 production lines plus two test-registration lines;
+its change only exposes the new owner. The diagnostic has 49 lines, its shared fixture owner 224 and
+the existing entrypoint 170, without inline tests. No schema, desktop bridge or dependency changes.
+The repository format check passes with 685 Dart files unchanged; `git diff --check` passes.
+Complete automated and lint checks remain assigned to the pushed commit's hosted gate.

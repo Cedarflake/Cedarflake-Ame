@@ -172,9 +172,11 @@ The configuration/run replacement and versioned retirement record share one tran
 publication now shares joint candidate selection, counts active generated definitions against an
 explicit cumulative budget and revalidates that count during commit. Native cohort formation now
 recovers the retained discovery groups and purpose-aware comparisons directly from bounded cached
-features, with deterministic ordering, cancellation and explicit sparse/capacity deferrals. Useful
-default-budget selection, non-equivalent existing-category overlap policy and runtime integration
-remain before automatic first use.
+features, with deterministic ordering, cancellation and explicit sparse/capacity deferrals. Native
+single-category withdrawal comparison now exposes affected contents, alternate categories and
+similarity losses; the retained comparison rules out small score gaps or a common fallback as
+sufficient reasons to remove useful distinctions. Useful default-budget selection, non-equivalent
+existing-category overlap admission and runtime integration remain before automatic first use.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review

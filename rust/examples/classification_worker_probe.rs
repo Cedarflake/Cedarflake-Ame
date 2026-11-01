@@ -44,6 +44,9 @@ mod verification {
         if arguments.len() == 2 && arguments[1] == "--cohorts" {
             return super::scheme::cohorts::run(&arguments[0]);
         }
+        if arguments.len() == 2 && arguments[1] == "--withdrawal" {
+            return super::scheme::withdrawal::run(&arguments[0]);
+        }
         if arguments.len() == 6
             && (arguments[5] == "--discovery" || arguments[5] == "--discovery-cost")
         {

@@ -294,6 +294,27 @@ Its selected window does not establish whole-library category usefulness or auth
 Persistent cumulative budgets, non-equivalent overlap policy, scheduling and first use retain
 their separate maintenance requirements. Measured counterfactual budgets do not select a default.
 
+### Single-category withdrawal comparison
+
+The application can measure withdrawal of each current category against the unchanged complete
+scheme on at most 512 distinct compatible cached contents. Each counterfactual removes one
+definition only. An affected content keeps its former leading similarity and the highest-ranked
+remaining category, with the ordinary canonical identity tie-break. Categories absent from the
+sample window remain in the result with no affected members; absence supplies no retirement reason.
+
+The assessment binds the semantic and display definitions, encoder compatibility, ordered content
+identities and all category scores. Reordering inputs preserves the assessment. Duplicate content,
+incompatible features, an empty or oversized window, and a scheme without a remaining alternative
+reject the comparison. Cancellation returns no partial assessment. The result is bounded by the
+taxonomy and sample window; the affected-member lists together contain each input identity once.
+
+Similarity loss is the old score minus the best remaining score, not a probability or measured
+classification error. Several independent single-category counterfactuals cannot authorize a joint
+removal. Neither a small score gap, sample absence nor a similar label establishes semantic
+equivalence, whole-library coverage, useful-count policy or permission to retire a definition.
+These effects inform non-equivalent overlap admission alongside recurrence and naming evidence;
+source coverage, human-choice guards and publication remain separate requirements.
+
 ### Guarded category additions
 
 Candidate assessment and category publication have separate owners. The application prepares an

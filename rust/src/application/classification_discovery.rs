@@ -25,6 +25,7 @@ mod ranking;
 mod retirement;
 mod scheme;
 mod search;
+mod withdrawal;
 
 pub use admission::{
     CategoryAdmission, CategoryAdmissionCandidate, CategoryAdmissionCriteria,
@@ -58,6 +59,10 @@ pub use scheme::{
 };
 use search::ConceptSearch;
 pub use search::{ConceptSearchBound, ConceptSearchLimits};
+pub use withdrawal::{
+    CategoryWithdrawalAssessment, CategoryWithdrawalImpact, CategoryWithdrawalMember,
+    assess_category_withdrawals,
+};
 
 pub fn retrieve_classification_concepts<F: ClassificationEncoderFactory, C: ResidencyClock>(
     cohort: &DiscoveryCohort,
