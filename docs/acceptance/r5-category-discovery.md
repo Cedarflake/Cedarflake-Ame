@@ -1555,3 +1555,54 @@ classification facade 96. The new dedicated handoff file has 150 test lines; the
 registration file has 308. No inline cases, schema changes, new dependencies or bridge changes are
 included. All runtime paths and catalogs are disposable fixtures; no source media or desktop window
 is accessed.
+
+### Resource-backed native vocabulary
+
+The native resource adapter now supplies the discovery port from digest-verified application data,
+with opaque namespaced identities, canonical graph revisions, ordered pages and separate typed
+naming contexts. Raw lexical concepts remain traversal-only. Loading rejects malformed or
+unsupported resources, repeated/unknown references and exceeded input, entry or graph bounds.
+An admitted snapshot is independent of later changes to its file. No catalog schema, model,
+desktop bridge or notification behavior changes.
+
+Five focused adapter cases pass, covering paging and graph composition, input-order-independent
+revisions, display-only description reuse, malformed/duplicate authority, digest mismatch,
+cancellation, replacement of an opened resource, input-size rejection and empty/page-boundary
+behavior. The first normal library/example build exposes seven existing unused warnings because
+coverage survey and original-purpose merge preparation were missing from the native public facade.
+Both operations are now exported through that existing facade, and the repeated build passes without
+warnings. No lint exclusion or weaker check is introduced.
+
+The retained lexical data is converted without model or media access into a 23,249,187-byte resource,
+SHA-256 `2cea3ceca629faac3d51271c2928871548ddc709cb769cc50f45a771ae68835c`.
+The reader validates all 82,115 concepts, 248,493 source relations, 3,921 entry points, 42 contexts
+and 714 cue links. This is the same calibration vocabulary; its upstream notices and derived files
+remain outside Git. This check admits the resource reader, not a distributed vocabulary release or
+additional category-quality claim.
+
+The resource-backed probe repeats the retained eight screenshot cohorts twice. All 16 naming and
+per-member admission results equal the prior path exactly. Cache entries remain unchanged; missing
+worker/model/runtime paths ensure a cache miss cannot silently fall back to inference. The completed
+Debug comparison takes 76.406 seconds, peaks at 89,559,040 bytes of sampled process-tree working set
+and starts zero model workers. Resource loading takes 3.258 seconds in that build. Original media
+and the held-out partition are not read. Ignored `native-resource-*` artifacts retain the converted
+resource, input identity, inspection, comparison and aggregate evidence.
+
+The initial restricted comparison is rejected by the existing native cache namespace ACL guard.
+The unchanged guard passes under the normal Windows token. That comparison then passes all 16
+semantic checks but its diagnostic incorrectly counts the Windows console host as a model child.
+A scoped observation identifies `System32/conhost.exe`; the corrected monitor retains that exact
+system-host distinction and rejects other children. The full repeated comparison passes, including
+the zero-worker check. No product safeguard changes. The earlier head's
+[Static job](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41263540047/job/124721543478)
+also reports the same seven missing-export errors; the normal warning-free build covers their
+native cause, while complete verification belongs to the replacement commit's hosted gate.
+The read-only repository format check passes with 685 Dart files unchanged; `git diff --check`
+passes. Resource distribution, automatic maintenance scheduling and first-use enablement remain
+the next integration boundaries in the canonical roadmap.
+
+The adapter has 180 production lines plus two test-registration lines; resource decoding has 171.
+The shared discovery domain has 323 production lines plus two registration lines, context composition
+197 plus two, and the public classification facade 96. Dedicated adapter tests have 268 lines, with
+no new inline cases. The native probe entrypoint, discovery workflow, vocabulary composition and
+resource inspection have 177, 372, 115 and 51 diagnostic lines respectively.

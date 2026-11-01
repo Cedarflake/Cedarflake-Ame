@@ -5,6 +5,7 @@ pub(crate) mod classification_image_input;
 mod classification_installation;
 #[cfg(feature = "classification-worker")]
 pub(crate) mod classification_runtime;
+mod classification_vocabulary;
 mod durable_local_metadata_inventory;
 mod exact_content_reader;
 mod exif_metadata;
@@ -34,6 +35,7 @@ pub use classification_feature_cache::SqliteClassificationFeatureCache;
 pub(crate) use classification_installation::{
     ClassificationInstallation, ClassificationInstallationStore,
 };
+pub use classification_vocabulary::LocalClassificationVocabulary;
 pub(crate) use durable_local_metadata_inventory::DurableLocalMetadataInventory;
 #[cfg(all(windows, test))]
 pub(crate) use local_files::force_publication_namespace_guard_failure_for_test;

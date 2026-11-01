@@ -10,6 +10,12 @@ pub use naming::{CategoryNaming, CategoryNamingPurpose};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ConceptId([u8; 32]);
 
+pub struct NamingContext {
+    pub concept: VocabularyConcept,
+    pub cues: Vec<ConceptId>,
+    pub broader: Vec<ConceptId>,
+}
+
 impl ConceptId {
     pub fn from_bytes(bytes: [u8; 32]) -> Self {
         Self(bytes)

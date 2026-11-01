@@ -12,11 +12,7 @@ use super::{check_cancelled, check_revision, read_page};
 
 mod relations;
 
-pub struct NamingContext {
-    pub concept: VocabularyConcept,
-    pub cues: Vec<ConceptId>,
-    pub broader: Vec<ConceptId>,
-}
+pub use crate::domain::classification::discovery::NamingContext;
 
 pub struct NamingContextCatalog {
     contexts: BTreeMap<ConceptId, VocabularyConcept>,

@@ -7,6 +7,10 @@ mod residency;
 mod discovery;
 
 #[cfg(all(windows, feature = "classification-worker"))]
+#[path = "classification_worker_probe/vocabulary.rs"]
+mod vocabulary;
+
+#[cfg(all(windows, feature = "classification-worker"))]
 #[path = "classification_worker_probe/scheme.rs"]
 mod scheme;
 
@@ -38,6 +42,9 @@ mod verification {
 
     pub fn run() -> Result<()> {
         let arguments: Vec<_> = std::env::args_os().skip(1).collect();
+        if arguments.len() == 2 && arguments[1] == "--vocabulary" {
+            return super::vocabulary::run(&arguments[0]);
+        }
         if arguments.len() == 2 && arguments[1] == "--scheme" {
             return super::scheme::run(&arguments[0]);
         }

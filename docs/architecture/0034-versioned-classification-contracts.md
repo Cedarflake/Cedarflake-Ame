@@ -236,6 +236,30 @@ guarded category maintenance still determine the active scheme. The retained cal
 catalog is exploratory; its finite entries do not establish the product's permanent category set,
 admit every purpose/topic combination or close the maintenance-policy requirement.
 
+### Local vocabulary resources
+
+`LocalClassificationVocabulary` loads a version-1 application resource through the vocabulary port.
+The caller supplies the expected BLAKE3 digest; only those verified bytes are parsed. Loading checks
+cancellation between 64-KiB reads and graph entries, rejects input above 64 MiB, and retains an
+immutable in-memory snapshot. Later replacement of the resource file cannot change an active read.
+The resource contains up to 100,000 concepts, 4,096 entry points and 1,048,576 source links, with at
+most 16,384 links in one neighborhood. Naming contexts retain their separate 4,096-definition and
+65,536-link bounds. Unknown fields, invalid definitions, duplicate identities/links and unresolved
+references reject the complete resource. Reads return strictly ordered windows of at most 64 items.
+
+Source keys remain inside the adapter. A stable source namespace and key derive opaque identities;
+application-authored contexts have a distinct reserved namespace. Source concepts always remain
+traversal-only. The adapter returns typed naming definitions for the existing application compositor,
+which continues to own context nomination and category authority. Canonical revisions bind definitions,
+entry points and each relationship independently of file order; display/relationship changes leave
+unchanged description-feature keys reusable.
+
+This resource contract adds no model, data download, source-media read, catalog write or background
+enablement. The discovery probe can consume the same adapter for retained calibration comparisons.
+Distribution admission still belongs to the selected resource manifest, upstream notices, compatible
+context evidence and first-use installation; accepting a file format does not admit a lexical release
+or freeze the category set.
+
 ### Candidate admission evidence
 
 Admission compares each consolidated context against the current taxonomy through the existing

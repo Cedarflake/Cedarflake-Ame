@@ -48,6 +48,14 @@ struct Fixture {
     minimum_context_relatedness: Option<f32>,
     #[serde(default)]
     naming_contexts: Option<Vec<context_vocabulary::Context>>,
+    #[serde(default)]
+    vocabulary_resource: Option<VocabularyResource>,
+}
+
+#[derive(Deserialize)]
+struct VocabularyResource {
+    file: String,
+    digest: [u8; 32],
 }
 
 #[derive(Deserialize)]
@@ -223,7 +231,6 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
             return Err("Invalid discovery sample identity or dimensions".into());
         }
     }
-    let vocabulary = ProbeVocabulary::new(fixture.revision, fixture.concepts, fixture.entries)?;
     let frontier: BTreeSet<_> = fixture
         .frontier
         .iter()
@@ -235,12 +242,31 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
         MonotonicResidencyClock::default(),
         Duration::from_secs(60),
     );
-    if arguments[5] == "--discovery-cost" {
-        return cost::measure(&vocabulary, &mut residency, &mut cache);
-    }
     let cancelled = AtomicBool::new(false);
-    let mut vocabulary =
-        context_vocabulary::Vocabulary::new(vocabulary, fixture.naming_contexts, &cancelled)?;
+    let mut vocabulary = if let Some(resource) = fixture.vocabulary_resource {
+        if !fixture.concepts.is_empty()
+            || !fixture.entries.is_empty()
+            || fixture.naming_contexts.is_some()
+            || !frontier.is_empty()
+            || arguments[5] == "--discovery-cost"
+        {
+            return Err(
+                "A resource-backed probe cannot combine a second vocabulary or supplied frontier"
+                    .into(),
+            );
+        }
+        let path = fixture_path
+            .parent()
+            .ok_or("Missing fixture directory")?
+            .join(resource.file);
+        context_vocabulary::Vocabulary::open_resource(&path, &resource.digest, &cancelled)?
+    } else {
+        let source = ProbeVocabulary::new(fixture.revision, fixture.concepts, fixture.entries)?;
+        if arguments[5] == "--discovery-cost" {
+            return cost::measure(&source, &mut residency, &mut cache);
+        }
+        context_vocabulary::Vocabulary::new(source, fixture.naming_contexts, &cancelled)?
+    };
     let naming = naming::Naming::prepare(
         frontier,
         fixture.automatic_contexts,

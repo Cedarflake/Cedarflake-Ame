@@ -1,4 +1,4 @@
-pub use crate::adapters::SqliteClassificationFeatureCache;
+pub use crate::adapters::{LocalClassificationVocabulary, SqliteClassificationFeatureCache};
 #[cfg(all(windows, feature = "classification-worker"))]
 pub use crate::application::classification_analysis::analyze_classification_content;
 pub use crate::application::classification_decisions::plan_classification_change;
@@ -17,7 +17,7 @@ pub use crate::application::classification_discovery::{
     assess_category_candidates, assess_category_scheme, assess_category_withdrawals,
     consolidate_classification_concepts, form_discovery_cohorts, nominate_classification_contexts,
     prepare_category_expansion, prepare_category_merge, prepare_equivalent_category_retirement,
-    retrieve_classification_concepts,
+    prepare_purpose_category_merge, retrieve_classification_concepts, survey_category_coverage,
 };
 pub use crate::application::classification_dispatch::{
     ClassificationDispatchClock, ClassificationDispatchSignals, ClassificationDispatchStep,

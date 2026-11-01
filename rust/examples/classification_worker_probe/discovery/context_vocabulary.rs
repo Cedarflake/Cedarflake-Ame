@@ -1,5 +1,6 @@
 use rust_lib_cedarflake_ame::classification::{
-    ContextualVocabulary, NamingContext, NamingContextCatalog, ScanError,
+    ContextualVocabulary, LocalClassificationVocabulary, NamingContext, NamingContextCatalog,
+    ScanError,
 };
 
 use super::*;
@@ -18,9 +19,22 @@ pub(super) struct Context {
 pub(super) enum Vocabulary<'a> {
     Retrieval(ProbeVocabulary),
     Contextual(ContextualVocabulary<'a, ProbeVocabulary>),
+    Resource(ContextualVocabulary<'a, LocalClassificationVocabulary>),
 }
 
 impl<'a> Vocabulary<'a> {
+    pub(super) fn open_resource(
+        path: &Path,
+        digest: &[u8; 32],
+        cancelled: &'a AtomicBool,
+    ) -> Result<Self> {
+        let (source, contexts) = LocalClassificationVocabulary::open(path, digest, cancelled)?;
+        let catalog = NamingContextCatalog::new(contexts)?;
+        Ok(Self::Resource(ContextualVocabulary::new(
+            source, catalog, cancelled,
+        )))
+    }
+
     pub(super) fn new(
         source: ProbeVocabulary,
         definitions: Option<Vec<Context>>,
@@ -82,6 +96,7 @@ impl ClassificationVocabulary for Vocabulary<'_> {
         match self {
             Self::Retrieval(source) => source.revision(),
             Self::Contextual(source) => source.revision(),
+            Self::Resource(source) => source.revision(),
         }
     }
 
@@ -94,6 +109,7 @@ impl ClassificationVocabulary for Vocabulary<'_> {
         match self {
             Self::Retrieval(source) => source.read_concepts(neighborhood, after, limit),
             Self::Contextual(source) => source.read_concepts(neighborhood, after, limit),
+            Self::Resource(source) => source.read_concepts(neighborhood, after, limit),
         }
     }
 }

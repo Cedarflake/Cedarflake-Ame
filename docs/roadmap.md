@@ -187,7 +187,9 @@ and revalidating the count's catalog authority at publication. Sparse refinement
 guarded merge into an existing broader context of the same purpose, retaining declared containment,
 complete alternatives, recurrent target support and human protection. Prepared maintenance submissions
 now share the native retirement gate with explicit configuration changes, preserving the existing
-close/commit/reopen lifecycle. Maintenance scheduling and first-use integration remain.
+close/commit/reopen lifecycle. Native vocabulary resources now supply verified, versioned lexical
+cues and separate naming definitions through the existing discovery port. Resource distribution
+admission, maintenance scheduling and first-use integration remain.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review
