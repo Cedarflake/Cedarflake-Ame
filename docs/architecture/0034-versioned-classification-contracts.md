@@ -320,8 +320,10 @@ source coverage, human-choice guards and publication remain separate requirement
 Candidate assessment and category publication have separate owners. The application prepares an
 immutable addition plan by reassessing the complete cohort against the current matcher and policy.
 Category identity derives from the canonical concept identity and optional purpose-category identity,
-independently of display labels, cohort, model, or vocabulary release. Previously known identities,
-including retired categories, are not recreated or overwritten. Existing definitions remain intact.
+independently of display labels, cohort, model, or vocabulary release. Previously known identities
+are not recreated or overwritten. Active, manual and protected definitions remain intact. An inactive
+generated definition can be reactivated under the fresh-admission rules below, using its existing
+identity and origin rather than a second category.
 
 Publication revalidates the classification and dispatch revisions, active encoder, and exact-content
 membership of both support and comparison samples in one catalog transaction. A surviving verified
@@ -342,9 +344,10 @@ candidate is removed. The published support list comes from the final selection.
 The maintenance request also supplies an explicit cumulative generated-category budget. Every active
 category with a recorded automatic origin consumes a slot, including manually protected definitions;
 manual/legacy categories consume only the overall taxonomy capacity. Retired definitions consume no
-active slot, but remain known identities that cannot be recreated. The effective addition ceiling is
-the minimum of the remaining generated slots, overall taxonomy slots and per-assessment limit. A
-budget below the retained count defers additions and preserves the existing definitions.
+active slot; reactivation consumes a slot again without creating another identity. The effective
+addition ceiling is the minimum of the remaining generated slots, overall taxonomy slots and
+per-assessment limit. A budget below the retained count defers additions and preserves the existing
+definitions.
 
 Publication rereads the active generated identities in the same transaction as source and revision
 checks. They must match the prepared snapshot, and the resulting generated count must fit the supplied
@@ -367,6 +370,27 @@ model evidence. Versions 1–5 remain readable and do not grant automatic author
 categories. Restoration cannot weaken existing protection or replace a conflicting origin. Missing
 local discovery evidence requires fresh assessment before automatic maintenance; restoration itself
 does not enable classification or recreate the source cohort.
+
+### Reactivation of generated definitions
+
+Automatic retirement preserves a generated definition's identity and creation origin. A fresh
+discovery assessment can restore that definition only while it is inactive, its origin remains
+unprotected, and its retained label and original semantic revision exactly match the proposed
+definition. Active categories, legacy definitions without an origin, manual retirement or editing,
+and changed naming or meaning remain excluded. Reactivation does not remap a saved human choice.
+
+Restoration passes the same naming, member recurrence, coverage, contrast, joint competition,
+cumulative capacity and current-source checks as a new category. Old origin metadata alone cannot
+restore a category without fresh admission. The immutable plan records new creation versus
+reactivation explicitly and binds the original origin, including its creation operation. Before
+publication, the transaction rereads retained labels, origin/protection records and active membership,
+in addition to the existing configuration, run, dispatch and source guards.
+
+The active scheme, new uncalibrated run, operation receipt and fresh evidence commit atomically.
+Reactivation reuses the stored definition/version and leaves its original origin and creation
+evidence unchanged. A committed retry returns current state and cannot resume a later explicit stop.
+The version-1 admission payload adds activation provenance and its evidence identity advances to
+version 3; schema 72 and archive version 6 retain their existing shapes and readers.
 
 ### Equivalent-category retirement
 

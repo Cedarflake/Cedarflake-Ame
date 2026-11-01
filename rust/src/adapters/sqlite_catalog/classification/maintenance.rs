@@ -4,7 +4,9 @@ use rusqlite::{Connection, Row, params};
 
 use crate::domain::ScanError;
 use crate::domain::classification::discovery::{CategoryNaming, ConceptId};
-use crate::domain::classification::maintenance::{CategoryExpansionPlan, ManagedCategoryOrigin};
+use crate::domain::classification::maintenance::{
+    CategoryActivation, CategoryExpansionPlan, ManagedCategoryOrigin,
+};
 use crate::domain::classification::{CategoryId, Taxonomy};
 
 use super::super::database_error;
@@ -29,6 +31,9 @@ pub(super) fn publish(
         CategoryNaming::WithinCategory(purpose) => Some(purpose.category().as_str()),
     };
     for candidate in &plan.provenance.candidates {
+        if matches!(&candidate.activation, CategoryActivation::Reactivate(_)) {
+            continue;
+        }
         let category = plan
             .configuration
             .setup

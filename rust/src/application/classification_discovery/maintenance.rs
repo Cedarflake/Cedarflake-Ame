@@ -3,8 +3,9 @@ use std::sync::atomic::AtomicBool;
 use crate::domain::ScanError;
 use crate::domain::classification::discovery::{CategoryNaming, ConceptId, DiscoveryCohort};
 use crate::domain::classification::maintenance::{
-    CategoryExpansionBounds, CategoryExpansionCandidate, CategoryExpansionCapacity,
-    CategoryExpansionCriteria, CategoryExpansionPlan, CategoryExpansionProvenance,
+    CategoryActivation, CategoryExpansionBounds, CategoryExpansionCandidate,
+    CategoryExpansionCapacity, CategoryExpansionCriteria, CategoryExpansionPlan,
+    CategoryExpansionProvenance,
 };
 use crate::domain::classification::work::ClassificationDispatchMode;
 use crate::domain::classification::{
@@ -89,7 +90,9 @@ pub fn prepare_category_expansion(
         return Err(stale());
     }
     proposed.retain(|category| {
-        if snapshot.known_categories.contains(category.id()) {
+        if snapshot.known_categories.contains_key(category.id())
+            && snapshot.reactivation_origin(category).is_none()
+        {
             result.already_known.push(category.id().clone());
             false
         } else {
@@ -103,7 +106,7 @@ pub fn prepare_category_expansion(
         maximum_generated: maximum_generated_categories,
         active_generated: snapshot.active_generated_categories(),
     };
-    let selected = selection::select(
+    let mut selected = selection::select(
         &result.admission,
         &proposed,
         matcher.taxonomy(),
@@ -121,6 +124,13 @@ pub fn prepare_category_expansion(
     if selected.categories.is_empty() {
         return Ok(result);
     }
+    for (candidate, category) in selected.candidates.iter_mut().zip(&selected.categories) {
+        if let Some(origin) = snapshot.reactivation_origin(category) {
+            candidate.activation = CategoryActivation::Reactivate(origin.clone());
+        }
+    }
+    let evidence =
+        provenance::evidence_identity(&result.admission, &capacity, &selected.candidates);
     let additions = selected
         .categories
         .iter()
@@ -148,7 +158,7 @@ pub fn prepare_category_expansion(
         },
         additions,
         sources: cohort.source_contents(),
-        evidence: provenance::evidence_identity(&result.admission, &capacity),
+        evidence,
         provenance: provenance::provenance(
             cohort,
             &result.admission,

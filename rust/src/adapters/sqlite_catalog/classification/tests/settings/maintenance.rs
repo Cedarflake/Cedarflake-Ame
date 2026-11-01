@@ -10,6 +10,7 @@ mod capacity;
 mod fixture;
 mod origins;
 mod preservation;
+mod reactivation;
 use fixture::{assess, evidence, plan, start};
 
 #[test]

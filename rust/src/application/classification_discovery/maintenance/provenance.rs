@@ -53,6 +53,7 @@ pub(super) fn provenance(
 pub(super) fn evidence_identity(
     admission: &CategoryAdmission,
     capacity: &CategoryExpansionCapacity,
+    candidates: &[CategoryExpansionCandidate],
 ) -> ClassificationRevision {
     let identities = [
         admission.naming.revision(),
@@ -92,11 +93,34 @@ pub(super) fn evidence_identity(
         parameters.extend_from_slice(&(category.as_str().len() as u64).to_le_bytes());
         parameters.extend_from_slice(category.as_str().as_bytes());
     }
+    for candidate in candidates {
+        field(&mut parameters, candidate.category_id.as_str());
+        match &candidate.activation {
+            CategoryActivation::New => parameters.push(0),
+            CategoryActivation::Reactivate(origin) => {
+                parameters.push(1);
+                field(&mut parameters, origin.operation_id.as_str());
+                field(&mut parameters, &origin.admitted_label);
+                field(
+                    &mut parameters,
+                    origin.purpose.as_ref().map_or("", CategoryId::as_str),
+                );
+                parameters.extend_from_slice(origin.concept_id.bytes());
+                parameters.extend_from_slice(origin.admitted_semantic_revision.bytes());
+                parameters.push(u8::from(origin.protected));
+            }
+        }
+    }
     ClassificationRevision::derive(
-        "ame.classification.category-expansion-evidence.v2",
+        "ame.classification.category-expansion-evidence.v3",
         identities
             .iter()
             .map(|identity| identity.bytes().as_slice())
             .chain(std::iter::once(parameters.as_slice())),
     )
+}
+
+fn field(parameters: &mut Vec<u8>, value: &str) {
+    parameters.extend_from_slice(&(value.len() as u64).to_le_bytes());
+    parameters.extend_from_slice(value.as_bytes());
 }

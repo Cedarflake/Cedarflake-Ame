@@ -3,7 +3,7 @@ use serde_json::{Value, json};
 use crate::domain::ScanError;
 use crate::domain::classification::ClassificationContent;
 use crate::domain::classification::discovery::CategoryNaming;
-use crate::domain::classification::maintenance::CategoryExpansionPlan;
+use crate::domain::classification::maintenance::{CategoryActivation, CategoryExpansionPlan};
 
 use super::super::{codec, invalid_record};
 
@@ -24,8 +24,20 @@ pub(in crate::adapters::sqlite_catalog::classification) fn encode(
     let candidates = evidence.candidates.iter().map(|candidate| {
         let category = plan.configuration.setup.primary().categories().iter()
             .find(|category| category.id() == &candidate.category_id).ok_or_else(invalid_record)?;
+        let activation = match &candidate.activation {
+            CategoryActivation::New => json!({"kind": "new"}),
+            CategoryActivation::Reactivate(origin) => json!({
+                "kind": "reactivate", "original_operation": origin.operation_id.as_str(),
+                "concept": codec::digest(origin.concept_id.bytes()),
+                "purpose": origin.purpose.as_ref().map(|category| category.as_str()),
+                "admitted_label": origin.admitted_label,
+                "admitted_semantic_revision": codec::revision(origin.admitted_semantic_revision),
+                "protected": origin.protected,
+            }),
+        };
         Ok(json!({
             "category": candidate.category_id.as_str(), "concept": codec::digest(candidate.concept_id.bytes()),
+            "activation": activation,
             "label": category.label(), "descriptions": category.descriptions(),
             "supporting_contents": candidate.supporting_contents.iter().map(content).collect::<Vec<_>>(),
             "mean_supporting_improvement": candidate.mean_supporting_improvement,

@@ -1313,3 +1313,42 @@ its change only exposes the new owner. The diagnostic has 49 lines, its shared f
 the existing entrypoint 170, without inline tests. No schema, desktop bridge or dependency changes.
 The repository format check passes with 685 Dart files unchanged; `git diff --check` passes.
 Complete automated and lint checks remain assigned to the pushed commit's hosted gate.
+
+### Reactivation of automatically retired definitions
+
+Fresh discovery admission can now restore an inactive generated category with its original identity,
+label, semantic revision and creation origin. The application distinguishes this from new creation;
+the catalog transaction repeats the retained-label, complete-origin, protection, active-membership,
+capacity and current-source checks. New configuration, uncalibrated run and immutable admission
+evidence commit together, while the original origin and historical category versions remain intact.
+Manual retirement, edited definitions and legacy definitions without origins remain protected.
+The new identity owner keeps these bounded reads and checks out of the publication coordinator.
+
+Five dedicated regression cases cover real expansion followed by automatic equivalent retirement
+and fresh restoration, retained identity/version counts, immutable origin, restart and retry,
+preservation of a later explicit stop, protected/changed/missing origins, concurrent changes without
+a catalog revision, source-evidence loss, cancellation and evidence-insert rollback. Restoration
+consumes a cumulative generated slot and still requires fresh context admission. These use isolated
+temporary catalogs; they read no original media and perform no model or desktop operations.
+
+The settings diagnostic passed 44 of 45 cases. The remaining new case supplied inconsistent aggregate
+scores: its modified contrast no longer equaled member similarity minus comparison similarity.
+The unchanged evidence validator rejected that fixture. Correcting both comparison and contrast
+values makes the focused case pass, including an explicit `WeakContext` assertion and successful
+restoration when capacity is available. All 45 affected cases therefore pass across these runs.
+An initial exact-name retry matched zero tests because it omitted the module prefix; that result
+is excluded, and the full-name retry executes and passes the intended case.
+The repository format check passes with 685 Dart files unchanged; `git diff --check` passes.
+Complete suite and lint execution remain assigned to the delivered commit's hosted gate.
+
+The domain maintenance types have 146 production lines and their activation rule 35. Application
+preparation has 191 production lines plus two test-registration lines, provenance 126 and selection
+138. SQLite publication has 149 lines, evidence encoding 81, the transaction coordinator 145 and its
+identity reader/validator 106. These owners contain no inline tests. The dedicated reactivation suite
+has 308 lines; its existing parent test file has 331 with only the new module registration added.
+Schema 72, portable archive version 6 and the desktop bridge remain unchanged. The admission payload
+keeps its version-1 envelope with additive activation provenance; its evidence identity is version 3.
+
+Non-equivalent merge admission, useful default-budget selection and automatic first-use integration
+remain in their canonical scope. Reactivation supplies their identity-preserving restoration path;
+it does not enable automatic maintenance on its own.

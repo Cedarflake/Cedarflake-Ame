@@ -1,4 +1,3 @@
-use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use rusqlite::Connection;
@@ -15,6 +14,9 @@ use crate::ports::classification_configuration::CategoryExpansionRepository;
 use super::super::super::exact_duplicates::queries::CURRENT_LOCATIONS;
 use super::super::maintenance;
 use super::{SqliteCatalog, changed, codec, database_error, operations};
+
+mod identity;
+use identity::snapshot;
 
 impl CategoryExpansionRepository for SqliteCatalog {
     fn load_category_expansion_snapshot(
@@ -47,13 +49,13 @@ impl CategoryExpansionRepository for SqliteCatalog {
                 || before.dispatch.revision != plan.configuration.expected_dispatch_revision
                 || before.dispatch.mode != ClassificationDispatchMode::Automatic
                 || current.model != Some(plan.configuration.setup.run().model())
-                || !current.known_categories.is_empty()
                 || active_generated != plan.provenance.capacity.active_generated
                 || active_generated.len() + plan.additions.len()
                     > plan.provenance.capacity.maximum_generated
             {
                 return Err(changed());
             }
+            identity::validate(&current, plan)?;
             validate_sources(&transaction, &plan.sources)?;
             check_cancelled(cancelled)?;
             super::apply(&transaction, &plan.configuration, &digest)?.ok_or_else(changed)?;
@@ -64,53 +66,6 @@ impl CategoryExpansionRepository for SqliteCatalog {
         transaction.commit().map_err(database_error)?;
         Ok(result)
     }
-}
-
-fn snapshot(
-    connection: &Connection,
-    proposed: &[CategoryId],
-) -> Result<CategoryExpansionSnapshot, ScanError> {
-    if proposed.is_empty() || proposed.len() > 64 {
-        return Err(ScanError::new(
-            "classification_category_limit",
-            "Category expansion exceeds its candidate window",
-        ));
-    }
-    let configuration = super::load(connection)?;
-    let model = super::authority::active_model(connection, &configuration)?;
-    let encoded =
-        serde_json::to_string(&proposed.iter().map(CategoryId::as_str).collect::<Vec<_>>())
-            .map_err(|_| changed())?;
-    let mut statement = connection.prepare(
-        "SELECT category_id FROM classification_categories WHERE category_id IN (SELECT value FROM json_each(?1))"
-    ).map_err(database_error)?;
-    let rows = statement
-        .query_map([encoded], |row| row.get::<_, String>(0))
-        .map_err(database_error)?;
-    let mut known_categories = BTreeSet::new();
-    for row in rows {
-        known_categories
-            .insert(CategoryId::new(row.map_err(database_error)?).map_err(|_| changed())?);
-    }
-    let mut origin_categories: BTreeSet<_> = proposed.iter().cloned().collect();
-    if let Some(rules) = &configuration.catalog.taxonomy {
-        origin_categories.extend(
-            rules
-                .categories()
-                .iter()
-                .map(|category| category.id().clone()),
-        );
-    }
-    let managed_categories = maintenance::load(
-        connection,
-        &origin_categories.into_iter().collect::<Vec<_>>(),
-    )?;
-    Ok(CategoryExpansionSnapshot {
-        configuration,
-        model,
-        known_categories,
-        managed_categories,
-    })
 }
 
 fn validate_sources(

@@ -123,6 +123,7 @@ pub(super) fn select(
         }
         selected_candidates.push(CategoryExpansionCandidate {
             category_id: proposed[index].id().clone(),
+            activation: CategoryActivation::New,
             concept_id: candidates[index].concept_id,
             mean_supporting_improvement: (improvements[index] / members.len() as f64) as f32,
             supporting_contents: members,

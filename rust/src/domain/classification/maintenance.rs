@@ -9,6 +9,8 @@ use crate::domain::classification_configuration::{
     ClassificationConfigurationChange, ClassificationConfigurationSnapshot,
 };
 
+mod activation;
+pub(crate) use activation::CategoryActivation;
 mod retirement;
 pub use retirement::{
     CategoryRetirementPlan, CategoryRetirementSnapshot, EquivalentCategoryRetirement,
@@ -17,7 +19,7 @@ pub use retirement::{
 pub struct CategoryExpansionSnapshot {
     pub configuration: ClassificationConfigurationSnapshot,
     pub model: Option<ModelCompatibility>,
-    pub known_categories: BTreeSet<CategoryId>,
+    pub known_categories: BTreeMap<CategoryId, String>,
     pub managed_categories: BTreeMap<CategoryId, ManagedCategoryOrigin>,
 }
 
@@ -127,6 +129,7 @@ pub(crate) struct CategoryExpansionBounds {
 
 pub(crate) struct CategoryExpansionCandidate {
     pub category_id: CategoryId,
+    pub activation: CategoryActivation,
     pub concept_id: ConceptId,
     pub supporting_contents: Vec<ClassificationContent>,
     pub mean_supporting_improvement: f32,

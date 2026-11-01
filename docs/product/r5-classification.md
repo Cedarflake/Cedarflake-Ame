@@ -55,6 +55,9 @@ that list manually editable alone does not satisfy category discovery or mainten
 Display-only renaming preserves classification compatibility; semantic description changes and
 adding/removing definitions create a new classification-rule revision. Retired definitions retain
 human-decision provenance; remapping a saved human choice requires explicit intent.
+If fresh evidence supports a previously retired automatic category again, restore its existing
+identity and original meaning through current admission. User edits and manual retirement protect
+that definition from automatic restoration; historical origin metadata alone is insufficient.
 
 Each classified group has at most one effective primary category. Define purpose-aware boundary
 examples before model admission: a photographed toy used as a reaction image can primarily belong
