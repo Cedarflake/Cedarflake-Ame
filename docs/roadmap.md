@@ -125,19 +125,25 @@ records. The observed menu-width and missing failure-state connections are repai
 selection and viewer navigation work; the injected Ctrl+A attempt is separately accounted for by
 native key-event evidence and a passing framework shortcut regression.
 
-The next scheduled slice is R5-07, retaining its existing order and required outcomes:
+R5-07 is active, retaining its existing order and required outcomes:
 
 1. Complete integrated source-lifecycle and recovery coverage using the delivered R5-03 through R5-06
    boundaries and applicable retained evidence. Preserve original media and durable R4/R5 decisions.
 2. Measure context coverage, optional checks/corrections and actual human work through the connected
    review flow. Retain the provisional label authority and unsupported confidence bands in the
    calibration record; do not repeat an unchanged broad model comparison or tune on sealed holdouts.
-3. Complete bounded large-library checks and the paired cloud-primary browsing/classification
-   comparison. The two-core/8-GiB comparison remains a pre-merge condition. Check retained runtime,
-   model and measurement-asset compatibility before reuse.
+3. The paired local/cloud-primary browsing/classification comparison now passes with the connected
+   client, preserved sources and bounded model residency; its
+   [measured intervals and cleanup](acceptance/r5-incremental-analysis.md#connected-localcloud-foreground-comparison--2026-11-01)
+   retain the original-preview yielding behavior and cloud rendering limits. The
+   [retained-catalog check](acceptance/r5-smart-albums.md#retained-catalog-scale--2026-11-01)
+   passes count/window and memory bounds while exposing 2.3–3.0-second filtered first-query cost.
+   Inspect that query cost before claiming responsive large-library category switching.
 4. Complete the applicable hosted gate for the final submitted head and record the R5 exit decision.
-   The retained `20cb3978` gate passes; the newer `58d68688` gate is still running, with Static,
-   Windows Scan and Windows Accessibility passed. Earlier results cover only their unchanged inputs.
+   At product head `c625135d`, all applicable jobs except the still-running Catalog group pass in
+   [run 41283769911](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41283769911).
+   Earlier results cover only their unchanged inputs. Actual human-time reduction remains unmeasured;
+   the provisional holdout references and automated interaction timings do not supply that result.
 
 The separate deferred rendering follow-up retains its bounded scope and does not reopen R4 verification.
 

@@ -82,3 +82,45 @@ or schema step; classification SQL and continuation policy live in their dedicat
 Actual desktop category entry, contextual commands, confirmation feedback and saved-position
 interaction are verified with the connected controls in R5-06. This query record does not establish
 those user-interface results or whole-stage acceptance.
+
+## Retained catalog scale — 2026-11-01
+
+At `c625135d`, an isolated copy of the retained local-primary catalog contains 63,077 locations and
+47,833 folded gallery groups. The current native library migrates its schema from 45 to 73. Only
+database timeline and layout-manifest APIs are invoked; no scanner, original-image reader, preview
+recovery or classification worker runs. The retained baseline is preserved separately from this
+disposable copy.
+
+The scale fixture adds 43,644 synthetic immutable predictions across 14,548 distinct indexed
+contents, with three history rows per content and alternating photograph/other suggestions. Every
+fifth content receives a pending-review result. The fixture uses the current admitted definition/run
+shape and passes foreign-key validation. It contains no human decisions, so the empty confirmed
+scope tests coherent emptiness rather than human-override scale. Synthetic predictions measure
+query cost, not classification quality.
+
+The production bridge returns these results with merged duplicates and ascending filename order:
+
+| Scope | Groups / locations | Timeline | First 128-item window | Next window |
+| --- | ---: | ---: | ---: | ---: |
+| Library | 47,833 / 63,077 | 3,502.497 ms | 2,291.454 ms | 1,255.459 ms |
+| All results | 47,833 / 63,077 | 923.631 ms | 1,281.244 ms | 739.455 ms |
+| Pending review | 2,884 / 5,906 | 2,695.066 ms | 2,879.571 ms | 1,605.068 ms |
+| Confirmed | 0 / 0 | 2,286.365 ms | 2,481.815 ms | Not applicable |
+| Other | 7,216 / 14,865 | 2,842.372 ms | 3,019.723 ms | 1,472.896 ms |
+
+All count/window assertions pass: at most 128 identifiers per chunk, matching total counts, a second
+start ordinal of 128 and no overlap. Process RSS increases by 5.94–6.65 MB from the initialized
+bridge. These are sequential single-pass observations, with the library query first; they are not
+repeated cold-cache comparisons. Migration preparation takes 53,062.590 ms and is excluded from the
+table because it includes the schema upgrade.
+
+The windows and memory are bounded, while filtered timeline/first-window calls still take about
+2.3–3.0 seconds on local-primary. This leaves a measurable interactive query-cost issue to investigate;
+the observations do not establish low-latency large-library browsing on cloud-primary. Diagnostic
+sources, fixture metadata and the complete result lines remain in the ignored
+`build/test/derived/r5-smart-album-scale` directory.
+
+After the query process retires, exclusive file-open checks and contained/reparse-free path checks
+precede removal of the disposable profile and its migration backup, reclaiming 870,670,372 bytes.
+The retained baseline's SHA-256 remains
+`93db288e598b601fb478d39ff598777a1d5f1615f152c15889bddc6fa7aecbfd`.

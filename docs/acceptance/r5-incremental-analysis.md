@@ -639,3 +639,79 @@ the new session in hosted native interaction without claiming that every first-u
 | Probe session / protocol / worker | 145 / 53 / 38 | 0 | 132 |
 | Output retirement | 29 | 0 | 58 |
 | Existing cleanup / canary composition | 159 / 399 | 0 | Existing guardrail entrypoint: 503 |
+
+## Connected local/cloud foreground comparison — 2026-11-01
+
+The connected `c625135d` Profile client uses Skia and the retained verified SigLIP 2 installation on
+both machines. The same 48-file synthetic fixture is reused, with 47,786,849 encoded bytes. It has
+33 inputs within native analysis limits and 15 oversized inputs that must retain the explicit
+`classification_image_limit` result. This workload tests lifecycle and rendering, not model quality.
+Cloud-primary reports two logical processors and 8,536,289,280 physical-memory bytes. No original
+library, placeholder, model download or normal catalog is used there.
+
+The first cloud run ends at a progress assertion after three original-preview/scroll cycles: the
+prediction count remains one. Each original read retires background analysis; the probe's 3.5-second
+gaps include the three-second readmission interval. Its CPU-speed-dependent assertion had conflated
+this intentional yielding with progress during cached browsing. The corrected probe measures the
+original-read cycles separately, then requires further predictions during cached scrolling after
+worker readmission, with a 120-second bound. Final outcome, pause/resume, source-hash, worker-count,
+memory and retirement assertions remain mandatory. Production scheduling is unchanged.
+
+The corrected probe passes on both machines. Local-primary completes in 54.866 seconds and
+cloud-primary in 98.563 seconds. These totals include setup, scans, deliberate waits, foreground
+interactions, pause and resume; they are not steady-state inference throughput.
+
+| Observation | local-primary | cloud-primary |
+| --- | ---: | ---: |
+| First prediction after enablement, including quiet admission and model setup | 10,094 ms | 20,187 ms |
+| Enabled wall interval, including interaction/waits | 46,442 ms | 87,053 ms |
+| Predictions before / after original-preview cycles | 2 / 5 | 1 / 1 |
+| Predictions before / after cached scrolling | 5 / 7 | 1 / 2 |
+| Cached-scroll observation interval | 1,223 ms | 3,885 ms |
+| Final predictions / explicit size-limit failures | 33 / 15 | 33 / 15 |
+| Peak combined client/worker working set | 1,070,747,648 bytes | 1,124,032,512 bytes |
+| Peak client / worker working set | 201,895,936 / 870,359,040 bytes | 302,297,088 / 869,490,688 bytes |
+| Maximum workers / workers after client retirement | 1 / 0 | 1 / 0 |
+
+The paired cloud rendering intervals are:
+
+| Interval | Scroll wall interval | Viewer wall interval | Raster P95, scroll / viewer |
+| --- | ---: | ---: | ---: |
+| Disabled, after warm-up | 800.228 ms | 637.618 ms | 72.638 / 44.184 ms |
+| Automatic, round 1 | 757.203 ms | 668.688 ms | 48.016 / 57.692 ms |
+| Automatic, round 2 | 751.230 ms | 577.167 ms | 39.009 / 40.937 ms |
+| Automatic, round 3 | 735.725 ms | 591.626 ms | 31.701 / 38.415 ms |
+| Paused | 754.664 ms | 607.419 ms | 28.375 / 44.900 ms |
+
+Scroll intervals contain two 350-ms settling waits; viewer intervals contain 250 ms after the full
+image appears. Active viewer intervals differ from the disabled sample by −60 to +31 ms, and cached
+scrolling continues to publish predictions. Sequential warm-up and the single paired run limit causal
+claims about speed. Cloud rendering still has frames above 50 ms, including a 143.530-ms maximum in
+the disabled viewer and 123.265 ms in the active viewer. The result establishes connected progress,
+foreground access and bounded model resources on this two-core machine, while the separately deferred
+rendering work retains those frame costs. It does not claim 60-FPS cloud browsing.
+
+The cloud surface is 1,264 × 681 physical pixels at scale 1; local-primary is 1,582 × 853 at scale
+1.25. Local active-preview raster maxima are below 16 ms; cached scrolling records two frames above
+16 ms, peaking at 18.480 ms. Cross-machine frame values are not equal-size hardware comparisons.
+At 200-ms process sampling, cloud client/worker CPU totals are 71.141/29.266 seconds. Every source
+length and SHA-256 is unchanged after both runs. Pause reaches zero workers; resume finishes the
+same run, and client exit leaves none.
+
+The original 48,522,164-byte cloud package is hash-verified before extraction. The corrected entrypoint
+is delivered as a 6,040,961-byte update containing only `data/app.so`; production native binaries,
+runtime, model graphs and fixture bytes are unchanged. Raw attempt reports remain in the owned cloud
+test directory; compact report copies, hashes and diagnostic sources are retained locally under
+ignored `build/test/derived/r5-classification-measure`. The ordinary isolated desktop is restored
+with its prior profile after local measurement.
+
+An initial local launch with the ordinary desktop still open exits through the single-instance
+guard before producing test results. The ordinary test window is then closed for measurement and
+restored afterward. That rejected launch is excluded from the timing comparison. The first failed
+cloud assertion remains recorded alongside the passing revised probe.
+
+After saving the reports and verifying zero remaining clients/workers, contained-path and reparse
+checks precede cloud cleanup. Both transferred archives, the current test binaries, synthetic source
+copies and disposable profiles are removed, reclaiming 213,481,888 bytes. Reports and the pre-existing
+verified models/runtime remain. The transfer and remote execution use the authorized UU connection;
+each submitted command's terminal and temporary result file are retired successfully.
