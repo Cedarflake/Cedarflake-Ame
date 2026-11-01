@@ -2,6 +2,7 @@ use rusqlite::types::Value;
 
 use crate::domain::{GalleryCollection, GalleryQuery};
 
+use super::classification::PredictionReadStrategy;
 use super::{
     duplicates, normalize_relative_folder, organization, organization_groups, organization_queue,
 };
@@ -50,7 +51,12 @@ pub(super) fn push_source_filters(
     clauses: &mut Vec<String>,
     parameters: &mut Vec<Value>,
 ) {
-    push_membership_filters(query, clauses, parameters);
+    push_membership_filters(
+        query,
+        PredictionReadStrategy::for_collection(query),
+        clauses,
+        parameters,
+    );
     push_location_filters(query, clauses, parameters);
 }
 
@@ -87,12 +93,13 @@ pub(super) fn push_location_filters(
 
 pub(super) fn push_membership_filters(
     query: &GalleryQuery,
+    scope: PredictionReadStrategy,
     clauses: &mut Vec<String>,
     parameters: &mut Vec<Value>,
 ) {
     organization::push_collection_filter(query, clauses, parameters);
     organization_queue::push_filter(query, clauses, parameters);
-    super::classification::push_filter(query, clauses, parameters);
+    super::classification::push_filter(query, scope, clauses, parameters);
 }
 
 pub(super) fn push_anchor_filters(
@@ -105,7 +112,12 @@ pub(super) fn push_anchor_filters(
         return;
     }
     let mut membership = Vec::new();
-    push_membership_filters(query, &mut membership, parameters);
+    push_membership_filters(
+        query,
+        PredictionReadStrategy::Indexed,
+        &mut membership,
+        parameters,
+    );
     let mut group = Vec::new();
     organization_groups::push_group_filter(query, &mut group, parameters);
     if membership.is_empty() {

@@ -130,6 +130,11 @@ for each failed attempt. Join owned child processes before the action returns. B
 reparse points reject cleanup; an unmarked directory is never adopted. A subsequent invocation
 can reclaim a marked, inactive directory left by interruption.
 
+Native-DLL diagnostics using `CEDARFLAKE_AME_TEST_STORAGE_ROOT` require an optimized acceptance
+build with Rust debug assertions enabled; an ordinary Release library ignores that override.
+Before starting the diagnostic child, verify a build receipt bound to the loaded DLL's hash and
+the isolated-storage configuration. A missing or mismatched receipt stops before loading the library.
+
 The repository Cargo configuration disables incremental compilation to prevent repeated local
 feature/build variants from accumulating compiler working directories. Normal dependency and
 compiled-artifact reuse remains enabled. This trades some edited-crate rebuild speed for lower

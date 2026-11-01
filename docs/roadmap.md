@@ -151,8 +151,13 @@ R5-07 is active, retaining its existing order and required outcomes:
    complete-snapshot latency still need optimization before claiming responsive large-library
    category switching. The [integrated retained-library acceptance](acceptance/r5-smart-albums.md#integrated-retained-library-acceptance--2026-11-01)
    verifies scoped paging, bulk organization, undo/redo, archive replay and process restart. It also
-   repairs per-record archive staging commits; remaining category-query and bulk-action latency
-   stays in this performance step. Window-control verification remains deferred at the user's request.
+   repairs per-record archive staging commits. The
+   [shared-prediction and scoped-count optimization](acceptance/r5-smart-albums.md#shared-prediction-reads-and-scoped-counts--2026-11-01)
+   reduces repeated category decoding and filename source-count scans while retaining indexed
+   root/folder/search reads. Complete-query, first-admission and bulk-action latency remain in this
+   performance step. Follow up the configured-catalog handoff-validation refusal recorded in the
+   excluded diagnostic attempts before an R5 exit decision; no bypass or original-catalog repair
+   is authorized by that observation. Window-control verification remains deferred at the user's request.
 4. Complete the applicable hosted gate for the final submitted head and record the R5 exit decision.
    Current removal changes require their own submitted-head result. Earlier checks and measurements
    cover unchanged inputs only; detailed results remain in the acceptance records.

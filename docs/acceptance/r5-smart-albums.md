@@ -285,3 +285,78 @@ acceptance is not repeated for this storage-only change; its prior data-flow evi
 The cleanup owner has 105 production lines and no inline tests; dedicated checks have 135 lines.
 The 75-line lint facade adds only the test registration. Hosted checks must cover the submitted
 configuration and tooling changes.
+
+## Shared prediction reads and scoped counts — 2026-11-01
+
+The category predicate previously decoded the same compatible prediction for each physical copy.
+Collection reads now materialize the latest compatible prediction per content once per statement,
+using the existing authoritative view. Point reads and collections restricted by root, folder or
+search retain indexed prediction lookup. Human/legacy precedence, compatible retained membership,
+current configuration, publication order and source-authority checks remain unchanged.
+
+Filename sections also reuse the grouped query's physical count, as date buckets already do.
+This avoids a separate category scan for the source total. Empty results, preferred copies,
+cross-root location identifiers and scoped source counts retain their existing semantics. There is
+no schema, bridge, model, archive-format or source-mutation change.
+
+The same retained fixture has 63,077 locations, 47,833 merged groups and 43,644 synthetic historical
+predictions over 14,548 contents. Two sequential SQL rounds reduce the category predicate from
+1.118–1.164 seconds to 0.739–0.744 seconds, with the same 14,865 physical members. Selecting the
+latest result independently per location did not improve this query and was not adopted.
+
+The connected optimized native library, including isolated-storage support, has SHA-256
+`9e80c25e5b8a8d23de9d5c232c5bdae06394ec9cfef435f369cf84eeeeabcb02` for the broad-query comparison.
+
+| Native read | Previous observation | Updated observation |
+| --- | ---: | ---: |
+| Category snapshot after first bulk Favorite | 4.119 / 3.953 s | 3.869 / 3.699 s |
+| Category snapshot after organization and archive replay | 7.40–7.95 s | 3.384 s |
+| First snapshot after process restart, opening the album | Existing admission cost remains | 9.688 s |
+
+The first 128 ordered locations and the category's 7,216 groups / 14,865 physical locations match.
+Eleven gallery scopes retain bounded windows, count/revision coherence, layout order and forward /
+backward navigation. Viewer anchoring and foreign-cursor rejection pass. Bulk Favorite and album
+assignment each affect the expected 7,216 groups; undo, redo, archive replay and a subsequent process
+preserve album, Favorite and category membership. This run includes one additional no-op Favorite
+operation before archive export; it is not an identical archive timing comparison.
+
+Bulk latency remains open: first Favorite preparation/application takes 3.785/8.992 seconds, and
+album preparation/application takes 6.514/6.461 seconds. These are sequential workstation observations,
+without a controlled CPU-load or cold-cache comparison. They do not establish a cloud latency bound
+or responsive first opening. Category-query improvement does not close the remaining admission and
+bulk-action performance work.
+
+Actual Dart VM sampling peaks at 343.1 MiB working set and 347.5 MiB private memory. SQLite quick-check,
+foreign keys, all retained source identity tuples and the baseline digest pass. The 43,644 predictions
+and 7,216 organization records remain present. Owned processes retire before the leased disposable
+catalog, migration backup and archive are removed. No source images are opened in the successful run.
+
+Twenty classification query regressions and five organization count/section regressions pass.
+The cost regression adds 65 historical predictions behind 256 duplicate copies and checks collection,
+unrelated single-image and root/search reads. A local rerun initially failed before fixture creation
+because the system temporary directory denied access; the unchanged tests pass in a leased workspace
+temporary directory, which is cleaned afterward.
+
+Two earlier attempts used an ordinary Release DLL, which ignores the debug-only test-storage
+override. They opened the configured catalog and returned `catalog_change_catch_up_contract_unverifiable`
+before gallery results or batch actions. That catalog's modification time changed during admission;
+there is no pre-run logical snapshot for a before/after comparison. These attempts are excluded from
+acceptance. The diagnostic runner now requires an isolated-storage build receipt matching the DLL's
+hash before starting its child. The successful run above uses the previously established optimized
+build command with `-C debug-assertions=yes` and its bound receipt. Window control remains paused.
+
+The final restricted-scope probe uses native SHA-256
+`58c31047f3000b49c82c4cdc046c06b59565770c284f336301149d0cb6d25fcd`.
+Returning root/folder/search queries to indexed prediction reads reduces the sampled literal search
+from 1.986 to 0.898 seconds and exact-folder snapshot from 2.060 to 0.884 seconds. The empty query
+returns zero groups and files in 0.865 seconds. The unrestricted category remains coherent at
+3.963 seconds, preserving the same ordered first page, counts and forward/backward navigation.
+Source identity, foreign keys, quick-check, baseline digest and scratch retirement pass again.
+The final focused probe peaks at 304.3 MiB private memory. The broad-query/recovery results above
+remain applicable because this last change only selects indexed reads for restricted scopes.
+
+The prediction-query owner has 133 production lines, filename/arrival sections 142, and timeline
+reads 196; all have no inline tests. The two modified dedicated test owners contain 207 and 137 lines.
+Full hosted gates still apply to the submitted commit. The configured-catalog handoff-validation
+refusal observed in the excluded attempts remains a separate diagnostic finding; it was not repaired
+or bypassed during this query optimization.

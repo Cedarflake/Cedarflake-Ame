@@ -20,12 +20,16 @@ pub(crate) fn load_gallery_timeline(
     query_id: &str,
     revision: u64,
 ) -> Result<GalleryTimeline, ScanError> {
-    let scroll_sections = match query.sort_key {
-        GallerySortKey::FileName => super::scroll_sections::load_name_sections(transaction, query)?,
-        GallerySortKey::LibraryAdmission => {
-            super::scroll_sections::load_arrival_sections(transaction, query)?
+    let (scroll_sections, section_source_items) = match query.sort_key {
+        GallerySortKey::FileName => {
+            let names = super::scroll_sections::load_name_sections(transaction, query)?;
+            (names.sections, names.total_source_items)
         }
-        _ => Vec::new(),
+        GallerySortKey::LibraryAdmission => (
+            super::scroll_sections::load_arrival_sections(transaction, query)?,
+            None,
+        ),
+        _ => (Vec::new(), None),
     };
     let TimelineBuckets {
         buckets,
@@ -41,7 +45,7 @@ pub(crate) fn load_gallery_timeline(
                 .iter()
                 .map(|section| section.item_count)
                 .sum(),
-            total_source_items: None,
+            total_source_items: section_source_items,
         }
     } else {
         load_time_buckets(transaction, query)?

@@ -4,16 +4,37 @@ use crate::domain::gallery_scroll_section::{GalleryScrollSection, GalleryScrollS
 use crate::domain::{GalleryQuery, ScanError};
 
 use super::super::{database_error, sqlite_unsigned};
-use super::{gallery_direction_sql, gallery_source, push_gallery_filters};
+use super::{gallery_direction_sql, gallery_source, organization_groups, push_gallery_filters};
+
+pub(super) struct NameSections {
+    pub sections: Vec<GalleryScrollSection>,
+    pub total_source_items: Option<u64>,
+}
 
 pub(super) fn load_name_sections(
     transaction: &Transaction<'_>,
     query: &GalleryQuery,
-) -> Result<Vec<GalleryScrollSection>, ScanError> {
+) -> Result<NameSections, ScanError> {
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
-    let source = gallery_source(query, &mut parameters);
-    push_gallery_filters(query, &mut clauses, &mut parameters);
+    let mut prefix = String::new();
+    let (source, source_count) = if organization_groups::uses_grouped_organization(query) {
+        let grouped = organization_groups::build_group_query(query);
+        parameters.extend(grouped.parameters);
+        prefix = format!("WITH organization_groups AS MATERIALIZED ({})", grouped.sql);
+        let source = gallery_source(query, &mut parameters);
+        clauses.push(
+            "locations.location_id IN (SELECT location_id FROM organization_groups)".to_owned(),
+        );
+        (
+            source,
+            "(SELECT SUM(source_items) FROM organization_groups)",
+        )
+    } else {
+        let source = gallery_source(query, &mut parameters);
+        push_gallery_filters(query, &mut clauses, &mut parameters);
+        (source, "NULL")
+    };
     let scope = if clauses.is_empty() {
         "1".to_owned()
     } else {
@@ -22,12 +43,12 @@ pub(super) fn load_name_sections(
     // Numeric prefixes use the natural-sort marker. Symbols on either side of A-Z
     // stay separate so every section denotes a contiguous part of the existing order.
     let sql = format!(
-        "SELECT CASE
+        "{prefix} SELECT CASE
            WHEN substr(locations.natural_name_key, 1, 1) = char(30) THEN '0-9'
            WHEN substr(locations.natural_name_key, 1, 1) < 'a' THEN 'symbols-before'
            WHEN substr(locations.natural_name_key, 1, 1) > 'z' THEN 'symbols-after'
            ELSE upper(substr(locations.natural_name_key, 1, 1)) END AS section_key,
-           COUNT(*)
+           COUNT(*), {source_count}
          {source} WHERE {scope}
          GROUP BY section_key
          ORDER BY MIN(locations.natural_name_key) {direction}",
@@ -36,13 +57,21 @@ pub(super) fn load_name_sections(
     let mut statement = transaction.prepare(&sql).map_err(database_error)?;
     let rows = statement
         .query_map(params_from_iter(parameters.iter()), |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, i64>(1)?,
+                row.get::<_, Option<i64>>(2)?,
+            ))
         })
         .map_err(database_error)?;
     let mut sections = Vec::new();
     let mut start_ordinal = 0;
+    let mut total_source_items = organization_groups::uses_grouped_organization(query).then_some(0);
     for row in rows {
-        let (key, count) = row.map_err(database_error)?;
+        let (key, count, source_items) = row.map_err(database_error)?;
+        if let Some(count) = source_items {
+            total_source_items = Some(sqlite_unsigned(count, "gallery source item count")?);
+        }
         let item_count = sqlite_unsigned(count, "scroll section item count")?;
         sections.push(GalleryScrollSection {
             kind: GalleryScrollSectionKind::Name,
@@ -52,7 +81,10 @@ pub(super) fn load_name_sections(
         });
         start_ordinal += item_count;
     }
-    Ok(sections)
+    Ok(NameSections {
+        sections,
+        total_source_items,
+    })
 }
 
 pub(super) fn load_arrival_sections(

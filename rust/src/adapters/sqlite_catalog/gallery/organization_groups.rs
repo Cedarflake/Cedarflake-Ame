@@ -4,6 +4,7 @@ use crate::domain::exact_duplicates::EXACT_FINGERPRINT_SCHEME;
 use crate::domain::{GalleryCollection, GalleryQuery, ScanError};
 
 use super::super::exact_duplicate_review::representative_expression;
+use super::classification::PredictionReadStrategy;
 use super::duplicates::{DISPLAY_FINGERPRINTS, compatible_fingerprint};
 use super::filters::{push_location_filters, push_membership_filters};
 use super::organization::{
@@ -139,7 +140,12 @@ fn requested_membership(
     }
     // A group has one organization decision even when its requested copy is outside
     // the physical query scope; a qualifying copy is selected by the outer read.
-    push_membership_filters(query, &mut clauses, &mut parameters);
+    push_membership_filters(
+        query,
+        PredictionReadStrategy::Indexed,
+        &mut clauses,
+        &mut parameters,
+    );
     BuiltGalleryQuery {
         sql: format!(
             "SELECT EXISTS(SELECT 1 {source} WHERE {})",

@@ -9,7 +9,7 @@ use crate::domain::classification_selection::{
 use crate::domain::organization::{OrganizationSelection, stale_selection, validate_selections};
 
 use super::super::{SqliteCatalog, database_error, load_catalog_revision, sqlite_integer};
-use super::classification::effective_projection;
+use super::classification::{PredictionReadStrategy, effective_projection};
 use super::duplicates::{DISPLAY_FINGERPRINTS, compatible_fingerprint};
 
 impl SqliteCatalog {
@@ -63,7 +63,7 @@ impl SqliteCatalog {
                AND locations.source_generation = selected.source_generation
              JOIN library_roots AS roots ON roots.active_scan_id = locations.scan_id
              ORDER BY locations.location_id",
-            effective_projection("locations"),
+            effective_projection("locations", PredictionReadStrategy::Indexed),
             failed_work("locations")
         );
         let rows = {
