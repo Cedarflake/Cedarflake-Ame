@@ -5183,14 +5183,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ClassificationCounts dco_decode_box_autoadd_classification_counts(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_classification_counts(raw);
-  }
-
-  @protected
   ClassificationReviewReason
   dco_decode_box_autoadd_classification_review_reason(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -5649,19 +5641,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return ClassificationControlAction.values[raw as int];
-  }
-
-  @protected
-  ClassificationCounts dco_decode_classification_counts(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
-    return ClassificationCounts(
-      total: dco_decode_u_64(arr[0]),
-      pending: dco_decode_u_64(arr[1]),
-      confirmed: dco_decode_u_64(arr[2]),
-    );
   }
 
   @protected
@@ -6192,16 +6171,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   GalleryQuerySnapshot dco_decode_gallery_query_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return GalleryQuerySnapshot(
       snapshot: dco_decode_catalog_snapshot(arr[0]),
       timeline: dco_decode_gallery_timeline(arr[1]),
       organizationCounts: dco_decode_opt_box_autoadd_organization_counts(
         arr[2],
-      ),
-      classificationCounts: dco_decode_opt_box_autoadd_classification_counts(
-        arr[3],
       ),
     );
   }
@@ -6763,16 +6739,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return raw == null
         ? null
         : dco_decode_box_autoadd_catalog_read_retry_details(raw);
-  }
-
-  @protected
-  ClassificationCounts? dco_decode_opt_box_autoadd_classification_counts(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null
-        ? null
-        : dco_decode_box_autoadd_classification_counts(raw);
   }
 
   @protected
@@ -8378,14 +8344,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  ClassificationCounts sse_decode_box_autoadd_classification_counts(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_classification_counts(deserializer));
-  }
-
-  @protected
   ClassificationReviewReason
   sse_decode_box_autoadd_classification_review_reason(
     SseDeserializer deserializer,
@@ -8939,21 +8897,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
     return ClassificationControlAction.values[inner];
-  }
-
-  @protected
-  ClassificationCounts sse_decode_classification_counts(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_total = sse_decode_u_64(deserializer);
-    var var_pending = sse_decode_u_64(deserializer);
-    var var_confirmed = sse_decode_u_64(deserializer);
-    return ClassificationCounts(
-      total: var_total,
-      pending: var_pending,
-      confirmed: var_confirmed,
-    );
   }
 
   @protected
@@ -9575,13 +9518,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_organizationCounts = sse_decode_opt_box_autoadd_organization_counts(
       deserializer,
     );
-    var var_classificationCounts =
-        sse_decode_opt_box_autoadd_classification_counts(deserializer);
     return GalleryQuerySnapshot(
       snapshot: var_snapshot,
       timeline: var_timeline,
       organizationCounts: var_organizationCounts,
-      classificationCounts: var_classificationCounts,
     );
   }
 
@@ -10370,19 +10310,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_catalog_read_retry_details(deserializer));
-    } else {
-      return null;
-    }
-  }
-
-  @protected
-  ClassificationCounts? sse_decode_opt_box_autoadd_classification_counts(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_classification_counts(deserializer));
     } else {
       return null;
     }
@@ -12373,15 +12300,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_box_autoadd_classification_counts(
-    ClassificationCounts self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_classification_counts(self, serializer);
-  }
-
-  @protected
   void sse_encode_box_autoadd_classification_review_reason(
     ClassificationReviewReason self,
     SseSerializer serializer,
@@ -12918,17 +12836,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_classification_counts(
-    ClassificationCounts self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_u_64(self.total, serializer);
-    sse_encode_u_64(self.pending, serializer);
-    sse_encode_u_64(self.confirmed, serializer);
-  }
-
-  @protected
   void sse_encode_classification_dispatch_mode(
     ClassificationDispatchMode self,
     SseSerializer serializer,
@@ -13411,10 +13318,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_gallery_timeline(self.timeline, serializer);
     sse_encode_opt_box_autoadd_organization_counts(
       self.organizationCounts,
-      serializer,
-    );
-    sse_encode_opt_box_autoadd_classification_counts(
-      self.classificationCounts,
       serializer,
     );
   }
@@ -14079,19 +13982,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_catalog_read_retry_details(self, serializer);
-    }
-  }
-
-  @protected
-  void sse_encode_opt_box_autoadd_classification_counts(
-    ClassificationCounts? self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    sse_encode_bool(self != null, serializer);
-    if (self != null) {
-      sse_encode_box_autoadd_classification_counts(self, serializer);
     }
   }
 

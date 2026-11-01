@@ -32,6 +32,10 @@ filters or review badges. Failed analysis remains visible and retryable. R4 orga
 manual albums, Favorites, and their undo/redo remain independent. Current UI and acceptance follow
 [the revised R5 requirements](../product/r5-classification.md).
 
+Gallery snapshots retain their visible-scope timeline counts but no longer calculate or transfer
+cross-filter classification review totals. Those totals have no remaining consumer; their removal
+does not change legacy query membership, stored choices, archive records, or R4 organization counts.
+
 ## Evidence and effective state
 
 An immutable classification run binds an opaque run ID, model compatibility, primary rules and the

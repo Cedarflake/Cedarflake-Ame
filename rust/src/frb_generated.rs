@@ -5038,20 +5038,6 @@ impl SseDecode for crate::domain::classification_configuration::ClassificationCo
     }
 }
 
-impl SseDecode for crate::domain::classification_review::ClassificationCounts {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_total = <u64>::sse_decode(deserializer);
-        let mut var_pending = <u64>::sse_decode(deserializer);
-        let mut var_confirmed = <u64>::sse_decode(deserializer);
-        return crate::domain::classification_review::ClassificationCounts {
-            total: var_total,
-            pending: var_pending,
-            confirmed: var_confirmed,
-        };
-    }
-}
-
 impl SseDecode for crate::domain::classification::work::ClassificationDispatchMode {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -5758,14 +5744,10 @@ impl SseDecode for crate::domain::gallery_query_snapshot::GalleryQuerySnapshot {
         let mut var_organizationCounts = <Option<
             crate::domain::organization_queue::OrganizationCounts,
         >>::sse_decode(deserializer);
-        let mut var_classificationCounts = <Option<
-            crate::domain::classification_review::ClassificationCounts,
-        >>::sse_decode(deserializer);
         return crate::domain::gallery_query_snapshot::GalleryQuerySnapshot {
             snapshot: var_snapshot,
             timeline: var_timeline,
             organization_counts: var_organizationCounts,
-            classification_counts: var_classificationCounts,
         };
     }
 }
@@ -6612,21 +6594,6 @@ impl SseDecode for Option<crate::domain::CatalogReadRetryDetails> {
             return Some(<crate::domain::CatalogReadRetryDetails>::sse_decode(
                 deserializer,
             ));
-        } else {
-            return None;
-        }
-    }
-}
-
-impl SseDecode for Option<crate::domain::classification_review::ClassificationCounts> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        if (<bool>::sse_decode(deserializer)) {
-            return Some(
-                <crate::domain::classification_review::ClassificationCounts>::sse_decode(
-                    deserializer,
-                ),
-            );
         } else {
             return None;
         }
@@ -8939,28 +8906,6 @@ impl
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::domain::classification_review::ClassificationCounts {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.total.into_into_dart().into_dart(),
-            self.pending.into_into_dart().into_dart(),
-            self.confirmed.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::domain::classification_review::ClassificationCounts
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::domain::classification_review::ClassificationCounts>
-    for crate::domain::classification_review::ClassificationCounts
-{
-    fn into_into_dart(self) -> crate::domain::classification_review::ClassificationCounts {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart
     for crate::domain::classification::work::ClassificationDispatchMode
 {
@@ -9959,7 +9904,6 @@ impl flutter_rust_bridge::IntoDart for crate::domain::gallery_query_snapshot::Ga
             self.snapshot.into_into_dart().into_dart(),
             self.timeline.into_into_dart().into_dart(),
             self.organization_counts.into_into_dart().into_dart(),
-            self.classification_counts.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -12774,15 +12718,6 @@ crate::domain::classification_configuration::ClassificationControlAction::Stop =
     }
 }
 
-impl SseEncode for crate::domain::classification_review::ClassificationCounts {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <u64>::sse_encode(self.total, serializer);
-        <u64>::sse_encode(self.pending, serializer);
-        <u64>::sse_encode(self.confirmed, serializer);
-    }
-}
-
 impl SseEncode for crate::domain::classification::work::ClassificationDispatchMode {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -13333,10 +13268,6 @@ impl SseEncode for crate::domain::gallery_query_snapshot::GalleryQuerySnapshot {
         <crate::domain::GalleryTimeline>::sse_encode(self.timeline, serializer);
         <Option<crate::domain::organization_queue::OrganizationCounts>>::sse_encode(
             self.organization_counts,
-            serializer,
-        );
-        <Option<crate::domain::classification_review::ClassificationCounts>>::sse_encode(
-            self.classification_counts,
             serializer,
         );
     }
@@ -14022,18 +13953,6 @@ impl SseEncode for Option<crate::domain::CatalogReadRetryDetails> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::domain::CatalogReadRetryDetails>::sse_encode(value, serializer);
-        }
-    }
-}
-
-impl SseEncode for Option<crate::domain::classification_review::ClassificationCounts> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <bool>::sse_encode(self.is_some(), serializer);
-        if let Some(value) = self {
-            <crate::domain::classification_review::ClassificationCounts>::sse_encode(
-                value, serializer,
-            );
         }
     }
 }

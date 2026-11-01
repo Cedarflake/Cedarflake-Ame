@@ -6,7 +6,6 @@ import "library_root_consolidation.dart";
 import "library_scroll_section.dart";
 
 export "library_asset.dart";
-export "library_classification_counts.dart";
 export "library_metadata_filter.dart";
 export "library_gallery_collection.dart";
 export "library_organization_queue.dart";

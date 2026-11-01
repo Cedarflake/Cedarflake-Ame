@@ -280,11 +280,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ClassificationCounts dco_decode_box_autoadd_classification_counts(
-    dynamic raw,
-  );
-
-  @protected
   ClassificationReviewReason
   dco_decode_box_autoadd_classification_review_reason(dynamic raw);
 
@@ -496,9 +491,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ClassificationControlAction dco_decode_classification_control_action(
     dynamic raw,
   );
-
-  @protected
-  ClassificationCounts dco_decode_classification_counts(dynamic raw);
 
   @protected
   ClassificationDispatchMode dco_decode_classification_dispatch_mode(
@@ -874,11 +866,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   CatalogReadRetryDetails?
   dco_decode_opt_box_autoadd_catalog_read_retry_details(dynamic raw);
-
-  @protected
-  ClassificationCounts? dco_decode_opt_box_autoadd_classification_counts(
-    dynamic raw,
-  );
 
   @protected
   ClassificationReviewReason?
@@ -1398,11 +1385,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ClassificationCounts sse_decode_box_autoadd_classification_counts(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   ClassificationReviewReason
   sse_decode_box_autoadd_classification_review_reason(
     SseDeserializer deserializer,
@@ -1678,11 +1660,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ClassificationControlAction sse_decode_classification_control_action(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ClassificationCounts sse_decode_classification_counts(
     SseDeserializer deserializer,
   );
 
@@ -2146,11 +2123,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   CatalogReadRetryDetails?
   sse_decode_opt_box_autoadd_catalog_read_retry_details(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ClassificationCounts? sse_decode_opt_box_autoadd_classification_counts(
     SseDeserializer deserializer,
   );
 
@@ -2785,12 +2757,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_box_autoadd_classification_counts(
-    ClassificationCounts self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_box_autoadd_classification_review_reason(
     ClassificationReviewReason self,
     SseSerializer serializer,
@@ -3117,12 +3083,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_classification_control_action(
     ClassificationControlAction self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_classification_counts(
-    ClassificationCounts self,
     SseSerializer serializer,
   );
 
@@ -3695,12 +3655,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_catalog_read_retry_details(
     CatalogReadRetryDetails? self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_opt_box_autoadd_classification_counts(
-    ClassificationCounts? self,
     SseSerializer serializer,
   );
 

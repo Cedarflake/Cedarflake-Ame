@@ -6,28 +6,4 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-class ClassificationCounts {
-  final BigInt total;
-  final BigInt pending;
-  final BigInt confirmed;
-
-  const ClassificationCounts({
-    required this.total,
-    required this.pending,
-    required this.confirmed,
-  });
-
-  @override
-  int get hashCode => total.hashCode ^ pending.hashCode ^ confirmed.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ClassificationCounts &&
-          runtimeType == other.runtimeType &&
-          total == other.total &&
-          pending == other.pending &&
-          confirmed == other.confirmed;
-}
-
 enum ClassificationReviewFilter { all, pending, confirmed }

@@ -139,8 +139,11 @@ R5-07 is active, retaining its existing order and required outcomes:
    [measured intervals and cleanup](acceptance/r5-incremental-analysis.md#connected-localcloud-foreground-comparison--2026-11-01)
    retain the original-preview yielding behavior and cloud rendering limits. The
    [retained-catalog check](acceptance/r5-smart-albums.md#retained-catalog-scale--2026-11-01)
-   passes count/window and memory bounds while exposing 2.3–3.0-second filtered first-query cost.
-   Inspect that query cost before claiming responsive large-library category switching.
+   passes count/window and memory bounds. The
+   [complete-query follow-up](acceptance/r5-smart-albums.md#unused-review-count-queries--2026-11-01)
+   removes unused classification review totals and reduces repeated reads. First-call and remaining
+   complete-snapshot latency still need optimization before claiming responsive large-library
+   category switching.
 4. Complete the applicable hosted gate for the final submitted head and record the R5 exit decision.
    Current removal changes require their own submitted-head result. Earlier checks and measurements
    cover unchanged inputs only; detailed results remain in the acceptance records.

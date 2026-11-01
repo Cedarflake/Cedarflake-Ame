@@ -5,7 +5,6 @@
 
 import '../domain.dart';
 import '../frb_generated.dart';
-import 'classification_review.dart';
 import 'gallery_scroll_section.dart';
 import 'media_metadata.dart';
 import 'organization_queue.dart';
@@ -42,21 +41,16 @@ class GalleryQuerySnapshot {
   final CatalogSnapshot snapshot;
   final GalleryTimeline timeline;
   final OrganizationCounts? organizationCounts;
-  final ClassificationCounts? classificationCounts;
 
   const GalleryQuerySnapshot({
     required this.snapshot,
     required this.timeline,
     this.organizationCounts,
-    this.classificationCounts,
   });
 
   @override
   int get hashCode =>
-      snapshot.hashCode ^
-      timeline.hashCode ^
-      organizationCounts.hashCode ^
-      classificationCounts.hashCode;
+      snapshot.hashCode ^ timeline.hashCode ^ organizationCounts.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -65,6 +59,5 @@ class GalleryQuerySnapshot {
           runtimeType == other.runtimeType &&
           snapshot == other.snapshot &&
           timeline == other.timeline &&
-          organizationCounts == other.organizationCounts &&
-          classificationCounts == other.classificationCounts;
+          organizationCounts == other.organizationCounts;
 }

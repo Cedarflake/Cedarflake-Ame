@@ -111,10 +111,3 @@ pub struct ClassificationContinuation {
     pub query: Option<GalleryQuery>,
     pub target: Option<super::organization::OrganizationSelection>,
 }
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ClassificationCounts {
-    pub total: u64,
-    pub pending: u64,
-    pub confirmed: u64,
-}

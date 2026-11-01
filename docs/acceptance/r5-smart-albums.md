@@ -128,3 +128,51 @@ After the query process retires, exclusive file-open checks and contained/repars
 precede removal of the disposable profile and its migration backup, reclaiming 870,670,372 bytes.
 The retained baseline's SHA-256 remains
 `93db288e598b601fb478d39ff598777a1d5f1615f152c15889bddc6fa7aecbfd`.
+
+## Unused review-count queries — 2026-11-01
+
+The complete category-snapshot path at `f0c3b1bd` still executes three additional grouped queries
+for total, pending and confirmed classification counts after reading the page and timeline. The
+withdrawn review interface has no consumer for these totals. Removing this calculation, its bridge
+field and Dart state leaves visible-scope timeline counts, legacy category precedence, query
+membership and the snapshot transaction unchanged. No schema or stored records change.
+
+The boundary regression uses 2,051 physical locations in two classified groups. Before the repair,
+the combined read uses 3,965,100 SQLite instructions, compared with 759,100 for its page and 1,213,600
+for its timeline. After removal, it passes the page-plus-timeline instruction budget. All 19 focused
+classification query tests pass, including legacy choices/conflicts, physical scope, retained display,
+publication coherence, bounded pages and anchors. The generated bridge retains 31 asynchronous
+contracts with matching content hashes; the repository format check passes.
+
+The same prepared retained-catalog copy and synthetic predictions described above are reused for
+complete production-bridge snapshots of `Other`, in ascending filename order with a 128-item page:
+
+| Sequential call | Before | After |
+| --- | ---: | ---: |
+| First | 7,709.141 ms | 8,903.180 ms |
+| Second | 5,852.290 ms | 3,923.616 ms |
+| Third | 5,839.953 ms | 4,024.622 ms |
+
+All six results contain 7,216 groups, 14,865 physical locations and the same ordered 128 identifiers.
+The latter two calls average 5,846.122 ms before and 3,974.119 ms after, a 32.02% reduction in this
+sequential comparison. First-call time did not improve; the runs do not isolate native startup or
+disk-cache effects. The remaining complete-read latency still needs optimization. These results
+establish neither instant category switching nor a cloud-primary latency bound. Observed process RSS
+growth is 6.31–7.77 MB before and 7.31–8.07 MB after.
+
+The rebuilt isolated Profile client opens its ordinary Library with 51 files / 50 folded groups and
+loads `Other` with 28 images through the new bridge. Further preview input is blocked by another
+application's Windows location-permission prompt; no action is taken on that prompt. Nine durable
+classification/R4 table counts and digests match the pre-run baseline after the connected read.
+Existing preview evidence covers unchanged preview actions; this run adds no new preview acceptance.
+
+The scale process invokes only database query APIs, with no scanner, source-image reader or model
+worker. After process retirement, exclusive-open and contained/reparse-free checks precede removal
+of its disposable profile and migration snapshot, reclaiming 870,637,604 bytes. The retained baseline
+SHA-256 remains unchanged. Small diagnostic sources and before/after result lines remain in the
+ignored scale directory. Submitted-head hosted checks remain required.
+
+Affected large-owner sizes are 285 production / 27 test-hook lines for the native snapshot facade,
+548 / 0 for the Dart catalog adapter, 1,301 / 0 for the viewport controller, and 406 / 0 for its state.
+The dedicated count/cost test module has 135 lines. These owners only lose unused state and work;
+no new lifecycle or query-policy responsibility is added.

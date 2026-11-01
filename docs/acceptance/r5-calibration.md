@@ -154,8 +154,8 @@ validated high-confidence accuracy claim.
 
 Retain this category-aware profile as the initial-screening integration candidate for these exact
 descriptions and encoder revisions. It preserves useful suggestions, limits automatic refinement,
-and makes unsupported review bands explicit. It does not establish a reduction in actual correction
-time; the connected R5-07 workflow owns that comparison. Custom definitions keep suggestions usable
+and makes unsupported review bands explicit. Manual classification and correction-time comparisons
+were withdrawn from R5 on 2026-11-01. Custom definitions keep suggestions usable
 without borrowing an unrelated category's calibration. No further threshold tuning is performed
 against either evaluated holdout.
 
@@ -192,7 +192,7 @@ one meme-to-illustration change loses agreement. Review flags are unchanged. Min
 cosine is 0.98593109 and median cosine is 0.99993449. These observations support retaining the frozen
 numerical cutoffs as an initial-screening integration candidate under the native pipeline revision;
 they establish neither bit equivalence nor a new high-confidence accuracy claim. The reference-label
-authority, small-category coverage and human-time limitations above continue to apply.
+authority and small-category coverage limitations above continue to apply.
 
 The largest pixel difference belongs to a partial-frame GIF. Its encoded rectangle occupies
 `(63, 52)–(449, 455)` of a 512-by-512 logical canvas. Pillow retains palette-background RGB outside
