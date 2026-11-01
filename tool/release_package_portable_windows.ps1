@@ -12,6 +12,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
+. (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
 . (Join-Path $PSScriptRoot "release_journal_broker_common.ps1")
 
 $repositoryRoot = Get-AmeRepositoryRoot
@@ -62,6 +63,9 @@ foreach ($requiredSourcePath in $requiredSourcePaths) {
         throw "Windows Release directory is incomplete: $requiredSourcePath"
     }
 }
+$runtimeManifest = Get-AmeClassificationRuntimeManifest
+Assert-AmeClassificationRuntimeDirectory `
+    (Join-Path $resolvedReleaseRoot $runtimeManifest.bundleDirectory) $runtimeManifest
 $brokerSourcePath = Join-Path $resolvedReleaseRoot (Get-AmeBrokerServicePlan).BinaryName
 $applicationSourcePath = Join-Path $resolvedReleaseRoot $script:AmeApplicationBinaryName
 Assert-AmeSignedX64Binary `

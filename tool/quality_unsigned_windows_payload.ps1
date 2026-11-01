@@ -1,5 +1,6 @@
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
 
 function Assert-AmeUnsignedBuildPath {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -147,12 +148,13 @@ function Get-AmeUnsignedWindowsPayloadFacts {
             })
         }
     }
-    foreach ($name in @(
+    $requiredFiles = @(
         'cedarflake_ame.exe', 'cedarflake_ame_journal_broker.exe',
         'cedarflake_ame_classification_worker.exe',
         'rust_lib_cedarflake_ame.dll', 'flutter_windows.dll',
         'data/app.so', 'data/icudtl.dat'
-    )) {
+    ) + @(Get-AmeClassificationRuntimePayloadNames)
+    foreach ($name in $requiredFiles) {
         $requiredFile = @($files | Where-Object { $_.relativePath -ceq $name })
         if ($requiredFile.Count -ne 1 -or $requiredFile[0].length -eq 0) {
             throw "Unsigned Windows payload is missing required runtime file: $name"

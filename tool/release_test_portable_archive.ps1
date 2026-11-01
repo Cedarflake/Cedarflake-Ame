@@ -1,5 +1,6 @@
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
+. (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
 
 $repositoryRoot = Get-AmeRepositoryRoot
 $buildRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot "build"))
@@ -57,6 +58,11 @@ try {
         $fixturePath = Join-Path $releaseRoot $relativePath
         [System.IO.File]::WriteAllText($fixturePath, $relativePath, $utf8)
     }
+    foreach ($relativePath in Get-AmeClassificationRuntimePayloadNames) {
+        $fixturePath = Join-Path $releaseRoot $relativePath
+        [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($fixturePath))
+        [IO.File]::WriteAllText($fixturePath, $relativePath, $utf8)
+    }
     Copy-Item `
         -LiteralPath $signedFixtureSource `
         -Destination (Join-Path $releaseRoot "cedarflake_ame.exe")
@@ -89,6 +95,22 @@ try {
         -PubspecPath $pubspecFixture `
         -CargoManifestPath $cargoFixture
     $archivePath = $expectedArchivePath
+    foreach ($missing in Get-AmeClassificationRuntimePayloadNames) {
+        $missingDirectory = Join-Path $scratchRoot ([Guid]::NewGuid().ToString("N"))
+        [void][IO.Directory]::CreateDirectory($missingDirectory)
+        $missingArchivePath = Join-Path $missingDirectory $archiveName
+        Copy-Item -LiteralPath $expectedArchivePath -Destination $missingArchivePath
+        $missingArchive = [IO.Compression.ZipFile]::Open($missingArchivePath, [IO.Compression.ZipArchiveMode]::Update)
+        try { $missingArchive.GetEntry("Cedarflake-Ame/$missing").Delete() } finally { $missingArchive.Dispose() }
+        $failure = $null
+        try {
+            & $verifyScript -ArchivePath $missingArchivePath -Tag $tag `
+                -PubspecPath $pubspecFixture -CargoManifestPath $cargoFixture
+        } catch { $failure = $_ }
+        if ($null -eq $failure -or -not $failure.Exception.Message.Contains("missing required entry: Cedarflake-Ame/$missing")) {
+            throw "Portable archive verification did not reject the missing classification payload: $missing"
+        }
+    }
     if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
         throw "Portable verifier did not retain the valid fixture archive"
     }

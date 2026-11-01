@@ -240,3 +240,38 @@ remain integrated R5-04 checks.
 | Native factory | 115 | 0 | Covered by native probe |
 | Process host | 201 | 0 | Existing transport/protocol suites |
 | Native residency probe | 0 | 0 | 107 |
+
+## Bundled runtime preparation
+
+The Windows application build now prepares the admitted ONNX Runtime 1.31.1 CPU files through a
+CMake dependency and installs them under `data/classification-runtime`. The seven selected files
+total 17,627,781 bytes, including both DLLs, LICENSE, Privacy.md, ThirdPartyNotices.txt, VERSION_NUMBER
+and GIT_COMMIT_ID. The distribution manifest binds the official archive and every selected file to
+its length and SHA-256. Native regression coverage compares the DLL pins to the worker contract.
+This changes distribution, not the admitted encoder, pipeline revisions or inference policy.
+
+Focused PowerShell checks passed for selective archive extraction, altered and truncated artifacts,
+unexpected files, a rejected archive digest, a missing license, reparse traversal, existing extraction
+output and output outside the repository build directory. The initial restricted-token attempt
+could not create the test junction; the same scope passed with a normal Windows token. Installer
+and portable checks reject omission of each of the seven runtime files. The unsigned payload suite
+passes its valid case and 19 rejection cases, including those seven omissions. No fixture requires
+a model download, media read or inference process.
+
+A CMake harness used the production dependency and install module with retained, verified runtime
+files. Building the target and installing its Runtime component copied all seven files, and every
+installed digest matched the manifest. Windows PowerShell 5.1 also passed cached preparation and
+the archive-boundary suite after explicitly loading its separate compression assembly; the first
+archive-fixture attempt exposed that missing assembly load and failed before extraction. This
+local check performed zero downloads, source-media reads or model loads. Its isolated build harness
+does not replace the normal hosted application/Release build or claim a completed first-use flow.
+Archive download and the newly registered native contract test retain their hosted execution owner.
+Application-managed model installation and automatic use of the bundled runtime remain the next
+integration work; the current desktop installation selector is not accepted as the final setup.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Runtime artifact and archive checks | 108 | 0 | 102 |
+| Runtime preparation command | 81 | 0 | Covered by package checks and CMake harness |
+| CMake dependency/install module | 20 | 0 | CMake harness |
+| Native distribution contract | 0 | 0 | 36 |

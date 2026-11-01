@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "version": "1.31.1",
+  "platform": "windows-x64",
+  "bundleDirectory": "data/classification-runtime",
+  "archive": {
+    "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.31.1/onnxruntime-win-x64-1.31.1.zip",
+    "length": 82929944,
+    "sha256": "5869e26bb25314375f2d5ef1877e3ea06b1543d6c710e6e4a1ec2f7177ab4b2c",
+    "prefix": "onnxruntime-win-x64-1.31.1/"
+  },
+  "files": [
+    {
+      "name": "onnxruntime.dll",
+      "entry": "lib/onnxruntime.dll",
+      "length": 17253728,
+      "sha256": "cb2fa518b18356617f6f9f460c012501da2819ec7e5c1d80bd8f5de20492db0c"
+    },
+    {
+      "name": "onnxruntime_providers_shared.dll",
+      "entry": "lib/onnxruntime_providers_shared.dll",
+      "length": 21816,
+      "sha256": "8cea20be64259950cda8643af0ed42c2a424400fc3bb9bb29f9a35cee6b3419f"
+    },
+    {
+      "name": "LICENSE",
+      "entry": "LICENSE",
+      "length": 1094,
+      "sha256": "c250d6278f0b47a6439fb7592b08b58a55eb9f535aa49a1db63211c3f982b674"
+    },
+    {
+      "name": "Privacy.md",
+      "entry": "Privacy.md",
+      "length": 6635,
+      "sha256": "8c26e1fc8581d9553e475250fe014e3d1e5ea4ae9f1cb084a068ff8601703dc9"
+    },
+    {
+      "name": "ThirdPartyNotices.txt",
+      "entry": "ThirdPartyNotices.txt",
+      "length": 344457,
+      "sha256": "c53a76501ef60db6f865f20599f220761201ac4057683acefdab37d861b86622"
+    },
+    {
+      "name": "VERSION_NUMBER",
+      "entry": "VERSION_NUMBER",
+      "length": 8,
+      "sha256": "5c84dfd3de98477eafa692040c2a501dbd3b056778282985daefea6eecf9e715"
+    },
+    {
+      "name": "GIT_COMMIT_ID",
+      "entry": "GIT_COMMIT_ID",
+      "length": 43,
+      "sha256": "c0c2a3774d92c0afecc3f279b3ce3d36809e826cf19092c91fd07024cfdabf1e"
+    }
+  ]
+}

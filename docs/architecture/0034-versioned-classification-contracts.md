@@ -670,7 +670,11 @@ by the application. A later redistribution must retain the applicable license an
 
 The default `classification-worker` Cargo feature builds a separate native executable and its adapter.
 Windows desktop bundles include that executable beside Ame; portable and installer payload checks
-require it. Model weights and runtime DLLs remain separately installed data. Desktop startup does
+require it. The admitted CPU runtime ships in `data/classification-runtime` with its license,
+third-party notices, privacy documentation, version and upstream revision. Model weights remain
+separate, explicitly installed data. Bundling the small compatible runtime removes a second user
+installation choice and binds it to the application build; models keep their separate download and
+storage lifecycle. Desktop startup does
 not load an inference runtime. The worker accepts one encoder for its
 entire lifetime; replacing image with text inference requires retiring that process first. Ame's
 supervisor starts it below normal priority, attaches a Windows Job before sending initialization,
@@ -694,12 +698,28 @@ graph and text tokenizer with incremental SHA-256 (`sha2` 0.10.9, MIT/Apache-2.0
 guards hold each directory against rename and reject reparse/cloud-placeholder entries; file guards
 deny writes/deletion from verification through use. No artifact lookup falls back to another version,
 network download or source directory. Hashing uses a bounded buffer. Runtime notices remain alongside
-the separately installed runtime.
+the bundled DLLs.
 
-Explicit local installation validates both encoders and the runtime before storing the selected
-directories in a separate versioned settings database. The worker repeats held-file verification
-when an encoder is demanded. Selection does not enable analysis or change its durable mode. Feature
+Explicit model setup validates both encoders and the bundled runtime before storing the managed
+installation in a separate versioned settings database. The worker repeats held-file verification
+when an encoder is demanded. Installation does not enable analysis or change its durable mode. Feature
 storage is a separate rebuildable database beside the active catalog, outside the source tree.
+
+The Windows CMake dependency prepares the hash-pinned official runtime archive before the application
+target can complete. Its distribution manifest records archive and individual-file lengths and
+SHA-256 digests, with a regression binding both DLL entries to the worker's compiled artifact pins.
+Preparation streams at most the admitted archive length with a five-minute timeout, extracts only
+the seven admitted files, verifies them and publishes a complete new build directory by rename.
+Interrupted staging is disposable; an existing build directory must pass every artifact check before
+reuse. Corrupt existing output fails the build for explicit inspection rather than being silently
+trusted. The package cache lives under repository `build`; no runtime download occurs during app
+startup. Portable, unsigned and installer payload checks require the runtime and all notices.
+Model graphs, headers, import libraries and debug symbols are excluded from this runtime payload.
+
+An upgrade replaces the bundle through the existing application packaging lifecycle. Runtime version
+or digest changes require renewed adapter admission and feature compatibility; there is no fallback
+to a system-installed runtime or a different DLL found on the search path. Reverting a bundle restores
+its matching runtime without changing model files, catalogs or human decisions.
 
 DLL dependency lookup is restricted to Windows system libraries and the pinned runtime directory;
 the current directory and arbitrary search-path entries are excluded inside the worker.

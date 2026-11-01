@@ -1285,6 +1285,16 @@ This option validates the retained catalog; it does not silently start another f
 
 ## Repository command reference
 
+The Windows CMake application target invokes `./tool/release_prepare_classification_runtime.ps1
+-OutputDirectory <repository-build-subdirectory>` to prepare the admitted CPU runtime. It downloads
+only the pinned official archive when that build directory is absent, verifies its digest and the
+seven selected payload files, and reuses only complete verified output. `-ArchivePath <local-zip>`
+supports an offline build using the same archive checks. Models remain outside this build step.
+`./tool/release_test_classification_runtime.ps1` supplies compiler-free archive, tamper, omission,
+namespace and output-scope checks through Static. The native distribution-contract regression ties
+the packaging DLL pins to the worker's compiled pins. Normal unsigned Release verifies the connected
+application build; no local full Release run is added by this dependency.
+
 The application-and-broker MSI is built by `./tool/release_package_installer_windows.ps1` from
 an exact passing unsigned Release manifest. Supply the version tag, bundle/evidence paths,
 the pinned WiX 7.0.0 SDK, UI-extension and bootstrapper-extension packages with their matching extracted directories,

@@ -20,11 +20,19 @@ if ($firstProduct -cne (Get-AmeInstallerGuid "product/0.1.0") -or
     throw "MSI product identity does not separate repair from upgrade"
 }
 
-$files = @(
+$names = @(
     "cedarflake_ame.exe", "cedarflake_ame_journal_broker.exe", "cedarflake_ame_classification_worker.exe", "rust_lib_cedarflake_ame.dll",
     "flutter_windows.dll", "data/app.so", "data/icudtl.dat", "data/flutter_assets/AssetManifest.bin"
-) | ForEach-Object { [pscustomobject]@{ relativePath = $_; length = 1L; sha256 = "a" * 64 } }
+) + @(Get-AmeClassificationRuntimePayloadNames)
+$files = @($names | ForEach-Object { [pscustomobject]@{ relativePath = $_; length = 1L; sha256 = "a" * 64 } })
 Assert-AmeInstallerPayloadNames $files
+foreach ($missing in Get-AmeClassificationRuntimePayloadNames) {
+    $failure = $null
+    try { Assert-AmeInstallerPayloadNames @($files | Where-Object { $_.relativePath -cne $missing }) } catch { $failure = $_ }
+    if ($null -eq $failure -or $failure.Exception.Message -cne "Installer payload is missing $missing") {
+        throw "Installer payload did not reject missing classification file: $missing"
+    }
+}
 foreach ($badPath in @("../outside.exe", "C:/outside.exe", "data/../outside.exe", "data//x", "data/a:stream", "data/filename.")) {
     $badFiles = $files + [pscustomobject]@{ relativePath = $badPath; length = 1L; sha256 = "a" * 64 }
     Assert-InstallerRejected { Assert-AmeInstallerPayloadNames $badFiles }
@@ -41,11 +49,11 @@ try {
     $namespaces = [Xml.XmlNamespaceManager]::new($source.NameTable)
     $namespaces.AddNamespace("w", $script:AmeInstallerNamespace)
     $entries = @($source.SelectNodes("//w:File", $namespaces))
-    if ($entries.Count -ne 7 -or
+    if ($entries.Count -ne 14 -or
         @($entries | Where-Object { $_.Source -like "*cedarflake_ame_journal_broker.exe" }).Count -ne 0 -or
         $source.SelectNodes("//w:Shortcut", $namespaces).Count -ne 2 -or
-        $source.SelectNodes("//w:ComponentRef", $namespaces).Count -ne 12 -or
-        $source.SelectNodes("//w:PermissionEx", $namespaces).Count -ne 10) {
+        $source.SelectNodes("//w:ComponentRef", $namespaces).Count -ne 20 -or
+        $source.SelectNodes("//w:PermissionEx", $namespaces).Count -ne 18) {
         throw "MSI generated component, broker exclusion, shortcut or ACL ownership is incomplete"
     }
     foreach ($name in @('AmeStartMenu', 'AmeDesktop')) {

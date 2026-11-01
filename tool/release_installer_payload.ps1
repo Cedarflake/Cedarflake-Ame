@@ -1,5 +1,6 @@
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
 
 $script:AmeInstallerUpgradeCode = "C284E6B0-1484-4926-A94B-C3EC3840DBBD"
 $script:AmeInstallerNamespace = "http://wixtoolset.org/schemas/v4/wxs"
@@ -63,11 +64,12 @@ function Assert-AmeInstallerPayloadNames {
         $total += [long]$file.length
         if ($total -gt 2GB) { throw "Installer payload exceeds 2 GiB" }
     }
-    foreach ($required in @(
-            "cedarflake_ame.exe", "cedarflake_ame_journal_broker.exe",
-            "cedarflake_ame_classification_worker.exe",
-            "rust_lib_cedarflake_ame.dll", "flutter_windows.dll", "data/app.so", "data/icudtl.dat"
-        )) {
+    $requiredFiles = @(
+        "cedarflake_ame.exe", "cedarflake_ame_journal_broker.exe",
+        "cedarflake_ame_classification_worker.exe",
+        "rust_lib_cedarflake_ame.dll", "flutter_windows.dll", "data/app.so", "data/icudtl.dat"
+    ) + @(Get-AmeClassificationRuntimePayloadNames)
+    foreach ($required in $requiredFiles) {
         if (-not $names.Contains($required)) { throw "Installer payload is missing $required" }
     }
     if (@($Files | Where-Object { ([string]$_.relativePath).StartsWith("data/flutter_assets/") }).Count -eq 0) {

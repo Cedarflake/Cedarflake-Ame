@@ -1,5 +1,7 @@
 #[cfg(windows)]
 mod artifacts;
+#[cfg(test)]
+mod distribution_tests;
 #[cfg(windows)]
 mod dll_search;
 #[cfg(windows)]
