@@ -80,7 +80,9 @@ class _LibrarySmartAlbumNavigationState
                   leading: Icon(Symbols.photo_album_rounded),
                   title: Text("还没有分类结果"),
                 ),
-              for (final category in value?.categories ?? const [])
+              for (final category
+                  in value?.categories ??
+                      const <LibraryClassificationCategory>[])
                 _SmartAlbumRow(
                   category: category,
                   selected:
