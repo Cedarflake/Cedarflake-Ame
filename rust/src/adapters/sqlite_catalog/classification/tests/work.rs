@@ -11,6 +11,7 @@ mod availability;
 mod dispatch;
 mod publications;
 mod recovery;
+mod retry;
 mod verification;
 
 fn start(catalog: &mut SqliteCatalog) -> (ClassificationRun, ClassificationRecordId) {

@@ -36,6 +36,13 @@ pub enum ClassificationWorkPriority {
     Backlog,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ClassificationRetryOutcome {
+    Unchanged,
+    Queued,
+    QueuedWhilePaused,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ClassificationWorkTarget {
     VerifySource(OrganizationSelection),

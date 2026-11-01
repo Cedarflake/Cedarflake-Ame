@@ -2,6 +2,8 @@ import "dart:async";
 
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_actions.dart";
+import "package:cedarflake_ame/features/library/application/library_classification_retry.dart";
+import "package:cedarflake_ame/features/library/application/library_classification_retry_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_review.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_progress.dart";
@@ -18,6 +20,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_classification_review_fixture.dart";
 import "../support/library_classification_progress_fixture.dart";
+import "../support/library_classification_retry_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
 void main() {
@@ -27,9 +30,11 @@ void main() {
   late _Library library;
   late ProviderContainer container;
   late LibraryPhotoContextMenu menu;
+  late ClassificationRetryFixture retry;
   final target = organizationTarget("one");
 
   setUp(() {
+    retry = ClassificationRetryFixture();
     progress = ClassificationProgressFixture();
     service = ClassificationReviewFixture()
       ..summary = const LibraryClassificationSummary(
@@ -42,6 +47,10 @@ void main() {
     library = _Library();
     container = ProviderContainer(
       overrides: [
+        libraryClassificationRetryProvider.overrideWithValue(retry),
+        libraryClassificationSettingsProvider.overrideWith(
+          (ref) async => classificationRetrySettings(),
+        ),
         libraryClassificationProgressProvider.overrideWithValue(progress),
         libraryClassificationReviewServiceProvider.overrideWithValue(service),
         libraryOrganizationProvider.overrideWithValue(organization),
@@ -131,6 +140,38 @@ void main() {
       expect(actions.handleNotification(notice), isTrue);
       await tester.pumpAndSettle();
       expect(service.undos, [draft.operationIds.single]);
+    },
+  );
+
+  testWidgets(
+    "failed-image context retry preserves the exact target without creating review progress",
+    (tester) async {
+      service.summary = const LibraryClassificationSummary(
+        groups: 1,
+        confirmable: 0,
+        confirmed: 0,
+        singleItem: LibraryClassificationItem(
+          assetId: "asset-one",
+          review: LibraryClassificationReview.unclassified,
+          canConfirm: false,
+          reviewReason: LibraryClassificationReviewReason.analysisFailed,
+        ),
+      );
+      await container.read(libraryClassificationSettingsProvider.future);
+      await open(tester);
+      await tester.tap(find.text("重新分析"));
+      await tester.pumpAndSettle();
+      expect(retry.targets, [target]);
+      expect(retry.revisions, [BigInt.from(7)]);
+      expect(progress.scopes, isEmpty);
+      expect(service.drafts.single.commands, isEmpty);
+      expect(
+        container
+            .read(libraryClassificationRetryActionsProvider)
+            .notice!
+            .actionId,
+        isNull,
+      );
     },
   );
 

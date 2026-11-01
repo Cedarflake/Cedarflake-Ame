@@ -50,6 +50,7 @@ function Get-AmeAsyncBridgeContracts {
         @("classification_progress", "checkpoint_classification_review", "checkpointClassificationReview", "crateApiClassificationProgressCheckpointClassificationReview", "void", ""),
         @("classification_progress", "end_classification_review", "endClassificationReview", "crateApiClassificationProgressEndClassificationReview", "void", ""),
         @("classification_progress", "load_classification_continuation", "loadClassificationContinuation", "crateApiClassificationProgressLoadClassificationContinuation", "ClassificationContinuation", ""),
+        @("classification_retry", "retry_failed_classification", "retryFailedClassification", "crateApiClassificationRetryRetryFailedClassification", "ClassificationRetryOutcome", ""),
         @("catalog", "load_library_query_snapshot", "loadLibraryQuerySnapshot", "crateApiCatalogLoadLibraryQuerySnapshot", "GalleryQuerySnapshot", ""),
         @("catalog", "load_library_time_snapshot", "loadLibraryTimeSnapshot", "crateApiCatalogLoadLibraryTimeSnapshot", "GalleryTimeSnapshot", ""),
         @("catalog", "load_library_folder_page", "loadLibraryFolderPage", "crateApiCatalogLoadLibraryFolderPage", "LibraryFolderPage", ""),

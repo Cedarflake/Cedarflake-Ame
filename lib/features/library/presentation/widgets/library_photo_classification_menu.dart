@@ -4,6 +4,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../application/library_classification_actions.dart";
+import "../../application/library_classification_retry.dart";
+import "../../application/library_classification_retry_actions.dart";
 import "../../application/library_classification_configuration.dart";
 import "../../application/library_classification_review.dart";
 import "../../application/library_classification_selection.dart";
@@ -16,13 +18,14 @@ import "../../domain/library_models.dart";
 import "../../domain/library_organization.dart";
 import "library_classification_category_menu.dart";
 
-enum LibraryPhotoClassificationAction { confirm, correct, defer }
+enum LibraryPhotoClassificationAction { confirm, correct, defer, retry }
 
 class LibraryPhotoClassificationMenu {
   LibraryPhotoClassificationMenu._(
     this.selection,
     this.categories,
     this.progress,
+    this.settings,
   );
 
   static LibraryPhotoClassificationMenu? forTarget(
@@ -56,12 +59,16 @@ class LibraryPhotoClassificationMenu {
       ),
       List.unmodifiable(categories),
       progress,
+      ref.read(libraryClassificationSettingsProvider).value,
     );
   }
 
   final LibraryClassificationSelection selection;
   final LibraryClassificationReviewSession progress;
   final List<LibraryClassificationCategory> categories;
+  final LibraryClassificationSettings? settings;
+  bool get canRetry =>
+      canRetryLibraryClassification(selection.summary?.singleItem, settings);
   bool get isReady => selection.summary != null;
   bool get canConfirm => (selection.summary?.confirmable ?? 0) > 0;
   bool get canDefer => switch (selection.summary?.singleItem?.review) {
@@ -96,6 +103,14 @@ class LibraryPhotoClassificationMenu {
     required bool Function() isCurrent,
   }) async {
     if (!isCurrent() || !isReady) return;
+    if (action == LibraryPhotoClassificationAction.retry) {
+      final observed = settings;
+      if (!canRetry || observed == null) return;
+      await ref
+          .read(libraryClassificationRetryActionsProvider.notifier)
+          .retry(selection.scope.targets.single, observed.dispatchRevision);
+      return;
+    }
     LibraryClassificationCommand command;
     if (action == LibraryPhotoClassificationAction.confirm) {
       if (!canConfirm) return;

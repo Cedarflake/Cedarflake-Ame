@@ -8,6 +8,7 @@ import 'api/classification.dart';
 import 'api/classification_installation.dart';
 import 'api/classification_maintenance.dart';
 import 'api/classification_progress.dart';
+import 'api/classification_retry.dart';
 import 'api/classification_review.dart';
 import 'api/classification_settings.dart';
 import 'api/exact_duplicate_review.dart';
@@ -112,7 +113,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 1351777899;
+  int get rustContentHash => -1555832631;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -661,6 +662,12 @@ abstract class RustLibApi extends BaseApi {
 
   Stream<ScanEvent> crateApiCatalogResumeLibraryScan({
     required ScanRequest request,
+  });
+
+  Future<ClassificationRetryOutcome>
+  crateApiClassificationRetryRetryFailedClassification({
+    required BigInt expectedDispatchRevision,
+    required OrganizationSelection target,
   });
 
   Future<ClassificationSettings>
@@ -4943,6 +4950,44 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<ClassificationRetryOutcome>
+  crateApiClassificationRetryRetryFailedClassification({
+    required BigInt expectedDispatchRevision,
+    required OrganizationSelection target,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(expectedDispatchRevision, serializer);
+          sse_encode_box_autoadd_organization_selection(target, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 112,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_classification_retry_outcome,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta:
+            kCrateApiClassificationRetryRetryFailedClassificationConstMeta,
+        argValues: [expectedDispatchRevision, target],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiClassificationRetryRetryFailedClassificationConstMeta =>
+      const TaskConstMeta(
+        debugName: "retry_failed_classification",
+        argNames: ["expectedDispatchRevision", "target"],
+      );
+
+  @override
   Future<ClassificationSettings>
   crateApiClassificationSettingsSaveClassificationSettings({
     required String operationId,
@@ -4963,7 +5008,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 112,
+            funcId: 113,
             port: port_,
           );
         },
@@ -5011,7 +5056,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 113,
+              funcId: 114,
               port: port_,
             );
           },
@@ -5048,7 +5093,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 114,
+            funcId: 115,
             port: port_,
           );
         },
@@ -5085,7 +5130,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 115,
+            funcId: 116,
             port: port_,
           );
         },
@@ -5123,7 +5168,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 116,
+            funcId: 117,
             port: port_,
           );
         },
@@ -5164,7 +5209,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 117,
+            funcId: 118,
             port: port_,
           );
         },
@@ -5206,7 +5251,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 118,
+            funcId: 119,
             port: port_,
           );
         },
@@ -5240,7 +5285,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 119,
+            funcId: 120,
             port: port_,
           );
         },
@@ -5274,7 +5319,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 120,
+            funcId: 121,
             port: port_,
           );
         },
@@ -5315,7 +5360,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 121,
+            funcId: 122,
             port: port_,
           );
         },
@@ -5353,7 +5398,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 122,
+            funcId: 123,
             port: port_,
           );
         },
@@ -5385,7 +5430,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 123,
+            funcId: 124,
           )!;
         },
         codec: SseCodec(
@@ -5420,7 +5465,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 124,
+            funcId: 125,
             port: port_,
           );
         },
@@ -5460,7 +5505,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 125,
+            funcId: 126,
             port: port_,
           );
         },
@@ -5493,7 +5538,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 126,
+            funcId: 127,
             port: port_,
           );
         },
@@ -6541,6 +6586,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       operation: dco_decode_classification_write_receipt(arr[0]),
       position: dco_decode_classification_review_position(arr[1]),
     );
+  }
+
+  @protected
+  ClassificationRetryOutcome dco_decode_classification_retry_outcome(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ClassificationRetryOutcome.values[raw as int];
   }
 
   @protected
@@ -10004,6 +10057,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       operation: var_operation,
       position: var_position,
     );
+  }
+
+  @protected
+  ClassificationRetryOutcome sse_decode_classification_retry_outcome(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return ClassificationRetryOutcome.values[inner];
   }
 
   @protected
@@ -14142,6 +14204,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_classification_write_receipt(self.operation, serializer);
     sse_encode_classification_review_position(self.position, serializer);
+  }
+
+  @protected
+  void sse_encode_classification_retry_outcome(
+    ClassificationRetryOutcome self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected

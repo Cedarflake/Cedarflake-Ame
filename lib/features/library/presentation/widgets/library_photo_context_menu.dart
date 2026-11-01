@@ -6,6 +6,7 @@ import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_album_requests.dart";
 import "../../application/library_classification_actions.dart";
+import "../../application/library_classification_retry_actions.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_organization.dart";
 import "../../application/library_organization_actions.dart";
@@ -100,9 +101,9 @@ class LibraryPhotoContextMenu {
         }
       }
       if (!context.mounted || !owns()) return;
-      final classificationBusy = ref
-          .read(libraryClassificationActionsProvider)
-          .saving;
+      final classificationBusy =
+          ref.read(libraryClassificationActionsProvider).saving ||
+          ref.read(libraryClassificationRetryActionsProvider).busy;
       final entries = _entries(decision, classification);
       final action = await showAmePopupMenu<_PhotoAction>(
         context: context,
@@ -136,12 +137,15 @@ class LibraryPhotoContextMenu {
         case _PhotoAction.confirmClassification:
         case _PhotoAction.correctClassification:
         case _PhotoAction.deferClassification:
+        case _PhotoAction.retryClassification:
           await classification?.apply(
             action: switch (action) {
               _PhotoAction.confirmClassification =>
                 LibraryPhotoClassificationAction.confirm,
               _PhotoAction.deferClassification =>
                 LibraryPhotoClassificationAction.defer,
+              _PhotoAction.retryClassification =>
+                LibraryPhotoClassificationAction.retry,
               _ => LibraryPhotoClassificationAction.correct,
             },
             context: context,
@@ -231,6 +235,12 @@ class LibraryPhotoContextMenu {
           "稍后确认",
           Symbols.schedule_rounded,
         ),
+      if (classification.canRetry)
+        const _PhotoEntry(
+          _PhotoAction.retryClassification,
+          "重新分析",
+          Symbols.refresh_rounded,
+        ),
     ],
     const _PhotoEntry(
       _PhotoAction.information,
@@ -264,6 +274,7 @@ enum _PhotoAction {
   confirmClassification,
   correctClassification,
   deferClassification,
+  retryClassification,
   information,
   copyPath,
   reveal;
@@ -276,7 +287,8 @@ enum _PhotoAction {
   bool get changesClassification => switch (this) {
     confirmClassification ||
     correctClassification ||
-    deferClassification => true,
+    deferClassification ||
+    retryClassification => true,
     _ => false,
   };
 }

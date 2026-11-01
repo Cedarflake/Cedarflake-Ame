@@ -8,6 +8,7 @@ import 'api/classification.dart';
 import 'api/classification_installation.dart';
 import 'api/classification_maintenance.dart';
 import 'api/classification_progress.dart';
+import 'api/classification_retry.dart';
 import 'api/classification_review.dart';
 import 'api/classification_settings.dart';
 import 'api/exact_duplicate_review.dart';
@@ -552,6 +553,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ClassificationProgressReceipt dco_decode_classification_progress_receipt(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationRetryOutcome dco_decode_classification_retry_outcome(
     dynamic raw,
   );
 
@@ -1810,6 +1816,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ClassificationProgressReceipt sse_decode_classification_progress_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationRetryOutcome sse_decode_classification_retry_outcome(
     SseDeserializer deserializer,
   );
 
@@ -3329,6 +3340,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_classification_progress_receipt(
     ClassificationProgressReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_retry_outcome(
+    ClassificationRetryOutcome self,
     SseSerializer serializer,
   );
 

@@ -208,8 +208,9 @@ Smart-album image context menus now share guarded confirmation/correction and op
 with selection and preview controls. Card review indicators now share bounded classification reads
 and the existing photo status label, with distinct review/failure details. Single-image review now
 connects atomic progress to the viewer and context menu, with deferred confirmation and explicit
-continuation through the shared gallery. Failed-analysis retry and real-client acceptance remain
-in this slice. Complete the
+continuation through the shared gallery. Single-image failed-analysis retry now shares the preview
+and context menus, preserves pause and human choices, and uses existing feedback and publication.
+Real-client acceptance remains in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;
 it remains a pre-merge acceptance condition. Reuse the retained runtime and measurement assets
 after checking their compatibility. The complete `20cb3978` hosted gate passes, including the archive

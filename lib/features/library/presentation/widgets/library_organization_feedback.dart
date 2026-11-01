@@ -6,6 +6,7 @@ import "../../../../app/presentation/ame_notification_lifetime.dart";
 import "../../../../app/presentation/ame_feedback_style.dart";
 import "../../application/library_organization_actions.dart";
 import "../../application/library_classification_actions.dart";
+import "../../application/library_classification_retry_actions.dart";
 import "../../application/library_organization_outcome.dart";
 import "library_viewer_notice.dart";
 
@@ -21,6 +22,11 @@ class LibraryOrganizationFeedback extends ConsumerWidget {
         ) ||
         ref.watch(
           libraryClassificationActionsProvider.select((state) => state.saving),
+        ) ||
+        ref.watch(
+          libraryClassificationRetryActionsProvider.select(
+            (state) => state.busy,
+          ),
         );
     return AmeNotificationLifetime(
       notification: notification,
@@ -28,6 +34,9 @@ class LibraryOrganizationFeedback extends ConsumerWidget {
         ref.read(libraryOrganizationOutcomeProvider.notifier).dismiss(id);
         ref.read(ameNotificationControllerProvider.notifier).dismiss(id);
         ref.read(libraryClassificationActionsProvider.notifier).dismiss(id);
+        ref
+            .read(libraryClassificationRetryActionsProvider.notifier)
+            .dismiss(id);
       },
       child: LibraryViewerNotice(
         icon: ameNotificationIcon(notification.severity),
@@ -38,6 +47,11 @@ class LibraryOrganizationFeedback extends ConsumerWidget {
         onAction: saving
             ? null
             : () {
+                if (ref
+                    .read(libraryClassificationRetryActionsProvider.notifier)
+                    .handleNotification(notification)) {
+                  return;
+                }
                 if (ref
                     .read(libraryClassificationActionsProvider.notifier)
                     .handleNotification(notification)) {

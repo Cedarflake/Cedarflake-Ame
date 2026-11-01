@@ -191,6 +191,14 @@ per lane. A source or worker transient failure permits at most three failed atte
 sources wait for a relevant availability signal or explicit retry, and permanent failures require
 changed content or explicit retry. Cancellation/yield at a completed checkpoint consumes no attempt.
 
+An explicit single-image retry validates the observed dispatch revision and current physical source
+in one catalog transaction. It requeues only that source's failed verification and its compatible
+shared-content task, clearing their failure budget and negative source observations. Requested work
+keeps foreground admission and source revalidation; pause is preserved, and disabled/stopped dispatch
+rejects retry. Successful or already queued work remains unchanged. The committed catalog revision
+uses the existing desktop refresh and runtime wake path. No human classification, review bookmark,
+manual album or Favorite field is written.
+
 Schema 68 records an unavailable physical copy against its work identity, source generation and
 root generation. Source selection skips those observations and can immediately try another current,
 compatible copy without spending the transient-failure budget. A newly verified copy can wake the

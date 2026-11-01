@@ -129,8 +129,8 @@ The [category evidence](r5-category-discovery.md#joined-desktop-maintenance-publ
 native/client lifecycle checks; model-backed first-use interaction remains pending. The roadmap owns
 the remaining context coverage and integrated quality acceptance.
 
-Failed-analysis retry and real-client acceptance of contextual review retain their R5-06 scope.
-Classification continuation is connected through the workflow below. Integrated quality, scale and the paired
+Real-client acceptance of contextual review retains its R5-06 scope. Classification continuation
+and single-image failed-analysis retry are connected through the workflows below. Integrated quality, scale and the paired
 cloud-primary comparison remain in R5-07. These focused checks do not close the stage.
 
 ## Smart-album image context menus
@@ -237,3 +237,33 @@ viewer binding, More menu and photo-menu owner contain 247/103/210/120. Existing
 is 289 lines. The 1,921-line gallery screen gains four net lines of dependency wiring and no new
 workflow responsibility. No inline tests are added. Dedicated native batch-review/scope fixtures
 contain 254/32 lines; Dart session/navigation/widget fixtures contain 161/147/221 lines.
+
+## Single-image analysis retry
+
+Failed images expose `重新分析` in the existing preview category and photo context menus. A typed,
+asynchronous request revalidates the observed dispatch revision and exact source version before
+requeuing only its failed source/content tasks. Duplicate copies share the content task. The request
+preserves pause, current human decisions and both review histories; it changes no schema, dependency,
+model installation or original media. Disabled/stopped analysis rejects the command. Already queued
+or completed work returns unchanged rather than restarting successful analysis.
+
+The existing bottom and viewer-top hosts display the same transient outcome. Success adds no
+notification-history or undo entry. Refresh failure retains a separate refresh action, whose retry
+never repeats the analysis mutation. Menu eligibility comes from the observed failure and analysis
+mode. The original category, Favorite, album and continuation controls remain available.
+
+Four focused native tests pass for scoped/repeated retry, shared duplicate work, stale source/settings,
+human-choice preservation and pause/stop/disable. Twenty-two Flutter tests pass, covering both menus,
+the shared top/bottom notice providers, double-click exclusion, failure recovery, refresh-only retry,
+retired callbacks and existing classification/organization controls. The first widget run exposed
+a fixture using Column for the top notice's Positioned child; the corrected fixture uses the actual
+Stack host. Native compilation also required the existing checked unsigned-SQL reader. Focused Dart
+analysis reports no issues; all 47 asynchronous bridge contracts, their rejecting fixtures and
+matching generated hashes pass.
+
+The native retry owner has 99 production lines with 17 application and 10 bridge lines. Dart retry
+service/actions have 27/138 lines; existing classification controls, context scope and context menu
+have 293/135/301. The 1,927-line gallery screen adds only six lines of notice routing. No inline tests
+are added. Dedicated native retry tests contain 199 lines; Dart action/widget tests 142/143 and the
+affected context-menu suite 309. Real-window interaction remains pending under the Computer Use
+restriction; the recovery entrypoints have not yet received connected-client acceptance.

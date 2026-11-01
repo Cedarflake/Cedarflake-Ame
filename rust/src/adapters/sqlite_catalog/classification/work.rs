@@ -20,6 +20,7 @@ mod leases;
 mod publications;
 pub(in crate::adapters::sqlite_catalog) use publications::root_published;
 mod queue;
+mod retry;
 mod sources;
 mod verification;
 

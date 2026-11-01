@@ -1241,6 +1241,12 @@ they coexist. Hover and accessibility descriptions explain the reason without in
 opening or selection. Routine suggestions omit the attention badge; failed analysis uses `分析失败`
 and does not invent a suggested category.
 
+A failed image offers `重新分析` through its preview category menu and image context menu while
+analysis is enabled or paused. The action retries that image's shared task without confirming or
+deferring its classification. A paused request remains queued until analysis continues. The existing
+bottom and viewer-top hosts report the queued result; disabled/stopped analysis keeps enablement in
+the existing settings flow.
+
 Initial-screening suggestions are usable immediately. Machine-only differences are resolved through
 the current analysis and bounded automatic re-screening before optional checking is suggested. A
 remaining uncertain prediction can stay in its suggested category and the `待确认` filter together.

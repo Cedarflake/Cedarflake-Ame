@@ -6,6 +6,8 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_classification_actions.dart";
+import "../../application/library_classification_retry.dart";
+import "../../application/library_classification_retry_actions.dart";
 import "../../application/library_classification_review.dart";
 import "../../application/library_classification_selection.dart";
 import "../../application/library_classification_review_session.dart";
@@ -109,6 +111,25 @@ class _LibraryClassificationControlsState
     });
   }
 
+  Future<void> _retry(BigInt dispatchRevision) async {
+    if (!mounted ||
+        _working ||
+        !widget.enabled ||
+        widget.scope.targets.length != 1) {
+      return;
+    }
+    final selection = _selection;
+    setState(() => _working = true);
+    await ref
+        .read(libraryClassificationRetryActionsProvider.notifier)
+        .retry(widget.scope.targets.single, dispatchRevision);
+    if (!mounted || !identical(_selection, selection)) return;
+    setState(() {
+      _working = false;
+      _prepare();
+    });
+  }
+
   @override
   void dispose() {
     _selection?.dispose();
@@ -122,7 +143,11 @@ class _LibraryClassificationControlsState
     final saving = ref.watch(
       libraryClassificationActionsProvider.select((state) => state.saving),
     );
-    final enabled = widget.enabled && !saving && !_working;
+    final retryBusy = ref.watch(
+      libraryClassificationRetryActionsProvider.select((state) => state.busy),
+    );
+    final settings = ref.watch(libraryClassificationSettingsProvider).value;
+    final enabled = widget.enabled && !saving && !retryBusy && !_working;
     final ready = enabled && _summary != null;
     final canConfirm = ready && _summary!.confirmable > 0;
     final review = _summary?.singleItem?.review;
@@ -133,6 +158,11 @@ class _LibraryClassificationControlsState
         review != LibraryClassificationReview.confirmed &&
         review != LibraryClassificationReview.deferred;
     final categoryId = _summary?.commonCategoryId;
+    final canRetry =
+        widget.viewer &&
+        ready &&
+        widget.scope.targets.length == 1 &&
+        canRetryLibraryClassification(_summary?.singleItem, settings);
     final categoryName = categories
         .where((category) => category.id == categoryId)
         .firstOrNull
@@ -141,6 +171,7 @@ class _LibraryClassificationControlsState
     final labels = [
       if (widget.viewer) "确认分类",
       if (canDefer) "稍后确认",
+      if (canRetry) "重新分析",
       for (final category in categories) category.label,
     ];
     final menu = AmePopupMenuButton<String>(
@@ -148,13 +179,19 @@ class _LibraryClassificationControlsState
       hasContentIcon: false,
       leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
       onOpenChanged: (open) => _menuOpen = open,
-      onSelected: (choice) => unawaited(
-        _apply(switch (choice) {
-          "confirm" => const LibraryConfirmClassification(),
-          "defer" => const LibraryDeferClassification(),
-          _ => LibraryCorrectClassification(choice.substring(9)),
-        }),
-      ),
+      onSelected: (choice) {
+        if (choice == "retry") {
+          if (settings != null) unawaited(_retry(settings.dispatchRevision));
+          return;
+        }
+        unawaited(
+          _apply(switch (choice) {
+            "confirm" => const LibraryConfirmClassification(),
+            "defer" => const LibraryDeferClassification(),
+            _ => LibraryCorrectClassification(choice.substring(9)),
+          }),
+        );
+      },
       items: [
         if (widget.viewer) ...[
           PopupMenuItem(
@@ -171,6 +208,14 @@ class _LibraryClassificationControlsState
               child: AmeMenuItemContent(
                 label: "稍后确认",
                 icon: Symbols.schedule_rounded,
+              ),
+            ),
+          if (canRetry)
+            const PopupMenuItem(
+              value: "retry",
+              child: AmeMenuItemContent(
+                label: "重新分析",
+                icon: Symbols.refresh_rounded,
               ),
             ),
           const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),

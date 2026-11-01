@@ -1,10 +1,20 @@
 use crate::domain::ScanError;
 use crate::domain::classification::work::{
     ClassificationBacklogPage, ClassificationDispatchCommand, ClassificationDispatchState,
-    ClassificationWorkIssue, ClassificationWorkLease, ClassificationWorkPriority,
+    ClassificationRetryOutcome, ClassificationWorkIssue, ClassificationWorkLease,
+    ClassificationWorkPriority,
 };
 use crate::domain::classification::{ClassificationRecordId, PredictionEvidence};
 use crate::domain::organization::OrganizationSelection;
+
+pub(crate) trait ClassificationRetryRepository {
+    fn retry_failed_classification(
+        &mut self,
+        expected_dispatch_revision: u64,
+        target: &OrganizationSelection,
+        now_unix_ms: u64,
+    ) -> Result<ClassificationRetryOutcome, ScanError>;
+}
 
 pub trait ClassificationWorkRepository {
     fn classification_dispatch_state(&self) -> Result<ClassificationDispatchState, ScanError>;
