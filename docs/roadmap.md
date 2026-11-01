@@ -156,8 +156,10 @@ R5-07 is active, retaining its existing order and required outcomes:
    reduces repeated category decoding and filename source-count scans while retaining indexed
    root/folder/search reads. The
    [confirmed-member lookup](acceptance/r5-smart-albums.md#confirmed-group-command-lookup--2026-11-02)
-   removes unrelated same-size file work from group validation and writes. Complete-query,
-   first-admission and bulk-action latency remain in this
+   removes unrelated same-size file work from group validation and writes. The
+   [classification admission reuse](acceptance/r5-smart-albums.md#classification-admission-reuse--2026-11-02)
+   reduces repeated run/taxonomy reconstruction while retaining full evidence validation.
+   Complete-query, remaining first-admission and bulk-action latency remain in this
    performance step. The [scope-recovery handoff repair](acceptance/r5-smart-albums.md#terminal-scope-recovery-handoff--2026-11-02)
    resolves the configured-catalog validation refusal on an isolated copy, with completed-parent
    provenance, atomic recovery and unchanged original catalog/media. Its submitted-head gate remains

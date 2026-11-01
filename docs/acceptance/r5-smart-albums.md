@@ -458,3 +458,47 @@ has 283 production lines, compatibility recovery 82, and its current-schema coor
 owners contain no inline test assertions. The new dedicated tests and fixture contain 123 and 187
 lines respectively; the delta facade loses the retired responsibility instead of gaining another
 recovery branch.
+
+## Classification admission reuse — 2026-11-02
+
+Classification admission reconstructed the same run and taxonomy for every prediction. The retained
+fixture contains 43,644 historical predictions, producing the same number of taxonomy loads. A
+dedicated evidence validator now keeps one decoded run and validated category set for consecutive
+records from that run. It still decodes and validates every prediction, checks its stored identity,
+configuration, content and complete category set, and independently validates all run records.
+The context belongs only to the admission snapshot and has constant history-independent memory.
+There is no schema, source, bridge or classification-output change.
+
+Three focused regressions pass: repeated taxonomy SQL work remains bounded per prediction, later
+identity/content/category corruption is rejected despite context reuse, and interleaved historical
+runs retain separate authority. The first interleaving fixture incorrectly attempted to reactivate
+a superseded run; the corrected valid history passes without changing production admission rules.
+The validator facade has 172 production lines, its evidence owner 95, and dedicated tests 90;
+there are no inline test assertions in production owners.
+
+An optimized isolated-storage native comparison uses the same leased 63,077-location catalog,
+14,548 classified content keys and 43,644 prediction records. The old and new processes run serially;
+each complete snapshot includes its image page and timeline totals. Results are:
+
+| Native process | First complete snapshot | Following snapshot |
+| --- | ---: | ---: |
+| Before reuse | 3,435.62 ms | 1,711.99 ms |
+| With reuse | 2,896.10 ms | 1,699.28 ms |
+| Fresh process with reuse | 2,859.36 ms | 1,714.17 ms |
+
+All six windows have the same 128 ordered location IDs, 7,216 groups and 14,865 physical members.
+Peak private memory is 317.0 MiB before and 307.2 MiB across the new processes. These are sequential
+local-primary API measurements, not desktop frame timings or cloud-primary estimates. Remaining
+complete-snapshot latency stays in the active performance queue.
+
+Digests preserve all 63 classification/organization tables and every source-location identity tuple.
+SQLite quick-check and foreign keys pass; the retained baseline hash is unchanged, no source media
+is opened, child processes retire, and the leased catalog is removed. The ignored comparison retains
+its native build receipts, timings and protected-state hashes.
+
+Separate read-only diagnostics measured the image-page and timeline SQL at approximately 1.24 and
+1.23 seconds each. Direct outer lookup and relaxed single-prediction materialization saved only
+about one tenth in a SQL-only comparison and were not adopted. The first diagnostic failed to open
+SQLite temporary storage; rerunning with a lease-owned temporary directory completed successfully.
+Temporary Rust instrumentation was removed after measurement. Hosted gates apply to the submitted
+head; window-control verification remains deferred.

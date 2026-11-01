@@ -102,6 +102,14 @@ interrupted work that exhausts its retry budget. Compatible suggestions and huma
 precedence over a work-item failure; missing predictions alone do not imply failure. The desktop
 does not request card annotations or expose per-image analysis failures; recovery runs silently.
 
+Catalog admission validates every immutable prediction and its stored identity, configuration,
+content and category coverage. The evidence-validation owner reuses one decoded run and its validated
+category set only for consecutive predictions from that run within the same database snapshot.
+A run change replaces that context; no validation state survives admission or grows with history.
+All run records, including unused runs, retain their independent validation. This avoids repeated
+taxonomy queries and reconstruction without weakening per-prediction checks or adding a persisted
+validation cache.
+
 ## Legacy command authority
 
 A prepared classification command binds the exact or provisional content target, complete current

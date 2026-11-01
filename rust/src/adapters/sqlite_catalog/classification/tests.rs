@@ -15,6 +15,7 @@ mod queries;
 mod review;
 mod settings;
 mod setup;
+mod validation;
 mod work;
 
 fn id(value: &str) -> ClassificationRecordId {

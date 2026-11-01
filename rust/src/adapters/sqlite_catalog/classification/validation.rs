@@ -5,8 +5,10 @@ use crate::domain::classification::{
     CategoryDefinition, ClassificationRevision, HumanCategoryChoice,
 };
 
-use super::super::{database_error, exact_duplicates::read_unsigned, sqlite_integer};
+use super::super::{database_error, sqlite_integer};
 use super::{codec, configuration, invalid_record, review};
+
+mod evidence;
 
 pub(in crate::adapters::sqlite_catalog) fn category_version(
     id: String,
@@ -75,7 +77,7 @@ pub(in crate::adapters::sqlite_catalog) fn catalog(
         )?;
     }
     validate_choices(connection)?;
-    validate_evidence(connection)?;
+    evidence::validate(connection)?;
     validate_continuation(connection)?;
     for query in REVISION_CHECKS {
         let invalid: bool = connection
@@ -112,65 +114,6 @@ fn validate_choices(connection: &Connection) -> Result<(), ScanError> {
             if !present {
                 return Err(invalid_record());
             }
-        }
-    }
-    Ok(())
-}
-
-fn validate_evidence(connection: &Connection) -> Result<(), ScanError> {
-    let mut statement = connection.prepare("SELECT run_id, primary_rules, configuration_revision, payload FROM classification_runs").map_err(database_error)?;
-    let mut rows = statement.query([]).map_err(database_error)?;
-    while let Some(row) = rows.next().map_err(database_error)? {
-        let run = codec::decode_run(&row.get::<_, String>(3).map_err(database_error)?)?;
-        if run.id().as_str() != row.get::<_, String>(0).map_err(database_error)?
-            || codec::revision(run.primary_rules())
-                != row.get::<_, String>(1).map_err(database_error)?
-            || codec::revision(run.configuration())
-                != row.get::<_, String>(2).map_err(database_error)?
-        {
-            return Err(invalid_record());
-        }
-        if let Some(refinement) = run.refinement() {
-            configuration::load_rules(connection, &codec::revision(refinement.rules))?;
-        }
-    }
-    let mut statement = connection.prepare(
-        "SELECT prediction.prediction_id, prediction.configuration_revision, fingerprint_scheme, digest, byte_length,
-                prediction.payload, run.payload FROM classification_predictions AS prediction
-         JOIN classification_runs AS run USING(run_id)",
-    ).map_err(database_error)?;
-    let mut rows = statement.query([]).map_err(database_error)?;
-    while let Some(row) = rows.next().map_err(database_error)? {
-        let run = codec::decode_run(&row.get::<_, String>(6).map_err(database_error)?)?;
-        let evidence =
-            codec::prediction::load(&row.get::<_, String>(5).map_err(database_error)?, run)?;
-        let content = evidence.content();
-        let taxonomy = configuration::load_rules(
-            connection,
-            &codec::revision(evidence.run().primary_rules()),
-        )?;
-        let expected: std::collections::BTreeSet<_> = taxonomy
-            .categories()
-            .iter()
-            .map(|value| value.id())
-            .collect();
-        let actual: std::collections::BTreeSet<_> = evidence
-            .initial()
-            .categories()
-            .iter()
-            .map(|value| &value.category_id)
-            .collect();
-        if expected != actual {
-            return Err(invalid_record());
-        }
-        if evidence.id().as_str() != row.get::<_, String>(0).map_err(database_error)?
-            || codec::revision(evidence.run().configuration())
-                != row.get::<_, String>(1).map_err(database_error)?
-            || content.scheme.as_str() != row.get::<_, String>(2).map_err(database_error)?
-            || codec::digest(&content.digest) != row.get::<_, String>(3).map_err(database_error)?
-            || content.byte_length != read_unsigned(row, 4).map_err(database_error)?
-        {
-            return Err(invalid_record());
         }
     }
     Ok(())
