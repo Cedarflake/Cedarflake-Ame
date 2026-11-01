@@ -18,9 +18,9 @@ pub use crate::application::classification_discovery::{
     NamingContextCatalog, PreparedDiscoveryWindow, assess_category_candidates,
     assess_category_scheme, assess_category_withdrawals, consolidate_classification_concepts,
     form_discovery_cohorts, nominate_classification_contexts, prepare_category_expansion,
-    prepare_category_merge, prepare_discovery_window, prepare_equivalent_category_retirement,
-    prepare_purpose_category_merge, read_discovery_samples, retrieve_classification_concepts,
-    survey_category_coverage,
+    prepare_category_merge, prepare_category_reduction, prepare_discovery_window,
+    prepare_equivalent_category_retirement, prepare_purpose_category_merge, read_discovery_samples,
+    retrieve_classification_concepts, survey_category_coverage,
 };
 pub use crate::application::classification_dispatch::{
     ClassificationDispatchClock, ClassificationDispatchSignals, ClassificationDispatchStep,
@@ -55,8 +55,9 @@ pub use crate::domain::classification::installation::{
     ModelInstallationPhase, ModelInstallationProgress,
 };
 pub use crate::domain::classification::maintenance::{
-    CategoryExpansionPlan, CategoryExpansionSnapshot, CategoryMergePlan, CategoryRetirementPlan,
-    CategoryRetirementSnapshot, EquivalentCategoryRetirement, ManagedCategoryOrigin,
+    CategoryExpansionPlan, CategoryExpansionSnapshot, CategoryMaintenancePlan, CategoryMergePlan,
+    CategoryRetirementPlan, CategoryRetirementSnapshot, EquivalentCategoryRetirement,
+    ManagedCategoryOrigin,
 };
 pub use crate::domain::classification::work::{
     ClassificationAnalysisResult, ClassificationBacklogPage, ClassificationDispatchCommand,

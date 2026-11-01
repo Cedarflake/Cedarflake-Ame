@@ -24,6 +24,12 @@ pub use retirement::{
     CategoryRetirementPlan, CategoryRetirementSnapshot, EquivalentCategoryRetirement,
 };
 
+pub enum CategoryMaintenancePlan {
+    Expansion(Box<CategoryExpansionPlan>),
+    Retirement(Box<CategoryRetirementPlan>),
+    Merge(Box<CategoryMergePlan>),
+}
+
 pub struct CategoryExpansionSnapshot {
     pub configuration: ClassificationConfigurationSnapshot,
     pub model: Option<ModelCompatibility>,

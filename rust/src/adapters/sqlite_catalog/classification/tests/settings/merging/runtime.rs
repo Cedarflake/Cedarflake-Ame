@@ -28,13 +28,20 @@ fn runtime_retirement_precedes_maintenance_and_reopening_uses_the_committed_setu
     };
     let mut runtime =
         NativeClassificationRuntime::open(paths(), id("before-maintenance"), signals).unwrap();
-    let pending = proposal(&catalog);
+    let pending = crate::application::classification_discovery::prepare_category_reduction(
+        id("merge"),
+        &catalog,
+        None,
+        &Arc::new(AtomicBool::new(false)),
+    )
+    .unwrap()
+    .unwrap();
     let before = catalog.load_classification_configuration().unwrap();
     let cancelled = Arc::new(AtomicBool::new(false));
     assert_eq!(
         commit_category_maintenance(
             &paths().database,
-            PreparedCategoryMaintenance::Merge(&pending),
+            PreparedCategoryMaintenance::from(&pending),
             &cancelled
         )
         .unwrap_err()
@@ -47,7 +54,7 @@ fn runtime_retirement_precedes_maintenance_and_reopening_uses_the_committed_setu
     drop(runtime);
     let updated = commit_category_maintenance(
         &paths().database,
-        PreparedCategoryMaintenance::Merge(&pending),
+        PreparedCategoryMaintenance::from(&pending),
         &cancelled,
     )
     .unwrap();
@@ -63,7 +70,7 @@ fn runtime_retirement_precedes_maintenance_and_reopening_uses_the_committed_setu
     assert_eq!(
         commit_category_maintenance(
             &paths().database,
-            PreparedCategoryMaintenance::Merge(&pending),
+            PreparedCategoryMaintenance::from(&pending),
             &cancelled
         )
         .unwrap(),

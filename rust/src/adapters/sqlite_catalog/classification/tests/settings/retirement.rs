@@ -16,7 +16,7 @@ use crate::ports::classification_configuration::{
 
 use super::*;
 
-fn seed(catalog: &mut SqliteCatalog, count: u8) -> Vec<CategoryId> {
+pub(super) fn seed(catalog: &mut SqliteCatalog, count: u8) -> Vec<CategoryId> {
     let mut definitions = edited_rules("Drawing", "a drawing").categories().to_vec();
     let mut identities = Vec::new();
     for index in 0..count {

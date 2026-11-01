@@ -1695,8 +1695,7 @@ The managed native entrypoint now composes ready queue execution with bounded di
 It uses the bundled vocabulary's manifest/digest and the retained naming-policy inputs, shares the
 executor's feature cache and encoder residency, and returns an addition plan after worker retirement.
 The existing submission gate still requires the enclosing runtime to be dropped. The desktop session
-continues to use its existing entrypoint until its joined handoff is connected; automatic retirement
-and merge scheduling remain separate integration work in the current roadmap.
+continues to use its existing entrypoint until its joined handoff is connected.
 
 All 13 queue/maintenance cases pass, including the seven retained dispatch regressions. The six
 maintenance cases cover work priority, quiet/foreground/pause/close admission, cancellation, a pause
@@ -1722,3 +1721,24 @@ The vocabulary adapter has 181 production lines plus two registration lines, its
 inline tests are added. The read-only format check passes with 690 Dart files unchanged, and
 `git diff --check` passes. Current-commit hosted execution and connected client verification remain
 distinct acceptance steps.
+
+### Idle category reduction
+
+An addition-free discovery pass now advances to a separately admitted reduction turn. Equivalent
+retirement precedes a complete-coverage survey and the existing sparse purpose/context merge policy.
+The owned plan enum carries each original immutable plan to the same guarded publication boundary.
+This adds scheduling without changing recurrence, protection, alternatives or containment thresholds.
+
+Four focused reduction cases pass: equivalence without content coverage, two-member sparse support,
+recurrent/incomplete/protected retention, and cancellation/manual pause. Two native publication cases
+pass with the owned plan, covering retirement before commit, replacement setup, stopped replay and
+stale/cancelled rejection. Initial incomplete-coverage fixture attempts referenced an absent location
+and then supplied conflicting fingerprints for an unchanged source generation; the final fixture
+uses the established source-revision invalidation and explicitly verifies incomplete coverage.
+No production source guard changed. These cases use isolated catalogs without image/model access.
+
+The native discovery owner has 192 production lines, reduction preparation 48, submission 60 and
+the plan domain 168. The discovery facade has 265 production lines plus two test-registration lines.
+There are no inline tests; the new reduction fixture has 143 dedicated lines, the affected native
+submission fixture 157, and its existing merge/retirement fixture owners 309/483. Desktop handoff
+and actual first-use acceptance remain in the current queue.

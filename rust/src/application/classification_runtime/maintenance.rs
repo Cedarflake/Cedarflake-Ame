@@ -5,7 +5,7 @@ use std::sync::{
 };
 
 use crate::domain::classification::maintenance::{
-    CategoryExpansionPlan, CategoryMergePlan, CategoryRetirementPlan,
+    CategoryExpansionPlan, CategoryMaintenancePlan, CategoryMergePlan, CategoryRetirementPlan,
 };
 use crate::domain::classification_configuration::ClassificationConfigurationSnapshot;
 use crate::domain::{LibraryChangeLane, ScanError};
@@ -20,6 +20,16 @@ pub enum PreparedCategoryMaintenance<'a> {
     Expansion(&'a CategoryExpansionPlan),
     Retirement(&'a CategoryRetirementPlan),
     Merge(&'a CategoryMergePlan),
+}
+
+impl<'a> From<&'a CategoryMaintenancePlan> for PreparedCategoryMaintenance<'a> {
+    fn from(plan: &'a CategoryMaintenancePlan) -> Self {
+        match plan {
+            CategoryMaintenancePlan::Expansion(plan) => Self::Expansion(plan),
+            CategoryMaintenancePlan::Retirement(plan) => Self::Retirement(plan),
+            CategoryMaintenancePlan::Merge(plan) => Self::Merge(plan),
+        }
+    }
 }
 
 pub fn commit_category_maintenance(

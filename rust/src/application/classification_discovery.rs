@@ -25,6 +25,7 @@ mod merging;
 mod nomination;
 mod preparation;
 mod ranking;
+mod reduction;
 mod retirement;
 mod sampling;
 mod scheme;
@@ -63,6 +64,7 @@ pub use preparation::{
     prepare_discovery_window,
 };
 pub use ranking::{ConceptMatch, DiscoveryCandidates};
+pub use reduction::prepare_category_reduction;
 pub(crate) use retirement::equivalent_retirements;
 pub use retirement::prepare_equivalent_category_retirement;
 pub use sampling::{DiscoverySampleCursor, DiscoverySampleWindow, read_discovery_samples};

@@ -197,8 +197,8 @@ directory selection or first-use category authoring. The Windows build also prep
 vocabulary and retained notices, with deterministic output verification and required payloads in all
 three packaging paths. Native idle discovery now follows ready image work through the same quiet,
 foreground and cancellation admission, returning a prepared addition only after worker retirement.
-Desktop handoff/publication, automatic retirement/merge scheduling and real-client first-use
-verification remain.
+After an addition-free pass, the same owner schedules guarded equivalent retirement and sparse
+purpose/context merging. Desktop handoff/publication and real-client first-use verification remain.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review

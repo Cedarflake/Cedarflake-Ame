@@ -240,6 +240,14 @@ the cursor and reusable feature cache while dropping the vocabulary graph on sus
 or handoff. The executor owns source execution, cached matchers and encoder residency; discovery owns
 the pass and naming resources. The runtime facade composes those owners and process admission.
 
+After a complete discovery pass without an addition, the next admitted idle turn prepares category
+reduction. Exact-equivalent retirement takes precedence over sparse original-purpose or broader-context
+merges. Existing protection and complete-coverage rules remain authoritative; the scheduler supplies
+no new category-count target or withdrawal threshold. Coverage reads at most 64 entries per page and
+retains at most 64 members per category, including all members of an eligible sparse category. An
+unchanged completed pass waits for a catalog notification. Cancellation retains the reduction phase
+for a later admitted turn. All three plan variants use the same retirement and publication boundary.
+
 ## Validation and replacement
 
 Migration checks preserve prior human records and prove atomic rollback. Repository tests exercise

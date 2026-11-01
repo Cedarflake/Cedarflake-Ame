@@ -8,11 +8,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::adapters::{LocalClassificationVocabulary, SqliteCatalog};
 use crate::domain::ScanError;
 use crate::domain::classification::ClassificationRecordId;
-use crate::domain::classification::maintenance::CategoryExpansionPlan;
+use crate::domain::classification::maintenance::CategoryMaintenancePlan;
 
 use super::super::classification_discovery::{
     ContextualVocabulary, DiscoveryPreparationRequest, DiscoverySampleCursor, NamingContextCatalog,
-    prepare_discovery_window,
+    prepare_category_reduction, prepare_discovery_window,
 };
 use super::super::classification_dispatch::{
     ClassificationMaintenance, ClassificationMaintenanceStep,
@@ -27,6 +27,9 @@ enum Pass {
     Sampling {
         notification: u64,
         cursor: Option<Box<DiscoverySampleCursor>>,
+    },
+    Reducing {
+        notification: u64,
     },
     Complete {
         notification: u64,
@@ -50,7 +53,7 @@ impl NativeCategoryDiscovery {
 }
 
 impl ClassificationMaintenance<SqliteCatalog, NativeExecutor> for NativeCategoryDiscovery {
-    type Prepared = CategoryExpansionPlan;
+    type Prepared = CategoryMaintenancePlan;
 
     fn prepare(
         &mut self,
@@ -58,7 +61,37 @@ impl ClassificationMaintenance<SqliteCatalog, NativeExecutor> for NativeCategory
         executor: &mut NativeExecutor,
         notification: u64,
         cancelled: &Arc<AtomicBool>,
-    ) -> Result<ClassificationMaintenanceStep<CategoryExpansionPlan>, ScanError> {
+    ) -> Result<ClassificationMaintenanceStep<CategoryMaintenancePlan>, ScanError> {
+        match self.prepare_pass(repository, executor, notification, cancelled) {
+            Err(error)
+                if matches!(
+                    error.code.as_str(),
+                    "classification_changed"
+                        | "classification_samples_changed"
+                        | "classification_discovery_changed"
+                ) =>
+            {
+                self.pass = Pass::Complete { notification };
+                self.vocabulary = None;
+                Ok(ClassificationMaintenanceStep::Idle)
+            }
+            result => result,
+        }
+    }
+
+    fn release_resources(&mut self) {
+        self.vocabulary = None;
+    }
+}
+
+impl NativeCategoryDiscovery {
+    fn prepare_pass(
+        &mut self,
+        repository: &SqliteCatalog,
+        executor: &mut NativeExecutor,
+        notification: u64,
+        cancelled: &Arc<AtomicBool>,
+    ) -> Result<ClassificationMaintenanceStep<CategoryMaintenancePlan>, ScanError> {
         match &self.pass {
             Pass::Complete {
                 notification: previous,
@@ -69,6 +102,9 @@ impl ClassificationMaintenance<SqliteCatalog, NativeExecutor> for NativeCategory
             Pass::Sampling {
                 notification: previous,
                 ..
+            }
+            | Pass::Reducing {
+                notification: previous,
             } if *previous == notification => {}
             _ => {
                 self.pass = Pass::Sampling {
@@ -78,16 +114,30 @@ impl ClassificationMaintenance<SqliteCatalog, NativeExecutor> for NativeCategory
             }
         }
         let policy = ManagedDiscoveryPolicy::for_taxonomy(executor.taxonomy())?;
-        if !policy.is_available() {
-            self.pass = Pass::Complete { notification };
-            return Ok(ClassificationMaintenanceStep::Idle);
-        }
-        if self.vocabulary.is_none() {
+        if policy.is_available() && self.vocabulary.is_none() {
             let (source, contexts) = LocalClassificationVocabulary::open_bundled(
                 &self.application_directory,
                 cancelled,
             )?;
             self.vocabulary = Some((source, NamingContextCatalog::new(contexts)?));
+        }
+        if matches!(self.pass, Pass::Reducing { .. }) {
+            let plan = prepare_category_reduction(
+                operation_id()?,
+                repository,
+                self.vocabulary.as_ref().map(|(_, contexts)| contexts),
+                cancelled,
+            )?;
+            self.pass = Pass::Complete { notification };
+            self.vocabulary = None;
+            return Ok(match plan {
+                Some(plan) => ClassificationMaintenanceStep::Prepared(plan),
+                None => ClassificationMaintenanceStep::Idle,
+            });
+        }
+        if !policy.is_available() {
+            self.pass = Pass::Reducing { notification };
+            return Ok(ClassificationMaintenanceStep::Progress);
         }
         let cursor = match &self.pass {
             Pass::Sampling { cursor, .. } => cursor.as_deref(),
@@ -110,43 +160,20 @@ impl ClassificationMaintenance<SqliteCatalog, NativeExecutor> for NativeCategory
             cancelled,
         );
         self.vocabulary = Some(vocabulary.into_parts());
-        let prepared = match result {
-            Ok(prepared) => prepared,
-            Err(error)
-                if matches!(
-                    error.code.as_str(),
-                    "classification_changed"
-                        | "classification_samples_changed"
-                        | "classification_discovery_changed"
-                ) =>
-            {
-                self.pass = Pass::Complete { notification };
-                self.vocabulary = None;
-                return Ok(ClassificationMaintenanceStep::Idle);
-            }
-            Err(error) => return Err(error),
-        };
+        let prepared = result?;
         self.pass = match prepared.next {
             Some(cursor) => Pass::Sampling {
                 notification,
                 cursor: Some(Box::new(cursor)),
             },
-            None => Pass::Complete { notification },
+            None => Pass::Reducing { notification },
         };
         if let Some(plan) = prepared.expansion {
-            return Ok(ClassificationMaintenanceStep::Prepared(plan));
+            return Ok(ClassificationMaintenanceStep::Prepared(
+                CategoryMaintenancePlan::Expansion(Box::new(plan)),
+            ));
         }
-        if matches!(self.pass, Pass::Complete { .. }) {
-            self.vocabulary = None;
-        }
-        Ok(match self.pass {
-            Pass::Sampling { .. } => ClassificationMaintenanceStep::Progress,
-            _ => ClassificationMaintenanceStep::Idle,
-        })
-    }
-
-    fn release_resources(&mut self) {
-        self.vocabulary = None;
+        Ok(ClassificationMaintenanceStep::Progress)
     }
 }
 
