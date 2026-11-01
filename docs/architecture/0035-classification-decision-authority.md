@@ -71,6 +71,13 @@ guards. Physical scope can choose another representative of the same group. Proj
 adds no source reads, model execution or archive records; normal pre-upgrade snapshots protect
 rollback, and all prior durable decisions remain unchanged.
 
+Card annotations reuse this effective projection in a bounded, source-version-checked window at the
+displayed catalog revision. Review reasons remain typed independently of command eligibility; a
+retained display fingerprint can explain a suggestion without authorizing confirmation. Terminal
+analysis failures and explicit retry publish their status through the same catalog revision,
+including interrupted work that exhausts its retry budget. Compatible suggestions and human choices
+retain precedence over a work-item failure; missing predictions alone do not imply failure.
+
 ## Command authority
 
 A prepared classification command binds the exact or provisional content target, complete current

@@ -8,7 +8,8 @@ use crate::domain::classification::{ClassificationAction, ClassificationRecordId
 use crate::domain::classification_catalog::ClassificationWriteReceipt;
 use crate::domain::classification_selection::ClassificationItemState;
 use crate::domain::classification_selection::{
-    ClassificationSelectionPhase, ClassificationSelectionProgress, ClassificationSelectionSummary,
+    ClassificationAnnotation, ClassificationSelectionPhase, ClassificationSelectionProgress,
+    ClassificationSelectionSummary,
 };
 use crate::domain::organization::OrganizationSelection;
 use crate::ports::classification::ClassificationRepository;
@@ -17,6 +18,13 @@ use crate::ports::classification_selection::{
 };
 
 static OPEN_SELECTIONS: AtomicUsize = AtomicUsize::new(0);
+
+pub(crate) fn load_annotations(
+    revision: u64,
+    selections: &[OrganizationSelection],
+) -> Result<Vec<ClassificationAnnotation>, ScanError> {
+    super::organization::open_catalog()?.classification_annotations(revision, selections)
+}
 
 pub(crate) fn load_items(
     selections: &[OrganizationSelection],

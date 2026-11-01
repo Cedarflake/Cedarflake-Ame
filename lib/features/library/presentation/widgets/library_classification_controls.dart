@@ -170,7 +170,7 @@ class _LibraryClassificationControlsState
         return Tooltip(
           message: _failed
               ? "重新读取分类"
-              : _summary?.singleItem?.reviewLabel ?? "更改分类",
+              : _summary?.singleItem?.reviewDescription ?? "更改分类",
           child: TextButton.icon(
             key: const Key("library-change-classification"),
             onPressed: activate,

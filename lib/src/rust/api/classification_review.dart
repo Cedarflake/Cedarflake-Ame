@@ -32,6 +32,15 @@ Future<List<ClassificationItemState>> loadClassificationItems({
   selections: selections,
 );
 
+Future<List<ClassificationAnnotation>> loadClassificationAnnotations({
+  required BigInt catalogRevision,
+  required List<OrganizationSelection> selections,
+}) => RustLib.instance.api
+    .crateApiClassificationReviewLoadClassificationAnnotations(
+      catalogRevision: catalogRevision,
+      selections: selections,
+    );
+
 Future<ClassificationWriteReceipt> undoClassificationChange({
   required String operationId,
   required String originalOperationId,

@@ -55,16 +55,23 @@ pub(super) fn push_filter(
     if conditions.is_empty() {
         return;
     }
-    let record = record_expression("locations");
-    let fingerprint = compatible_fingerprint("locations");
+    clauses.push(format!(
+        "EXISTS ({} SELECT 1 FROM effective WHERE {})",
+        effective_projection("locations"),
+        conditions.join(" AND ")
+    ));
+}
+
+pub(in crate::adapters::sqlite_catalog) fn effective_projection(location: &str) -> String {
+    let record = record_expression(location);
+    let fingerprint = compatible_fingerprint(location);
     // The projection shares the gallery's published/retained display membership.
     // Classification commands independently require fresh content and field authority.
-    clauses.push(format!(
-        "EXISTS (
-           WITH human AS MATERIALIZED (
+    format!(
+        "WITH human AS MATERIALIZED (
              SELECT * FROM classification_human_projection WHERE group_id = {record}
            ), prediction AS MATERIALIZED (
-             SELECT prediction.category_id, prediction.review
+             SELECT prediction.category_id, prediction.review, prediction.publication_id
              FROM {DISPLAY_FINGERPRINTS}
              JOIN classification_prediction_projection AS prediction
                ON prediction.fingerprint_scheme = f.scheme AND prediction.digest = f.digest
@@ -82,11 +89,9 @@ pub(super) fn push_filter(
                  WHEN human.choice_count = 1 THEN 'confirmed'
                  WHEN human.deferred = 1 THEN 'deferred'
                  ELSE COALESCE(prediction.review, 'unclassified')
-               END AS review
+               END AS review,
+               prediction.publication_id
              FROM (SELECT 1) AS subject LEFT JOIN human ON 1 LEFT JOIN prediction ON 1
-           )
-           SELECT 1 FROM effective WHERE {}
-         )",
-        conditions.join(" AND ")
-    ));
+           )"
+    )
 }

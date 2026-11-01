@@ -129,7 +129,7 @@ The [category evidence](r5-category-discovery.md#joined-desktop-maintenance-publ
 native/client lifecycle checks; model-backed first-use interaction remains pending. The roadmap owns
 the remaining context coverage and integrated quality acceptance.
 
-Card review indicators, classification continuation and real-client
+Classification continuation and real-client
 acceptance of contextual review retain their R5-06 scope. Integrated quality, scale and the paired
 cloud-primary comparison remain in R5-07. These focused checks do not close the stage.
 
@@ -152,3 +152,37 @@ notification controller and clears after a successful retry. Real-window interac
 The photo-menu composition has 275 production lines, its classification scope/lifetime owner 85,
 shared category entries 34 and existing classification controls 227. No inline tests are added;
 the new dedicated menu fixture has 230 lines. There are no schema, dependency or media-access changes.
+
+## Card classification annotations
+
+The photo wall reads classification reasons in batches of at most 256 current source versions,
+only in smart-album scopes. One SQLite snapshot checks the displayed revision and every requested
+location; the shared effective-category projection preserves human precedence and retained display
+membership. A replaced window retires the remaining requests and cannot publish late results.
+Partial batches are not presented as complete annotations.
+
+Uncertain, uncalibrated, deferred and conflicting items use the compact `待确认` label. Failed
+analysis has a distinct `分析失败` label; ordinary suggestions remain unmarked. Hover descriptions
+explain these states, and the viewer's existing category tooltip receives the corresponding review
+reason. Human confirmation removes the attention label. Terminal failures, exhausted interrupted
+work and explicit retry invalidate the catalog projection; automatic transient retries do not
+publish a terminal failure. No schema or dependency changes, model execution or media reads are added.
+
+`LibraryPhotoStatusLabel` shares the former album-conflict surface between both labels. The photo
+tile lays them out without overlap and retains the existing selection and duplicate controls.
+The installed Flutter `Tooltip` owns hover timing and semantic descriptions; this composition adds
+no gesture recognizer or custom focus behavior. Clicking a status still opens the image.
+
+The 17 affected projection checks, two failure/retry annotation checks, one interrupted-session
+check and one retained-display command-boundary regression pass. Twenty Flutter checks pass,
+including 500-item batching, retired-window work, failed
+batch recovery, coexisting labels, hover/open behavior, quiet routine suggestions, original album
+conflict feedback and card focus. Focused analysis reports no issues. The generated bridge passes
+all 39 asynchronous contracts and the rejecting contract fixtures. The contract fixture's roster
+was updated with the added annotation entrypoint. Real-window interaction remains pending under
+the existing Computer Use restriction; focused checks do not establish that acceptance.
+
+Production ownership is 130 lines for native annotations, 97 for the shared projection, 167/274 for
+work completion/control, 158 for the native review facade, 71 for the Dart window reader, 44 for
+the shared label, 26 for its classification binding and 441 for the existing photo tile. No inline
+tests are added. Dedicated annotation tests contain 143/128 native and 143/117 Dart lines.

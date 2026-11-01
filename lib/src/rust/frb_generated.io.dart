@@ -310,6 +310,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationReviewReason
+  dco_decode_box_autoadd_classification_review_reason(dynamic raw);
+
+  @protected
   ExactDuplicateGroupCursor dco_decode_box_autoadd_exact_duplicate_group_cursor(
     dynamic raw,
   );
@@ -502,6 +506,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CatalogSnapshot dco_decode_catalog_snapshot(dynamic raw);
 
   @protected
+  ClassificationAnnotation dco_decode_classification_annotation(dynamic raw);
+
+  @protected
   ClassificationCategoryInput dco_decode_classification_category_input(
     dynamic raw,
   );
@@ -531,6 +538,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ClassificationReviewFilter dco_decode_classification_review_filter(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationReviewReason dco_decode_classification_review_reason(
     dynamic raw,
   );
 
@@ -768,6 +780,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<AssetLocationView> dco_decode_list_asset_location_view(dynamic raw);
 
   @protected
+  List<ClassificationAnnotation> dco_decode_list_classification_annotation(
+    dynamic raw,
+  );
+
+  @protected
   List<ClassificationCategoryInput>
   dco_decode_list_classification_category_input(dynamic raw);
 
@@ -907,6 +924,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ClassificationItemState? dco_decode_opt_box_autoadd_classification_item_state(
     dynamic raw,
   );
+
+  @protected
+  ClassificationReviewReason?
+  dco_decode_opt_box_autoadd_classification_review_reason(dynamic raw);
 
   @protected
   ExactDuplicateGroupCursor?
@@ -1450,6 +1471,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationReviewReason
+  sse_decode_box_autoadd_classification_review_reason(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ExactDuplicateGroupCursor sse_decode_box_autoadd_exact_duplicate_group_cursor(
     SseDeserializer deserializer,
   );
@@ -1704,6 +1731,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CatalogSnapshot sse_decode_catalog_snapshot(SseDeserializer deserializer);
 
   @protected
+  ClassificationAnnotation sse_decode_classification_annotation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ClassificationCategoryInput sse_decode_classification_category_input(
     SseDeserializer deserializer,
   );
@@ -1739,6 +1771,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ClassificationReviewFilter sse_decode_classification_review_filter(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationReviewReason sse_decode_classification_review_reason(
     SseDeserializer deserializer,
   );
 
@@ -2040,6 +2077,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<ClassificationAnnotation> sse_decode_list_classification_annotation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<ClassificationCategoryInput>
   sse_decode_list_classification_category_input(SseDeserializer deserializer);
 
@@ -2197,6 +2239,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ClassificationItemState? sse_decode_opt_box_autoadd_classification_item_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationReviewReason?
+  sse_decode_opt_box_autoadd_classification_review_reason(
     SseDeserializer deserializer,
   );
 
@@ -2858,6 +2906,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_classification_review_reason(
+    ClassificationReviewReason self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_exact_duplicate_group_cursor(
     ExactDuplicateGroupCursor self,
     SseSerializer serializer,
@@ -3158,6 +3212,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_classification_annotation(
+    ClassificationAnnotation self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_classification_category_input(
     ClassificationCategoryInput self,
     SseSerializer serializer,
@@ -3202,6 +3262,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_classification_review_filter(
     ClassificationReviewFilter self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_review_reason(
+    ClassificationReviewReason self,
     SseSerializer serializer,
   );
 
@@ -3575,6 +3641,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_classification_annotation(
+    List<ClassificationAnnotation> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_classification_category_input(
     List<ClassificationCategoryInput> self,
     SseSerializer serializer,
@@ -3768,6 +3840,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_classification_item_state(
     ClassificationItemState? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_classification_review_reason(
+    ClassificationReviewReason? self,
     SseSerializer serializer,
   );
 

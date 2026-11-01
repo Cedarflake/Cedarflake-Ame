@@ -41,6 +41,27 @@ class RustLibraryClassificationReview
   });
 
   @override
+  Future<Map<String, LibraryClassificationReviewReason>> annotations(
+    BigInt revision,
+    List<LibraryOrganizationTarget> targets,
+  ) => _call(() async {
+    final values = await api.loadClassificationAnnotations(
+      catalogRevision: revision,
+      selections: [
+        for (final target in targets)
+          organization.OrganizationSelection(
+            assetId: target.assetId,
+            locationId: target.locationId,
+            sourceGeneration: target.sourceGeneration,
+          ),
+      ],
+    );
+    return {
+      for (final value in values) value.locationId: _reason(value.reason),
+    };
+  });
+
+  @override
   Future<LibraryClassificationReceipt> undo(
     String operationId,
     String originalOperationId,
@@ -135,6 +156,9 @@ LibraryClassificationItem _item(dto.ClassificationItemState value) =>
       assetId: value.assetId,
       categoryId: value.categoryId,
       canConfirm: value.canConfirm,
+      reviewReason: value.reviewReason == null
+          ? null
+          : _reason(value.reviewReason!),
       review: switch (value.review) {
         dto.ClassificationItemReview.unclassified =>
           LibraryClassificationReview.unclassified,
@@ -150,3 +174,20 @@ LibraryClassificationItem _item(dto.ClassificationItemState value) =>
           LibraryClassificationReview.conflict,
       },
     );
+
+LibraryClassificationReviewReason _reason(
+  dto.ClassificationReviewReason value,
+) => switch (value) {
+  dto.ClassificationReviewReason.uncertain =>
+    LibraryClassificationReviewReason.uncertain,
+  dto.ClassificationReviewReason.uncalibrated =>
+    LibraryClassificationReviewReason.uncalibrated,
+  dto.ClassificationReviewReason.sampling =>
+    LibraryClassificationReviewReason.sampling,
+  dto.ClassificationReviewReason.deferred_ =>
+    LibraryClassificationReviewReason.deferred,
+  dto.ClassificationReviewReason.conflict =>
+    LibraryClassificationReviewReason.conflict,
+  dto.ClassificationReviewReason.analysisFailed =>
+    LibraryClassificationReviewReason.analysisFailed,
+};

@@ -211,7 +211,10 @@ pub(super) fn open_session(
     // A process restart consumes one retry only for work that never reached a checkpoint.
     connection
         .execute_batch(
-            "UPDATE classification_work_items SET
+            "UPDATE catalog_state SET revision = revision + 1
+             WHERE EXISTS (SELECT 1 FROM classification_work_items
+               WHERE phase = 'running' AND failure_count >= 2);
+             UPDATE classification_work_items SET
              phase = CASE WHEN failure_count >= 2 THEN 'failed' ELSE 'queued' END,
              failure_count = min(failure_count + 1, 3), issue_code = 'classification_interrupted',
              lease_id = NULL, lease_epoch = NULL, lease_asset_id = NULL,

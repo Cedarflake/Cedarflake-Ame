@@ -9,6 +9,10 @@ abstract interface class LibraryClassificationReviewService {
   Future<List<LibraryClassificationItem>> loadItems(
     List<LibraryOrganizationTarget> targets,
   );
+  Future<Map<String, LibraryClassificationReviewReason>> annotations(
+    BigInt revision,
+    List<LibraryOrganizationTarget> targets,
+  );
   Future<LibraryClassificationReceipt> undo(
     String operationId,
     String originalOperationId,

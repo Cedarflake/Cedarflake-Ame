@@ -2,7 +2,8 @@ use crate::application::classification_selection::ClassificationSelectionSession
 use crate::domain::classification::{CategoryId, ClassificationAction, ClassificationRecordId};
 use crate::domain::classification_catalog::ClassificationWriteReceipt;
 use crate::domain::classification_selection::{
-    ClassificationItemState, ClassificationSelectionProgress, ClassificationSelectionSummary,
+    ClassificationAnnotation, ClassificationItemState, ClassificationSelectionProgress,
+    ClassificationSelectionSummary,
 };
 use crate::domain::organization::OrganizationSelection;
 use crate::domain::{GalleryQuery, ScanError};
@@ -26,6 +27,13 @@ pub fn load_classification_items(
     selections: Vec<OrganizationSelection>,
 ) -> Result<Vec<ClassificationItemState>, ScanError> {
     crate::application::classification_selection::load_items(&selections)
+}
+
+pub fn load_classification_annotations(
+    catalog_revision: u64,
+    selections: Vec<OrganizationSelection>,
+) -> Result<Vec<ClassificationAnnotation>, ScanError> {
+    crate::application::classification_selection::load_annotations(catalog_revision, &selections)
 }
 
 pub fn undo_classification_change(

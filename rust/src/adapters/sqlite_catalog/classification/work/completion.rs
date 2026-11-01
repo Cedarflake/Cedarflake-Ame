@@ -112,14 +112,14 @@ pub(super) fn fail(
         ClassificationWorkFailure::Transient => ("queued", true),
         ClassificationWorkFailure::Permanent => ("failed", true),
     };
-    connection
-        .execute(
+    let published_phase: String = connection
+        .query_row(
             "UPDATE classification_work_items SET
              phase = CASE WHEN ?1 = 'queued' AND ?2 AND failure_count >= 2 THEN 'failed' ELSE ?1 END,
              failure_count = min(failure_count + ?2, 3), ready_unix_ms = ?3, issue_code = ?4,
              lease_id = NULL, lease_epoch = NULL, lease_asset_id = NULL,
              lease_location_id = NULL, lease_source_generation = NULL
-         WHERE work_id = ?5",
+         WHERE work_id = ?5 RETURNING phase",
             params![
                 phase,
                 count_failure,
@@ -127,8 +127,14 @@ pub(super) fn fail(
                 issue.code,
                 sqlite_integer(work.id, "work identity")?
             ],
+            |row| row.get(0),
         )
         .map_err(database_error)?;
+    if published_phase == "failed" {
+        connection
+            .execute("UPDATE catalog_state SET revision = revision + 1", [])
+            .map_err(database_error)?;
+    }
     Ok(true)
 }
 
@@ -152,5 +158,10 @@ pub(super) fn retry(
          WHERE configuration_revision = ?2 AND phase IN ('waiting', 'failed')",
         params![sqlite_integer(now_unix_ms, "retry time")?, codec::revision(run.configuration())],
     ).map_err(database_error)?;
+    if changed > 0 {
+        connection
+            .execute("UPDATE catalog_state SET revision = revision + 1", [])
+            .map_err(database_error)?;
+    }
     Ok(changed as u64)
 }

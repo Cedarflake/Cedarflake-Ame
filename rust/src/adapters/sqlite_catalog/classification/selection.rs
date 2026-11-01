@@ -1,9 +1,12 @@
 use crate::application::classification_decisions::plan_classification_change;
 use crate::domain::ScanError;
 use crate::domain::classification::{
-    ClassificationAction, ClassificationObservation, ClassificationReview, Taxonomy,
+    ClassificationAction, ClassificationObservation, ClassificationReview, ReviewRecommendation,
+    Taxonomy,
 };
-use crate::domain::classification_selection::{ClassificationItemReview, ClassificationItemState};
+use crate::domain::classification_selection::{
+    ClassificationItemReview, ClassificationItemState, ClassificationReviewReason,
+};
 use crate::domain::organization::{OrganizationSelection, validate_selections};
 use rusqlite::Connection;
 
@@ -63,5 +66,17 @@ pub(super) fn item_state(
             ClassificationReview::Conflict => ClassificationItemReview::Conflict,
         },
         can_confirm: can_confirm(observation, taxonomy),
+        review_reason: match effective.review {
+            ClassificationReview::Confirmed | ClassificationReview::Unclassified => None,
+            ClassificationReview::Conflict => Some(ClassificationReviewReason::Conflict),
+            ClassificationReview::Deferred => Some(ClassificationReviewReason::Deferred),
+            ClassificationReview::Suggested | ClassificationReview::NeedsReview => observation
+                .compatible_prediction()
+                .map(|prediction| match prediction.review {
+                    ReviewRecommendation::RoutineSampling => ClassificationReviewReason::Sampling,
+                    ReviewRecommendation::Uncalibrated => ClassificationReviewReason::Uncalibrated,
+                    ReviewRecommendation::LowSeparation => ClassificationReviewReason::Uncertain,
+                }),
+        },
     }
 }

@@ -1236,6 +1236,11 @@ An item requiring attention can show a compact `待确认` indicator; its access
 uncertainty, sampling, category conflict, and analysis failure. Routine cards do not need confidence
 percentages or repeated model information.
 
+Card indicators reuse the existing album-conflict label surface and keep both states readable when
+they coexist. Hover and accessibility descriptions explain the reason without intercepting image
+opening or selection. Routine suggestions omit the attention badge; failed analysis uses `分析失败`
+and does not invent a suggested category.
+
 Initial-screening suggestions are usable immediately. Machine-only differences are resolved through
 the current analysis and bounded automatic re-screening before optional checking is suggested. A
 remaining uncertain prediction can stay in its suggested category and the `待确认` filter together.

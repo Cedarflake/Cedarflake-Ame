@@ -1,6 +1,7 @@
 mod anchor_position;
 mod annotations;
-mod classification;
+pub(super) mod classification;
+mod classification_annotations;
 pub(super) mod classification_counts;
 pub(super) mod duplicates;
 mod filters;

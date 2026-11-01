@@ -6,6 +6,27 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+class ClassificationAnnotation {
+  final String locationId;
+  final ClassificationReviewReason reason;
+
+  const ClassificationAnnotation({
+    required this.locationId,
+    required this.reason,
+  });
+
+  @override
+  int get hashCode => locationId.hashCode ^ reason.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ClassificationAnnotation &&
+          runtimeType == other.runtimeType &&
+          locationId == other.locationId &&
+          reason == other.reason;
+}
+
 enum ClassificationItemReview {
   unclassified,
   suggested,
@@ -20,12 +41,14 @@ class ClassificationItemState {
   final String? categoryId;
   final ClassificationItemReview review;
   final bool canConfirm;
+  final ClassificationReviewReason? reviewReason;
 
   const ClassificationItemState({
     required this.assetId,
     this.categoryId,
     required this.review,
     required this.canConfirm,
+    this.reviewReason,
   });
 
   @override
@@ -33,7 +56,8 @@ class ClassificationItemState {
       assetId.hashCode ^
       categoryId.hashCode ^
       review.hashCode ^
-      canConfirm.hashCode;
+      canConfirm.hashCode ^
+      reviewReason.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -43,7 +67,17 @@ class ClassificationItemState {
           assetId == other.assetId &&
           categoryId == other.categoryId &&
           review == other.review &&
-          canConfirm == other.canConfirm;
+          canConfirm == other.canConfirm &&
+          reviewReason == other.reviewReason;
+}
+
+enum ClassificationReviewReason {
+  uncertain,
+  uncalibrated,
+  sampling,
+  deferred_,
+  conflict,
+  analysisFailed,
 }
 
 enum ClassificationSelectionPhase {

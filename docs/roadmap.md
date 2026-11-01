@@ -205,7 +205,8 @@ immutable plan and reopening with the current environment. Real-client first-use
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Smart-album image context menus now share guarded confirmation/correction and operation-specific undo
-with selection and preview controls. Card review indicators, continuation and real-client acceptance
+with selection and preview controls. Card review indicators now share bounded classification reads
+and the existing photo status label, with distinct review/failure details. Continuation and real-client acceptance
 remain in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;
 it remains a pre-merge acceptance condition. Reuse the retained runtime and measurement assets

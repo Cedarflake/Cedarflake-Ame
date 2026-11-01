@@ -86,6 +86,21 @@ fn refined_suggestions_and_latest_publication_keep_review_optional() {
         catalog
             .publish_classification_prediction(&selected(&catalog, "a"), &evidence)
             .unwrap();
+        let expected_reason = if pending {
+            crate::domain::classification_selection::ClassificationReviewReason::Uncertain
+        } else {
+            crate::domain::classification_selection::ClassificationReviewReason::Sampling
+        };
+        let revision = scalar(&catalog, "SELECT revision FROM catalog_state") as u64;
+        let selected = selected(&catalog, "a");
+        let annotations = catalog
+            .classification_annotations(revision, std::slice::from_ref(&selected))
+            .unwrap();
+        assert_eq!(annotations[0].reason, expected_reason);
+        assert_eq!(
+            catalog.classification_items(&[selected]).unwrap()[0].review_reason,
+            Some(expected_reason)
+        );
         assert_eq!(
             ids(
                 &mut catalog,

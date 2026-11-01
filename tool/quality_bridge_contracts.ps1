@@ -34,6 +34,7 @@ function Get-AmeAsyncBridgeContracts {
         @("classification_installation", "commit", "commit", "crateApiClassificationInstallationDesktopModelInstallationCommit", "void", "DesktopModelInstallation"),
         @("classification_review", "open_classification_selection", "openClassificationSelection", "crateApiClassificationReviewOpenClassificationSelection", "ClassificationSelectionDraft", ""),
         @("classification_review", "load_classification_items", "loadClassificationItems", "crateApiClassificationReviewLoadClassificationItems", "List<ClassificationItemState>", ""),
+        @("classification_review", "load_classification_annotations", "loadClassificationAnnotations", "crateApiClassificationReviewLoadClassificationAnnotations", "List<ClassificationAnnotation>", ""),
         @("classification_review", "undo_classification_change", "undoClassificationChange", "crateApiClassificationReviewUndoClassificationChange", "ClassificationWriteReceipt", ""),
         @("classification_review", "append_targets", "appendTargets", "crateApiClassificationReviewClassificationSelectionDraftAppendTargets", "void", "ClassificationSelectionDraft"),
         @("classification_review", "append_ids", "appendIds", "crateApiClassificationReviewClassificationSelectionDraftAppendIds", "void", "ClassificationSelectionDraft"),

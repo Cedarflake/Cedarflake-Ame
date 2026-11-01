@@ -12,6 +12,7 @@ fn abandoned_claims_exhaust_the_retry_budget_across_process_sessions() {
         &["a"],
         ClassificationWorkPriority::Requested,
     );
+    let original_revision = scalar(&catalog, "SELECT revision FROM catalog_state");
     for attempt in 1..=3 {
         let claim = catalog
             .claim_classification_work(&session, 10)
@@ -25,6 +26,10 @@ fn abandoned_claims_exhaust_the_retry_budget_across_process_sessions() {
             .open_classification_session(revision, &session)
             .unwrap();
         assert!(!catalog.yield_classification_work(&claim).unwrap());
+        assert_eq!(
+            scalar(&catalog, "SELECT revision FROM catalog_state"),
+            original_revision + i64::from(attempt == 3)
+        );
     }
     assert!(
         catalog

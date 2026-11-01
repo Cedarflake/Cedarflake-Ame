@@ -35,6 +35,12 @@ class ClassificationReviewFixture
   ) async => [];
 
   @override
+  Future<Map<String, LibraryClassificationReviewReason>> annotations(
+    BigInt revision,
+    List<LibraryOrganizationTarget> targets,
+  ) async => {};
+
+  @override
   Future<LibraryClassificationReceipt> undo(
     String operationId,
     String originalOperationId,

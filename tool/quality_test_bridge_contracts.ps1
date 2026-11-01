@@ -116,13 +116,13 @@ if ($masked.Length -ne $rustLiteral.Length -or $masked -match 'literal|comment')
 }
 Get-AmeBridgeClosingDelimiter $masked ($masked.IndexOf('{')) '{' '}' | Out-Null
 $contracts = @(Get-AmeAsyncBridgeContracts)
-if ($contracts.Count -ne 38 -or
+if ($contracts.Count -ne 39 -or
     @($contracts | Where-Object Module -eq "viewer_source").Count -ne 3 -or
     @($contracts | Where-Object Module -eq "classification").Count -ne 4 -or
     @($contracts | Where-Object Module -eq "classification_settings").Count -ne 4 -or
     @($contracts | Where-Object Module -eq "classification_installation").Count -ne 2 -or
     @($contracts | Where-Object Module -eq "classification_maintenance").Count -ne 1 -or
-    @($contracts | Where-Object Module -eq "classification_review").Count -ne 10) {
+    @($contracts | Where-Object Module -eq "classification_review").Count -ne 11) {
     throw "The complete asynchronous bridge contract roster changed unexpectedly"
 }
 $handoffContracts = @($contracts | Where-Object {

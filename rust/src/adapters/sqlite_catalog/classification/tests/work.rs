@@ -5,6 +5,7 @@ use crate::ports::exact_duplicates::ExactDuplicateRepository;
 use super::*;
 
 mod analysis;
+mod annotations;
 mod arrival;
 mod availability;
 mod dispatch;
