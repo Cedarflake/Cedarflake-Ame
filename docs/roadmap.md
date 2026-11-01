@@ -134,10 +134,12 @@ R5-07 is active, retaining its existing order and required outcomes:
    preserving original media, saved decisions, category browsing, cause-aware automatic recovery,
    startup-error feedback, and R4 actions. Include the corrected runtime-integration configuration calls
    in the submitted-head hosted gate.
-2. Assess context coverage, category/band quality, and bounded automatic refinement. Retain the
-   provisional label authority and unsupported confidence bands in the calibration record. Manual
-   classification and correction-time trials are removed from acceptance; do not repeat unchanged
-   model comparisons or tune on sealed holdouts.
+2. The [integrated quality assessment](acceptance/r5-calibration.md#integrated-quality-assessment--2026-11-01)
+   confirms current-policy correspondence with the sealed screening and managed-naming inputs and
+   records retained coverage, category/band quality and automatic-adjustment effects. Preserve the
+   initial-screening scope, provisional label authority, small-category coverage and unsupported
+   confidence bands. Manual classification and correction-time trials are removed from acceptance;
+   do not repeat unchanged model comparisons or tune on sealed holdouts.
 3. The paired local/cloud-primary browsing/classification comparison now passes with the connected
    client, preserved sources and bounded model residency; its
    [measured intervals and cleanup](acceptance/r5-incremental-analysis.md#connected-localcloud-foreground-comparison--2026-11-01)

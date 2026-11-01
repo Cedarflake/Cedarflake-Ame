@@ -245,3 +245,46 @@ unnecessary enclosing `Ok(...?)` in native session initialization; the expressio
 existing fallible session construction directly. This changes no inference configuration or error
 mapping. The `1d79729f` hosted Static job passes this correction; that commit's remaining hosted jobs
 and the subsequent category-aware change retain their own exact-commit gate.
+
+## Integrated quality assessment — 2026-11-01
+
+At `092b017c`, the bundled primary/refinement descriptions, per-category thresholds and calibration
+identity match the sealed category-aware inputs. The managed cohort, nomination, admission and
+purpose patterns also match the retained three-content naming profile. Label, description and
+operating-policy hashes match the original seal. This assessment aggregates saved predictions;
+it performs no inference, source read, label change or threshold fitting.
+
+The native-input comparison retains 168 of 171 eligible groups (98.25% analysis coverage), with
+three images rejected by the existing decoded-pixel limit. Of the admitted groups, 155 have definite
+provisional references and 133 agree (85.81%); thirteen ambiguous groups remain in coverage. Its one
+bounded refinement produces no net agreement gain. The original sealed comparison retains the
+following category evidence; these are the original input pipeline's results, not new native-input
+per-category measurements:
+
+| Proposed category | Definite agreement | Definite reference coverage |
+| --- | ---: | ---: |
+| Illustration | 25/33 | 25/27 |
+| Comic | 4/5 | 4/4 |
+| Meme/reaction | 36/44 | 36/46 |
+| Screenshot | 41/45 | 41/43 |
+| Photograph | 22/22 | 22/28 |
+| Other defined content | 8/9 | 8/10 |
+
+The comic and other-content samples remain small. The native comparison still has 12 definite
+errors outside its optional-check band: numerical separation has not established a high-confidence guarantee.
+The removed optional-check UI has no bearing on these internal evaluation bands.
+
+The [whole-scheme comparison](r5-category-discovery.md#whole-scheme-candidate-comparison) supplies
+an additional purpose-level assessment of the four selected category additions. Mapping each new
+category back to its declared original purpose changes 16 of 236 calibration assignments; 72
+assignments change category in total. Among 188 definite provisional references, agreement changes
+from 160 to 165: seven gains and two losses, with 48 ambiguous groups excluded from that denominator.
+The losses move one photograph and one comic into a reaction refinement. These saved outputs use
+the original first-pass baseline, independently of the category-aware refinement comparison above.
+
+This is a calibration-set assessment of broad purpose, not independent accuracy for the new topics
+or evidence that every useful distinction will be discovered. The retained naming observations
+support four recurring additions, while two-content distinctions remain deferred. Preserve the
+current operating profile for initial screening and retain these coverage and semantic limits;
+no new confidence label, manual correction workflow or model-selection round follows from this
+assessment. The ignored `r5-integrated-quality/quality-summary.json` records input hashes and counts.
