@@ -13,6 +13,7 @@ use super::super::{SqliteCatalog, database_error};
 use super::{changed, codec, configuration, operations, setup, work::control};
 
 mod authority;
+mod coverage;
 mod maintenance;
 mod retirement;
 

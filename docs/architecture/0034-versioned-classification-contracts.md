@@ -315,6 +315,31 @@ equivalence, whole-library coverage, useful-count policy or permission to retire
 These effects inform non-equivalent overlap admission alongside recurrence and naming evidence;
 source coverage, human-choice guards and publication remain separate requirements.
 
+### Catalog coverage for category maintenance
+
+Maintenance can survey the current catalog's distinct exact contents through ordered windows of
+at most 64 rows. A survey binds the catalog publication revision, complete classification setup and
+dispatch authority. Each window uses a short read transaction; inference, source access and model
+work never run inside it. Published direct fingerprints must still match cataloged file size, identity
+and source revision. Retained display-only membership cannot prove current content. A source without
+such evidence makes the report incomplete, even when another source already has a prediction.
+
+Compatible predictions are read by content and configuration, retaining the latest published result
+and its optional refinement. Reusing an earlier run with the same configuration is permitted;
+results from another category scheme or encoder remain missing. Counts describe model suggestions,
+not human choices. Exact copies count once. Unknown, missing and malformed prediction evidence is
+never substituted with a category or silently treated as zero occupancy. The application validates
+strict cursor advancement, complete category membership and matching content/configuration, and
+checks the survey authority again after the final page.
+
+The report retains counts for the bounded taxonomy and at most a caller-selected 1–64 content
+identities per category, regardless of library size. All page results are bound into its evidence
+revision. Source/configuration/publication changes or cancellation reject the survey without a
+partial report. SQLite work is interruptible and releases its read transaction and cancellation
+handler before returning. An incomplete or empty report supplies no category-retirement authority;
+semantic relationships, independent-support policy, human protection and transaction revalidation
+remain prerequisites for merging. This survey neither classifies images nor enables maintenance.
+
 ### Guarded category additions
 
 Candidate assessment and category publication have separate owners. The application prepares an

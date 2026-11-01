@@ -177,9 +177,10 @@ single-category withdrawal comparison now exposes affected contents, alternate c
 similarity losses; the retained comparison rules out small score gaps or a common fallback as
 sufficient reasons to remove useful distinctions. Fresh admission can now reactivate an automatically
 retired generated category using its original identity and origin, with transactional protection,
-capacity and source checks; manual retirement remains protected. Useful default-budget selection,
-non-equivalent existing-category overlap admission and runtime integration remain before automatic
-first use.
+capacity and source checks; manual retirement remains protected. A bounded catalog survey now counts
+distinct current contents and compatible final suggestions, retaining incomplete coverage and rejecting
+cross-page publication changes. Useful default-budget selection, non-equivalent existing-category
+overlap admission and runtime integration remain before automatic first use.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review

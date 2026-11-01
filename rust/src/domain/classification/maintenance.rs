@@ -11,6 +11,11 @@ use crate::domain::classification_configuration::{
 
 mod activation;
 pub(crate) use activation::CategoryActivation;
+mod coverage;
+pub use coverage::{
+    CategoryCoverageEntry, CategoryCoveragePage, CategoryCoverageSnapshot, CategoryCoverageSummary,
+    CategoryCoverageSupport,
+};
 mod retirement;
 pub use retirement::{
     CategoryRetirementPlan, CategoryRetirementSnapshot, EquivalentCategoryRetirement,

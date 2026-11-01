@@ -11,6 +11,7 @@ use crate::ports::classification_work::ClassificationWorkRepository;
 
 use super::*;
 
+mod coverage;
 mod maintenance;
 mod retirement;
 

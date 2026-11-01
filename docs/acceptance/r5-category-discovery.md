@@ -1352,3 +1352,47 @@ keeps its version-1 envelope with additive activation provenance; its evidence i
 Non-equivalent merge admission, useful default-budget selection and automatic first-use integration
 remain in their canonical scope. Reactivation supplies their identity-preserving restoration path;
 it does not enable automatic maintenance on its own.
+
+### Bounded catalog coverage for maintenance
+
+The native survey now traverses distinct current exact contents in keyset windows of 1–64 entries.
+It counts the latest compatible model suggestion, including refinement, and retains at most 1–64
+opaque content identities per category. Duplicate files share one count. Missing predictions and
+sources without matching published direct fingerprints retain explicit incompleteness. Malformed
+records fail the read rather than becoming missing suggestions. Configuration, dispatch and catalog
+publication authority are rechecked across pages and after the final page; changed authority or
+cancellation returns no partial report.
+
+Six application regressions pass, covering page-independent results, bounded examples, missing
+evidence, strict ordering, malformed windows, incompatible category membership, final validation,
+pre/mid-survey cancellation and refined suggestions. Five SQLite workflow cases pass across the
+diagnostic runs, covering exact copies, latest predictions, compatible stop/re-enable and restart,
+unpublished or changed source evidence, missing analysis, category-scheme replacement, malformed
+records and publication/dispatch changes. Two query/transaction cases pass: the page seeks the
+existing content and prediction indexes, and actual SQLite `OperationInterrupted` is observed before
+verifying read-transaction retirement and cancellation-handler removal. Thirteen focused cases pass.
+
+The first compile identified a missing test import and unsigned SQLite conversions; the adapter now
+uses the established checked integer helpers. The initial query plan used nullable file identity for
+source membership; the query now explicitly selects the source-generation index for that lookup.
+The range assertion also recognizes SQLite's composite digest/length seek. Two workflow assertions
+initially tested incorrect setup: saving unchanged configuration deliberately preserves its run,
+and the source edit matched no asset row. They now exercise Stop followed by Enable and assert one
+actual selected-location update; both affected cases pass without weakening the production guards.
+
+The survey performs catalog reads only. Its SQL is cancellable, each page uses a short read transaction,
+and all decoded results are bounded by the page and taxonomy limits. Fixtures use isolated temporary
+catalogs; no original media, model inference, downloads, desktop operations or held-out samples are
+involved. There is no schema, dependency, portable-archive or desktop-bridge change. Counts alone do
+not grant retirement authority: semantic merge admission, protection and atomic publication remain
+in the canonical queue with useful-budget selection and runtime integration.
+
+The domain coverage records have 48 production lines. Application surveying has 155 production lines
+and two dedicated-test registration lines; its tests have 344 lines. SQLite coverage has 90 production
+lines, querying 126 plus two test-registration lines, and its cancellable transaction 49 plus two
+test-registration lines. Dedicated query, transaction and catalog-workflow tests have 47, 39 and 218
+lines respectively. There are no inline tests. Existing facades only register or export these owners;
+the discovery facade has 252 production lines plus two test-registration lines, domain maintenance
+151, settings 144 and the configuration ports 20 and 53.
+The repository format check passes with 685 Dart files unchanged, and `git diff --check` passes.
+The delivered commit's hosted gate retains complete-suite and lint ownership.

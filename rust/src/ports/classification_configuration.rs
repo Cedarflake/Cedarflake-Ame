@@ -4,7 +4,9 @@ use crate::domain::classification_configuration::{
 };
 
 mod maintenance;
-pub use maintenance::{CategoryExpansionRepository, CategoryRetirementRepository};
+pub use maintenance::{
+    CategoryCoverageRepository, CategoryExpansionRepository, CategoryRetirementRepository,
+};
 
 pub trait ClassificationConfigurationRepository {
     fn load_classification_configuration(

@@ -1,11 +1,11 @@
-use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, atomic::AtomicBool};
 
 use crate::domain::ScanError;
-use crate::domain::classification::CategoryId;
 use crate::domain::classification::maintenance::{
-    CategoryExpansionPlan, CategoryExpansionSnapshot, CategoryRetirementPlan,
-    CategoryRetirementSnapshot,
+    CategoryCoveragePage, CategoryCoverageSnapshot, CategoryExpansionPlan,
+    CategoryExpansionSnapshot, CategoryRetirementPlan, CategoryRetirementSnapshot,
 };
+use crate::domain::classification::{CategoryId, ClassificationContent};
 use crate::domain::classification_configuration::ClassificationConfigurationSnapshot;
 
 pub trait CategoryExpansionRepository {
@@ -29,4 +29,25 @@ pub trait CategoryRetirementRepository {
         plan: &CategoryRetirementPlan,
         cancelled: &AtomicBool,
     ) -> Result<ClassificationConfigurationSnapshot, ScanError>;
+}
+
+pub trait CategoryCoverageRepository {
+    fn begin_category_coverage(
+        &self,
+        cancelled: &Arc<AtomicBool>,
+    ) -> Result<CategoryCoverageSnapshot, ScanError>;
+
+    fn read_category_coverage(
+        &self,
+        snapshot: &CategoryCoverageSnapshot,
+        after: Option<&ClassificationContent>,
+        limit: usize,
+        cancelled: &Arc<AtomicBool>,
+    ) -> Result<CategoryCoveragePage, ScanError>;
+
+    fn validate_category_coverage(
+        &self,
+        snapshot: &CategoryCoverageSnapshot,
+        cancelled: &Arc<AtomicBool>,
+    ) -> Result<(), ScanError>;
 }
