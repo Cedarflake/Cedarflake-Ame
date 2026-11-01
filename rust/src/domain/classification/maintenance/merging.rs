@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::domain::classification::discovery::CategoryNamingPurpose;
+use crate::domain::classification::discovery::{
+    CategoryNamingPurpose, ConceptId, VocabularyConcept,
+};
 use crate::domain::classification::{CategoryId, ClassificationRevision};
 use crate::domain::classification_configuration::ClassificationConfigurationChange;
 
@@ -30,6 +32,15 @@ pub struct CategoryMergePlan {
 pub(crate) struct PurposeCategoryMerge {
     pub category_id: CategoryId,
     pub retained_id: CategoryId,
+    pub context: Option<CategoryMergeContext>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct CategoryMergeContext {
+    pub catalog: ClassificationRevision,
+    pub narrower: VocabularyConcept,
+    pub broader: VocabularyConcept,
+    pub path: Vec<ConceptId>,
 }
 
 impl CategoryMergePlan {

@@ -15,6 +15,8 @@ use crate::domain::classification_configuration::ClassificationConfigurationSnap
 
 use super::*;
 
+mod contexts;
+
 fn id(value: &str) -> ClassificationRecordId {
     ClassificationRecordId::new(value.into()).unwrap()
 }

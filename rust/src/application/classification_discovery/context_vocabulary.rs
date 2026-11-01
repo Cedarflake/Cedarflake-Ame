@@ -10,6 +10,8 @@ use crate::ports::classification_vocabulary::{
 
 use super::{check_cancelled, check_revision, read_page};
 
+mod relations;
+
 pub struct NamingContext {
     pub concept: VocabularyConcept,
     pub cues: Vec<ConceptId>,

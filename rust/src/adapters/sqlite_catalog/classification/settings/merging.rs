@@ -5,7 +5,7 @@ use std::sync::{
 
 use rusqlite::params;
 
-use crate::application::classification_discovery::select_purpose_category_merge;
+use crate::application::classification_discovery::validate_category_merge;
 use crate::domain::ScanError;
 use crate::domain::classification::maintenance::{CategoryMergePlan, CategoryMergeSnapshot};
 use crate::domain::classification_configuration::ClassificationConfigurationSnapshot;
@@ -47,8 +47,7 @@ impl CategoryMergeRepository for SqliteCatalog {
             if operations::replay(connection, &configuration.operation_id, &digest)?.is_none() {
                 let current = basis::snapshot(connection)?;
                 if current != plan.before
-                    || select_purpose_category_merge(&current, &plan.coverage, cancelled)?.as_ref()
-                        != Some(&plan.merged)
+                    || !validate_category_merge(&current, &plan.coverage, &plan.merged, cancelled)?
                 {
                     return Err(changed());
                 }

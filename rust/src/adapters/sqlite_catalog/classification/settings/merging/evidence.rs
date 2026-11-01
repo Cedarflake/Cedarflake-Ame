@@ -30,9 +30,15 @@ pub(super) fn encode(plan: &CategoryMergePlan) -> Result<String, ScanError> {
             "alternative": alternative.category_id.as_str(), "similarity": alternative.similarity,
         }))
     }).collect::<Result<Vec<_>, ScanError>>()?;
+    let algorithm = if plan.merged.context.is_some() {
+        "complete-broader-context-support-v1"
+    } else {
+        "complete-purpose-support-v1"
+    };
+    let context = encode_context(plan)?;
     codec::encode(
         &json!({
-            "version": 3, "kind": "purpose_category_merge", "algorithm": "complete-purpose-support-v1",
+            "version": 3, "kind": "purpose_category_merge", "algorithm": algorithm,
             "run": serde_json::from_str::<Value>(&codec::encode_run(plan.configuration.setup.run())?).map_err(|_| invalid_record())?,
             "coverage": {
                 "catalog_revision": plan.coverage.snapshot.catalog_revision,
@@ -41,7 +47,8 @@ pub(super) fn encode(plan: &CategoryMergePlan) -> Result<String, ScanError> {
                 "classified_contents": plan.coverage.classified_contents,
             },
             "merge": {
-                "category": plan.merged.category_id.as_str(), "purpose": plan.merged.retained_id.as_str(),
+                "category": plan.merged.category_id.as_str(), "purpose": basis.naming.category().as_str(),
+                "retained_category": plan.merged.retained_id.as_str(), "context": context,
                 "purpose_revision": codec::revision(basis.naming.category_revision()),
                 "label": origin.admitted_label, "semantic_revision": codec::revision(origin.admitted_semantic_revision),
                 "origin_operation": origin.operation_id.as_str(), "origin_evidence": codec::revision(basis.evidence),
@@ -50,4 +57,43 @@ pub(super) fn encode(plan: &CategoryMergePlan) -> Result<String, ScanError> {
         }),
         524288,
     )
+}
+
+fn encode_context(plan: &CategoryMergePlan) -> Result<Option<Value>, ScanError> {
+    let Some(context) = &plan.merged.context else {
+        return Ok(None);
+    };
+    let retained = plan
+        .before
+        .bases
+        .get(&plan.merged.retained_id)
+        .ok_or_else(invalid_record)?;
+    let retained_origin = plan
+        .before
+        .categories
+        .origins
+        .get(&plan.merged.retained_id)
+        .ok_or_else(invalid_record)?;
+    let retained_support = plan
+        .coverage
+        .categories
+        .get(&plan.merged.retained_id)
+        .ok_or_else(invalid_record)?;
+    let path: Vec<_> = context
+        .path
+        .iter()
+        .map(|concept| codec::digest(concept.bytes()))
+        .collect();
+    Ok(Some(json!({
+        "catalog": codec::revision(context.catalog),
+        "narrower": codec::digest(context.narrower.id().bytes()),
+        "broader": codec::digest(context.broader.id().bytes()),
+        "narrower_revision": codec::revision(context.narrower.revision()),
+        "broader_revision": codec::revision(context.broader.revision()),
+        "path": path,
+        "retained_origin_operation": retained_origin.operation_id.as_str(),
+        "retained_origin_evidence": codec::revision(retained.evidence),
+        "retained_minimum_members": retained.minimum_members,
+        "retained_contents": retained_support.contents,
+    })))
 }

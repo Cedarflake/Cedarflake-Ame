@@ -473,8 +473,22 @@ requires every currently assigned content to be represented and its unique best 
 to be the recorded purpose. A tied or different alternative defers the merge. Complete zero occupancy
 can retire an unchanged refinement to its unchanged declared purpose, but an empty or incomplete
 catalog cannot. Categories still meeting their original recurrence requirement remain active.
-No category is removed to force a requested count. Unconditioned categories and non-parent overlap
+No category is removed to force a requested count. Unconditioned categories and unrelated contexts
 remain outside this merge rule.
+
+If no original-purpose merge qualifies, a sparse refinement can merge into an existing broader
+generated context under the same original purpose. Every retained source member must have that
+target as its unique best alternative, and the target must still meet its own original admission's
+recurrence requirement. Both original naming patterns and purpose revisions must agree; projecting
+the current context definitions must reproduce both active semantic revisions. The naming catalog
+must declare a strict broader path of at most four edges. Reverse reachability anywhere in the
+bounded catalog rejects cyclic containment. Similar names or scores alone supply no relationship.
+Zero occupancy supplies no alternate-context destination and retains the original-purpose rule.
+
+The immutable plan binds the naming-catalog revision, both context revisions and their path. Commit
+revalidates source eligibility, target evidence, definitions and support under the same complete
+catalog authority. The target definition is retained unchanged; source human decisions and manual
+protection still prohibit withdrawal. Existing category order cannot change the chosen relation.
 
 One operation removes at most one definition. A subsequent merge requires fresh complete coverage
 under the replacement scheme; independent single-removal assessments cannot authorize a joint change.
@@ -485,6 +499,9 @@ model access occurs in preparation or the write transaction.
 
 Schema 73 extends immutable maintenance evidence with version-3 purpose-merge records while preserving
 versions 1 and 2. The migration preserves existing payloads atomically and needs no media rescan.
+Broader-context merges use the same version with a distinct algorithm identity, retained category,
+context path and target's original admission evidence. The purpose field continues to identify the
+original naming purpose; no further schema change is needed.
 Portable archive version 6 remains unchanged; missing restored model evidence grants no automatic
 merge authority. This native operation supplies a maintenance action without enabling its scheduler
 or selecting the remaining useful-count and first-use operating policy.

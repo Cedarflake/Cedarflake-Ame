@@ -13,7 +13,11 @@ use crate::domain::classification_configuration::{
 };
 use crate::ports::classification_configuration::CategoryMergeRepository;
 
-use super::check_cancelled;
+use super::{NamingContextCatalog, check_cancelled};
+
+mod contexts;
+mod eligibility;
+pub(crate) use contexts::validate_category_merge;
 
 pub fn prepare_purpose_category_merge(
     operation_id: ClassificationRecordId,
@@ -21,9 +25,26 @@ pub fn prepare_purpose_category_merge(
     repository: &impl CategoryMergeRepository,
     cancelled: &Arc<AtomicBool>,
 ) -> Result<Option<CategoryMergePlan>, ScanError> {
+    prepare_category_merge(operation_id, coverage, None, repository, cancelled)
+}
+
+pub fn prepare_category_merge(
+    operation_id: ClassificationRecordId,
+    coverage: CategoryCoverageSummary,
+    contexts: Option<&NamingContextCatalog>,
+    repository: &impl CategoryMergeRepository,
+    cancelled: &Arc<AtomicBool>,
+) -> Result<Option<CategoryMergePlan>, ScanError> {
     check_cancelled(cancelled)?;
     let before = repository.load_category_merge_snapshot(cancelled)?;
-    let Some(merged) = select_purpose_category_merge(&before, &coverage, cancelled)? else {
+    let mut selected = select_purpose_category_merge(&before, &coverage, cancelled)?;
+    if selected.is_none()
+        && let Some(contexts) = contexts
+    {
+        selected =
+            contexts::select_context_category_merge(&before, &coverage, contexts, cancelled)?;
+    }
+    let Some(merged) = selected else {
         return Ok(None);
     };
     let current = before
@@ -71,50 +92,10 @@ pub(crate) fn select_purpose_category_merge(
     coverage: &CategoryCoverageSummary,
     cancelled: &AtomicBool,
 ) -> Result<Option<PurposeCategoryMerge>, ScanError> {
-    check_cancelled(cancelled)?;
-    let before = &snapshot.categories;
-    if before.configuration != coverage.snapshot.configuration
-        || before.model != Some(coverage.snapshot.model)
-        || before.configuration.dispatch.mode != ClassificationDispatchMode::Automatic
-    {
-        return Err(changed());
-    }
-    if !coverage.is_complete() || coverage.classified_contents == 0 {
-        return Ok(None);
-    }
-    let rules = before
-        .configuration
-        .catalog
-        .taxonomy
-        .as_ref()
-        .ok_or_else(changed)?;
-    let mut eligible = Vec::new();
-    for category in rules.categories() {
+    for category in eligibility::sparse_categories(snapshot, coverage, cancelled)? {
         check_cancelled(cancelled)?;
-        if before.protects(category) {
-            continue;
-        }
-        let Some(basis) = snapshot.bases.get(category.id()) else {
-            continue;
-        };
-        let origin = before.origins.get(category.id()).ok_or_else(changed)?;
-        let parent = rules
-            .categories()
-            .iter()
-            .find(|category| category.id() == basis.naming.category());
-        if origin.purpose.as_ref() != Some(basis.naming.category())
-            || parent
-                .is_none_or(|parent| parent.semantic_revision() != basis.naming.category_revision())
-            || !(2..=511).contains(&basis.minimum_members)
-        {
-            continue;
-        }
-        let support = coverage.categories.get(category.id()).ok_or_else(changed)?;
-        if support.contents >= basis.minimum_members as u64
-            || support.contents != support.retained_members.len() as u64
-        {
-            continue;
-        }
+        let basis = &snapshot.bases[&category];
+        let support = &coverage.categories[&category];
         if support.retained_members.iter().any(|member| {
             member
                 .alternative
@@ -123,21 +104,14 @@ pub(crate) fn select_purpose_category_merge(
         }) {
             continue;
         }
-        eligible.push((
-            support.contents,
-            PurposeCategoryMerge {
-                category_id: category.id().clone(),
-                retained_id: basis.naming.category().clone(),
-            },
-        ));
+        return Ok(Some(PurposeCategoryMerge {
+            category_id: category,
+            retained_id: basis.naming.category().clone(),
+            context: None,
+        }));
     }
-    eligible.sort_by(|left, right| {
-        left.0
-            .cmp(&right.0)
-            .then_with(|| left.1.category_id.cmp(&right.1.category_id))
-    });
     check_cancelled(cancelled)?;
-    Ok(eligible.into_iter().next().map(|(_, merge)| merge))
+    Ok(None)
 }
 
 fn changed() -> ScanError {

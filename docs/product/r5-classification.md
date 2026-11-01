@@ -93,6 +93,9 @@ An automatic refinement can return to its original purpose category after comple
 evidence falls below the recurrence needed to create it and every remaining image has that purpose
 as its unique best alternative. Changed meanings, missing evidence and saved human choices preserve
 the category. A fresh compatible assessment can later restore the original refinement identity.
+An existing broader refinement of the same purpose can also receive a sparse category when its
+declared meaning contains the narrower context, it remains recurrent, and all affected images agree
+on that alternative. Similar names or scores alone do not combine distinct uses.
 Cultural meaning absent from visible evidence remains uncertain; repeated examples and corrections
 can inform evaluation without automatic online research or unannounced retraining. The
 [compatibility contract](../architecture/0034-versioned-classification-contracts.md) owns bounded

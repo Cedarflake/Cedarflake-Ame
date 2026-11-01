@@ -1494,3 +1494,41 @@ with shared signals for SQLite interruption; there are no new inline test cases.
 All catalogs and backup artifacts in these diagnostics are disposable fixtures. No original media,
 retained user catalog, model process, download or desktop interaction is used. Automatic scheduling,
 non-parent overlap admission and broader context coverage remain in the canonical R5 queue.
+
+### Sparse refinement into an existing broader context
+
+The merge operation now accepts a declared broader context under the same original purpose when
+the original-purpose destination does not qualify. Source occupancy must fall below its original
+admission threshold, every source member must be retained with the same unique alternative, and
+the target must retain its own admitted recurrence. Both composed meanings and original naming
+authority must still agree. The versioned context catalog supplies a strict containment path of
+at most four edges; a reverse path anywhere in the bounded catalog rejects the merge. Names and
+score gaps alone cannot supply this authority.
+
+The replacement retains the target definition, original source identity, historical runs and
+predictions. Its existing transaction binds current coverage, both admission records and human
+protection. Version-3 evidence records the context revision/path and retained target separately
+from the original purpose. Schema 73, portable archive version 6, model dependencies and the desktop
+bridge remain unchanged. This is a native maintenance boundary; automatic dispatch and first-use
+integration retain their remaining work in the canonical roadmap.
+
+Application regressions cover supported containment, unrelated names, cycles longer than the
+admitted forward path, missing/changed meaning, source and target recurrence, incomplete coverage,
+human protection, deterministic traversal and cancellation. SQLite workflows exercise atomic
+publication, unchanged target definitions and R4 state, retained history, restart and Stop replay,
+changed target authority and predictions, failed writes, cancellation and successful retry.
+
+All 15 application and SQLite merge checks pass with warning-free non-incremental compilation.
+The first run passed 14 cases; the remaining fixture supplied three scores for its new four-category
+taxonomy and was correctly rejected as incomplete. The fixture now ranks the whole active taxonomy,
+and the repeated suite passes. The read-only repository format check passes with 685 Dart files
+unchanged; `git diff --check` passes. No original media, model process or desktop window is used.
+
+Merge eligibility, context containment and graph traversal own 63, 149 and 92 production lines.
+Merge preparation has 123 production lines plus two test-registration lines; domain merge records
+have 58, SQL publication 80 and evidence encoding 99. The existing context catalog has 201 production
+lines plus two registration lines, domain maintenance 162, discovery facade 256 plus two registration
+lines and public classification facade 95. Dedicated application merge tests have 292 and 325 lines;
+SQLite merge tests have 306 and 368, with the unchanged 142-line shared fixture. These owners have
+no inline test cases. The graph owner verifies containment; the policy owner verifies admissibility;
+the existing transaction continues to own authority, replacement and rollback.

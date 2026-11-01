@@ -183,8 +183,10 @@ cross-page publication changes. A guarded merge now returns a sparse generated r
 recorded original purpose only with complete current coverage and compatible alternatives, preserving
 human choices, meaning and history through atomic publication. Automatic addition capacity now derives
 from distinct verified contents and the admitted recurrence requirement, preserving retained definitions
-and revalidating the count's catalog authority at publication. Non-parent overlap admission and runtime
-integration remain before automatic first use.
+and revalidating the count's catalog authority at publication. Sparse refinements now also have a
+guarded merge into an existing broader context of the same purpose, retaining declared containment,
+complete alternatives, recurrent target support and human protection. Runtime integration remains
+before automatic first use.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review

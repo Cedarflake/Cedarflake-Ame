@@ -17,8 +17,8 @@ pub use coverage::{
     CategoryCoverageSummary, CategoryCoverageSupport,
 };
 mod merging;
-pub(crate) use merging::PurposeCategoryMerge;
 pub use merging::{CategoryMergeBasis, CategoryMergePlan, CategoryMergeSnapshot};
+pub(crate) use merging::{CategoryMergeContext, PurposeCategoryMerge};
 mod retirement;
 pub use retirement::{
     CategoryRetirementPlan, CategoryRetirementSnapshot, EquivalentCategoryRetirement,

@@ -13,6 +13,7 @@ use crate::ports::classification_configuration::{
 
 use super::*;
 
+mod contexts;
 mod fixture;
 use fixture::{predict_child, proposal, sparse, start, survey};
 

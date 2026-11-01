@@ -51,8 +51,8 @@ pub use maintenance::{
     CategoryExpansionAssessment, CategoryExpansionBudget, CategoryExpansionRequest,
     prepare_category_expansion,
 };
-pub use merging::prepare_purpose_category_merge;
-pub(crate) use merging::select_purpose_category_merge;
+pub(crate) use merging::validate_category_merge;
+pub use merging::{prepare_category_merge, prepare_purpose_category_merge};
 pub use nomination::{
     ConceptNomination, ConceptNominationRequest, nominate_classification_contexts,
 };

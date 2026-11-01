@@ -16,7 +16,7 @@ pub use crate::application::classification_discovery::{
     DiscoveryCohortPolicy, MemberAdmission, NamingContext, NamingContextCatalog,
     assess_category_candidates, assess_category_scheme, assess_category_withdrawals,
     consolidate_classification_concepts, form_discovery_cohorts, nominate_classification_contexts,
-    prepare_category_expansion, prepare_equivalent_category_retirement,
+    prepare_category_expansion, prepare_category_merge, prepare_equivalent_category_retirement,
     retrieve_classification_concepts,
 };
 pub use crate::application::classification_dispatch::{
