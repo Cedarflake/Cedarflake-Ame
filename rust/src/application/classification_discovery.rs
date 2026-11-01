@@ -23,8 +23,10 @@ mod coverage;
 mod maintenance;
 mod merging;
 mod nomination;
+mod preparation;
 mod ranking;
 mod retirement;
+mod sampling;
 mod scheme;
 mod search;
 mod withdrawal;
@@ -56,9 +58,14 @@ pub use merging::{prepare_category_merge, prepare_purpose_category_merge};
 pub use nomination::{
     ConceptNomination, ConceptNominationRequest, nominate_classification_contexts,
 };
+pub use preparation::{
+    DiscoveryPreparationPolicy, DiscoveryPreparationRequest, PreparedDiscoveryWindow,
+    prepare_discovery_window,
+};
 pub use ranking::{ConceptMatch, DiscoveryCandidates};
 pub(crate) use retirement::equivalent_retirements;
 pub use retirement::prepare_equivalent_category_retirement;
+pub use sampling::{DiscoverySampleCursor, DiscoverySampleWindow, read_discovery_samples};
 pub use scheme::{
     CategorySchemeAssessment, CategorySchemeCandidate, CategorySchemeDisposition,
     CategorySchemeMember, assess_category_scheme,

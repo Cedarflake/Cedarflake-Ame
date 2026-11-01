@@ -1654,3 +1654,37 @@ PowerShell syntax and the read-only repository format check pass with 690 Dart f
 | Artifact admission and atomic publication | 168 | 0 | Included above |
 | PowerShell artifact contract / preparation entrypoint | 40 / 28 | 0 | Shared packaging checks |
 | CMake dependency/install module | 12 | 0 | Production target and hosted Release |
+
+### Current-content sampling for maintenance
+
+The discovery sampler connects the existing distinct-content coverage query to compatible cached
+image features. It examines at most 512 contents in pages of at most 64; missing features consume
+that bound and do not trigger image reads or inference. Exact continuation carries the original
+catalog/configuration/model/dispatch authority. Current content can be sampled while other sources
+still lack exact verification; incomplete global coverage remains explicit in the snapshot.
+
+Six focused cases pass for bounded paging and exact continuation, an all-missing 512-content cache
+window, changed publication and manual Pause, cancellation and final revalidation, invalid pages and
+incompatible features, and empty/invalid-limit input. The cache fixture rejects any feature write,
+text analysis, enumeration or cleanup. Native non-incremental compilation passes without warnings.
+This supplies the sampler for maintenance preparation; automatic scheduling/publication and the
+integrated category-quality result remain under the roadmap's existing acceptance boundaries.
+
+The preparation owner connects sampled features to the current matcher, cohort formation, bounded
+retrieval, nomination and joint addition assessment. It returns at most one immutable expansion plan
+using verified-content coverage for cumulative capacity; catalog publication remains behind the
+existing runtime-retirement gate. Empty or insufficient cached samples start no encoder.
+
+Five focused preparation cases pass for guarded additions and text-cache reuse, absent features,
+cancellation, changed publication after assessment and invalid policy before I/O. The initial run
+finds an incorrect test accessor; the assertion now uses the setup's primary taxonomy. The restricted
+Windows token then rejects temporary-cache namespace admission; all five cases pass with the normal
+token and the existing ACL guard unchanged. No image inference or catalog write is permitted by the
+fixtures. These checks establish native preparation, with scheduling and first-use acceptance still
+pending.
+
+The sampler has 135 production lines plus two test-registration lines and 336 dedicated test lines.
+Preparation has 182 production and 333 dedicated test lines. The discovery facade has 263 production
+lines plus two registration lines; its shared test module has 420 lines, and the public native facade
+has 106. The read-only format check passes with 690 Dart files unchanged; `git diff --check` passes.
+No schema, bridge, user-interface or original-media behavior changes.

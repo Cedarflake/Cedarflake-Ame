@@ -51,6 +51,23 @@ for the missing discovery/maintenance owner.
 
 ### Automatic cohort formation
 
+The sampling owner reads the existing distinct-current-content coverage projection in windows of
+at most 64 records, examining at most 512 contents per call. It loads only compatible cached image
+features; a missing feature is counted and skipped without media access or inference. The bound
+applies to examined contents, so cache misses cannot turn a window into an unbounded catalog scan.
+An opaque continuation retains the exact catalog, configuration, model and dispatch snapshot.
+Cancellation, changed authority, unordered pages or incompatible cache data reject the whole window;
+publication is revalidated after the last read. Automatic dispatch mode is required. These reads
+neither update category decisions nor authorize a maintenance commit.
+
+The preparation owner composes that window with the existing matcher, cohort builder, retrieval,
+purpose-aware nomination and joint addition assessment. The caller supplies the admitted policies,
+naming purposes, residency and cancellation. It uses current verified-content coverage for cumulative
+capacity, returns at most one guarded expansion plan and revalidates the sampled publication after
+assessment. Empty or insufficient cached samples start no encoder. Text features remain reusable
+after cancellation; the operation neither reads images nor changes catalog state. The runtime
+handoff and transactional maintenance submission remain the sole publication path.
+
 The application forms discovery cohorts from a bounded window of at most 512 distinct compatible
 cached image features. It uses complete-link similarity: every pair in an admitted cluster must
 meet the caller's minimum cosine. The dense link matrix is bounded to one MiB, and cancellation is
