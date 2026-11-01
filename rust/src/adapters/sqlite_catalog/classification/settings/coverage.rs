@@ -14,6 +14,7 @@ use super::{SqliteCatalog, changed, database_error};
 
 mod query;
 mod transaction;
+pub(super) use transaction::interruptible;
 
 impl CategoryCoverageRepository for SqliteCatalog {
     fn begin_category_coverage(
@@ -53,13 +54,20 @@ impl CategoryCoverageRepository for SqliteCatalog {
         cancelled: &Arc<AtomicBool>,
     ) -> Result<(), ScanError> {
         transaction::read(&self.connection, cancelled, |connection| {
-            validate(connection, snapshot)?;
-            if query::unverified_sources(connection)? != snapshot.unverified_sources {
-                return Err(changed());
-            }
-            Ok(())
+            validate_snapshot(connection, snapshot)
         })
     }
+}
+
+pub(super) fn validate_snapshot(
+    connection: &Connection,
+    snapshot: &CategoryCoverageSnapshot,
+) -> Result<(), ScanError> {
+    validate(connection, snapshot)?;
+    if query::unverified_sources(connection)? != snapshot.unverified_sources {
+        return Err(changed());
+    }
+    Ok(())
 }
 
 fn current(

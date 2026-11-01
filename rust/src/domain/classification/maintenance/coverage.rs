@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::domain::classification::{
-    CategoryId, ClassificationContent, ClassificationRevision, ModelCompatibility,
+    CategoryId, CategoryScore, ClassificationContent, ClassificationRevision, ModelCompatibility,
     PredictionEvidence,
 };
 use crate::domain::classification_configuration::ClassificationConfigurationSnapshot;
@@ -26,10 +26,16 @@ pub struct CategoryCoveragePage {
     pub has_more: bool,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct CategoryCoverageMember {
+    pub content: ClassificationContent,
+    pub alternative: Option<CategoryScore>,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct CategoryCoverageSupport {
     pub contents: u64,
-    pub retained_contents: Vec<ClassificationContent>,
+    pub retained_members: Vec<CategoryCoverageMember>,
 }
 
 #[derive(Debug)]

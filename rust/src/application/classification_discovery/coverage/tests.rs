@@ -184,12 +184,18 @@ fn coverage_is_page_independent_and_retains_only_bounded_content_examples() {
     assert_eq!(expected.categories[&category("drawing")].contents, 5);
     assert_eq!(
         expected.categories[&category("drawing")]
-            .retained_contents
+            .retained_members
             .len(),
         2
     );
     assert_eq!(expected.categories[&category("photo")].contents, 1);
     assert_eq!(expected.categories[&category("unused")].contents, 0);
+    assert!(
+        expected.categories[&category("drawing")]
+            .retained_members
+            .iter()
+            .all(|member| member.alternative.is_none())
+    );
     for size in [2, 4, 64] {
         let actual = survey_category_coverage(&source, size, 2, &cancelled).unwrap();
         assert_eq!(actual.evidence, expected.evidence);
@@ -319,6 +325,8 @@ fn coverage_counts_the_refined_suggestion_when_primary_and_refinement_disagree()
                 category_id: score.category_id.clone(),
                 similarity: if score.category_id.as_str() == "photo" {
                     0.9
+                } else if score.category_id.as_str() == "drawing" {
+                    0.5
                 } else {
                     0.1
                 },
@@ -341,4 +349,10 @@ fn coverage_counts_the_refined_suggestion_when_primary_and_refinement_disagree()
     assert!(result.is_complete());
     assert_eq!(result.categories[&category("photo")].contents, 6);
     assert_eq!(result.categories[&category("drawing")].contents, 0);
+    let alternative = result.categories[&category("photo")].retained_members[0]
+        .alternative
+        .as_ref()
+        .unwrap();
+    assert_eq!(alternative.category_id, category("drawing"));
+    assert_eq!(alternative.similarity, 0.5);
 }

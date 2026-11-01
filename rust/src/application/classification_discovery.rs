@@ -21,6 +21,7 @@ mod context_graph;
 mod context_vocabulary;
 mod coverage;
 mod maintenance;
+mod merging;
 mod nomination;
 mod ranking;
 mod retirement;
@@ -49,6 +50,8 @@ pub use coverage::survey_category_coverage;
 pub use maintenance::{
     CategoryExpansionAssessment, CategoryExpansionRequest, prepare_category_expansion,
 };
+pub use merging::prepare_purpose_category_merge;
+pub(crate) use merging::select_purpose_category_merge;
 pub use nomination::{
     ConceptNomination, ConceptNominationRequest, nominate_classification_contexts,
 };

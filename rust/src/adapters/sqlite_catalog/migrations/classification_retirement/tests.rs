@@ -60,7 +60,7 @@ fn retirement_upgrade_preserves_existing_evidence_and_configuration() {
     let catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     assert_eq!(
         schema_shape::schema_version(&catalog.connection).unwrap(),
-        72
+        crate::adapters::sqlite_catalog::SCHEMA_VERSION
     );
     assert_eq!(catalog.load_classification_state().unwrap(), before);
     let retained: String = catalog

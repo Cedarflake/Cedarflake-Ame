@@ -179,8 +179,10 @@ sufficient reasons to remove useful distinctions. Fresh admission can now reacti
 retired generated category using its original identity and origin, with transactional protection,
 capacity and source checks; manual retirement remains protected. A bounded catalog survey now counts
 distinct current contents and compatible final suggestions, retaining incomplete coverage and rejecting
-cross-page publication changes. Useful default-budget selection, non-equivalent existing-category
-overlap admission and runtime integration remain before automatic first use.
+cross-page publication changes. A guarded merge now returns a sparse generated refinement to its
+recorded original purpose only with complete current coverage and compatible alternatives, preserving
+human choices, meaning and history through atomic publication. Useful default-budget selection,
+non-parent overlap admission and runtime integration remain before automatic first use.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review

@@ -86,6 +86,10 @@ and human effort rather than a fixed target count. A larger hard-coded list is n
 this policy. Isolated unusual images and small occupancy alone do not create or remove a category.
 Automatic maintenance preserves stable identities and explicit human choices; it never silently
 remaps a saved human category or requests confirmation for every image or routine vocabulary change.
+An automatic refinement can return to its original purpose category after complete current-library
+evidence falls below the recurrence needed to create it and every remaining image has that purpose
+as its unique best alternative. Changed meanings, missing evidence and saved human choices preserve
+the category. A fresh compatible assessment can later restore the original refinement identity.
 Cultural meaning absent from visible evidence remains uncertain; repeated examples and corrections
 can inform evaluation without automatic online research or unannounced retraining. The
 [compatibility contract](../architecture/0034-versioned-classification-contracts.md) owns bounded

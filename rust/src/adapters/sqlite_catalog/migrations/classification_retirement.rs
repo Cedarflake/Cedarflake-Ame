@@ -43,6 +43,7 @@ pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), S
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v71_for_test(connection: &Connection) {
+    super::classification_merge::downgrade_to_v72_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() != 72 {
         return;
     }

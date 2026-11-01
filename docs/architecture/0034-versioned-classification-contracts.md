@@ -446,6 +446,36 @@ run. Portable recovery continues to retain definitions/origins and omit derived 
 Non-equivalent overlap decisions, cumulative usefulness budgets and runtime scheduling remain separate
 requirements; this equivalence proof does not supply their thresholds or enable maintenance itself.
 
+### Purpose-preserving sparse-category merge
+
+A generated refinement can return to the purpose category recorded in its original admission when
+complete current-content coverage no longer meets that admission's repeated-content requirement.
+The original naming purpose, its semantic revision and the admitted minimum membership supply the
+relationship and threshold. Similar labels, small score differences and a new caller-selected count
+do not establish this authority. Missing creation evidence, changed parent meaning, manual protection,
+human-category references or active purpose children preserve the generated definition.
+
+Coverage retains a bounded second-choice result from each final compatible prediction. A merge
+requires every currently assigned content to be represented and its unique best remaining category
+to be the recorded purpose. A tied or different alternative defers the merge. Complete zero occupancy
+can retire an unchanged refinement to its unchanged declared purpose, but an empty or incomplete
+catalog cannot. Categories still meeting their original recurrence requirement remain active.
+No category is removed to force a requested count. Unconditioned categories and non-parent overlap
+remain outside this merge rule.
+
+One operation removes at most one definition. A subsequent merge requires fresh complete coverage
+under the replacement scheme; independent single-removal assessments cannot authorize a joint change.
+Preparation and publication retain catalog/configuration authority, origin and original naming
+evidence, human references, cancellation and idempotent receipts. The replacement is explicitly
+uncalibrated; original definitions, origins, human choices and past runs remain stored. No image or
+model access occurs in preparation or the write transaction.
+
+Schema 73 extends immutable maintenance evidence with version-3 purpose-merge records while preserving
+versions 1 and 2. The migration preserves existing payloads atomically and needs no media rescan.
+Portable archive version 6 remains unchanged; missing restored model evidence grants no automatic
+merge authority. This native operation supplies a maintenance action without enabling its scheduler
+or selecting the remaining useful-count and first-use operating policy.
+
 ## Features and matching
 
 Adapters supply Ame-owned, opaque revisions for the shared embedding space and the independent image

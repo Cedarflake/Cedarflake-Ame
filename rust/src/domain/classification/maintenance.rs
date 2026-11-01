@@ -13,9 +13,12 @@ mod activation;
 pub(crate) use activation::CategoryActivation;
 mod coverage;
 pub use coverage::{
-    CategoryCoverageEntry, CategoryCoveragePage, CategoryCoverageSnapshot, CategoryCoverageSummary,
-    CategoryCoverageSupport,
+    CategoryCoverageEntry, CategoryCoverageMember, CategoryCoveragePage, CategoryCoverageSnapshot,
+    CategoryCoverageSummary, CategoryCoverageSupport,
 };
+mod merging;
+pub(crate) use merging::PurposeCategoryMerge;
+pub use merging::{CategoryMergeBasis, CategoryMergePlan, CategoryMergeSnapshot};
 mod retirement;
 pub use retirement::{
     CategoryRetirementPlan, CategoryRetirementSnapshot, EquivalentCategoryRetirement,

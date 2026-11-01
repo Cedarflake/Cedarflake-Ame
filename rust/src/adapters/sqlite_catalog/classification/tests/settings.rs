@@ -13,6 +13,7 @@ use super::*;
 
 mod coverage;
 mod maintenance;
+mod merging;
 mod retirement;
 
 fn request(

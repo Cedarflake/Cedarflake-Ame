@@ -69,7 +69,7 @@ impl CategoryRetirementRepository for SqliteCatalog {
     }
 }
 
-fn snapshot(connection: &Connection) -> Result<CategoryRetirementSnapshot, ScanError> {
+pub(super) fn snapshot(connection: &Connection) -> Result<CategoryRetirementSnapshot, ScanError> {
     let configuration = super::load(connection)?;
     let model = super::authority::active_model(connection, &configuration)?;
     let categories: Vec<_> = configuration

@@ -15,6 +15,7 @@ use super::{changed, codec, configuration, operations, setup, work::control};
 mod authority;
 mod coverage;
 mod maintenance;
+mod merging;
 mod retirement;
 
 impl ClassificationConfigurationRepository for SqliteCatalog {

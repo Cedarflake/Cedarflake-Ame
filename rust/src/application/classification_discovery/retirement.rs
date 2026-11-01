@@ -75,11 +75,6 @@ pub(crate) fn equivalent_retirements(
         .taxonomy
         .as_ref()
         .ok_or_else(changed)?;
-    let parent_categories: BTreeSet<_> = snapshot
-        .origins
-        .values()
-        .filter_map(|origin| origin.purpose.as_ref())
-        .collect();
     let mut groups: BTreeMap<_, Vec<&CategoryDefinition>> = BTreeMap::new();
     for category in rules.categories() {
         check_cancelled(cancelled)?;
@@ -92,26 +87,17 @@ pub(crate) fn equivalent_retirements(
             .or_default()
             .push(category);
     }
-    let protected = |category: &CategoryDefinition| {
-        snapshot.human_categories.contains(category.id())
-            || parent_categories.contains(category.id())
-            || snapshot.origins.get(category.id()).is_none_or(|origin| {
-                origin.protected
-                    || origin.admitted_label != category.label()
-                    || origin.admitted_semantic_revision != category.semantic_revision()
-            })
-    };
     let mut retirements = Vec::new();
     for group in groups.values() {
         check_cancelled(cancelled)?;
         let Some(retained) = group
             .iter()
-            .min_by_key(|category| (!protected(category), category.id()))
+            .min_by_key(|category| (!snapshot.protects(category), category.id()))
         else {
             continue;
         };
         for category in group {
-            if category.id() == retained.id() || protected(category) {
+            if category.id() == retained.id() || snapshot.protects(category) {
                 continue;
             }
             retirements.push(EquivalentCategoryRetirement {

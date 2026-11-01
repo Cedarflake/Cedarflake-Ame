@@ -1396,3 +1396,51 @@ the discovery facade has 252 production lines plus two test-registration lines, 
 151, settings 144 and the configuration ports 20 and 53.
 The repository format check passes with 685 Dart files unchanged, and `git diff --check` passes.
 The delivered commit's hosted gate retains complete-suite and lint ownership.
+
+### Returning sparse refinements to their original purpose
+
+The native merge operation now reads each generated definition's original admission evidence and
+uses its recorded recurrence requirement and semantic purpose. The complete current catalog survey
+retains bounded unique second choices from the final prediction, including refinement. Preparation
+requires every assigned content to be represented, every alternative to be the same unchanged
+purpose, and support below the original admission requirement. Ties, truncated evidence, incomplete
+or empty libraries, missing original evidence, changed meanings and human protection retain the
+definition. Complete zero occupancy remains distinguishable from missing analysis. One operation
+removes one refinement; another operation needs fresh coverage after the scheme changes.
+
+Twenty-seven focused cases pass across application policy (4), SQLite merge workflows (4), schema-73
+migration (2), coverage (6), SQL cancellation (1), shared equivalent-retirement protection (8) and the
+schema-72 migration chain (2). Workflow cases exercise retained historical predictions and definitions,
+uncalibrated run replacement, restart and idempotent replay after Stop, late source/publication/pause/
+human/origin/evidence changes, missing creation evidence and changed parent semantics. Injected write
+failure and cancellation during run replacement preserve the prior configuration, run and receipt;
+the connection returns to autocommit and its interrupt handler is removed. Migration checks retain
+version-1 and version-2 payloads byte-for-byte, reject malformed version-3 records, and preserve the
+old schema and evidence on failure before successful retry. Existing R4 state remains unchanged.
+
+The first compiled diagnostic exposed an unused plan-accessor warning despite passing assertions.
+The write adapter now consumes the typed configuration accessor; all four affected transaction checks
+pass again with a warning-free compile. Full lint and complete-suite execution remain hosted.
+
+The retained 236-content withdrawal report has 16 animal-ear illustration, 34 animal-ear reaction,
+5 cat-reaction and 17 code-screenshot assignments. Each still meets the measured three-content
+recurrence candidate and is retained by this rule. This is a compatibility comparison with retained
+evidence, not a new inference or held-out accuracy measurement. Small score gaps and a common fallback
+remain insufficient reasons for merging these useful distinctions. No original-media reads, model
+work, downloads, desktop operations or held-out samples were used for this slice.
+
+The new domain records have 47 production lines. Application merging has 149 production lines and
+two test-registration lines, with 290 dedicated test lines. SQLite merge publication, original-basis
+reading and evidence encoding have 81, 90 and 53 production lines; their workflow tests and fixture
+have 305 and 142 lines. Coverage has 167 production lines plus two registration lines and 358 test
+lines; its SQL transaction owner has 58 production lines plus two registration lines. The migration
+has 46 production lines, 23 test-helper lines and two registration lines, with 117 dedicated test
+lines. The existing migration facade adds three registration/dispatch lines and no inline tests;
+the shared catalog facade changes only the schema-version constant. No unrelated extraction or
+desktop change is included.
+The repository formatting check passes with 685 Dart files unchanged, and `git diff --check` passes.
+
+Schema 73 preserves catalogs and maintenance history without a rescan. Portable archive version 6,
+model/runtime dependencies and the desktop bridge are unchanged. Non-parent overlap policy, useful
+default-budget selection, broader context admission and first-use integration remain in the canonical
+queue; this transaction does not itself enable automatic maintenance.

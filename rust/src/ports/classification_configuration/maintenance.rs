@@ -3,7 +3,8 @@ use std::sync::{Arc, atomic::AtomicBool};
 use crate::domain::ScanError;
 use crate::domain::classification::maintenance::{
     CategoryCoveragePage, CategoryCoverageSnapshot, CategoryExpansionPlan,
-    CategoryExpansionSnapshot, CategoryRetirementPlan, CategoryRetirementSnapshot,
+    CategoryExpansionSnapshot, CategoryMergePlan, CategoryMergeSnapshot, CategoryRetirementPlan,
+    CategoryRetirementSnapshot,
 };
 use crate::domain::classification::{CategoryId, ClassificationContent};
 use crate::domain::classification_configuration::ClassificationConfigurationSnapshot;
@@ -50,4 +51,17 @@ pub trait CategoryCoverageRepository {
         snapshot: &CategoryCoverageSnapshot,
         cancelled: &Arc<AtomicBool>,
     ) -> Result<(), ScanError>;
+}
+
+pub trait CategoryMergeRepository: CategoryCoverageRepository {
+    fn load_category_merge_snapshot(
+        &self,
+        cancelled: &Arc<AtomicBool>,
+    ) -> Result<CategoryMergeSnapshot, ScanError>;
+
+    fn apply_category_merge(
+        &mut self,
+        plan: &CategoryMergePlan,
+        cancelled: &Arc<AtomicBool>,
+    ) -> Result<ClassificationConfigurationSnapshot, ScanError>;
 }

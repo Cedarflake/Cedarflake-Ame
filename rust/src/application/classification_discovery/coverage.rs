@@ -3,7 +3,7 @@ use std::sync::{Arc, atomic::AtomicBool};
 
 use crate::domain::ScanError;
 use crate::domain::classification::maintenance::{
-    CategoryCoverageSummary, CategoryCoverageSupport,
+    CategoryCoverageMember, CategoryCoverageSummary, CategoryCoverageSupport,
 };
 use crate::domain::classification::{ClassificationContent, ClassificationRevision};
 use crate::ports::classification_configuration::CategoryCoverageRepository;
@@ -45,7 +45,7 @@ pub fn survey_category_coverage(
                 id,
                 CategoryCoverageSupport {
                     contents: 0,
-                    retained_contents: Vec::new(),
+                    retained_members: Vec::new(),
                 },
             )
         })
@@ -107,8 +107,20 @@ pub fn survey_category_coverage(
                     .get_mut(&prediction.suggestion().leading().category_id)
                     .ok_or_else(invalid)?;
                 category.contents += 1;
-                if category.retained_contents.len() < retained_per_category {
-                    category.retained_contents.push(entry.content.clone());
+                if category.retained_members.len() < retained_per_category {
+                    let ranked = prediction.suggestion().categories();
+                    let alternative = ranked
+                        .get(1)
+                        .filter(|candidate| {
+                            ranked
+                                .get(2)
+                                .is_none_or(|next| candidate.similarity > next.similarity)
+                        })
+                        .cloned();
+                    category.retained_members.push(CategoryCoverageMember {
+                        content: entry.content.clone(),
+                        alternative,
+                    });
                 }
                 classified_contents += 1;
             } else {

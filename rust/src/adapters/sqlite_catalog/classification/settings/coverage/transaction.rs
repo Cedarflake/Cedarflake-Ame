@@ -24,17 +24,26 @@ pub(super) fn read<T>(
 ) -> Result<T, ScanError> {
     check(cancelled)?;
     let transaction = connection.unchecked_transaction().map_err(database_error)?;
-    let progress = Progress(&transaction);
-    let signal = Arc::clone(cancelled);
-    transaction
-        .progress_handler(1000, Some(move || signal.load(Ordering::Acquire)))
-        .map_err(database_error)?;
-    let result = query(&transaction);
-    drop(progress);
-    check(cancelled)?;
-    let value = result?;
+    let value = interruptible(&transaction, cancelled, query)?;
     transaction.commit().map_err(database_error)?;
     Ok(value)
+}
+
+pub(in crate::adapters::sqlite_catalog::classification::settings) fn interruptible<T>(
+    connection: &Connection,
+    cancelled: &Arc<AtomicBool>,
+    query: impl FnOnce(&Connection) -> Result<T, ScanError>,
+) -> Result<T, ScanError> {
+    check(cancelled)?;
+    let progress = Progress(connection);
+    let signal = Arc::clone(cancelled);
+    connection
+        .progress_handler(1000, Some(move || signal.load(Ordering::Acquire)))
+        .map_err(database_error)?;
+    let result = query(connection);
+    drop(progress);
+    check(cancelled)?;
+    result
 }
 
 fn check(cancelled: &AtomicBool) -> Result<(), ScanError> {

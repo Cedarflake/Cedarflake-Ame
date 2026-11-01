@@ -49,10 +49,14 @@ pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), S
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     let version = schema_shape::schema_version(connection)?;
     for (name, statement) in OBJECTS {
-        let statement = if *name == "classification_maintenance_evidence" && version >= 72 {
-            super::classification_retirement::EVIDENCE_TABLE
-        } else {
-            statement
+        let statement = match (*name, version) {
+            ("classification_maintenance_evidence", 73..) => {
+                super::classification_merge::EVIDENCE_TABLE
+            }
+            ("classification_maintenance_evidence", 72) => {
+                super::classification_retirement::EVIDENCE_TABLE
+            }
+            _ => statement,
         };
         if !schema_shape::schema_object_sql_matches(connection, "table", name, statement)? {
             return Err(invalid());
