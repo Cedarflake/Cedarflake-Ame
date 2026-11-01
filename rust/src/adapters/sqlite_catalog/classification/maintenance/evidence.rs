@@ -43,12 +43,23 @@ pub(in crate::adapters::sqlite_catalog::classification) fn encode(
             "mean_supporting_improvement": candidate.mean_supporting_improvement,
         }))
     }).collect::<Result<Vec<_>, ScanError>>()?;
+    let capacity_basis = evidence.capacity.catalog.as_ref().map(|catalog| {
+        json!({
+            "algorithm": "verified-content-recurrence-v1",
+            "catalog_revision": catalog.snapshot.catalog_revision,
+            "coverage": codec::revision(catalog.coverage),
+            "verified_contents": catalog.verified_contents,
+            "minimum_members": catalog.minimum_members,
+            "unverified_sources": catalog.snapshot.unverified_sources,
+        })
+    });
     let payload = json!({
         "version": 1,
         "selection": {
             "algorithm": "joint-admitted-support-v1",
             "maximum_generated": evidence.capacity.maximum_generated,
             "active_generated": evidence.capacity.active_generated.iter().map(|category| category.as_str()).collect::<Vec<_>>(),
+            "catalog_capacity": capacity_basis,
         },
         "run": serde_json::from_str::<Value>(&codec::encode_run(plan.configuration.setup.run())?).map_err(|_| invalid_record())?,
         "naming": naming,

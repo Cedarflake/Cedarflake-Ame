@@ -10,7 +10,7 @@ fn retired(catalog: &mut SqliteCatalog) -> (fixture::Evidence, CategoryId) {
     let addition = plan(catalog, &evidence);
     let identity = addition.additions()[0].clone();
     let saved = catalog
-        .apply_category_expansion(&addition, &AtomicBool::new(false))
+        .apply_category_expansion(&addition, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     let mut definitions = saved.catalog.taxonomy.unwrap().categories().to_vec();
     let baseline = definitions
@@ -82,7 +82,7 @@ fn automatic_reactivation_reuses_identity_origin_history_and_committed_receipt()
         matches!(&restore.provenance.candidates[0].activation, CategoryActivation::Reactivate(previous) if previous == &previous_origin)
     );
     let saved = catalog
-        .apply_category_expansion(&restore, &AtomicBool::new(false))
+        .apply_category_expansion(&restore, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     assert_eq!(saved.dispatch.run_id, Some(id("restore-generated")));
     assert!(
@@ -117,7 +117,7 @@ fn automatic_reactivation_reuses_identity_origin_history_and_committed_receipt()
     let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     assert_eq!(
         catalog
-            .apply_category_expansion(&restore, &AtomicBool::new(false))
+            .apply_category_expansion(&restore, &Arc::new(AtomicBool::new(false)))
             .unwrap(),
         saved
     );
@@ -129,7 +129,7 @@ fn automatic_reactivation_reuses_identity_origin_history_and_committed_receipt()
         )
         .unwrap();
     let replayed = catalog
-        .apply_category_expansion(&restore, &AtomicBool::new(false))
+        .apply_category_expansion(&restore, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     assert_eq!(replayed.dispatch, stopped);
     assert_eq!(replayed.dispatch.mode, ClassificationDispatchMode::Stopped);
@@ -201,7 +201,7 @@ fn pending_reactivation_revalidates_origin_and_retained_label_without_revision_c
         }
         assert_eq!(
             catalog
-                .apply_category_expansion(&restore, &AtomicBool::new(false))
+                .apply_category_expansion(&restore, &Arc::new(AtomicBool::new(false)))
                 .unwrap_err()
                 .code,
             "classification_changed"
@@ -230,7 +230,7 @@ fn reactivation_rollback_and_cancellation_preserve_the_retired_identity() {
     catalog.connection.execute_batch("CREATE TEMP TRIGGER reject_restore BEFORE INSERT ON classification_maintenance_evidence BEGIN SELECT RAISE(ABORT, 'injected evidence failure'); END;").unwrap();
     assert!(
         catalog
-            .apply_category_expansion(&restore, &AtomicBool::new(false))
+            .apply_category_expansion(&restore, &Arc::new(AtomicBool::new(false)))
             .is_err()
     );
     assert_eq!(catalog.load_classification_configuration().unwrap(), before);
@@ -247,7 +247,7 @@ fn reactivation_rollback_and_cancellation_preserve_the_retired_identity() {
         .unwrap();
     assert_eq!(
         catalog
-            .apply_category_expansion(&restore, &AtomicBool::new(true))
+            .apply_category_expansion(&restore, &Arc::new(AtomicBool::new(true)))
             .unwrap_err()
             .code,
         "classification_cancelled"
@@ -259,7 +259,7 @@ fn reactivation_rollback_and_cancellation_preserve_the_retired_identity() {
         .unwrap();
     assert_eq!(
         catalog
-            .apply_category_expansion(&restore, &AtomicBool::new(false))
+            .apply_category_expansion(&restore, &Arc::new(AtomicBool::new(false)))
             .unwrap_err()
             .code,
         "classification_discovery_sources_changed"
@@ -281,7 +281,7 @@ fn reactivation_consumes_a_generated_slot_and_still_uses_fresh_admission() {
     .unwrap();
     let another = assess(&catalog, &other, "another").unwrap().plan.unwrap();
     catalog
-        .apply_category_expansion(&another, &AtomicBool::new(false))
+        .apply_category_expansion(&another, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     let limited = fixture::assess_with_budget(&catalog, &evidence, "restore-generated", 1).unwrap();
     assert!(limited.plan.is_none());
@@ -301,7 +301,7 @@ fn reactivation_consumes_a_generated_slot_and_still_uses_fresh_admission() {
         .plan
         .unwrap();
     catalog
-        .apply_category_expansion(&restore, &AtomicBool::new(false))
+        .apply_category_expansion(&restore, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     assert_eq!(origin(&catalog, &identity).operation_id, id("expand"));
     assert_eq!(count(&catalog, "classification_managed_categories"), 2);

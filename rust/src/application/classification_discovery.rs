@@ -48,7 +48,8 @@ pub use consolidation::{
 pub use context_vocabulary::{ContextualVocabulary, NamingContext, NamingContextCatalog};
 pub use coverage::survey_category_coverage;
 pub use maintenance::{
-    CategoryExpansionAssessment, CategoryExpansionRequest, prepare_category_expansion,
+    CategoryExpansionAssessment, CategoryExpansionBudget, CategoryExpansionRequest,
+    prepare_category_expansion,
 };
 pub use merging::prepare_purpose_category_merge;
 pub(crate) use merging::select_purpose_category_merge;

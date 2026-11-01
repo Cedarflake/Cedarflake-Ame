@@ -1,4 +1,4 @@
-use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, atomic::AtomicBool};
 
 use crate::application::classification_discovery::CategoryAdmissionDisposition;
 use crate::domain::classification::discovery::VocabularyConcept;
@@ -6,6 +6,7 @@ use crate::ports::classification_configuration::CategoryExpansionRepository;
 
 use super::*;
 
+mod automatic_capacity;
 mod capacity;
 mod fixture;
 mod origins;
@@ -21,7 +22,7 @@ fn candidate_addition_replaces_the_run_atomically_and_survives_restart() {
     let plan = plan(&catalog, &evidence);
     assert_eq!(plan.additions().len(), 1);
     let saved = catalog
-        .apply_category_expansion(&plan, &AtomicBool::new(false))
+        .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     let rules = saved.catalog.taxonomy.as_ref().unwrap();
     assert_eq!(rules.categories().len(), 2);
@@ -69,7 +70,7 @@ fn current_sources_include_comparison_samples_and_require_published_exact_eviden
         catalog.connection.execute_batch(invalidation).unwrap();
         assert_eq!(
             catalog
-                .apply_category_expansion(&plan, &AtomicBool::new(false))
+                .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
                 .unwrap_err()
                 .code,
             "classification_discovery_sources_changed"
@@ -114,7 +115,7 @@ fn concurrent_pause_or_edit_rejects_uncommitted_expansion() {
         let changed = catalog.load_classification_configuration().unwrap();
         assert_eq!(
             catalog
-                .apply_category_expansion(&plan, &AtomicBool::new(false))
+                .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
                 .unwrap_err()
                 .code,
             "classification_changed"
@@ -170,7 +171,7 @@ fn committed_retry_preserves_later_stop_and_removed_sources() {
     start(&mut catalog);
     let mut plan = plan(&catalog, &evidence(&catalog));
     let saved = catalog
-        .apply_category_expansion(&plan, &AtomicBool::new(false))
+        .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     let stopped = catalog
         .change_classification_dispatch(
@@ -184,7 +185,7 @@ fn committed_retry_preserves_later_stop_and_removed_sources() {
         .unwrap();
     assert_eq!(
         catalog
-            .apply_category_expansion(&plan, &AtomicBool::new(false))
+            .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
             .unwrap()
             .dispatch,
         stopped
@@ -192,7 +193,7 @@ fn committed_retry_preserves_later_stop_and_removed_sources() {
     plan.evidence = ClassificationRevision::from_bytes([99; 32]);
     assert_eq!(
         catalog
-            .apply_category_expansion(&plan, &AtomicBool::new(false))
+            .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
             .unwrap_err()
             .code,
         "classification_operation_conflict"
@@ -208,7 +209,7 @@ fn failed_activation_rolls_back_the_category_and_receipt_before_retry() {
     catalog.connection.execute_batch("CREATE TEMP TRIGGER reject_expansion BEFORE INSERT ON classification_analysis_setups BEGIN SELECT RAISE(ABORT, 'injected setup failure'); END;").unwrap();
     assert!(
         catalog
-            .apply_category_expansion(&plan, &AtomicBool::new(false))
+            .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
             .is_err()
     );
     assert_eq!(catalog.load_classification_configuration().unwrap(), before);
@@ -225,7 +226,7 @@ fn failed_activation_rolls_back_the_category_and_receipt_before_retry() {
         .unwrap();
     assert!(
         catalog
-            .apply_category_expansion(&plan, &AtomicBool::new(false))
+            .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
             .is_ok()
     );
 }
@@ -238,7 +239,7 @@ fn cancellation_does_not_save_categories() {
     let before = catalog.load_classification_configuration().unwrap();
     assert_eq!(
         catalog
-            .apply_category_expansion(&plan, &AtomicBool::new(true))
+            .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(true)))
             .unwrap_err()
             .code,
         "classification_cancelled"
@@ -253,7 +254,7 @@ fn known_and_retired_categories_keep_their_identity_and_manual_edits() {
     let mut evidence = evidence(&catalog);
     let plan = plan(&catalog, &evidence);
     let saved = catalog
-        .apply_category_expansion(&plan, &AtomicBool::new(false))
+        .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     let identity = plan.additions()[0].clone();
     let mut rules = saved.catalog.taxonomy.unwrap().categories().to_vec();

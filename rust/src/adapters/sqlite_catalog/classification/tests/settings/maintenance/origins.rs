@@ -28,7 +28,7 @@ fn origin_and_complete_parameters_survive_restart_and_committed_retry() {
     let plan = plan(&catalog, &evidence(&catalog));
     let identity = plan.additions()[0].clone();
     catalog
-        .apply_category_expansion(&plan, &AtomicBool::new(false))
+        .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     let before = origin(&catalog, &identity);
     assert!(!before.protected);
@@ -63,7 +63,7 @@ fn origin_and_complete_parameters_survive_restart_and_committed_retry() {
     let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     assert_eq!(origin(&catalog, &identity), before);
     catalog
-        .apply_category_expansion(&plan, &AtomicBool::new(false))
+        .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     assert_eq!(count(&catalog, "classification_maintenance_evidence"), 1);
     assert_eq!(count(&catalog, "classification_managed_categories"), 1);
@@ -76,7 +76,7 @@ fn explicit_edits_and_retirement_remain_protected_after_reverting_wording() {
         start(&mut catalog);
         let plan = plan(&catalog, &evidence(&catalog));
         catalog
-            .apply_category_expansion(&plan, &AtomicBool::new(false))
+            .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
             .unwrap();
         let identity = plan.additions()[0].clone();
         let initial = catalog
@@ -111,7 +111,7 @@ fn explicit_edits_and_retirement_remain_protected_after_reverting_wording() {
         );
         catalog.save_classification_configuration(&reset).unwrap();
         catalog
-            .apply_category_expansion(&plan, &AtomicBool::new(false))
+            .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
             .unwrap();
         assert!(origin(&catalog, &identity).protected);
     }
@@ -138,7 +138,7 @@ fn direct_configuration_protects_edits_but_replayed_old_save_does_not_claim_new_
         .unwrap();
     let plan = plan(&catalog, &evidence(&catalog));
     catalog
-        .apply_category_expansion(&plan, &AtomicBool::new(false))
+        .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     let identity = plan.additions()[0].clone();
     catalog
@@ -165,7 +165,7 @@ fn provenance_failure_rolls_back_definitions_run_and_receipt() {
     catalog.connection.execute_batch("CREATE TEMP TRIGGER reject_origin BEFORE INSERT ON classification_managed_categories BEGIN SELECT RAISE(ABORT, 'injected origin failure'); END;").unwrap();
     assert!(
         catalog
-            .apply_category_expansion(&plan, &AtomicBool::new(false))
+            .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
             .is_err()
     );
     assert_eq!(catalog.load_classification_configuration().unwrap(), before);
@@ -176,7 +176,7 @@ fn provenance_failure_rolls_back_definitions_run_and_receipt() {
         .execute_batch("DROP TRIGGER reject_origin")
         .unwrap();
     catalog
-        .apply_category_expansion(&plan, &AtomicBool::new(false))
+        .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
         .unwrap();
 }
 
@@ -186,7 +186,7 @@ fn backup_restores_origins_and_protection_without_models_or_discovery_samples() 
     start(&mut catalog);
     let plan = plan(&catalog, &evidence(&catalog));
     catalog
-        .apply_category_expansion(&plan, &AtomicBool::new(false))
+        .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     let identity = plan.additions()[0].clone();
     let automatic = directory.path().join("automatic.ame-backup");
@@ -233,7 +233,7 @@ fn restored_origin_does_not_claim_an_existing_category_without_recorded_ownershi
     start(&mut catalog);
     let plan = plan(&catalog, &evidence(&catalog));
     catalog
-        .apply_category_expansion(&plan, &AtomicBool::new(false))
+        .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     let identity = plan.additions()[0].clone();
     let automatic = directory.path().join("automatic.ame-backup");

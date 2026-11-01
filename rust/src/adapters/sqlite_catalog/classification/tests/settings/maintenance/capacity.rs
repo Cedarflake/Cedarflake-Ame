@@ -138,7 +138,7 @@ fn joint_selection_publishes_only_the_supported_winner_when_one_slot_remains() {
     );
     assert_eq!(reversed.evidence, plan.evidence);
     catalog
-        .apply_category_expansion(&plan, &AtomicBool::new(false))
+        .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     assert_eq!(
         catalog
@@ -174,7 +174,7 @@ fn cumulative_generated_budget_survives_restarts_and_protected_edits() {
         .unwrap();
     let first_id = first.additions()[0].clone();
     catalog
-        .apply_category_expansion(&first, &AtomicBool::new(false))
+        .apply_category_expansion(&first, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     catalog
         .connection
@@ -200,7 +200,7 @@ fn cumulative_generated_budget_survives_restarts_and_protected_edits() {
         .plan
         .unwrap();
     catalog
-        .apply_category_expansion(&allowed, &AtomicBool::new(false))
+        .apply_category_expansion(&allowed, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     let payload: String = catalog
         .connection
@@ -235,7 +235,7 @@ fn retired_categories_release_capacity_without_becoming_new_candidates() {
         .unwrap();
     let first_id = first.additions()[0].clone();
     catalog
-        .apply_category_expansion(&first, &AtomicBool::new(false))
+        .apply_category_expansion(&first, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     let remove = request(
         &catalog,
@@ -252,7 +252,7 @@ fn retired_categories_release_capacity_without_becoming_new_candidates() {
         .plan
         .unwrap();
     catalog
-        .apply_category_expansion(&replacement, &AtomicBool::new(false))
+        .apply_category_expansion(&replacement, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     assert_eq!(
         catalog
@@ -273,7 +273,7 @@ fn changed_origin_membership_rejects_a_prepared_budget_without_catalog_revision_
     start(&mut catalog);
     let first = plan(&catalog, &evidence(&catalog));
     catalog
-        .apply_category_expansion(&first, &AtomicBool::new(false))
+        .apply_category_expansion(&first, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     let pending = assess_with_budget(&catalog, &next_evidence(&catalog, 9), "pending", 2)
         .unwrap()
@@ -289,7 +289,7 @@ fn changed_origin_membership_rejects_a_prepared_budget_without_catalog_revision_
         .unwrap();
     assert_eq!(
         catalog
-            .apply_category_expansion(&pending, &AtomicBool::new(false))
+            .apply_category_expansion(&pending, &Arc::new(AtomicBool::new(false)))
             .unwrap_err()
             .code,
         "classification_changed"
@@ -321,11 +321,11 @@ fn receipt_binds_the_budget_even_when_the_selected_addition_is_identical() {
         .unwrap();
     assert_eq!(first.additions(), changed.additions());
     catalog
-        .apply_category_expansion(&first, &AtomicBool::new(false))
+        .apply_category_expansion(&first, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     assert_eq!(
         catalog
-            .apply_category_expansion(&changed, &AtomicBool::new(false))
+            .apply_category_expansion(&changed, &Arc::new(AtomicBool::new(false)))
             .unwrap_err()
             .code,
         "classification_operation_conflict"

@@ -111,6 +111,14 @@ pub(crate) struct CategoryExpansionProvenance {
 pub(crate) struct CategoryExpansionCapacity {
     pub maximum_generated: usize,
     pub active_generated: BTreeSet<CategoryId>,
+    pub catalog: Option<CategoryCapacityEvidence>,
+}
+
+pub(crate) struct CategoryCapacityEvidence {
+    pub snapshot: CategoryCoverageSnapshot,
+    pub coverage: ClassificationRevision,
+    pub verified_contents: u64,
+    pub minimum_members: usize,
 }
 
 pub(crate) struct CategoryExpansionCriteria {

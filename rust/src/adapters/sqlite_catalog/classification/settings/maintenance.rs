@@ -1,4 +1,7 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 
 use rusqlite::Connection;
 
@@ -35,33 +38,40 @@ impl CategoryExpansionRepository for SqliteCatalog {
     fn apply_category_expansion(
         &mut self,
         plan: &CategoryExpansionPlan,
-        cancelled: &AtomicBool,
+        cancelled: &Arc<AtomicBool>,
     ) -> Result<ClassificationConfigurationSnapshot, ScanError> {
         check_cancelled(cancelled)?;
         let payload = maintenance::encode(plan)?;
         let digest = request_digest(plan, &payload)?;
         let transaction = self.begin_user_interactive_write()?;
-        if operations::replay(&transaction, &plan.configuration.operation_id, &digest)?.is_none() {
-            let current = snapshot(&transaction, &plan.additions)?;
-            let before = &current.configuration;
-            let active_generated = current.active_generated_categories();
-            if before.catalog.revision != plan.configuration.expected_catalog_revision
-                || before.dispatch.revision != plan.configuration.expected_dispatch_revision
-                || before.dispatch.mode != ClassificationDispatchMode::Automatic
-                || current.model != Some(plan.configuration.setup.run().model())
-                || active_generated != plan.provenance.capacity.active_generated
-                || active_generated.len() + plan.additions.len()
-                    > plan.provenance.capacity.maximum_generated
+        let result = super::coverage::interruptible(&transaction, cancelled, |_| {
+            if operations::replay(&transaction, &plan.configuration.operation_id, &digest)?
+                .is_none()
             {
-                return Err(changed());
+                let current = snapshot(&transaction, &plan.additions)?;
+                let before = &current.configuration;
+                let active_generated = current.active_generated_categories();
+                if before.catalog.revision != plan.configuration.expected_catalog_revision
+                    || before.dispatch.revision != plan.configuration.expected_dispatch_revision
+                    || before.dispatch.mode != ClassificationDispatchMode::Automatic
+                    || current.model != Some(plan.configuration.setup.run().model())
+                    || active_generated != plan.provenance.capacity.active_generated
+                    || active_generated.len() + plan.additions.len()
+                        > plan.provenance.capacity.maximum_generated
+                {
+                    return Err(changed());
+                }
+                if let Some(catalog) = &plan.provenance.capacity.catalog {
+                    super::coverage::validate_snapshot(&transaction, &catalog.snapshot)?;
+                }
+                identity::validate(&current, plan)?;
+                validate_sources(&transaction, &plan.sources)?;
+                check_cancelled(cancelled)?;
+                super::apply(&transaction, &plan.configuration, &digest)?.ok_or_else(changed)?;
+                maintenance::publish(&transaction, plan, &payload)?;
             }
-            identity::validate(&current, plan)?;
-            validate_sources(&transaction, &plan.sources)?;
-            check_cancelled(cancelled)?;
-            super::apply(&transaction, &plan.configuration, &digest)?.ok_or_else(changed)?;
-            maintenance::publish(&transaction, plan, &payload)?;
-        }
-        let result = super::load(&transaction)?;
+            super::load(&transaction)
+        })?;
         check_cancelled(cancelled)?;
         transaction.commit().map_err(database_error)?;
         Ok(result)

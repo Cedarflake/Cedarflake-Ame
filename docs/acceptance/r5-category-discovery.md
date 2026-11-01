@@ -1444,3 +1444,53 @@ Schema 73 preserves catalogs and maintenance history without a rescan. Portable 
 model/runtime dependencies and the desktop bridge are unchanged. Non-parent overlap policy, useful
 default-budget selection, broader context admission and first-use integration remain in the canonical
 queue; this transaction does not itself enable automatic maintenance.
+
+### Catalog-backed addition capacity
+
+The native addition request now supports automatic capacity from the current distinct-content
+survey, alongside explicit ceilings for controlled comparisons. Capacity divides verified contents
+by the same recurrence requirement used for admission, bounded by the existing 256-definition
+contract and never below the retained generated count. Joint competition and the per-assessment
+proposal bound still select useful additions; the calculated capacity is not a target. Missing
+predictions do not postpone capacity for already verified contents, while duplicate copies and
+unverified sources add no slots. A reduced library cannot remove existing or protected definitions.
+
+The retained 236-content, three-support comparison corresponds to a cumulative capacity of 78,
+before overall taxonomy and per-assessment limits. Its four admitted distinctions remain within
+capacity; the per-assessment limit remains eight. This is a compatibility calculation using the
+retained comparison, not a new inference, held-out accuracy result or broad granularity measurement.
+It avoids selecting the demonstrably restrictive one-, two- or three-category ceilings solely to
+minimize the number of categories. Naming/context quality and integrated human-work measurements
+remain separate acceptance obligations.
+
+The operation records the coverage digest, publication revision, distinct-content count, recurrence
+requirement and computed capacity. Publication revalidates catalog, configuration, encoder and
+source-verification authority in its existing transaction. Scoped SQLite cancellation now covers
+expansion validation and writes, with the handler removed before commit or rollback. Committed replay
+retains later Stop and does not revalidate obsolete discovery counts. No schema, archive version,
+model dependency, desktop bridge or source-media behavior changes.
+
+Five new native workflows pass: admission before prediction completion and replay after restart;
+capacity unchanged by unverified sources or duplicate copies but increased by new verified content;
+rejection after publication/source evidence changes; incompatible configuration rejection; and
+preservation of retained protected categories when current capacity shrinks. The related expansion
+suite initially passes 35 of 37 cases. Two unchanged archive-export paths return Windows access denied
+in the restricted process; both pass in the isolated unrestricted recheck with identical product
+code. That initial compile also reports an incremental-cache hard-link warning. The scoped recheck
+uses non-incremental compilation and completes without warnings. The combined valid results cover
+all 37 cases; complete-suite execution and lint remain hosted.
+The read-only repository format check passes with 685 Dart files unchanged, and `git diff --check`
+passes. Its initial restricted invocation completed formatting but failed updating the SDK-owned
+telemetry-session timestamp; the same command passes with the required process access.
+
+The capacity policy has 61 production lines. Addition preparation has 185 production lines plus two
+test-registration lines, provenance 135, domain maintenance 162, SQL publication 155 and evidence
+encoding 92. The discovery facade has 256 production lines plus two registration lines; the public
+classification facade has 95 and the maintenance port 67. New dedicated workflow tests have 255 lines;
+the existing expansion tests have 332, shared fixture 185, capacity tests 393, origin tests 266,
+preservation tests 181 and reactivation tests 308. Existing test changes replace cancellation signals
+with shared signals for SQLite interruption; there are no new inline test cases.
+
+All catalogs and backup artifacts in these diagnostics are disposable fixtures. No original media,
+retained user catalog, model process, download or desktop interaction is used. Automatic scheduling,
+non-parent overlap admission and broader context coverage remain in the canonical R5 queue.

@@ -27,7 +27,7 @@ fn category_addition_preserves_human_choices_and_independent_favorite_changes() 
         .set_organization_favorite("favorite", &selection, true)
         .unwrap();
     catalog
-        .apply_category_expansion(&plan, &AtomicBool::new(false))
+        .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
         .unwrap();
     assert_eq!(
         super::super::super::prepare(&catalog, &["a"]).groups[0].human,
@@ -119,7 +119,7 @@ fn another_current_verified_copy_keeps_comparison_evidence_valid() {
         .unwrap();
     assert!(
         catalog
-            .apply_category_expansion(&plan, &AtomicBool::new(false))
+            .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
             .is_ok()
     );
 }

@@ -86,6 +86,9 @@ and human effort rather than a fixed target count. A larger hard-coded list is n
 this policy. Isolated unusual images and small occupancy alone do not create or remove a category.
 Automatic maintenance preserves stable identities and explicit human choices; it never silently
 remaps a saved human category or requests confirmation for every image or routine vocabulary change.
+Addition capacity follows distinct verified content and the recurrence required for a useful category;
+duplicate copies do not expand it. The capacity is a ceiling rather than a target. Users do not need
+to choose a category count, and a smaller library does not by itself remove retained definitions.
 An automatic refinement can return to its original purpose category after complete current-library
 evidence falls below the recurrence needed to create it and every remaining image has that purpose
 as its unique best alternative. Changed meanings, missing evidence and saved human choices preserve

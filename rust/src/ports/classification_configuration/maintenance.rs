@@ -18,7 +18,7 @@ pub trait CategoryExpansionRepository {
     fn apply_category_expansion(
         &mut self,
         plan: &CategoryExpansionPlan,
-        cancelled: &AtomicBool,
+        cancelled: &Arc<AtomicBool>,
     ) -> Result<ClassificationConfigurationSnapshot, ScanError>;
 }
 

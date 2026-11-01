@@ -366,21 +366,34 @@ of a new name. Candidates compete for independent supporting members; membership
 purpose, context or the original admission pass cannot become support merely because a competing
 candidate is removed. The published support list comes from the final selection.
 
-The maintenance request also supplies an explicit cumulative generated-category budget. Every active
-category with a recorded automatic origin consumes a slot, including manually protected definitions;
-manual/legacy categories consume only the overall taxonomy capacity. Retired definitions consume no
-active slot; reactivation consumes a slot again without creating another identity. The effective
-addition ceiling is the minimum of the remaining generated slots, overall taxonomy slots and
-per-assessment limit. A budget below the retained count defers additions and preserves the existing
-definitions.
+The automatic cumulative capacity derives from the current catalog coverage and the admission
+policy's recurrence requirement: `max(active_generated, min(256, verified_contents / minimum_members))`,
+using integer division. Distinct verified contents count once even when predictions are unfinished;
+unverified sources and duplicate copies grant no additional capacity. This is an upper bound, not a
+target count or permission to create a category. Purpose/name admission and joint independent support
+still decide which distinctions are useful. The retained count is a floor so a smaller or unavailable
+library cannot turn this addition policy into retirement authority. Retirement keeps its separate
+complete-coverage and human-protection requirements. Explicit numeric budgets remain available for
+controlled comparisons, rather than requiring a user count during first use.
+
+Every active category with a recorded automatic origin consumes a slot, including manually protected
+definitions; manual/legacy categories consume only overall taxonomy capacity. Retired definitions
+consume no active slot; reactivation consumes one without creating another identity. The effective
+addition ceiling is the minimum of remaining generated slots, overall taxonomy slots and the
+per-assessment proposal limit. An explicit budget below the retained count defers additions and
+preserves existing definitions.
 
 Publication rereads the active generated identities in the same transaction as source and revision
 checks. They must match the prepared snapshot, and the resulting generated count must fit the supplied
-budget. The operation evidence binds that budget, prior active identities and the joint-selection
-algorithm; changing the budget cannot replay an earlier operation under the same receipt. The origin
-read is bounded by the active taxonomy and at most 64 proposed identities. This enforcement does not
-select the product's useful default count, merge non-equivalent existing definitions or enable runtime
-maintenance; those admission and integration decisions remain separate requirements.
+budget. For automatic capacity it also validates the coverage's catalog publication, complete
+configuration, encoder and source-verification authority. Count collection remains a bounded,
+cancellable survey outside the write transaction. The operation evidence binds the budget, prior
+active identities, coverage digest, verified-content count, recurrence threshold and selection
+algorithm; changing that basis cannot replay an earlier operation under the same receipt. SQLite
+validation/publication can be interrupted, with its handler removed before rollback or commit.
+The origin read is bounded by the active taxonomy and at most 64 proposed identities. Capacity alone
+does not establish naming quality, merge non-equivalent definitions or enable runtime maintenance;
+broader context admission and first-use integration retain their separate requirements.
 
 Schema 71 records immutable discovery evidence once per addition operation and a separate durable
 origin for each generated category. Evidence retains the encoder/run, vocabulary and policy revisions,

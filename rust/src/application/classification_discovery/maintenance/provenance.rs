@@ -93,6 +93,15 @@ pub(super) fn evidence_identity(
         parameters.extend_from_slice(&(category.as_str().len() as u64).to_le_bytes());
         parameters.extend_from_slice(category.as_str().as_bytes());
     }
+    if let Some(catalog) = &capacity.catalog {
+        parameters.push(1);
+        parameters.extend_from_slice(catalog.coverage.bytes());
+        parameters.extend_from_slice(&catalog.snapshot.catalog_revision.to_le_bytes());
+        parameters.extend_from_slice(&catalog.verified_contents.to_le_bytes());
+        parameters.extend_from_slice(&(catalog.minimum_members as u64).to_le_bytes());
+    } else {
+        parameters.push(0);
+    }
     for candidate in candidates {
         field(&mut parameters, candidate.category_id.as_str());
         match &candidate.activation {
@@ -112,7 +121,7 @@ pub(super) fn evidence_identity(
         }
     }
     ClassificationRevision::derive(
-        "ame.classification.category-expansion-evidence.v3",
+        "ame.classification.category-expansion-evidence.v4",
         identities
             .iter()
             .map(|identity| identity.bytes().as_slice())

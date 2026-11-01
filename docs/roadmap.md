@@ -181,8 +181,10 @@ capacity and source checks; manual retirement remains protected. A bounded catal
 distinct current contents and compatible final suggestions, retaining incomplete coverage and rejecting
 cross-page publication changes. A guarded merge now returns a sparse generated refinement to its
 recorded original purpose only with complete current coverage and compatible alternatives, preserving
-human choices, meaning and history through atomic publication. Useful default-budget selection,
-non-parent overlap admission and runtime integration remain before automatic first use.
+human choices, meaning and history through atomic publication. Automatic addition capacity now derives
+from distinct verified contents and the admitted recurrence requirement, preserving retained definitions
+and revalidating the count's catalog authority at publication. Non-parent overlap admission and runtime
+integration remain before automatic first use.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review

@@ -24,6 +24,8 @@ use super::{
     assess_category_candidates, check_cancelled,
 };
 
+mod capacity;
+pub use capacity::CategoryExpansionBudget;
 mod provenance;
 mod selection;
 
@@ -33,7 +35,7 @@ pub struct CategoryExpansionRequest<'a> {
     pub discovery: &'a ConceptConsolidation,
     pub matcher: &'a CategoryMatcher,
     pub policy: &'a CategoryAdmissionPolicy,
-    pub maximum_generated_categories: usize,
+    pub budget: CategoryExpansionBudget<'a>,
 }
 
 pub struct CategoryExpansionAssessment {
@@ -55,15 +57,10 @@ pub fn prepare_category_expansion(
         discovery,
         matcher,
         policy,
-        maximum_generated_categories,
+        budget,
     } = request;
     check_cancelled(cancelled)?;
-    if !(1..=256).contains(&maximum_generated_categories) {
-        return Err(ScanError::new(
-            "classification_category_limit",
-            "The cumulative generated-category budget must be between 1 and 256",
-        ));
-    }
+    budget.validate()?;
     let admission = assess_category_candidates(cohort, discovery, matcher, policy, cancelled)?;
     let mut proposed = selection::proposals(&admission, discovery)?;
     let mut result = CategoryExpansionAssessment {
@@ -102,10 +99,7 @@ pub fn prepare_category_expansion(
     if proposed.is_empty() {
         return Ok(result);
     }
-    let capacity = CategoryExpansionCapacity {
-        maximum_generated: maximum_generated_categories,
-        active_generated: snapshot.active_generated_categories(),
-    };
+    let capacity = budget.resolve(&snapshot, policy.criteria().minimum_members)?;
     let mut selected = selection::select(
         &result.admission,
         &proposed,

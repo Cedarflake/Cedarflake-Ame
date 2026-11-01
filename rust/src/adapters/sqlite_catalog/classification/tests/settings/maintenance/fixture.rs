@@ -139,6 +139,20 @@ pub(super) fn assess_with_budget(
     operation: &str,
     maximum_generated_categories: usize,
 ) -> Result<CategoryExpansionAssessment, ScanError> {
+    assess_with_capacity(
+        catalog,
+        evidence,
+        operation,
+        CategoryExpansionBudget::Explicit(maximum_generated_categories),
+    )
+}
+
+pub(super) fn assess_with_capacity(
+    catalog: &SqliteCatalog,
+    evidence: &Evidence,
+    operation: &str,
+    budget: CategoryExpansionBudget<'_>,
+) -> Result<CategoryExpansionAssessment, ScanError> {
     let current = catalog.load_classification_configuration().unwrap();
     let taxonomy = current.catalog.taxonomy.unwrap();
     let model = evidence.cohort.model();
@@ -159,7 +173,7 @@ pub(super) fn assess_with_budget(
             discovery: &evidence.discovery,
             matcher: &matcher,
             policy: &evidence.policy,
-            maximum_generated_categories,
+            budget,
         },
         catalog,
         &AtomicBool::new(false),
