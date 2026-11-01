@@ -48,6 +48,7 @@ mod root_namespace_contract;
 mod scan_handoff_contract;
 mod scan_owner_contract;
 mod terminal_inventory_repair;
+mod terminal_journal_handoff;
 #[cfg(test)]
 pub(crate) use exact_duplicates::downgrade_to_v39_for_test;
 mod foreground_queue_index;
@@ -186,6 +187,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         return transaction.commit().map_err(database_error);
     }
 
+    terminal_journal_handoff::repair_before_upgrade(connection)?;
     loop {
         let version: i64 = connection
             .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {

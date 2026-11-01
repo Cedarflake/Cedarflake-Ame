@@ -10,6 +10,7 @@ enum RecoveryRepair {
     RemovedRootAuthority,
     RetainedSourceState,
     ForegroundScanCapture,
+    TerminalJournalHandoff,
 }
 
 impl RecoveryRepair {
@@ -25,6 +26,9 @@ impl RecoveryRepair {
             Self::RetainedSourceState => super::retained_source_state::repair_needed(connection),
             Self::ForegroundScanCapture => {
                 super::foreground_scan_capture::repair_needed(connection)
+            }
+            Self::TerminalJournalHandoff => {
+                super::terminal_journal_handoff::needed(connection, SCHEMA_VERSION)
             }
         }
     }
@@ -46,6 +50,9 @@ impl RecoveryRepair {
             Self::ForegroundScanCapture => {
                 super::foreground_scan_capture::repair_in_transaction(transaction)
             }
+            Self::TerminalJournalHandoff => {
+                super::terminal_journal_handoff::apply(transaction, SCHEMA_VERSION)
+            }
         }
     }
 }
@@ -57,6 +64,7 @@ pub(super) fn repair_and_validate(connection: &mut Connection) -> Result<(), Sca
         RecoveryRepair::RemovedRootAuthority,
         RecoveryRepair::RetainedSourceState,
         RecoveryRepair::ForegroundScanCapture,
+        RecoveryRepair::TerminalJournalHandoff,
     ];
     let mut needs_repair = false;
     for repair in &repairs {

@@ -139,7 +139,10 @@ pub(super) fn cleanup_terminal_records(
     }
     let mut evidence = evidence.into_iter().collect::<Vec<_>>();
     evidence.sort_unstable();
-    super::super::catalog_delta::cleanup_terminal_catch_up_handoffs_batch(transaction, &evidence)?;
+    super::super::handoff_retirement::cleanup_terminal_catch_up_handoffs_batch(
+        transaction,
+        &evidence,
+    )?;
     let deleted_changes = u32::try_from(deleted_changes).map_err(|_| {
         ScanError::new(
             "change_queue_cleanup_count_invalid",

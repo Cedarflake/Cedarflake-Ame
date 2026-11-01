@@ -126,6 +126,7 @@ mod catalog_delta;
 #[cfg(test)]
 mod catch_up;
 mod change_queue;
+mod handoff_retirement;
 
 #[cfg(test)]
 pub(crate) use catalog_delta::set_before_catalog_delta_commit_hook;

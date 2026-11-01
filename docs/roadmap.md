@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-01
+Last planning update: 2026-11-02
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage may be active. Detailed product contracts, execution procedures, architecture,
@@ -158,9 +158,10 @@ R5-07 is active, retaining its existing order and required outcomes:
    [confirmed-member lookup](acceptance/r5-smart-albums.md#confirmed-group-command-lookup--2026-11-02)
    removes unrelated same-size file work from group validation and writes. Complete-query,
    first-admission and bulk-action latency remain in this
-   performance step. Follow up the configured-catalog handoff-validation refusal recorded in the
-   excluded diagnostic attempts before an R5 exit decision; no bypass or original-catalog repair
-   is authorized by that observation. Window-control verification remains deferred at the user's request.
+   performance step. The [scope-recovery handoff repair](acceptance/r5-smart-albums.md#terminal-scope-recovery-handoff--2026-11-02)
+   resolves the configured-catalog validation refusal on an isolated copy, with completed-parent
+   provenance, atomic recovery and unchanged original catalog/media. Its submitted-head gate remains
+   required. Window-control verification remains deferred at the user's request.
 4. Complete the applicable hosted gate for the final submitted head and record the R5 exit decision.
    Current removal changes require their own submitted-head result. Earlier checks and measurements
    cover unchanged inputs only; detailed results remain in the acceptance records.

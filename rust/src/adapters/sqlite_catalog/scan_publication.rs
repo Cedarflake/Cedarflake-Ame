@@ -497,7 +497,11 @@ fn settle_change_lineage(
         completed_unix_ms,
     )?;
     for (source, watermark) in catch_up_lineage {
-        catalog_delta::cleanup_terminal_catch_up_handoffs(transaction, source, watermark)?;
+        super::handoff_retirement::cleanup_terminal_catch_up_handoffs(
+            transaction,
+            source,
+            watermark,
+        )?;
     }
     transaction
         .execute(

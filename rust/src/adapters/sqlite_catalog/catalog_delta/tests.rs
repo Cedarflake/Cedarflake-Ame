@@ -1664,8 +1664,12 @@ fn terminal_lineage_cleanup_preserves_other_watermark_owners() {
         .connection
         .transaction()
         .expect("cleanup transaction");
-    super::cleanup_terminal_catch_up_handoffs(&transaction, "windows_usn_v1", "watermark-1")
-        .expect("cleanup first watermark");
+    super::super::handoff_retirement::cleanup_terminal_catch_up_handoffs(
+        &transaction,
+        "windows_usn_v1",
+        "watermark-1",
+    )
+    .expect("cleanup first watermark");
     transaction.commit().expect("commit first cleanup");
 
     let (asset_count, lifecycle, handoff_count) = catalog
@@ -1691,8 +1695,12 @@ fn terminal_lineage_cleanup_preserves_other_watermark_owners() {
     );
 
     let transaction = catalog.connection.transaction().expect("final transaction");
-    super::cleanup_terminal_catch_up_handoffs(&transaction, "windows_usn_v1", "watermark-2")
-        .expect("cleanup final watermark");
+    super::super::handoff_retirement::cleanup_terminal_catch_up_handoffs(
+        &transaction,
+        "windows_usn_v1",
+        "watermark-2",
+    )
+    .expect("cleanup final watermark");
     transaction.commit().expect("commit final cleanup");
     let (asset_count, lifecycle, handoff_count) = catalog
         .connection

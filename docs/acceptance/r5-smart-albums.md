@@ -418,3 +418,43 @@ the diagnostic source remain in ignored storage. Leased catalog copies retire af
 The shared exact-query owner has 181 production lines and the selection owner 260, with no inline
 tests. The focused dedicated regression has 103 lines; existing organization test ownership remains
 unchanged.
+
+## Terminal scope-recovery handoff — 2026-11-02
+
+Read-only inspection of the configured local-primary catalog identifies 147 retained handoff rows
+under one journal range. All have terminal queue evidence and a completed ordered scope-recovery
+parent; no active queue, frozen scan, pending rename or pending cross-root owner remains. The scoped
+recovery completion path omitted the handoff release performed by ordinary queue completion. The
+retained rows therefore fail the next catalog admission's ownership check.
+
+Parent completion now releases handoffs atomically. A dedicated retirement owner preserves the
+existing shared-owner and derived-data reclamation rules. Compatibility recovery requires the
+completed parent and correctly bound ordered children, retains active shared owners, and validates
+the entire catalog before commit. Unproven handoffs and contradictory children remain rejected;
+another validation failure rolls back the known repair as well. Recovery also precedes older-schema
+upgrade validation and has no schema-version, bridge, dependency or source-media change.
+
+Eight focused completion/recovery regressions pass, covering ordinary completion, cleanup failure,
+shared ownership, idempotent reopen, schema-72 upgrade, contradictory children and rollback with an
+unproven handoff. Three existing regressions pass for retained other-watermark ownership, unknown
+normalized batches and incorrect foreign-key targets. Full hosted gates apply to the submitted head.
+
+The optimized isolated-storage native library has SHA-256
+`eb7c9fd187541b07ab66e378baf55ca7f911f624223b19847a81d9d4bb9161ef`.
+A leased backup of the affected current-schema catalog opens successfully through the native
+gallery API, then opens again in a fresh process. Both runs report 63,084 physical files and 47,840
+merged groups, with two non-overlapping 128-item windows. The complete headless processes take
+5.87/5.64 seconds; these include initialization and three gallery reads, not desktop frame timings.
+Peak private memory is 312.8 MiB.
+
+The repair removes the 147 terminal snapshots and 20 otherwise unreferenced derived asset rows.
+Protected table digests preserve every image location, root, scan, queue/lineage, journal range,
+organization record and classification record. SQLite quick-check and foreign keys pass. The original
+catalog's file hash is unchanged, original media is not opened, both child processes retire, and the
+leased catalog copy is removed. Existing window-control restrictions remain respected.
+
+The extracted retirement owner has 135 production lines plus 56 test-only helper lines; scope recovery
+has 283 production lines, compatibility recovery 82, and its current-schema coordinator 86. These
+owners contain no inline test assertions. The new dedicated tests and fixture contain 123 and 187
+lines respectively; the delta facade loses the retired responsibility instead of gaining another
+recovery branch.
