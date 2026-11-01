@@ -12,4 +12,5 @@ pub struct GalleryQuerySnapshot {
     pub snapshot: CatalogSnapshot,
     pub timeline: GalleryTimeline,
     pub organization_counts: Option<super::organization_queue::OrganizationCounts>,
+    pub classification_counts: Option<super::classification_review::ClassificationCounts>,
 }

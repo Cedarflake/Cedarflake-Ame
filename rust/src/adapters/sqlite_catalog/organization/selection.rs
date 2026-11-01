@@ -151,7 +151,7 @@ pub(super) fn member_query(key: &OrganizationGroupKey) -> Result<MemberQuery, Sc
     })
 }
 
-pub(super) fn target(
+pub(in super::super) fn target(
     connection: &Connection,
     key: &OrganizationGroupKey,
 ) -> Result<OrganizationGroupTarget, ScanError> {

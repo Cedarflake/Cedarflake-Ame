@@ -94,6 +94,19 @@ Assert-Rejected "opaque implementation method is duplicated" DartGenerated ($opa
 Assert-Rejected "opaque implementation forwards another lease" DartGenerated ($opaque.DartGenerated.Replace("that: this", "that: other"))
 Assert-Rejected "opaque implementation is not Future" DartGenerated ($opaque.DartGenerated.Replace("Future<void> close()", "void close()"))
 
+$parameterized = $opaque.Clone()
+$parameterized.DartGenerated = $opaque.DartGenerated.Replace(
+    "that: this);", "that: this, operationId: operationId, categoryId: categoryId);"
+)
+Assert-Fixture $parameterized
+$fixture = $parameterized
+Assert-Rejected "opaque implementation changes an argument" DartGenerated (
+    $parameterized.DartGenerated.Replace("categoryId: categoryId", "categoryId: other")
+)
+Assert-Rejected "opaque implementation replaces the lease after an argument" DartGenerated (
+    $parameterized.DartGenerated.Replace("categoryId: categoryId", "categoryId: categoryId, that: other")
+)
+
 $rustLiteral = @'
 pub fn test<'a>(value: &'a str) { let brace = '}'; let text = r##" } /* literal */ "##; /* outer /* nested */ comment */ }
 '@
@@ -103,12 +116,13 @@ if ($masked.Length -ne $rustLiteral.Length -or $masked -match 'literal|comment')
 }
 Get-AmeBridgeClosingDelimiter $masked ($masked.IndexOf('{')) '{' '}' | Out-Null
 $contracts = @(Get-AmeAsyncBridgeContracts)
-if ($contracts.Count -ne 28 -or
+if ($contracts.Count -ne 38 -or
     @($contracts | Where-Object Module -eq "viewer_source").Count -ne 3 -or
     @($contracts | Where-Object Module -eq "classification").Count -ne 4 -or
     @($contracts | Where-Object Module -eq "classification_settings").Count -ne 4 -or
     @($contracts | Where-Object Module -eq "classification_installation").Count -ne 2 -or
-    @($contracts | Where-Object Module -eq "classification_maintenance").Count -ne 1) {
+    @($contracts | Where-Object Module -eq "classification_maintenance").Count -ne 1 -or
+    @($contracts | Where-Object Module -eq "classification_review").Count -ne 10) {
     throw "The complete asynchronous bridge contract roster changed unexpectedly"
 }
 $handoffContracts = @($contracts | Where-Object {

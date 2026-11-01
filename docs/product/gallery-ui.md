@@ -294,6 +294,9 @@ by default and semibold when selected, retaining the existing font sizes and sel
 Library and Albums share the same sidebar structure: the Library/Favorites destination comes first,
 followed by a `文件夹`/`相册` section heading. The plus button on the right of that heading imports a
 source folder or creates an album. The Library destination itself has no trailing import action.
+An empty manual-album list uses the same static icon-and-text row as an empty folder list, with
+`还没有创建相册`. It appears only after loading confirms that the album total is zero, not for an
+empty page of a larger collection or a loading/error state.
 Library sidebar multi-selection includes only imported top-level sources. Child-folder rows remain
 browsing destinations, with no selection control, and are excluded from Select all and batch removal.
 Albums and imported top-level folders support saved drag order. Upgrade preserves the existing order;
@@ -1201,8 +1204,21 @@ foundations through their own product contracts without adding model controls to
 
 R5 uses the existing desktop shell, Material components, photo wall, viewer, and feedback templates.
 The visible section name is `智能相册`. Keep the primary `图库`, `相册`, `去重` order and place the
-section below manual albums in Albums' secondary sidebar. It may collapse as one section; its
-heading opens the all-results scope, and its category rows open the corresponding derived results.
+section below manual albums in Albums' secondary sidebar. Use the same compact section-heading
+alignment as manual albums, with a trailing expand/collapse arrow. The heading is plain text with
+no click target, hover treatment or navigation action; only the arrow expands or collapses the list.
+Category rows open the corresponding derived results.
+Category rows reflect the active application-managed scheme. First use relies on the existing setup
+and empty-state surfaces, without a mandatory category-definition form or a permanent sample-class
+list presented as the available classification capability. Setup, optional category adjustments and
+analysis controls use the existing gallery More menu and Settings entry, keeping the sidebar
+heading's trailing action for collapse. Normal setup asks only for enablement and any required
+model download. Model/runtime directory pickers and comparison-description authoring are not
+prerequisites for using smart albums.
+When expanded without categories, use the same static icon-and-text empty row as the Library's
+folder list, with `还没有分类结果`. Hide it when collapsed or when category rows become available;
+keep loading and failure separate. Do not substitute evaluation categories or add a setup paragraph
+to this row.
 Favorites remains independent above the manual albums. This adds no primary workspace, dashboard,
 mobile layout, or competing gallery.
 

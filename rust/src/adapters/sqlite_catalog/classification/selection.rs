@@ -1,0 +1,67 @@
+use crate::application::classification_decisions::plan_classification_change;
+use crate::domain::ScanError;
+use crate::domain::classification::{
+    ClassificationAction, ClassificationObservation, ClassificationReview, Taxonomy,
+};
+use crate::domain::classification_selection::{ClassificationItemReview, ClassificationItemState};
+use crate::domain::organization::{OrganizationSelection, validate_selections};
+use rusqlite::Connection;
+
+use super::super::organization;
+use super::{configuration, observations};
+
+pub(super) fn can_confirm(observation: &ClassificationObservation, taxonomy: &Taxonomy) -> bool {
+    observation.effective().review != ClassificationReview::Confirmed
+        && plan_classification_change(
+            observation,
+            observation,
+            &ClassificationAction::Confirm,
+            taxonomy,
+        )
+        .is_ok()
+}
+
+pub(super) fn load(
+    connection: &Connection,
+    selections: &[OrganizationSelection],
+) -> Result<Vec<ClassificationItemState>, ScanError> {
+    validate_selections(selections)?;
+    let transaction = connection
+        .unchecked_transaction()
+        .map_err(super::super::database_error)?;
+    let state = configuration::load(&transaction)?;
+    let Some(taxonomy) = state.taxonomy.as_ref() else {
+        return Ok(Vec::new());
+    };
+    let mut result = Vec::with_capacity(selections.len());
+    for selection in selections {
+        let prepared =
+            organization::selection::prepare(&transaction, std::slice::from_ref(selection))?;
+        let target = prepared.groups.first().ok_or_else(super::changed)?;
+        let observation = observations::for_target(&transaction, target, &state)?;
+        result.push(item_state(&selection.asset_id, &observation, taxonomy));
+    }
+    transaction.commit().map_err(super::super::database_error)?;
+    Ok(result)
+}
+
+pub(super) fn item_state(
+    asset_id: &str,
+    observation: &ClassificationObservation,
+    taxonomy: &Taxonomy,
+) -> ClassificationItemState {
+    let effective = observation.effective();
+    ClassificationItemState {
+        asset_id: asset_id.into(),
+        category_id: effective.category.map(|category| category.as_str().into()),
+        review: match effective.review {
+            ClassificationReview::Unclassified => ClassificationItemReview::Unclassified,
+            ClassificationReview::Suggested => ClassificationItemReview::Suggested,
+            ClassificationReview::NeedsReview => ClassificationItemReview::NeedsReview,
+            ClassificationReview::Deferred => ClassificationItemReview::Deferred,
+            ClassificationReview::Confirmed => ClassificationItemReview::Confirmed,
+            ClassificationReview::Conflict => ClassificationItemReview::Conflict,
+        },
+        can_confirm: can_confirm(observation, taxonomy),
+    }
+}

@@ -149,12 +149,20 @@ class RustLibraryCatalog
               ),
       );
       final counts = result.organizationCounts;
+      final classification = result.classificationCounts;
       return LibraryQuerySnapshot(
         snapshot: _mapSnapshot(result.snapshot),
         timeline: _mapTimeline(result.timeline),
         organizationCounts: counts == null
             ? null
             : mapRustOrganizationCounts(counts),
+        classificationCounts: classification == null
+            ? null
+            : LibraryClassificationCounts(
+                total: classification.total.toInt(),
+                pending: classification.pending.toInt(),
+                confirmed: classification.confirmed.toInt(),
+              ),
       );
     } on Object catch (error) {
       throw _mapFailure(error, "bridge_query_snapshot_load_failed");

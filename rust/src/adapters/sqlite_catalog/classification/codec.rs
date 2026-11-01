@@ -9,6 +9,7 @@ use crate::domain::classification::{
 
 use super::invalid_record;
 
+pub(super) mod observation;
 pub(super) mod prediction;
 
 pub(super) fn revision(value: ClassificationRevision) -> String {

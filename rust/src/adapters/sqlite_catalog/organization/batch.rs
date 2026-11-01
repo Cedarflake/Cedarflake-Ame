@@ -17,7 +17,7 @@ use super::super::{SqliteCatalog, database_error, gallery};
 use super::{albums, authority, changes, favorites, inspection, operations, selection};
 
 mod preparation;
-mod staging;
+use gallery::selection_staging as staging;
 
 struct PreparedBatch {
     summary: OrganizationBatchSummary,

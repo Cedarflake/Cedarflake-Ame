@@ -17,11 +17,21 @@ class LibraryQuerySnapshot {
     required this.snapshot,
     required this.timeline,
     this.organizationCounts,
+    this.classificationCounts,
   });
 
   final LibrarySnapshot snapshot;
   final LibraryTimeline timeline;
   final LibraryOrganizationCounts? organizationCounts;
+  final LibraryClassificationCounts? classificationCounts;
+  LibraryClassificationCountSnapshot? get classificationSummary =>
+      classificationCounts == null
+      ? null
+      : LibraryClassificationCountSnapshot(
+          snapshot.queryId,
+          snapshot.revision,
+          classificationCounts!,
+        );
   LibraryOrganizationCountSnapshot? get organizationSummary =>
       organizationCounts == null
       ? null

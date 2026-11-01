@@ -6,6 +6,8 @@ import "../../../../app/presentation/ame_notifications.dart";
 import "../../../../app/presentation/ame_feedback_style.dart";
 import "../../../settings/presentation/widgets/organization_record_feedback.dart";
 import "../../application/library_controller.dart";
+import "../../application/library_classification_actions.dart";
+import "../../application/library_operation_notice.dart";
 import "../../application/library_organization_outcome.dart";
 import "../../application/library_update_controller.dart";
 import "../library_task_surface_selection.dart";
@@ -28,7 +30,7 @@ class LibraryBottomFeedback extends ConsumerWidget {
     final updates = ref.watch(libraryUpdateControllerProvider);
     final tasks = LibraryTaskSurfaceSelection(state, updates);
     final notifications = ref.watch(ameNotificationControllerProvider);
-    final outcome = ref.watch(libraryOrganizationOutcomeProvider);
+    final outcome = ref.watch(libraryOperationOutcomeProvider);
     final notification = notifications.current ?? outcome;
     Widget? feedback = buildOrganizationRecordFeedback(context, ref);
     if (feedback == null && (tasks.showPrimary || tasks.showUpdates)) {
@@ -46,6 +48,7 @@ class LibraryBottomFeedback extends ConsumerWidget {
         onDismiss: (id) {
           ref.read(ameNotificationControllerProvider.notifier).dismiss(id);
           ref.read(libraryOrganizationOutcomeProvider.notifier).dismiss(id);
+          ref.read(libraryClassificationActionsProvider.notifier).dismiss(id);
         },
       );
     }

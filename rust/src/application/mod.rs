@@ -21,6 +21,7 @@ pub(crate) mod classification_residency;
 #[cfg(all(windows, feature = "classification-worker"))]
 pub(crate) mod classification_runtime;
 pub(crate) mod classification_screening;
+pub(crate) mod classification_selection;
 pub(crate) mod classification_verification;
 mod directory_synchronization;
 pub(crate) mod exact_duplicate_review;

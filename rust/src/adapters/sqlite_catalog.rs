@@ -42,6 +42,7 @@ mod location_row_read;
 mod location_row_write;
 use location_row_read::{read_stored_asset, stored_asset_view};
 mod classification;
+pub(crate) use classification::SqliteClassificationSelection;
 mod media_admission_rechecks;
 mod metadata_inventory;
 mod migration_backup;

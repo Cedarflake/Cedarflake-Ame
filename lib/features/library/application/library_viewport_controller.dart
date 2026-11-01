@@ -232,6 +232,7 @@ class LibraryViewportController {
       query: query,
       timeline: result.timeline,
       organizationSummary: result.organizationSummary,
+      classificationSummary: result.classificationSummary,
       isLoadingTimeline: false,
     );
     return LibraryQueryUpdateOutcome.applied;
@@ -375,6 +376,7 @@ class LibraryViewportController {
         windowStartItemOffset: windowStart,
         timeline: timeline,
         organizationSummary: result.organizationSummary,
+        classificationSummary: result.classificationSummary,
         activeTimeAnchor: null,
         isLoadingTimeline: false,
         isLoadingTimeAnchor: false,
@@ -1112,6 +1114,7 @@ class LibraryViewportController {
       query: query,
       timeline: timeline,
       organizationSummary: result.organizationSummary,
+      classificationSummary: result.classificationSummary,
       isLoadingTimeline: false,
     );
     return true;
@@ -1220,6 +1223,7 @@ class LibraryViewportController {
     required LibraryGalleryQuery query,
     required LibraryTimeline? timeline,
     LibraryOrganizationCountSnapshot? organizationSummary,
+    LibraryClassificationCountSnapshot? classificationSummary,
     required bool isLoadingTimeline,
   }) {
     if (!_canPublishGeneration(generation)) {
@@ -1250,6 +1254,7 @@ class LibraryViewportController {
       status: wasRemoving ? LibraryStatus.removing : null,
       timeline: timeline,
       organizationSummary: organizationSummary,
+      classificationSummary: classificationSummary,
       activeTimeAnchor: null,
       isLoadingTimeline: isLoadingTimeline,
       isLoadingTimeAnchor: false,

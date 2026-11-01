@@ -1,6 +1,7 @@
 mod anchor_position;
 mod annotations;
 mod classification;
+pub(super) mod classification_counts;
 pub(super) mod duplicates;
 mod filters;
 mod location_anchor;
@@ -16,6 +17,7 @@ pub(super) mod review;
 mod scroll_sections;
 mod search;
 pub(super) mod selection;
+pub(super) mod selection_staging;
 mod time_anchor;
 mod timeline;
 

@@ -6,9 +6,13 @@ use crate::domain::classification::{
     ClassificationRevision, ClassificationSubject, ClassificationTarget, HumanClassification,
     HumanClassificationConsensus, HumanDecisionOrigin, ProvisionalClassificationContent,
 };
-use crate::domain::classification_catalog::PreparedClassificationSelection;
+use crate::domain::classification_catalog::{
+    ClassificationCatalogState, PreparedClassificationSelection,
+};
 use crate::domain::exact_duplicates::EXACT_FINGERPRINT_SCHEME;
-use crate::domain::organization::{OrganizationGroupKey, OrganizationSelection};
+use crate::domain::organization::{
+    OrganizationGroupKey, OrganizationGroupTarget, OrganizationSelection,
+};
 
 use super::super::{database_error, organization};
 use super::{codec, configuration, invalid_record, operations::field, predictions};
@@ -19,8 +23,25 @@ pub(super) fn prepare(
 ) -> Result<PreparedClassificationSelection, ScanError> {
     let selection = organization::selection::prepare(connection, selections)?;
     let state = configuration::load(connection)?;
+    let groups = selection
+        .groups
+        .iter()
+        .map(|group| for_target(connection, group, &state))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(PreparedClassificationSelection {
+        selections: selection.selections,
+        groups,
+    })
+}
+
+pub(super) fn for_target(
+    connection: &Connection,
+    group: &OrganizationGroupTarget,
+    state: &ClassificationCatalogState,
+) -> Result<ClassificationObservation, ScanError> {
     let rules = state
         .taxonomy
+        .as_ref()
         .ok_or_else(|| {
             ScanError::new(
                 "classification_not_configured",
@@ -28,33 +49,25 @@ pub(super) fn prepare(
             )
         })?
         .revision();
-    let mut groups = Vec::with_capacity(selection.groups.len());
-    for group in selection.groups {
-        let (authority, human, deferred) = decisions(connection, &group.key)?;
-        let subject = subject(&group.key)?;
-        let prediction = match (&subject, state.configuration) {
-            (ClassificationSubject::Exact(content), Some(configuration)) => {
-                predictions::latest(connection, content, configuration)?
-                    .map(|value| value.proposal())
-            }
-            _ => None,
-        };
-        groups.push(ClassificationObservation {
-            target: ClassificationTarget {
-                subject,
-                membership: codec::read_revision(&group.membership_authority)?,
-            },
-            authority,
-            rules,
-            configuration: state.configuration,
-            human,
-            deferred,
-            prediction,
-        });
-    }
-    Ok(PreparedClassificationSelection {
-        selections: selection.selections,
-        groups,
+    let (authority, human, deferred) = decisions(connection, &group.key)?;
+    let subject = subject(&group.key)?;
+    let prediction = match (&subject, state.configuration) {
+        (ClassificationSubject::Exact(content), Some(configuration)) => {
+            predictions::latest(connection, content, configuration)?.map(|value| value.proposal())
+        }
+        _ => None,
+    };
+    Ok(ClassificationObservation {
+        target: ClassificationTarget {
+            subject,
+            membership: codec::read_revision(&group.membership_authority)?,
+        },
+        authority,
+        rules,
+        configuration: state.configuration,
+        human,
+        deferred,
+        prediction,
     })
 }
 

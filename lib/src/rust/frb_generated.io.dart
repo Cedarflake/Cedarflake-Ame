@@ -7,6 +7,7 @@ import 'api/catalog.dart';
 import 'api/classification.dart';
 import 'api/classification_installation.dart';
 import 'api/classification_maintenance.dart';
+import 'api/classification_review.dart';
 import 'api/classification_settings.dart';
 import 'api/exact_duplicate_review.dart';
 import 'api/exact_duplicates.dart';
@@ -28,8 +29,10 @@ import 'dart:ffi' as ffi;
 import 'domain.dart';
 import 'domain/classification/installation.dart';
 import 'domain/classification/work.dart';
+import 'domain/classification_catalog.dart';
 import 'domain/classification_configuration.dart';
 import 'domain/classification_review.dart';
+import 'domain/classification_selection.dart';
 import 'domain/exact_duplicate_review.dart';
 import 'domain/exact_duplicates.dart';
 import 'domain/gallery_metadata_filter.dart';
@@ -61,6 +64,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   });
 
   CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_ClassificationSelectionDraftPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraftPtr;
+
+  CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_DesktopClassificationSessionPtr => wire
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSessionPtr;
 
@@ -90,6 +97,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw);
+
+  @protected
+  ClassificationSelectionDraft
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
+    dynamic raw,
+  );
 
   @protected
   DesktopClassificationSession
@@ -134,6 +147,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationSelectionDraft
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
+    dynamic raw,
+  );
+
+  @protected
   DesktopClassificationSession
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     dynamic raw,
@@ -172,6 +191,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ViewerSourceReadLease
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationSelectionDraft
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
     dynamic raw,
   );
 
@@ -271,6 +296,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CatalogReadRetryDetails dco_decode_box_autoadd_catalog_read_retry_details(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationCounts dco_decode_box_autoadd_classification_counts(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationItemState dco_decode_box_autoadd_classification_item_state(
     dynamic raw,
   );
 
@@ -481,9 +516,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationCounts dco_decode_classification_counts(dynamic raw);
+
+  @protected
   ClassificationDispatchMode dco_decode_classification_dispatch_mode(
     dynamic raw,
   );
+
+  @protected
+  ClassificationItemReview dco_decode_classification_item_review(dynamic raw);
+
+  @protected
+  ClassificationItemState dco_decode_classification_item_state(dynamic raw);
 
   @protected
   ClassificationReviewFilter dco_decode_classification_review_filter(
@@ -491,7 +535,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationSelectionPhase dco_decode_classification_selection_phase(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationSelectionProgress dco_decode_classification_selection_progress(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationSelectionSummary dco_decode_classification_selection_summary(
+    dynamic raw,
+  );
+
+  @protected
   ClassificationSettings dco_decode_classification_settings(dynamic raw);
+
+  @protected
+  ClassificationWriteReceipt dco_decode_classification_write_receipt(
+    dynamic raw,
+  );
 
   @protected
   ConsolidatedLibraryRoot dco_decode_consolidated_library_root(dynamic raw);
@@ -708,6 +772,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_list_classification_category_input(dynamic raw);
 
   @protected
+  List<ClassificationItemState> dco_decode_list_classification_item_state(
+    dynamic raw,
+  );
+
+  @protected
   List<ConsolidatedLibraryRoot> dco_decode_list_consolidated_library_root(
     dynamic raw,
   );
@@ -828,6 +897,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   CatalogReadRetryDetails?
   dco_decode_opt_box_autoadd_catalog_read_retry_details(dynamic raw);
+
+  @protected
+  ClassificationCounts? dco_decode_opt_box_autoadd_classification_counts(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationItemState? dco_decode_opt_box_autoadd_classification_item_state(
+    dynamic raw,
+  );
 
   @protected
   ExactDuplicateGroupCursor?
@@ -1142,6 +1221,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
+  ClassificationSelectionDraft
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   DesktopClassificationSession
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     SseDeserializer deserializer,
@@ -1184,6 +1269,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationSelectionDraft
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   DesktopClassificationSession
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     SseDeserializer deserializer,
@@ -1222,6 +1313,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ViewerSourceReadLease
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationSelectionDraft
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
     SseDeserializer deserializer,
   );
 
@@ -1339,6 +1436,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CatalogReadRetryDetails sse_decode_box_autoadd_catalog_read_retry_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationCounts sse_decode_box_autoadd_classification_counts(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationItemState sse_decode_box_autoadd_classification_item_state(
     SseDeserializer deserializer,
   );
 
@@ -1611,7 +1718,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationCounts sse_decode_classification_counts(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ClassificationDispatchMode sse_decode_classification_dispatch_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationItemReview sse_decode_classification_item_review(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationItemState sse_decode_classification_item_state(
     SseDeserializer deserializer,
   );
 
@@ -1621,7 +1743,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationSelectionPhase sse_decode_classification_selection_phase(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationSelectionProgress sse_decode_classification_selection_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationSelectionSummary sse_decode_classification_selection_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ClassificationSettings sse_decode_classification_settings(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationWriteReceipt sse_decode_classification_write_receipt(
     SseDeserializer deserializer,
   );
 
@@ -1902,6 +2044,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   sse_decode_list_classification_category_input(SseDeserializer deserializer);
 
   @protected
+  List<ClassificationItemState> sse_decode_list_classification_item_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<ConsolidatedLibraryRoot> sse_decode_list_consolidated_library_root(
     SseDeserializer deserializer,
   );
@@ -2040,6 +2187,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   CatalogReadRetryDetails?
   sse_decode_opt_box_autoadd_catalog_read_retry_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationCounts? sse_decode_opt_box_autoadd_classification_counts(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationItemState? sse_decode_opt_box_autoadd_classification_item_state(
     SseDeserializer deserializer,
   );
 
@@ -2436,6 +2593,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
+    ClassificationSelectionDraft self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     DesktopClassificationSession self,
     SseSerializer serializer,
@@ -2485,6 +2649,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
+    ClassificationSelectionDraft self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     DesktopClassificationSession self,
     SseSerializer serializer,
@@ -2529,6 +2700,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     ViewerSourceReadLease self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
+    ClassificationSelectionDraft self,
     SseSerializer serializer,
   );
 
@@ -2664,6 +2842,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_catalog_read_retry_details(
     CatalogReadRetryDetails self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_classification_counts(
+    ClassificationCounts self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_classification_item_state(
+    ClassificationItemState self,
     SseSerializer serializer,
   );
 
@@ -2986,8 +3176,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_classification_counts(
+    ClassificationCounts self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_classification_dispatch_mode(
     ClassificationDispatchMode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_item_review(
+    ClassificationItemReview self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_item_state(
+    ClassificationItemState self,
     SseSerializer serializer,
   );
 
@@ -2998,8 +3206,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_classification_selection_phase(
+    ClassificationSelectionPhase self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_selection_progress(
+    ClassificationSelectionProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_selection_summary(
+    ClassificationSelectionSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_classification_settings(
     ClassificationSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_write_receipt(
+    ClassificationWriteReceipt self,
     SseSerializer serializer,
   );
 
@@ -3349,6 +3581,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_classification_item_state(
+    List<ClassificationItemState> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_consolidated_library_root(
     List<ConsolidatedLibraryRoot> self,
     SseSerializer serializer,
@@ -3518,6 +3756,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_catalog_read_retry_details(
     CatalogReadRetryDetails? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_classification_counts(
+    ClassificationCounts? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_classification_item_state(
+    ClassificationItemState? self,
     SseSerializer serializer,
   );
 
@@ -4000,6 +4250,40 @@ class RustLibWire implements BaseWire {
   /// The symbols are looked up in [dynamicLibrary].
   RustLibWire(ffi.DynamicLibrary dynamicLibrary)
     : _lookup = dynamicLibrary.lookup;
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraftPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_cedarflake_ame_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraftPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraftPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_cedarflake_ame_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraftPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(

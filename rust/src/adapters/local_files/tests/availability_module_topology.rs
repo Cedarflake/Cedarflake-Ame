@@ -53,6 +53,7 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
         "classification_catalog",
         "classification_configuration",
         "classification_review",
+        "classification_selection",
         "exact_duplicate_review",
         "organization_archive",
         "organization_batch",
@@ -345,6 +346,12 @@ fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loadi
             DOMAIN_SOURCE,
             "pub mod classification_review;",
             "pub(crate) mod classification_review;",
+        ),
+        (
+            "domain",
+            DOMAIN_SOURCE,
+            "pub mod classification_selection;",
+            "pub(crate) mod classification_selection;",
         ),
         (
             "local",

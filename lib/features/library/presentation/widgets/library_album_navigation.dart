@@ -23,6 +23,7 @@ class LibraryAlbumNavigation extends ConsumerStatefulWidget {
     required this.enabled,
     required this.onSelect,
     required this.header,
+    this.footer,
     this.isActive = true,
     super.key,
   });
@@ -30,6 +31,7 @@ class LibraryAlbumNavigation extends ConsumerStatefulWidget {
   final bool enabled;
   final ValueChanged<LibraryOrganizationAlbum> onSelect;
   final Widget header;
+  final Widget? footer;
   final bool isActive;
 
   @override
@@ -175,9 +177,10 @@ class _LibraryAlbumNavigationState
                       : (kind) => _edit(kind, value.revision, album),
                 ),
               ),
-          footer: (saving) => _previous.isEmpty && value.nextAlbumId == null
-              ? const SizedBox.shrink()
-              : Row(
+          footer: (saving) => Column(
+            children: [
+              if (_previous.isNotEmpty || value.nextAlbumId != null)
+                Row(
                   children: [
                     TextButton(
                       onPressed:
@@ -206,6 +209,9 @@ class _LibraryAlbumNavigationState
                     ),
                   ],
                 ),
+              if (widget.footer != null) widget.footer!,
+            ],
+          ),
         ),
         loading: () => ListView(
           padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
@@ -215,6 +221,7 @@ class _LibraryAlbumNavigationState
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: LinearProgressIndicator(),
             ),
+            if (widget.footer != null) widget.footer!,
           ],
         ),
         error: (error, stack) => ListView(
@@ -229,6 +236,7 @@ class _LibraryAlbumNavigationState
                 child: const Text("重试"),
               ),
             ),
+            if (widget.footer != null) widget.footer!,
           ],
         ),
       ),

@@ -119,7 +119,9 @@ across configuration changes. A local-primary Profile comparison now exercises a
 original-image viewing while classification advances, including pause/resume and bounded resource
 sampling. R5-05 now connects effective category/review membership to the shared gallery query,
 bounded continuation and catalog publication; its [query evidence](acceptance/r5-smart-albums.md)
-records the query boundary. The category setup
+records the query boundary. R5-06 navigation, coherent counts, local configuration and guarded batch/viewer
+review are being connected to the accepted desktop sketch; its
+[desktop evidence](acceptance/r5-desktop-classification.md) records focused checks. The category setup
 requires correction before R5-06 acceptance: its six starting screening definitions still need
 application-managed discovery and useful category maintenance without user setup. Complete the
 missing R5-02 discovery/naming/admission policy at its owning boundary, preserving the admitted

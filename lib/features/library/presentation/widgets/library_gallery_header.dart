@@ -16,9 +16,11 @@ class LibraryGalleryHeader extends StatelessWidget {
     required this.galleryTitle,
     this.leading,
     this.filter,
+    this.more,
     this.selectionToolbar,
     this.reviewToolbar,
     this.reviewCounts,
+    this.classificationCounts,
     this.isReviewing = false,
     this.onToggleReview,
     required this.totalItems,
@@ -42,9 +44,11 @@ class LibraryGalleryHeader extends StatelessWidget {
   final String galleryTitle;
   final Widget? leading;
   final Widget? filter;
+  final Widget? more;
   final Widget? selectionToolbar;
   final Widget? reviewToolbar;
   final LibraryOrganizationCounts? reviewCounts;
+  final LibraryClassificationCounts? classificationCounts;
   final bool isReviewing;
   final VoidCallback? onToggleReview;
   final int totalItems;
@@ -75,6 +79,9 @@ class LibraryGalleryHeader extends StatelessWidget {
           "${counts.total} 张图片 · 已整理 ${counts.organized} · 待整理 ${counts.pending} · 已忽略 ${counts.ignored}";
     } else if (isSelecting) {
       subtitle = galleryTitle;
+    }
+    if (classificationCounts case final counts? when !isSelecting) {
+      subtitle = "智能相册 · $totalItems 张图片 · 待确认 ${counts.pending}";
     }
     return SizedBox(
       key: const Key("library-gallery-header"),
@@ -135,6 +142,7 @@ class LibraryGalleryHeader extends StatelessWidget {
                         _SelectionToolbar(onCancel: onCancelSelection)
                   : _BrowsingToolbar(
                       filter: filter,
+                      more: more,
                       isReviewing: isReviewing,
                       onToggleReview: onToggleReview,
                       layoutShape: layoutShape,
@@ -165,6 +173,7 @@ class LibraryGalleryHeader extends StatelessWidget {
 class _BrowsingToolbar extends StatelessWidget {
   const _BrowsingToolbar({
     this.filter,
+    this.more,
     required this.isReviewing,
     this.onToggleReview,
     required this.layoutShape,
@@ -180,6 +189,7 @@ class _BrowsingToolbar extends StatelessWidget {
   });
 
   final Widget? filter;
+  final Widget? more;
   final bool isReviewing;
   final VoidCallback? onToggleReview;
   final GalleryLayoutShape layoutShape;
@@ -219,11 +229,12 @@ class _BrowsingToolbar extends StatelessWidget {
           onShapeChanged: onLayoutShapeChanged,
           onSizeChanged: onThumbnailSizeChanged,
         ),
-        _MoreMenu(
-          onSelectAll: onSelectAll,
-          isReviewing: isReviewing,
-          onToggleReview: onToggleReview,
-        ),
+        more ??
+            _MoreMenu(
+              onSelectAll: onSelectAll,
+              isReviewing: isReviewing,
+              onToggleReview: onToggleReview,
+            ),
       ],
     );
   }

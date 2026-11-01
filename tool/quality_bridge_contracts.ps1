@@ -32,6 +32,16 @@ function Get-AmeAsyncBridgeContracts {
         @("classification_maintenance", "commit", "commit", "crateApiClassificationMaintenancePreparedClassificationMaintenanceCommit", "bool", "PreparedClassificationMaintenance"),
         @("classification_installation", "prepare", "prepare", "crateApiClassificationInstallationDesktopModelInstallationPrepare", "void", "DesktopModelInstallation"),
         @("classification_installation", "commit", "commit", "crateApiClassificationInstallationDesktopModelInstallationCommit", "void", "DesktopModelInstallation"),
+        @("classification_review", "open_classification_selection", "openClassificationSelection", "crateApiClassificationReviewOpenClassificationSelection", "ClassificationSelectionDraft", ""),
+        @("classification_review", "load_classification_items", "loadClassificationItems", "crateApiClassificationReviewLoadClassificationItems", "List<ClassificationItemState>", ""),
+        @("classification_review", "undo_classification_change", "undoClassificationChange", "crateApiClassificationReviewUndoClassificationChange", "ClassificationWriteReceipt", ""),
+        @("classification_review", "append_targets", "appendTargets", "crateApiClassificationReviewClassificationSelectionDraftAppendTargets", "void", "ClassificationSelectionDraft"),
+        @("classification_review", "append_ids", "appendIds", "crateApiClassificationReviewClassificationSelectionDraftAppendIds", "void", "ClassificationSelectionDraft"),
+        @("classification_review", "prepare", "prepare", "crateApiClassificationReviewClassificationSelectionDraftPrepare", "ClassificationSelectionSummary", "ClassificationSelectionDraft"),
+        @("classification_review", "confirm", "confirm", "crateApiClassificationReviewClassificationSelectionDraftConfirm", "ClassificationWriteReceipt", "ClassificationSelectionDraft"),
+        @("classification_review", "correct", "correct", "crateApiClassificationReviewClassificationSelectionDraftCorrect", "ClassificationWriteReceipt", "ClassificationSelectionDraft"),
+        @("classification_review", "defer", "defer", "crateApiClassificationReviewClassificationSelectionDraftDefer", "ClassificationWriteReceipt", "ClassificationSelectionDraft"),
+        @("classification_review", "close", "close", "crateApiClassificationReviewClassificationSelectionDraftClose", "void", "ClassificationSelectionDraft"),
         @("catalog", "load_library_query_snapshot", "loadLibraryQuerySnapshot", "crateApiCatalogLoadLibraryQuerySnapshot", "GalleryQuerySnapshot", ""),
         @("catalog", "load_library_time_snapshot", "loadLibraryTimeSnapshot", "crateApiCatalogLoadLibraryTimeSnapshot", "GalleryTimeSnapshot", ""),
         @("catalog", "load_library_folder_page", "loadLibraryFolderPage", "crateApiCatalogLoadLibraryFolderPage", "LibraryFolderPage", ""),
@@ -83,7 +93,8 @@ function Assert-AmeAsyncBridgeContract {
         [regex]::Escape($Contract.GeneratedName)
     if ($Contract.Owner) {
         $implementation = Get-AmeBridgeMethod $GeneratedDartCode $Contract.DartName DartApi "$($Contract.Owner)Impl"
-        $opaqueDelegatePattern = $delegatePattern + '\s*that\s*:\s*this\s*,?\s*\)\s*;$'
+        $opaqueDelegatePattern = $delegatePattern +
+            '\s*that\s*:\s*this(?:\s*,\s*(?!that\b)(?<argument>[A-Za-z_]\w*)\s*:\s*\k<argument>)*\s*,?\s*\)\s*;$'
         if ($implementation.Signature -notmatch $futurePattern -or
             $implementation.Body -notmatch $opaqueDelegatePattern) {
             throw "Opaque Dart implementation does not delegate its exact lease: $($Contract.Owner).$($Contract.DartName)"

@@ -46,39 +46,54 @@ pub(super) fn apply(
     let revision = operations::begin(connection, id, &digest, kind)?;
     let mut changed_groups = 0;
     for (group, change) in current.groups.iter().zip(plans) {
-        if change == ClassificationChange::Unchanged {
-            continue;
-        }
-        if records::materialize(connection, &observations::key(&group.target.subject))? {
-            return Err(changed());
-        }
-        connection.execute(&format!(
-            "INSERT OR IGNORE INTO classification_decisions(record_id, choice_revision, choice_restored,
-             deferred, review_revision, review_restored) SELECT record_id, 0, 0, 0, 0, 0 FROM ({})",
-            records::CURRENT_RECORDS,
-        ), []).map_err(database_error)?;
-        match change {
-            ClassificationChange::Choose(choice) => {
-                remember(connection, id, "category", revision)?;
-                remember(connection, id, "review", revision)?;
-                connection.execute(&format!(
-                    "UPDATE classification_decisions SET category_id = ?1, choice = ?2, choice_revision = ?3,
-                     choice_restored = 0, deferred = 0, review_revision = ?3, review_restored = 0
-                     WHERE record_id IN ({})", records::CURRENT_RECORDS,
-                ), params![choice.category().as_str(), codec::encode_choice(&choice)?, revision]).map_err(database_error)?;
-            }
-            ClassificationChange::Defer => {
-                remember(connection, id, "review", revision)?;
-                connection.execute(&format!(
-                    "UPDATE classification_decisions SET deferred = 1, review_revision = ?1, review_restored = 0
-                     WHERE record_id IN ({})", records::CURRENT_RECORDS,
-                ), [revision]).map_err(database_error)?;
-            }
-            ClassificationChange::Unchanged => unreachable!(),
-        }
-        changed_groups += 1;
+        changed_groups += u64::from(apply_group(connection, id, revision, group, change)?);
     }
     operations::finish(connection, id, revision, changed_groups, false)
+}
+
+pub(super) fn apply_group(
+    connection: &Connection,
+    id: &ClassificationRecordId,
+    revision: i64,
+    group: &crate::domain::classification::ClassificationObservation,
+    change: ClassificationChange,
+) -> Result<bool, ScanError> {
+    if change == ClassificationChange::Unchanged {
+        return Ok(false);
+    }
+    if records::materialize(connection, &observations::key(&group.target.subject))? {
+        return Err(changed());
+    }
+    connection
+        .execute(
+            &format!(
+        "INSERT OR IGNORE INTO classification_decisions(record_id, choice_revision, choice_restored,
+         deferred, review_revision, review_restored) SELECT record_id, 0, 0, 0, 0, 0 FROM ({})",
+        records::CURRENT_RECORDS,
+    ),
+            [],
+        )
+        .map_err(database_error)?;
+    match change {
+        ClassificationChange::Choose(choice) => {
+            remember(connection, id, "category", revision)?;
+            remember(connection, id, "review", revision)?;
+            connection.execute(&format!(
+                "UPDATE classification_decisions SET category_id = ?1, choice = ?2, choice_revision = ?3,
+                 choice_restored = 0, deferred = 0, review_revision = ?3, review_restored = 0
+                 WHERE record_id IN ({})", records::CURRENT_RECORDS,
+            ), params![choice.category().as_str(), codec::encode_choice(&choice)?, revision]).map_err(database_error)?;
+        }
+        ClassificationChange::Defer => {
+            remember(connection, id, "review", revision)?;
+            connection.execute(&format!(
+                "UPDATE classification_decisions SET deferred = 1, review_revision = ?1, review_restored = 0
+                 WHERE record_id IN ({})", records::CURRENT_RECORDS,
+            ), [revision]).map_err(database_error)?;
+        }
+        ClassificationChange::Unchanged => unreachable!(),
+    }
+    Ok(true)
 }
 
 fn remember(

@@ -284,11 +284,14 @@ impl GalleryQueryRepository for SqliteCatalog {
             .organization_queue
             .map(|_| super::gallery::organization_queue::load_counts(&read.transaction, query))
             .transpose()?;
+        let classification_counts =
+            super::gallery::classification_counts::load(&read.transaction, query)?;
         read.commit()?;
         Ok(GalleryQuerySnapshot {
             snapshot,
             timeline,
             organization_counts,
+            classification_counts,
         })
     }
 }

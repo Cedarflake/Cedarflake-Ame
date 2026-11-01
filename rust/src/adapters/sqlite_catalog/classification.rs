@@ -10,7 +10,9 @@ use crate::ports::classification::ClassificationRepository;
 
 use super::{SqliteCatalog, database_error};
 
+mod batch;
 pub(super) mod codec;
+pub(crate) use batch::SqliteClassificationSelection;
 mod configuration;
 pub(super) mod maintenance;
 mod observations;
@@ -18,12 +20,23 @@ mod operations;
 mod predictions;
 mod request;
 pub(super) mod review;
+mod selection;
 mod settings;
 pub(super) mod setup;
 mod undo;
 pub(super) mod validation;
 pub(super) mod work;
 mod writes;
+
+impl SqliteCatalog {
+    pub(crate) fn classification_items(
+        &self,
+        selections: &[OrganizationSelection],
+    ) -> Result<Vec<crate::domain::classification_selection::ClassificationItemState>, ScanError>
+    {
+        selection::load(&self.connection, selections)
+    }
+}
 
 impl ClassificationRepository for SqliteCatalog {
     fn load_classification_state(&self) -> Result<ClassificationCatalogState, ScanError> {

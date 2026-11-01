@@ -6,6 +6,7 @@ use crate::ports::{CatalogRepository, GalleryQueryRepository};
 use super::*;
 
 mod continuation;
+mod counts;
 mod evolution;
 mod predictions;
 mod publication;
