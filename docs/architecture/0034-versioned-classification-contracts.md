@@ -49,6 +49,31 @@ corrections can supply local examples for evaluation without silently training a
 new cultural context. A larger fixed candidate list or user-authored definitions cannot substitute
 for the missing discovery/maintenance owner.
 
+### Automatic cohort formation
+
+The application forms discovery cohorts from a bounded window of at most 512 distinct compatible
+cached image features. It uses complete-link similarity: every pair in an admitted cluster must
+meet the caller's minimum cosine. The dense link matrix is bounded to one MiB, and cancellation is
+checked during feature validation, pair scoring, merge selection and cohort construction. No model,
+source reader, persistence adapter or desktop state is involved in this operation.
+
+Input content identities are sorted canonically before grouping. Closest-pair ties use that order;
+completed clusters are considered by descending membership and then canonical identity. Reversing
+the input preserves cohort membership, comparison membership and revision. Duplicated content or
+incompatible feature/model authority rejects the entire window.
+
+Each cluster is compared with the other contents whose current leading category also occurs within
+the cluster. This preserves purpose-aware comparison without silently substituting unrelated images.
+Insufficient membership, absent comparison and the caller's cohort ceiling produce separate deferred
+groups with all affected identities retained. The cohort ceiling is at most 64, independently of
+the category-publication budget. Empty windows return no work; cancellation returns no partial batch.
+
+The retained calibration comparison uses minimum pair cosine 0.75 and at least three members.
+These grouping inputs recover the measured discovery samples; they do not establish confidence,
+name usefulness or category-publication authority. Admission, current-source revalidation, category
+maintenance and background scheduling retain their separate owners. A different grouping policy
+requires a compatible comparison before its discovery evidence is reused.
+
 ### Bounded candidate retrieval
 
 The native discovery owner retrieves evidence from a versioned vocabulary without changing the

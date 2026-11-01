@@ -10,9 +10,10 @@ pub use crate::application::classification_discovery::{
     ConceptConsolidation, ConceptConsolidationLimits, ConceptConsolidationRequest, ConceptMatch,
     ConceptNomination, ConceptNominationRequest, ConceptSearchBound, ConceptSearchLimits,
     ConsolidatedConcept, ContextComparison, ContextComparisonPolicy, ContextMemberAlternative,
-    ContextualVocabulary, DiscoveryCandidates, MemberAdmission, NamingContext,
+    ContextualVocabulary, DeferredDiscoveryCohort, DiscoveryCandidates, DiscoveryCohortBatch,
+    DiscoveryCohortDeferral, DiscoveryCohortPolicy, MemberAdmission, NamingContext,
     NamingContextCatalog, assess_category_candidates, assess_category_scheme,
-    consolidate_classification_concepts, nominate_classification_contexts,
+    consolidate_classification_concepts, form_discovery_cohorts, nominate_classification_contexts,
     prepare_category_expansion, prepare_equivalent_category_retirement,
     retrieve_classification_concepts,
 };

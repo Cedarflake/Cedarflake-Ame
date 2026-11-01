@@ -201,6 +201,14 @@ impl DiscoveryCohort {
         &self.member_samples
     }
 
+    pub fn member_contents(&self) -> impl Iterator<Item = &ClassificationContent> {
+        self.member_samples.iter().map(|sample| &sample.content)
+    }
+
+    pub fn comparison_contents(&self) -> &[ClassificationContent] {
+        &self.comparison_contents
+    }
+
     pub(crate) fn source_contents(&self) -> Vec<ClassificationContent> {
         let mut contents: Vec<_> = self
             .member_samples

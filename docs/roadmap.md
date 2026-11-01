@@ -170,8 +170,11 @@ or retire existing categories. Equivalent generated definitions now have a guard
 that preserves protected definitions, human classifications, purpose parents and historical evidence.
 The configuration/run replacement and versioned retirement record share one transaction. Category
 publication now shares joint candidate selection, counts active generated definitions against an
-explicit cumulative budget and revalidates that count during commit. Useful default-budget selection,
-non-equivalent existing-category overlap policy and runtime integration remain before automatic first use.
+explicit cumulative budget and revalidates that count during commit. Native cohort formation now
+recovers the retained discovery groups and purpose-aware comparisons directly from bounded cached
+features, with deterministic ordering, cancellation and explicit sparse/capacity deferrals. Useful
+default-budget selection, non-equivalent existing-category overlap policy and runtime integration
+remain before automatic first use.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review

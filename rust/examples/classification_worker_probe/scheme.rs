@@ -17,6 +17,9 @@ use serde_json::json;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
+#[path = "scheme/cohorts.rs"]
+pub(super) mod cohorts;
+
 #[derive(Deserialize)]
 struct Fixture {
     categories: Vec<Category>,
@@ -46,68 +49,27 @@ struct Sample {
 }
 
 pub(super) fn run(path: &OsStr) -> Result<()> {
-    let mut bytes = Vec::new();
-    File::open(path)?
-        .take(8 * 1024 * 1024 + 1)
-        .read_to_end(&mut bytes)?;
-    if bytes.len() > 8 * 1024 * 1024 {
-        return Err("Scheme fixture exceeds its byte window".into());
-    }
-    let fixture: Fixture = serde_json::from_slice(&bytes)?;
-    if fixture.categories.len() > 256 || fixture.samples.len() > 512 || fixture.budgets.len() > 8 {
-        return Err("Scheme fixture exceeds its work window".into());
-    }
-    let model = LocalClassificationEncoderFactory {
-        executable: Default::default(),
-        model_directory: Default::default(),
-        runtime_directory: Default::default(),
-    }
-    .compatibility();
+    let (fixture, revision) = load_fixture(path)?;
+    let model = model();
     let expanded = matcher(fixture.categories.iter(), model)?;
-    let baseline = matcher(
-        fixture
-            .categories
-            .iter()
-            .filter(|category| fixture.baseline_ids.contains(&category.id)),
-        model,
-    )?;
-    let identities: BTreeMap<_, _> = fixture
-        .samples
-        .iter()
-        .map(|sample| (*blake3::hash(sample.id.as_bytes()).as_bytes(), &sample.id))
-        .collect();
-    let mut samples = fixture
-        .samples
-        .iter()
-        .map(|sample| {
-            Ok(DiscoverySample {
-                content: ClassificationContent {
-                    scheme: ClassificationRecordId::new("cached-calibration".into())?,
-                    digest: *blake3::hash(sample.id.as_bytes()).as_bytes(),
-                    byte_length: 1,
-                },
-                feature: ImageFeature {
-                    identity: model.image_identity(),
-                    embedding: Embedding::normalized(sample.values.clone())?,
-                },
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
+    let baseline = baseline(&fixture, model)?;
+    let identities = identities(&fixture);
+    let mut samples = samples(&fixture, model)?;
     let labels: BTreeMap<_, _> = fixture
         .categories
         .iter()
         .map(|category| (category.id.as_str(), category.label.as_str()))
         .collect();
-    for budget in fixture.budgets {
+    for budget in &fixture.budgets {
         let policy = CategoryAdmissionPolicy::new(
-            ClassificationRevision::from_bytes(*blake3::hash(&bytes).as_bytes()),
+            revision,
             CategoryAdmissionCriteria {
                 minimum_members: fixture.minimum_members,
                 coverage_per_thousand: 500,
                 minimum_improvement: 0.0,
                 minimum_separation: 0.0,
                 minimum_context_contrast: 0.0,
-                max_proposals: budget,
+                max_proposals: *budget,
             },
         )?;
         let started = Instant::now();
@@ -149,6 +111,76 @@ pub(super) fn run(path: &OsStr) -> Result<()> {
         );
     }
     Ok(())
+}
+
+fn load_fixture(path: &OsStr) -> Result<(Fixture, ClassificationRevision)> {
+    let mut bytes = Vec::new();
+    File::open(path)?
+        .take(8 * 1024 * 1024 + 1)
+        .read_to_end(&mut bytes)?;
+    if bytes.len() > 8 * 1024 * 1024 {
+        return Err("Scheme fixture exceeds its byte window".into());
+    }
+    let fixture: Fixture = serde_json::from_slice(&bytes)?;
+    if fixture.categories.len() > 256 || fixture.samples.len() > 512 || fixture.budgets.len() > 8 {
+        return Err("Scheme fixture exceeds its work window".into());
+    }
+    Ok((
+        fixture,
+        ClassificationRevision::from_bytes(*blake3::hash(&bytes).as_bytes()),
+    ))
+}
+
+fn model() -> ModelCompatibility {
+    LocalClassificationEncoderFactory {
+        executable: Default::default(),
+        model_directory: Default::default(),
+        runtime_directory: Default::default(),
+    }
+    .compatibility()
+}
+
+fn baseline(fixture: &Fixture, model: ModelCompatibility) -> Result<CategoryMatcher> {
+    matcher(
+        fixture
+            .categories
+            .iter()
+            .filter(|category| fixture.baseline_ids.contains(&category.id)),
+        model,
+    )
+}
+
+fn identities(fixture: &Fixture) -> BTreeMap<[u8; 32], &str> {
+    fixture
+        .samples
+        .iter()
+        .map(|sample| {
+            (
+                *blake3::hash(sample.id.as_bytes()).as_bytes(),
+                sample.id.as_str(),
+            )
+        })
+        .collect()
+}
+
+fn samples(fixture: &Fixture, model: ModelCompatibility) -> Result<Vec<DiscoverySample>> {
+    fixture
+        .samples
+        .iter()
+        .map(|sample| {
+            Ok(DiscoverySample {
+                content: ClassificationContent {
+                    scheme: ClassificationRecordId::new("cached-calibration".into())?,
+                    digest: *blake3::hash(sample.id.as_bytes()).as_bytes(),
+                    byte_length: 1,
+                },
+                feature: ImageFeature {
+                    identity: model.image_identity(),
+                    embedding: Embedding::normalized(sample.values.clone())?,
+                },
+            })
+        })
+        .collect()
 }
 
 fn matcher<'a>(

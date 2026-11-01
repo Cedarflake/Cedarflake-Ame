@@ -1208,3 +1208,58 @@ The delivered commit retains hosted CI ownership for the complete suite and lint
 Useful default-budget admission, non-equivalent existing-category retirement, automatic scheduling
 and first-use integration remain in the canonical queue. The explicit capacity parameter is an
 enforced policy input, not a newly selected shipping category limit or a measured accuracy result.
+
+### Native cohort formation from cached features
+
+The discovery application now forms its own complete-link cohorts from compatible cached image
+features. It sorts distinct content identities canonically, selects the closest eligible clusters,
+and requires every pair within a resulting cluster to meet the supplied cosine. The bounded link
+matrix uses at most one MiB for 512 contents. Current-category matching supplies the comparison set:
+other contents with a leading category represented among the members. It never substitutes an
+unrelated comparison set. Sparse groups, missing comparisons and groups beyond the supplied ceiling
+retain explicit deferrals; cancellation returns no partial batch.
+
+The six focused cohort tests pass, covering deterministic membership/comparison/revision under
+reordered input, a similarity chain with dissimilar endpoints, current-purpose comparison, missing
+comparison and capacity deferrals, empty/duplicate/incompatible/oversized input, and cancellation.
+The diagnostic's initial build rejected its nested module path; an explicit relative path fixes
+that registration and the rebuilt example succeeds. No production policy changed for that repair.
+
+The existing cached-feature diagnostic now accepts `--cohorts` using the same bounded eight-MiB
+fixture reader as `--scheme`. The retained 236-content calibration fixture, pair cosine 0.75,
+minimum three members and maximum 64 cohorts produce:
+
+| Check | Result |
+| --- | --- |
+| Native cohorts | 28 |
+| Admitted cohort contents | 139 |
+| Deferred contents | 97 |
+| Every member and comparison set against the four retained broad-cohort fixtures | Identical |
+| Reversed input, including cohort revisions and deferrals | Identical |
+| All 236 input identities accounted for once | Pass |
+| Debug formation / reversed repetition | 0.3262 / 0.3265 seconds |
+| Original image reads / new inference / held-out use | 0 / 0 / none |
+
+The four retained fixture digests are checked before comparing complete sets. This is a cache-only
+algorithm equivalence check using opaque calibration identities, not source-publication authority
+or an accuracy score. The four existing whole-scheme diagnostic cases remain identical after the
+shared fixture-reader extraction, excluding elapsed time. No image, model or runtime is downloaded.
+
+Reproduce by building the existing `classification_worker_probe` example with
+`--features classification-worker`, then passing the ignored
+`.build/r5-category-discovery/native-scheme-fixture.json --cohorts`. The ignored
+`native-cohorts.json` retains output, and `check_native_cohorts.py` compares the retained inputs.
+The repository format check passes with 685 Dart files unchanged; `git diff --check` passes.
+Complete automated coverage and lint remain with the pushed commit's hosted gate.
+
+The cohort owner has 135 production lines plus two dedicated-test registration lines, its complete-link
+helper has 59 production lines, and the dedicated tests have 315 lines; there are no inline tests.
+The discovery facade has 245 production lines plus two test-registration lines and only registers
+the new owner. The domain discovery owner has 317 production lines plus two test-registration lines;
+its additions expose read-only member/comparison identities. The shared diagnostic has 222 lines,
+its cohort mode 61, and the existing probe entrypoint 167, without inline tests. No persistence,
+schema, public desktop bridge or source-file behavior changes.
+
+Runtime sample scheduling and automatic category maintenance remain the next integration boundary.
+This native grouping preserves the measured discovery input without selecting the cumulative
+category budget or claiming useful names from similarity alone.
