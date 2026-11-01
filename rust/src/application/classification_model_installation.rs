@@ -13,6 +13,8 @@ use super::classification_runtime::while_retired;
 
 static INSTALLING: AtomicBool = AtomicBool::new(false);
 
+pub(crate) mod operation;
+
 struct InstallationOwnership;
 
 impl InstallationOwnership {

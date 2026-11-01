@@ -81,7 +81,7 @@ fn save_with_storage(
             .ok_or_else(|| {
                 ScanError::new(
                     "classification_installation_missing",
-                    "Choose the local classification model and runtime directories",
+                    "Install the classification model before enabling analysis",
                 )
             })?;
         verify_local_installation(&installation.models, &installation.runtime)?;

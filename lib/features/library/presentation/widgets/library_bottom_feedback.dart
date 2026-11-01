@@ -10,6 +10,7 @@ import "../../application/library_organization_outcome.dart";
 import "../../application/library_update_controller.dart";
 import "../library_task_surface_selection.dart";
 import "library_task_feedback.dart";
+import "library_model_installation_feedback.dart";
 
 class LibraryBottomFeedback extends ConsumerWidget {
   const LibraryBottomFeedback({
@@ -33,6 +34,7 @@ class LibraryBottomFeedback extends ConsumerWidget {
     if (feedback == null && (tasks.showPrimary || tasks.showUpdates)) {
       feedback = LibraryTaskFeedback(onRetryPrimary: onRetryPrimary);
     }
+    feedback ??= buildLibraryModelInstallationFeedback(context, ref);
     if (feedback == null &&
         !tasks.hasPrimary &&
         !updates.hasFeedback &&

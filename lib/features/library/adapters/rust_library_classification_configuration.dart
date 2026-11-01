@@ -1,4 +1,3 @@
-import "../../../src/rust/api/classification.dart" as session;
 import "../../../src/rust/api/classification_settings.dart" as native;
 import "../../../src/rust/domain/classification/work.dart" as work;
 import "../../../src/rust/domain/classification_configuration.dart" as contract;
@@ -17,15 +16,6 @@ class RustLibraryClassificationConfiguration
       List.unmodifiable(
         (await native.initialClassificationCategories()).map(_category),
       );
-
-  @override
-  Future<void> selectInstallation({
-    required String models,
-    required String runtime,
-  }) => session.selectClassificationInstallation(
-    models: models,
-    runtime: runtime,
-  );
 
   @override
   Future<LibraryClassificationSettings> save({

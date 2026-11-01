@@ -29,6 +29,8 @@ function Get-AmeAsyncBridgeContracts {
         @("classification", "select_classification_installation", "selectClassificationInstallation", "crateApiClassificationSelectClassificationInstallation", "void", ""),
         @("classification", "run", "run", "crateApiClassificationDesktopClassificationSessionRun", "void", "DesktopClassificationSession"),
         @("classification", "close", "close", "crateApiClassificationDesktopClassificationSessionClose", "void", "DesktopClassificationSession"),
+        @("classification_installation", "prepare", "prepare", "crateApiClassificationInstallationDesktopModelInstallationPrepare", "void", "DesktopModelInstallation"),
+        @("classification_installation", "commit", "commit", "crateApiClassificationInstallationDesktopModelInstallationCommit", "void", "DesktopModelInstallation"),
         @("catalog", "load_library_query_snapshot", "loadLibraryQuerySnapshot", "crateApiCatalogLoadLibraryQuerySnapshot", "GalleryQuerySnapshot", ""),
         @("catalog", "load_library_time_snapshot", "loadLibraryTimeSnapshot", "crateApiCatalogLoadLibraryTimeSnapshot", "GalleryTimeSnapshot", ""),
         @("catalog", "load_library_folder_page", "loadLibraryFolderPage", "crateApiCatalogLoadLibraryFolderPage", "LibraryFolderPage", ""),

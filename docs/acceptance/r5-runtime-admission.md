@@ -300,10 +300,9 @@ Sixteen focused native tests pass for package admission, bounded HTTP responses,
 termination, owned temporary cleanup, verified-file reuse, cross-handle package ownership and settings
 publication. Three existing held-file/namespace/placeholder regressions also pass. The repository
 format check reports 685 Dart files with zero changes; Rust formatting and whitespace checks pass.
-No production
-model download or desktop enablement is claimed by the fixture checks. First-use progress/cancel
-controls, automatic category maintenance and connected desktop verification remain under the R5
-roadmap. A network stall can postpone cancellation observation until the ten-second I/O timeout.
+No production model download or desktop enablement is claimed by the fixture checks. A network stall
+can postpone cancellation observation until the ten-second I/O timeout. Automatic category maintenance
+and connected desktop verification retain their R5 roadmap scope.
 
 | Owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |
@@ -314,3 +313,46 @@ roadmap. A network stall can postpone cancellation observation until the ten-sec
 | HTTP admission | 108 | 0 | 113 |
 | Bounded streamed file publication | 79 | 0 | Covered by package/HTTP fixtures |
 | Cross-process staging ownership | 96 | 25 | Included inline |
+
+## Managed setup bridge and desktop controls
+
+Settings now requests explicit model download and enablement without model/runtime directory pickers
+or a first-use category table. The application supplies the existing starting definitions; optional
+edits to an existing scheme retain their identities. This connects model installation and does not
+establish automatic category maintenance or admit a fixed sample list as the complete scheme.
+
+The installation controller outlives the settings dialog. Preparation leaves browsing and the current
+classification session available. Progress and cancellation use the shared bottom feedback card;
+reopening settings also provides cancellation when another task occupies the bottom host. Complete
+preparation hands the verified installation to the existing close/commit/reopen lifecycle. Settings
+publication uses the observed catalog/dispatch revisions. Shutdown cancels and joins installation
+before retiring classification. Failure and explicit cancellation do not report enablement.
+
+Four controller cases pass for preparation-before-enablement, cancellation retirement, shutdown when
+the cancellation signal fails, and explicit retry with a fresh native operation. The fourteen-case
+classification lifecycle suite passes, including new managed-publication ordering and failed-commit
+cases. Four settings cases cover optional edits, first use without directory/category input and
+continued browsing, cancellation from reopened settings, and failed-save retry. Scoped analysis of
+the twelve delivered Dart owners reports no issues; the isolated delivery's format check leaves all
+669 Dart files unchanged. Four native installation cases pass, including operation admission,
+cancellation while preparation owns its resources, and rejection of retired operation reuse.
+The bridge checks verify 27 asynchronous method contracts and reject
+the malformed method/owner/lease fixtures. Real-window first-use interaction remains pending after
+the previous Computer Use interruption; these checks do not claim a production model download.
+
+The existing `AlertDialog`, `TextButton` and `FilledButton` own dialog layout, focus and actions;
+`AmeFeedbackCard`/`AmeNotificationSurface` own progress and result presentation. Installed Flutter
+3.47.8 supplies the dialog and determinate/indeterminate `LinearProgressIndicator` APIs. The
+[Material dialog guidance](https://m3.material.io/components/dialogs/overview),
+[Flutter dialog contract](https://api.flutter.dev/flutter/material/AlertDialog-class.html) and
+[progress contract](https://api.flutter.dev/flutter/material/LinearProgressIndicator-class.html)
+support this composition. A custom overlay or progress control is unnecessary. Riverpod 3.4.2's
+supported ChangeNotifier bridge observes the application-owned task; provider disposal does not
+replace explicit asynchronous shutdown.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Native operation / desktop bridge | 119 / 73 | 0 | 78 |
+| Dart installation lifetime / native adapter | 180 / 40 | 0 | 127 |
+| Configuration facade / settings providers | 120 / 29 | 0 | 491 (shared lifecycle suite) |
+| Settings editor / installation feedback | 279 / 83 | 0 | 291 |

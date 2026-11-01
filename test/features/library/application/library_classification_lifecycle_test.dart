@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_classification.dart";
+import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_lifecycle.dart";
 import "package:cedarflake_ame/features/library/application/library_foreground_reads.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -181,6 +182,82 @@ void main() {
     fixture.dispose();
   });
 
+  testWidgets(
+    "managed installation commits after retirement and preserves observed settings",
+    (tester) async {
+      final fixture = _Fixture();
+      fixture.session.autoFinish = false;
+      fixture.session.closeGate = Completer<void>();
+      fixture.owner.startInBackground();
+      fixture.service.opened.complete(fixture.session);
+      await tester.pump();
+      final backend = _SetupConfiguration();
+      final configuration = LibraryClassificationConfiguration(
+        backend,
+        fixture.owner,
+      );
+      final observed = backend.settings;
+      var retiredAtCommit = false;
+      final change = configuration.enableManagedInstallation(
+        operationId: "managed-installation",
+        observed: observed,
+        commitInstallation: () async {
+          retiredAtCommit = fixture.session.closed;
+          backend.actions.add("install");
+        },
+      );
+      await tester.pump();
+      expect(fixture.session.closeRequested, isTrue);
+      expect(backend.actions, isEmpty);
+      fixture.session.finished.complete();
+      await tester.pump();
+      expect(backend.actions, isEmpty);
+      fixture.session.closeGate!.complete();
+      fixture.service.reopened.complete(null);
+      await tester.pump();
+      await change;
+      expect(backend.actions, ["install", "enable"]);
+      expect(retiredAtCommit, isTrue);
+      expect(
+        backend.savedAction,
+        LibraryClassificationConfigurationAction.enable,
+      );
+      expect(identical(backend.savedObserved, observed), isTrue);
+      expect(identical(backend.savedCategories, observed.categories), isTrue);
+      expect(backend.initialLoads, 0);
+      expect(fixture.service.opens, 2);
+      await fixture.owner.close();
+      fixture.dispose();
+    },
+  );
+
+  testWidgets("failed managed publication leaves classification disabled", (
+    tester,
+  ) async {
+    final fixture = _Fixture();
+    fixture.owner.startInBackground();
+    fixture.service.opened.complete(null);
+    await tester.pump();
+    final backend = _SetupConfiguration(configured: false);
+    final configuration = LibraryClassificationConfiguration(
+      backend,
+      fixture.owner,
+    );
+    final change = configuration.enableManagedInstallation(
+      operationId: "failed-installation",
+      observed: backend.settings,
+      commitInstallation: () async => throw StateError("Installation changed"),
+    );
+    final check = expectLater(change, throwsStateError);
+    fixture.service.reopened.complete(null);
+    await tester.pump();
+    await check;
+    expect(backend.actions, isEmpty);
+    expect(backend.initialLoads, 1);
+    await fixture.owner.close();
+    fixture.dispose();
+  });
+
   testWidgets("late opening during reconfiguration never starts the old task", (
     tester,
   ) async {
@@ -268,6 +345,58 @@ void main() {
     expect(secondRan, isFalse);
     fixture.dispose();
   });
+}
+
+class _SetupConfiguration implements LibraryClassificationConfigurationService {
+  _SetupConfiguration({this.configured = true});
+  final bool configured;
+  final actions = <String>[];
+  int initialLoads = 0;
+  LibraryClassificationSettings? savedObserved;
+  LibraryClassificationConfigurationAction? savedAction;
+  List<LibraryClassificationCategory>? savedCategories;
+  static const categories = [
+    LibraryClassificationCategory(
+      id: "drawing",
+      label: "绘画",
+      descriptions: ["a drawing"],
+    ),
+  ];
+  late final settings = LibraryClassificationSettings(
+    revision: BigInt.from(17),
+    dispatchRevision: BigInt.from(29),
+    mode: LibraryClassificationMode.disabled,
+    categories: configured ? categories : [],
+    runId: null,
+    installationSelected: false,
+  );
+  @override
+  Future<LibraryClassificationSettings> load() async => settings;
+  @override
+  Future<List<LibraryClassificationCategory>> initialCategories() async {
+    initialLoads += 1;
+    return categories;
+  }
+
+  @override
+  Future<LibraryClassificationSettings> save({
+    required String operationId,
+    required LibraryClassificationSettings observed,
+    required List<LibraryClassificationCategory> categories,
+    required LibraryClassificationConfigurationAction action,
+  }) async {
+    savedAction = action;
+    actions.add("enable");
+    savedObserved = observed;
+    savedCategories = categories;
+    return settings;
+  }
+
+  @override
+  Future<LibraryClassificationSettings> changeControl({
+    required BigInt expectedRevision,
+    required LibraryClassificationControl action,
+  }) => throw UnimplementedError();
 }
 
 class _Fixture {

@@ -705,6 +705,14 @@ Cancellation, changed settings and retirement failure preserve the previous sele
 owner retains all file and namespace guards until this commit or disposal. The caller then opens a
 fresh session through the existing configuration lifecycle; there is no runtime hot reload.
 
+The desktop bridge exposes one opaque installation operation. Preparation and publication use
+asynchronous calls; bounded progress reads and cancellation use synchronous signals. Cancellation
+retains a running preparation until its owning call returns. A prepared operation owns its verified
+files until commit or disposal, and cannot be prepared or committed twice. The desktop application
+owns that lifetime independently of the settings dialog, joins it before classification shutdown,
+and changes configuration only after preparation completes. Enablement retains the observed
+configuration revisions so a download cannot silently overwrite a later pause or category change.
+
 This adds no catalog migration or new encoder identity. Replacing the HTTP adapter must preserve
 fixed artifact admission, bounded streaming, cancellation, complete-file reuse and atomic selection.
 Model or runtime revision changes retain the original admission and feature-compatibility rules.

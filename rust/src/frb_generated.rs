@@ -27,6 +27,7 @@
 // Section: imports
 
 use crate::api::classification::*;
+use crate::api::classification_installation::*;
 use crate::api::organization_archive::*;
 use crate::api::organization_batch::*;
 use crate::api::organization_cleanup::*;
@@ -43,7 +44,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -275580882;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1293524964;
 
 // Section: executor
 
@@ -425,6 +426,208 @@ fn wire__crate__api__classification__DesktopClassificationSession_run_impl(
                     Ok(output_ok)
                 })())
             }
+        },
+    )
+}
+fn wire__crate__api__classification_installation__DesktopModelInstallation_cancel_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "DesktopModelInstallation_cancel",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, crate::domain::ScanError>((move || {
+                let mut api_that_guard = None;
+                let decode_indices_ =
+                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                            &api_that, 0, false,
+                        ),
+                    ]);
+                for i in decode_indices_ {
+                    match i {
+                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                        _ => unreachable!(),
+                    }
+                }
+                let api_that_guard = api_that_guard.unwrap();
+                let output_ok =
+                    crate::api::classification_installation::DesktopModelInstallation::cancel(
+                        &*api_that_guard,
+                    )?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__classification_installation__DesktopModelInstallation_commit_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "DesktopModelInstallation_commit",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok =
+                        crate::api::classification_installation::DesktopModelInstallation::commit(
+                            &*api_that_guard,
+                        )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__classification_installation__DesktopModelInstallation_prepare_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "DesktopModelInstallation_prepare",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok =
+                        crate::api::classification_installation::DesktopModelInstallation::prepare(
+                            &*api_that_guard,
+                        )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__classification_installation__DesktopModelInstallation_progress_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "DesktopModelInstallation_progress",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, crate::domain::ScanError>((move || {
+                let mut api_that_guard = None;
+                let decode_indices_ =
+                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                            &api_that, 0, false,
+                        ),
+                    ]);
+                for i in decode_indices_ {
+                    match i {
+                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                        _ => unreachable!(),
+                    }
+                }
+                let api_that_guard = api_that_guard.unwrap();
+                let output_ok =
+                    crate::api::classification_installation::DesktopModelInstallation::progress(
+                        &*api_that_guard,
+                    )?;
+                Ok(output_ok)
+            })())
         },
     )
 }
@@ -1512,6 +1715,36 @@ fn wire__crate__api__storage__clear_retired_preview_cache_impl(
                     Ok(output_ok)
                 })())
             }
+        },
+    )
+}
+fn wire__crate__api__classification_installation__create_model_installation_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "create_model_installation",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, crate::domain::ScanError>((move || {
+                let output_ok =
+                    crate::api::classification_installation::create_model_installation()?;
+                Ok(output_ok)
+            })())
         },
     )
 }
@@ -4045,6 +4278,9 @@ flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopClassificationSession>
 );
 flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
+    flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>
+);
+flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<OrganizationArchiveTask>
 );
 flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
@@ -4072,6 +4308,16 @@ impl SseDecode for DesktopClassificationSession {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <RustOpaqueMoi<
             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopClassificationSession>,
+        >>::sse_decode(deserializer);
+        return flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(inner);
+    }
+}
+
+impl SseDecode for DesktopModelInstallation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <RustOpaqueMoi<
+            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>,
         >>::sse_decode(deserializer);
         return flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(inner);
     }
@@ -4120,6 +4366,18 @@ impl SseDecode for ViewerSourceReadLease {
 impl SseDecode
     for RustOpaqueMoi<
         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopClassificationSession>,
+    >
+{
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <usize>::sse_decode(deserializer);
+        return decode_rust_opaque_moi(inner);
+    }
+}
+
+impl SseDecode
+    for RustOpaqueMoi<
+        flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>,
     >
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
@@ -5921,6 +6179,36 @@ impl SseDecode for Vec<crate::domain::RetiredPreviewRootView> {
     }
 }
 
+impl SseDecode for crate::domain::classification::installation::ModelInstallationPhase {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::classification::installation::ModelInstallationPhase::Verifying,
+            1 => crate::domain::classification::installation::ModelInstallationPhase::Downloading,
+            2 => crate::domain::classification::installation::ModelInstallationPhase::Prepared,
+            _ => unreachable!("Invalid variant for ModelInstallationPhase: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::domain::classification::installation::ModelInstallationProgress {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_phase =
+            <crate::domain::classification::installation::ModelInstallationPhase>::sse_decode(
+                deserializer,
+            );
+        let mut var_completedBytes = <u64>::sse_decode(deserializer);
+        let mut var_totalBytes = <u64>::sse_decode(deserializer);
+        return crate::domain::classification::installation::ModelInstallationProgress {
+            phase: var_phase,
+            completed_bytes: var_completedBytes,
+            total_bytes: var_totalBytes,
+        };
+    }
+}
+
 impl SseDecode for Option<String> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -6126,6 +6414,17 @@ impl SseDecode for Option<crate::domain::LibraryFolderCursor> {
             return Some(<crate::domain::LibraryFolderCursor>::sse_decode(
                 deserializer,
             ));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::domain::classification::installation::ModelInstallationProgress> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::domain::classification::installation::ModelInstallationProgress>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -7572,308 +7871,320 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        10 => wire__crate__api__organization_batch__OrganizationSelectionDraft_append_ids_impl(
+        9 => wire__crate__api__classification_installation__DesktopModelInstallation_commit_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        11 => wire__crate__api__organization_batch__OrganizationSelectionDraft_apply_impl(
+        10 => wire__crate__api__classification_installation__DesktopModelInstallation_prepare_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        12 => wire__crate__api__organization_batch__OrganizationSelectionDraft_close_impl(
+        14 => wire__crate__api__organization_batch__OrganizationSelectionDraft_append_ids_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        13 => wire__crate__api__organization_batch__OrganizationSelectionDraft_prepare_impl(
+        15 => wire__crate__api__organization_batch__OrganizationSelectionDraft_apply_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        14 => wire__crate__api__organization_batch__OrganizationSelectionDraft_progress_impl(
+        16 => wire__crate__api__organization_batch__OrganizationSelectionDraft_close_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        15 => wire__crate__api__organization_batch__OrganizationSelectionDraft_refresh_impl(
+        17 => wire__crate__api__organization_batch__OrganizationSelectionDraft_prepare_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        16 => wire__crate__api__viewer_source__ViewerSourceReadLease_close_impl(
+        18 => wire__crate__api__organization_batch__OrganizationSelectionDraft_progress_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        17 => wire__crate__api__viewer_source__ViewerSourceReadLease_source_path_impl(
+        19 => wire__crate__api__organization_batch__OrganizationSelectionDraft_refresh_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        18 => wire__crate__api__viewer_source__acquire_viewer_source_impl(
+        20 => wire__crate__api__viewer_source__ViewerSourceReadLease_close_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        19 => wire__crate__api__exact_duplicates__analyze_exact_duplicates_impl(
+        21 => wire__crate__api__viewer_source__ViewerSourceReadLease_source_path_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        20 => wire__crate__api__organization_cleanup__apply_organization_cleanup_impl(
+        22 => wire__crate__api__viewer_source__acquire_viewer_source_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        21 => wire__crate__api__organization_review__begin_organization_review_impl(
+        23 => wire__crate__api__exact_duplicates__analyze_exact_duplicates_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        22 => wire__crate__api__storage__cancel_catalog_database_reclamation_impl(
+        24 => wire__crate__api__organization_cleanup__apply_organization_cleanup_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        23 => wire__crate__api__exact_duplicates__cancel_exact_duplicate_analysis_impl(
+        25 => wire__crate__api__organization_review__begin_organization_review_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        26 => wire__crate__api__catalog__cancel_retained_library_scan_impl(
+        26 => wire__crate__api__storage__cancel_catalog_database_reclamation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        27 => wire__crate__api__classification_settings__change_classification_control_impl(
+        27 => wire__crate__api__exact_duplicates__cancel_exact_duplicate_analysis_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        28 => wire__crate__api__organization_review__change_current_organization_review_impl(
+        30 => wire__crate__api__catalog__cancel_retained_library_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        29 => wire__crate__api__organization__change_organization_impl(
+        31 => wire__crate__api__classification_settings__change_classification_control_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        30 => wire__crate__api__organization_review__checkpoint_organization_review_impl(
+        32 => wire__crate__api__organization_review__change_current_organization_review_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        31 => {
+        33 => wire__crate__api__organization__change_organization_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        34 => wire__crate__api__organization_review__checkpoint_organization_review_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        35 => {
             wire__crate__api__storage__clear_preview_cache_impl(port, ptr, rust_vec_len, data_len)
         }
-        32 => wire__crate__api__storage__clear_retired_preview_cache_impl(
+        36 => wire__crate__api__storage__clear_retired_preview_cache_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        33 => wire__crate__api__organization__create_organization_album_impl(
+        38 => wire__crate__api__organization__create_organization_album_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        36 => wire__crate__api__organization__delete_organization_album_impl(
+        41 => wire__crate__api__organization__delete_organization_album_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        37 => wire__crate__api__organization_review__end_organization_review_impl(
+        42 => wire__crate__api__organization_review__end_organization_review_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        38 => wire__crate__api__organization_archive__export_organization_archive_impl(
+        43 => wire__crate__api__organization_archive__export_organization_archive_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        39 => wire__crate__api__organization__find_organization_album_impl(
+        44 => wire__crate__api__organization__find_organization_album_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        40 => wire__crate__api__initialization__init_app_impl(port, ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__classification_settings__initial_classification_categories_impl(
+        45 => wire__crate__api__initialization__init_app_impl(port, ptr, rust_vec_len, data_len),
+        46 => wire__crate__api__classification_settings__initial_classification_categories_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        42 => wire__crate__api__organization_archive__inspect_organization_archive_impl(
+        47 => wire__crate__api__organization_archive__inspect_organization_archive_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => wire__crate__api__organization_cleanup__inspect_organization_cleanup_impl(
+        48 => wire__crate__api__organization_cleanup__inspect_organization_cleanup_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        44 => wire__crate__api__organization__inspect_organization_selection_impl(
+        49 => wire__crate__api__organization__inspect_organization_selection_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        45 => wire__crate__api__storage__load_catalog_database_reclamation_impl(
+        50 => wire__crate__api__storage__load_catalog_database_reclamation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        46 => wire__crate__api__classification_settings__load_classification_settings_impl(
+        51 => wire__crate__api__classification_settings__load_classification_settings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        47 => wire__crate__api__exact_duplicates__load_exact_duplicate_groups_impl(
+        52 => wire__crate__api__exact_duplicates__load_exact_duplicate_groups_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        48 => wire__crate__api__exact_duplicates__load_exact_duplicate_locations_impl(
+        53 => wire__crate__api__exact_duplicates__load_exact_duplicate_locations_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        49 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_groups_impl(
+        54 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_groups_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        50 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locations_impl(
+        55 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locations_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        51 => wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(
+        56 => wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        52 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(
+        57 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        53 => wire__crate__api__catalog__load_library_asset_by_id_impl(
+        58 => wire__crate__api__catalog__load_library_asset_by_id_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        54 => {
+        59 => {
             wire__crate__api__catalog__load_library_catalog_impl(port, ptr, rust_vec_len, data_len)
         }
-        55 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(
+        60 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        56 => wire__crate__api__catalog__load_library_catalog_around_location_impl(
+        61 => wire__crate__api__catalog__load_library_catalog_around_location_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        57 => wire__crate__api__catalog__load_library_catalog_at_time_impl(
+        62 => wire__crate__api__catalog__load_library_catalog_at_time_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        58 => wire__crate__api__catalog__load_library_folder_page_impl(
+        63 => wire__crate__api__catalog__load_library_folder_page_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        59 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(
+        64 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        60 => wire__crate__api__catalog__load_library_gallery_timeline_impl(
+        65 => wire__crate__api__catalog__load_library_gallery_timeline_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        61 => wire__crate__api__catalog__load_library_query_snapshot_impl(
+        66 => wire__crate__api__catalog__load_library_query_snapshot_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        62 => wire__crate__api__catalog__load_library_time_snapshot_impl(
+        67 => wire__crate__api__catalog__load_library_time_snapshot_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        63 => wire__crate__api__organization_review__load_organization_admission_boundary_impl(
+        68 => wire__crate__api__organization_review__load_organization_admission_boundary_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        64 => wire__crate__api__organization__load_organization_albums_impl(
+        69 => wire__crate__api__organization__load_organization_albums_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        65 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(
+        70 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        66 => {
+        71 => {
             wire__crate__api__organization_conflicts__load_organization_conflict_annotations_impl(
                 port,
                 ptr,
@@ -7881,164 +8192,164 @@ fn pde_ffi_dispatcher_primary_impl(
                 data_len,
             )
         }
-        67 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(
+        72 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        68 => wire__crate__api__organization_review__load_organization_continuation_impl(
+        73 => wire__crate__api__organization_review__load_organization_continuation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        69 => wire__crate__api__organization__load_organization_history_impl(
+        74 => wire__crate__api__organization__load_organization_history_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        70 => wire__crate__api__catalog__load_paused_library_scan_impl(
+        75 => wire__crate__api__catalog__load_paused_library_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        71 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
+        76 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        72 => {
+        77 => {
             wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len)
         }
-        73 => wire__crate__api__preview__materialize_library_preview_impl(
+        78 => wire__crate__api__preview__materialize_library_preview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        74 => wire__crate__api__classification__open_classification_session_impl(
+        79 => wire__crate__api__classification__open_classification_session_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        75 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(
+        80 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        77 => wire__crate__api__synchronization__poll_library_synchronization_impl(
+        82 => wire__crate__api__synchronization__poll_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        78 => wire__crate__api__organization__prepare_organization_selection_impl(
+        83 => wire__crate__api__organization__prepare_organization_selection_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        79 => {
+        84 => {
             wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len)
         }
-        80 => {
+        85 => {
             wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len)
         }
-        81 => wire__crate__api__organization__rename_organization_album_impl(
+        86 => wire__crate__api__organization__rename_organization_album_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        82 => wire__crate__api__sidebar_order__reorder_sidebar_entry_impl(
+        87 => wire__crate__api__sidebar_order__reorder_sidebar_entry_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        85 => wire__crate__api__organization_archive__restore_organization_archive_impl(
+        90 => wire__crate__api__organization_archive__restore_organization_archive_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        86 => {
+        91 => {
             wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len)
         }
-        87 => wire__crate__api__classification_settings__save_classification_settings_impl(
+        92 => wire__crate__api__classification_settings__save_classification_settings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        88 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-        89 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(
+        93 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+        94 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        90 => wire__crate__api__classification__select_classification_installation_impl(
+        95 => wire__crate__api__classification__select_classification_installation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        91 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(
+        96 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        92 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(
+        97 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        93 => wire__crate__api__organization__set_organization_favorite_impl(
+        98 => wire__crate__api__organization__set_organization_favorite_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        94 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
+        99 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        95 => wire__crate__api__synchronization__start_library_synchronization_impl(
+        100 => wire__crate__api__synchronization__start_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        96 => wire__crate__api__organization__step_organization_history_impl(
+        101 => wire__crate__api__organization__step_organization_history_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        97 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+        102 => wire__crate__api__synchronization__stop_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        99 => wire__crate__api__organization__undo_organization_operation_impl(
+        104 => wire__crate__api__organization__undo_organization_operation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        100 => wire__crate__api__storage__update_storage_settings_impl(
+        105 => wire__crate__api__storage__update_storage_settings_impl(
             port,
             ptr,
             rust_vec_len,
@@ -8078,44 +8389,61 @@ fn pde_ffi_dispatcher_sync_impl(
             rust_vec_len,
             data_len,
         ),
-        8 => wire__crate__api__organization_archive__OrganizationArchiveTask_cancel_impl(
+        8 => wire__crate__api__classification_installation__DesktopModelInstallation_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        9 => wire__crate__api__organization_cleanup__OrganizationCleanupTask_cancel_impl(
+        11 => {
+            wire__crate__api__classification_installation__DesktopModelInstallation_progress_impl(
+                ptr,
+                rust_vec_len,
+                data_len,
+            )
+        }
+        12 => wire__crate__api__organization_archive__OrganizationArchiveTask_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        24 => wire__crate__api__catalog__cancel_library_scan_impl(ptr, rust_vec_len, data_len),
-        25 => wire__crate__api__storage__cancel_preview_cache_cleanup_impl(
+        13 => wire__crate__api__organization_cleanup__OrganizationCleanupTask_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        34 => wire__crate__api__organization_archive__create_organization_archive_task_impl(
+        28 => wire__crate__api__catalog__cancel_library_scan_impl(ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__storage__cancel_preview_cache_cleanup_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        35 => wire__crate__api__organization_cleanup__create_organization_cleanup_task_impl(
+        37 => wire__crate__api__classification_installation__create_model_installation_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        76 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-        83 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
+        39 => wire__crate__api__organization_archive__create_organization_archive_task_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        84 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
+        40 => wire__crate__api__organization_cleanup__create_organization_cleanup_task_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        98 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+        81 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
+        88 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        89 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        103 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -8138,6 +8466,26 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<DesktopClassificationSession>>
     for DesktopClassificationSession
 {
     fn into_into_dart(self) -> FrbWrapper<DesktopClassificationSession> {
+        self.into()
+    }
+}
+
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<DesktopModelInstallation> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self.0)
+            .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<DesktopModelInstallation>
+{
+}
+
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<DesktopModelInstallation>>
+    for DesktopModelInstallation
+{
+    fn into_into_dart(self) -> FrbWrapper<DesktopModelInstallation> {
         self.into()
     }
 }
@@ -10051,6 +10399,60 @@ impl
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::classification::installation::ModelInstallationPhase
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Verifying => 0.into_dart(),
+            Self::Downloading => 1.into_dart(),
+            Self::Prepared => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::classification::installation::ModelInstallationPhase
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::classification::installation::ModelInstallationPhase,
+    > for crate::domain::classification::installation::ModelInstallationPhase
+{
+    fn into_into_dart(self) -> crate::domain::classification::installation::ModelInstallationPhase {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::classification::installation::ModelInstallationProgress
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.phase.into_into_dart().into_dart(),
+            self.completed_bytes.into_into_dart().into_dart(),
+            self.total_bytes.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::classification::installation::ModelInstallationProgress
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::classification::installation::ModelInstallationProgress,
+    > for crate::domain::classification::installation::ModelInstallationProgress
+{
+    fn into_into_dart(
+        self,
+    ) -> crate::domain::classification::installation::ModelInstallationProgress {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::domain::organization::OrganizationAction {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -11785,6 +12187,18 @@ impl SseEncode for DesktopClassificationSession {
     }
 }
 
+impl SseEncode for DesktopModelInstallation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <RustOpaqueMoi<
+            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>,
+        >>::sse_encode(
+            flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self),
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for OrganizationArchiveTask {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -11836,6 +12250,19 @@ impl SseEncode for ViewerSourceReadLease {
 impl SseEncode
     for RustOpaqueMoi<
         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopClassificationSession>,
+    >
+{
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        let (ptr, size) = self.sse_encode_raw();
+        <usize>::sse_encode(ptr, serializer);
+        <i32>::sse_encode(size, serializer);
+    }
+}
+
+impl SseEncode
+    for RustOpaqueMoi<
+        flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>,
     >
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
@@ -13291,6 +13718,27 @@ impl SseEncode for Vec<crate::domain::RetiredPreviewRootView> {
     }
 }
 
+impl SseEncode for crate::domain::classification::installation::ModelInstallationPhase {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(match self {crate::domain::classification::installation::ModelInstallationPhase::Verifying => { 0 }
+crate::domain::classification::installation::ModelInstallationPhase::Downloading => { 1 }
+crate::domain::classification::installation::ModelInstallationPhase::Prepared => { 2 }
+ _ => { unimplemented!(""); }}, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::classification::installation::ModelInstallationProgress {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::classification::installation::ModelInstallationPhase>::sse_encode(
+            self.phase, serializer,
+        );
+        <u64>::sse_encode(self.completed_bytes, serializer);
+        <u64>::sse_encode(self.total_bytes, serializer);
+    }
+}
+
 impl SseEncode for Option<String> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -13463,6 +13911,18 @@ impl SseEncode for Option<crate::domain::LibraryFolderCursor> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::domain::LibraryFolderCursor>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::domain::classification::installation::ModelInstallationProgress> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::classification::installation::ModelInstallationProgress>::sse_encode(
+                value, serializer,
+            );
         }
     }
 }
@@ -14652,6 +15112,7 @@ mod io {
 
     use super::*;
     use crate::api::classification::*;
+    use crate::api::classification_installation::*;
     use crate::api::organization_archive::*;
     use crate::api::organization_batch::*;
     use crate::api::organization_cleanup::*;
@@ -14682,6 +15143,20 @@ mod io {
         MoiArc::<
             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopClassificationSession>,
         >::decrement_strong_count(ptr as _);
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_cedarflake_ame_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation(
+        ptr: *const std::ffi::c_void,
+    ) {
+        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>>::increment_strong_count(ptr as _);
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_cedarflake_ame_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation(
+        ptr: *const std::ffi::c_void,
+    ) {
+        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>>::decrement_strong_count(ptr as _);
     }
 
     #[unsafe(no_mangle)]
@@ -14753,6 +15228,7 @@ mod web {
 
     use super::*;
     use crate::api::classification::*;
+    use crate::api::classification_installation::*;
     use crate::api::organization_archive::*;
     use crate::api::organization_batch::*;
     use crate::api::organization_cleanup::*;
@@ -14785,6 +15261,20 @@ mod web {
         MoiArc::<
             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopClassificationSession>,
         >::decrement_strong_count(ptr as _);
+    }
+
+    #[wasm_bindgen]
+    pub fn rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation(
+        ptr: *const std::ffi::c_void,
+    ) {
+        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>>::increment_strong_count(ptr as _);
+    }
+
+    #[wasm_bindgen]
+    pub fn rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation(
+        ptr: *const std::ffi::c_void,
+    ) {
+        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>>::decrement_strong_count(ptr as _);
     }
 
     #[wasm_bindgen]

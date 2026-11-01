@@ -103,11 +103,22 @@ if ($masked.Length -ne $rustLiteral.Length -or $masked -match 'literal|comment')
 }
 Get-AmeBridgeClosingDelimiter $masked ($masked.IndexOf('{')) '{' '}' | Out-Null
 $contracts = @(Get-AmeAsyncBridgeContracts)
-if ($contracts.Count -ne 25 -or
+if ($contracts.Count -ne 27 -or
     @($contracts | Where-Object Module -eq "viewer_source").Count -ne 3 -or
     @($contracts | Where-Object Module -eq "classification").Count -ne 4 -or
-    @($contracts | Where-Object Module -eq "classification_settings").Count -ne 4) {
+    @($contracts | Where-Object Module -eq "classification_settings").Count -ne 4 -or
+    @($contracts | Where-Object Module -eq "classification_installation").Count -ne 2) {
     throw "The complete asynchronous bridge contract roster changed unexpectedly"
+}
+foreach ($installationMethod in @("prepare", "commit")) {
+    $installationContracts = @($contracts | Where-Object {
+        $_.Module -eq "classification_installation" -and
+        $_.RustName -eq $installationMethod -and
+        $_.Owner -eq "DesktopModelInstallation" -and $_.ReturnType -eq "void"
+    })
+    if ($installationContracts.Count -ne 1) {
+        throw "Model installation must retain its asynchronous $installationMethod contract"
+    }
 }
 $queryContracts = @($contracts | Where-Object {
     $_.Module -eq "catalog" -and $_.RustName -eq "load_library_query_snapshot" -and

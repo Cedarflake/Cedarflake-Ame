@@ -120,9 +120,8 @@ original-image viewing while classification advances, including pause/resume and
 sampling. R5-05 now connects effective category/review membership to the shared gallery query,
 bounded continuation and catalog publication; its [query evidence](acceptance/r5-smart-albums.md)
 records the query boundary. The category setup
-requires correction before R5-06 acceptance: the current implementation exposes six editable
-screening definitions and manual description authoring, while the required default is
-application-managed vocabulary and useful category maintenance without user setup. Complete the
+requires correction before R5-06 acceptance: its six starting screening definitions still need
+application-managed discovery and useful category maintenance without user setup. Complete the
 missing R5-02 discovery/naming/admission policy at its owning boundary, preserving the admitted
 encoder/runtime and existing R5-03 through R5-05 evidence, then connect it to first use. An editable
 or enlarged fixed list does not close that gap. The bounded
@@ -192,8 +191,10 @@ cues and separate naming definitions through the existing discovery port. The Wi
 prepares and bundles the admitted CPU runtime and its notices, with payload-presence checks across
 unsigned, portable and installer packaging. Native managed model installation now prepares pinned
 downloads in separate local storage, retains verified files across retry and publishes the selected
-installation only after runtime retirement. Vocabulary distribution admission, maintenance
-scheduling and desktop first-use integration remain.
+installation only after runtime retirement. Desktop settings now connects explicit download and
+enablement through a joined installation lifetime and the shared bottom feedback host, without
+directory selection or first-use category authoring. Vocabulary distribution admission, maintenance
+scheduling and real-client first-use verification remain.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review

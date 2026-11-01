@@ -42,10 +42,6 @@ class LibraryClassificationSettings {
 abstract interface class LibraryClassificationConfigurationService {
   Future<LibraryClassificationSettings> load();
   Future<List<LibraryClassificationCategory>> initialCategories();
-  Future<void> selectInstallation({
-    required String models,
-    required String runtime,
-  });
   Future<LibraryClassificationSettings> save({
     required String operationId,
     required LibraryClassificationSettings observed,
@@ -71,12 +67,26 @@ class LibraryClassificationConfiguration {
   Future<List<LibraryClassificationCategory>> initialCategories() =>
       _service.initialCategories();
 
-  Future<void> selectInstallation({
-    required String models,
-    required String runtime,
-  }) => _lifecycle.changeConfiguration(
-    () => _service.selectInstallation(models: models, runtime: runtime),
-  );
+  Future<void> enableManagedInstallation({
+    required String operationId,
+    required LibraryClassificationSettings observed,
+    required Future<void> Function() commitInstallation,
+    List<LibraryClassificationCategory>? editedCategories,
+  }) async {
+    final retainedCategories = editedCategories ?? observed.categories;
+    final categories = retainedCategories.isEmpty
+        ? await _service.initialCategories()
+        : retainedCategories;
+    await _lifecycle.changeConfiguration(() async {
+      await commitInstallation();
+      await _service.save(
+        operationId: operationId,
+        observed: observed,
+        categories: categories,
+        action: LibraryClassificationConfigurationAction.enable,
+      );
+    });
+  }
 
   Future<LibraryClassificationSettings> save({
     required String operationId,

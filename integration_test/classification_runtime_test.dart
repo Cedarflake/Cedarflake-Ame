@@ -8,6 +8,7 @@ import "package:cedarflake_ame/features/library/application/library_foreground_r
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/src/rust/api/classification.dart" as native;
 import "package:cedarflake_ame/src/rust/frb_generated.dart";
 import "package:flutter/widgets.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -63,9 +64,11 @@ void main() {
     expect(settings.mode, LibraryClassificationMode.disabled);
     expect(settings.installationSelected, isFalse);
 
-    await client.configuration.selectInstallation(
-      models: classificationEnvironment("MODELS"),
-      runtime: classificationEnvironment("RUNTIME"),
+    await client.lifecycle.changeConfiguration(
+      () => native.selectClassificationInstallation(
+        models: classificationEnvironment("MODELS"),
+        runtime: classificationEnvironment("RUNTIME"),
+      ),
     );
     final events = await const RustLibraryScanner()
         .scan(

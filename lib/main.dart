@@ -15,6 +15,7 @@ import "app/window/window_manager_actions.dart";
 import "features/library/application/library_catalog.dart";
 import "features/library/adapters/rust_library_classification.dart";
 import "features/library/adapters/rust_library_classification_configuration.dart";
+import "features/library/adapters/rust_library_model_installation.dart";
 import "features/library/application/library_classification_configuration.dart";
 import "features/library/application/library_classification_lifecycle.dart";
 import "features/library/application/library_controller.dart";
@@ -24,6 +25,7 @@ import "features/library/application/library_gallery_duplicates.dart";
 import "features/library/application/library_organization_conflicts.dart";
 import "features/library/application/library_exact_duplicates.dart";
 import "features/library/application/library_foreground_reads.dart";
+import "features/library/application/library_model_installation.dart";
 import "features/library/application/library_scan_shutdown.dart";
 import "features/library/application/library_synchronization.dart";
 import "features/library/application/library_view_preferences.dart";
@@ -93,8 +95,15 @@ Future<void> main() async {
       const RustLibraryClassificationConfiguration(),
       classificationLifecycle,
     );
+    final modelInstallation = LibraryModelInstallation(
+      const RustLibraryModelInstallation(),
+    );
+    shutdownCoordinator.register(modelInstallation.close);
     application = ProviderScope(
       overrides: [
+        libraryModelInstallationProvider.overrideWith(
+          (ref) => modelInstallation,
+        ),
         libraryClassificationConfigurationProvider.overrideWithValue(
           classificationConfiguration,
         ),
