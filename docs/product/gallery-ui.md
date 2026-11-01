@@ -1232,20 +1232,19 @@ ownership rule as manual album names. Keep Select, Sort, Filter, Layout, and Mor
 upper-right positions. Filter retains metadata conditions; no pending/confirmed classification
 filters, counts, or badges are shown.
 
-A failed analysis uses the compact `分析失败` label on the existing photo-status surface. Its hover
-and accessible description explains the failure without intercepting opening or selection. Album
-conflicts retain their independent label. Ordinary suggestions and legacy review states add no
-classification attention badge, confidence percentage, or repeated model information.
-
-A failed image offers `重新分析` directly in the preview action area and in the image context menu
-while analysis is enabled or paused. It retries that image's shared task; a paused request stays
-queued until analysis continues. Existing bottom and viewer-top feedback report the result.
-Disabled/stopped analysis keeps enablement in the existing settings flow.
+Per-image analysis failures recover silently under the failure-specific lifecycle. Cards and
+previews show no failure label, icon, tooltip, or notification; image context menus contain no
+analysis command. Album conflicts retain their independent label. Ordinary suggestions and legacy
+review states add no classification badge, confidence percentage, or repeated model information.
+Paused analysis waits for Continue, and disabled/stopped analysis keeps enablement in the existing
+settings flow.
+Runtime startup or execution failure uses the existing bottom and viewer-top error feedback;
+successful recovery resolves that notification without producing per-image retry notices.
 
 Suggestions are usable immediately. Machine-only disagreement uses the current analysis and bounded
 automatic re-screening; remaining uncertainty retains the best usable suggestion. The ordinary Library
 keeps images with missing/failed results and unresolved legacy conflicts reachable without a guessed
-category; failed images can be retried from their preview. Smart albums have no separate all-results
+category. Smart albums have no separate all-results
 entry. The heading remains noninteractive; category rows provide navigation.
 
 Use existing loading, empty, unavailable, retry, and task-feedback surfaces for setup and analysis.
@@ -1263,8 +1262,8 @@ There are no single-image, contextual, or batch confirmation/correction commands
 do not expose classification deferral, review continuation, or classification undo.
 
 The viewer shows an available category as read-only text with its existing category icon beside
-Favorite and Album. It has no category-selection menu or drop-down arrow. Failed-analysis retry
-uses the existing refresh icon and tooltip. A failed category read offers `重新读取分类`; stale reads
+Favorite and Album. It has no category-selection menu, drop-down arrow, or manual analysis retry.
+A failed category read offers `重新读取分类`; stale reads
 cannot replace the state of a newly opened image. Supported metadata stays in the viewer information
 area without another permanent panel.
 
@@ -1275,7 +1274,7 @@ results. The organizing Library retains its mode, selection, and position when v
 
 ### Feedback and compatibility
 
-Analysis retry and errors reuse the [feedback templates](#feedback-templates), including aligned
+Analysis errors reuse the [feedback templates](#feedback-templates), including aligned
 actions, the existing bottom host, and the preview top notice. No classification confirmation,
 correction, or undo notices are created. R4's chronological `撤销操作` / `重做操作` controls remain
 exclusive to organization mode.

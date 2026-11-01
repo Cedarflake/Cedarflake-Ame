@@ -1,7 +1,6 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../app/notifications/ame_notification_controller.dart";
-import "library_classification_retry_actions.dart";
 import "library_organization_actions.dart";
 import "library_organization_outcome.dart";
 
@@ -17,12 +16,7 @@ AmeNotificationEntry? latestLibraryOperationNotice(
 }
 
 final libraryOperationOutcomeProvider = Provider<AmeNotificationEntry?>(
-  (ref) => latestLibraryOperationNotice(
-    ref.watch(libraryOrganizationOutcomeProvider),
-    ref.watch(
-      libraryClassificationRetryActionsProvider.select((state) => state.notice),
-    ),
-  ),
+  (ref) => ref.watch(libraryOrganizationOutcomeProvider),
 );
 
 final libraryViewerOperationNoticeProvider = Provider<AmeNotificationEntry?>(
@@ -44,10 +38,5 @@ final libraryClassificationNoticeProvider = Provider<AmeNotificationEntry?>((
             entry.dedupeKey?.startsWith("classification-") == true,
       )
       .firstOrNull;
-  return failure ??
-      ref.watch(
-        libraryClassificationRetryActionsProvider.select(
-          (state) => state.notice,
-        ),
-      );
+  return failure;
 });

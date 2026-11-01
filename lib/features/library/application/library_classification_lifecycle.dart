@@ -1,5 +1,5 @@
 import "package:flutter/foundation.dart";
-import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_riverpod/legacy.dart";
 
 import "library_classification.dart";
 import "library_classification_environment.dart";
@@ -7,7 +7,7 @@ import "library_classification_session_lifetime.dart";
 import "library_foreground_reads.dart";
 
 final libraryClassificationLifecycleProvider =
-    Provider<LibraryClassificationLifecycle?>((ref) => null);
+    ChangeNotifierProvider<LibraryClassificationLifecycle?>((ref) => null);
 
 class LibraryClassificationLifecycle extends ChangeNotifier {
   LibraryClassificationLifecycle(
@@ -22,17 +22,21 @@ class LibraryClassificationLifecycle extends ChangeNotifier {
       classification,
       _environment,
       _reportError,
+      _reportOpened,
     );
   }
 
   late final LibraryClassificationEnvironment _environment;
   late final LibraryClassificationSessionLifetime _sessions;
   Object? _error;
+  Object? _environmentError;
 
-  Object? get error => _error;
+  Object? get error => _environmentError ?? _error;
 
-  void reportEnvironmentError(Object error, StackTrace stackTrace) =>
-      _reportError(error, stackTrace);
+  void reportEnvironmentError(Object error, StackTrace stackTrace) {
+    _environmentError = error;
+    notifyListeners();
+  }
 
   Future<void> waitUntilOpened() => _sessions.waitUntilOpened();
   void startInBackground() => _sessions.startInBackground();
@@ -53,6 +57,12 @@ class LibraryClassificationLifecycle extends ChangeNotifier {
   void memoryPressure() => _environment.memoryPressure();
   void browsingActivity() => _environment.browsingActivity();
   Future<void> close() => _sessions.close();
+
+  void _reportOpened() {
+    if (_error == null) return;
+    _error = null;
+    notifyListeners();
+  }
 
   void _reportError(Object error, StackTrace stackTrace) {
     _error = error;

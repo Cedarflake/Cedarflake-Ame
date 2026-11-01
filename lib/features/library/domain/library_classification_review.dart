@@ -13,16 +13,7 @@ enum LibraryClassificationReviewReason {
   sampling,
   deferred,
   conflict,
-  analysisFailed;
-
-  bool get showsIndicator => this == analysisFailed;
-
-  String get label => this == analysisFailed ? "分析失败" : "";
-
-  String get description => switch (this) {
-    analysisFailed => "这张图片未能完成分类。",
-    _ => "",
-  };
+  analysisFailed,
 }
 
 class LibraryClassificationItem {

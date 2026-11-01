@@ -18,7 +18,7 @@ and portable recovery without changing manual albums, Favorites or organization 
 
 Manual classification confirmation/correction and their dependent deferral, filtering, continuation,
 and undo workflow are withdrawn. The desktop bridge exposes bounded classification reads and
-failed-analysis retry, without manual-decision mutation or review-session endpoints. The gallery,
+automatic failure recovery, without manual-decision mutation or review-session endpoints. The gallery,
 selection bar, context menus, and preview offer no manual classification controls.
 
 Retain the existing schema, saved human decisions, review bookmarks, operation provenance, and archive
@@ -28,7 +28,8 @@ The command/session rules below document legacy authority and recovery invariant
 interactive capabilities. They remain useful for compatibility fixtures and archive safety.
 
 Smart albums show automatic results and read-only category information, without pending/confirmed
-filters or review badges. Failed analysis remains visible and retryable. R4 organization sessions,
+filters or review badges. Failed analysis remains visible in the ordinary gallery and preview;
+recovery is automatic under ADR 0036, with no per-image retry command. R4 organization sessions,
 manual albums, Favorites, and their undo/redo remain independent. Current UI and acceptance follow
 [the revised R5 requirements](../product/r5-classification.md).
 
@@ -94,12 +95,12 @@ guards. Physical scope can choose another representative of the same group. Proj
 adds no source reads, model execution or archive records; normal pre-upgrade snapshots protect
 rollback, and all prior durable decisions remain unchanged.
 
-Card annotations reuse this effective projection in a bounded, source-version-checked window at the
-displayed catalog revision. Review reasons remain typed independently of command eligibility; a
-retained display fingerprint can explain a suggestion without authorizing confirmation. Terminal
-analysis failures and explicit retry publish their status through the same catalog revision,
-including interrupted work that exhausts its retry budget. Compatible suggestions and human choices
-retain precedence over a work-item failure; missing predictions alone do not imply failure.
+The retained annotation query reuses this effective projection in a bounded, source-version-checked
+window at the displayed catalog revision. Review reasons remain typed independently of command
+eligibility. Terminal analysis failures and recovery update the same catalog revision, including
+interrupted work that exhausts its retry budget. Compatible suggestions and human choices retain
+precedence over a work-item failure; missing predictions alone do not imply failure. The desktop
+does not request card annotations or expose per-image analysis failures; recovery runs silently.
 
 ## Legacy command authority
 

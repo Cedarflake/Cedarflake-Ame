@@ -1,35 +1,45 @@
+import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_review.dart";
-import "package:cedarflake_ame/features/library/application/library_classification_retry.dart";
-import "package:cedarflake_ame/features/library/application/library_classification_retry_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_settings.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_operation_notice.dart";
 import "package:cedarflake_ame/features/library/domain/library_classification_review.dart";
+import "package:cedarflake_ame/features/library/presentation/library_classification_notifications.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_classification.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_organization_feedback.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../support/library_classification_retry_fixture.dart";
 import "../support/library_classification_review_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
 void main() {
   Future<ProviderContainer> mount(
     WidgetTester tester,
-    ClassificationRetryFixture retry,
     ClassificationReviewFixture review,
     LibraryClassificationMode mode,
   ) async {
     final container = ProviderContainer(
       overrides: [
-        libraryClassificationRetryProvider.overrideWithValue(retry),
         libraryClassificationReviewServiceProvider.overrideWithValue(review),
         libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
         libraryClassificationSettingsProvider.overrideWith(
-          (ref) async => classificationRetrySettings(mode: mode),
+          (ref) async => LibraryClassificationSettings(
+            revision: BigInt.one,
+            dispatchRevision: BigInt.from(7),
+            mode: mode,
+            categories: const [
+              LibraryClassificationCategory(
+                id: "drawing",
+                label: "插画",
+                descriptions: ["drawing"],
+              ),
+            ],
+            runId: "run",
+            installationSelected: true,
+          ),
         ),
       ],
     );
@@ -68,8 +78,11 @@ void main() {
     return container;
   }
 
-  ClassificationReviewFixture failed() =>
-      ClassificationReviewFixture()
+  for (final mode in LibraryClassificationMode.values) {
+    testWidgets("${mode.name} handles per-image analysis failure silently", (
+      tester,
+    ) async {
+      final review = ClassificationReviewFixture()
         ..items = const [
           LibraryClassificationItem(
             assetId: "asset-one",
@@ -77,47 +90,19 @@ void main() {
             reviewReason: LibraryClassificationReviewReason.analysisFailed,
           ),
         ];
-
-  testWidgets(
-    "failed viewer image retries directly and uses the shared top notice",
-    (tester) async {
-      final retry = ClassificationRetryFixture();
-      final review = failed();
-      final container = await mount(
-        tester,
-        retry,
-        review,
-        LibraryClassificationMode.automatic,
-      );
-      expect(find.byTooltip("重新分析"), findsOneWidget);
-      await tester.tap(find.byTooltip("重新分析"));
-      await tester.pumpAndSettle();
-      expect(retry.targets, [organizationTarget("one")]);
-      expect(retry.revisions, [BigInt.from(7)]);
-      expect(review.reads.first, [organizationTarget("one")]);
-      expect(find.text("已安排重新分析"), findsOneWidget);
-      expect(
-        container.read(libraryClassificationRetryActionsProvider).busy,
-        isFalse,
-      );
-      await tester.pump(const Duration(seconds: 6));
-    },
-  );
-
-  for (final mode in [
-    LibraryClassificationMode.disabled,
-    LibraryClassificationMode.stopped,
-  ]) {
-    testWidgets("${mode.name} analysis offers no image retry", (tester) async {
-      await mount(tester, ClassificationRetryFixture(), failed(), mode);
-      expect(find.byTooltip("重新分析"), findsNothing);
+      await mount(tester, review, mode);
+      expect(find.byType(Tooltip), findsNothing);
+      expect(find.byType(Icon), findsNothing);
+      expect(find.text("分析失败"), findsNothing);
+      expect(find.byType(IconButton), findsNothing);
+      expect(review.reads, [
+        [organizationTarget("one")],
+      ]);
     });
   }
 
   for (final status in LibraryClassificationReview.values) {
-    testWidgets("${status.name} has no manual classification controls", (
-      tester,
-    ) async {
+    testWidgets("${status.name} retains a read-only category", (tester) async {
       final service = ClassificationReviewFixture()
         ..items = [
           LibraryClassificationItem(
@@ -126,30 +111,31 @@ void main() {
             review: status,
           ),
         ];
-      await mount(
-        tester,
-        ClassificationRetryFixture(),
-        service,
-        LibraryClassificationMode.automatic,
-      );
+      await mount(tester, service, LibraryClassificationMode.automatic);
       expect(find.text("插画"), findsOneWidget);
+      expect(find.byType(IconButton), findsNothing);
       expect(find.byType(PopupMenuButton<String>), findsNothing);
-      expect(find.byTooltip("重新分析"), findsNothing);
-      for (final label in ["确认分类", "更改分类", "稍后确认", "待确认", "已确认"]) {
-        expect(find.text(label), findsNothing);
-      }
     });
   }
 
-  testWidgets("an ordinary suggestion offers no failed-analysis retry", (
-    tester,
-  ) async {
-    await mount(
-      tester,
-      ClassificationRetryFixture(),
-      ClassificationReviewFixture(),
-      LibraryClassificationMode.automatic,
-    );
-    expect(find.byTooltip("重新分析"), findsNothing);
-  });
+  testWidgets(
+    "runtime failures use the shared preview notice and clear on recovery",
+    (tester) async {
+      final container = await mount(
+        tester,
+        ClassificationReviewFixture(),
+        LibraryClassificationMode.automatic,
+      );
+      final feedback = LibraryClassificationNotifications(
+        container.read(ameNotificationControllerProvider.notifier),
+      );
+      feedback.accept(StateError("worker unavailable"));
+      await tester.pumpAndSettle();
+      expect(find.text("智能相册分析已中断：已有分类结果仍可浏览。"), findsOneWidget);
+      expect(find.text("重新分析"), findsNothing);
+      feedback.accept(null);
+      await tester.pumpAndSettle();
+      expect(find.textContaining("智能相册分析已中断"), findsNothing);
+    },
+  );
 }

@@ -468,3 +468,44 @@ The gallery facade contains 1,898 production lines, the smart-album menu 130, se
 configuration facade 117; no inline tests are added. Dedicated navigation/setup fixtures contain
 324/319 lines. The existing 677-line lifecycle fixture is unchanged. The 114-line definition editor
 is removed, and the gallery facade only loses callback wiring.
+
+## Failure-aware automatic recovery — 2026-11-01
+
+Commit `e5f45b56` replaces obsolete integration-test configuration calls while preserving enablement,
+pause, restart and cache-reuse coverage. Its hosted Static job passes. The following repair changes
+single-image recovery from a desktop command to the durable failure policy: transient failures wait
+5 seconds and then 30 seconds, unavailable sources wait for availability or a verified peer, and
+permanent/exhausted inputs wait for a changed source/content or model/rule compatibility. Compatible
+new runs, ordinary refresh, pause/continue and restart do not reset the three-attempt budget.
+Per-image failures are silent in cards and previews. The desktop removes their annotations, retry
+actions and notices; retained native compatibility commands are not desktop recovery paths.
+
+Session startup errors propagate through enablement instead of reporting success. Saved settings
+remain readable, while runtime-wide interruption uses the shared bottom/preview-top feedback and
+settings state. Successful reopening clears the runtime error before attaching signals, preserving
+any new attachment failure. No schema, generated bridge, model, source-media or durable-decision
+change accompanies this repair.
+
+All 65 focused native classification-work tests pass. They cover retry deadlines/exhaustion, restart,
+same-input admission, changed source/model recovery, verified peers, pause and unrelated runnable
+work. The new failure persistence owner initially passed an unsigned value directly to SQLite;
+the corrected implementation uses the existing checked integer conversion. Fifty-seven retained
+focused Flutter checks pass: lifecycle (24), runtime notifications (2), source status (2), setup (9),
+context menus (8), preview (11) and card status (1). Failure injection reaches the real lifecycle,
+activity listener and shared feedback host. The card check preserves album-conflict opening without
+requesting analysis status. Owned Dart analysis and formatting pass, as does whitespace validation.
+
+The rebuilt isolated Profile client opens the existing 51-file / 50-group test library. Actual
+ordinary-Library context menus and failed-image preview retain Favorite/manual-album operations
+without `重新分析`; the 6,000 × 4,000 fixture opens normally. Before/after read-only comparisons
+preserve all nine sampled durable-table digests and all 51 fixture-media hashes. The subsequent
+silent-indicator removal passes the card/preview checks above; final-window verification remains
+deferred and the existing isolated client has not been replaced. The submitted repair
+still requires its own hosted CI result; earlier-head results do not establish that result.
+
+Production line counts are 1,892 for the gallery facade, 432 for the photo tile, 202 for its context
+menu, 49 for preview classification, 72/145 for lifecycle/session ownership, and 150 for foreground
+activity. The native domain failure policy owner has 142 lines; failure persistence/completion have
+61/115. No inline tests are added. Dedicated lifecycle/notification/setup/context/preview/card
+fixtures contain 744/103/346/147/141/59 lines; native work/automatic-recovery fixtures contain
+488/189. The gallery facade loses wiring; classification annotation/retry presentation is removed.

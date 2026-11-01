@@ -20,8 +20,6 @@ pub use signals::{
     MonotonicDispatchClock,
 };
 
-const FAILURE_RETRY: u64 = 5_000;
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ClassificationDispatchStep {
     Progress,
@@ -155,7 +153,7 @@ impl<R: ClassificationWorkRepository, E: ClassificationWorkExecutor, C: Classifi
                     &ClassificationWorkIssue {
                         kind,
                         code: error.code,
-                        retry_unix_ms: self.signals.unix_ms().saturating_add(FAILURE_RETRY),
+                        observed_unix_ms: self.signals.unix_ms(),
                     },
                 )?;
             }

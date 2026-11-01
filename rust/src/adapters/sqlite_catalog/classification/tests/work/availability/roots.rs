@@ -176,7 +176,7 @@ fn availability_does_not_restart_stopped_disabled_or_permanently_failed_work() {
             &ClassificationWorkIssue {
                 kind: ClassificationWorkFailure::Permanent,
                 code: "corrupt_media".into(),
-                retry_unix_ms: 0,
+                observed_unix_ms: 0,
             },
         )
         .unwrap();

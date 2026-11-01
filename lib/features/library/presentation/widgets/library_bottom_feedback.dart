@@ -6,7 +6,6 @@ import "../../../../app/presentation/ame_notifications.dart";
 import "../../../../app/presentation/ame_feedback_style.dart";
 import "../../../settings/presentation/widgets/organization_record_feedback.dart";
 import "../../application/library_controller.dart";
-import "../../application/library_classification_retry_actions.dart";
 import "../../application/library_operation_notice.dart";
 import "../../application/library_organization_outcome.dart";
 import "../../application/library_update_controller.dart";
@@ -48,9 +47,6 @@ class LibraryBottomFeedback extends ConsumerWidget {
         onDismiss: (id) {
           ref.read(ameNotificationControllerProvider.notifier).dismiss(id);
           ref.read(libraryOrganizationOutcomeProvider.notifier).dismiss(id);
-          ref
-              .read(libraryClassificationRetryActionsProvider.notifier)
-              .dismiss(id);
         },
       );
     }

@@ -21,7 +21,7 @@ const PRIORITIES: [ClassificationWorkPriority; 7] = [
     ClassificationWorkPriority::Requested,
     ClassificationWorkPriority::Backlog,
 ];
-const COLUMNS: &str = "work_id, kind, source_generation, fingerprint_scheme, digest, byte_length, priority, ready_unix_ms";
+const COLUMNS: &str = "work_id, kind, source_generation, fingerprint_scheme, digest, byte_length, priority, ready_unix_ms, failure_count";
 
 pub(super) struct Work {
     pub id: u64,
@@ -29,6 +29,7 @@ pub(super) struct Work {
     pub content: Option<ClassificationContent>,
     pub priority: ClassificationWorkPriority,
     pub ready_unix_ms: u64,
+    pub failure_count: u64,
 }
 
 impl Work {
@@ -248,6 +249,7 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Result<Work, ScanError>> {
     let length: Option<i64> = row.get(5)?;
     let priority: i64 = row.get(6)?;
     let ready_unix_ms = read_unsigned(row, 7)?;
+    let failure_count = read_unsigned(row, 8)?;
     Ok((|| {
         let priority = match priority {
             0 => ClassificationWorkPriority::Requested,
@@ -275,6 +277,7 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Result<Work, ScanError>> {
             content,
             priority,
             ready_unix_ms,
+            failure_count,
         })
     })())
 }

@@ -177,7 +177,7 @@ fn unavailable_source_waits_without_using_the_failure_budget() {
             &ClassificationWorkIssue {
                 kind: ClassificationWorkFailure::Unavailable,
                 code: "cloud_placeholder".into(),
-                retry_unix_ms: 0,
+                observed_unix_ms: 0,
             },
         )
         .unwrap();

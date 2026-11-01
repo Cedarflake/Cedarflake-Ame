@@ -7,6 +7,71 @@ import "package:cedarflake_ame/features/library/application/library_foreground_r
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets("attachment failure remains visible after a successful open", (
+    tester,
+  ) async {
+    final fixture = _Fixture();
+    fixture.session.failForeground = true;
+    fixture.owner.startInBackground();
+    fixture.service.opened.complete(fixture.session);
+    await tester.pump();
+    expect(fixture.owner.error, isStateError);
+    await fixture.owner.close();
+    fixture.dispose();
+  });
+
+  testWidgets(
+    "failed startup rejects enablement while settings remain readable",
+    (tester) async {
+      final fixture = _Fixture();
+      final backend = _SetupConfiguration();
+      final configuration = LibraryClassificationConfiguration(
+        backend,
+        fixture.owner,
+      );
+      fixture.owner.startInBackground();
+      fixture.service.opened.complete(null);
+      await tester.pump();
+      final change = configuration.enable(
+        operationId: "startup-failure",
+        observed: backend.settings,
+      );
+      final checked = expectLater(change, throwsStateError);
+      await tester.pump();
+      fixture.service.reopened.completeError(StateError("startup failed"));
+      await tester.pump();
+      await checked;
+      expect(fixture.owner.error, isStateError);
+      expect(await configuration.load(), same(backend.settings));
+      await expectLater(fixture.owner.close(), throwsStateError);
+      fixture.dispose();
+    },
+  );
+
+  testWidgets("successful reconfiguration clears only the runtime failure", (
+    tester,
+  ) async {
+    final fixture = _Fixture();
+    fixture.owner.startInBackground();
+    fixture.service.opened.completeError(StateError("startup failed"));
+    await tester.pump();
+    expect(fixture.owner.error, isStateError);
+    final change = fixture.owner.changeConfiguration(() async {});
+    fixture.service.reopened.complete(fixture.session);
+    await tester.pump();
+    await change;
+    expect(fixture.owner.error, isNull);
+    final environmentFailure = StateError("power observation unavailable");
+    fixture.owner.reportEnvironmentError(
+      environmentFailure,
+      StackTrace.current,
+    );
+    await fixture.owner.changeConfiguration(() async {});
+    expect(fixture.owner.error, same(environmentFailure));
+    await fixture.owner.close();
+    fixture.dispose();
+  });
+
   testWidgets(
     "closing during startup retires the late handle without running",
     (tester) async {
@@ -623,6 +688,7 @@ class _Session implements LibraryClassificationSession {
   bool closeRequested = false;
   bool closed = false;
   bool failCloseRequest = false;
+  bool failForeground = false;
   LibraryClassificationMaintenance? maintenance;
   int runs = 0;
   int catalogNotifications = 0;
@@ -645,6 +711,7 @@ class _Session implements LibraryClassificationSession {
     required bool suspended,
     required bool memoryPressure,
   }) {
+    if (failForeground) throw StateError("foreground signal failed");
     activity = (readingSources, importing, suspended, memoryPressure);
   }
 

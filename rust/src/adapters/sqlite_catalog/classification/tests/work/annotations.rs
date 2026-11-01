@@ -34,9 +34,9 @@ fn terminal_failure_and_retry_publish_coherent_card_status() {
     let current_revision =
         |catalog: &SqliteCatalog| scalar(catalog, "SELECT revision FROM catalog_state") as u64;
     let revision = current_revision(&catalog);
-    for attempt in 0..3 {
+    for (attempt, now) in [10, 5_010, 35_010].into_iter().enumerate() {
         let claim = catalog
-            .claim_classification_work(&session, 10 + attempt)
+            .claim_classification_work(&session, now)
             .unwrap()
             .unwrap();
         catalog
@@ -45,7 +45,7 @@ fn terminal_failure_and_retry_publish_coherent_card_status() {
                 &ClassificationWorkIssue {
                     kind: ClassificationWorkFailure::Transient,
                     code: "worker_failed".into(),
-                    retry_unix_ms: 11 + attempt,
+                    observed_unix_ms: now,
                 },
             )
             .unwrap();
@@ -122,7 +122,7 @@ fn failed_source_does_not_override_a_human_classification() {
             &ClassificationWorkIssue {
                 kind: ClassificationWorkFailure::Permanent,
                 code: "corrupt_image".into(),
-                retry_unix_ms: 20,
+                observed_unix_ms: 20,
             },
         )
         .unwrap();

@@ -118,7 +118,9 @@ R5-05 supplies coherent effective-category queries, counts, pages, selection and
 through the shared gallery, with [query evidence](acceptance/r5-smart-albums.md). R5-06 connects the
 accepted sidebar, managed setup, category browsing, preview and shared feedback. Its
 [desktop acceptance](acceptance/r5-desktop-classification.md) retains the earlier connected workflow
-and failed-image retry evidence. The manual confirmation/correction workflow and its filters,
+and historical failed-image retry evidence. Failed images now require cause-aware automatic
+recovery without per-image status indicators, notifications, or retry commands.
+The manual confirmation/correction workflow and its filters,
 deferral, continuation and undo were withdrawn on 2026-11-01. Their removal has focused and
 [isolated-client evidence](acceptance/r5-desktop-classification.md#manual-classification-workflow-removal--2026-11-01),
 including retry, normal restart, and preserved legacy/R4 records; submitted-head CI remains required.
@@ -129,7 +131,9 @@ R5-07 is active, retaining its existing order and required outcomes:
 
 1. Retain the completed local verification of manual-workflow removal and finish its submitted-head
    hosted gate. Finish integrated lifecycle and recovery coverage using applicable retained evidence,
-   preserving original media, saved decisions, category browsing, failed-image retry, and R4 actions.
+   preserving original media, saved decisions, category browsing, cause-aware automatic recovery,
+   startup-error feedback, and R4 actions. Include the corrected runtime-integration configuration calls
+   in the submitted-head hosted gate.
 2. Assess context coverage, category/band quality, and bounded automatic refinement. Retain the
    provisional label authority and unsupported confidence bands in the calibration record. Manual
    classification and correction-time trials are removed from acceptance; do not repeat unchanged
@@ -312,7 +316,7 @@ informs R5-02 admission; functional, license, runtime, and resource gates remain
 | R5-03 | [Durable classification and recovery](plans/r5-classification.md#r5-03-durable-classification-decisions-and-recovery) | Immutable classification evidence, preserved legacy decisions, migrations, and portable recovery |
 | R5-04 | [Incremental local analysis](plans/r5-classification.md#r5-04-incremental-local-analysis) | Compatible model publication with bounded resources, pause/retry/restart, and foreground priority |
 | R5-05 | [Smart-album projections](plans/r5-classification.md#r5-05-smart-album-projections-and-coherent-queries) | Coherent derived categories, metadata filters, counts, pages, selection, and viewer scope |
-| R5-06 | [Desktop smart albums](plans/r5-classification.md#r5-06-desktop-smart-albums) | Approved browsing controls, read-only categories, retry, and shared feedback |
+| R5-06 | [Desktop smart albums](plans/r5-classification.md#r5-06-desktop-smart-albums) | Approved browsing controls, read-only categories, automatic recovery, and shared feedback |
 | R5-07 | [Integrated verification](plans/r5-classification.md#r5-07-integrated-quality-scale-and-closure) | Measured screening quality, source-safe recovery, usable low-resource browsing, and applicable hosted gates |
 
 R5-01 is verified through `44d54b6a`. Indexed literal path search under

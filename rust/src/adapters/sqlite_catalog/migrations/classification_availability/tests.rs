@@ -109,7 +109,7 @@ fn upgrade_reconsiders_legacy_waiting_work_without_resuming_pause_or_changing_fa
             &ClassificationWorkIssue {
                 kind: ClassificationWorkFailure::Unavailable,
                 code: "offline".into(),
-                retry_unix_ms: 0,
+                observed_unix_ms: 0,
             },
         )
         .unwrap();

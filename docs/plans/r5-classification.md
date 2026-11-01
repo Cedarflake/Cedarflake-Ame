@@ -119,7 +119,7 @@ Depends on R5-02's taxonomy and compatibility contract.
    and operation provenance. Existing precedence, conflict, stale-authority, and anti-resurrection
    guards remain compatibility requirements, independent of R4 state.
 3. Remove desktop mutation and continuation endpoints for manual classification. Retain bounded
-   read-only item/annotation queries and failed-analysis retry. No destructive migration or record
+   read-only item/annotation queries and automatic failure recovery. No destructive migration or record
    reset is required for the removed workflow.
 4. Preserve explicit source-removal cleanup, unresolved-record cleanup, and atomic versioned archive
    restoration, including old R3/R4 archives and recovery without an installed model.
@@ -190,16 +190,17 @@ its former manual-review scope was withdrawn on 2026-11-01.
    heading, collapse arrow, category rows, empty row, neutral icons, and shared gallery motion.
 2. Remove confirmation/correction, deferral, review-filter/count/badge, continuation, and classification
    undo controls from the gallery, selection bar, context menus, and preview.
-3. Retain read-only category display, metadata filters, ordinary Library navigation, and failed-image retry.
-   Retry and errors use the existing bottom and viewer-top feedback templates.
+3. Retain read-only category display, metadata filters, and ordinary Library navigation. Recover
+   per-image failures silently by failure type and changed input; remove failure indicators and
+   retry commands. Runtime errors use the existing bottom and viewer-top feedback templates.
 4. Preserve Favorite and manual-album actions, ordinary navigation/selection rules, and R4's retained
    organization context. Smart albums remain absent from manual-album destinations and management.
 5. Verify first use, loading, empty results, legacy decisions, failed/unavailable images, stale reads,
-   retry, cancellation, and restart through the real application services.
+   automatic recovery, cancellation, and restart through the real application services.
 6. Retain managed model setup, verified installation, bundled runtime, and automatic category
    maintenance. Setup needs no user-authored taxonomy or model/runtime directory selection.
 
-Exit: browsing, retry, and manual-album/Favorite workflows remain connected, with no manual
+Exit: browsing, automatic recovery, and manual-album/Favorite workflows remain connected, with no manual
 classification flow. The sketch retains layout intent; its superseded review controls are removed.
 
 ## R5-07: Integrated quality, scale, and closure

@@ -105,7 +105,7 @@ fn new_arrivals_keep_priority_across_pause_and_restart_without_starving_backlog(
                 &ClassificationWorkIssue {
                     kind: ClassificationWorkFailure::Unavailable,
                     code: "fixture_unavailable".into(),
-                    retry_unix_ms: 20,
+                    observed_unix_ms: 20,
                 },
             )
             .unwrap();

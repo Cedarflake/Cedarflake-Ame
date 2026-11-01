@@ -107,8 +107,8 @@ Future<void> main() async {
         libraryClassificationConfigurationProvider.overrideWithValue(
           classificationConfiguration,
         ),
-        libraryClassificationLifecycleProvider.overrideWithValue(
-          classificationLifecycle,
+        libraryClassificationLifecycleProvider.overrideWith(
+          (ref) => classificationLifecycle,
         ),
         libraryOrganizationConflictsProvider.overrideWithValue(
           const RustLibraryOrganizationConflicts(),

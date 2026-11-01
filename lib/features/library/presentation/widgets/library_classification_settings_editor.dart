@@ -6,8 +6,10 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../application/library_classification_configuration.dart";
+import "../../application/library_classification_lifecycle.dart";
 import "../../application/library_classification_settings.dart";
 import "../../application/library_model_installation.dart";
+import "../library_classification_notifications.dart";
 
 Future<void> showLibraryClassificationSettings(BuildContext context) async {
   final enabled = await showDialog<bool>(
@@ -117,6 +119,9 @@ class _SettingsEditorState extends ConsumerState<_SettingsEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final analysisError = ref.watch(
+      libraryClassificationLifecycleProvider.select((owner) => owner?.error),
+    );
     final installation = ref.watch(libraryModelInstallationProvider);
     final installing = installation?.busy ?? false;
     final needsInstallation = _observed?.installationSelected != true;
@@ -135,6 +140,10 @@ class _SettingsEditorState extends ConsumerState<_SettingsEditor> {
       );
     } else if (needsInstallation) {
       content = const Text("启用后会在本机分析图片，并将分类结果显示在智能相册中。首次使用需要下载模型（约 504 MB）。");
+    } else if (analysisError != null) {
+      content = const Text(
+        "$libraryClassificationFailureTitle，$libraryClassificationFailureMessage",
+      );
     } else {
       content = Text(switch (_observed!.mode) {
         LibraryClassificationMode.disabled => "启用后会在本机分析图片，并根据图库内容自动生成和调整分类。",

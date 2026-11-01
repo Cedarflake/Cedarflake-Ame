@@ -5,25 +5,21 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_album_requests.dart";
-import "../../application/library_classification_retry_actions.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_organization.dart";
 import "../../application/library_organization_actions.dart";
 import "../../domain/library_organization.dart";
 import "../library_strings.dart";
 import "library_album_picker.dart";
-import "library_photo_classification_menu.dart";
 
 class LibraryPhotoContextMenu {
   bool _isOpen = false;
   bool _disposed = false;
   LibraryAlbumMembership? _membership;
-  LibraryPhotoClassificationMenu? _classification;
 
   void dispose() {
     _disposed = true;
     _membership?.dispose();
-    _classification?.dispose();
   }
 
   Future<void> open({
@@ -72,38 +68,7 @@ class LibraryPhotoContextMenu {
             .resolve("photo-menu-inspection");
       }
       final busy = ref.read(libraryOrganizationActionsProvider).saving;
-      final classification = LibraryPhotoClassificationMenu.forTarget(
-        ref,
-        target,
-      );
-      _classification = classification;
-      if (classification != null) {
-        try {
-          await classification.prepare();
-          if (owns()) {
-            ref
-                .read(ameNotificationControllerProvider.notifier)
-                .resolve("photo-menu-classification");
-          }
-        } on Object {
-          if (!owns()) return;
-          ref
-              .read(ameNotificationControllerProvider.notifier)
-              .publish(
-                const AmeNotificationDraft(
-                  title: "暂时无法读取分类",
-                  message: "请重新打开菜单重试。",
-                  severity: AmeNotificationSeverity.error,
-                  dedupeKey: "photo-menu-classification",
-                ),
-              );
-        }
-      }
-      if (!context.mounted || !owns()) return;
-      final classificationBusy = ref
-          .read(libraryClassificationRetryActionsProvider)
-          .busy;
-      final entries = _entries(decision, classification);
+      final entries = _entries(decision);
       final action = await showAmePopupMenu<_PhotoAction>(
         context: context,
         position: position,
@@ -114,9 +79,7 @@ class LibraryPhotoContextMenu {
               const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
             PopupMenuItem(
               value: entry.action,
-              enabled:
-                  (!busy || !entry.action.changesOrganization) &&
-                  (!classificationBusy || !entry.action.changesClassification),
+              enabled: !busy || !entry.action.changesOrganization,
               child: AmeMenuItemContent(icon: entry.icon, label: entry.label),
             ),
           ],
@@ -133,8 +96,6 @@ class LibraryPhotoContextMenu {
           onCopyPath();
         case _PhotoAction.reveal:
           onReveal();
-        case _PhotoAction.retryClassification:
-          await classification?.retry(ref: ref, isCurrent: owns);
         case _PhotoAction.favorite:
           await commands.favorite(target, !decision!.favorite);
         case _PhotoAction.removeAlbum:
@@ -162,16 +123,11 @@ class LibraryPhotoContextMenu {
     } finally {
       _membership?.dispose();
       _membership = null;
-      _classification?.dispose();
-      _classification = null;
       _isOpen = false;
     }
   }
 
-  List<_PhotoEntry> _entries(
-    LibraryOrganizationDecision? decision,
-    LibraryPhotoClassificationMenu? classification,
-  ) => [
+  List<_PhotoEntry> _entries(LibraryOrganizationDecision? decision) => [
     const _PhotoEntry(
       _PhotoAction.open,
       LibraryStrings.open,
@@ -199,12 +155,6 @@ class LibraryPhotoContextMenu {
           Symbols.bookmark_remove_rounded,
         ),
     ],
-    if (classification?.canRetry == true)
-      const _PhotoEntry(
-        _PhotoAction.retryClassification,
-        "重新分析",
-        Symbols.refresh_rounded,
-      ),
     const _PhotoEntry(
       _PhotoAction.information,
       LibraryStrings.viewInformation,
@@ -234,18 +184,12 @@ enum _PhotoAction {
   favorite,
   album,
   removeAlbum,
-  retryClassification,
   information,
   copyPath,
   reveal;
 
   bool get changesOrganization => switch (this) {
     favorite || album || removeAlbum => true,
-    _ => false,
-  };
-
-  bool get changesClassification => switch (this) {
-    retryClassification => true,
     _ => false,
   };
 }

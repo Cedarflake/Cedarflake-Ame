@@ -122,8 +122,10 @@ window and one claimed task per turn. Six indexed queue seeks provide the earlie
 without materializing task lists. An empty queue waits on a coalesced condition-variable signal;
 the earlier of a retry deadline and the resident encoder's idle deadline supplies a timed wake.
 Notification identity is captured before the turn, preventing a signal between the queue check and
-wait from being lost. Transient retries wait five seconds from the observed failure and retain the
-durable three-attempt budget.
+wait from being lost. The domain failure policy schedules transient retries five seconds and then
+thirty seconds from the observed failure, retaining the durable three-attempt budget. The failure
+persistence owner applies that decision with lease revalidation, source observations and the catalog
+status revision in one transaction. Exhausted work has no retry timer.
 
 The initial admission requires three quiet seconds. Cached browsing resets this interval only
 before admission or after the queue becomes idle. Actual foreground source reads, import, suspend
@@ -186,22 +188,30 @@ manual pause and an empty queue do not start an encoder. The native setup must d
 stored run, rules and optional screening profile; an unavailable profile cannot silently become an
 uncalibrated replacement. Setup or unknown execution errors end the loop with queued work retained,
 while unavailable, corrupt and transient per-source failures retain their distinct queue outcomes.
+Session opening errors propagate to enablement. Saved settings remain readable, and the reactive
+lifecycle error reaches the shared bottom and preview-top notification owners. Successful reopening
+resolves a runtime error; a separate platform-environment fault remains visible. Neither a queued
+task nor a saved automatic mode alone establishes successful startup.
 File I/O failure during decoding is an unavailable-source outcome, separate from corrupt image data.
 
 Requested scope, new content and backlog use a seven-slot weighted admission cycle: requested,
 requested, new, requested, new, requested, backlog. Empty lanes are skipped. Ready work within a lane
 uses arrival/retry time and stable work identity. This bounds starvation without assigning a worker
 per lane. A source or worker transient failure permits at most three failed attempts; unavailable
-sources wait for a relevant availability signal or explicit retry, and permanent failures require
-changed content or explicit retry. Cancellation/yield at a completed checkpoint consumes no attempt.
+sources wait for a relevant availability signal, and permanent or exhausted failures wait for a
+new source/content version or model/rule compatibility. A compatible new run, ordinary catalog
+refresh, pause/continue and restart preserve the budget. Cancellation/yield at a completed checkpoint
+consumes no attempt. Desktop menus and preview actions expose no manual analysis retry.
 
-An explicit single-image retry validates the observed dispatch revision and current physical source
-in one catalog transaction. It requeues only that source's failed verification and its compatible
+The retained native compatibility command for single-image retry validates the observed dispatch
+revision and current physical source in one catalog transaction. It requeues only that source's
+failed verification and its compatible
 shared-content task, clearing their failure budget and negative source observations. Requested work
 keeps foreground admission and source revalidation; pause is preserved, and disabled/stopped dispatch
 rejects retry. Successful or already queued work remains unchanged. The committed catalog revision
 uses the existing desktop refresh and runtime wake path. No human classification, review bookmark,
-manual album or Favorite field is written.
+manual album or Favorite field is written. This command is not a desktop recovery path; current
+automatic recovery follows the failure policy above.
 
 Schema 68 records an unavailable physical copy against its work identity, source generation and
 root generation. Source selection skips those observations and can immediately try another current,

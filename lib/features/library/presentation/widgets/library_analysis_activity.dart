@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_classification_lifecycle.dart";
@@ -14,6 +15,7 @@ import "../../application/library_synchronization.dart";
 import "../../application/library_update_controller.dart";
 import "../../domain/library_synchronization_models.dart";
 import "../../domain/library_models.dart";
+import "../library_classification_notifications.dart";
 
 /// Bridges catalog publication and foreground input to the analysis scheduler.
 class LibraryAnalysisActivity extends ConsumerStatefulWidget {
@@ -45,6 +47,16 @@ class _LibraryAnalysisActivityState
     );
     _scheduler = ref.read(libraryExactAnalysisSchedulerProvider);
     _classification = ref.read(libraryClassificationLifecycleProvider);
+    final notifications = LibraryClassificationNotifications(
+      ref.read(ameNotificationControllerProvider.notifier),
+    );
+    ref.listenManual(
+      libraryClassificationLifecycleProvider.select((owner) => owner?.error),
+      (_, _) => Future<void>.microtask(() {
+        if (mounted) notifications.accept(_classification?.error);
+      }),
+      fireImmediately: true,
+    );
     final synchronization = ref.read(librarySynchronizationProvider);
     _snapshot = synchronization.current;
     _updateCatalog();

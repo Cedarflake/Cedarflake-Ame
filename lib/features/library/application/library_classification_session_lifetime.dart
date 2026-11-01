@@ -8,11 +8,13 @@ class LibraryClassificationSessionLifetime {
     this._classification,
     this._environment,
     this._reportError,
+    this._reportOpened,
   );
 
   final LibraryClassification _classification;
   final LibraryClassificationEnvironment _environment;
   final void Function(Object, StackTrace) _reportError;
+  final void Function() _reportOpened;
   LibraryClassificationSession? _session;
   LibraryClassificationMaintenance? _maintenance;
   Future<void>? _lifetime;
@@ -23,11 +25,7 @@ class LibraryClassificationSessionLifetime {
   bool _isChangingConfiguration = false;
 
   Future<void> waitUntilOpened() async {
-    try {
-      await _opening;
-    } on Object catch (error, stackTrace) {
-      _reportError(error, stackTrace);
-    }
+    await _opening;
   }
 
   void startInBackground() {
@@ -43,6 +41,7 @@ class LibraryClassificationSessionLifetime {
       _opening = _classification.open();
       final session = await _opening;
       if (session == null) {
+        _reportOpened();
         return;
       }
       LibraryClassificationMaintenance? plan;
@@ -52,6 +51,7 @@ class LibraryClassificationSessionLifetime {
             return;
           }
           _session = session;
+          _reportOpened();
           _environment.attach(session);
           plan = await session.run();
           _maintenance = plan;

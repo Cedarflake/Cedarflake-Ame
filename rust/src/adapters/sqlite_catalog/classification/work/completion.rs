@@ -1,10 +1,7 @@
 use rusqlite::{Connection, params};
 
 use crate::domain::ScanError;
-use crate::domain::classification::work::{
-    ClassificationWorkFailure, ClassificationWorkIssue, ClassificationWorkLease,
-    ClassificationWorkTarget,
-};
+use crate::domain::classification::work::{ClassificationWorkLease, ClassificationWorkTarget};
 use crate::domain::classification::{ClassificationRecordId, PredictionEvidence};
 
 use super::super::super::{database_error, sqlite_integer};
@@ -86,55 +83,6 @@ pub(super) fn yield_work(
         return Ok(false);
     };
     leases::checkpoint(connection, work.id, "queued")?;
-    Ok(true)
-}
-
-pub(super) fn fail(
-    connection: &Connection,
-    lease: &ClassificationWorkLease,
-    issue: &ClassificationWorkIssue,
-) -> Result<bool, ScanError> {
-    ClassificationRecordId::new(issue.code.clone()).map_err(|_| invalid())?;
-    let Some(work) = leases::current(connection, lease)? else {
-        return Ok(false);
-    };
-    let (phase, count_failure) = match issue.kind {
-        ClassificationWorkFailure::Unavailable => {
-            let source = match &lease.target {
-                ClassificationWorkTarget::VerifySource(source)
-                | ClassificationWorkTarget::AnalyzeContent { source, .. } => source,
-            };
-            (
-                sources::unavailable(connection, &work, source)?.pending_phase(),
-                false,
-            )
-        }
-        ClassificationWorkFailure::Transient => ("queued", true),
-        ClassificationWorkFailure::Permanent => ("failed", true),
-    };
-    let published_phase: String = connection
-        .query_row(
-            "UPDATE classification_work_items SET
-             phase = CASE WHEN ?1 = 'queued' AND ?2 AND failure_count >= 2 THEN 'failed' ELSE ?1 END,
-             failure_count = min(failure_count + ?2, 3), ready_unix_ms = ?3, issue_code = ?4,
-             lease_id = NULL, lease_epoch = NULL, lease_asset_id = NULL,
-             lease_location_id = NULL, lease_source_generation = NULL
-         WHERE work_id = ?5 RETURNING phase",
-            params![
-                phase,
-                count_failure,
-                if count_failure { sqlite_integer(issue.retry_unix_ms, "retry time")? } else { 0 },
-                issue.code,
-                sqlite_integer(work.id, "work identity")?
-            ],
-            |row| row.get(0),
-        )
-        .map_err(database_error)?;
-    if published_phase == "failed" {
-        connection
-            .execute("UPDATE catalog_state SET revision = revision + 1", [])
-            .map_err(database_error)?;
-    }
     Ok(true)
 }
 

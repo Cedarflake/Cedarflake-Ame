@@ -74,7 +74,29 @@ pub enum ClassificationWorkFailure {
 pub struct ClassificationWorkIssue {
     pub kind: ClassificationWorkFailure,
     pub code: String,
-    pub retry_unix_ms: u64,
+    pub observed_unix_ms: u64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ClassificationFailureRecovery {
+    SourceAvailability,
+    RetryAt(u64),
+    ChangedInput,
+}
+
+impl ClassificationWorkIssue {
+    pub fn recovery(&self, previous_failures: u64) -> ClassificationFailureRecovery {
+        use ClassificationFailureRecovery::{ChangedInput, RetryAt, SourceAvailability};
+        match self.kind {
+            ClassificationWorkFailure::Unavailable => SourceAvailability,
+            ClassificationWorkFailure::Transient => match previous_failures {
+                0 => RetryAt(self.observed_unix_ms.saturating_add(5_000)),
+                1 => RetryAt(self.observed_unix_ms.saturating_add(30_000)),
+                _ => ChangedInput,
+            },
+            ClassificationWorkFailure::Permanent => ChangedInput,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

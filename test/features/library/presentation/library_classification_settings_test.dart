@@ -13,6 +13,26 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   testWidgets(
+    "startup failure stays visible without enabled-success feedback",
+    (tester) async {
+      final fixture = _Fixture();
+      addTearDown(fixture.dispose);
+      await fixture.open(tester);
+      fixture.runner.fail = true;
+      await tester.tap(find.widgetWithText(FilledButton, "启用"));
+      await tester.pumpAndSettle();
+      expect(find.text("已启用智能相册"), findsNothing);
+      expect(find.textContaining("智能相册分析已中断"), findsOneWidget);
+      expect(find.text("未能启用智能相册，请重新加载设置后重试。"), findsOneWidget);
+      fixture.runner.fail = false;
+      await fixture.lifecycle.changeConfiguration(() async {});
+      await tester.pumpAndSettle();
+      expect(find.textContaining("智能相册分析已中断"), findsNothing);
+      await fixture.close(tester);
+    },
+  );
+
+  testWidgets(
     "configured setup enables retained categories without taxonomy editing",
     (tester) async {
       final fixture = _Fixture();
@@ -165,8 +185,9 @@ class _Fixture {
   late final installation = LibraryModelInstallation(_Installation(session));
   int browseClicks = 0;
   final reads = LibraryForegroundReads();
+  final runner = _Inactive();
   late final lifecycle = LibraryClassificationLifecycle(
-    _Inactive(),
+    runner,
     foregroundReads: reads,
   );
   late final configuration = LibraryClassificationConfiguration(
@@ -178,6 +199,9 @@ class _Fixture {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          libraryClassificationLifecycleProvider.overrideWith(
+            (ref) => lifecycle,
+          ),
           libraryClassificationConfigurationProvider.overrideWithValue(
             configuration,
           ),
@@ -226,14 +250,17 @@ class _Fixture {
   }
 
   void dispose() {
-    lifecycle.dispose();
     reads.dispose();
   }
 }
 
 class _Inactive implements LibraryClassification {
+  bool fail = false;
   @override
-  Future<LibraryClassificationSession?> open() async => null;
+  Future<LibraryClassificationSession?> open() async {
+    if (fail) throw StateError("startup failed");
+    return null;
+  }
 }
 
 class _Configuration implements LibraryClassificationConfigurationService {

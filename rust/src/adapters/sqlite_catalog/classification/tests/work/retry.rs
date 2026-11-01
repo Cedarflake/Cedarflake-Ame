@@ -19,7 +19,7 @@ fn failed_source(catalog: &mut SqliteCatalog, session: &ClassificationRecordId, 
             &ClassificationWorkIssue {
                 kind: ClassificationWorkFailure::Permanent,
                 code: "corrupt_image".into(),
-                retry_unix_ms: 20,
+                observed_unix_ms: 20,
             },
         )
         .unwrap();
@@ -97,7 +97,7 @@ fn a_duplicate_retries_the_shared_content_without_changing_human_choices() {
             &ClassificationWorkIssue {
                 kind: ClassificationWorkFailure::Permanent,
                 code: "decode_failed".into(),
-                retry_unix_ms: 20,
+                observed_unix_ms: 20,
             },
         )
         .unwrap();

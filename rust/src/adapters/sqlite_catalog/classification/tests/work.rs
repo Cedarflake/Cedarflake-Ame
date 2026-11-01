@@ -7,6 +7,7 @@ use super::*;
 mod analysis;
 mod annotations;
 mod arrival;
+mod automatic_recovery;
 mod availability;
 mod dispatch;
 mod publications;
@@ -275,8 +276,8 @@ fn replacing_a_run_preserves_manual_pause() {
 }
 
 #[test]
-fn transient_failures_stop_after_three_attempts_and_require_explicit_retry() {
-    let (_directory, mut catalog) = fixture();
+fn transient_failures_back_off_and_do_not_reset_on_unchanged_inputs_or_restart() {
+    let (directory, mut catalog) = fixture();
     let (_run, session) = start(&mut catalog);
     request(
         &mut catalog,
@@ -284,9 +285,9 @@ fn transient_failures_stop_after_three_attempts_and_require_explicit_retry() {
         &["a"],
         ClassificationWorkPriority::NewContent,
     );
-    for attempt in 1..=3 {
+    for (now, next) in [(10, Some(5_010)), (5_010, Some(35_010)), (35_010, None)] {
         let lease = catalog
-            .claim_classification_work(&session, attempt * 10)
+            .claim_classification_work(&session, now)
             .unwrap()
             .unwrap();
         assert!(
@@ -296,30 +297,40 @@ fn transient_failures_stop_after_three_attempts_and_require_explicit_retry() {
                     &ClassificationWorkIssue {
                         kind: ClassificationWorkFailure::Transient,
                         code: "worker_exited".into(),
-                        retry_unix_ms: (attempt + 1) * 10,
+                        observed_unix_ms: now,
                     }
                 )
                 .unwrap()
         );
+        assert_eq!(
+            catalog.classification_work_ready_at(&session).unwrap(),
+            next
+        );
         assert!(
             catalog
-                .claim_classification_work(&session, attempt * 10 + 1)
+                .claim_classification_work(&session, next.unwrap_or(100_000) - 1)
                 .unwrap()
                 .is_none()
         );
     }
+    drop(catalog);
+    let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
+    let session = id("reopened-after-failure");
+    let revision = catalog.classification_dispatch_state().unwrap().revision;
+    catalog
+        .open_classification_session(revision, &session)
+        .unwrap();
+    request(
+        &mut catalog,
+        &session,
+        &["a"],
+        ClassificationWorkPriority::NewContent,
+    );
     assert!(
         catalog
-            .claim_classification_work(&session, 100)
+            .claim_classification_work(&session, 1_000_000)
             .unwrap()
             .is_none()
-    );
-    assert_eq!(catalog.retry_classification_work(&session, 100).unwrap(), 1);
-    assert!(
-        catalog
-            .claim_classification_work(&session, 100)
-            .unwrap()
-            .is_some()
     );
 }
 

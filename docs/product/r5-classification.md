@@ -114,9 +114,10 @@ in the category view without requesting a user decision. Confidence and ambiguit
 evidence for evaluation, rather than a manual-review queue.
 
 The ordinary Library includes groups without usable category evidence, including failed analysis
-and unresolved legacy conflicts. Failed analysis retains its reason and explicit retry behavior in
-the image preview. These items remain reachable without a separate all-results entry or an invented
-category.
+and unresolved legacy conflicts. Per-image analysis failures remain internal and recover silently
+according to the failure and changed inputs. Cards and previews show no analysis-failure label,
+indicator, notification, or retry command. These items remain reachable without a separate all-results
+entry or an invented category.
 
 ## Group authority and content lifecycle
 
@@ -156,7 +157,7 @@ write. Old model tasks, pages, and viewer callbacks cannot publish into a newer 
 | Action | Classification effect | R4 organization effect |
 | --- | --- | --- |
 | Publish a prediction | Update compatible evidence and derived results | None |
-| Retry failed analysis | Queue the failed image's compatible shared task | None |
+| Recover failed analysis | Resume the compatible shared task when its recovery condition is met | None |
 | Add or move to a manual album | None | Apply R4 membership and organized-state rules |
 | Remove from the last manual album | None | Become `已忽略` under R4 |
 | Favorite or unfavorite | None | Change Favorite only |
@@ -262,8 +263,14 @@ explicit Continue. Disabling analysis fences new dispatch; retained suggestions 
 stay usable. Shutdown/suspend fence dispatch and preserve committed progress; startup/resume checks
 source/configuration generations before continuing previously automatic work after foreground readiness.
 An unfinished batch is safely retryable, while committed work is reused. A failed file does not block
-other candidates; permanent failures wait for changed content or explicit retry, and transient or
-worker failures have bounded retry/backoff rather than endless restart loops.
+other candidates. Short-lived worker failures retry after 5 seconds and then 30 seconds; three
+failed attempts exhaust that input's budget. Permanent or exhausted failures wait for a changed
+source/content version or model/rule compatibility. An unchanged catalog notification, representative
+change, pause/continue, or application restart does not reset the budget. Unavailable sources wait
+for relevant availability evidence or a verified surviving copy without consuming that budget.
+No per-image recovery step requires user action. Setup and unknown runtime errors stop analysis,
+retain queued work, and appear through the existing error feedback; successful model/configuration
+reopening clears the runtime error. Enablement does not report success when session startup fails.
 
 Publish compatible committed batches without moving the current image, selection, or viewport anchor.
 Use existing task and feedback owners; directory `已同步` remains independent of classification work.
@@ -296,7 +303,7 @@ R5 must demonstrate:
 - coherent group-based category pages, counts, search, selection, time/name rails, and viewer scope;
 - useful first-pass results, bounded automatic re-screening, per-category/band evidence, and measured
   coverage, error, and automatic re-screening results;
-- absence of manual classification controls and review filters, with connected retry, cancellation,
+- absence of manual classification controls and review filters, with cause-aware recovery, cancellation,
   stale-result rejection, and restart;
 - late duplicates, content changes, root removal, cleanup, migration, and legacy archive recovery;
 - real desktop paths following the accepted UI contract, with shared feedback and stable layout;

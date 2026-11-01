@@ -310,16 +310,16 @@ fn foreground_yield_requeues_without_failure_and_retires_before_waiting() {
 fn transient_failures_sleep_until_the_next_retry_then_exhaust_the_durable_budget() {
     let mut harness = Harness::new();
     harness.observed.borrow_mut().action = Action::Transient;
-    for now in [3_000, 8_000] {
+    for (now, delay) in [(3_000, 5), (8_000, 30)] {
         harness.clock.set(now);
         assert_eq!(
             harness.drain(),
             ClassificationDispatchStep::Waiting {
-                wake_after: Some(Duration::from_secs(5))
+                wake_after: Some(Duration::from_secs(delay))
             }
         );
     }
-    harness.clock.set(13_000);
+    harness.clock.set(38_000);
     assert_eq!(
         harness.drain(),
         ClassificationDispatchStep::Waiting { wake_after: None }

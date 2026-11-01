@@ -60,7 +60,11 @@ class LibraryClassificationConfiguration {
   final LibraryClassificationLifecycle _lifecycle;
 
   Future<LibraryClassificationSettings> load() async {
-    await _lifecycle.waitUntilOpened();
+    try {
+      await _lifecycle.waitUntilOpened();
+    } on Object {
+      // Saved intent remains readable while the lifecycle exposes its startup failure.
+    }
     return _service.load();
   }
 

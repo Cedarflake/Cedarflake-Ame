@@ -16,6 +16,7 @@ mod availability;
 pub(in crate::adapters::sqlite_catalog) use availability::source_removed;
 mod completion;
 pub(super) mod control;
+mod failures;
 mod leases;
 mod publications;
 pub(in crate::adapters::sqlite_catalog) use publications::root_published;
@@ -136,7 +137,7 @@ impl ClassificationWorkRepository for SqliteCatalog {
         issue: &ClassificationWorkIssue,
     ) -> Result<bool, ScanError> {
         let transaction = self.begin_write()?;
-        let result = completion::fail(&transaction, lease, issue)?;
+        let result = failures::record(&transaction, lease, issue)?;
         transaction.commit().map_err(database_error)?;
         Ok(result)
     }

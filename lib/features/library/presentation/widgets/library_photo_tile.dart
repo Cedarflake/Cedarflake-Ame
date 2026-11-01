@@ -13,7 +13,6 @@ import "../../domain/library_models.dart";
 import "../../domain/library_organization.dart";
 import "library_cover_preview_size.dart";
 import "library_conflict_label.dart";
-import "library_classification_label.dart";
 import "library_image_reveal.dart";
 import "library_photo_tile_actions.dart";
 import "library_photo_context_menu.dart";
@@ -165,16 +164,8 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
                           left: 0,
                           right: 0,
                           bottom: 0,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              LibraryConflictLabel(
-                                locationId: widget.asset.locationId,
-                              ),
-                              LibraryClassificationLabel(
-                                locationId: widget.asset.locationId,
-                              ),
-                            ],
+                          child: LibraryConflictLabel(
+                            locationId: widget.asset.locationId,
                           ),
                         ),
                         Positioned(

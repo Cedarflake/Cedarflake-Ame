@@ -21,7 +21,7 @@ fn unavailable(catalog: &mut SqliteCatalog, lease: &ClassificationWorkLease) {
                 &ClassificationWorkIssue {
                     kind: ClassificationWorkFailure::Unavailable,
                     code: "file_unavailable".into(),
-                    retry_unix_ms: 5000,
+                    observed_unix_ms: 5000,
                 }
             )
             .unwrap()

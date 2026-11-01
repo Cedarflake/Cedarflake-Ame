@@ -15,7 +15,6 @@ import "../application/library_browse_admission.dart";
 import "../application/library_album_pages.dart";
 import "../application/library_catalog.dart";
 import "../application/library_classification_settings.dart";
-import "../application/library_classification_retry_actions.dart";
 import "../application/library_controller.dart";
 import "../application/library_folder_controller.dart";
 import "../application/library_layout_manifest_catalog.dart";
@@ -290,11 +289,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   }
 
   void _handleNotificationAction(AmeNotificationEntry notification) {
-    if (ref
-        .read(libraryClassificationRetryActionsProvider.notifier)
-        .handleNotification(notification)) {
-      return;
-    }
     if (_conflictNotifications.admit(notification)) {
       unawaited(_showOrganizationConflicts());
       return;
