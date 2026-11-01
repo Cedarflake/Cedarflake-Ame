@@ -33,6 +33,7 @@ pub use crate::application::classification_residency::{
 #[cfg(all(windows, feature = "classification-worker"))]
 pub use crate::application::classification_runtime::{
     ClassificationRuntimeControl, ClassificationRuntimePaths, NativeClassificationRuntime,
+    PreparedCategoryMaintenance, commit_category_maintenance,
 };
 pub use crate::application::classification_screening::{
     ReviewRecommendation, ScreeningClassifier, ScreeningResult,
@@ -44,7 +45,7 @@ pub use crate::domain::classification::discovery::{
     ConceptSimilarity, DiscoveryCohort, DiscoveryError, DiscoverySample, VocabularyConcept,
 };
 pub use crate::domain::classification::maintenance::{
-    CategoryExpansionPlan, CategoryExpansionSnapshot, CategoryRetirementPlan,
+    CategoryExpansionPlan, CategoryExpansionSnapshot, CategoryMergePlan, CategoryRetirementPlan,
     CategoryRetirementSnapshot, EquivalentCategoryRetirement, ManagedCategoryOrigin,
 };
 pub use crate::domain::classification::work::{

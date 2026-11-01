@@ -15,6 +15,8 @@ use super::*;
 
 mod contexts;
 mod fixture;
+#[cfg(all(windows, feature = "classification-worker"))]
+mod runtime;
 use fixture::{predict_child, proposal, sparse, start, survey};
 
 #[test]

@@ -26,10 +26,12 @@ use super::classification_verification::verify_classification_source;
 
 mod admitted_text;
 mod control;
+mod maintenance;
 mod ownership;
 mod setup;
 use admitted_text::AdmittedTextFactory;
 pub use control::ClassificationRuntimeControl;
+pub use maintenance::{PreparedCategoryMaintenance, commit_category_maintenance};
 
 pub(crate) fn while_retired<T>(
     change: impl FnOnce() -> Result<T, ScanError>,

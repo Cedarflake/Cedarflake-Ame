@@ -1532,3 +1532,26 @@ lines and public classification facade 95. Dedicated application merge tests hav
 SQLite merge tests have 306 and 368, with the unchanged 142-line shared fixture. These owners have
 no inline test cases. The graph owner verifies containment; the policy owner verifies admissibility;
 the existing transaction continues to own authority, replacement and rollback.
+
+### Native maintenance submission and runtime handoff
+
+Prepared additions, equivalent retirements and sparse-category merges now use the same native
+retirement gate as explicit configuration. The gate rejects a live runtime before opening the
+catalog and holds ownership through the existing guarded commit. It accepts no unvalidated category
+definitions or replacement settings; each plan retains its original proof, cancellation and replay
+boundary. Successful submission leaves runtime reopening to the established lifecycle owner.
+
+The focused native workflow opens a real runtime session over a disposable catalog, rejects a merge
+while that session owns resources, joins its close, commits, preserves a later Pause on replay, and
+opens a fresh session with the committed run. The paused replacement remains idle with no feature
+cache, model or worker files. A second workflow covers cancellation before admission and rejection
+after Stop, preserving the prior setup and maintenance history. This verifies the handoff boundary;
+scheduled discovery, context coverage and automatic first use remain in the canonical queue.
+
+Both native handoff cases pass with warning-free non-incremental compilation. The repository format
+check passes with 685 Dart files unchanged, and `git diff --check` passes. The submission owner has
+50 production lines; the runtime facade has 261 plus two test-registration lines and the public
+classification facade 96. The new dedicated handoff file has 150 test lines; the existing merge-test
+registration file has 308. No inline cases, schema changes, new dependencies or bridge changes are
+included. All runtime paths and catalogs are disposable fixtures; no source media or desktop window
+is accessed.

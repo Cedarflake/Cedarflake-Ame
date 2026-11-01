@@ -213,6 +213,14 @@ additional evidence and source guards defined in ADR 0034. They are admitted onl
 automatic; a concurrent pause, stop, or configuration change invalidates an uncommitted plan. A
 committed retry preserves current dispatch. Runtime integration must retire the old session before
 applying the plan, as it does for explicit reconfiguration.
+`commit_category_maintenance` is the native submission boundary for prepared additions, equivalent
+retirements and purpose-preserving merges. It holds the same process-wide retirement ownership as
+explicit settings changes through the existing guarded transaction. An active or unretired runtime
+rejects submission before opening a catalog; cancellation likewise prevents admission. The plan's
+original source/configuration authority and immutable receipt remain owned by its existing repository
+operation. Reopening uses a new runtime/session and its newly loaded setup and backlog admission.
+The saved manual mode remains authoritative after reopening or replay; the boundary does not enable
+classification, start an encoder or schedule a maintenance round on its own.
 
 ## Validation and replacement
 

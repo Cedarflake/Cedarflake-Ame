@@ -185,8 +185,9 @@ human choices, meaning and history through atomic publication. Automatic additio
 from distinct verified contents and the admitted recurrence requirement, preserving retained definitions
 and revalidating the count's catalog authority at publication. Sparse refinements now also have a
 guarded merge into an existing broader context of the same purpose, retaining declared containment,
-complete alternatives, recurrent target support and human protection. Runtime integration remains
-before automatic first use.
+complete alternatives, recurrent target support and human protection. Prepared maintenance submissions
+now share the native retirement gate with explicit configuration changes, preserving the existing
+close/commit/reopen lifecycle. Maintenance scheduling and first-use integration remain.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review
