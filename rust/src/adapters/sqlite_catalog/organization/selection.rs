@@ -10,7 +10,9 @@ use crate::domain::organization::{
 };
 
 use super::super::exact_duplicate_review::DECISION_JOIN;
-use super::super::exact_duplicates::queries::{COMPATIBLE_FINGERPRINT, CURRENT_LOCATIONS};
+use super::super::exact_duplicates::queries::{
+    COMPATIBLE_FINGERPRINT, CURRENT_LOCATIONS, CURRENT_LOCATIONS_BY_GENERATION,
+};
 use super::super::exact_duplicates::read_unsigned;
 use super::super::{database_error, sqlite_integer};
 use super::authority::field;
@@ -112,13 +114,13 @@ pub(in crate::adapters::sqlite_catalog) fn selected_keys(
 
 pub(super) struct MemberQuery {
     pub from: String,
-    pub predicate: &'static str,
+    pub predicate: String,
     pub values: Vec<Value>,
 }
 
 pub(super) fn member_query(key: &OrganizationGroupKey) -> Result<MemberQuery, ScanError> {
     let mut values = vec![Value::Text(EXACT_FINGERPRINT_SCHEME.to_owned())];
-    let predicate = match key {
+    let (from, predicate) = match key {
         OrganizationGroupKey::Confirmed {
             digest,
             byte_length,
@@ -128,7 +130,11 @@ pub(super) fn member_query(key: &OrganizationGroupKey) -> Result<MemberQuery, Sc
                 *byte_length,
                 "content length",
             )?));
-            "f.digest = ?2 AND f.byte_length = ?3"
+            // Start with this content's generations, not every file with the same byte length.
+            (
+                format!("content_fingerprints AS f CROSS JOIN {CURRENT_LOCATIONS_BY_GENERATION}"),
+                format!("{COMPATIBLE_FINGERPRINT} AND f.digest = ?2 AND f.byte_length = ?3"),
+            )
         }
         OrganizationGroupKey::Provisional {
             asset_id,
@@ -139,13 +145,17 @@ pub(super) fn member_query(key: &OrganizationGroupKey) -> Result<MemberQuery, Sc
                 *source_generation,
                 "source generation",
             )?));
-            "l.asset_id = ?2 AND l.source_generation = ?3 AND f.source_generation IS NULL"
+            (
+                format!(
+                    "{CURRENT_LOCATIONS} LEFT JOIN content_fingerprints AS f ON {COMPATIBLE_FINGERPRINT}"
+                ),
+                "l.asset_id = ?2 AND l.source_generation = ?3 AND f.source_generation IS NULL"
+                    .into(),
+            )
         }
     };
     Ok(MemberQuery {
-        from: format!(
-            "{CURRENT_LOCATIONS} LEFT JOIN content_fingerprints AS f ON {COMPATIBLE_FINGERPRINT}"
-        ),
+        from,
         predicate,
         values,
     })

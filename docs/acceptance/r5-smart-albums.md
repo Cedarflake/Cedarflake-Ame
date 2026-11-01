@@ -360,3 +360,61 @@ reads 196; all have no inline tests. The two modified dedicated test owners cont
 Full hosted gates still apply to the submitted commit. The configured-catalog handoff-validation
 refusal observed in the excluded attempts remains a separate diagnostic finding; it was not repaired
 or bypassed during this query optimization.
+
+## Confirmed-group command lookup — 2026-11-02
+
+SQL profiling of the retained 7,216-group Favorite operation separates member validation,
+binding publication, undo-history writes and commit. The Debug trace takes 5.52 seconds to prepare
+and 12.38 seconds to apply; final commit accounts for 0.26 seconds. These instrumented measurements
+locate work and are not desktop or optimized-build latency claims. Statement reuse fits within the
+existing 64-entry cache, and the inspected plans retain indexed access to durable decision history.
+
+The confirmed-member lookup nevertheless starts with the file-size index before resolving the
+content fingerprint. Adding 2,048 unrelated same-size locations increases one unchanged group's
+read from 200 to 55,600 SQLite VM steps. Changing join order alone still visits those locations,
+using 25,000 steps. The final query starts with the requested fingerprint's generations and pins
+the existing location-generation index. Current-location authority joins remain shared with ordinary
+queries; identity/revision compatibility, representative preference and pending-evidence rejection
+are unchanged. Provisional singleton queries retain their existing lookup. There is no migration,
+bridge, cache-budget or source-media change.
+
+The same-size regression now bounds member-read and complete Favorite-write cost while checking the
+same two members and unchanged unrelated records. Fifteen batch regressions and the retained-display
+write-rejection case pass after the final index correction, including cancellation, whole-operation
+rollback, stale proposals, frozen-selection refresh, conflict resolution and undo. The preceding
+query-order variant also passes 161 organization checks; its one failing cost regression is the
+reason for the explicit index correction, and is not reported as a passing full final-head suite.
+Full hosted gates remain required for the submitted change.
+
+The optimized native build with isolated-storage support has SHA-256
+`4efcfc47956a5d0d19e570a267410542d7a3cc718a0a66aa8efde136d3293653`.
+It completes the same retained 63,077-location fixture, with 43,644 synthetic prediction-history
+rows. Observed command times are:
+
+| Command over 7,216 groups | Preparation | Application | Changed groups |
+| --- | ---: | ---: | ---: |
+| First Favorite | 1.625 s | 5.437 s | 7,216 |
+| Repeated Favorite | 3.206 s | 2.055 s | 0 |
+| Album assignment | 3.299 s | 3.382 s | 7,216 |
+
+Category snapshots take 2.298/2.423 seconds and retain the same first 128 ordered locations and
+7,216-group / 14,865-location counts. Album/Favorite paging, undo/redo, archive replay and restart
+remain coherent. The post-restart album snapshot takes 3.072 seconds and category snapshot 3.574
+seconds. Unchanged migration/query work also runs faster in this session, so the wall-clock values
+remain sequential observations rather than an isolated speedup percentage or cloud guarantee.
+The deterministic same-size regression establishes the repaired query-cost growth.
+
+The action/restart phases peak at 317.1 MiB private memory. SQLite quick-check, foreign keys, all
+63,077 source identity tuples and the retained baseline digest pass. The archive round trip retains
+7,216 organization records, one album and 43,644 predictions. Original media is not read or changed;
+the leased catalog, migration copy and archive are removed after all owned processes retire.
+First-admission, complete-snapshot and remaining per-group write costs stay in the roadmap's
+performance step; the configured-catalog handoff refusal and paused window checks remain open.
+
+The temporary SQL tracer has been removed from product/test compilation. Its three diagnostic-only
+compiled artifacts totaling 632,763,931 bytes are removed after process retirement; small logs and
+the diagnostic source remain in ignored storage. Leased catalog copies retire after each run.
+
+The shared exact-query owner has 181 production lines and the selection owner 260, with no inline
+tests. The focused dedicated regression has 103 lines; existing organization test ownership remains
+unchanged.

@@ -18,6 +18,7 @@ mod conflicts;
 mod history;
 mod inspection;
 mod lifecycle;
+mod membership_cost;
 mod native_recovery;
 mod publication;
 mod queries;

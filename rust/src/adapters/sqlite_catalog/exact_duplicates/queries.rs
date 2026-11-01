@@ -11,11 +11,23 @@ pub(in crate::adapters::sqlite_catalog) const CANDIDATE_COLUMNS: &str =
     l.file_identity_scheme, l.file_identity_value, l.source_revision_token, l.source_generation, l.camera_make, l.camera_model,
     r.path, state.generation, namespace.identity_scheme, namespace.identity_value";
 
-pub(in crate::adapters::sqlite_catalog) const CURRENT_LOCATIONS: &str = "asset_locations AS l
-    JOIN library_roots AS r ON r.id = l.root_id AND r.active_scan_id = l.scan_id
-    JOIN library_change_root_state AS state ON state.root_id = r.id AND state.is_active = 1
-    LEFT JOIN library_root_publication_namespaces AS namespace
-      ON namespace.root_id = r.id AND namespace.root_generation = state.generation";
+macro_rules! current_locations {
+    ($locations:literal) => {
+        concat!(
+            $locations,
+            " JOIN library_roots AS r ON r.id = l.root_id AND r.active_scan_id = l.scan_id
+              JOIN library_change_root_state AS state ON state.root_id = r.id AND state.is_active = 1
+              LEFT JOIN library_root_publication_namespaces AS namespace
+                ON namespace.root_id = r.id AND namespace.root_generation = state.generation"
+        )
+    };
+}
+
+pub(in crate::adapters::sqlite_catalog) const CURRENT_LOCATIONS: &str =
+    current_locations!("asset_locations AS l");
+
+pub(in crate::adapters::sqlite_catalog) const CURRENT_LOCATIONS_BY_GENERATION: &str =
+    current_locations!("asset_locations AS l INDEXED BY asset_locations_exact_source");
 
 pub(in crate::adapters::sqlite_catalog) const COMPATIBLE_FINGERPRINT: &str =
     "f.source_generation = l.source_generation

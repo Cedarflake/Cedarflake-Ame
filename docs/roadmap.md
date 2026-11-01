@@ -154,7 +154,10 @@ R5-07 is active, retaining its existing order and required outcomes:
    repairs per-record archive staging commits. The
    [shared-prediction and scoped-count optimization](acceptance/r5-smart-albums.md#shared-prediction-reads-and-scoped-counts--2026-11-01)
    reduces repeated category decoding and filename source-count scans while retaining indexed
-   root/folder/search reads. Complete-query, first-admission and bulk-action latency remain in this
+   root/folder/search reads. The
+   [confirmed-member lookup](acceptance/r5-smart-albums.md#confirmed-group-command-lookup--2026-11-02)
+   removes unrelated same-size file work from group validation and writes. Complete-query,
+   first-admission and bulk-action latency remain in this
    performance step. Follow up the configured-catalog handoff-validation refusal recorded in the
    excluded diagnostic attempts before an R5 exit decision; no bypass or original-catalog repair
    is authorized by that observation. Window-control verification remains deferred at the user's request.
