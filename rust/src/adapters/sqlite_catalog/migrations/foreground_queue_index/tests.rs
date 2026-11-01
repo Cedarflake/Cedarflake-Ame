@@ -103,6 +103,8 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 "classification_categories",
                 "classification_category_versions",
                 "classification_decisions",
+                "classification_maintenance_evidence",
+                "classification_managed_categories",
                 "classification_operation_changes",
                 "classification_operation_targets",
                 "classification_operations",

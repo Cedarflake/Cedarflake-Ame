@@ -488,6 +488,7 @@ fn root_availability_classification_adapters_retain_exact_loading_boundaries() {
     let source = ADAPTERS_SOURCE.replace("\r\n", "\n");
     for declaration in [
         "mod classification_feature_cache;",
+        "mod classification_vocabulary;",
         "#[cfg(all(windows, any(feature = \"classification-worker\", test)))]\npub(crate) mod classification_image_input;",
         "#[cfg(any(all(windows, feature = \"classification-worker\"), test))]\nmod classification_installation;",
     ] {

@@ -1606,3 +1606,18 @@ The shared discovery domain has 323 production lines plus two registration lines
 197 plus two, and the public classification facade 96. Dedicated adapter tests have 268 lines, with
 no new inline cases. The native probe entrypoint, discovery workflow, vocabulary composition and
 resource inspection have 177, 372, 115 and 51 diagnostic lines respectively.
+
+The [subsequent native CI partition](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41267206754/job/124732442286)
+finds the vocabulary module missing from the exact source-loading roster. Registering its private,
+unconditional file module and extending the existing mutation cases restores all 13 focused
+root-availability checks, including rejection of alternate paths, inline bodies and broader visibility.
+The repair changes seven test lines and no production logic. The enclosing local-files owner has
+2,630 lines before its 3,469-line test module; the dedicated topology suite has 533 lines.
+
+The same head's [Schema and Queue partition](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41267206754/job/124732442106)
+finds two maintenance tables absent from the v33 upgrade fixture's expected additions. Both tables
+now require explicit empty-row assertions before comparing every retained table with its original
+contents. All four foreground-index migration cases pass, covering repeated reopen, rollback and
+invalid authority. Only two assertion-roster lines change in the 359-line dedicated test file;
+production migrations and retained-data assertions remain unchanged. The repository format check
+passes with 690 Dart files unchanged, and `git diff --check` passes.
