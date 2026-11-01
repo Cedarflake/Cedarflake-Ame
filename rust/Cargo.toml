@@ -9,7 +9,7 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 [features]
 default = ["classification-worker"]
 broker-acceptance-client = []
-classification-worker = ["dep:ort", "dep:sha2", "dep:tokenizers"]
+classification-worker = ["dep:ort", "dep:reqwest", "dep:sha2", "dep:tokenizers"]
 
 [[bin]]
 name = "cedarflake_ame_classification_worker"
@@ -47,6 +47,7 @@ dbg_macro = "deny"
 todo = "deny"
 
 [target."cfg(windows)".dependencies]
+reqwest = { version = "=0.13.5", optional = true, default-features = false, features = ["blocking", "native-tls-no-alpn", "system-proxy"] }
 windows = { version = "=0.62.2", features = ["Win32_System_Com", "Win32_System_Ole", "Win32_System_Search", "Win32_System_Variant", "Win32_Storage_IndexServer", "Win32_UI_Shell"] }
 notify = { version = "=8.2.0", default-features = false }
 windows-sys = { version = "0.61.2", features = [

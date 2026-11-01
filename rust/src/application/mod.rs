@@ -15,6 +15,8 @@ pub(crate) mod classification_discovery;
 pub(crate) mod classification_dispatch;
 pub(crate) mod classification_features;
 pub(crate) mod classification_matching;
+#[cfg(all(windows, feature = "classification-worker"))]
+pub(crate) mod classification_model_installation;
 pub(crate) mod classification_residency;
 #[cfg(all(windows, feature = "classification-worker"))]
 pub(crate) mod classification_runtime;

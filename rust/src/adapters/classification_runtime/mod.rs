@@ -8,6 +8,8 @@ mod dll_search;
 mod encoder;
 #[cfg(windows)]
 mod factory;
+#[cfg(windows)]
+pub(crate) mod installation;
 mod manifest;
 #[cfg(windows)]
 mod process;

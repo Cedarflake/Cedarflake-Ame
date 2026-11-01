@@ -666,6 +666,49 @@ and quantization notice. This admission applies to these artifacts, not every fi
 repository. Model weights are separate, explicitly installed data; they are not bundled or mirrored
 by the application. A later redistribution must retain the applicable license and notices.
 
+### Managed model installation
+
+Explicit installation downloads only the three admitted model artifacts from the pinned conversion
+revision above. The application resolves local model storage separately from catalogs and previews;
+the runtime resolves from its own `data/classification-runtime` bundle. Callers select neither URLs
+nor runtime libraries. Preparation does not enable classification, open a worker, or change a taxonomy.
+
+The Windows transport is `reqwest` 0.13.5 (MIT/Apache-2.0), with blocking streaming, native TLS and
+system proxy support. Windows certificate validation uses Schannel; automatic decompression,
+cookies and automatic retries are absent. Reqwest supplies maintained HTTP/redirect/TLS handling
+behind the artifact-download adapter. HTTPS redirects are limited to five hops within Hugging Face's
+`huggingface.co` and `hf.co` hosting domains. Credential-bearing URLs, other ports and unrelated
+hosts are rejected. Errors omit signed redirect URLs and server bodies. The upstream
+[blocking reader](https://github.com/seanmonstar/reqwest/blob/v0.13.5/src/blocking/response.rs)
+applies the configured ten-second timeout per read, allowing a large model to stream without a
+ten-second whole-file cutoff. A transfer also has a one-hour total deadline. Cancellation is checked
+between reads, writes and hash windows; a stalled network operation can delay observation until its
+ten-second timeout. The owning call retains the response until transfer has stopped. No detached
+thread can continue writing or publish after cancellation returns.
+
+An application installation owner spans preparation and publication. Downloads use one 64-KiB
+buffer, exact length limits and incremental SHA-256. Each file is written to a unique temporary file
+inside the pinned local package namespace, synced and published without overwriting another file.
+Its final file handle is independently verified and held against changes until publication. Verified
+complete files survive interruption and are rechecked before retry reuse; partial files belonging
+to the current operation are removed. A package-directory file lease excludes concurrent installers
+across processes. Under that lease, a bounded directory read retires only the exact temporary naming
+format owned by this installer, so process termination cannot accumulate abandoned downloads across
+retries. Complete artifacts and unrelated entries remain untouched. Existing corrupt, reparse or cloud-placeholder entries fail
+admission without download, replacement or hydration. License and conversion/quantization notices
+are installed from application-owned text and remain alongside the model artifacts.
+
+Preparation leaves the prior installation selected. Publication requires the existing runtime to
+have fully retired and compares the expected settings within the same immediate transaction that
+saves the complete installation. Cancellation is rechecked after writer admission and before commit.
+Cancellation, changed settings and retirement failure preserve the previous selection. The prepared
+owner retains all file and namespace guards until this commit or disposal. The caller then opens a
+fresh session through the existing configuration lifecycle; there is no runtime hot reload.
+
+This adds no catalog migration or new encoder identity. Replacing the HTTP adapter must preserve
+fixed artifact admission, bounded streaming, cancellation, complete-file reuse and atomic selection.
+Model or runtime revision changes retain the original admission and feature-compatibility rules.
+
 ### Worker ownership and protocol
 
 The default `classification-worker` Cargo feature builds a separate native executable and its adapter.

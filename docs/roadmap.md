@@ -190,8 +190,10 @@ now share the native retirement gate with explicit configuration changes, preser
 close/commit/reopen lifecycle. Native vocabulary resources now supply verified, versioned lexical
 cues and separate naming definitions through the existing discovery port. The Windows build now
 prepares and bundles the admitted CPU runtime and its notices, with payload-presence checks across
-unsigned, portable and installer packaging. Vocabulary distribution admission, managed model
-installation, maintenance scheduling and first-use integration remain.
+unsigned, portable and installer packaging. Native managed model installation now prepares pinned
+downloads in separate local storage, retains verified files across retry and publishes the selected
+installation only after runtime retirement. Vocabulary distribution admission, maintenance
+scheduling and desktop first-use integration remain.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review

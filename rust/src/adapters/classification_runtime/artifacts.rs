@@ -2,6 +2,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek};
 use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
 use std::path::{Component, Path, PathBuf, Prefix};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use sha2::{Digest, Sha256};
 use windows_sys::Win32::Storage::FileSystem::{
@@ -57,7 +58,7 @@ fn admitted_attributes(attributes: u32) -> bool {
         == 0
 }
 
-fn pin_directory(path: &Path) -> Result<Vec<File>, RuntimeError> {
+pub(super) fn pin_directory(path: &Path) -> Result<Vec<File>, RuntimeError> {
     let mut components = path.components();
     if !path.is_absolute()
         || !matches!(
@@ -91,21 +92,27 @@ fn pin_directory(path: &Path) -> Result<Vec<File>, RuntimeError> {
 }
 
 fn verify_file(path: &Path, artifact: &Artifact) -> Result<File, RuntimeError> {
-    let mut file = OpenOptions::new()
-        .read(true)
-        .share_mode(FILE_SHARE_READ)
-        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_OPEN_NO_RECALL)
-        .open(path)?;
-    let metadata = file.metadata()?;
-    if !metadata.is_file() || !admitted_attributes(metadata.file_attributes()) {
-        return Err(RuntimeError::UnsafeArtifact);
+    verify_file_cancellable(path, artifact, &AtomicBool::new(false))
+}
+
+pub(super) fn verify_file_cancellable(
+    path: &Path,
+    artifact: &Artifact,
+    cancelled: &AtomicBool,
+) -> Result<File, RuntimeError> {
+    if cancelled.load(Ordering::Acquire) {
+        return Err(RuntimeError::Cancelled);
     }
-    if metadata.len() != artifact.length {
+    let mut file = open_local_artifact(path)?;
+    if file.metadata()?.len() != artifact.length {
         return Err(RuntimeError::ArtifactMismatch);
     }
     let mut hasher = Sha256::new();
     let mut buffer = [0; 64 * 1024];
     loop {
+        if cancelled.load(Ordering::Acquire) {
+            return Err(RuntimeError::Cancelled);
+        }
         let count = file.read(&mut buffer)?;
         if count == 0 {
             break;
@@ -116,6 +123,19 @@ fn verify_file(path: &Path, artifact: &Artifact) -> Result<File, RuntimeError> {
         return Err(RuntimeError::ArtifactMismatch);
     }
     file.rewind()?;
+    Ok(file)
+}
+
+pub(super) fn open_local_artifact(path: &Path) -> Result<File, RuntimeError> {
+    let file = OpenOptions::new()
+        .read(true)
+        .share_mode(FILE_SHARE_READ)
+        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_OPEN_NO_RECALL)
+        .open(path)?;
+    let metadata = file.metadata()?;
+    if !metadata.is_file() || !admitted_attributes(metadata.file_attributes()) {
+        return Err(RuntimeError::UnsafeArtifact);
+    }
     Ok(file)
 }
 

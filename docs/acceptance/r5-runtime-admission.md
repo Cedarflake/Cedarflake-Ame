@@ -266,8 +266,8 @@ archive-fixture attempt exposed that missing assembly load and failed before ext
 local check performed zero downloads, source-media reads or model loads. Its isolated build harness
 does not replace the normal hosted application/Release build or claim a completed first-use flow.
 Archive download and the newly registered native contract test retain their hosted execution owner.
-Application-managed model installation and automatic use of the bundled runtime remain the next
-integration work; the current desktop installation selector is not accepted as the final setup.
+The managed model preparation/publication boundary below follows this bundle. Desktop first-use
+integration remains; the current directory selector is not accepted as the final setup.
 
 | Owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |
@@ -275,3 +275,42 @@ integration work; the current desktop installation selector is not accepted as t
 | Runtime preparation command | 81 | 0 | Covered by package checks and CMake harness |
 | CMake dependency/install module | 20 | 0 | CMake harness |
 | Native distribution contract | 0 | 0 | 36 |
+
+## Managed model preparation and publication
+
+The native use case resolves the application-managed model directory and bundled runtime without
+caller-provided download URLs or library selection. It prepares the three pinned artifacts
+(503,840,830 bytes total), license and conversion notice, retaining file and namespace guards until
+publication or disposal. One package lease covers both preparation and publication across processes.
+The HTTP adapter uses the admitted `reqwest` 0.13.5 configuration; only the new dependency graph and
+its required `log` update changed in Cargo.lock. The existing Tokio version remains locked.
+
+Downloads stream into bounded temporary files, validate length and digest, then publish individual
+complete files without overwriting another destination. A failed or cancelled attempt preserves
+complete files for verified reuse. Interrupted-process temporary files are removed under the package
+lease on retry; complete models and unrelated files are retained. Existing corrupt installed files
+fail verification without replacement. Native preparation does not load an encoder or enable analysis.
+
+Selection publication requires retired runtime ownership. Its settings transaction compares the
+previous installation and checks cancellation after writer admission and before commit. A later
+selection, active runtime or cancellation leaves the old installation intact. No catalog migration,
+model compatibility change, image read or original-media mutation is introduced.
+
+Sixteen focused native tests pass for package admission, bounded HTTP responses, stalled-body
+termination, owned temporary cleanup, verified-file reuse, cross-handle package ownership and settings
+publication. Three existing held-file/namespace/placeholder regressions also pass. The repository
+format check reports 685 Dart files with zero changes; Rust formatting and whitespace checks pass.
+No production
+model download or desktop enablement is claimed by the fixture checks. First-use progress/cancel
+controls, automatic category maintenance and connected desktop verification remain under the R5
+roadmap. A network stall can postpone cancellation observation until the ten-second I/O timeout.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Application installation lifetime/publication | 122 | 0 | 46 |
+| Installation settings transaction | 148 | 0 | 110 |
+| Held artifact validation | 143 | 0 | 60 |
+| Package preparation and notices | 196 | 0 | 247 |
+| HTTP admission | 108 | 0 | 113 |
+| Bounded streamed file publication | 79 | 0 | Covered by package/HTTP fixtures |
+| Cross-process staging ownership | 96 | 25 | Included inline |

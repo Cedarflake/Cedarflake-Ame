@@ -27,6 +27,10 @@ pub use crate::application::classification_features::prepare_classification_matc
 pub use crate::application::classification_matching::{
     CategoryMatcher, CategoryScore, RankedPrediction,
 };
+#[cfg(all(windows, feature = "classification-worker"))]
+pub use crate::application::classification_model_installation::{
+    PreparedModelInstallation, prepare_managed_classification_installation,
+};
 pub use crate::application::classification_residency::{
     ClassificationEncoderResidency, MonotonicResidencyClock, ResidencyClock,
 };
@@ -43,6 +47,9 @@ pub use crate::domain::ScanError;
 pub use crate::domain::classification::discovery::{
     CategoryNaming, CategoryNamingPurpose, ConceptId, ConceptMemberSimilarity, ConceptNamingScope,
     ConceptSimilarity, DiscoveryCohort, DiscoveryError, DiscoverySample, VocabularyConcept,
+};
+pub use crate::domain::classification::installation::{
+    ModelInstallationPhase, ModelInstallationProgress,
 };
 pub use crate::domain::classification::maintenance::{
     CategoryExpansionPlan, CategoryExpansionSnapshot, CategoryMergePlan, CategoryRetirementPlan,

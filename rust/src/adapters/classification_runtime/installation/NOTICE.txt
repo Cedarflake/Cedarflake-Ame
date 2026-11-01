@@ -1,0 +1,13 @@
+SigLIP 2 Base/16-224
+
+Original model: Google, licensed under the Apache License, Version 2.0.
+https://huggingface.co/google/siglip2-base-patch16-224/tree/75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2
+
+ONNX conversion: onnx-community/siglip2-base-patch16-224-ONNX
+https://huggingface.co/onnx-community/siglip2-base-patch16-224-ONNX/tree/ba1f3b0843f24bc5417d38e19c37b287d719b2f4
+
+The selected vision graph uses FP16 weights; the text graph uses INT8 quantization.
+These converted files differ from the original Google model representation.
+Ame downloads the selected converted files without modifying them. The tokenizer
+comes from the same pinned conversion revision. The full Apache-2.0 license is
+provided in LICENSE-2.0.txt alongside these installed files.
