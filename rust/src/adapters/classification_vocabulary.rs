@@ -11,6 +11,7 @@ use crate::ports::classification_vocabulary::{
     ClassificationVocabulary, ConceptNeighborhood, ConceptPage,
 };
 
+mod distribution;
 mod resource;
 
 pub struct LocalClassificationVocabulary {

@@ -222,6 +222,24 @@ operation. Reopening uses a new runtime/session and its newly loaded setup and b
 The saved manual mode remains authoritative after reopening or replay; the boundary does not enable
 classification, start an encoder or schedule a maintenance round on its own.
 
+The maintenance dispatcher composes ordinary queue execution with a separate typed idle owner. Ready
+source/content work and newly notified backlog admission run first. An idle turn reacquires the same
+foreground/quiet admission, retains its cancellation lifetime and rechecks dispatch authority before
+returning a prepared plan. Preparation runs outside catalog transactions. The executor retires before
+a handoff is returned; the enclosing runtime must still be dropped before the existing submission
+gate admits publication. A retirement failure grants no handoff. Waiting is recomputed after maintenance
+so its duration cannot delay work whose retry deadline has elapsed.
+
+Native discovery retains a bounded content cursor for one catalog-notification generation. A completed
+pass waits for another relevant notification; changed publication defers the old pass without rebasing
+its authority. The resource adapter resolves the bundled vocabulary from the packaging manifest and
+verifies its pinned digest. Each pass uses the retained calibration candidate's purpose patterns and
+limits. A renamed purpose retains its meaning; a changed or removed purpose loses automatic naming
+authority. Optional user definitions are not assigned an invented purpose. Resource release preserves
+the cursor and reusable feature cache while dropping the vocabulary graph on suspension, completion
+or handoff. The executor owns source execution, cached matchers and encoder residency; discovery owns
+the pass and naming resources. The runtime facade composes those owners and process admission.
+
 ## Validation and replacement
 
 Migration checks preserve prior human records and prove atomic rollback. Repository tests exercise

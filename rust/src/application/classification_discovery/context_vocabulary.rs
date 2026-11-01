@@ -108,6 +108,10 @@ impl<'a, V: ClassificationVocabulary> ContextualVocabulary<'a, V> {
             cancelled,
         }
     }
+
+    pub fn into_parts(self) -> (V, NamingContextCatalog) {
+        (self.source, self.catalog)
+    }
 }
 
 impl<V: ClassificationVocabulary> ClassificationVocabulary for ContextualVocabulary<'_, V> {

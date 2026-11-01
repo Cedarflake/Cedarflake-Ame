@@ -1688,3 +1688,37 @@ Preparation has 182 production and 333 dedicated test lines. The discovery facad
 lines plus two registration lines; its shared test module has 420 lines, and the public native facade
 has 106. The read-only format check passes with 690 Dart files unchanged; `git diff --check` passes.
 No schema, bridge, user-interface or original-media behavior changes.
+
+### Native idle discovery handoff
+
+The managed native entrypoint now composes ready queue execution with bounded discovery windows.
+It uses the bundled vocabulary's manifest/digest and the retained naming-policy inputs, shares the
+executor's feature cache and encoder residency, and returns an addition plan after worker retirement.
+The existing submission gate still requires the enclosing runtime to be dropped. The desktop session
+continues to use its existing entrypoint until its joined handoff is connected; automatic retirement
+and merge scheduling remain separate integration work in the current roadmap.
+
+All 13 queue/maintenance cases pass, including the seven retained dispatch regressions. The six
+maintenance cases cover work priority, quiet/foreground/pause/close admission, cancellation, a pause
+committed without a signal, elapsed retry deadlines and preparation/retirement failure. The final
+resource-release change passes those six cases again. Six preparation cases pass, including search
+and context-budget exhaustion deferring the cohort without publishing partial discovery.
+
+The runtime-filtered test invocation passes 30 cases, including the extracted executor's unchanged
+source-error classification, ownership gates and three new policy checks. The policy preserves the
+retained calibration inputs and distinguishes display renaming from semantic edits or unrelated
+custom categories. An initial policy assertion exposes JSON integer-versus-float normalization;
+the production input now preserves the frozen numeric representation. No threshold changes.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Runtime composition / native executor | 105 / 207 | 0 | 61 retained executor lines |
+| Native discovery pass / policy | 165 / 139 | 0 | 100 policy lines |
+| Idle dispatch composition | 147 | 0 | 244 maintenance lines |
+| Discovery preparation | 198 | 0 | 355 preparation lines |
+
+The vocabulary adapter has 181 production lines plus two registration lines, its bundle resolver
+42, and the contextual wrapper 201 plus two. The shared queue test module has 387 lines. No new
+inline tests are added. The read-only format check passes with 690 Dart files unchanged, and
+`git diff --check` passes. Current-commit hosted execution and connected client verification remain
+distinct acceptance steps.

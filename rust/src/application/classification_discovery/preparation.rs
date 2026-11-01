@@ -43,6 +43,7 @@ pub struct PreparedDiscoveryWindow {
     pub missing_features: usize,
     pub considered_cohorts: usize,
     pub deferred_cohorts: usize,
+    pub bounded_cohorts: usize,
     pub next: Option<DiscoverySampleCursor>,
     pub expansion: Option<CategoryExpansionPlan>,
 }
@@ -69,6 +70,7 @@ pub fn prepare_discovery_window<F: ClassificationEncoderFactory, C: ResidencyClo
         missing_features: window.missing_features,
         considered_cohorts: 0,
         deferred_cohorts: 0,
+        bounded_cohorts: 0,
         next: window.next,
         expansion: None,
     };
@@ -111,6 +113,11 @@ pub fn prepare_discovery_window<F: ClassificationEncoderFactory, C: ResidencyClo
             cache,
             cancelled,
         )?;
+        if !retrieved.bounds_reached.is_empty() {
+            result.deferred_cohorts += 1;
+            result.bounded_cohorts += 1;
+            continue;
+        }
         for naming in policy.naming {
             let nominated = nominate_classification_contexts(
                 ConceptNominationRequest {
@@ -127,7 +134,16 @@ pub fn prepare_discovery_window<F: ClassificationEncoderFactory, C: ResidencyClo
                 residency,
                 cache,
                 cancelled,
-            )?;
+            );
+            let nominated = match nominated {
+                Ok(nominated) => nominated,
+                Err(error) if error.code == "classification_discovery_limit" => {
+                    result.deferred_cohorts += 1;
+                    result.bounded_cohorts += 1;
+                    continue 'cohorts;
+                }
+                Err(error) => return Err(error),
+            };
             let assessment = prepare_category_expansion(
                 CategoryExpansionRequest {
                     operation_id: request.operation_id.clone(),

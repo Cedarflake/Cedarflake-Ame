@@ -111,6 +111,8 @@ struct Harness {
     vocabulary: Vocabulary,
     cache: SqliteClassificationFeatureCache,
     cancelled: Arc<AtomicBool>,
+    retrieval: ConceptSearchLimits,
+    consolidation: ConceptConsolidationLimits,
     _directory: tempfile::TempDir,
 }
 
@@ -208,6 +210,12 @@ impl Harness {
             vocabulary: vocabulary(),
             cache,
             cancelled: Arc::new(AtomicBool::new(false)),
+            retrieval: limits(),
+            consolidation: ConceptConsolidationLimits {
+                hops: 2,
+                concepts: 16,
+                edges: 32,
+            },
             _directory: directory,
         }
     }
@@ -232,12 +240,8 @@ impl Harness {
                 minimum_members: 3,
                 maximum_cohorts: 64,
             },
-            retrieval: limits(),
-            consolidation: ConceptConsolidationLimits {
-                hops: 2,
-                concepts: 16,
-                edges: 32,
-            },
+            retrieval: self.retrieval,
+            consolidation: self.consolidation,
             maximum_candidates: 16,
             minimum_context_relatedness: 0.9,
             admission: &admission,
@@ -296,6 +300,24 @@ fn absent_image_features_never_start_an_encoder_or_survey_the_whole_catalog() {
     assert!(result.expansion.is_none());
     assert_eq!(harness.calls.starts.get(), 0);
     assert_eq!(harness.catalog.begins.get(), 1);
+}
+
+#[test]
+fn exhausted_search_and_context_budgets_defer_the_cohort_without_disrupting_analysis() {
+    for retrieval_limit in [true, false] {
+        let mut harness = Harness::new(true);
+        if retrieval_limit {
+            harness.retrieval.entry_points = 1;
+        } else {
+            harness.consolidation.concepts = 1;
+        }
+        let result = harness.prepare(512).unwrap();
+        assert!(result.expansion.is_none());
+        assert_eq!(result.considered_cohorts, 1);
+        assert_eq!(result.deferred_cohorts, 2);
+        assert_eq!(result.bounded_cohorts, 1);
+        assert_eq!(harness.catalog.snapshot.configuration.catalog.revision, 1);
+    }
 }
 
 #[test]

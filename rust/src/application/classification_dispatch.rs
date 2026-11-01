@@ -9,7 +9,11 @@ use crate::ports::classification_execution::{
 };
 use crate::ports::classification_work::ClassificationWorkRepository;
 
+mod maintenance;
 mod signals;
+pub use maintenance::{
+    ClassificationDispatchEvent, ClassificationMaintenance, ClassificationMaintenanceStep,
+};
 use signals::Admission;
 pub use signals::{
     ClassificationDispatchClock, ClassificationDispatchSignals, ClassificationForegroundState,

@@ -1,4 +1,7 @@
+use super::executor::execution_error;
 use super::*;
+use crate::domain::classification::work::ClassificationWorkFailure;
+use crate::ports::classification_execution::ClassificationExecutionError;
 
 #[test]
 fn changed_or_unavailable_sources_wait_without_exhausting_model_retries() {

@@ -14,6 +14,8 @@ use crate::ports::classification_execution::{
 
 use super::*;
 
+mod maintenance;
+
 #[derive(Clone, Default)]
 struct Clock(Arc<AtomicU64>);
 
@@ -47,6 +49,7 @@ struct Observed {
     retired: usize,
     action: Action,
     failure_duration_ms: u64,
+    retirement_error: bool,
 }
 
 struct Executor {
@@ -112,6 +115,12 @@ impl ClassificationWorkExecutor for Executor {
 
     fn retire(&mut self) -> Result<(), ScanError> {
         self.observed.borrow_mut().retired += 1;
+        if self.observed.borrow().retirement_error {
+            return Err(ScanError::new(
+                "fixture_retirement_failed",
+                "Worker remains active",
+            ));
+        }
         Ok(())
     }
     fn retire_if_idle(&mut self) -> Result<(), ScanError> {

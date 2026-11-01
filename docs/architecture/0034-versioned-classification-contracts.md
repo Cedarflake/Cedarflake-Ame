@@ -67,6 +67,9 @@ capacity, returns at most one guarded expansion plan and revalidates the sampled
 assessment. Empty or insufficient cached samples start no encoder. Text features remain reusable
 after cancellation; the operation neither reads images nor changes catalog state. The runtime
 handoff and transactional maintenance submission remain the sole publication path.
+Exhausted retrieval or context-expansion budgets defer that cohort and retain an explicit bounded-
+cohort count; incomplete exploration cannot authorize an addition. Other invalid evidence and
+resource failures retain their errors. The remaining cohorts and content windows can still proceed.
 
 The application forms discovery cohorts from a bounded window of at most 512 distinct compatible
 cached image features. It uses complete-link similarity: every pair in an admitted cluster must
