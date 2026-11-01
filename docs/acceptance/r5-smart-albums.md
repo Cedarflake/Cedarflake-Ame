@@ -247,3 +247,41 @@ adds no scrolling, preview-rendering or final silent-indicator visual acceptance
 The staging owner has 179 production lines, no inline tests and 566 dedicated test lines. The
 change adds no schema, archive-format, source-file or durable-decision policy change. Hosted checks
 must cover the submitted repair; prior-head results cover unchanged inputs only.
+
+## Local acceptance storage retirement — 2026-11-01
+
+The storage inventory after integrated acceptance finds 53,184,983,683 bytes in Rust debug
+incremental compilation directories and 18,017,695,788 bytes in obsolete R2c/R4 experiment catalogs,
+migration copies and exported archives. One retired R4 diagnostic archives the complete profile
+after each failed attempt, multiplying copies of the same large catalog. Small logs do not account
+for the growth. These are development and acceptance artifacts, separate from application cache.
+
+Cleanup removes 15,936 files, totaling 71,202,679,471 logical bytes. The measured increase in free
+disk space is 65,908,563,968 bytes; logical file sizes and reclaimed filesystem allocation are
+reported separately. Each target is workspace-contained, reparse-free, inactive and exclusively
+openable before removal. Cargo and repository-owned application processes are absent. File
+attributes are refreshed before comparing inventory metadata with the deletion preflight.
+
+The reusable image corpus, models/calibration artifacts, retained baselines, current R5 client
+profile, diagnostic scripts and small reports remain. The retained catalog still has SHA-256
+`93db288e598b601fb478d39ff598777a1d5f1615f152c15889bddc6fa7aecbfd`.
+No source media, application window, live catalog or unresolved recovery backup is modified.
+
+The repository now disables Cargo incremental compilation while retaining ordinary compiled-artifact
+reuse. The [Cargo configuration contract](https://doc.rust-lang.org/cargo/reference/config.html#buildincremental)
+defines this switch; edited-crate rebuilds may take longer. The local retained-library diagnostic
+runner now leases one named scratch directory and removes its disposable profile, migration copies
+and archives on success or failure. Logs and reusable inputs remain outside that directory.
+The shared owner and its usage requirements live in
+[execution and storage safeguards](quality-gates.md#execution-scope-and-storage).
+
+Focused checks cover success, action failure, invalid names, occupied files, interrupted-run
+reclamation, concurrent ownership, junction rejection and preservation of unowned directories.
+A dependency-free offline Cargo compilation produces no incremental cache and leaves no scratch
+outputs. The retained-library Python storage integration also passes without copying the catalog
+or opening source images. The modified diagnostic Dart files pass analysis. Full large-library
+acceptance is not repeated for this storage-only change; its prior data-flow evidence remains valid.
+
+The cleanup owner has 105 production lines and no inline tests; dedicated checks have 135 lines.
+The 75-line lint facade adds only the test registration. Hosted checks must cover the submitted
+configuration and tooling changes.

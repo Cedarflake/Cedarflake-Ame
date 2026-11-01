@@ -1,2 +1,5 @@
+[build]
+incremental = false
+
 [env]
 LIBSQLITE3_FLAGS = { value = "SQLITE_ENABLE_SETLK_TIMEOUT=1", force = true }

@@ -122,6 +122,21 @@ disposable test storage, caches and outputs. Before cleanup, verify process reti
 restoration, exact workspace-contained targets and absence of reparse traversal. Do not delete
 active outputs or unresolved restoration backups. Hosted and unit fixtures retain isolated storage.
 
+Disposable local acceptance copies use `Invoke-AmeAcceptanceScratch` from
+`tool/acceptance_scratch_storage.ps1`. Its named directory under `build/test/derived/temporary`
+is leased for the run and removed after success or failure. Keep the reusable baseline, model
+artifacts and small diagnostic reports outside that directory; do not archive a complete profile
+for each failed attempt. Join owned child processes before the action returns. Busy files and
+reparse points reject cleanup; an unmarked directory is never adopted. A subsequent invocation
+can reclaim a marked, inactive directory left by interruption.
+
+The repository Cargo configuration disables incremental compilation to prevent repeated local
+feature/build variants from accumulating compiler working directories. Normal dependency and
+compiled-artifact reuse remains enabled. This trades some edited-crate rebuild speed for lower
+storage use; it does not change debug symbols, assertions or release optimization.
+The scratch lifecycle and a dependency-free Cargo probe run in the hosted Static gate through
+`tool/acceptance_test_scratch_storage.ps1`.
+
 ### Required engineering workflow
 
 For every material code/configuration change:
