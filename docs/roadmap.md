@@ -116,7 +116,7 @@ publication boundary.
 
 R5-05 supplies coherent effective-category queries, counts, pages, selection and viewer scope
 through the shared gallery, with [query evidence](acceptance/r5-smart-albums.md). R5-06 connects the
-accepted sidebar, managed setup, all-results entry, preview and shared feedback. Its
+accepted sidebar, managed setup, category browsing, preview and shared feedback. Its
 [desktop acceptance](acceptance/r5-desktop-classification.md) retains the earlier connected workflow
 and failed-image retry evidence. The manual confirmation/correction workflow and its filters,
 deferral, continuation and undo were withdrawn on 2026-11-01. Their removal has focused and

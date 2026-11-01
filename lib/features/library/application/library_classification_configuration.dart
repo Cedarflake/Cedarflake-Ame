@@ -64,16 +64,12 @@ class LibraryClassificationConfiguration {
     return _service.load();
   }
 
-  Future<List<LibraryClassificationCategory>> initialCategories() =>
-      _service.initialCategories();
-
   Future<void> enableManagedInstallation({
     required String operationId,
     required LibraryClassificationSettings observed,
     required Future<void> Function() commitInstallation,
-    List<LibraryClassificationCategory>? editedCategories,
   }) async {
-    final retainedCategories = editedCategories ?? observed.categories;
+    final retainedCategories = observed.categories;
     final categories = retainedCategories.isEmpty
         ? await _service.initialCategories()
         : retainedCategories;
@@ -88,18 +84,19 @@ class LibraryClassificationConfiguration {
     });
   }
 
-  Future<LibraryClassificationSettings> save({
+  Future<LibraryClassificationSettings> enable({
     required String operationId,
     required LibraryClassificationSettings observed,
-    required List<LibraryClassificationCategory> categories,
-    required LibraryClassificationConfigurationAction action,
   }) async {
+    final categories = observed.categories.isEmpty
+        ? await _service.initialCategories()
+        : observed.categories;
     await _lifecycle.changeConfiguration(
       () => _service.save(
         operationId: operationId,
         observed: observed,
         categories: categories,
-        action: action,
+        action: LibraryClassificationConfigurationAction.enable,
       ),
     );
     return _service.load();

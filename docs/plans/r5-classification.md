@@ -81,8 +81,8 @@ Follows R5-01; its output fixes the model/taxonomy compatibility used by later s
    not guarantee that knowledge. Evaluate labeled local examples for repeated cases
    without assuming online research, automatic learning, or reliable recognition of every new meme.
    Supply application-owned starting descriptions and implement measured category discovery and
-   maintenance. First use must work without manual category or prompt authoring. Keep manual editing
-   optional; an editable fixed sample list or a larger fixed vocabulary does not fulfill this slice.
+   maintenance. First use and later settings expose no manual category or prompt authoring. Preserve
+   legacy definitions; an editable fixed sample list or a larger fixed vocabulary does not fulfill this slice.
    Admit candidate discovery, naming, expansion/merge thresholds and human-choice preservation before
    connecting automatic maintenance. Preserve valid runtime evidence while measuring this missing
    policy; do not repeat an unchanged encoder comparison or use similarity alone to name categories.
@@ -174,7 +174,7 @@ Depends on R5-03 and R5-04.
    conflict provenance without a guessed winner; uncertain model results retain their best suggestion.
 2. Keep category scope, search, sort, pages, counts, layout, selection, and viewer navigation on the
    same bounded gallery snapshot. The desktop exposes no pending/confirmed classification filters.
-3. Keep unresolved/failed items reachable through all-results without inventing a category.
+3. Keep unresolved/failed items reachable through the ordinary Library without inventing a category.
 4. Connect committed result invalidation, grouping changes, and source removal to bounded updates.
    Background arrivals retain the current image and logical position.
 
@@ -190,7 +190,7 @@ its former manual-review scope was withdrawn on 2026-11-01.
    heading, collapse arrow, category rows, empty row, neutral icons, and shared gallery motion.
 2. Remove confirmation/correction, deferral, review-filter/count/badge, continuation, and classification
    undo controls from the gallery, selection bar, context menus, and preview.
-3. Retain read-only category display, metadata filters, all-results navigation, and failed-image retry.
+3. Retain read-only category display, metadata filters, ordinary Library navigation, and failed-image retry.
    Retry and errors use the existing bottom and viewer-top feedback templates.
 4. Preserve Favorite and manual-album actions, ordinary navigation/selection rules, and R4's retained
    organization context. Smart albums remain absent from manual-album destinations and management.

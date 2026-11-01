@@ -28,15 +28,15 @@ descriptions of at most 1,024 characters. These are resource/admission limits, n
 count. Exact duplicate descriptions within a category and duplicate category IDs are rejected.
 Shared descriptions across different categories are allowed and can produce an ambiguous tie.
 
-Definitions can be added or retired by explicit user commands or admitted managed-maintenance plans.
+Current definitions are added or retired by admitted managed-maintenance plans. The desktop exposes
+no definition creation, editing, or removal; existing user-authored definitions remain compatible.
 Retirement removes a definition from future matching; persistence retains its identity and description
 history for saved human choices. Refreshing the active taxonomy never remaps a retired human choice.
 The current desktop has no manual category-decision commands, under the
 [scope amendment](0035-classification-decision-authority.md#desktop-scope-amendment--2026-11-01).
 An empty active scheme has no classifier and produces no invented `其他` result.
 
-The application owns the starting vocabulary and category maintenance; manual definition editing is
-an optional override, not setup required from the user. Automatic discovery and maintenance are
+The application owns the starting vocabulary and category maintenance. Automatic discovery and maintenance are
 required R5 behavior. Their candidate naming and admission policy still requires measured evidence
 before implementation can claim that behavior. SigLIP supplies image/text compatibility; its matching
 adapter does not generate category names or decide whether a new category is useful. The scoped

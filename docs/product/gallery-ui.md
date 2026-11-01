@@ -1110,9 +1110,10 @@ Until each owning stage connects its complete workflow, the production UI does n
 - a permanent task center, read-only-validation entry, cache diagnostics, or engineering limits.
 
 Classification belongs to R5 and appears as `智能相册`, scoping the same gallery through a derived
-effective-category query. Category and review-status predicates compose with existing search and
-filters; the visible collection entry remains in Albums. Users correct category authority rather
-than edit derived membership. The [R5 requirements](r5-classification.md) own that distinction.
+effective-category query. Category predicates compose with existing search and metadata filters;
+the visible collection entry remains in Albums. Category membership and definitions are application-
+managed, with no manual classification controls. The [R5 requirements](r5-classification.md) own
+that behavior and legacy-record compatibility.
 
 ## Review workflow
 
@@ -1210,11 +1211,12 @@ no click target, hover treatment or navigation action; only the arrow expands or
 Category rows open the corresponding derived results.
 Category rows reflect the active application-managed scheme. First use relies on the existing setup
 and empty-state surfaces, without a mandatory category-definition form or a permanent sample-class
-list presented as the available classification capability. Setup, optional category adjustments and
+list presented as the available classification capability. Setup and
 analysis controls use the existing gallery More menu and Settings entry, keeping the sidebar
 heading's trailing action for collapse. Normal setup asks only for enablement and any required
-model download. Model/runtime directory pickers and comparison-description authoring are not
-prerequisites for using smart albums.
+model download. There are no category creation, editing, removal, or comparison-description forms.
+Model/runtime directory selection stays outside normal setup. Existing definitions remain preserved
+and are maintained through the application's admitted discovery policy.
 When expanded without categories, use the same static icon-and-text empty row as the Library's
 folder list, with `还没有分类结果`. Hide it when collapsed or when category rows become available;
 keep loading and failure separate. Do not substitute evaluation categories or add a setup paragraph
@@ -1225,7 +1227,7 @@ mobile layout, or competing gallery.
 ### Browsing and result state
 
 Selecting a category immediately displays its known name and result count in the existing header.
-The all-results heading is `智能相册`. Retain the title during asynchronous loading, using the same
+Retain the title during asynchronous loading, using the same
 ownership rule as manual album names. Keep Select, Sort, Filter, Layout, and More in their existing
 upper-right positions. Filter retains metadata conditions; no pending/confirmed classification
 filters, counts, or badges are shown.
@@ -1241,10 +1243,10 @@ queued until analysis continues. Existing bottom and viewer-top feedback report 
 Disabled/stopped analysis keeps enablement in the existing settings flow.
 
 Suggestions are usable immediately. Machine-only disagreement uses the current analysis and bounded
-automatic re-screening; remaining uncertainty retains the best usable suggestion. The all-results
-view keeps missing/failed results and unresolved legacy conflicts reachable without a guessed category.
-From a category view, More offers `全部分类结果`, retaining search, physical scope, metadata conditions,
-and sorting. The heading remains noninteractive; category rows provide navigation.
+automatic re-screening; remaining uncertainty retains the best usable suggestion. The ordinary Library
+keeps images with missing/failed results and unresolved legacy conflicts reachable without a guessed
+category; failed images can be retried from their preview. Smart albums have no separate all-results
+entry. The heading remains noninteractive; category rows provide navigation.
 
 Use existing loading, empty, unavailable, retry, and task-feedback surfaces for setup and analysis.
 Short waits do not insert transient wording or shift controls. Background results preserve the

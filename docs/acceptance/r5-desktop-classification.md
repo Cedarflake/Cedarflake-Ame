@@ -3,6 +3,8 @@
 Manual confirmation/correction, review filters, deferral, continuation, and classification undo were
 withdrawn on 2026-11-01. Earlier checks below retain their historical scope; current behavior follows
 [the revised R5 requirements](../product/r5-classification.md). Legacy records and archives remain compatible.
+The all-results menu entry and optional definition editor are also retired; their earlier checks
+below describe the former workflow.
 
 This record covers smart-album browsing, configuration and guarded review within R5-06. The
 [roadmap](../roadmap.md#current-execution-queue) owns stage disposition; the
@@ -436,3 +438,33 @@ and adapter. Native read-only application/bridge facades contain 16/16 lines. No
 added. The affected native annotation fixture has 159 lines; dedicated retry-widget, context-menu,
 label, and smart-album fixtures have 155/231/121/341 lines. Large existing owners only lose wiring;
 the replacement read/retry presentation remains in its existing bounded owners.
+
+## Managed setup and category navigation — 2026-11-01
+
+The change on top of `1242c102` removes the separate `全部分类结果` menu entry and the optional
+category-definition editor. The settings surface exposes managed enablement and installation,
+without new/edit/remove category commands or a save-only action. Enablement passes the retained
+definitions, or application-owned initial definitions when absent, through the existing guarded
+configuration boundary. Legacy definitions, protection, native maintenance and archives are preserved.
+Ordinary Library navigation keeps uncategorized images reachable; the existing preview retry remains.
+
+Thirty-two focused checks pass: 21 classification lifecycle cases, eight setup cases and three
+smart-album navigation cases. They cover first-use managed installation, cancellation/retirement,
+enablement failure and idempotent retry, retained definitions, closing all four mode states without
+a write, passive category headings and ordinary Library access from an empty category. The navigation
+fixture initially retained the retired smart-album folding expectation; it now checks the restored
+ordinary Library query, including its existing display preference. Owned formatting and whitespace
+checks pass. Hosted gates follow the submitted head.
+
+The isolated Profile client is rebuilt with its in-memory preferences entrypoint and the unchanged,
+verified native isolation library. Its real paused settings dialog shows the current analysis state
+and a Close action, with no category table or editor. The existing category gallery remains visible
+behind it. Further automated input is left to the active local operator after two concurrent-input
+guards. Read-only before/after checks preserve row counts and digests for 12 tables covering category
+definitions/versions/protection, saved classification activity, manual albums and R4 organization.
+No schema, model, runtime or original-media change accompanies this interface removal.
+
+The gallery facade contains 1,898 production lines, the smart-album menu 130, settings 207 and the
+configuration facade 117; no inline tests are added. Dedicated navigation/setup fixtures contain
+324/319 lines. The existing 677-line lifecycle fixture is unchanged. The 114-line definition editor
+is removed, and the gallery facade only loses callback wiring.

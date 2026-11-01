@@ -7,23 +7,14 @@ import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../application/library_classification_configuration.dart";
 import "../../application/library_classification_settings.dart";
-import "../../domain/library_models.dart";
-import "../library_organization_mode.dart";
 import "library_classification_settings_editor.dart";
 
-enum _Action { selectAll, allResults, settings, pause, resume, stop, disable }
+enum _Action { selectAll, settings, pause, resume, stop, disable }
 
 class LibrarySmartAlbumMenu extends ConsumerStatefulWidget {
-  const LibrarySmartAlbumMenu({
-    required this.onSelectAll,
-    required this.onQueryChanged,
-    required this.surface,
-    super.key,
-  });
+  const LibrarySmartAlbumMenu({required this.onSelectAll, super.key});
 
   final VoidCallback onSelectAll;
-  final ValueChanged<LibraryGalleryQuery> onQueryChanged;
-  final LibraryReviewSurface surface;
 
   @override
   ConsumerState<LibrarySmartAlbumMenu> createState() =>
@@ -41,17 +32,6 @@ class _LibrarySmartAlbumMenuState extends ConsumerState<LibrarySmartAlbumMenu> {
       widget.onSelectAll();
       return;
     }
-    if (action == _Action.allResults) {
-      final query = widget.surface.library.query;
-      if (query.collection is LibrarySmartAlbumCollection) {
-        widget.onQueryChanged(
-          query.copyWith(
-            collection: const LibraryGalleryCollection.smartAlbum(),
-          ),
-        );
-      }
-      return;
-    }
     if (action == _Action.settings) {
       await showLibraryClassificationSettings(context);
       return;
@@ -67,8 +47,9 @@ class _LibrarySmartAlbumMenuState extends ConsumerState<LibrarySmartAlbumMenu> {
           _Action.resume => LibraryClassificationControl.resume,
           _Action.stop => LibraryClassificationControl.stop,
           _Action.disable => LibraryClassificationControl.disable,
-          _Action.settings || _Action.selectAll || _Action.allResults =>
-            throw StateError("Settings have no dispatch action"),
+          _Action.settings || _Action.selectAll => throw StateError(
+            "Settings have no dispatch action",
+          ),
         },
       );
       if (!mounted) return;
@@ -81,8 +62,9 @@ class _LibrarySmartAlbumMenuState extends ConsumerState<LibrarySmartAlbumMenu> {
           _Action.resume => "已继续分析",
           _Action.stop => "已停止分析",
           _Action.disable => "已关闭后台分析",
-          _Action.settings || _Action.selectAll || _Action.allResults =>
-            throw StateError("Settings have no dispatch feedback"),
+          _Action.settings || _Action.selectAll => throw StateError(
+            "Settings have no dispatch feedback",
+          ),
         },
       );
     } on Object {
@@ -101,17 +83,12 @@ class _LibrarySmartAlbumMenuState extends ConsumerState<LibrarySmartAlbumMenu> {
 
   @override
   Widget build(BuildContext context) {
-    final collection = widget.surface.library.query.collection;
     final settings = ref
         .watch(libraryClassificationSettingsProvider)
         .asData
         ?.value;
     final actions = <_Action, (String, IconData)>{
       _Action.selectAll: ("全选", Symbols.select_all_rounded),
-      if (collection is LibrarySmartAlbumCollection &&
-          (collection.categoryId != null ||
-              collection.review != LibraryClassificationReviewFilter.all))
-        _Action.allResults: ("全部分类结果", Symbols.photo_library_rounded),
       _Action.settings: ("智能相册设置", Symbols.settings_rounded),
       if (settings?.mode == LibraryClassificationMode.automatic)
         _Action.pause: ("暂停分析", Symbols.pause_rounded),

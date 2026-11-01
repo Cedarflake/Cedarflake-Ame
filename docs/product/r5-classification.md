@@ -49,7 +49,8 @@ category definitions independently of manual-album management.
 Categories are application-managed flat definitions with stable identities, display names, and
 classification descriptions. Ame supplies the starting vocabulary and maintains useful categories
 from recurring library evidence. Enabling smart albums does not require the user to name categories,
-write comparison descriptions or manage model prompts. Manual edits remain optional overrides.
+write comparison descriptions or manage model prompts. The desktop offers no manual definition
+creation, editing, or removal. Previously saved definitions and their protection remain compatible.
 Preserve the text encoder so new descriptions do not require a fixed output-head class. Example
 categories and evaluation labels do not limit the product to a fixed seven- or six-class list; making
 that list manually editable alone does not satisfy category discovery or maintenance.
@@ -57,7 +58,7 @@ Display-only renaming preserves classification compatibility; semantic descripti
 adding/removing definitions create a new classification-rule revision. Retired definitions retain
 legacy decision provenance; automatic maintenance does not remap a saved choice.
 If fresh evidence supports a previously retired automatic category again, restore its existing
-identity and original meaning through current admission. User edits and manual retirement protect
+identity and original meaning through current admission. Legacy user edits and manual retirement protect
 that definition from automatic restoration; historical origin metadata alone is insufficient.
 
 Each classified group has at most one effective primary category. Define purpose-aware boundary
@@ -112,9 +113,10 @@ separation; raw scores are not probabilities. Remaining uncertainty keeps its be
 in the category view without requesting a user decision. Confidence and ambiguity remain analysis
 evidence for evaluation, rather than a manual-review queue.
 
-The all-results view includes groups without usable category evidence, including failed analysis
-and unresolved legacy conflicts. Failed analysis retains its reason and explicit retry behavior.
-These items remain reachable without assigning an invented category.
+The ordinary Library includes groups without usable category evidence, including failed analysis
+and unresolved legacy conflicts. Failed analysis retains its reason and explicit retry behavior in
+the image preview. These items remain reachable without a separate all-results entry or an invented
+category.
 
 ## Group authority and content lifecycle
 

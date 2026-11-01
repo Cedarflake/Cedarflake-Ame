@@ -44,6 +44,10 @@ mode. Display-only edits preserve the run, feature compatibility and dispatch cu
 creating the replacement rolls back the definition edit as well. Replaying a settings operation
 returns the current snapshot without undoing a later pause, stop or configuration change.
 
+The desktop enables the retained scheme or application-owned initial definitions; it has no manual
+definition editor or save-only action. The transactional definition rules remain the boundary for
+managed maintenance and legacy compatibility, including preserved manual protection.
+
 Activation also captures the catalog's source-generation high-water mark. Committed sources at or
 below that mark enter the backlog lane; later new or changed generations enter the new-content lane.
 The mark survives pause and restart and resets when a new run starts. Existing schema-66 queues

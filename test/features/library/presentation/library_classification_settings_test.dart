@@ -13,36 +13,61 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   testWidgets(
-    "editing descriptions retains category identity and does not enable analysis",
+    "configured setup enables retained categories without taxonomy editing",
     (tester) async {
       final fixture = _Fixture();
       addTearDown(fixture.dispose);
       await fixture.open(tester);
-      await tester.tap(find.text("插画"));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const Key("classification-category-name")),
-        "绘画",
-      );
-      await tester.enterText(
-        find.byKey(const Key("classification-category-descriptions")),
-        "an illustration\na drawing",
-      );
-      await tester.tap(find.widgetWithText(FilledButton, "保存").last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, "保存"));
+      expect(find.byType(TextField), findsNothing);
+      for (final label in ["新建分类", "编辑分类", "移除分类", "保存", "下载并启用"]) {
+        expect(find.text(label), findsNothing);
+      }
+      expect(fixture.backend.saved, isEmpty);
+      await tester.tap(find.widgetWithText(FilledButton, "启用"));
       await tester.pumpAndSettle();
       final saved = fixture.backend.saved.single;
-      expect(saved.$1, LibraryClassificationConfigurationAction.save);
+      expect(saved.$1, LibraryClassificationConfigurationAction.enable);
       expect(saved.$2.single.id, "drawing");
-      expect(saved.$2.single.label, "绘画");
-      expect(saved.$2.single.descriptions, ["an illustration", "a drawing"]);
-      expect(find.text("智能相册设置已保存"), findsOneWidget);
+      expect(saved.$2.single.label, "插画");
+      expect(saved.$2.single.descriptions, ["an illustration"]);
+      expect(find.text("已启用智能相册"), findsOneWidget);
       expect(tester.takeException(), isNull);
       await fixture.close(tester);
     },
     timeout: const Timeout(Duration(seconds: 30)),
   );
+
+  for (final mode in LibraryClassificationMode.values) {
+    testWidgets(
+      "${mode.name} settings close without editing categories or mode",
+      (tester) async {
+        final fixture = _Fixture();
+        addTearDown(fixture.dispose);
+        fixture.backend.mode = mode;
+        await fixture.open(tester);
+        expect(find.byType(TextField), findsNothing);
+        for (final label in ["新建分类", "编辑分类", "移除分类", "保存"]) {
+          expect(find.text(label), findsNothing);
+        }
+        expect(
+          find.text("启用"),
+          mode == LibraryClassificationMode.disabled ||
+                  mode == LibraryClassificationMode.stopped
+              ? findsOneWidget
+              : findsNothing,
+        );
+        await tester.tap(find.text("关闭"));
+        await tester.pumpAndSettle();
+        expect(fixture.backend.saved, isEmpty);
+        expect(fixture.backend.mode, mode);
+        expect(
+          find.byKey(const Key("classification-settings-editor")),
+          findsNothing,
+        );
+        await fixture.close(tester);
+      },
+    );
+  }
 
   testWidgets(
     "first use downloads without directory or category authoring and leaves browsing available",
@@ -108,21 +133,23 @@ void main() {
   });
 
   testWidgets(
-    "failed configuration keeps edits and reuses its operation on retry",
+    "failed enablement preserves settings and reuses its operation on retry",
     (tester) async {
       final fixture = _Fixture();
       addTearDown(fixture.dispose);
       fixture.backend.fail = true;
       await fixture.open(tester);
-      await tester.tap(find.widgetWithText(FilledButton, "保存"));
+      await tester.tap(find.widgetWithText(FilledButton, "启用"));
       await tester.pumpAndSettle();
       expect(
         find.byKey(const Key("classification-settings-editor")),
         findsOneWidget,
       );
       final operation = fixture.backend.operationIds.single;
+      expect(find.text("未能启用智能相册，请重新加载设置后重试。"), findsOneWidget);
+      expect(fixture.backend.saved, isEmpty);
       fixture.backend.fail = false;
-      await tester.tap(find.widgetWithText(FilledButton, "保存"));
+      await tester.tap(find.widgetWithText(FilledButton, "启用"));
       await tester.pumpAndSettle();
       expect(fixture.backend.operationIds, [operation, operation]);
       expect(fixture.backend.saved, hasLength(1));
@@ -212,6 +239,7 @@ class _Inactive implements LibraryClassification {
 class _Configuration implements LibraryClassificationConfigurationService {
   bool configured = true;
   bool fail = false;
+  LibraryClassificationMode mode = LibraryClassificationMode.disabled;
   final saved =
       <
         (
@@ -226,7 +254,7 @@ class _Configuration implements LibraryClassificationConfigurationService {
       LibraryClassificationSettings(
         revision: BigInt.one,
         dispatchRevision: BigInt.one,
-        mode: LibraryClassificationMode.disabled,
+        mode: mode,
         categories: configured ? await initialCategories() : [],
         runId: null,
         installationSelected: configured,
