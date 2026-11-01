@@ -2,7 +2,6 @@ pub mod catalog;
 pub mod classification;
 pub mod classification_installation;
 pub mod classification_maintenance;
-pub mod classification_progress;
 pub mod classification_retry;
 pub mod classification_review;
 pub mod classification_settings;

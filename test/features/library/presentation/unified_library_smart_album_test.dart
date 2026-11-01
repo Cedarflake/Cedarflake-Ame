@@ -103,20 +103,22 @@ void main() {
       expect(find.text("智能相册设置"), findsOneWidget);
       expect(find.text("全选"), findsOneWidget);
       expect(find.text("整理模式"), findsNothing);
+      expect(find.text("继续确认分类"), findsNothing);
+      expect(find.text("重试读取确认位置"), findsNothing);
       await tester.tapAt(Offset.zero);
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key("library-filter-menu")));
       await tester.pumpAndSettle();
       expect(find.text("合并重复图片"), findsNothing);
-      await tester.tap(find.text("待确认"));
+      expect(find.text("待确认"), findsNothing);
+      expect(find.text("已确认"), findsNothing);
+      expect(find.text("筛选条件…"), findsOneWidget);
+      await tester.tapAt(Offset.zero);
       await tester.pumpAndSettle();
       expect(
         catalog.loadQueries.last.collection,
-        const LibraryGalleryCollection.smartAlbum(
-          categoryId: "drawing",
-          review: LibraryClassificationReviewFilter.pending,
-        ),
+        const LibraryGalleryCollection.smartAlbum(categoryId: "drawing"),
       );
 
       final delayed = Completer<LibraryClassificationSettings?>();

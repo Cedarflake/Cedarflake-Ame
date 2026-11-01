@@ -150,4 +150,3 @@ pub(crate) fn media_metadata_is_invalidated(location: &crate::domain::AssetLocat
     location.metadata_engine_id == INVALIDATED_MEDIA_METADATA_ENGINE_ID
         && location.metadata_engine_version == INVALIDATED_MEDIA_METADATA_ENGINE_VERSION
 }
-pub(crate) mod classification_progress;

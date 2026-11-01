@@ -20,7 +20,6 @@ class LibraryGalleryHeader extends StatelessWidget {
     this.selectionToolbar,
     this.reviewToolbar,
     this.reviewCounts,
-    this.classificationCounts,
     this.isReviewing = false,
     this.onToggleReview,
     required this.totalItems,
@@ -48,7 +47,6 @@ class LibraryGalleryHeader extends StatelessWidget {
   final Widget? selectionToolbar;
   final Widget? reviewToolbar;
   final LibraryOrganizationCounts? reviewCounts;
-  final LibraryClassificationCounts? classificationCounts;
   final bool isReviewing;
   final VoidCallback? onToggleReview;
   final int totalItems;
@@ -79,9 +77,6 @@ class LibraryGalleryHeader extends StatelessWidget {
           "${counts.total} 张图片 · 已整理 ${counts.organized} · 待整理 ${counts.pending} · 已忽略 ${counts.ignored}";
     } else if (isSelecting) {
       subtitle = galleryTitle;
-    }
-    if (classificationCounts case final counts? when !isSelecting) {
-      subtitle = "智能相册 · $totalItems 张图片 · 待确认 ${counts.pending}";
     }
     return SizedBox(
       key: const Key("library-gallery-header"),

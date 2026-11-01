@@ -1,5 +1,9 @@
 # R5 smart-album query evidence
 
+Manual confirmation/correction, review filters, deferral, continuation, and classification undo were
+withdrawn on 2026-11-01. Earlier checks below retain their historical scope; current behavior follows
+[the revised R5 requirements](../product/r5-classification.md). Legacy records and archives remain compatible.
+
 The [roadmap](../roadmap.md#r5-implementation-sequence) owns delivery status and order.
 [ADR 0035](../architecture/0035-classification-decision-authority.md#gallery-projection) owns the
 effective-category and query contract. This record covers the R5-05 query integration; the sidebar

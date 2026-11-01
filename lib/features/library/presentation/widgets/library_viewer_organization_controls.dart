@@ -35,8 +35,7 @@ class LibraryViewerOrganizationControls extends ConsumerWidget {
           LibraryAlbumViewerAction(target: target)
         else if (entry != null && entry.target == target)
           LibraryReviewActions(mode: mode, entry: entry),
-        if (!mode.isActive)
-          LibraryViewerClassification(target: target, query: query),
+        if (!mode.isActive) LibraryViewerClassification(target: target),
       ],
     );
   }

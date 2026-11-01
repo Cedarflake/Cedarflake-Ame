@@ -64,31 +64,25 @@ Scope:
 R4 does not yet invent model predictions. It establishes the durable authority and review mechanics
 that prevent later automation from being mistaken for human confirmation.
 
-## R5 - Metadata, primary classification, and human review
+## R5 - Metadata and smart albums
 
-User outcome:
-
-Ame extracts useful metadata, publishes usable initial-screening suggestions into `智能相册`, and
-reduces optional checking and correction work through whole-group actions. Categories are configurable
-flat definitions, with purpose-aware matching and bounded automatic re-screening before human review.
-[R5 requirements](r5-classification.md) own the full
-taxonomy, model admission, review, recovery, resource, and acceptance boundaries; the
-[execution plan](../plans/r5-classification.md) follows the roadmap's implementation sequence.
+Ame extracts useful metadata and publishes usable initial-screening suggestions into `智能相册`.
+Application-managed flat categories use purpose-aware matching and bounded automatic re-screening.
+[R5 requirements](r5-classification.md) own taxonomy, model admission, recovery, resource, and
+acceptance boundaries; the [execution plan](../plans/r5-classification.md) follows the roadmap order.
 
 Scope:
 
-- metadata extraction and FTS5/structured search through bounded, source-preserving adapters;
-- admitted local models, calibrated confidence, immutable analysis evidence, and bounded execution
-  on the two-core/8-GiB baseline;
-- separate predictions, human category decisions, effective categories, and classification review;
+- bounded metadata extraction and FTS5/structured search that preserve sources;
+- admitted local models, calibrated confidence, immutable evidence, and bounded two-core/8-GiB execution;
 - derived smart albums under Albums, sharing the gallery/viewer and independent of manual membership;
-- whole-group confirmation/correction, sampling, deferred review, undo, and durable continuation;
-- incremental compatible analysis reuse, group reconciliation, and versioned decision recovery.
+- incremental compatible analysis reuse, automatic group reconciliation, and failed-image retry;
+- retained legacy category decisions and versioned archive compatibility.
 
-`待确认` is a review filter, not a primary category. Confirmation does not complete R4 organization;
-manual-album assignment remains the operation that does. R5 has its own classification session and
-bookmark while reusing R4's guarded commands and continuation principles. Acceptance measures
-category/band quality, remaining human work, review throughput, recovery, and source preservation.
+Manual classification confirmation/correction, deferral, review filters, classification undo and
+continuation are removed. Classification has no effect on R4 organization progress; assigning a
+manual album still completes organization. Acceptance measures category/band quality, useful coverage,
+automatic refinement, resource use, recovery, and source preservation without manual correction trials.
 
 ## R6 - Perceptual similarity review
 
@@ -221,7 +215,7 @@ version, which is managed by the release process:
 | --- | --- | --- |
 | Trustworthy foundation | R2b and R2c | Stable large-library canvas with continuously trustworthy source state |
 | Exact and virtual organization | R3 and R4 | Exact repetition is folded, physical locations are inspectable, and durable virtual organization can begin |
-| Machine-assisted review | R5 | Classification reduces manual work while corrections and review progress remain durable |
+| Smart albums | R5 | Automatic initial screening supplies useful category views while preserving legacy records and R4 decisions |
 | Similarity understanding | R6 | Near-duplicate candidates can be compared and reviewed without automatic deletion |
 | Advanced discovery | R7 | Structured and semantic search help rediscover understood content |
 | Safe physical proposal | R8 | A complete non-executable organization plan can be inspected and resolved |

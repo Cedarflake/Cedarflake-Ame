@@ -10,7 +10,6 @@ import 'api/catalog.dart';
 import 'api/classification.dart';
 import 'api/classification_installation.dart';
 import 'api/classification_maintenance.dart';
-import 'api/classification_progress.dart';
 import 'api/classification_retry.dart';
 import 'api/classification_review.dart';
 import 'api/classification_settings.dart';
@@ -33,7 +32,6 @@ import 'dart:convert';
 import 'domain.dart';
 import 'domain/classification/installation.dart';
 import 'domain/classification/work.dart';
-import 'domain/classification_catalog.dart';
 import 'domain/classification_configuration.dart';
 import 'domain/classification_review.dart';
 import 'domain/classification_selection.dart';
@@ -68,10 +66,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   });
 
   CrossPlatformFinalizerArg
-  get rust_arc_decrement_strong_count_ClassificationSelectionDraftPtr => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft;
-
-  CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_DesktopClassificationSessionPtr => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession;
 
@@ -101,12 +95,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw);
-
-  @protected
-  ClassificationSelectionDraft
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-    dynamic raw,
-  );
 
   @protected
   DesktopClassificationSession
@@ -151,12 +139,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ClassificationSelectionDraft
-  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-    dynamic raw,
-  );
-
-  @protected
   DesktopClassificationSession
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     dynamic raw,
@@ -195,12 +177,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ViewerSourceReadLease
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
-    dynamic raw,
-  );
-
-  @protected
-  ClassificationSelectionDraft
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
     dynamic raw,
   );
 
@@ -307,15 +283,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ClassificationCounts dco_decode_box_autoadd_classification_counts(
     dynamic raw,
   );
-
-  @protected
-  ClassificationItemState dco_decode_box_autoadd_classification_item_state(
-    dynamic raw,
-  );
-
-  @protected
-  ClassificationReviewPosition
-  dco_decode_box_autoadd_classification_review_position(dynamic raw);
 
   @protected
   ClassificationReviewReason
@@ -526,15 +493,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_classification_configuration_action(dynamic raw);
 
   @protected
-  ClassificationContinuation dco_decode_classification_continuation(
-    dynamic raw,
-  );
-
-  @protected
-  ClassificationContinuationStatus
-  dco_decode_classification_continuation_status(dynamic raw);
-
-  @protected
   ClassificationControlAction dco_decode_classification_control_action(
     dynamic raw,
   );
@@ -554,11 +512,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ClassificationItemState dco_decode_classification_item_state(dynamic raw);
 
   @protected
-  ClassificationProgressReceipt dco_decode_classification_progress_receipt(
-    dynamic raw,
-  );
-
-  @protected
   ClassificationRetryOutcome dco_decode_classification_retry_outcome(
     dynamic raw,
   );
@@ -569,37 +522,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ClassificationReviewPosition dco_decode_classification_review_position(
-    dynamic raw,
-  );
-
-  @protected
   ClassificationReviewReason dco_decode_classification_review_reason(
     dynamic raw,
   );
 
   @protected
-  ClassificationSelectionPhase dco_decode_classification_selection_phase(
-    dynamic raw,
-  );
-
-  @protected
-  ClassificationSelectionProgress dco_decode_classification_selection_progress(
-    dynamic raw,
-  );
-
-  @protected
-  ClassificationSelectionSummary dco_decode_classification_selection_summary(
-    dynamic raw,
-  );
-
-  @protected
   ClassificationSettings dco_decode_classification_settings(dynamic raw);
-
-  @protected
-  ClassificationWriteReceipt dco_decode_classification_write_receipt(
-    dynamic raw,
-  );
 
   @protected
   ConsolidatedLibraryRoot dco_decode_consolidated_library_root(dynamic raw);
@@ -953,11 +881,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ClassificationItemState? dco_decode_opt_box_autoadd_classification_item_state(
-    dynamic raw,
-  );
-
-  @protected
   ClassificationReviewReason?
   dco_decode_opt_box_autoadd_classification_review_reason(dynamic raw);
 
@@ -1274,12 +1197,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
-  ClassificationSelectionDraft
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   DesktopClassificationSession
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     SseDeserializer deserializer,
@@ -1322,12 +1239,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ClassificationSelectionDraft
-  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   DesktopClassificationSession
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     SseDeserializer deserializer,
@@ -1366,12 +1277,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ViewerSourceReadLease
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ClassificationSelectionDraft
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
     SseDeserializer deserializer,
   );
 
@@ -1494,17 +1399,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ClassificationCounts sse_decode_box_autoadd_classification_counts(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ClassificationItemState sse_decode_box_autoadd_classification_item_state(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ClassificationReviewPosition
-  sse_decode_box_autoadd_classification_review_position(
     SseDeserializer deserializer,
   );
 
@@ -1783,15 +1677,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   sse_decode_classification_configuration_action(SseDeserializer deserializer);
 
   @protected
-  ClassificationContinuation sse_decode_classification_continuation(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ClassificationContinuationStatus
-  sse_decode_classification_continuation_status(SseDeserializer deserializer);
-
-  @protected
   ClassificationControlAction sse_decode_classification_control_action(
     SseDeserializer deserializer,
   );
@@ -1817,11 +1702,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ClassificationProgressReceipt sse_decode_classification_progress_receipt(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   ClassificationRetryOutcome sse_decode_classification_retry_outcome(
     SseDeserializer deserializer,
   );
@@ -1832,37 +1712,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ClassificationReviewPosition sse_decode_classification_review_position(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   ClassificationReviewReason sse_decode_classification_review_reason(
     SseDeserializer deserializer,
   );
 
   @protected
-  ClassificationSelectionPhase sse_decode_classification_selection_phase(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ClassificationSelectionProgress sse_decode_classification_selection_progress(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ClassificationSelectionSummary sse_decode_classification_selection_summary(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   ClassificationSettings sse_decode_classification_settings(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  ClassificationWriteReceipt sse_decode_classification_write_receipt(
     SseDeserializer deserializer,
   );
 
@@ -2300,11 +2155,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ClassificationItemState? sse_decode_opt_box_autoadd_classification_item_state(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   ClassificationReviewReason?
   sse_decode_opt_box_autoadd_classification_review_reason(
     SseDeserializer deserializer,
@@ -2703,13 +2553,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-    ClassificationSelectionDraft self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     DesktopClassificationSession self,
     SseSerializer serializer,
@@ -2759,13 +2602,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
-  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-    ClassificationSelectionDraft self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     DesktopClassificationSession self,
     SseSerializer serializer,
@@ -2810,13 +2646,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     ViewerSourceReadLease self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-    ClassificationSelectionDraft self,
     SseSerializer serializer,
   );
 
@@ -2958,18 +2787,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_classification_counts(
     ClassificationCounts self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_box_autoadd_classification_item_state(
-    ClassificationItemState self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_box_autoadd_classification_review_position(
-    ClassificationReviewPosition self,
     SseSerializer serializer,
   );
 
@@ -3298,18 +3115,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_classification_continuation(
-    ClassificationContinuation self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_classification_continuation_status(
-    ClassificationContinuationStatus self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_classification_control_action(
     ClassificationControlAction self,
     SseSerializer serializer,
@@ -3340,12 +3145,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_classification_progress_receipt(
-    ClassificationProgressReceipt self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_classification_retry_outcome(
     ClassificationRetryOutcome self,
     SseSerializer serializer,
@@ -3358,44 +3157,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_classification_review_position(
-    ClassificationReviewPosition self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_classification_review_reason(
     ClassificationReviewReason self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_classification_selection_phase(
-    ClassificationSelectionPhase self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_classification_selection_progress(
-    ClassificationSelectionProgress self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_classification_selection_summary(
-    ClassificationSelectionSummary self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_classification_settings(
     ClassificationSettings self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_classification_write_receipt(
-    ClassificationWriteReceipt self,
     SseSerializer serializer,
   );
 
@@ -3936,12 +3705,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_opt_box_autoadd_classification_item_state(
-    ClassificationItemState? self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_opt_box_autoadd_classification_review_reason(
     ClassificationReviewReason? self,
     SseSerializer serializer,
@@ -4419,22 +4182,6 @@ class RustLibWire implements BaseWire {
   RustLibWire.fromExternalLibrary(ExternalLibrary lib);
 
   void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-        ptr,
-      );
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-    int ptr,
-  ) => wasmModule
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-        ptr,
-      );
-
-  void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     int ptr,
   ) => wasmModule
@@ -4553,16 +4300,6 @@ external RustLibWasmModule get wasmModule;
 @JS()
 @anonymous
 extension type RustLibWasmModule._(JSObject _) implements JSObject {
-  external void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-    int ptr,
-  );
-
-  external void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-    int ptr,
-  );
-
   external void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     int ptr,

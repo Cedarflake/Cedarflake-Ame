@@ -4,7 +4,6 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../domain/library_classification_review.dart";
 import "../domain/library_models.dart";
 import "../domain/library_organization.dart";
-import "library_classification_actions.dart";
 import "library_classification_review.dart";
 import "library_controller.dart";
 
@@ -30,9 +29,6 @@ final libraryClassificationAnnotationsProvider =
           window.query.collection is! LibrarySmartAlbumCollection) {
         return const {};
       }
-      ref.watch(
-        libraryClassificationActionsProvider.select((state) => state.sequence),
-      );
       final service = ref.watch(libraryClassificationReviewServiceProvider);
       var retired = false;
       ref.onDispose(() => retired = true);

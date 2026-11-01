@@ -23,12 +23,8 @@ class LibraryGalleryFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (query.collection case final LibrarySmartAlbumCollection collection) {
-      return LibrarySmartAlbumFilter(
-        query: query,
-        collection: collection,
-        onChanged: onChanged,
-      );
+    if (query.collection is LibrarySmartAlbumCollection) {
+      return LibrarySmartAlbumFilter(query: query, onChanged: onChanged);
     }
     return AmePopupMenuButton<_FilterChoice>(
       labels: const [

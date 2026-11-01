@@ -22,7 +22,7 @@ void main() {
             libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
             libraryClassificationAnnotationsProvider.overrideWith(
               (ref) async => {
-                "one": LibraryClassificationReviewReason.conflict,
+                "one": LibraryClassificationReviewReason.analysisFailed,
               },
             ),
             libraryConflictAnnotationsProvider.overrideWith(
@@ -68,7 +68,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.pump(const Duration(seconds: 1));
       expect(
-        find.text(LibraryClassificationReviewReason.conflict.description),
+        find.text(LibraryClassificationReviewReason.analysisFailed.description),
         findsOneWidget,
       );
       await tester.tap(classification);
@@ -85,18 +85,22 @@ void main() {
           overrides: [
             libraryClassificationAnnotationsProvider.overrideWith(
               (ref) async => {
-                "routine": LibraryClassificationReviewReason.sampling,
+                for (final reason in LibraryClassificationReviewReason.values)
+                  reason.name: reason,
                 "failed": LibraryClassificationReviewReason.analysisFailed,
               },
             ),
           ],
-          child: const MaterialApp(
+          child: MaterialApp(
             home: Scaffold(
               body: Column(
                 children: [
-                  LibraryClassificationLabel(locationId: "routine"),
-                  LibraryClassificationLabel(locationId: "missing"),
-                  LibraryClassificationLabel(locationId: "failed"),
+                  for (final reason in LibraryClassificationReviewReason.values)
+                    if (reason !=
+                        LibraryClassificationReviewReason.analysisFailed)
+                      LibraryClassificationLabel(locationId: reason.name),
+                  const LibraryClassificationLabel(locationId: "missing"),
+                  const LibraryClassificationLabel(locationId: "failed"),
                 ],
               ),
             ),

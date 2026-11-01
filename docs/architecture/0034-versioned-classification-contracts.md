@@ -11,7 +11,7 @@ when a label changes wastes image reads and can erase intent. Reusing them after
 can silently mix incompatible results. The retained runtime probe also found that INT8 text batching
 changes some predictions even with identical tokens.
 
-The [product contract](../product/r5-classification.md) owns whole-group authority, optional review,
+The [product contract](../product/r5-classification.md) owns whole-group authority, automatic results,
 manual-album separation and source safety. This decision owns category and feature compatibility;
 it does not grant model downloads, source reads, publication or human-decision authority.
 
@@ -29,10 +29,11 @@ count. Exact duplicate descriptions within a category and duplicate category IDs
 Shared descriptions across different categories are allowed and can produce an ambiguous tie.
 
 Definitions can be added or retired by explicit user commands or admitted managed-maintenance plans.
-Retirement removes a definition from future
-matching; persistence retains its identity and description history for saved human choices. Remapping
-a retired human choice is a separate explicit command, never a side effect of refreshing the active
-taxonomy. An empty active scheme has no classifier and produces no invented `其他` result.
+Retirement removes a definition from future matching; persistence retains its identity and description
+history for saved human choices. Refreshing the active taxonomy never remaps a retired human choice.
+The current desktop has no manual category-decision commands, under the
+[scope amendment](0035-classification-decision-authority.md#desktop-scope-amendment--2026-11-01).
+An empty active scheme has no classifier and produces no invented `其他` result.
 
 The application owns the starting vocabulary and category maintenance; manual definition editing is
 an optional override, not setup required from the user. Automatic discovery and maintenance are
@@ -44,8 +45,8 @@ the admitted screening encoder.
 
 Do not generate categories from isolated low scores. A useful addition or split needs a repeatable,
 meaningful distinction in the collection; small occupancy alone neither deletes a category nor
-establishes an error. Maintenance must retain stable identities and saved human intent. Repeated
-corrections can supply local examples for evaluation without silently training a model or researching
+establishes an error. Maintenance must retain stable identities and saved human intent. Labeled
+examples can supply evaluation evidence without silently training a model or researching
 new cultural context. A larger fixed candidate list or user-authored definitions cannot substitute
 for the missing discovery/maintenance owner.
 
@@ -615,6 +616,10 @@ marks a result human-confirmed. Optional review, bounded re-screening and calibr
 application policies that consume this evidence, separately versioned with their calibration data.
 
 ### Bounded screening policy
+
+The stored recommendation/review-band names below remain compatible analysis evidence. Following
+withdrawal of manual classification review on 2026-11-01, they support quality evaluation and bounded
+automatic refinement only; they create no review queue, confirmation action, or manual-time gate.
 
 `ScreeningClassifier` owns first-pass matching and at most one refinement of the same cached image
 feature. A refinement uses the same model and active category IDs, with a different description-rule

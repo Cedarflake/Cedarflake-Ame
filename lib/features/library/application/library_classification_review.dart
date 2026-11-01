@@ -2,11 +2,10 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../adapters/rust_library_classification_review.dart";
 import "../domain/library_classification_review.dart";
-import "../domain/library_classification_progress.dart";
 import "../domain/library_organization.dart";
+import "library_controller.dart";
 
 abstract interface class LibraryClassificationReviewService {
-  Future<LibraryClassificationDraft> open(LibraryClassificationScope scope);
   Future<List<LibraryClassificationItem>> loadItems(
     List<LibraryOrganizationTarget> targets,
   );
@@ -14,29 +13,24 @@ abstract interface class LibraryClassificationReviewService {
     BigInt revision,
     List<LibraryOrganizationTarget> targets,
   );
-  Future<LibraryClassificationReceipt> undo(
-    String operationId,
-    String originalOperationId,
-  );
-}
-
-abstract interface class LibraryClassificationDraft {
-  Future<void> appendTargets(List<LibraryOrganizationTarget> targets);
-  Future<void> append(List<String> ids);
-  Future<LibraryClassificationSummary> prepare();
-  Future<LibraryClassificationReceipt> apply(
-    String operationId,
-    LibraryClassificationCommand command,
-  );
-  Future<LibraryClassificationProgressReceipt> applyReview(
-    String operationId,
-    LibraryClassificationPosition position,
-    LibraryClassificationCommand command,
-  );
-  Future<void> close();
 }
 
 final libraryClassificationReviewServiceProvider =
     Provider<LibraryClassificationReviewService>(
       (ref) => const RustLibraryClassificationReview(),
     );
+
+final libraryClassificationItemProvider = FutureProvider.autoDispose
+    .family<LibraryClassificationItem?, LibraryOrganizationTarget>((
+      ref,
+      target,
+    ) async {
+      final revision = ref.watch(
+        libraryControllerProvider.select((state) => state.catalogRevision),
+      );
+      if (revision == null) return null;
+      final items = await ref
+          .watch(libraryClassificationReviewServiceProvider)
+          .loadItems([target]);
+      return items.firstOrNull;
+    });

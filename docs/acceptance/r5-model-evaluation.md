@@ -85,7 +85,7 @@ original quality figures.
 ## Evidence needed during implementation
 
 Retain this comparison rather than rerunning all models. Establish the purpose-aware configurable
-rubric, independent content-group holdout/calibration, useful first-pass error rates, optional checks
-and corrections per thousand groups, and actual human time saved. Validate one bounded feature-reusing
+rubric, independent content-group holdout/calibration, and useful first-pass error rates and coverage.
+Manual classification and correction-time trials were withdrawn on 2026-11-01. Validate one bounded feature-reusing
 re-screen against the same rubric. Product admission also needs worker isolation/recovery, exact
 artifact verification, two-core/8-GiB resource bounds, and foreground interference measurements.

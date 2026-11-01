@@ -6,8 +6,7 @@ import "package:cedarflake_ame/features/library/application/library_classificati
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_operation_notice.dart";
 import "package:cedarflake_ame/features/library/domain/library_classification_review.dart";
-import "package:cedarflake_ame/features/library/domain/library_models.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_classification_controls.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_classification.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_organization_feedback.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -45,16 +44,8 @@ void main() {
               children: [
                 Align(
                   alignment: Alignment.topRight,
-                  child: LibraryClassificationControls(
-                    enabled: true,
-                    viewer: true,
-                    scope: LibraryClassificationScope(
-                      query: const LibraryGalleryQuery(),
-                      catalogRevision: BigInt.one,
-                      allMatching: false,
-                      assetIds: const [],
-                      targets: [organizationTarget("one")],
-                    ),
+                  child: LibraryViewerClassification(
+                    target: organizationTarget("one"),
                   ),
                 ),
                 Consumer(
@@ -74,27 +65,21 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key("library-change-classification")));
-    await tester.pumpAndSettle();
     return container;
   }
 
   ClassificationReviewFixture failed() =>
       ClassificationReviewFixture()
-        ..summary = const LibraryClassificationSummary(
-          groups: 1,
-          confirmable: 0,
-          confirmed: 0,
-          singleItem: LibraryClassificationItem(
+        ..items = const [
+          LibraryClassificationItem(
             assetId: "asset-one",
             review: LibraryClassificationReview.unclassified,
-            canConfirm: false,
             reviewReason: LibraryClassificationReviewReason.analysisFailed,
           ),
-        );
+        ];
 
   testWidgets(
-    "failed viewer image retries through its category menu and shared top notice",
+    "failed viewer image retries directly and uses the shared top notice",
     (tester) async {
       final retry = ClassificationRetryFixture();
       final review = failed();
@@ -104,12 +89,12 @@ void main() {
         review,
         LibraryClassificationMode.automatic,
       );
-      expect(find.text("重新分析"), findsOneWidget);
-      await tester.tap(find.text("重新分析"));
+      expect(find.byTooltip("重新分析"), findsOneWidget);
+      await tester.tap(find.byTooltip("重新分析"));
       await tester.pumpAndSettle();
       expect(retry.targets, [organizationTarget("one")]);
       expect(retry.revisions, [BigInt.from(7)]);
-      expect(review.drafts.expand((draft) => draft.commands), isEmpty);
+      expect(review.reads.first, [organizationTarget("one")]);
       expect(find.text("已安排重新分析"), findsOneWidget);
       expect(
         container.read(libraryClassificationRetryActionsProvider).busy,
@@ -125,7 +110,34 @@ void main() {
   ]) {
     testWidgets("${mode.name} analysis offers no image retry", (tester) async {
       await mount(tester, ClassificationRetryFixture(), failed(), mode);
-      expect(find.text("重新分析"), findsNothing);
+      expect(find.byTooltip("重新分析"), findsNothing);
+    });
+  }
+
+  for (final status in LibraryClassificationReview.values) {
+    testWidgets("${status.name} has no manual classification controls", (
+      tester,
+    ) async {
+      final service = ClassificationReviewFixture()
+        ..items = [
+          LibraryClassificationItem(
+            assetId: "asset-one",
+            categoryId: "drawing",
+            review: status,
+          ),
+        ];
+      await mount(
+        tester,
+        ClassificationRetryFixture(),
+        service,
+        LibraryClassificationMode.automatic,
+      );
+      expect(find.text("插画"), findsOneWidget);
+      expect(find.byType(PopupMenuButton<String>), findsNothing);
+      expect(find.byTooltip("重新分析"), findsNothing);
+      for (final label in ["确认分类", "更改分类", "稍后确认", "待确认", "已确认"]) {
+        expect(find.text(label), findsNothing);
+      }
     });
   }
 
@@ -138,6 +150,6 @@ void main() {
       ClassificationReviewFixture(),
       LibraryClassificationMode.automatic,
     );
-    expect(find.text("重新分析"), findsNothing);
+    expect(find.byTooltip("重新分析"), findsNothing);
   });
 }

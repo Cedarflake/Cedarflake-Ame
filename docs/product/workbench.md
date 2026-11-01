@@ -12,7 +12,7 @@ owned by the accepted [ADRs](../architecture/README.md), and engineering rules b
 Cedarflake Ame is an independently implemented, local-first Windows organizing workbench for more
 than 70,000 personal images. It is not another general-purpose photo album. Its central workflow is
 to establish a trustworthy catalog, collapse exact repetition, let machines process the bulk of
-image understanding, preserve human corrections and review progress, build virtual organization,
+image understanding, preserve organization decisions and progress, build virtual organization,
 and only then propose changes to real files.
 
 The unified gallery remains the primary working canvas, not the product endpoint. Source, time,
@@ -38,7 +38,7 @@ Product success is measured by reduced human work and trustworthy decisions, not
 file count or gallery feature breadth. Each applicable stage records:
 
 - exact duplicate groups and physical locations understood without source mutation;
-- model coverage split by confidence and the number of items still requiring human review;
+- model coverage, observed errors by confidence band, and automatic refinement outcomes;
 - review throughput, resumable progress, undo behavior, and durable user decisions;
 - virtual organization coverage and unresolved organization conflicts;
 - the proportion of a proposed physical plan that is ready, blocked, unchanged, or requires an
@@ -68,18 +68,17 @@ file count or gallery feature breadth. Each applicable stage records:
 - Exact duplicate display is distinct from perceptual and semantic similarity.
 - Per-content exact verification precedes model execution; classification consumes completed items
   while the rest of deduplication continues and shares work across confirmed identical copies.
-- Configurable flat classification follows durable human-decision and review-session foundations.
-  Initial screening provides usable suggestions with bounded automatic re-screening and optional
-  checking. Calibrate against target-library errors and total human work saved, including corrections.
-- Classification result groups appear under `智能相册` as derived effective-category projections.
-  Users confirm or correct a complete group's category through durable intent; this recomputes the
-  result without editing manual-album membership. [R5 requirements](r5-classification.md) own taxonomy,
-  review, source lifecycle, and recovery. Smart albums have no user-managed membership list.
-- A usable screening prediction may be displayed by default or selected for optional checking, but
-  it is not recorded as a user-confirmed decision. Model evidence, user intent, the effective category, and
-  review status remain distinct.
-- `待确认` is a classification review filter, not a category or R4 organization state. Confirmation
-  and correction do not mark organization complete; manual-album assignment retains that effect.
+- Application-managed flat classification provides usable suggestions with bounded automatic
+  re-screening. Calibrate against target-library errors, useful coverage, and resource cost.
+- Classification groups appear under `智能相册` as derived effective-category projections.
+  [R5 requirements](r5-classification.md) own taxonomy, automatic analysis, source lifecycle, and
+  recovery. Smart albums have no user-managed membership or manual confirmation/correction workflow.
+- Model evidence remains distinct from existing saved user intent. Legacy category decisions,
+  conflict provenance, review bookmarks, and archives remain compatible without new desktop commands
+  to extend or resume the withdrawn classification-review workflow.
+- Classification results and retries do not mark organization complete; manual-album assignment
+  retains that effect. No pending/confirmed classification filter or count appears in the desktop.
+
 - Review is a resumable productivity workflow with a stable query, cursor, progress, keyboard
   actions, undo, and cross-restart continuation. It is not a temporary selection mode or a generic
   background task entry.
@@ -114,15 +113,15 @@ must preserve their authority boundaries:
   model run.
 - `EffectiveCategory`: the current category projection resolved from compatible model evidence and
   any applicable user override.
-- `ReviewStatus`: whether a result is unreviewed, selected for sampling, confirmed, deferred, or
-  otherwise requires attention; it is independent of prediction confidence.
+- `ReviewStatus`: retained classification-review provenance for legacy records; model confidence
+  remains independent. R5 exposes no manual-review status controls.
 - `Album` and `AlbumMembership`: flat, user-owned virtual organization with at most one confirmed
   album per current image group. Unresolved conflicting assignments remain review evidence rather
   than simultaneous confirmed memberships.
 - Favorite state: an independent durable preference that can coexist with an album assignment and
   does not change organization progress.
 - Organization progress: R4's pending, deferred, organized, or ignored state for a current group,
-  distinct from later classification review status and R3's duplicate-review ignore choice.
+  distinct from legacy classification review status and R3's duplicate-review ignore choice.
 - `ReviewSession`: a persistent review query, position, progress, shortcuts, decisions, and undo
   boundary that can be resumed after restart.
 - `OperationPlan`: an immutable dry-run proposal describing intended filesystem actions, expected
@@ -184,12 +183,12 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 - Do not turn classification, similarity, or search into separate competing gallery applications.
 - Do not expose classification, category filters, smart albums, or model placeholders before their
   R5 use cases are connected. Approved sketches are not evidence of implementation availability.
-- Smart-album/category and review-status query predicates may compose with ordinary filters. Their
+- Smart-album/category predicates compose with ordinary metadata filters. Their
   authority remains a derived `EffectiveCategory` projection over trustworthy catalog state,
   compatible model evidence, and durable user decisions, not editable album membership.
 - Do not let users create, delete, rename, add to, or remove from a smart album result group.
-- Do not interpret that membership rule as a ban on category correction. Users correct category
-  authority through `UserOverride`, and the derived projection must follow the effective result.
+- Preserve existing category `UserOverride` records and their effective projection during reanalysis
+  and restoration; the current desktop has no manual category-confirmation or correction entrypoint.
 - Do not record a high-confidence model prediction as user-confirmed or completed review.
 - Do not erase, replace, or silently reinterpret a durable user decision when a model is rerun.
 - Do not key smart-album membership by path or allow rename, move, edit, replacement, deletion, or

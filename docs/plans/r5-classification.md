@@ -1,4 +1,4 @@
-# R5 - Metadata, smart albums, and review implementation plan
+# R5 - Metadata and smart albums implementation plan
 
 Status: execution plan; stage activation, order, blockers, and closure belong to the roadmap.
 
@@ -9,10 +9,10 @@ This plan does not claim implementation, model admission, or acceptance from the
 
 ## Outcome and boundaries
 
-Deliver useful metadata/search first, then usable local initial screening, derived `智能相册`, and
-optional individual/batch review that reduces total human work. Keep the shared gallery/viewer and
-R4's whole-group single-manual-album, Favorite, organization, and recovery rules. Category confirmation and correction
-never change manual membership or organization progress.
+Deliver useful metadata/search first, then usable local initial screening and derived `智能相册`.
+Keep the shared gallery/viewer and R4's whole-group manual-album, Favorite, organization, and recovery
+rules. Manual classification confirmation/correction and their review workflow were withdrawn on
+2026-11-01; preserve existing data and archive compatibility while removing desktop entrypoints.
 
 R4 is the reuse foundation. Its completed verification is retained, with affected regressions run
 when an R5 slice changes their inputs. The separately deferred rendering follow-up remains under its
@@ -41,11 +41,10 @@ implementation, repairs, and verification around complete user workflows.
 | [Gallery query port](../../rust/src/ports/gallery_query.rs) | Keep pages, counts, layout, search, selection, and viewer scopes coherent and bounded. |
 | [Indexed text search](../architecture/0032-indexed-catalog-text-search.md) | Preserve literal path matching through the shared query while keeping FTS data rebuildable from catalog rows. |
 | [Classification contracts and runtime](../architecture/0034-versioned-classification-contracts.md) | Reuse independent category/encoder revisions and the verified worker boundary; application admission and publication retain their own authority. |
-| [Classification decision authority](../architecture/0035-classification-decision-authority.md) | Keep accepted evidence, human conflict/restore precedence and category/review command guards independent of R4 state. |
+| [Classification decision authority](../architecture/0035-classification-decision-authority.md) | Keep prediction evidence and legacy human conflict/restore precedence independent of R4 state; no desktop manual-classification commands. |
 | [Durable classification dispatch](../architecture/0036-durable-classification-dispatch.md) | Persist manual intent, compatible shared work and publication leases independently of worker lifetime and portable human decisions. |
-| [Organization review domain](../../rust/src/domain/organization_review.rs) | Reuse continuation principles; existing organization sessions do not already implement classification review. |
 | [Workspace navigation](../architecture/0029-functional-workbench-navigation.md) | Retain primary navigation, ordinary reset rules, and the organizing Library's retained state. |
-| [Invariant-owned modules](../architecture/0025-invariant-owned-workflow-modules.md) | Give inference, category projection, review authority, and recovery cohesive owners before extending shared facades. |
+| [Invariant-owned modules](../architecture/0025-invariant-owned-workflow-modules.md) | Give inference, category projection, retry, and recovery cohesive owners before extending shared facades. |
 
 Inspect the live owners at each slice. These are discovery points, not a prescription to append
 classification branches to existing controllers, migrations, or workflow orchestrators.
@@ -72,15 +71,14 @@ metadata, migration, and unchanged originals have focused evidence.
 Follows R5-01; its output fixes the model/taxonomy compatibility used by later slices.
 
 1. Define configurable flat category identities, display labels, versioned semantic descriptions,
-   retirement/remapping rules, and purpose-aware ambiguous examples. Keep `待确认` outside the
-   taxonomy and distinguish failed analysis from a legitimate `其他` category. Sample labels are
+   retirement/remapping rules, and purpose-aware ambiguous examples. Distinguish failed analysis from a legitimate `其他` category. Sample labels are
    evaluation inputs, not a fixed product class list.
    Settle category granularity, inclusion/exclusion examples, starting coverage, and the policy for
    proposing additions/merges before freezing the scheme. Evaluate a soft category-count budget
    against coverage and usefulness; neither unbounded generated categories nor a permanently tiny
    fixed list meets the requirement. Model similarity alone does not establish a useful category.
    New memes can depend on cultural context absent from the local model: description changes do
-   not guarantee that knowledge. Evaluate reusable local examples/corrections for repeated cases
+   not guarantee that knowledge. Evaluate labeled local examples for repeated cases
    without assuming online research, automatic learning, or reliable recognition of every new meme.
    Supply application-owned starting descriptions and implement measured category discovery and
    maintenance. First use must work without manual category or prompt authoring. Keep manual editing
@@ -94,13 +92,13 @@ Follows R5-01; its output fixes the model/taxonomy compatibility used by later s
    authority and ambiguity; unfinished folders and provisional visual labels do not become human
    truth. Keep exact duplicates and known visual/page-series clusters in one partition. Publish
    aggregate results using logical roots and opaque sample IDs, retaining private paths and media
-   outside Git. Fit candidate separation/review policy only on calibration groups, then evaluate
+   outside Git. Fit candidate separation/refinement policy only on calibration groups, then evaluate
    once on the sealed holdout with unchanged descriptions, runtime and text-batch policy. Report
    uncertain labels separately rather than scoring them as `其他` or silently discarding their
    coverage. A changed rubric, encoder or matching policy needs its own compatible calibration.
 3. Admit the selected SigLIP 2 configuration using retained exploratory comparisons and focused
    missing evidence. Calibrate first-pass publication and one bounded cached-feature re-screen
-   against errors, optional checks/corrections per thousand groups, and human time saved. Keep CLIP
+   against errors, useful coverage, and automatic refinement cost. Keep CLIP
    B/32 INT8 as the lightweight reference; do not repeat an unchanged broad model comparison.
 4. Compare cold/warm inference, memory, throughput, cancellation, and browsing interference on the
    two-core/8-GiB baseline and local-primary. Evaluate worker/thread bounds and optional acceleration.
@@ -116,20 +114,19 @@ confidence bands remain explicit gaps; do not fabricate a passing quality thresh
 
 Depends on R5-02's taxonomy and compatibility contract.
 
-1. Define Ame-owned prediction/run, human decision, effective category, review, conflict, and receipt
-   contracts. Establish their independent authority before schema or public bridge changes.
-2. Implement guarded whole-group confirmation/correction and conflict reconciliation. Bind confirmation
-   to the displayed compatible prediction; reject changed content or superseded command authority.
-   Preserve explicit human conflicts, while machine-only differences use one current suggestion and
-   automatic re-screening without automatically creating a required human decision.
-3. Store review progress and logical continuation separately from R4's organization session/bookmark.
-   Support field-scoped undo and idempotent retries without changing album or Favorite state.
-4. Extend migrations, explicit source-removal cleanup, unresolved-record cleanup, and versioned
-   portable recovery together. Include association evidence and retain R4/R3 compatibility.
+1. Persist immutable prediction/run evidence with independent effective-category projection.
+2. Preserve the delivered schema and portable recovery for legacy human choices, review bookmarks,
+   and operation provenance. Existing precedence, conflict, stale-authority, and anti-resurrection
+   guards remain compatibility requirements, independent of R4 state.
+3. Remove desktop mutation and continuation endpoints for manual classification. Retain bounded
+   read-only item/annotation queries and failed-analysis retry. No destructive migration or record
+   reset is required for the removed workflow.
+4. Preserve explicit source-removal cleanup, unresolved-record cleanup, and atomic versioned archive
+   restoration, including old R3/R4 archives and recovery without an installed model.
 
-Exit: decisions survive restart, reanalysis, rebuild, and export/restore; late grouping and changed
-content have deterministic treatment; stale writes/undo and cleanup cannot resurrect invalid intent.
-These commands remain internal until their complete desktop workflow is connected.
+Exit: existing decisions survive restart, reanalysis, rebuild, and export/restore; late grouping and
+changed content have deterministic treatment; removed desktop commands cannot create new manual
+classification activity. Retain valid compatibility evidence rather than replaying unrelated recovery.
 
 ## R5-04: Incremental local analysis
 
@@ -173,56 +170,48 @@ R5-05. Revalidate retained package, model and fixture compatibility before that 
 
 Depends on R5-03 and R5-04.
 
-1. Derive `EffectiveCategory` from compatible prediction and applicable human decisions. Preserve
-   human-conflict provenance; unresolved human conflicts have no guessed winner. Machine uncertainty
-   retains the best usable suggestion with optional review, without multiple primary memberships.
-2. Add smart-album/category and review-status scope to the typed gallery query. Keep search, sort,
-   pages, counts, layout, selection, continuation, and viewer navigation on the same snapshot.
-3. Implement all-results and category views with `全部结果`, `待确认`, and `已确认` review filters.
-   Keep unresolved/failed items reachable from the all-results scope without inventing a category.
-   The optional review filter never blocks browsing the current suggestions or creates modal review.
-4. Connect committed result invalidation, group merging/splitting, and source removal to bounded
-   updates. Background arrivals retain the user's current image and logical position.
+1. Derive `EffectiveCategory` from compatible predictions and applicable legacy decisions. Preserve
+   conflict provenance without a guessed winner; uncertain model results retain their best suggestion.
+2. Keep category scope, search, sort, pages, counts, layout, selection, and viewer navigation on the
+   same bounded gallery snapshot. The desktop exposes no pending/confirmed classification filters.
+3. Keep unresolved/failed items reachable through all-results without inventing a category.
+4. Connect committed result invalidation, grouping changes, and source removal to bounded updates.
+   Background arrivals retain the current image and logical position.
 
-Exit: model and human updates move the correct whole groups between derived views; counts and query
-windows agree, and no category read or selection requires every asset in Flutter memory.
+Exit: category membership, counts, and windows agree; no query/selection loads every asset in Flutter.
+Legacy projection/restore behavior remains compatible without exposing the retired review workflow.
 
-## R5-06: Desktop classification review
+## R5-06: Desktop smart albums
 
-Depends on R5-05 and the guarded writes/recovery from R5-03.
+Depends on R5-05 and the persistence/recovery boundary from R5-03. The slice identifier is retained;
+its former manual-review scope was withdrawn on 2026-11-01.
 
-1. Add the `智能相册` section below manual albums in the existing Albums secondary sidebar. Use the
-   same gallery/viewer, selected-state styling, neutral menu icons, and sidebar motion.
-2. Put review status in the existing filter menu. Connect contextual batch confirmation/correction,
-   the preview's top category entry, and applicable image context-menu commands.
-3. Retain independent Favorite and manual-album actions. Smart albums never enter the destination
-   tray, R4 organization mode, or manual-album create/delete/drag-selection controls.
-4. Connect keyboard review, deferred classification, explicit continuation, stable publication,
-   and operation-specific undo through the shared bottom/top feedback templates. Preserve R4's
-   organization-only chronological undo/redo and its saved Library context.
-5. Verify first-use/setup, empty, unclassified, uncertain, conflicting, failed, unavailable, stale,
-   saving, cancellation, and restart states with the real application services.
-6. Connect the application-managed category scheme through the existing contextual/settings patterns.
-   First use needs no user-authored category table or manual model/runtime directory selection.
-   Connect explicit model download/enablement to verified application-managed installation and the
-   bundled compatible runtime. Optional name/description edits remain distinct
-   from manual-album membership and preserve explicit decisions when definitions are renamed or
-   retired; no extra primary workspace or tagging system.
+1. Keep `智能相册` below manual albums in the existing Albums sidebar, with the accepted static
+   heading, collapse arrow, category rows, empty row, neutral icons, and shared gallery motion.
+2. Remove confirmation/correction, deferral, review-filter/count/badge, continuation, and classification
+   undo controls from the gallery, selection bar, context menus, and preview.
+3. Retain read-only category display, metadata filters, all-results navigation, and failed-image retry.
+   Retry and errors use the existing bottom and viewer-top feedback templates.
+4. Preserve Favorite and manual-album actions, ordinary navigation/selection rules, and R4's retained
+   organization context. Smart albums remain absent from manual-album destinations and management.
+5. Verify first use, loading, empty results, legacy decisions, failed/unavailable images, stale reads,
+   retry, cancellation, and restart through the real application services.
+6. Retain managed model setup, verified installation, bundled runtime, and automatic category
+   maintenance. Setup needs no user-authored taxonomy or model/runtime directory selection.
 
-Exit: the accepted desktop interaction completes real review and manual-album workflows, preserves
-selection/position rules, and displays only committed results. The sketch supplies interaction
-intent; its sample media, counts, icons, and decorative details are not new product requirements.
+Exit: browsing, retry, and manual-album/Favorite workflows remain connected, with no manual
+classification flow. The sketch retains layout intent; its superseded review controls are removed.
 
 ## R5-07: Integrated quality, scale, and closure
 
 Depends on all earlier slices and reuses their valid evidence.
 
-1. Verify metadata-to-analysis-to-review-to-manual-album flow, then late grouping, content changes,
+1. Verify metadata-to-analysis-to-smart-album-to-manual-album flow, then late grouping, content changes,
    source removal, cleanup, archive restoration, reanalysis, cancellation, and restart.
-2. Measure held-out category/band quality, sampled high-confidence errors, optional checks and
-   corrections per thousand groups, actual correction time, and override survival. Compare total
-   human work with manual organization; a larger review queue alone cannot establish better delivery.
-   Keep calibration data separate from final evaluation and include purpose/content overlap cases.
+2. Measure held-out category/band quality, usable coverage, high-confidence errors, automatic
+   refinement, and failures. Keep calibration separate from final evaluation and include overlapping
+   purpose/content cases. Manual classification/correction-time trials are removed from acceptance.
+   Preserve legacy choices through reanalysis and recovery without offering new manual decisions.
 3. Measure large-library bounded queries and two-core/8-GiB analysis while browsing and viewing.
    Record cold/warm conditions, source reads, memory/model storage, and worker cancellation/recovery.
    Complete the paired cloud-primary foreground comparison here, reusing applicable local evidence
@@ -233,7 +222,8 @@ Depends on all earlier slices and reuses their valid evidence.
    decision. R6 similarity work and the deferred R4 rendering follow-up retain their separate scopes.
 
 Exit: the R5 product contract is connected and verified, model/runtime admission remains valid,
-human work is measurably reduced, and original media and durable R4/R5 decisions remain intact.
+the initial-screening quality and resource limits are documented, and original media and durable
+R4/legacy classification decisions remain intact.
 
 ## Execution and unresolved implementation choices
 

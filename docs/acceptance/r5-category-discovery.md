@@ -1,5 +1,10 @@
 # R5 category discovery evidence
 
+The manual-classification workflow and human correction-time acceptance were withdrawn on
+2026-11-01. Historical references below to integrated human-work verification retain their original
+scope; current acceptance follows [R5 requirements](../product/r5-classification.md). Category
+discovery, automatic maintenance, measured quality, and legacy-decision protection remain applicable.
+
 Date: 2026-11-01. This record covers the missing category discovery and naming policy in
 [R5-02](../plans/r5-classification.md#r5-02-taxonomy-model-and-runtime-admission). It does not
 establish product acceptance or replace the admitted SigLIP screening runtime. The

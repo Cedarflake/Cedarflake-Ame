@@ -6,24 +6,12 @@ import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../application/library_classification_configuration.dart";
-import "../../application/library_classification_progress.dart";
 import "../../application/library_classification_settings.dart";
 import "../../domain/library_models.dart";
-import "../library_classification_continuation.dart";
 import "../library_organization_mode.dart";
 import "library_classification_settings_editor.dart";
 
-enum _Action {
-  selectAll,
-  allResults,
-  continueReview,
-  reloadProgress,
-  settings,
-  pause,
-  resume,
-  stop,
-  disable,
-}
+enum _Action { selectAll, allResults, settings, pause, resume, stop, disable }
 
 class LibrarySmartAlbumMenu extends ConsumerStatefulWidget {
   const LibrarySmartAlbumMenu({
@@ -44,50 +32,6 @@ class LibrarySmartAlbumMenu extends ConsumerStatefulWidget {
 
 class _LibrarySmartAlbumMenuState extends ConsumerState<LibrarySmartAlbumMenu> {
   bool _busy = false;
-  late final LibraryClassificationContinuationNavigation _continuation;
-
-  @override
-  void initState() {
-    super.initState();
-    _continuation = LibraryClassificationContinuationNavigation(
-      ref.read(libraryClassificationProgressProvider),
-      widget.surface,
-    );
-  }
-
-  @override
-  void dispose() {
-    _continuation.dispose();
-    super.dispose();
-  }
-
-  Future<void> _continueReview() async {
-    setState(() => _busy = true);
-    try {
-      final message = await _continuation.resume();
-      if (mounted && message != null) {
-        showAmeTransientFeedback(
-          context,
-          message: message,
-          severity: AmeNotificationSeverity.info,
-        );
-      }
-    } on Object {
-      if (mounted) {
-        showAmeTransientFeedback(
-          context,
-          message: "未能读取分类确认位置，请重试",
-          severity: AmeNotificationSeverity.error,
-        );
-      }
-    } finally {
-      if (mounted) {
-        ref.invalidate(libraryClassificationContinuationProvider);
-        setState(() => _busy = false);
-      }
-    }
-  }
-
   Future<void> _apply(
     _Action action,
     LibraryClassificationSettings? observed,
@@ -112,14 +56,6 @@ class _LibrarySmartAlbumMenuState extends ConsumerState<LibrarySmartAlbumMenu> {
       await showLibraryClassificationSettings(context);
       return;
     }
-    if (action == _Action.continueReview) {
-      await _continueReview();
-      return;
-    }
-    if (action == _Action.reloadProgress) {
-      ref.invalidate(libraryClassificationContinuationProvider);
-      return;
-    }
     final service = ref.read(libraryClassificationConfigurationProvider);
     if (observed == null || service == null) return;
     setState(() => _busy = true);
@@ -131,13 +67,8 @@ class _LibrarySmartAlbumMenuState extends ConsumerState<LibrarySmartAlbumMenu> {
           _Action.resume => LibraryClassificationControl.resume,
           _Action.stop => LibraryClassificationControl.stop,
           _Action.disable => LibraryClassificationControl.disable,
-          _Action.settings ||
-          _Action.selectAll ||
-          _Action.allResults ||
-          _Action.continueReview ||
-          _Action.reloadProgress => throw StateError(
-            "Settings have no dispatch action",
-          ),
+          _Action.settings || _Action.selectAll || _Action.allResults =>
+            throw StateError("Settings have no dispatch action"),
         },
       );
       if (!mounted) return;
@@ -150,13 +81,8 @@ class _LibrarySmartAlbumMenuState extends ConsumerState<LibrarySmartAlbumMenu> {
           _Action.resume => "已继续分析",
           _Action.stop => "已停止分析",
           _Action.disable => "已关闭后台分析",
-          _Action.settings ||
-          _Action.selectAll ||
-          _Action.allResults ||
-          _Action.continueReview ||
-          _Action.reloadProgress => throw StateError(
-            "Settings have no dispatch feedback",
-          ),
+          _Action.settings || _Action.selectAll || _Action.allResults =>
+            throw StateError("Settings have no dispatch feedback"),
         },
       );
     } on Object {
@@ -176,7 +102,6 @@ class _LibrarySmartAlbumMenuState extends ConsumerState<LibrarySmartAlbumMenu> {
   @override
   Widget build(BuildContext context) {
     final collection = widget.surface.library.query.collection;
-    final continuation = ref.watch(libraryClassificationContinuationProvider);
     final settings = ref
         .watch(libraryClassificationSettingsProvider)
         .asData
@@ -187,10 +112,6 @@ class _LibrarySmartAlbumMenuState extends ConsumerState<LibrarySmartAlbumMenu> {
           (collection.categoryId != null ||
               collection.review != LibraryClassificationReviewFilter.all))
         _Action.allResults: ("全部分类结果", Symbols.photo_library_rounded),
-      if (continuation.value?.hasActivity == true)
-        _Action.continueReview: ("继续确认分类", Symbols.arrow_forward_rounded),
-      if (continuation.hasError)
-        _Action.reloadProgress: ("重试读取确认位置", Symbols.refresh_rounded),
       _Action.settings: ("智能相册设置", Symbols.settings_rounded),
       if (settings?.mode == LibraryClassificationMode.automatic)
         _Action.pause: ("暂停分析", Symbols.pause_rounded),

@@ -1,4 +1,4 @@
-# R5 - Metadata, smart albums, and classification review
+# R5 - Metadata and smart albums
 
 Status: product requirements; implementation availability and delivery status belong to the roadmap.
 
@@ -10,40 +10,41 @@ R4's [organization rules](r4-organization.md#boundary-with-r5-classification) re
 ## User outcome and scope
 
 Ame extracts useful metadata, proposes a primary category for each logical image group, and gathers
-current category results into `智能相册`. Initial screening produces immediately usable suggestions;
-review is optional and concentrates on unresolved cases. The user can correct whole groups in batches
-and resume review after restarting. Acceptance measures total human work saved alongside classification
-quality, preserving existing albums, Favorites, and organization progress.
+current category results into `智能相册`. Initial screening produces usable suggestions, with bounded
+automatic re-screening for ambiguous results. Users browse these results through the existing gallery
+and can independently add images to manual albums or Favorites.
 
 R5 includes bounded metadata and structured search, local model evaluation and inference, calibrated
-confidence, durable category decisions, derived smart albums, and human review. It preserves the
-existing gallery, viewer, source-safety rules, and whole-group command targets. Perceptual similarity,
-semantic search, face recognition, identity naming, embedded metadata writes, and physical file
-operations remain outside R5. The [stage overview](organization-workflows.md) retains their owners.
+confidence, immutable analysis evidence, derived smart albums, and failure recovery. It has no manual
+classification confirmation, correction, deferral, or review-continuation workflow. Existing saved
+classification decisions remain compatible with reading and backup restoration; removing the workflow
+does not erase those records or change their established precedence.
+
+The existing gallery, viewer, source-safety rules, and whole-group organization targets remain.
+Perceptual similarity, semantic search, face recognition, identity naming, embedded metadata writes,
+and physical file operations remain outside R5. The [stage overview](organization-workflows.md)
+retains their owners.
 
 ## Vocabulary and independent decisions
 
-Use `智能相册` for the visible entry and sidebar section. Its category results are derived from
-`EffectiveCategory`; they are not additional user-owned album memberships. `确认分类` accepts the
-current proposal, and `更改分类` saves an explicit category choice.
+Use `智能相册` for the visible entry and sidebar section. Its category results derive from
+`EffectiveCategory` and have no user-managed membership list.
 
 | Concept | Authority and effect |
 | --- | --- |
-| Model prediction | Immutable output with model/run identity, taxonomy version, parameters, confidence, and evidence. It is never a human confirmation. |
-| Category decision | A durable human confirmation or correction for compatible group content; a later model run cannot overwrite it. |
-| Effective category | The applicable human decision, otherwise a compatible current model result. Unresolved human conflicts have no silently selected winner. |
-| Smart album | A bounded view of groups with that effective category. It has no editable membership list. |
-| Classification review | Whether classification needs attention, was deferred, or was explicitly confirmed; independent of R4 organization state. |
-| Manual album | R4's single confirmed user-album assignment for the complete group. |
+| Model prediction | Immutable output with model/run identity, taxonomy version, parameters, confidence, and evidence. It remains model evidence. |
+| Legacy category decision | An existing durable human choice retained for compatibility; reanalysis and restoration preserve its authority. The current desktop creates no new choices. |
+| Effective category | An applicable legacy decision, otherwise a compatible current model result. Conflicting legacy decisions retain their provenance without a guessed winner. |
+| Smart album | A bounded view of groups with that effective category. |
+| Manual album | R4's single user-album assignment for the complete group. |
 | Favorite | R4's independent preference, compatible with either kind of album view. |
 
 A group can appear in the `动漫／插画` smart album, the user's `壁纸` album, and Favorites together.
-It still has only one confirmed manual-album assignment. Smart albums are not destinations in the
-album tray, and have no direct add/remove membership commands. Their names and availability follow
-the configured category definitions, independently of manual-album management. A category correction
-changes the derived result; it does not move a physical file or edit a manual album.
+It still has only one manual-album assignment. Smart albums are not destinations in the album tray
+and have no add/remove membership commands. Their names and availability follow application-managed
+category definitions independently of manual-album management.
 
-## Primary taxonomy and review status
+## Primary taxonomy and result quality
 
 Categories are application-managed flat definitions with stable identities, display names, and
 classification descriptions. Ame supplies the starting vocabulary and maintains useful categories
@@ -54,7 +55,7 @@ categories and evaluation labels do not limit the product to a fixed seven- or s
 that list manually editable alone does not satisfy category discovery or maintenance.
 Display-only renaming preserves classification compatibility; semantic description changes and
 adding/removing definitions create a new classification-rule revision. Retired definitions retain
-human-decision provenance; remapping a saved human choice requires explicit intent.
+legacy decision provenance; automatic maintenance does not remap a saved choice.
 If fresh evidence supports a previously retired automatic category again, restore its existing
 identity and original meaning through current admission. User edits and manual retirement protect
 that definition from automatic restoration; historical origin metadata alone is insufficient.
@@ -81,56 +82,45 @@ class list:
 Start definitions broadly enough to cover the collection. Ame must detect recurring distinctions
 that support useful additions or splits, and excessive overlap that warrants a scheme adjustment.
 Candidate discovery, naming and admission belong to the application; a user-authored category table
-is not a prerequisite. Admit the maintenance policy against coverage, useful distinctions, stability
-and human effort rather than a fixed target count. A larger hard-coded list is not a replacement for
+is not a prerequisite. Admit the maintenance policy against useful distinctions, stability,
+and coverage rather than a fixed target count. A larger hard-coded list is not a replacement for
 this policy. Isolated unusual images and small occupancy alone do not create or remove a category.
-Automatic maintenance preserves stable identities and explicit human choices; it never silently
+Automatic maintenance preserves stable identities and saved legacy choices; it never silently
 remaps a saved human category or requests confirmation for every image or routine vocabulary change.
 Addition capacity follows distinct verified content and the recurrence required for a useful category;
 duplicate copies do not expand it. The capacity is a ceiling rather than a target. Users do not need
 to choose a category count, and a smaller library does not by itself remove retained definitions.
 An automatic refinement can return to its original purpose category after complete current-library
 evidence falls below the recurrence needed to create it and every remaining image has that purpose
-as its unique best alternative. Changed meanings, missing evidence and saved human choices preserve
+as its unique best alternative. Changed meanings, missing evidence and saved legacy choices preserve
 the category. A fresh compatible assessment can later restore the original refinement identity.
 An existing broader refinement of the same purpose can also receive a sparse category when its
 declared meaning contains the narrower context, it remains recurrent, and all affected images agree
 on that alternative. Similar names or scores alone do not combine distinct uses.
-Cultural meaning absent from visible evidence remains uncertain; repeated examples and corrections
-can inform evaluation without automatic online research or unannounced retraining. The
+Cultural meaning absent from visible evidence remains uncertain; labeled evaluation examples
+can inform quality assessment without automatic online research or unannounced retraining. The
 [compatibility contract](../architecture/0034-versioned-classification-contracts.md) owns bounded
 definitions, canonical revisions, policy admission and feature reuse.
 
-`待确认` is a review filter, not a category. `其他` is a legitimate content category, not a substitute
-for missing predictions, failed analysis, or a category conflict. A result can have a proposed
-category while remaining eligible for optional review.
+`其他` is a legitimate content category, separate from missing predictions, failed analysis, and
+unresolved legacy conflicts. Smart albums do not expose pending/confirmed review filters or badges.
 
-Confidence and confirmation are separate. A calibrated high-confidence result may be used for
-browsing without mandatory individual review; it remains machine-proposed until explicitly confirmed
-and remains eligible for sampling. Resolve machine-only disagreement automatically using the active
-compatible model/rule revision and one canonical group result. Boundary cases receive at most one
-bounded automatic re-screen with more specific versioned descriptions, reusing image features.
-Compare calibrated score bands and candidate separation; raw scores are not probabilities. Historical
-model disagreement alone does not add human work. Remaining uncertain predictions keep their best
-usable suggestion in the category view and enter the optional `待确认` filter without a blocking prompt.
-Genuine incompatible human decisions retain explicit conflict handling. Failed analysis retains its
-reason and retry behavior without inventing a category. Deferred classification remains unfinished
-review, and no review backlog blocks ordinary browsing or use of initial screening results.
+Resolve machine-only disagreement automatically using the active compatible model/rule revision and
+one canonical group result. Boundary cases receive at most one bounded automatic re-screen with more
+specific versioned descriptions, reusing image features. Compare calibrated score bands and candidate
+separation; raw scores are not probabilities. Remaining uncertainty keeps its best usable suggestion
+in the category view without requesting a user decision. Confidence and ambiguity remain analysis
+evidence for evaluation, rather than a manual-review queue.
 
-`全部结果` includes the current smart-album scope regardless of review status. `待确认` selects work
-selected for optional checking, including deferred review and unresolved human conflicts. `已确认`
-selects explicit human confirmations and corrections. The section's all-results view also exposes
-unresolved or failed items that cannot yet
-belong to one category, so these items do not disappear between category views.
-High-confidence unreviewed results can be in neither review subset; confirmed counts must not be
-calculated by subtracting the pending count from the total.
+The all-results view includes groups without usable category evidence, including failed analysis
+and unresolved legacy conflicts. Failed analysis retains its reason and explicit retry behavior.
+These items remain reachable without assigning an invented category.
 
 ## Group authority and content lifecycle
 
-Classification commands resolve to the complete current exact-duplicate group across source folders,
-including when selection contains one member or a folder-filtered subset. Duplicate selections are
-applied once. Before exact identity is known, each admitted content version is a provisional command
-target, but model execution waits for that content's compatible exact-fingerprint verification.
+Classification results resolve to the complete current exact-duplicate group across source folders.
+Before exact identity is known, each admitted content version has provisional identity; model
+execution waits for that content's compatible exact-fingerprint verification.
 Consume committed R3 content evidence incrementally; do not wait for the entire duplicate scan or
 start another source-tree traversal. Verified byte-identical content shares one compatible queued
 or running analysis and its result without merging stable asset identities. Late copies join that
@@ -140,12 +130,12 @@ Preserve these transitions:
 
 - A new identical copy reuses compatible evidence and the group's applicable category decision.
 - Compatible human decisions remain one decision after late grouping. Different human category
-  decisions retain their provenance and require an explicit whole-group category choice. They do
-  not create several confirmed primary categories or change R4's album-conflict queue.
+  decisions retain their provenance with no effective winner. The current desktop does not offer
+  conflict resolution for these legacy records or change R4's album-conflict queue.
 - A model disagreement cannot override a valid human decision. Retain the newer model evidence
-  separately for traceability rather than reopening completed review without a content conflict.
+  separately for traceability without changing the saved category authority.
 - Machine-only disagreement is reconciled through the active configuration and bounded re-screening.
-  Keep the resulting best suggestion usable and reserve optional checking for remaining uncertainty.
+  Keep the resulting best suggestion usable while retaining its uncertainty evidence.
   A reproducible same-input/runtime inconsistency is an analysis defect with bounded recovery, not
   a request for the user to diagnose the model or a reason to repeatedly scan the library.
 - Changed content invalidates incompatible prediction and decision bindings. Unchanged copies keep
@@ -156,47 +146,32 @@ Preserve these transitions:
   cannot resurrect removed decisions. Deleting a manual album does not delete category decisions.
 
 Revalidate content, group generation, model compatibility, and affected decision revisions before
-publishing results or committing a command. Retained display evidence must not authorize a stale
+publishing results or admitting a retry. Retained display evidence must not authorize a stale
 write. Old model tasks, pages, and viewer callbacks cannot publish into a newer source or query scope.
 
-## Human review and organization progress
-
-`确认分类` stores the category actually shown to the user as a durable human choice. It binds the
-accepted evidence and current content, so a delayed response cannot accept a different prediction.
-`更改分类` stores the explicit replacement category and completes classification review for those
-groups. Mixed-category confirmation accepts each group's own displayed prediction; a correction
-applies the one explicitly chosen category to the selected groups. Groups without an admissible
-prediction require correction or retry rather than a fabricated confirmation.
+## Classification and organization progress
 
 | Action | Classification effect | R4 organization effect |
 | --- | --- | --- |
 | Publish a prediction | Update compatible evidence and derived results | None |
-| Confirm or correct a category | Save human category intent and review completion | None |
-| Defer classification review | Retain unfinished classification work | None |
+| Retry failed analysis | Queue the failed image's compatible shared task | None |
 | Add or move to a manual album | None | Apply R4 membership and organized-state rules |
 | Remove from the last manual album | None | Become `已忽略` under R4 |
 | Favorite or unfavorite | None | Change Favorite only |
 
-Classification writes never infer an album destination or mark R4 work organized. Adding an item to
-a manual album from a smart-album view uses the existing album tray and ordinary-mode behavior; it
-does not confirm the category. A group ignored for R4 organization can still have a category result.
+Adding an item to a manual album from a smart-album view uses the existing tray and ordinary-mode
+behavior. A group ignored for R4 organization can still have a category result. Classification does
+not infer an album destination, mark organization complete, or change Favorite state.
 
-Support keyboard-first review, bounded query-wide selection, batch confirmation/correction, and
-operation-specific undo. Freeze the selected query and current group authority; validate again when
-applying a batch. Publish only committed receipts, preserve completed work after cancellation, and
-make uncertain retries idempotent. Report partial completion accurately instead of claiming that an
-entire batch failed or succeeded. Undo changes only the affected category/review fields and respects
-newer decisions, source removal, cleanup, and backup restoration.
+Smart albums retain normal browsing, bounded selection, sorting, metadata filters, and viewer
+navigation. There are no single-image or batch confirmation/correction commands, deferred-review
+actions, review-status filters, classification undo, or classification continuation. Opening an image
+or menu does not create manual classification activity. New results and grouping changes preserve
+the currently viewed image and browsing position under the shared gallery rules.
 
-Classification review has its own durable scope, logical anchor, progress, and operation authority.
-Record remaining review work from committed query counts; estimate time only when measured throughput
-supports it, without treating unknown or failed analysis as completed work.
-Reuse the bounded continuation mechanisms from R4 without sharing its organization-mode session or
-overwriting its bookmark. Ordinary workspace switches retain R4's selection/position rules; explicit
-classification continuation restores its saved work. New results and grouping changes preserve the
-currently viewed image and resolve an obsolete continuation anchor to the next eligible group.
-Confirmation remains in the current category view; only a review filter that no longer matches
-removes it from that filtered result. A committed category correction can change its category view.
+R4's organization mode, chronological undo/redo, bookmark, and retained Library context remain
+independent. Existing classification bookmarks and operation history are retained only for archive
+compatibility and explicit cleanup; the desktop does not resume or extend them.
 
 ## Metadata and structured search
 
@@ -231,9 +206,9 @@ The unfinished historical folder classification and provisional visual labels ar
 Use representative labeled groups from the target library under existing source-safe execution
 rules. Separate calibration and held-out evaluation by content group to prevent duplicate leakage.
 Record per-category quality, confidence-band coverage and errors, sampled high-confidence quality,
-abstentions/failures, checks required per thousand groups, correction time, and total human work saved.
-Choose thresholds and optional-review sampling jointly with those costs; maximizing correctness by
-sending most images to manual review does not satisfy R5. Calibration and final evaluation remain
+abstentions/failures, and the effect and cost of bounded automatic re-screening. Choose thresholds
+against usable coverage and observed errors. Manual classification trials, correction counts, and
+human correction-time comparisons are outside R5 acceptance. Calibration and final evaluation remain
 separate, and a raw model score is not automatically a probability or a universally valid cutoff.
 
 Use the two-core, 8-GiB cloud-primary client as a required resource baseline, with local-primary as
@@ -249,7 +224,7 @@ completed results. Never hydrate cloud-only files or hold catalog transactions o
 
 ## Analysis lifecycle
 
-Task admission, model residency, derived results, and human decisions have separate lifetimes.
+Task admission, model residency, derived results, and retained legacy decisions have separate lifetimes.
 Classification starts after explicit enablement and verified model setup. Queue existing catalog
 content and later changes in bounded persistent windows; eligibility still requires each content
 version's completed exact verification. Initial import and foreground image work retain priority.
@@ -262,7 +237,6 @@ version's completed exact verification. Initial import and foreground image work
 | Rename a path, change representative, or change workspace | Reuse compatible features/results; do not enqueue content work from presentation events. |
 | Change semantic category descriptions or active definitions | Recompute text features and bounded matching over compatible image features. |
 | Rename a display label | Update presentation without invalidating semantic features or decisions. |
-| Correct a category | Commit whole-group human intent immediately; model work cannot overwrite it. |
 | Explicitly update the model | Incrementally build compatible new results, retaining prior valid evidence and human decisions. |
 | Source becomes unavailable | Retain work and records; wait for availability without hydrating placeholders. |
 | Remove a source | Retire its task authority and reconcile surviving group members under the existing removal contract. |
@@ -297,29 +271,32 @@ silently recreated merely because its derived cache entry is absent.
 
 ## Persistence and recovery
 
-Persist model evidence, human decisions, effective-category projection, and review state separately
-under Ame-owned contracts. Immutable analysis runs include model/taxonomy versions and parameter
-identity. Reanalysis retains older evidence and applicable human intent; model and index cleanup
-cannot delete human confirmation, correction, continuation, or operation history.
+Persist immutable model evidence and rebuildable effective-category projections separately from
+R4 decisions and legacy classification records. Runs retain model/taxonomy versions and parameter
+identity. Reanalysis, model removal, and cache cleanup preserve applicable saved category decisions.
 
-Add forward migrations and recoverable upgrade snapshots. Version the portable recovery contract to
-include category decisions, their association evidence, review bookmarks, and applicable undo
-provenance. Retain R4/R3 archive compatibility and explicit-restore authority. The existing R4 archive
-format does not already carry these new records. Models, original media, and rebuildable projections
-remain outside decision archives. Unavailable model binaries cannot invalidate a restored human choice.
-Extend the existing unresolved-record inspection/cleanup counts to name affected classification
-records, retaining its one entry, confirmation, eligibility recheck, and explicit-backup recovery.
+Retain the existing schema and versioned portable recovery compatibility for category definitions,
+legacy choices, association evidence, bookmarks, and operation history. Removing desktop commands
+requires no destructive migration or record purge. Existing records retain their established
+precedence through restart, rebuild, reanalysis, and restoration; conflicting legacy choices remain
+unresolved rather than selecting a model winner. Models, original media, and rebuildable projections
+remain outside decision archives. R3/R4 archives retain their original behavior.
+
+Explicit source removal and the existing unresolved-record cleanup continue to retire eligible
+classification records with their lineage. Preserve the current confirmation, eligibility recheck,
+anti-resurrection guards, and explicit-backup recovery.
 
 ## Acceptance requirements
 
 R5 must demonstrate:
 
-- preserved R4 album/Favorite/progress behavior across confirmation, correction, and model updates;
+- preserved R4 album/Favorite/progress behavior across analysis, retries, and model updates;
 - coherent group-based category pages, counts, search, selection, time/name rails, and viewer scope;
 - useful first-pass results, bounded automatic re-screening, per-category/band evidence, and measured
-  checks/corrections per thousand groups and human time saved;
-- batch review, explicit continuation, undo, cancellation, retry, stale-result rejection, and restart;
-- late duplicate conflicts, content changes, root removal, cleanup, migration, and archive recovery;
+  coverage, error, and automatic re-screening results;
+- absence of manual classification controls and review filters, with connected retry, cancellation,
+  stale-result rejection, and restart;
+- late duplicates, content changes, root removal, cleanup, migration, and legacy archive recovery;
 - real desktop paths following the accepted UI contract, with shared feedback and stable layout;
 - bounded two-core/8-GiB operation while ordinary browsing and preview remain usable;
 - per-content release before global deduplication finishes, shared duplicate tasks, configuration-only

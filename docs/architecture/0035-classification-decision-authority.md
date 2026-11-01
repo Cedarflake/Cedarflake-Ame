@@ -5,7 +5,7 @@
 
 ## Context
 
-R5 adds category suggestions and human review to the content groups established by R3/R4. A later
+The initial R5 design added category suggestions and human review to R3/R4 content groups. A later
 model result must not replace a human choice, and a delayed confirmation must accept exactly the
 suggestion the user saw. Category decisions also need to survive model removal, catalog rebuilding
 and portable recovery without changing manual albums, Favorites or organization progress.
@@ -13,6 +13,24 @@ and portable recovery without changing manual albums, Favorites or organization 
 [ADR 0034](0034-versioned-classification-contracts.md) owns encoder/rule compatibility and screening.
 [ADR 0030](0030-durable-organization-decisions.md) owns durable content lineage and association.
 [ADR 0031](0031-portable-organization-archives.md) owns portable framing and atomic restoration.
+
+## Desktop scope amendment — 2026-11-01
+
+Manual classification confirmation/correction and their dependent deferral, filtering, continuation,
+and undo workflow are withdrawn. The desktop bridge exposes bounded classification reads and
+failed-analysis retry, without manual-decision mutation or review-session endpoints. The gallery,
+selection bar, context menus, and preview offer no manual classification controls.
+
+Retain the existing schema, saved human decisions, review bookmarks, operation provenance, and archive
+readers. Existing effective-category precedence and conflict handling remain compatible; the removed
+workflow does not erase data, resolve conflicts through model predictions, or silently remap choices.
+The command/session rules below document legacy authority and recovery invariants, not current
+interactive capabilities. They remain useful for compatibility fixtures and archive safety.
+
+Smart albums show automatic results and read-only category information, without pending/confirmed
+filters or review badges. Failed analysis remains visible and retryable. R4 organization sessions,
+manual albums, Favorites, and their undo/redo remain independent. Current UI and acceptance follow
+[the revised R5 requirements](../product/r5-classification.md).
 
 ## Evidence and effective state
 
@@ -50,12 +68,13 @@ distinct from machine uncertainty and from R4 album conflicts.
 
 ## Gallery projection
 
-Smart albums are a typed gallery collection with an optional category and an independent review
-filter. They always fold exact-content groups and cannot carry R4 organization queues. The existing
+Smart albums are a typed gallery collection with an optional category. The stored query shape keeps
+its legacy review field for compatibility; current desktop browsing uses the all-results value.
+They always fold exact-content groups and cannot carry R4 organization queues. The existing
 gallery owns physical scope, search, sorting, paging, selection, layout and viewer anchors; the
 classification owner supplies only effective membership. All-results includes groups without usable
-predictions. Pending includes optional checking, deferral and human conflicts; a routine suggestion
-does not become a human confirmation.
+predictions. Legacy pending/confirmed semantics remain readable for old scopes, without desktop
+review filters or any inference that a model suggestion is a human confirmation.
 
 Schema 70 adds rebuildable SQL views over human lineage choices and compatible prediction evidence.
 Human reduction follows the same local-before-restored consensus as commands. Prediction projection
@@ -78,7 +97,7 @@ analysis failures and explicit retry publish their status through the same catal
 including interrupted work that exhausts its retry budget. Compatible suggestions and human choices
 retain precedence over a work-item failure; missing predictions alone do not imply failure.
 
-## Command authority
+## Legacy command authority
 
 A prepared classification command binds the exact or provisional content target, complete current
 membership authority, independent category/review field authorities, category-rule revision and the
@@ -152,7 +171,7 @@ includes it; deferral or leaving the selected category/review filter records an 
 R5-05 owns resolving that anchor through the bounded smart-album projection. R4's session, bookmark,
 album decisions and Favorite fields are independent.
 
-The desktop begins a classification review session on an explicit single-image classification
+The former desktop workflow began a classification review session on an explicit single-image classification
 command in a smart-album scope. Reading a card or opening a menu does not create saved activity.
 Frozen selection evidence reaches the existing atomic review command through a bounded single-group
 adapter. Refreshing controls retains their review entry and never repeats its checkpoint. A still-open

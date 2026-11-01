@@ -78,8 +78,9 @@ recall uses definite reference labels. Neither is a human-certified rate.
 Comic coverage is small, and documents/design content is often proposed as illustration or screenshot.
 A wider separation alone does not resolve those purpose boundaries. A replacement operating policy
 needs calibration-only fitting and a new untouched holdout; the evaluated holdout cannot be recycled
-as an independent pass. Actual inspection/correction time and total human work remain measurements of
-the connected R5-07 workflow. The earlier lightweight-model comparison remains retained.
+as an independent pass. Manual classification and its inspection/correction-time comparison were
+withdrawn from R5 on 2026-11-01. The quality/coverage results and earlier lightweight-model comparison
+remain retained; they establish no measured human-time savings.
 
 ## Source and execution evidence
 

@@ -5,7 +5,6 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_album_requests.dart";
-import "../../application/library_classification_actions.dart";
 import "../../application/library_classification_retry_actions.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_organization.dart";
@@ -101,9 +100,9 @@ class LibraryPhotoContextMenu {
         }
       }
       if (!context.mounted || !owns()) return;
-      final classificationBusy =
-          ref.read(libraryClassificationActionsProvider).saving ||
-          ref.read(libraryClassificationRetryActionsProvider).busy;
+      final classificationBusy = ref
+          .read(libraryClassificationRetryActionsProvider)
+          .busy;
       final entries = _entries(decision, classification);
       final action = await showAmePopupMenu<_PhotoAction>(
         context: context,
@@ -134,25 +133,8 @@ class LibraryPhotoContextMenu {
           onCopyPath();
         case _PhotoAction.reveal:
           onReveal();
-        case _PhotoAction.confirmClassification:
-        case _PhotoAction.correctClassification:
-        case _PhotoAction.deferClassification:
         case _PhotoAction.retryClassification:
-          await classification?.apply(
-            action: switch (action) {
-              _PhotoAction.confirmClassification =>
-                LibraryPhotoClassificationAction.confirm,
-              _PhotoAction.deferClassification =>
-                LibraryPhotoClassificationAction.defer,
-              _PhotoAction.retryClassification =>
-                LibraryPhotoClassificationAction.retry,
-              _ => LibraryPhotoClassificationAction.correct,
-            },
-            context: context,
-            ref: ref,
-            position: position,
-            isCurrent: owns,
-          );
+          await classification?.retry(ref: ref, isCurrent: owns);
         case _PhotoAction.favorite:
           await commands.favorite(target, !decision!.favorite);
         case _PhotoAction.removeAlbum:
@@ -217,31 +199,12 @@ class LibraryPhotoContextMenu {
           Symbols.bookmark_remove_rounded,
         ),
     ],
-    if (classification?.isReady == true) ...[
-      if (classification!.canConfirm)
-        const _PhotoEntry(
-          _PhotoAction.confirmClassification,
-          "确认分类",
-          Symbols.check_rounded,
-        ),
+    if (classification?.canRetry == true)
       const _PhotoEntry(
-        _PhotoAction.correctClassification,
-        "更改分类",
-        Symbols.label_rounded,
+        _PhotoAction.retryClassification,
+        "重新分析",
+        Symbols.refresh_rounded,
       ),
-      if (classification.canDefer)
-        const _PhotoEntry(
-          _PhotoAction.deferClassification,
-          "稍后确认",
-          Symbols.schedule_rounded,
-        ),
-      if (classification.canRetry)
-        const _PhotoEntry(
-          _PhotoAction.retryClassification,
-          "重新分析",
-          Symbols.refresh_rounded,
-        ),
-    ],
     const _PhotoEntry(
       _PhotoAction.information,
       LibraryStrings.viewInformation,
@@ -271,9 +234,6 @@ enum _PhotoAction {
   favorite,
   album,
   removeAlbum,
-  confirmClassification,
-  correctClassification,
-  deferClassification,
   retryClassification,
   information,
   copyPath,
@@ -285,9 +245,6 @@ enum _PhotoAction {
   };
 
   bool get changesClassification => switch (this) {
-    confirmClassification ||
-    correctClassification ||
-    deferClassification ||
     retryClassification => true,
     _ => false,
   };

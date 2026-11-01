@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-30
+Last planning update: 2026-11-01
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage may be active. Detailed product contracts, execution procedures, architecture,
@@ -34,7 +34,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
 | R4 | Independent Favorites, flat group-based albums, and durable organization progress | Completed and merged into main on 2026-10-30 |
-| R5 | Metadata, smart albums, calibrated initial screening, and optional review | Active; implementation authorized in the existing R5-01 through R5-07 order |
+| R5 | Metadata, smart albums, and calibrated initial screening | Active; implementation authorized in the existing R5-01 through R5-07 order |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run with conflicts and no execution | Planned after R7 |
@@ -101,10 +101,10 @@ bounded native owners for cohort formation, purpose/context naming, competing-ca
 addition capacity, protected retirement and compatible merging. The
 [discovery evidence](acceptance/r5-category-discovery.md) retains both rejected naming approaches and
 the admitted comparisons. First use supplies application-managed definitions and discovery, without
-manual model/runtime directories or category authoring. Context coverage and actual human-work
-reduction remain integrated acceptance questions; a larger fixed list does not settle them.
+manual model/runtime directories or category authoring. Context coverage and observed classification quality
+remain integrated acceptance questions; a larger fixed list does not settle them.
 
-R5-03 durable whole-group classification, independent review/continuation and portable recovery are
+R5-03 durable classification evidence and portable legacy-decision recovery are
 connected under [ADR 0035](architecture/0035-classification-decision-authority.md). The corrected archive
 fixtures pass the retained hosted gate. R5-04 connects verified source admission, shared compatible
 work, feature reuse, guarded publication, durable manual controls and joined worker lifetimes under
@@ -114,24 +114,26 @@ control/restart checks, power/pressure handling and the local-primary foreground
 model installation, bundled runtime/vocabulary and automatic maintenance use the same retirement and
 publication boundary.
 
-R5-05 supplies coherent effective-category/review queries, counts, pages, selection and viewer scope
-through the shared gallery, with [query evidence](acceptance/r5-smart-albums.md). R5-06 now connects the
-accepted sidebar, first-use setup, all-results entry, contextual and batch review, preview actions,
-explicit continuation, shared feedback and failed-image retry. The
-[desktop acceptance](acceptance/r5-desktop-classification.md) records the isolated native workflow:
-real predictions, folded duplicates, confirmation/correction/undo, deferred continuation across
-restart, scoped retry while paused, coherent review filters and unchanged Favorite/manual-album
-records. The observed menu-width and missing failure-state connections are repaired. Keyboard menu
-selection and viewer navigation work; the injected Ctrl+A attempt is separately accounted for by
-native key-event evidence and a passing framework shortcut regression.
+R5-05 supplies coherent effective-category queries, counts, pages, selection and viewer scope
+through the shared gallery, with [query evidence](acceptance/r5-smart-albums.md). R5-06 connects the
+accepted sidebar, managed setup, all-results entry, preview and shared feedback. Its
+[desktop acceptance](acceptance/r5-desktop-classification.md) retains the earlier connected workflow
+and failed-image retry evidence. The manual confirmation/correction workflow and its filters,
+deferral, continuation and undo were withdrawn on 2026-11-01. Their removal has focused and
+[isolated-client evidence](acceptance/r5-desktop-classification.md#manual-classification-workflow-removal--2026-11-01),
+including retry, normal restart, and preserved legacy/R4 records; submitted-head CI remains required.
+Preserve old records, archive compatibility, automatic analysis, and R4 organization behavior.
+Historical manual-review checks remain evidence of the former scope, not current requirements.
 
 R5-07 is active, retaining its existing order and required outcomes:
 
-1. Complete integrated source-lifecycle and recovery coverage using the delivered R5-03 through R5-06
-   boundaries and applicable retained evidence. Preserve original media and durable R4/R5 decisions.
-2. Measure context coverage, optional checks/corrections and actual human work through the connected
-   review flow. Retain the provisional label authority and unsupported confidence bands in the
-   calibration record; do not repeat an unchanged broad model comparison or tune on sealed holdouts.
+1. Retain the completed local verification of manual-workflow removal and finish its submitted-head
+   hosted gate. Finish integrated lifecycle and recovery coverage using applicable retained evidence,
+   preserving original media, saved decisions, category browsing, failed-image retry, and R4 actions.
+2. Assess context coverage, category/band quality, and bounded automatic refinement. Retain the
+   provisional label authority and unsupported confidence bands in the calibration record. Manual
+   classification and correction-time trials are removed from acceptance; do not repeat unchanged
+   model comparisons or tune on sealed holdouts.
 3. The paired local/cloud-primary browsing/classification comparison now passes with the connected
    client, preserved sources and bounded model residency; its
    [measured intervals and cleanup](acceptance/r5-incremental-analysis.md#connected-localcloud-foreground-comparison--2026-11-01)
@@ -140,10 +142,8 @@ R5-07 is active, retaining its existing order and required outcomes:
    passes count/window and memory bounds while exposing 2.3–3.0-second filtered first-query cost.
    Inspect that query cost before claiming responsive large-library category switching.
 4. Complete the applicable hosted gate for the final submitted head and record the R5 exit decision.
-   At product head `c625135d`, all applicable jobs except the still-running Catalog group pass in
-   [run 41283769911](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41283769911).
-   Earlier results cover only their unchanged inputs. Actual human-time reduction remains unmeasured;
-   the provisional holdout references and automated interaction timings do not supply that result.
+   Current removal changes require their own submitted-head result. Earlier checks and measurements
+   cover unchanged inputs only; detailed results remain in the acceptance records.
 
 The separate deferred rendering follow-up retains its bounded scope and does not reopen R4 verification.
 
@@ -297,7 +297,7 @@ interaction and complete hosted verification cover the integrated result.
 ## R5 implementation sequence
 
 The [R5 requirements](product/r5-classification.md) define metadata, classification authority,
-`智能相册`, human review, recovery, and the two-core/8-GiB baseline. The
+`智能相册`, automatic analysis, legacy recovery, and the two-core/8-GiB baseline. The
 [execution plan](plans/r5-classification.md) expands these ordered slices. The selected initial
 candidate is SigLIP 2 Base/16-224 with FP16 image and INT8 text encoders. Its exploratory evidence
 informs R5-02 admission; functional, license, runtime, and resource gates remain in their owning slices.
@@ -306,11 +306,11 @@ informs R5-02 admission; functional, license, runtime, and resource gates remain
 | --- | --- | --- |
 | R5-01 | [Metadata and structured search](plans/r5-classification.md#r5-01-metadata-and-bounded-structured-search) | Admitted metadata and coherent bounded search through the existing gallery, usable without a model |
 | R5-02 | [Taxonomy, model, and runtime admission](plans/r5-classification.md#r5-02-taxonomy-model-and-runtime-admission) | Labeling rubric, quality/calibration evidence, licenses, runtime boundary, and measured resource budgets |
-| R5-03 | [Durable classification and recovery](plans/r5-classification.md#r5-03-durable-classification-decisions-and-recovery) | Whole-group human decisions, independent review/continuation, conflicts, migrations, and portable recovery |
+| R5-03 | [Durable classification and recovery](plans/r5-classification.md#r5-03-durable-classification-decisions-and-recovery) | Immutable classification evidence, preserved legacy decisions, migrations, and portable recovery |
 | R5-04 | [Incremental local analysis](plans/r5-classification.md#r5-04-incremental-local-analysis) | Compatible model publication with bounded resources, pause/retry/restart, and foreground priority |
-| R5-05 | [Smart-album projections](plans/r5-classification.md#r5-05-smart-album-projections-and-coherent-queries) | Coherent derived categories, review filters, counts, pages, selection, and viewer scope |
-| R5-06 | [Desktop classification review](plans/r5-classification.md#r5-06-desktop-classification-review) | Approved sidebar/photo-wall/viewer controls, batch review, continuation, and shared feedback |
-| R5-07 | [Integrated verification](plans/r5-classification.md#r5-07-integrated-quality-scale-and-closure) | Measured human-work reduction, source-safe recovery, usable low-resource browsing, and applicable hosted gates |
+| R5-05 | [Smart-album projections](plans/r5-classification.md#r5-05-smart-album-projections-and-coherent-queries) | Coherent derived categories, metadata filters, counts, pages, selection, and viewer scope |
+| R5-06 | [Desktop smart albums](plans/r5-classification.md#r5-06-desktop-smart-albums) | Approved browsing controls, read-only categories, retry, and shared feedback |
+| R5-07 | [Integrated verification](plans/r5-classification.md#r5-07-integrated-quality-scale-and-closure) | Measured screening quality, source-safe recovery, usable low-resource browsing, and applicable hosted gates |
 
 R5-01 is verified through `44d54b6a`. Indexed literal path search under
 [ADR 0032](architecture/0032-indexed-catalog-text-search.md) and bounded camera metadata under
@@ -327,10 +327,10 @@ verified local artifacts, bounded inference, cancellation and versioned process 
 explicit model installation is admitted with upstream/conversion provenance under that ADR.
 The [separated calibration](acceptance/r5-calibration.md) retains two once-only held-out comparisons.
 The category-aware operating candidate keeps usable first-pass suggestions, bounds refinement and
-exposes categories without enough review evidence. Its optional checks cover a limited additional
-error set; actual correction-time savings and high-confidence quality remain integrated acceptance
-questions. The earlier global cutoffs are not selected. R5-03 now uses the established taxonomy and
-compatibility contracts for durable whole-group decisions and recovery.
+records categories without enough quality evidence. Its historical optional-check analysis covers
+a limited additional error set; current acceptance assesses automatic refinement, coverage, and
+observed quality without a manual-review workflow. The earlier global cutoffs are not selected. R5-03 now uses the established taxonomy and
+compatibility contracts for durable evidence and legacy-decision recovery.
 Model setup and application scheduling retain
 their R5-04 scope; the native adapter does not enable background classification or establish a
 confidence threshold.

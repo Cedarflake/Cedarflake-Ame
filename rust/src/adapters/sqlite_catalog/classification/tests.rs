@@ -10,8 +10,6 @@ use super::*;
 
 mod archives;
 mod authority;
-mod batch;
-mod batch_review;
 mod lifecycle;
 mod queries;
 mod review;

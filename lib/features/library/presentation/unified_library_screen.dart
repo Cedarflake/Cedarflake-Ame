@@ -15,7 +15,6 @@ import "../application/library_browse_admission.dart";
 import "../application/library_album_pages.dart";
 import "../application/library_catalog.dart";
 import "../application/library_classification_settings.dart";
-import "../application/library_classification_actions.dart";
 import "../application/library_classification_retry_actions.dart";
 import "../application/library_controller.dart";
 import "../application/library_folder_controller.dart";
@@ -33,7 +32,6 @@ import "../application/library_workbench_controller.dart";
 import "../domain/gallery_layout_manifest.dart";
 import "../domain/library_folder_models.dart";
 import "../domain/library_models.dart";
-import "../domain/library_classification_review.dart";
 import "../domain/library_organization.dart";
 import "../domain/library_state.dart";
 import "../domain/library_synchronization_models.dart";
@@ -59,7 +57,6 @@ import "widgets/library_albums_sidebar.dart";
 import "widgets/library_collection_navigation.dart";
 import "widgets/library_smart_album_navigation.dart";
 import "widgets/library_smart_album_menu.dart";
-import "widgets/library_classification_controls.dart";
 import "widgets/library_review_toolbar.dart";
 import "widgets/library_review_mode_notice.dart";
 import "widgets/library_viewer_organization_controls.dart";
@@ -295,11 +292,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   void _handleNotificationAction(AmeNotificationEntry notification) {
     if (ref
         .read(libraryClassificationRetryActionsProvider.notifier)
-        .handleNotification(notification)) {
-      return;
-    }
-    if (ref
-        .read(libraryClassificationActionsProvider.notifier)
         .handleNotification(notification)) {
       return;
     }
@@ -848,23 +840,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                 ? null
                 : LibrarySelectionActions(
                     selection: _selection,
-                    classificationActions:
-                        collection is LibrarySmartAlbumCollection &&
-                            state.catalogRevision != null
-                        ? LibraryClassificationControls(
-                            key: ValueKey(_selection),
-                            scope: LibraryClassificationScope(
-                              query: state.query,
-                              catalogRevision: state.catalogRevision!,
-                              allMatching: _selection.isAllMatching,
-                              assetIds: _selection.isAllMatching
-                                  ? _selection.excludedAssetIds
-                                  : _selection.includedAssetIds,
-                            ),
-                            enabled:
-                                !_selection.isEmpty && !state.isRefreshingQuery,
-                          )
-                        : null,
                     query: state.query,
                     catalogRevision: state.catalogRevision!,
                     onCancel: _clearSelection,
@@ -892,7 +867,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
               albumName: albumName,
               categoryName: categoryName,
             ),
-            classificationCounts: state.classificationCounts,
             totalItems: collection is LibrarySmartAlbumCollection
                 ? _totalItems(state)
                 : state.timeline?.totalSourceItems ?? _totalItems(state),

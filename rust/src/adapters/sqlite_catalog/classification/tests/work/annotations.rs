@@ -1,15 +1,8 @@
-use std::sync::Arc;
-
-use crate::domain::GalleryQuery;
 use crate::domain::classification_selection::ClassificationReviewReason;
-use crate::ports::classification_selection::{
-    ClassificationSelectionControl, ClassificationSelectionRepository,
-};
 
 use super::*;
 
 fn assert_review_reason(
-    directory: &tempfile::TempDir,
     catalog: &SqliteCatalog,
     name: &str,
     expected: Option<ClassificationReviewReason>,
@@ -19,23 +12,11 @@ fn assert_review_reason(
         .classification_items(std::slice::from_ref(&target))
         .unwrap();
     assert_eq!(items[0].review_reason, expected);
-    let mut selection = SqliteClassificationSelection::new(
-        SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap(),
-        GalleryQuery::default(),
-        scalar(catalog, "SELECT revision FROM catalog_state") as u64,
-        false,
-        Arc::new(ClassificationSelectionControl::new()),
-    )
-    .unwrap();
-    selection.append_targets(&[target]).unwrap();
-    let summary = selection.prepare().unwrap();
-    assert_eq!(summary.group_count, 1);
-    assert_eq!(summary.single_item.unwrap().review_reason, expected);
 }
 
 #[test]
 fn terminal_failure_and_retry_publish_coherent_card_status() {
-    let (directory, mut catalog) = fixture();
+    let (_directory, mut catalog) = fixture();
     let (run, session) = start(&mut catalog);
     verify(&mut catalog, "a", 'a');
     verify(&mut catalog, "c", 'a');
@@ -86,7 +67,6 @@ fn terminal_failure_and_retry_publish_coherent_card_status() {
     );
     for name in ["a", "c"] {
         assert_review_reason(
-            &directory,
             &catalog,
             name,
             Some(ClassificationReviewReason::AnalysisFailed),
@@ -100,7 +80,7 @@ fn terminal_failure_and_retry_publish_coherent_card_status() {
             .unwrap()
             .is_empty()
     );
-    assert_review_reason(&directory, &catalog, "c", None);
+    assert_review_reason(&catalog, "c", None);
     let claim = catalog
         .claim_classification_work(&session, 20)
         .unwrap()
@@ -116,7 +96,6 @@ fn terminal_failure_and_retry_publish_coherent_card_status() {
             .all(|item| item.reason == ClassificationReviewReason::Uncalibrated)
     );
     assert_review_reason(
-        &directory,
         &catalog,
         "c",
         Some(ClassificationReviewReason::Uncalibrated),
@@ -125,7 +104,7 @@ fn terminal_failure_and_retry_publish_coherent_card_status() {
 
 #[test]
 fn failed_source_does_not_override_a_human_classification() {
-    let (directory, mut catalog) = fixture();
+    let (_directory, mut catalog) = fixture();
     let (_, session) = start(&mut catalog);
     request(
         &mut catalog,
@@ -157,7 +136,6 @@ fn failed_source_does_not_override_a_human_classification() {
         ClassificationReviewReason::AnalysisFailed
     );
     assert_review_reason(
-        &directory,
         &catalog,
         "b",
         Some(ClassificationReviewReason::AnalysisFailed),
@@ -177,5 +155,5 @@ fn failed_source_does_not_override_a_human_classification() {
             .unwrap()
             .is_empty()
     );
-    assert_review_reason(&directory, &catalog, "b", None);
+    assert_review_reason(&catalog, "b", None);
 }

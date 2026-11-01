@@ -10,9 +10,7 @@ use crate::ports::classification::ClassificationRepository;
 
 use super::{SqliteCatalog, database_error};
 
-mod batch;
 pub(super) mod codec;
-pub(crate) use batch::SqliteClassificationSelection;
 mod configuration;
 pub(super) mod maintenance;
 mod observations;

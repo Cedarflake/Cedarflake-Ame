@@ -192,25 +192,22 @@ authority and use the same gallery/viewer. They do not count as extra manual-alb
 appear in the album tray. Manual albums retain their creation, rename, deletion, ordering, and
 membership controls; classification results follow the [R5 rules](r5-classification.md).
 
-Classification prediction, confirmation, correction, and deferred review do not change R4's
-`待整理`, `稍后整理`, `已整理`, or `已忽略` state. `待确认` describes classification review, not the
-organization queue. Assigning a manual album from any supported view still completes organization;
-removing that assignment still records `已忽略`. Favorite changes remain independent.
+Classification predictions and retries do not change R4's `待整理`, `稍后整理`, `已整理`, or `已忽略`
+state. Assigning a manual album from any supported view still completes organization; removing that
+assignment still records `已忽略`. Favorite changes remain independent.
 
 Manual albums, Favorites, and smart albums remain ordinary browsing scopes without R4 organization
-mode. R5 classification actions are available in their own review context, including its shared
-photo wall and viewer; this does not expose R4's ignore/defer or chronological undo/redo controls
-outside organization mode. Operation-specific classification undo uses the shared feedback surface.
+mode. The removed manual-classification workflow exposes no confirmation/correction, deferral,
+continuation, or undo controls. R4 ignore/defer and chronological undo/redo stay in organization mode.
 
-Classification continuation has its own scope and authority. It cannot overwrite the organizing
-Library's bookmark, retained selection, or mode. R5 extends migrations, portable decision recovery,
-and source-removal/cleanup behavior for its new records; existing R4 archives do not already contain
-classification decisions. Preserve R4's completed behavior while verifying these new boundaries.
+R5 preserves legacy classification choices and archive compatibility without changing the organizing
+Library's bookmark, retained selection, or mode. Existing source-removal and cleanup semantics remain.
+R4 archives retain their original records; newer versions can restore saved classification records.
 
 ## Persistence, removal, and recovery
 
 Albums, album decisions, favorites, organization states, conflict choices, review progress, and undo
-boundaries are durable user data. R5 adds its own category `UserOverride` records under the same
+boundaries are durable user data. Legacy R5 category `UserOverride` records follow the same
 preservation principle. Catalog indexes, previews, and model evidence remain separately rebuildable.
 Save each completed operation immediately and atomically with its progress/continuation effects;
 closing the application is not the save trigger.

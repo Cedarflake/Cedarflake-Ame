@@ -33,7 +33,6 @@ class LibrarySelectionActions extends ConsumerStatefulWidget {
     required this.enabled,
     required this.onCommitted,
     required this.onCancel,
-    this.classificationActions,
     super.key,
   });
   final GallerySelection selection;
@@ -42,7 +41,6 @@ class LibrarySelectionActions extends ConsumerStatefulWidget {
   final bool enabled;
   final VoidCallback onCommitted;
   final VoidCallback onCancel;
-  final Widget? classificationActions;
 
   @override
   ConsumerState<LibrarySelectionActions> createState() =>
@@ -373,7 +371,6 @@ class _LibrarySelectionActionsState
               icon: const Icon(Symbols.photo_album_rounded),
               label: const Text("相册"),
             ),
-            ?widget.classificationActions,
             if (_error case final error?)
               Text(
                 error,

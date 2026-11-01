@@ -29,7 +29,6 @@
 use crate::api::classification::*;
 use crate::api::classification_installation::*;
 use crate::api::classification_maintenance::*;
-use crate::api::classification_review::*;
 use crate::api::organization_archive::*;
 use crate::api::organization_batch::*;
 use crate::api::organization_cleanup::*;
@@ -46,7 +45,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1555832631;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1936300341;
 
 // Section: executor
 
@@ -54,465 +53,6 @@ flutter_rust_bridge::frb_generated_default_handler!();
 
 // Section: wire_funcs
 
-fn wire__crate__api__classification_review__ClassificationSelectionDraft_append_ids_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "ClassificationSelectionDraft_append_ids", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
-            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>>>::sse_decode(&mut deserializer);
-let api_asset_ids = <Vec<String>>::sse_decode(&mut deserializer);deserializer.end(); move |context|  {
-                    transform_result_sse::<_, crate::domain::ScanError>((move ||  {
-                        let mut api_that_guard = None;
-let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false)]);
-        for i in decode_indices_ {
-            match i {
-                0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
-                _ => unreachable!(),
-            }
-        }
-        let api_that_guard = api_that_guard.unwrap();
- let output_ok = crate::api::classification_review::ClassificationSelectionDraft::append_ids(&*api_that_guard, api_asset_ids)?;   Ok(output_ok)
-                    })())
-                } })
-}
-fn wire__crate__api__classification_review__ClassificationSelectionDraft_append_targets_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "ClassificationSelectionDraft_append_targets", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
-            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>>>::sse_decode(&mut deserializer);
-let api_targets = <Vec<crate::domain::organization::OrganizationSelection>>::sse_decode(&mut deserializer);deserializer.end(); move |context|  {
-                    transform_result_sse::<_, crate::domain::ScanError>((move ||  {
-                        let mut api_that_guard = None;
-let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false)]);
-        for i in decode_indices_ {
-            match i {
-                0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
-                _ => unreachable!(),
-            }
-        }
-        let api_that_guard = api_that_guard.unwrap();
- let output_ok = crate::api::classification_review::ClassificationSelectionDraft::append_targets(&*api_that_guard, api_targets)?;   Ok(output_ok)
-                    })())
-                } })
-}
-fn wire__crate__api__classification_review__ClassificationSelectionDraft_close_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "ClassificationSelectionDraft_close",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<
-                    ClassificationSelectionDraft,
-                >,
-            >>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, crate::domain::ScanError>((move || {
-                    let mut api_that_guard = None;
-                    let decode_indices_ =
-                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
-                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                &api_that, 0, false,
-                            ),
-                        ]);
-                    for i in decode_indices_ {
-                        match i {
-                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
-                            _ => unreachable!(),
-                        }
-                    }
-                    let api_that_guard = api_that_guard.unwrap();
-                    let output_ok =
-                        crate::api::classification_review::ClassificationSelectionDraft::close(
-                            &*api_that_guard,
-                        )?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
-fn wire__crate__api__classification_review__ClassificationSelectionDraft_confirm_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "ClassificationSelectionDraft_confirm",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<
-                    ClassificationSelectionDraft,
-                >,
-            >>::sse_decode(&mut deserializer);
-            let api_operation_id = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, crate::domain::ScanError>((move || {
-                    let mut api_that_guard = None;
-                    let decode_indices_ =
-                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
-                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                &api_that, 0, false,
-                            ),
-                        ]);
-                    for i in decode_indices_ {
-                        match i {
-                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
-                            _ => unreachable!(),
-                        }
-                    }
-                    let api_that_guard = api_that_guard.unwrap();
-                    let output_ok =
-                        crate::api::classification_review::ClassificationSelectionDraft::confirm(
-                            &*api_that_guard,
-                            api_operation_id,
-                        )?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
-fn wire__crate__api__classification_review__ClassificationSelectionDraft_confirm_review_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "ClassificationSelectionDraft_confirm_review", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
-            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>>>::sse_decode(&mut deserializer);
-let api_operation_id = <String>::sse_decode(&mut deserializer);
-let api_position = <crate::api::classification_progress::ClassificationReviewPosition>::sse_decode(&mut deserializer);deserializer.end(); move |context|  {
-                    transform_result_sse::<_, crate::domain::ScanError>((move ||  {
-                        let mut api_that_guard = None;
-let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false)]);
-        for i in decode_indices_ {
-            match i {
-                0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
-                _ => unreachable!(),
-            }
-        }
-        let api_that_guard = api_that_guard.unwrap();
- let output_ok = crate::api::classification_review::ClassificationSelectionDraft::confirm_review(&*api_that_guard, api_operation_id, api_position)?;   Ok(output_ok)
-                    })())
-                } })
-}
-fn wire__crate__api__classification_review__ClassificationSelectionDraft_correct_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "ClassificationSelectionDraft_correct",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<
-                    ClassificationSelectionDraft,
-                >,
-            >>::sse_decode(&mut deserializer);
-            let api_operation_id = <String>::sse_decode(&mut deserializer);
-            let api_category_id = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, crate::domain::ScanError>((move || {
-                    let mut api_that_guard = None;
-                    let decode_indices_ =
-                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
-                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                &api_that, 0, false,
-                            ),
-                        ]);
-                    for i in decode_indices_ {
-                        match i {
-                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
-                            _ => unreachable!(),
-                        }
-                    }
-                    let api_that_guard = api_that_guard.unwrap();
-                    let output_ok =
-                        crate::api::classification_review::ClassificationSelectionDraft::correct(
-                            &*api_that_guard,
-                            api_operation_id,
-                            api_category_id,
-                        )?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
-fn wire__crate__api__classification_review__ClassificationSelectionDraft_correct_review_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "ClassificationSelectionDraft_correct_review", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
-            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>>>::sse_decode(&mut deserializer);
-let api_operation_id = <String>::sse_decode(&mut deserializer);
-let api_position = <crate::api::classification_progress::ClassificationReviewPosition>::sse_decode(&mut deserializer);
-let api_category_id = <String>::sse_decode(&mut deserializer);deserializer.end(); move |context|  {
-                    transform_result_sse::<_, crate::domain::ScanError>((move ||  {
-                        let mut api_that_guard = None;
-let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false)]);
-        for i in decode_indices_ {
-            match i {
-                0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
-                _ => unreachable!(),
-            }
-        }
-        let api_that_guard = api_that_guard.unwrap();
- let output_ok = crate::api::classification_review::ClassificationSelectionDraft::correct_review(&*api_that_guard, api_operation_id, api_position, api_category_id)?;   Ok(output_ok)
-                    })())
-                } })
-}
-fn wire__crate__api__classification_review__ClassificationSelectionDraft_defer_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "ClassificationSelectionDraft_defer",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<
-                    ClassificationSelectionDraft,
-                >,
-            >>::sse_decode(&mut deserializer);
-            let api_operation_id = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, crate::domain::ScanError>((move || {
-                    let mut api_that_guard = None;
-                    let decode_indices_ =
-                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
-                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                &api_that, 0, false,
-                            ),
-                        ]);
-                    for i in decode_indices_ {
-                        match i {
-                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
-                            _ => unreachable!(),
-                        }
-                    }
-                    let api_that_guard = api_that_guard.unwrap();
-                    let output_ok =
-                        crate::api::classification_review::ClassificationSelectionDraft::defer(
-                            &*api_that_guard,
-                            api_operation_id,
-                        )?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
-fn wire__crate__api__classification_review__ClassificationSelectionDraft_defer_review_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "ClassificationSelectionDraft_defer_review", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || {
-            let message = unsafe { flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_) };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>>>::sse_decode(&mut deserializer);
-let api_operation_id = <String>::sse_decode(&mut deserializer);
-let api_position = <crate::api::classification_progress::ClassificationReviewPosition>::sse_decode(&mut deserializer);deserializer.end(); move |context|  {
-                    transform_result_sse::<_, crate::domain::ScanError>((move ||  {
-                        let mut api_that_guard = None;
-let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(&api_that, 0, false)]);
-        for i in decode_indices_ {
-            match i {
-                0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
-                _ => unreachable!(),
-            }
-        }
-        let api_that_guard = api_that_guard.unwrap();
- let output_ok = crate::api::classification_review::ClassificationSelectionDraft::defer_review(&*api_that_guard, api_operation_id, api_position)?;   Ok(output_ok)
-                    })())
-                } })
-}
-fn wire__crate__api__classification_review__ClassificationSelectionDraft_prepare_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "ClassificationSelectionDraft_prepare",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<
-                    ClassificationSelectionDraft,
-                >,
-            >>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, crate::domain::ScanError>((move || {
-                    let mut api_that_guard = None;
-                    let decode_indices_ =
-                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
-                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                &api_that, 0, false,
-                            ),
-                        ]);
-                    for i in decode_indices_ {
-                        match i {
-                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
-                            _ => unreachable!(),
-                        }
-                    }
-                    let api_that_guard = api_that_guard.unwrap();
-                    let output_ok =
-                        crate::api::classification_review::ClassificationSelectionDraft::prepare(
-                            &*api_that_guard,
-                        )?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
-fn wire__crate__api__classification_review__ClassificationSelectionDraft_progress_impl(
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "ClassificationSelectionDraft_progress",
-            port: None,
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<
-                    ClassificationSelectionDraft,
-                >,
-            >>::sse_decode(&mut deserializer);
-            deserializer.end();
-            transform_result_sse::<_, ()>((move || {
-                let mut api_that_guard = None;
-                let decode_indices_ =
-                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
-                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                            &api_that, 0, false,
-                        ),
-                    ]);
-                for i in decode_indices_ {
-                    match i {
-                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
-                        _ => unreachable!(),
-                    }
-                }
-                let api_that_guard = api_that_guard.unwrap();
-                let output_ok = Result::<_, ()>::Ok(
-                    crate::api::classification_review::ClassificationSelectionDraft::progress(
-                        &*api_that_guard,
-                    ),
-                )?;
-                Ok(output_ok)
-            })())
-        },
-    )
-}
 fn wire__crate__api__classification__DesktopClassificationSession_browsing_activity_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -1796,42 +1336,6 @@ fn wire__crate__api__organization_cleanup__apply_organization_cleanup_impl(
         },
     )
 }
-fn wire__crate__api__classification_progress__begin_classification_review_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "begin_classification_review",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_query = <crate::domain::GalleryQuery>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, crate::domain::ScanError>((move || {
-                    let output_ok =
-                        crate::api::classification_progress::begin_classification_review(
-                            api_query,
-                        )?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
 fn wire__crate__api__organization_review__begin_organization_review_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2139,48 +1643,6 @@ fn wire__crate__api__organization__change_organization_impl(
         },
     )
 }
-fn wire__crate__api__classification_progress__checkpoint_classification_review_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "checkpoint_classification_review",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_position =
-                <crate::api::classification_progress::ClassificationReviewPosition>::sse_decode(
-                    &mut deserializer,
-                );
-            let api_target =
-                <crate::domain::organization::OrganizationSelection>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, crate::domain::ScanError>((move || {
-                    let output_ok =
-                        crate::api::classification_progress::checkpoint_classification_review(
-                            api_position,
-                            api_target,
-                        )?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
 fn wire__crate__api__organization_review__checkpoint_organization_review_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2466,41 +1928,6 @@ fn wire__crate__api__organization__delete_organization_album_impl(
                         api_operation_id,
                         api_expected_revision,
                         api_album_id,
-                    )?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
-fn wire__crate__api__classification_progress__end_classification_review_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "end_classification_review",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_session_id = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, crate::domain::ScanError>((move || {
-                    let output_ok = crate::api::classification_progress::end_classification_review(
-                        api_session_id,
                     )?;
                     Ok(output_ok)
                 })())
@@ -2921,39 +2348,6 @@ fn wire__crate__api__classification_review__load_classification_annotations_impl
                             api_catalog_revision,
                             api_selections,
                         )?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
-fn wire__crate__api__classification_progress__load_classification_continuation_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "load_classification_continuation",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, crate::domain::ScanError>((move || {
-                    let output_ok =
-                        crate::api::classification_progress::load_classification_continuation()?;
                     Ok(output_ok)
                 })())
             }
@@ -4033,46 +3427,6 @@ fn wire__crate__api__preview__materialize_library_preview_impl(
         },
     )
 }
-fn wire__crate__api__classification_review__open_classification_selection_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "open_classification_selection",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_query = <crate::domain::GalleryQuery>::sse_decode(&mut deserializer);
-            let api_catalog_revision = <u64>::sse_decode(&mut deserializer);
-            let api_all_matching = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, crate::domain::ScanError>((move || {
-                    let output_ok =
-                        crate::api::classification_review::open_classification_selection(
-                            api_query,
-                            api_catalog_revision,
-                            api_all_matching,
-                        )?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
 fn wire__crate__api__classification__open_classification_session_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -5009,43 +4363,6 @@ fn wire__crate__api__catalog__suspend_library_scan_impl(
         },
     )
 }
-fn wire__crate__api__classification_review__undo_classification_change_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "undo_classification_change",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_operation_id = <String>::sse_decode(&mut deserializer);
-            let api_original_operation_id = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, crate::domain::ScanError>((move || {
-                    let output_ok = crate::api::classification_review::undo_classification_change(
-                        api_operation_id,
-                        api_original_operation_id,
-                    )?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
 fn wire__crate__api__organization__undo_organization_operation_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -5122,9 +4439,6 @@ fn wire__crate__api__storage__update_storage_settings_impl(
 // Section: related_funcs
 
 flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
-    flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>
-);
-flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopClassificationSession>
 );
 flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
@@ -5153,16 +4467,6 @@ impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <String>::sse_decode(deserializer);
         return flutter_rust_bridge::for_generated::anyhow::anyhow!("{}", inner);
-    }
-}
-
-impl SseDecode for ClassificationSelectionDraft {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut inner = <RustOpaqueMoi<
-            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>,
-        >>::sse_decode(deserializer);
-        return flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(inner);
     }
 }
 
@@ -5235,18 +4539,6 @@ impl SseDecode for ViewerSourceReadLease {
             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ViewerSourceReadLease>,
         >>::sse_decode(deserializer);
         return flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(inner);
-    }
-}
-
-impl SseDecode
-    for RustOpaqueMoi<
-        flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>,
-    >
-{
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut inner = <usize>::sse_decode(deserializer);
-        return decode_rust_opaque_moi(inner);
     }
 }
 
@@ -5732,40 +5024,6 @@ impl SseDecode for crate::domain::classification_configuration::ClassificationCo
     }
 }
 
-impl SseDecode for crate::domain::classification_review::ClassificationContinuation {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_status =
-            <crate::domain::classification_review::ClassificationContinuationStatus>::sse_decode(
-                deserializer,
-            );
-        let mut var_query = <Option<crate::domain::GalleryQuery>>::sse_decode(deserializer);
-        let mut var_target =
-            <Option<crate::domain::organization::OrganizationSelection>>::sse_decode(deserializer);
-        return crate::domain::classification_review::ClassificationContinuation {
-            status: var_status,
-            query: var_query,
-            target: var_target,
-        };
-    }
-}
-
-impl SseDecode for crate::domain::classification_review::ClassificationContinuationStatus {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut inner = <i32>::sse_decode(deserializer);
-        return match inner {
-            0 => crate::domain::classification_review::ClassificationContinuationStatus::NoActivity,
-1 => crate::domain::classification_review::ClassificationContinuationStatus::Ready,
-2 => crate::domain::classification_review::ClassificationContinuationStatus::AnchorUnavailable,
-3 => crate::domain::classification_review::ClassificationContinuationStatus::ScopeUnavailable,
-4 => crate::domain::classification_review::ClassificationContinuationStatus::EmptyScope,
-5 => crate::domain::classification_review::ClassificationContinuationStatus::EndOfScope,
-            _ => unreachable!("Invalid variant for ClassificationContinuationStatus: {}", inner),
-        };
-    }
-}
-
 impl SseDecode for crate::domain::classification_configuration::ClassificationControlAction {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -5847,24 +5105,6 @@ impl SseDecode for crate::domain::classification_selection::ClassificationItemSt
     }
 }
 
-impl SseDecode for crate::api::classification_progress::ClassificationProgressReceipt {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_operation =
-            <crate::domain::classification_catalog::ClassificationWriteReceipt>::sse_decode(
-                deserializer,
-            );
-        let mut var_position =
-            <crate::api::classification_progress::ClassificationReviewPosition>::sse_decode(
-                deserializer,
-            );
-        return crate::api::classification_progress::ClassificationProgressReceipt {
-            operation: var_operation,
-            position: var_position,
-        };
-    }
-}
-
 impl SseDecode for crate::domain::classification::work::ClassificationRetryOutcome {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -5891,18 +5131,6 @@ impl SseDecode for crate::domain::classification_review::ClassificationReviewFil
     }
 }
 
-impl SseDecode for crate::api::classification_progress::ClassificationReviewPosition {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_sessionId = <String>::sse_decode(deserializer);
-        let mut var_sequence = <u64>::sse_decode(deserializer);
-        return crate::api::classification_progress::ClassificationReviewPosition {
-            session_id: var_sessionId,
-            sequence: var_sequence,
-        };
-    }
-}
-
 impl SseDecode for crate::domain::classification_selection::ClassificationReviewReason {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -5917,63 +5145,6 @@ impl SseDecode for crate::domain::classification_selection::ClassificationReview
                 crate::domain::classification_selection::ClassificationReviewReason::AnalysisFailed
             }
             _ => unreachable!("Invalid variant for ClassificationReviewReason: {}", inner),
-        };
-    }
-}
-
-impl SseDecode for crate::domain::classification_selection::ClassificationSelectionPhase {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut inner = <i32>::sse_decode(deserializer);
-        return match inner {
-            0 => crate::domain::classification_selection::ClassificationSelectionPhase::Collecting,
-            1 => crate::domain::classification_selection::ClassificationSelectionPhase::Preparing,
-            2 => crate::domain::classification_selection::ClassificationSelectionPhase::Ready,
-            3 => crate::domain::classification_selection::ClassificationSelectionPhase::Saving,
-            4 => crate::domain::classification_selection::ClassificationSelectionPhase::Completed,
-            5 => crate::domain::classification_selection::ClassificationSelectionPhase::Cancelled,
-            6 => crate::domain::classification_selection::ClassificationSelectionPhase::Failed,
-            _ => unreachable!(
-                "Invalid variant for ClassificationSelectionPhase: {}",
-                inner
-            ),
-        };
-    }
-}
-
-impl SseDecode for crate::domain::classification_selection::ClassificationSelectionProgress {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_phase =
-            <crate::domain::classification_selection::ClassificationSelectionPhase>::sse_decode(
-                deserializer,
-            );
-        let mut var_completedGroups = <u64>::sse_decode(deserializer);
-        let mut var_totalGroups = <u64>::sse_decode(deserializer);
-        return crate::domain::classification_selection::ClassificationSelectionProgress {
-            phase: var_phase,
-            completed_groups: var_completedGroups,
-            total_groups: var_totalGroups,
-        };
-    }
-}
-
-impl SseDecode for crate::domain::classification_selection::ClassificationSelectionSummary {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_singleItem = <Option<
-            crate::domain::classification_selection::ClassificationItemState,
-        >>::sse_decode(deserializer);
-        let mut var_groupCount = <u64>::sse_decode(deserializer);
-        let mut var_confirmableCount = <u64>::sse_decode(deserializer);
-        let mut var_confirmedCount = <u64>::sse_decode(deserializer);
-        let mut var_commonCategoryId = <Option<String>>::sse_decode(deserializer);
-        return crate::domain::classification_selection::ClassificationSelectionSummary {
-            single_item: var_singleItem,
-            group_count: var_groupCount,
-            confirmable_count: var_confirmableCount,
-            confirmed_count: var_confirmedCount,
-            common_category_id: var_commonCategoryId,
         };
     }
 }
@@ -5999,20 +5170,6 @@ impl SseDecode for crate::domain::classification_configuration::ClassificationSe
             categories: var_categories,
             run_id: var_runId,
             installation_selected: var_installationSelected,
-        };
-    }
-}
-
-impl SseDecode for crate::domain::classification_catalog::ClassificationWriteReceipt {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_operationId = <String>::sse_decode(deserializer);
-        let mut var_revision = <u64>::sse_decode(deserializer);
-        let mut var_changedGroups = <u64>::sse_decode(deserializer);
-        return crate::domain::classification_catalog::ClassificationWriteReceipt {
-            operation_id: var_operationId,
-            revision: var_revision,
-            changed_groups: var_changedGroups,
         };
     }
 }
@@ -7467,21 +6624,6 @@ impl SseDecode for Option<crate::domain::classification_review::ClassificationCo
         if (<bool>::sse_decode(deserializer)) {
             return Some(
                 <crate::domain::classification_review::ClassificationCounts>::sse_decode(
-                    deserializer,
-                ),
-            );
-        } else {
-            return None;
-        }
-    }
-}
-
-impl SseDecode for Option<crate::domain::classification_selection::ClassificationItemState> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        if (<bool>::sse_decode(deserializer)) {
-            return Some(
-                <crate::domain::classification_selection::ClassificationItemState>::sse_decode(
                     deserializer,
                 ),
             );
@@ -9080,114 +8222,98 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-                        1 => wire__crate__api__classification_review__ClassificationSelectionDraft_append_ids_impl(port, ptr, rust_vec_len, data_len),
-2 => wire__crate__api__classification_review__ClassificationSelectionDraft_append_targets_impl(port, ptr, rust_vec_len, data_len),
-3 => wire__crate__api__classification_review__ClassificationSelectionDraft_close_impl(port, ptr, rust_vec_len, data_len),
-4 => wire__crate__api__classification_review__ClassificationSelectionDraft_confirm_impl(port, ptr, rust_vec_len, data_len),
-5 => wire__crate__api__classification_review__ClassificationSelectionDraft_confirm_review_impl(port, ptr, rust_vec_len, data_len),
-6 => wire__crate__api__classification_review__ClassificationSelectionDraft_correct_impl(port, ptr, rust_vec_len, data_len),
-7 => wire__crate__api__classification_review__ClassificationSelectionDraft_correct_review_impl(port, ptr, rust_vec_len, data_len),
-8 => wire__crate__api__classification_review__ClassificationSelectionDraft_defer_impl(port, ptr, rust_vec_len, data_len),
-9 => wire__crate__api__classification_review__ClassificationSelectionDraft_defer_review_impl(port, ptr, rust_vec_len, data_len),
-10 => wire__crate__api__classification_review__ClassificationSelectionDraft_prepare_impl(port, ptr, rust_vec_len, data_len),
-14 => wire__crate__api__classification__DesktopClassificationSession_close_impl(port, ptr, rust_vec_len, data_len),
-17 => wire__crate__api__classification__DesktopClassificationSession_root_available_impl(port, ptr, rust_vec_len, data_len),
-18 => wire__crate__api__classification__DesktopClassificationSession_run_impl(port, ptr, rust_vec_len, data_len),
-20 => wire__crate__api__classification_installation__DesktopModelInstallation_commit_impl(port, ptr, rust_vec_len, data_len),
-21 => wire__crate__api__classification_installation__DesktopModelInstallation_prepare_impl(port, ptr, rust_vec_len, data_len),
-25 => wire__crate__api__organization_batch__OrganizationSelectionDraft_append_ids_impl(port, ptr, rust_vec_len, data_len),
-26 => wire__crate__api__organization_batch__OrganizationSelectionDraft_apply_impl(port, ptr, rust_vec_len, data_len),
-27 => wire__crate__api__organization_batch__OrganizationSelectionDraft_close_impl(port, ptr, rust_vec_len, data_len),
-28 => wire__crate__api__organization_batch__OrganizationSelectionDraft_prepare_impl(port, ptr, rust_vec_len, data_len),
-29 => wire__crate__api__organization_batch__OrganizationSelectionDraft_progress_impl(port, ptr, rust_vec_len, data_len),
-30 => wire__crate__api__organization_batch__OrganizationSelectionDraft_refresh_impl(port, ptr, rust_vec_len, data_len),
-32 => wire__crate__api__classification_maintenance__PreparedClassificationMaintenance_commit_impl(port, ptr, rust_vec_len, data_len),
-33 => wire__crate__api__viewer_source__ViewerSourceReadLease_close_impl(port, ptr, rust_vec_len, data_len),
-34 => wire__crate__api__viewer_source__ViewerSourceReadLease_source_path_impl(port, ptr, rust_vec_len, data_len),
-35 => wire__crate__api__viewer_source__acquire_viewer_source_impl(port, ptr, rust_vec_len, data_len),
-36 => wire__crate__api__exact_duplicates__analyze_exact_duplicates_impl(port, ptr, rust_vec_len, data_len),
-37 => wire__crate__api__organization_cleanup__apply_organization_cleanup_impl(port, ptr, rust_vec_len, data_len),
-38 => wire__crate__api__classification_progress__begin_classification_review_impl(port, ptr, rust_vec_len, data_len),
-39 => wire__crate__api__organization_review__begin_organization_review_impl(port, ptr, rust_vec_len, data_len),
-40 => wire__crate__api__storage__cancel_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
-41 => wire__crate__api__exact_duplicates__cancel_exact_duplicate_analysis_impl(port, ptr, rust_vec_len, data_len),
-44 => wire__crate__api__catalog__cancel_retained_library_scan_impl(port, ptr, rust_vec_len, data_len),
-45 => wire__crate__api__classification_settings__change_classification_control_impl(port, ptr, rust_vec_len, data_len),
-46 => wire__crate__api__organization_review__change_current_organization_review_impl(port, ptr, rust_vec_len, data_len),
-47 => wire__crate__api__organization__change_organization_impl(port, ptr, rust_vec_len, data_len),
-48 => wire__crate__api__classification_progress__checkpoint_classification_review_impl(port, ptr, rust_vec_len, data_len),
-49 => wire__crate__api__organization_review__checkpoint_organization_review_impl(port, ptr, rust_vec_len, data_len),
-50 => wire__crate__api__storage__clear_preview_cache_impl(port, ptr, rust_vec_len, data_len),
-51 => wire__crate__api__storage__clear_retired_preview_cache_impl(port, ptr, rust_vec_len, data_len),
-53 => wire__crate__api__organization__create_organization_album_impl(port, ptr, rust_vec_len, data_len),
-56 => wire__crate__api__organization__delete_organization_album_impl(port, ptr, rust_vec_len, data_len),
-57 => wire__crate__api__classification_progress__end_classification_review_impl(port, ptr, rust_vec_len, data_len),
-58 => wire__crate__api__organization_review__end_organization_review_impl(port, ptr, rust_vec_len, data_len),
-59 => wire__crate__api__organization_archive__export_organization_archive_impl(port, ptr, rust_vec_len, data_len),
-60 => wire__crate__api__organization__find_organization_album_impl(port, ptr, rust_vec_len, data_len),
-61 => wire__crate__api__initialization__init_app_impl(port, ptr, rust_vec_len, data_len),
-62 => wire__crate__api__classification_settings__initial_classification_categories_impl(port, ptr, rust_vec_len, data_len),
-63 => wire__crate__api__organization_archive__inspect_organization_archive_impl(port, ptr, rust_vec_len, data_len),
-64 => wire__crate__api__organization_cleanup__inspect_organization_cleanup_impl(port, ptr, rust_vec_len, data_len),
-65 => wire__crate__api__organization__inspect_organization_selection_impl(port, ptr, rust_vec_len, data_len),
-66 => wire__crate__api__storage__load_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
-67 => wire__crate__api__classification_review__load_classification_annotations_impl(port, ptr, rust_vec_len, data_len),
-68 => wire__crate__api__classification_progress__load_classification_continuation_impl(port, ptr, rust_vec_len, data_len),
-69 => wire__crate__api__classification_review__load_classification_items_impl(port, ptr, rust_vec_len, data_len),
-70 => wire__crate__api__classification_settings__load_classification_settings_impl(port, ptr, rust_vec_len, data_len),
-71 => wire__crate__api__exact_duplicates__load_exact_duplicate_groups_impl(port, ptr, rust_vec_len, data_len),
-72 => wire__crate__api__exact_duplicates__load_exact_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
-73 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
-74 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locations_impl(port, ptr, rust_vec_len, data_len),
-75 => wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
-76 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(port, ptr, rust_vec_len, data_len),
-77 => wire__crate__api__catalog__load_library_asset_by_id_impl(port, ptr, rust_vec_len, data_len),
-78 => wire__crate__api__catalog__load_library_catalog_impl(port, ptr, rust_vec_len, data_len),
-79 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(port, ptr, rust_vec_len, data_len),
-80 => wire__crate__api__catalog__load_library_catalog_around_location_impl(port, ptr, rust_vec_len, data_len),
-81 => wire__crate__api__catalog__load_library_catalog_at_time_impl(port, ptr, rust_vec_len, data_len),
-82 => wire__crate__api__catalog__load_library_folder_page_impl(port, ptr, rust_vec_len, data_len),
-83 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(port, ptr, rust_vec_len, data_len),
-84 => wire__crate__api__catalog__load_library_gallery_timeline_impl(port, ptr, rust_vec_len, data_len),
-85 => wire__crate__api__catalog__load_library_query_snapshot_impl(port, ptr, rust_vec_len, data_len),
-86 => wire__crate__api__catalog__load_library_time_snapshot_impl(port, ptr, rust_vec_len, data_len),
-87 => wire__crate__api__organization_review__load_organization_admission_boundary_impl(port, ptr, rust_vec_len, data_len),
-88 => wire__crate__api__organization__load_organization_albums_impl(port, ptr, rust_vec_len, data_len),
-89 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(port, ptr, rust_vec_len, data_len),
-90 => wire__crate__api__organization_conflicts__load_organization_conflict_annotations_impl(port, ptr, rust_vec_len, data_len),
-91 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(port, ptr, rust_vec_len, data_len),
-92 => wire__crate__api__organization_review__load_organization_continuation_impl(port, ptr, rust_vec_len, data_len),
-93 => wire__crate__api__organization__load_organization_history_impl(port, ptr, rust_vec_len, data_len),
-94 => wire__crate__api__catalog__load_paused_library_scan_impl(port, ptr, rust_vec_len, data_len),
-95 => wire__crate__api__catalog__load_recoverable_library_scan_impl(port, ptr, rust_vec_len, data_len),
-96 => wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len),
-97 => wire__crate__api__preview__materialize_library_preview_impl(port, ptr, rust_vec_len, data_len),
-98 => wire__crate__api__classification_review__open_classification_selection_impl(port, ptr, rust_vec_len, data_len),
-99 => wire__crate__api__classification__open_classification_session_impl(port, ptr, rust_vec_len, data_len),
-100 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(port, ptr, rust_vec_len, data_len),
-102 => wire__crate__api__synchronization__poll_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-103 => wire__crate__api__organization__prepare_organization_selection_impl(port, ptr, rust_vec_len, data_len),
-104 => wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len),
-105 => wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len),
-106 => wire__crate__api__organization__rename_organization_album_impl(port, ptr, rust_vec_len, data_len),
-107 => wire__crate__api__sidebar_order__reorder_sidebar_entry_impl(port, ptr, rust_vec_len, data_len),
-110 => wire__crate__api__organization_archive__restore_organization_archive_impl(port, ptr, rust_vec_len, data_len),
-111 => wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len),
-112 => wire__crate__api__classification_retry__retry_failed_classification_impl(port, ptr, rust_vec_len, data_len),
-113 => wire__crate__api__classification_settings__save_classification_settings_impl(port, ptr, rust_vec_len, data_len),
-114 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-115 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
-116 => wire__crate__api__classification__select_classification_installation_impl(port, ptr, rust_vec_len, data_len),
-117 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(port, ptr, rust_vec_len, data_len),
-118 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(port, ptr, rust_vec_len, data_len),
-119 => wire__crate__api__organization__set_organization_favorite_impl(port, ptr, rust_vec_len, data_len),
-120 => wire__crate__api__storage__start_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
-121 => wire__crate__api__synchronization__start_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-122 => wire__crate__api__organization__step_organization_history_impl(port, ptr, rust_vec_len, data_len),
-123 => wire__crate__api__synchronization__stop_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-125 => wire__crate__api__classification_review__undo_classification_change_impl(port, ptr, rust_vec_len, data_len),
-126 => wire__crate__api__organization__undo_organization_operation_impl(port, ptr, rust_vec_len, data_len),
-127 => wire__crate__api__storage__update_storage_settings_impl(port, ptr, rust_vec_len, data_len),
+                        3 => wire__crate__api__classification__DesktopClassificationSession_close_impl(port, ptr, rust_vec_len, data_len),
+6 => wire__crate__api__classification__DesktopClassificationSession_root_available_impl(port, ptr, rust_vec_len, data_len),
+7 => wire__crate__api__classification__DesktopClassificationSession_run_impl(port, ptr, rust_vec_len, data_len),
+9 => wire__crate__api__classification_installation__DesktopModelInstallation_commit_impl(port, ptr, rust_vec_len, data_len),
+10 => wire__crate__api__classification_installation__DesktopModelInstallation_prepare_impl(port, ptr, rust_vec_len, data_len),
+14 => wire__crate__api__organization_batch__OrganizationSelectionDraft_append_ids_impl(port, ptr, rust_vec_len, data_len),
+15 => wire__crate__api__organization_batch__OrganizationSelectionDraft_apply_impl(port, ptr, rust_vec_len, data_len),
+16 => wire__crate__api__organization_batch__OrganizationSelectionDraft_close_impl(port, ptr, rust_vec_len, data_len),
+17 => wire__crate__api__organization_batch__OrganizationSelectionDraft_prepare_impl(port, ptr, rust_vec_len, data_len),
+18 => wire__crate__api__organization_batch__OrganizationSelectionDraft_progress_impl(port, ptr, rust_vec_len, data_len),
+19 => wire__crate__api__organization_batch__OrganizationSelectionDraft_refresh_impl(port, ptr, rust_vec_len, data_len),
+21 => wire__crate__api__classification_maintenance__PreparedClassificationMaintenance_commit_impl(port, ptr, rust_vec_len, data_len),
+22 => wire__crate__api__viewer_source__ViewerSourceReadLease_close_impl(port, ptr, rust_vec_len, data_len),
+23 => wire__crate__api__viewer_source__ViewerSourceReadLease_source_path_impl(port, ptr, rust_vec_len, data_len),
+24 => wire__crate__api__viewer_source__acquire_viewer_source_impl(port, ptr, rust_vec_len, data_len),
+25 => wire__crate__api__exact_duplicates__analyze_exact_duplicates_impl(port, ptr, rust_vec_len, data_len),
+26 => wire__crate__api__organization_cleanup__apply_organization_cleanup_impl(port, ptr, rust_vec_len, data_len),
+27 => wire__crate__api__organization_review__begin_organization_review_impl(port, ptr, rust_vec_len, data_len),
+28 => wire__crate__api__storage__cancel_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
+29 => wire__crate__api__exact_duplicates__cancel_exact_duplicate_analysis_impl(port, ptr, rust_vec_len, data_len),
+32 => wire__crate__api__catalog__cancel_retained_library_scan_impl(port, ptr, rust_vec_len, data_len),
+33 => wire__crate__api__classification_settings__change_classification_control_impl(port, ptr, rust_vec_len, data_len),
+34 => wire__crate__api__organization_review__change_current_organization_review_impl(port, ptr, rust_vec_len, data_len),
+35 => wire__crate__api__organization__change_organization_impl(port, ptr, rust_vec_len, data_len),
+36 => wire__crate__api__organization_review__checkpoint_organization_review_impl(port, ptr, rust_vec_len, data_len),
+37 => wire__crate__api__storage__clear_preview_cache_impl(port, ptr, rust_vec_len, data_len),
+38 => wire__crate__api__storage__clear_retired_preview_cache_impl(port, ptr, rust_vec_len, data_len),
+40 => wire__crate__api__organization__create_organization_album_impl(port, ptr, rust_vec_len, data_len),
+43 => wire__crate__api__organization__delete_organization_album_impl(port, ptr, rust_vec_len, data_len),
+44 => wire__crate__api__organization_review__end_organization_review_impl(port, ptr, rust_vec_len, data_len),
+45 => wire__crate__api__organization_archive__export_organization_archive_impl(port, ptr, rust_vec_len, data_len),
+46 => wire__crate__api__organization__find_organization_album_impl(port, ptr, rust_vec_len, data_len),
+47 => wire__crate__api__initialization__init_app_impl(port, ptr, rust_vec_len, data_len),
+48 => wire__crate__api__classification_settings__initial_classification_categories_impl(port, ptr, rust_vec_len, data_len),
+49 => wire__crate__api__organization_archive__inspect_organization_archive_impl(port, ptr, rust_vec_len, data_len),
+50 => wire__crate__api__organization_cleanup__inspect_organization_cleanup_impl(port, ptr, rust_vec_len, data_len),
+51 => wire__crate__api__organization__inspect_organization_selection_impl(port, ptr, rust_vec_len, data_len),
+52 => wire__crate__api__storage__load_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
+53 => wire__crate__api__classification_review__load_classification_annotations_impl(port, ptr, rust_vec_len, data_len),
+54 => wire__crate__api__classification_review__load_classification_items_impl(port, ptr, rust_vec_len, data_len),
+55 => wire__crate__api__classification_settings__load_classification_settings_impl(port, ptr, rust_vec_len, data_len),
+56 => wire__crate__api__exact_duplicates__load_exact_duplicate_groups_impl(port, ptr, rust_vec_len, data_len),
+57 => wire__crate__api__exact_duplicates__load_exact_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
+58 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
+59 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locations_impl(port, ptr, rust_vec_len, data_len),
+60 => wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
+61 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(port, ptr, rust_vec_len, data_len),
+62 => wire__crate__api__catalog__load_library_asset_by_id_impl(port, ptr, rust_vec_len, data_len),
+63 => wire__crate__api__catalog__load_library_catalog_impl(port, ptr, rust_vec_len, data_len),
+64 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(port, ptr, rust_vec_len, data_len),
+65 => wire__crate__api__catalog__load_library_catalog_around_location_impl(port, ptr, rust_vec_len, data_len),
+66 => wire__crate__api__catalog__load_library_catalog_at_time_impl(port, ptr, rust_vec_len, data_len),
+67 => wire__crate__api__catalog__load_library_folder_page_impl(port, ptr, rust_vec_len, data_len),
+68 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(port, ptr, rust_vec_len, data_len),
+69 => wire__crate__api__catalog__load_library_gallery_timeline_impl(port, ptr, rust_vec_len, data_len),
+70 => wire__crate__api__catalog__load_library_query_snapshot_impl(port, ptr, rust_vec_len, data_len),
+71 => wire__crate__api__catalog__load_library_time_snapshot_impl(port, ptr, rust_vec_len, data_len),
+72 => wire__crate__api__organization_review__load_organization_admission_boundary_impl(port, ptr, rust_vec_len, data_len),
+73 => wire__crate__api__organization__load_organization_albums_impl(port, ptr, rust_vec_len, data_len),
+74 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(port, ptr, rust_vec_len, data_len),
+75 => wire__crate__api__organization_conflicts__load_organization_conflict_annotations_impl(port, ptr, rust_vec_len, data_len),
+76 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(port, ptr, rust_vec_len, data_len),
+77 => wire__crate__api__organization_review__load_organization_continuation_impl(port, ptr, rust_vec_len, data_len),
+78 => wire__crate__api__organization__load_organization_history_impl(port, ptr, rust_vec_len, data_len),
+79 => wire__crate__api__catalog__load_paused_library_scan_impl(port, ptr, rust_vec_len, data_len),
+80 => wire__crate__api__catalog__load_recoverable_library_scan_impl(port, ptr, rust_vec_len, data_len),
+81 => wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len),
+82 => wire__crate__api__preview__materialize_library_preview_impl(port, ptr, rust_vec_len, data_len),
+83 => wire__crate__api__classification__open_classification_session_impl(port, ptr, rust_vec_len, data_len),
+84 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(port, ptr, rust_vec_len, data_len),
+86 => wire__crate__api__synchronization__poll_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+87 => wire__crate__api__organization__prepare_organization_selection_impl(port, ptr, rust_vec_len, data_len),
+88 => wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len),
+89 => wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len),
+90 => wire__crate__api__organization__rename_organization_album_impl(port, ptr, rust_vec_len, data_len),
+91 => wire__crate__api__sidebar_order__reorder_sidebar_entry_impl(port, ptr, rust_vec_len, data_len),
+94 => wire__crate__api__organization_archive__restore_organization_archive_impl(port, ptr, rust_vec_len, data_len),
+95 => wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len),
+96 => wire__crate__api__classification_retry__retry_failed_classification_impl(port, ptr, rust_vec_len, data_len),
+97 => wire__crate__api__classification_settings__save_classification_settings_impl(port, ptr, rust_vec_len, data_len),
+98 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+99 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
+100 => wire__crate__api__classification__select_classification_installation_impl(port, ptr, rust_vec_len, data_len),
+101 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(port, ptr, rust_vec_len, data_len),
+102 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(port, ptr, rust_vec_len, data_len),
+103 => wire__crate__api__organization__set_organization_favorite_impl(port, ptr, rust_vec_len, data_len),
+104 => wire__crate__api__storage__start_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
+105 => wire__crate__api__synchronization__start_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+106 => wire__crate__api__organization__step_organization_history_impl(port, ptr, rust_vec_len, data_len),
+107 => wire__crate__api__synchronization__stop_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+109 => wire__crate__api__organization__undo_organization_operation_impl(port, ptr, rust_vec_len, data_len),
+110 => wire__crate__api__storage__update_storage_settings_impl(port, ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
 }
@@ -9200,50 +8326,29 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-                        11 => wire__crate__api__classification_review__ClassificationSelectionDraft_progress_impl(ptr, rust_vec_len, data_len),
-12 => wire__crate__api__classification__DesktopClassificationSession_browsing_activity_impl(ptr, rust_vec_len, data_len),
-13 => wire__crate__api__classification__DesktopClassificationSession_catalog_changed_impl(ptr, rust_vec_len, data_len),
-15 => wire__crate__api__classification__DesktopClassificationSession_foreground_changed_impl(ptr, rust_vec_len, data_len),
-16 => wire__crate__api__classification__DesktopClassificationSession_request_close_impl(ptr, rust_vec_len, data_len),
-19 => wire__crate__api__classification_installation__DesktopModelInstallation_cancel_impl(ptr, rust_vec_len, data_len),
-22 => wire__crate__api__classification_installation__DesktopModelInstallation_progress_impl(ptr, rust_vec_len, data_len),
-23 => wire__crate__api__organization_archive__OrganizationArchiveTask_cancel_impl(ptr, rust_vec_len, data_len),
-24 => wire__crate__api__organization_cleanup__OrganizationCleanupTask_cancel_impl(ptr, rust_vec_len, data_len),
-31 => wire__crate__api__classification_maintenance__PreparedClassificationMaintenance_cancel_impl(ptr, rust_vec_len, data_len),
-42 => wire__crate__api__catalog__cancel_library_scan_impl(ptr, rust_vec_len, data_len),
-43 => wire__crate__api__storage__cancel_preview_cache_cleanup_impl(ptr, rust_vec_len, data_len),
-52 => wire__crate__api__classification_installation__create_model_installation_impl(ptr, rust_vec_len, data_len),
-54 => wire__crate__api__organization_archive__create_organization_archive_task_impl(ptr, rust_vec_len, data_len),
-55 => wire__crate__api__organization_cleanup__create_organization_cleanup_task_impl(ptr, rust_vec_len, data_len),
-101 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-108 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(ptr, rust_vec_len, data_len),
-109 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(ptr, rust_vec_len, data_len),
-124 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+                        1 => wire__crate__api__classification__DesktopClassificationSession_browsing_activity_impl(ptr, rust_vec_len, data_len),
+2 => wire__crate__api__classification__DesktopClassificationSession_catalog_changed_impl(ptr, rust_vec_len, data_len),
+4 => wire__crate__api__classification__DesktopClassificationSession_foreground_changed_impl(ptr, rust_vec_len, data_len),
+5 => wire__crate__api__classification__DesktopClassificationSession_request_close_impl(ptr, rust_vec_len, data_len),
+8 => wire__crate__api__classification_installation__DesktopModelInstallation_cancel_impl(ptr, rust_vec_len, data_len),
+11 => wire__crate__api__classification_installation__DesktopModelInstallation_progress_impl(ptr, rust_vec_len, data_len),
+12 => wire__crate__api__organization_archive__OrganizationArchiveTask_cancel_impl(ptr, rust_vec_len, data_len),
+13 => wire__crate__api__organization_cleanup__OrganizationCleanupTask_cancel_impl(ptr, rust_vec_len, data_len),
+20 => wire__crate__api__classification_maintenance__PreparedClassificationMaintenance_cancel_impl(ptr, rust_vec_len, data_len),
+30 => wire__crate__api__catalog__cancel_library_scan_impl(ptr, rust_vec_len, data_len),
+31 => wire__crate__api__storage__cancel_preview_cache_cleanup_impl(ptr, rust_vec_len, data_len),
+39 => wire__crate__api__classification_installation__create_model_installation_impl(ptr, rust_vec_len, data_len),
+41 => wire__crate__api__organization_archive__create_organization_archive_task_impl(ptr, rust_vec_len, data_len),
+42 => wire__crate__api__organization_cleanup__create_organization_cleanup_task_impl(ptr, rust_vec_len, data_len),
+85 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
+92 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(ptr, rust_vec_len, data_len),
+93 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(ptr, rust_vec_len, data_len),
+108 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
 }
 
 // Section: rust2dart
-
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for FrbWrapper<ClassificationSelectionDraft> {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self.0)
-            .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<ClassificationSelectionDraft>
-{
-}
-
-impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<ClassificationSelectionDraft>>
-    for ClassificationSelectionDraft
-{
-    fn into_into_dart(self) -> FrbWrapper<ClassificationSelectionDraft> {
-        self.into()
-    }
-}
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<DesktopClassificationSession> {
@@ -9806,63 +8911,6 @@ impl
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart
-    for crate::domain::classification_review::ClassificationContinuation
-{
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.status.into_into_dart().into_dart(),
-            self.query.into_into_dart().into_dart(),
-            self.target.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::domain::classification_review::ClassificationContinuation
-{
-}
-impl
-    flutter_rust_bridge::IntoIntoDart<
-        crate::domain::classification_review::ClassificationContinuation,
-    > for crate::domain::classification_review::ClassificationContinuation
-{
-    fn into_into_dart(self) -> crate::domain::classification_review::ClassificationContinuation {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart
-    for crate::domain::classification_review::ClassificationContinuationStatus
-{
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::NoActivity => 0.into_dart(),
-            Self::Ready => 1.into_dart(),
-            Self::AnchorUnavailable => 2.into_dart(),
-            Self::ScopeUnavailable => 3.into_dart(),
-            Self::EmptyScope => 4.into_dart(),
-            Self::EndOfScope => 5.into_dart(),
-            _ => unreachable!(),
-        }
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::domain::classification_review::ClassificationContinuationStatus
-{
-}
-impl
-    flutter_rust_bridge::IntoIntoDart<
-        crate::domain::classification_review::ClassificationContinuationStatus,
-    > for crate::domain::classification_review::ClassificationContinuationStatus
-{
-    fn into_into_dart(
-        self,
-    ) -> crate::domain::classification_review::ClassificationContinuationStatus {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart
     for crate::domain::classification_configuration::ClassificationControlAction
 {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
@@ -9998,31 +9046,6 @@ impl
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart
-    for crate::api::classification_progress::ClassificationProgressReceipt
-{
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.operation.into_into_dart().into_dart(),
-            self.position.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::classification_progress::ClassificationProgressReceipt
-{
-}
-impl
-    flutter_rust_bridge::IntoIntoDart<
-        crate::api::classification_progress::ClassificationProgressReceipt,
-    > for crate::api::classification_progress::ClassificationProgressReceipt
-{
-    fn into_into_dart(self) -> crate::api::classification_progress::ClassificationProgressReceipt {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart
     for crate::domain::classification::work::ClassificationRetryOutcome
 {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
@@ -10075,31 +9098,6 @@ impl
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart
-    for crate::api::classification_progress::ClassificationReviewPosition
-{
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.session_id.into_into_dart().into_dart(),
-            self.sequence.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::classification_progress::ClassificationReviewPosition
-{
-}
-impl
-    flutter_rust_bridge::IntoIntoDart<
-        crate::api::classification_progress::ClassificationReviewPosition,
-    > for crate::api::classification_progress::ClassificationReviewPosition
-{
-    fn into_into_dart(self) -> crate::api::classification_progress::ClassificationReviewPosition {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart
     for crate::domain::classification_selection::ClassificationReviewReason
 {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
@@ -10129,96 +9127,6 @@ impl
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart
-    for crate::domain::classification_selection::ClassificationSelectionPhase
-{
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            Self::Collecting => 0.into_dart(),
-            Self::Preparing => 1.into_dart(),
-            Self::Ready => 2.into_dart(),
-            Self::Saving => 3.into_dart(),
-            Self::Completed => 4.into_dart(),
-            Self::Cancelled => 5.into_dart(),
-            Self::Failed => 6.into_dart(),
-            _ => unreachable!(),
-        }
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::domain::classification_selection::ClassificationSelectionPhase
-{
-}
-impl
-    flutter_rust_bridge::IntoIntoDart<
-        crate::domain::classification_selection::ClassificationSelectionPhase,
-    > for crate::domain::classification_selection::ClassificationSelectionPhase
-{
-    fn into_into_dart(
-        self,
-    ) -> crate::domain::classification_selection::ClassificationSelectionPhase {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart
-    for crate::domain::classification_selection::ClassificationSelectionProgress
-{
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.phase.into_into_dart().into_dart(),
-            self.completed_groups.into_into_dart().into_dart(),
-            self.total_groups.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::domain::classification_selection::ClassificationSelectionProgress
-{
-}
-impl
-    flutter_rust_bridge::IntoIntoDart<
-        crate::domain::classification_selection::ClassificationSelectionProgress,
-    > for crate::domain::classification_selection::ClassificationSelectionProgress
-{
-    fn into_into_dart(
-        self,
-    ) -> crate::domain::classification_selection::ClassificationSelectionProgress {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart
-    for crate::domain::classification_selection::ClassificationSelectionSummary
-{
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.single_item.into_into_dart().into_dart(),
-            self.group_count.into_into_dart().into_dart(),
-            self.confirmable_count.into_into_dart().into_dart(),
-            self.confirmed_count.into_into_dart().into_dart(),
-            self.common_category_id.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::domain::classification_selection::ClassificationSelectionSummary
-{
-}
-impl
-    flutter_rust_bridge::IntoIntoDart<
-        crate::domain::classification_selection::ClassificationSelectionSummary,
-    > for crate::domain::classification_selection::ClassificationSelectionSummary
-{
-    fn into_into_dart(
-        self,
-    ) -> crate::domain::classification_selection::ClassificationSelectionSummary {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart
     for crate::domain::classification_configuration::ClassificationSettings
 {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
@@ -10243,32 +9151,6 @@ impl
     > for crate::domain::classification_configuration::ClassificationSettings
 {
     fn into_into_dart(self) -> crate::domain::classification_configuration::ClassificationSettings {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart
-    for crate::domain::classification_catalog::ClassificationWriteReceipt
-{
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.operation_id.into_into_dart().into_dart(),
-            self.revision.into_into_dart().into_dart(),
-            self.changed_groups.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::domain::classification_catalog::ClassificationWriteReceipt
-{
-}
-impl
-    flutter_rust_bridge::IntoIntoDart<
-        crate::domain::classification_catalog::ClassificationWriteReceipt,
-    > for crate::domain::classification_catalog::ClassificationWriteReceipt
-{
-    fn into_into_dart(self) -> crate::domain::classification_catalog::ClassificationWriteReceipt {
         self
     }
 }
@@ -13373,18 +12255,6 @@ impl SseEncode for flutter_rust_bridge::for_generated::anyhow::Error {
     }
 }
 
-impl SseEncode for ClassificationSelectionDraft {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <RustOpaqueMoi<
-            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>,
-        >>::sse_encode(
-            flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self),
-            serializer,
-        );
-    }
-}
-
 impl SseEncode for DesktopClassificationSession {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -13468,19 +12338,6 @@ impl SseEncode for ViewerSourceReadLease {
             flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self),
             serializer,
         );
-    }
-}
-
-impl SseEncode
-    for RustOpaqueMoi<
-        flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>,
-    >
-{
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        let (ptr, size) = self.sse_encode_raw();
-        <usize>::sse_encode(ptr, serializer);
-        <i32>::sse_encode(size, serializer);
     }
 }
 
@@ -13906,34 +12763,6 @@ crate::domain::classification_configuration::ClassificationConfigurationAction::
     }
 }
 
-impl SseEncode for crate::domain::classification_review::ClassificationContinuation {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::domain::classification_review::ClassificationContinuationStatus>::sse_encode(
-            self.status,
-            serializer,
-        );
-        <Option<crate::domain::GalleryQuery>>::sse_encode(self.query, serializer);
-        <Option<crate::domain::organization::OrganizationSelection>>::sse_encode(
-            self.target,
-            serializer,
-        );
-    }
-}
-
-impl SseEncode for crate::domain::classification_review::ClassificationContinuationStatus {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <i32>::sse_encode(match self {crate::domain::classification_review::ClassificationContinuationStatus::NoActivity => { 0 }
-crate::domain::classification_review::ClassificationContinuationStatus::Ready => { 1 }
-crate::domain::classification_review::ClassificationContinuationStatus::AnchorUnavailable => { 2 }
-crate::domain::classification_review::ClassificationContinuationStatus::ScopeUnavailable => { 3 }
-crate::domain::classification_review::ClassificationContinuationStatus::EmptyScope => { 4 }
-crate::domain::classification_review::ClassificationContinuationStatus::EndOfScope => { 5 }
- _ => { unimplemented!(""); }}, serializer);
-    }
-}
-
 impl SseEncode for crate::domain::classification_configuration::ClassificationControlAction {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -14011,20 +12840,6 @@ impl SseEncode for crate::domain::classification_selection::ClassificationItemSt
     }
 }
 
-impl SseEncode for crate::api::classification_progress::ClassificationProgressReceipt {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::domain::classification_catalog::ClassificationWriteReceipt>::sse_encode(
-            self.operation,
-            serializer,
-        );
-        <crate::api::classification_progress::ClassificationReviewPosition>::sse_encode(
-            self.position,
-            serializer,
-        );
-    }
-}
-
 impl SseEncode for crate::domain::classification::work::ClassificationRetryOutcome {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -14052,14 +12867,6 @@ impl SseEncode for crate::domain::classification_review::ClassificationReviewFil
     }
 }
 
-impl SseEncode for crate::api::classification_progress::ClassificationReviewPosition {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.session_id, serializer);
-        <u64>::sse_encode(self.sequence, serializer);
-    }
-}
-
 impl SseEncode for crate::domain::classification_selection::ClassificationReviewReason {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -14070,45 +12877,6 @@ crate::domain::classification_selection::ClassificationReviewReason::Deferred =>
 crate::domain::classification_selection::ClassificationReviewReason::Conflict => { 4 }
 crate::domain::classification_selection::ClassificationReviewReason::AnalysisFailed => { 5 }
  _ => { unimplemented!(""); }}, serializer);
-    }
-}
-
-impl SseEncode for crate::domain::classification_selection::ClassificationSelectionPhase {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <i32>::sse_encode(match self {crate::domain::classification_selection::ClassificationSelectionPhase::Collecting => { 0 }
-crate::domain::classification_selection::ClassificationSelectionPhase::Preparing => { 1 }
-crate::domain::classification_selection::ClassificationSelectionPhase::Ready => { 2 }
-crate::domain::classification_selection::ClassificationSelectionPhase::Saving => { 3 }
-crate::domain::classification_selection::ClassificationSelectionPhase::Completed => { 4 }
-crate::domain::classification_selection::ClassificationSelectionPhase::Cancelled => { 5 }
-crate::domain::classification_selection::ClassificationSelectionPhase::Failed => { 6 }
- _ => { unimplemented!(""); }}, serializer);
-    }
-}
-
-impl SseEncode for crate::domain::classification_selection::ClassificationSelectionProgress {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::domain::classification_selection::ClassificationSelectionPhase>::sse_encode(
-            self.phase, serializer,
-        );
-        <u64>::sse_encode(self.completed_groups, serializer);
-        <u64>::sse_encode(self.total_groups, serializer);
-    }
-}
-
-impl SseEncode for crate::domain::classification_selection::ClassificationSelectionSummary {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <Option<crate::domain::classification_selection::ClassificationItemState>>::sse_encode(
-            self.single_item,
-            serializer,
-        );
-        <u64>::sse_encode(self.group_count, serializer);
-        <u64>::sse_encode(self.confirmable_count, serializer);
-        <u64>::sse_encode(self.confirmed_count, serializer);
-        <Option<String>>::sse_encode(self.common_category_id, serializer);
     }
 }
 
@@ -14126,15 +12894,6 @@ impl SseEncode for crate::domain::classification_configuration::ClassificationSe
         );
         <Option<String>>::sse_encode(self.run_id, serializer);
         <bool>::sse_encode(self.installation_selected, serializer);
-    }
-}
-
-impl SseEncode for crate::domain::classification_catalog::ClassificationWriteReceipt {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.operation_id, serializer);
-        <u64>::sse_encode(self.revision, serializer);
-        <u64>::sse_encode(self.changed_groups, serializer);
     }
 }
 
@@ -15273,18 +14032,6 @@ impl SseEncode for Option<crate::domain::classification_review::ClassificationCo
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::domain::classification_review::ClassificationCounts>::sse_encode(
-                value, serializer,
-            );
-        }
-    }
-}
-
-impl SseEncode for Option<crate::domain::classification_selection::ClassificationItemState> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <bool>::sse_encode(self.is_some(), serializer);
-        if let Some(value) = self {
-            <crate::domain::classification_selection::ClassificationItemState>::sse_encode(
                 value, serializer,
             );
         }
@@ -16618,7 +15365,6 @@ mod io {
     use crate::api::classification::*;
     use crate::api::classification_installation::*;
     use crate::api::classification_maintenance::*;
-    use crate::api::classification_review::*;
     use crate::api::organization_archive::*;
     use crate::api::organization_batch::*;
     use crate::api::organization_cleanup::*;
@@ -16632,24 +15378,6 @@ mod io {
     // Section: boilerplate
 
     flutter_rust_bridge::frb_generated_boilerplate_io!();
-
-    #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_cedarflake_ame_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-        ptr: *const std::ffi::c_void,
-    ) {
-        MoiArc::<
-            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>,
-        >::increment_strong_count(ptr as _);
-    }
-
-    #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_cedarflake_ame_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-        ptr: *const std::ffi::c_void,
-    ) {
-        MoiArc::<
-            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>,
-        >::decrement_strong_count(ptr as _);
-    }
 
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_cedarflake_ame_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
@@ -16776,7 +15504,6 @@ mod web {
     use crate::api::classification::*;
     use crate::api::classification_installation::*;
     use crate::api::classification_maintenance::*;
-    use crate::api::classification_review::*;
     use crate::api::organization_archive::*;
     use crate::api::organization_batch::*;
     use crate::api::organization_cleanup::*;
@@ -16792,24 +15519,6 @@ mod web {
     // Section: boilerplate
 
     flutter_rust_bridge::frb_generated_boilerplate_web!();
-
-    #[wasm_bindgen]
-    pub fn rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-        ptr: *const std::ffi::c_void,
-    ) {
-        MoiArc::<
-            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>,
-        >::increment_strong_count(ptr as _);
-    }
-
-    #[wasm_bindgen]
-    pub fn rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClassificationSelectionDraft(
-        ptr: *const std::ffi::c_void,
-    ) {
-        MoiArc::<
-            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>,
-        >::decrement_strong_count(ptr as _);
-    }
 
     #[wasm_bindgen]
     pub fn rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(

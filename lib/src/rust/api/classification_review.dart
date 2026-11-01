@@ -4,28 +4,10 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../domain.dart';
-import '../domain/classification_catalog.dart';
-import '../domain/classification_review.dart';
 import '../domain/classification_selection.dart';
-import '../domain/gallery_metadata_filter.dart';
 import '../domain/organization.dart';
-import '../domain/organization_queue.dart';
 import '../frb_generated.dart';
-import 'classification_progress.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
-
-// These functions are ignored because they are not marked as `pub`: `identifier`
-
-Future<ClassificationSelectionDraft> openClassificationSelection({
-  required GalleryQuery query,
-  required BigInt catalogRevision,
-  required bool allMatching,
-}) => RustLib.instance.api
-    .crateApiClassificationReviewOpenClassificationSelection(
-      query: query,
-      catalogRevision: catalogRevision,
-      allMatching: allMatching,
-    );
 
 Future<List<ClassificationItemState>> loadClassificationItems({
   required List<OrganizationSelection> selections,
@@ -41,49 +23,3 @@ Future<List<ClassificationAnnotation>> loadClassificationAnnotations({
       catalogRevision: catalogRevision,
       selections: selections,
     );
-
-Future<ClassificationWriteReceipt> undoClassificationChange({
-  required String operationId,
-  required String originalOperationId,
-}) => RustLib.instance.api.crateApiClassificationReviewUndoClassificationChange(
-  operationId: operationId,
-  originalOperationId: originalOperationId,
-);
-
-// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClassificationSelectionDraft>>
-abstract class ClassificationSelectionDraft implements RustOpaqueInterface {
-  Future<void> appendIds({required List<String> assetIds});
-
-  Future<void> appendTargets({required List<OrganizationSelection> targets});
-
-  Future<void> close();
-
-  Future<ClassificationWriteReceipt> confirm({required String operationId});
-
-  Future<ClassificationProgressReceipt> confirmReview({
-    required String operationId,
-    required ClassificationReviewPosition position,
-  });
-
-  Future<ClassificationWriteReceipt> correct({
-    required String operationId,
-    required String categoryId,
-  });
-
-  Future<ClassificationProgressReceipt> correctReview({
-    required String operationId,
-    required ClassificationReviewPosition position,
-    required String categoryId,
-  });
-
-  Future<ClassificationWriteReceipt> defer({required String operationId});
-
-  Future<ClassificationProgressReceipt> deferReview({
-    required String operationId,
-    required ClassificationReviewPosition position,
-  });
-
-  Future<ClassificationSelectionSummary> prepare();
-
-  ClassificationSelectionProgress progress();
-}

@@ -83,7 +83,6 @@ pub(crate) use preview_cache::{
 };
 pub(crate) use sqlite_catalog::MetadataInventorySpoolExecution;
 pub use sqlite_catalog::SqliteCatalog;
-pub(crate) use sqlite_catalog::SqliteClassificationSelection;
 pub(crate) use sqlite_catalog::{
     RejectedInputValidationRoster, SqliteCatalogReadExecutor, SqliteCatalogSession,
     SqliteCatalogSpaceMaintenance, SqliteJournalNamespaceReader, SqliteOrganizationBatch,

@@ -1,5 +1,9 @@
 # R5 desktop classification integration
 
+Manual confirmation/correction, review filters, deferral, continuation, and classification undo were
+withdrawn on 2026-11-01. Earlier checks below retain their historical scope; current behavior follows
+[the revised R5 requirements](../product/r5-classification.md). Legacy records and archives remain compatible.
+
 This record covers smart-album browsing, configuration and guarded review within R5-06. The
 [roadmap](../roadmap.md#current-execution-queue) owns stage disposition; the
 [desktop contract](../product/gallery-ui.md#smart-album-workflow) owns interaction requirements.
@@ -386,3 +390,49 @@ framework regression selects the complete 79,013-item query with Ctrl+A, and all
 tests pass. In the native client, Down followed by Return selects all 50 folded groups through More.
 Viewer arrow navigation is covered above. No production input remapping is introduced; the temporary
 launcher logging is removed afterward.
+
+## Manual-classification workflow removal — 2026-11-01
+
+The change on top of `3255772c` removes confirmation, correction, deferral, review filters/counts,
+continuation, and classification undo from gallery selection, context menus, and the preview. The
+generated desktop bridge no longer exposes their mutation/session commands. Unreachable native
+batch/session execution and its dedicated fixtures are removed. Read-only item/annotation queries,
+automatic analysis, failed-image retry, and R4 actions remain connected. No schema migration, model
+change, or durable-record purge accompanies the removal.
+
+Thirty-four focused Flutter checks pass across annotations, labels, retry actions/widgets, shared
+feedback, context menus, and smart-album navigation. They cover all six legacy review states, stale
+query callbacks, failed reads, and disabled/stopped retry. The context-menu fixture retains settings
+across remount after the first run exposed its auto-disposal; final Dart analysis reports no issues.
+The bridge roster and rejecting fixtures pass for 31 asynchronous contracts with matching generated
+Rust/Dart hashes. Final format and whitespace checks pass. Native compilation exposed obsolete
+batch/session code and an unused trait import; those remaining references are removed without warning
+suppression. Full native and hosted gates follow the submitted commit.
+
+The existing isolated Profile client uses its in-memory preference entrypoint and the native
+debug-assertion storage override. An initial normal-entry launch exposed no window and was retired;
+verification then used that established isolation configuration. Actual interactions show:
+
+- Category results display their image count without pending/confirmed controls or review badges.
+  The filter menu contains metadata conditions, and More retains analysis controls and all-results.
+- Previewing a saved category displays its name without a classification menu. Favorite and manual
+  album actions remain available. Selecting all 50 groups offers no manual-classification action.
+- A failed image retries from its context menu through the existing bottom notice. A second retries
+  directly from the preview through the existing top notice. Both report queued work while paused,
+  remove the retry action for that queued image, and create no classification undo entry.
+- The existing manual album and Favorites each retain their two groups. Restart opens ordinary
+  Library browsing with 51 files / 50 folded groups rather than resuming classification review.
+
+Read-only comparisons before the update, after both retries, and after restart preserve row counts
+and SHA-256 digests for all nine sampled durable tables: five saved classification decisions, their
+operation/target/change history, the classification bookmark and review operations, albums,
+organization records, and the organization bookmark. All 51 fixture file lengths and SHA-256 hashes
+remain unchanged. This check exercises retained data and current retry/browsing behavior; historical
+archive, model-quality, and resource results above retain their original scope.
+
+Production line counts are 1,904 for the gallery facade, 532 for its header, 258 for the photo context
+menu, 79 for preview classification, 58 for context classification, and 36/98 for the Dart read port
+and adapter. Native read-only application/bridge facades contain 16/16 lines. No inline tests are
+added. The affected native annotation fixture has 159 lines; dedicated retry-widget, context-menu,
+label, and smart-album fixtures have 155/231/121/341 lines. Large existing owners only lose wiring;
+the replacement read/retry presentation remains in its existing bounded owners.
