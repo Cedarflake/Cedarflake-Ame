@@ -287,8 +287,26 @@ the category addition and run replacement. No source-file access occurs in this 
 The changed category set creates an explicitly uncalibrated immutable setup; a screening profile
 for the previous category set is not transferred. Existing runs and human decisions remain retained.
 The addition boundary preserves the 256-category contract bound and per-assessment proposal limit.
-Cumulative soft budgets, non-equivalent overlap policy and automatic scheduling are separate requirements
-before enabling managed maintenance in first use.
+Before preparing the configuration, it sends unknown admitted definitions through the shared joint
+competition owner against the current taxonomy. Exact existing descriptions are deferred regardless
+of a new name. Candidates compete for independent supporting members; membership rejected by naming,
+purpose, context or the original admission pass cannot become support merely because a competing
+candidate is removed. The published support list comes from the final selection.
+
+The maintenance request also supplies an explicit cumulative generated-category budget. Every active
+category with a recorded automatic origin consumes a slot, including manually protected definitions;
+manual/legacy categories consume only the overall taxonomy capacity. Retired definitions consume no
+active slot, but remain known identities that cannot be recreated. The effective addition ceiling is
+the minimum of the remaining generated slots, overall taxonomy slots and per-assessment limit. A
+budget below the retained count defers additions and preserves the existing definitions.
+
+Publication rereads the active generated identities in the same transaction as source and revision
+checks. They must match the prepared snapshot, and the resulting generated count must fit the supplied
+budget. The operation evidence binds that budget, prior active identities and the joint-selection
+algorithm; changing the budget cannot replay an earlier operation under the same receipt. The origin
+read is bounded by the active taxonomy and at most 64 proposed identities. This enforcement does not
+select the product's useful default count, merge non-equivalent existing definitions or enable runtime
+maintenance; those admission and integration decisions remain separate requirements.
 
 Schema 71 records immutable discovery evidence once per addition operation and a separate durable
 origin for each generated category. Evidence retains the encoder/run, vocabulary and policy revisions,

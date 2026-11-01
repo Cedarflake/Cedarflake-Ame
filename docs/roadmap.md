@@ -168,9 +168,10 @@ independent support after overlap and budget decisions. The retained cache-only 
 input-order stability and exposes category-set effects; it does not select a cumulative product budget
 or retire existing categories. Equivalent generated definitions now have a guarded retirement path
 that preserves protected definitions, human classifications, purpose parents and historical evidence.
-The configuration/run replacement and versioned retirement record share one transaction. Cumulative
-usefulness budgets, non-equivalent overlap policy and runtime integration remain before automatic
-first use.
+The configuration/run replacement and versioned retirement record share one transaction. Category
+publication now shares joint candidate selection, counts active generated definitions against an
+explicit cumulative budget and revalidates that count during commit. Useful default-budget selection,
+non-equivalent existing-category overlap policy and runtime integration remain before automatic first use.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review

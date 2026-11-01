@@ -12,7 +12,7 @@ struct Support {
     gain: f64,
 }
 
-pub(super) fn select(
+pub(in crate::application::classification_discovery) fn select(
     existing: &[CategoryDefinition],
     proposed: &[&CategoryDefinition],
     samples: &[ScoredSample],
@@ -126,32 +126,43 @@ fn support(
 ) -> Vec<Support> {
     let mut support = vec![Support::default(); count];
     for sample in samples {
-        let mut best = sample.baseline.similarity;
-        let mut second = best;
-        let mut leading = None;
-        for index in active {
-            let score = sample.proposed[*index];
-            if score > best {
-                second = best;
-                best = score;
-                leading = Some(*index);
-            } else {
-                second = second.max(score);
-            }
-        }
-        let Some(index) = leading else {
-            continue;
-        };
-        let improvement = best - sample.baseline.similarity;
-        let separation = best - second;
-        if improvement > 0.0
-            && improvement >= criteria.minimum_improvement
-            && separation > 0.0
-            && separation >= criteria.minimum_separation
-        {
+        if let Some((index, separation)) = supporting_candidate(active, sample, criteria) {
             support[index].members += 1;
             support[index].gain += f64::from(separation);
         }
     }
     support
+}
+
+pub(in crate::application::classification_discovery) fn supporting_candidate(
+    active: &BTreeSet<usize>,
+    sample: &ScoredSample,
+    criteria: CategoryAdmissionCriteria,
+) -> Option<(usize, f32)> {
+    let mut best = sample.baseline.similarity;
+    let mut second = best;
+    let mut leading = None;
+    for index in active {
+        let score = sample.proposed[*index];
+        if score > best {
+            second = best;
+            best = score;
+            leading = Some(*index);
+        } else {
+            second = second.max(score);
+        }
+    }
+    let index = leading?;
+    let improvement = best - sample.baseline.similarity;
+    let separation = best - second;
+    if sample.eligible[index]
+        && improvement > 0.0
+        && improvement >= criteria.minimum_improvement
+        && separation > 0.0
+        && separation >= criteria.minimum_separation
+    {
+        Some((index, separation))
+    } else {
+        None
+    }
 }

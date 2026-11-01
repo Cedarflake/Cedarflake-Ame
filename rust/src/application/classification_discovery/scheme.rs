@@ -11,7 +11,7 @@ use crate::domain::classification::{
 use super::super::classification_matching::CategoryMatcher;
 use super::{CategoryAdmissionPolicy, check_cancelled};
 
-mod selection;
+pub(super) mod selection;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CategorySchemeDisposition {
@@ -48,10 +48,11 @@ pub struct CategorySchemeAssessment {
     pub members: Vec<CategorySchemeMember>,
 }
 
-struct ScoredSample {
-    content: ClassificationContent,
-    baseline: CategoryScore,
-    proposed: Vec<f32>,
+pub(super) struct ScoredSample {
+    pub content: ClassificationContent,
+    pub baseline: CategoryScore,
+    pub proposed: Vec<f32>,
+    pub eligible: Vec<bool>,
 }
 
 pub fn assess_category_scheme(
@@ -94,6 +95,7 @@ pub fn assess_category_scheme(
         scored.push(ScoredSample {
             content: sample.content.clone(),
             baseline: current.leading().clone(),
+            eligible: vec![true; proposed.len()],
             proposed: proposed
                 .iter()
                 .map(|category| by_id[category.id()])

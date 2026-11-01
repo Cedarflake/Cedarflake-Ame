@@ -6,6 +6,7 @@ use crate::ports::classification_configuration::CategoryExpansionRepository;
 
 use super::*;
 
+mod capacity;
 mod fixture;
 mod origins;
 mod preservation;

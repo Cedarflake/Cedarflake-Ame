@@ -42,11 +42,15 @@ impl CategoryExpansionRepository for SqliteCatalog {
         if operations::replay(&transaction, &plan.configuration.operation_id, &digest)?.is_none() {
             let current = snapshot(&transaction, &plan.additions)?;
             let before = &current.configuration;
+            let active_generated = current.active_generated_categories();
             if before.catalog.revision != plan.configuration.expected_catalog_revision
                 || before.dispatch.revision != plan.configuration.expected_dispatch_revision
                 || before.dispatch.mode != ClassificationDispatchMode::Automatic
                 || current.model != Some(plan.configuration.setup.run().model())
                 || !current.known_categories.is_empty()
+                || active_generated != plan.provenance.capacity.active_generated
+                || active_generated.len() + plan.additions.len()
+                    > plan.provenance.capacity.maximum_generated
             {
                 return Err(changed());
             }
@@ -88,11 +92,24 @@ fn snapshot(
         known_categories
             .insert(CategoryId::new(row.map_err(database_error)?).map_err(|_| changed())?);
     }
+    let mut origin_categories: BTreeSet<_> = proposed.iter().cloned().collect();
+    if let Some(rules) = &configuration.catalog.taxonomy {
+        origin_categories.extend(
+            rules
+                .categories()
+                .iter()
+                .map(|category| category.id().clone()),
+        );
+    }
+    let managed_categories = maintenance::load(
+        connection,
+        &origin_categories.into_iter().collect::<Vec<_>>(),
+    )?;
     Ok(CategoryExpansionSnapshot {
         configuration,
         model,
         known_categories,
-        managed_categories: maintenance::load(connection, proposed)?,
+        managed_categories,
     })
 }
 

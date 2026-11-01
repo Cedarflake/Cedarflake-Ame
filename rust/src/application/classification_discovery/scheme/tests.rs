@@ -10,6 +10,39 @@ const BASE: Definition<'_> = ("base", "broad content", [0.0, 0.0, 1.0]);
 const CAT: Definition<'_> = ("cat", "cats", [1.0, 0.0, 0.0]);
 const DOG: Definition<'_> = ("dog", "dogs", [0.0, 1.0, 0.0]);
 
+#[test]
+fn joint_competition_preserves_prior_member_ineligibility() {
+    let baseline = matcher(&[BASE]);
+    let proposed = matcher(&[CAT]);
+    let proposed: Vec<_> = proposed.taxonomy().categories().iter().collect();
+    let samples = samples(4, 0)
+        .into_iter()
+        .enumerate()
+        .map(|(index, sample)| ScoredSample {
+            content: sample.content,
+            baseline: CategoryScore {
+                category_id: CategoryId::new("base".into()).unwrap(),
+                similarity: 0.0,
+            },
+            proposed: vec![1.0],
+            eligible: vec![index < 2],
+        })
+        .collect::<Vec<_>>();
+    let result = selection::select(
+        baseline.taxonomy().categories(),
+        &proposed,
+        &samples,
+        policy(8).criteria(),
+        &AtomicBool::new(false),
+    )
+    .unwrap();
+    assert_eq!(result[0].unique_members, 2);
+    assert_eq!(
+        result[0].disposition,
+        CategorySchemeDisposition::InsufficientMembers
+    );
+}
+
 fn model() -> ModelCompatibility {
     ModelCompatibility::new(
         ClassificationRevision::from_bytes([1; 32]),

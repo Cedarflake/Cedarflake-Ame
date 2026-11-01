@@ -33,6 +33,11 @@ pub(in crate::adapters::sqlite_catalog::classification) fn encode(
     }).collect::<Result<Vec<_>, ScanError>>()?;
     let payload = json!({
         "version": 1,
+        "selection": {
+            "algorithm": "joint-admitted-support-v1",
+            "maximum_generated": evidence.capacity.maximum_generated,
+            "active_generated": evidence.capacity.active_generated.iter().map(|category| category.as_str()).collect::<Vec<_>>(),
+        },
         "run": serde_json::from_str::<Value>(&codec::encode_run(plan.configuration.setup.run())?).map_err(|_| invalid_record())?,
         "naming": naming,
         "vocabulary": codec::revision(evidence.vocabulary), "cohort": codec::revision(evidence.cohort),

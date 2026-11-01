@@ -1162,3 +1162,49 @@ retirement policy and transaction ownership remain in the dedicated owners above
 This establishes exact-description retirement. Persistent cumulative usefulness budgets,
 non-equivalent overlap decisions, automatic maintenance scheduling and first-use integration retain
 their canonical scope.
+
+### Joint publication and cumulative category capacity
+
+Category expansion now uses the same joint selection owner as the retained scheme comparison before
+constructing its replacement configuration. The original name/purpose/context admission remains a
+prerequisite: selection cannot turn a previously rejected member into support when it removes another
+candidate. Existing descriptions are not duplicated under new names, and the final supporting-content
+list is derived from the selected joint result.
+
+The native request requires an explicit cumulative generated-category budget. Active automatic origins
+count across cohorts and restarts, including protected definitions. Manual categories retain only the
+overall taxonomy constraint; retired origins do not consume an active slot and their identities cannot
+be recreated. The remaining generated slots, 256-category bound and existing per-pass ceiling jointly
+limit additions. Existing categories are preserved when a lower budget has no remaining capacity.
+
+The publication transaction repeats the active-origin membership and count check alongside the
+existing catalog/dispatch/model/source guards. Its receipt and bounded immutable evidence bind the
+budget, prior generated identities, algorithm and final support. The evidence payload retains its
+version-1 envelope with additive selection fields; schema 72 and portable archive version 6 remain
+unchanged. All verification fixtures use isolated temporary catalogs without original image reads,
+model inference, downloads or desktop operations.
+
+The preparation owner has 181 production lines and a two-line dedicated-test registration; provenance
+construction has 102 and final selection 137. The shared scheme owner has 237 production lines and a
+two-line dedicated-test registration, with selection at 168 and dedicated scheme tests at 365. Domain
+maintenance types have 143 production lines, SQLite publication 190 and evidence encoding 69, with
+no inline tests. Dedicated capacity tests have 393 lines and the existing shared fixture has 171.
+The preparation split isolates final selection and immutable evidence construction without changing
+the shared configuration transaction or moving policy into presentation.
+
+The nine scheme regressions pass, including preservation of member ineligibility and the earlier
+joint competition/order/cancellation cases. The settings run passes 39 of 40 cases; the remaining
+case stops in fixture setup because its two extra locations were not cataloged before fingerprint
+publication. After adding those isolated location and source-authority records, the unchanged
+selection/publication code passes that exact case. The 49 relevant cases therefore pass across these
+runs. They cover cumulative limits after restart and protection, retirement capacity, origin changes
+without revision changes, budget-bound receipts, equivalent descriptions, full taxonomy capacity,
+one-slot competition and deterministic publication, alongside the existing source/recovery checks.
+An earlier compile attempt identified a test comparison of a command type without equality support;
+the assertion now compares its selected identities, taxonomy and run configuration directly.
+The repository format check passes with 685 Dart files unchanged, and `git diff --check` passes.
+The delivered commit retains hosted CI ownership for the complete suite and lint checks.
+
+Useful default-budget admission, non-equivalent existing-category retirement, automatic scheduling
+and first-use integration remain in the canonical queue. The explicit capacity parameter is an
+enforced policy input, not a newly selected shipping category limit or a measured accuracy result.

@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::discovery::{CategoryNaming, ConceptId};
 use super::{
     CategoryId, ClassificationContent, ClassificationRecordId, ClassificationRevision,
-    ModelCompatibility,
+    ModelCompatibility, Taxonomy,
 };
 use crate::domain::classification_configuration::{
     ClassificationConfigurationChange, ClassificationConfigurationSnapshot,
@@ -19,6 +19,20 @@ pub struct CategoryExpansionSnapshot {
     pub model: Option<ModelCompatibility>,
     pub known_categories: BTreeSet<CategoryId>,
     pub managed_categories: BTreeMap<CategoryId, ManagedCategoryOrigin>,
+}
+
+impl CategoryExpansionSnapshot {
+    pub(crate) fn active_generated_categories(&self) -> BTreeSet<CategoryId> {
+        self.configuration
+            .catalog
+            .taxonomy
+            .as_ref()
+            .into_iter()
+            .flat_map(Taxonomy::categories)
+            .filter(|category| self.managed_categories.contains_key(category.id()))
+            .map(|category| category.id().clone())
+            .collect()
+    }
 }
 
 pub struct CategoryExpansionPlan {
@@ -81,6 +95,12 @@ pub(crate) struct CategoryExpansionProvenance {
     pub bounds: CategoryExpansionBounds,
     pub members: Vec<ClassificationContent>,
     pub candidates: Vec<CategoryExpansionCandidate>,
+    pub capacity: CategoryExpansionCapacity,
+}
+
+pub(crate) struct CategoryExpansionCapacity {
+    pub maximum_generated: usize,
+    pub active_generated: BTreeSet<CategoryId>,
 }
 
 pub(crate) struct CategoryExpansionCriteria {
