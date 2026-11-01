@@ -5,7 +5,6 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
-import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../application/library_classification_actions.dart";
 import "../../application/library_classification_review.dart";
 import "../../application/library_classification_selection.dart";
@@ -13,6 +12,7 @@ import "../../application/library_classification_settings.dart";
 import "../../domain/library_classification_review.dart";
 import "../../domain/library_organization_batch.dart";
 import "library_selection_progress.dart";
+import "library_classification_category_menu.dart";
 
 class LibraryClassificationControls extends ConsumerStatefulWidget {
   const LibraryClassificationControls({
@@ -155,12 +155,10 @@ class _LibraryClassificationControlsState
           ),
           const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
         ],
-        for (final category in categories)
-          ameMenuChoice(
-            value: "category:${category.id}",
-            isSelected: categoryId == category.id,
-            label: category.label,
-          ),
+        ...libraryClassificationCategoryItems(
+          categories: categories,
+          selectedCategoryId: categoryId,
+        ),
       ],
       builder: (context, openMenu) {
         VoidCallback? activate;

@@ -129,6 +129,26 @@ The [category evidence](r5-category-discovery.md#joined-desktop-maintenance-publ
 native/client lifecycle checks; model-backed first-use interaction remains pending. The roadmap owns
 the remaining context coverage and integrated quality acceptance.
 
-Card review indicators, image context-menu commands, classification continuation and real-client
+Card review indicators, classification continuation and real-client
 acceptance of contextual review retain their R5-06 scope. Integrated quality, scale and the paired
 cloud-primary comparison remain in R5-07. These focused checks do not close the stage.
+
+## Smart-album image context menus
+
+The existing image context menu now prepares the clicked source version and offers applicable
+confirmation/correction in smart-album scopes. Confirmed or otherwise ineligible items omit
+confirmation. Correction opens the same anchored category-choice entries as selection and viewer
+controls, with the shared dot marker, neutral icons and framework focus/navigation. No dialog or new
+menu primitive is introduced; `showAmePopupMenu` retains the installed SDK's `showMenu` ownership.
+The original Favorite/manual-album and information actions remain available.
+
+Five new widget cases pass: target-bound confirmation with shared undo, confirmed-item correction,
+late inspection after navigation, an already-open command after navigation, and failed inspection
+with successful reopening. The two existing classification-control and five original photo-menu
+cases also pass. Focused analysis reports no issues, owned formatting and whitespace checks pass.
+Successful classification stays outside notification history; read failure uses the existing
+notification controller and clears after a successful retry. Real-window interaction remains pending.
+
+The photo-menu composition has 275 production lines, its classification scope/lifetime owner 85,
+shared category entries 34 and existing classification controls 227. No inline tests are added;
+the new dedicated menu fixture has 230 lines. There are no schema, dependency or media-access changes.

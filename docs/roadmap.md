@@ -204,8 +204,9 @@ purpose/context merging. Desktop handoff/publication now joins the old session b
 immutable plan and reopening with the current environment. Real-client first-use verification remains.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
-Card review
-indicators, image context-menu commands, continuation and real-client acceptance remain in this slice. Complete the
+Smart-album image context menus now share guarded confirmation/correction and operation-specific undo
+with selection and preview controls. Card review indicators, continuation and real-client acceptance
+remain in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;
 it remains a pre-merge acceptance condition. Reuse the retained runtime and measurement assets
 after checking their compatibility. The complete `20cb3978` hosted gate passes, including the archive
