@@ -99,7 +99,9 @@ Reference APIs: [AlertDialog](https://api.flutter.dev/flutter/material/AlertDial
 Inspection streams decoded records into a separate, exclusively owned SQLite staging file. Fixed
 tables enforce scalar, uniqueness and relationship contracts; archive text is bound as data,
 never executed as SQL. Version 1 is converted only after its original bytes and footer are verified.
-The staging connection uses a bounded page cache and disk temporary storage.
+The staging connection uses a bounded page cache and disk temporary storage. One private transaction
+inserts and validates the streamed records before making the staging file available to inspection;
+this avoids committing each record separately. Failure or cancellation discards the entire file.
 Only this disposable, private database disables its journal and synchronous flushes. Live catalog
 transactions are not held while reading or validating the backup, and no inspected records are
 published to the current catalog.

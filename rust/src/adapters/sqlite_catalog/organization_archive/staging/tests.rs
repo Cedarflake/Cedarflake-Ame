@@ -507,11 +507,35 @@ fn organization_archive_inspection_cancels_while_staging_without_touching_input_
     );
     write_archive(&archive, &altered);
     let before = fs::read(&archive).unwrap();
-    let failure = catalog
-        .inspect_organization_archive(&archive, &mut |progress| progress.completed_units < 256)
-        .unwrap_err();
-    assert_eq!(failure.code, "organization_archive_cancelled");
-    assert_eq!(before, fs::read(archive).unwrap());
+    let record_count = altered
+        .iter()
+        .filter(|entry| entry["type"] == "row")
+        .count() as u64;
+    for cancel_at in [256, record_count] {
+        let failure = catalog
+            .inspect_organization_archive(&archive, &mut |progress| {
+                progress.completed_units < cancel_at
+            })
+            .unwrap_err();
+        assert_eq!(failure.code, "organization_archive_cancelled");
+        assert_eq!(before, fs::read(&archive).unwrap());
+        assert_no_scratch(directory.path());
+    }
+    assert_eq!(
+        catalog
+            .inspect_organization_archive(&archive, &mut |_| true)
+            .unwrap()
+            .active_albums,
+        512
+    );
+    assert_eq!(
+        catalog
+            .connection
+            .query_row("SELECT COUNT(*) FROM organization_albums", [], |row| row
+                .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
     assert_no_scratch(directory.path());
 }
 

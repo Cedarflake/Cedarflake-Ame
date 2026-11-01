@@ -147,7 +147,10 @@ R5-07 is active, retaining its existing order and required outcomes:
    [complete-query follow-up](acceptance/r5-smart-albums.md#unused-review-count-queries--2026-11-01)
    removes unused classification review totals and reduces repeated reads. First-call and remaining
    complete-snapshot latency still need optimization before claiming responsive large-library
-   category switching.
+   category switching. The [integrated retained-library acceptance](acceptance/r5-smart-albums.md#integrated-retained-library-acceptance--2026-11-01)
+   verifies scoped paging, bulk organization, undo/redo, archive replay and process restart. It also
+   repairs per-record archive staging commits; remaining category-query and bulk-action latency
+   stays in this performance step. Window-control verification remains deferred at the user's request.
 4. Complete the applicable hosted gate for the final submitted head and record the R5 exit decision.
    Current removal changes require their own submitted-head result. Earlier checks and measurements
    cover unchanged inputs only; detailed results remain in the acceptance records.

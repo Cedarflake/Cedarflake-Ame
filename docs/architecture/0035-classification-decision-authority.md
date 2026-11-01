@@ -28,8 +28,8 @@ The command/session rules below document legacy authority and recovery invariant
 interactive capabilities. They remain useful for compatibility fixtures and archive safety.
 
 Smart albums show automatic results and read-only category information, without pending/confirmed
-filters or review badges. Failed analysis remains visible in the ordinary gallery and preview;
-recovery is automatic under ADR 0036, with no per-image retry command. R4 organization sessions,
+filters or review badges. Per-image analysis failures recover silently under ADR 0036, with no
+failure indicator, notification, or retry command. R4 organization sessions,
 manual albums, Favorites, and their undo/redo remain independent. Current UI and acceptance follow
 [the revised R5 requirements](../product/r5-classification.md).
 

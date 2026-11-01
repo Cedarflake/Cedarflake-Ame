@@ -176,3 +176,74 @@ Affected large-owner sizes are 285 production / 27 test-hook lines for the nativ
 548 / 0 for the Dart catalog adapter, 1,301 / 0 for the viewport controller, and 406 / 0 for its state.
 The dedicated count/cost test module has 135 lines. These owners only lose unused state and work;
 no new lifecycle or query-policy responsibility is added.
+
+## Integrated retained-library acceptance — 2026-11-01
+
+The retained local-primary baseline is copied into disposable storage and migrated from schema 45
+to 73 with the native library at `7089ae0e`. The copy contains 63,077 locations and 47,833 merged
+groups, with the same 43,644 synthetic predictions over 14,548 contents described above. Migration
+preparation takes 54.9 seconds and is excluded from ordinary query measurements. No source scan,
+image read, model worker, cloud transfer or desktop-window interaction runs in this acceptance.
+
+Eleven production-bridge scopes pass count, 128-item window, page/manifest order, forward/backward
+paging and revision-coherence checks. They cover merged/all-file browsing, ascending/descending
+names, capture/modified time, two categories, PNG filtering, empty/literal search and folder scope.
+The viewer anchor remains present and a cursor from another query is rejected.
+
+| Complete snapshot scope | Groups / locations | Elapsed |
+| --- | ---: | ---: |
+| Merged Library, filename order | 47,833 / 63,077 | 2.10–3.84 s |
+| All files | 63,077 / 63,077 | 0.71 s |
+| Other, filename/modified-time order | 7,216 / 14,865 | 3.26–4.43 s |
+| Photograph, capture-time order | 7,216 / 14,811 | 5.30 s |
+| Other, PNG filter | 2,202 / 5,013 | 3.08 s |
+| Empty search / literal path / exact folder | 0 / 1 / 1 groups | 1.06 / 1.18 / 1.13 s |
+
+Selecting all matching results through the native batch draft changes exactly 7,216 groups for
+both Favorite and album assignment. Favorite preparation/application takes 3.17/5.86 seconds;
+album preparation/application takes 4.15/3.40 seconds. Undo empties the album, redo restores it, and
+subsequent album/Favorite queries agree with the category's 7,216 groups and 14,865 locations.
+
+The exported archive contains 283,514 records and is 55,896,748 bytes. Inspection matches all 7,216
+groups. Restoration into the same isolated catalog preserves existing decisions; a separate process
+then verifies album, Favorite and category counts, page order and backward navigation. This exercises
+large-scale replay and preservation, while missing-record import retains its existing focused coverage.
+
+The run exposes per-record autocommit in the private staging database. A single staging transaction
+now covers streamed insertion and validation, keeping the bounded page cache, cancellation points,
+input lock, validation and separate live-catalog transaction. The same archive gives:
+
+| Operation | Before | After staging repair |
+| --- | ---: | ---: |
+| Export | 8.36 s | Unchanged implementation; not repeated |
+| Inspect | 191.97 s | 11.41 s |
+| Restore | 204.08 s | 16.84 s |
+
+After the repair, inspection reaches matching at 5.22 seconds and restoration reaches its write
+phase at 4.82 seconds. Restoring under a new operation identifier rejects the old catalog cursor
+and preserves all three queried collections. These sequential observations use the same archive
+and retained copy; they do not establish cold-cache or cloud-primary latency bounds. The repaired
+native library SHA-256 is `117858644f0260bb56bd801816f09ef4ebec7bdc03799264bbf4397cc0123752`.
+
+All 14 focused staging tests pass, including cancellation during streamed insertion and after the
+last record, scratch retirement, subsequent successful inspection, legacy formats and malformed
+relationships. The pre-repair large-file cancellation probe returns 130 ms after its request.
+Direct Dart VM sampling during restart/cancellation/repaired recovery peaks at 340.8 MiB working set
+and 323.1 MiB private memory. Earlier launcher-only memory samples are excluded.
+
+Final SQLite quick-check and foreign-key validation pass. All 63,077 location identity tuples match
+the retained baseline, and all 43,644 predictions and 7,216 organization records remain present.
+The original baseline retains SHA-256
+`93db288e598b601fb478d39ff598777a1d5f1615f152c15889bddc6fa7aecbfd`.
+After owned processes retire, contained/reparse-free path validation and exclusive-open checks
+precede deletion of the disposable catalog, migration snapshot and exported archive, reclaiming
+1,032,895,184 bytes. Small diagnostic sources and results remain in the ignored scale directory.
+
+Complete category snapshots after organization/recovery still take 7.40–7.95 seconds; the data checks
+pass, but this interactive query cost remains open. Synthetic predictions provide no new model
+accuracy evidence. The previously requested pause on window control remains respected, so this run
+adds no scrolling, preview-rendering or final silent-indicator visual acceptance.
+
+The staging owner has 179 production lines, no inline tests and 566 dedicated test lines. The
+change adds no schema, archive-format, source-file or durable-decision policy change. Hosted checks
+must cover the submitted repair; prior-head results cover unchanged inputs only.
