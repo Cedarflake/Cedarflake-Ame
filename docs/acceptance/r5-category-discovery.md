@@ -1782,4 +1782,7 @@ formatter preserves the generated dispatcher layout.
 | Desktop lifecycle facade / session lifetime / environment | 62 / 145 / 149 | 0 | 677 shared lifecycle lines |
 | Native desktop session / maintenance handle | 204 / 53 | 0 | 297 maintenance lines plus retained desktop fixtures |
 
-The real-client first-use check and integrated R5 quality/resource acceptance remain open.
+The subsequent [real-client first use](r5-desktop-classification.md#isolated-first-use-and-review-continuation--2026-11-01),
+[integrated quality assessment](r5-calibration.md#integrated-quality-assessment--2026-11-01) and
+[paired resource comparison](r5-incremental-analysis.md#connected-localcloud-foreground-comparison--2026-11-01)
+supply the connected evidence after this checkpoint. Stage disposition remains in the roadmap.

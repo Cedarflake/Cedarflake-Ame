@@ -6,11 +6,16 @@ withdrawn on 2026-11-01. Earlier checks below retain their historical scope; cur
 The all-results menu entry and optional definition editor are also retired; their earlier checks
 below describe the former workflow.
 
-This record covers smart-album browsing, configuration and guarded review within R5-06. The
+This record covers smart-album browsing and setup within R5-06, including the retired review workflow.
+The [integrated evidence map](r5-closeout.md) connects the current filter, automatic-analysis and
+setup boundaries to retained first-use and recovery checks. The
 [roadmap](../roadmap.md#current-execution-queue) owns stage disposition; the
 [desktop contract](../product/gallery-ui.md#smart-album-workflow) owns interaction requirements.
 
 ## Connected boundaries
+
+This section describes the original integration before the dated removals below. Current controls
+follow the linked desktop contract and the final automatic-analysis/setup entry.
 
 Smart albums appear after manual albums in the existing Albums sidebar. Their compact heading is
 plain text, and its trailing arrow expands/collapses category rows without navigating. Category

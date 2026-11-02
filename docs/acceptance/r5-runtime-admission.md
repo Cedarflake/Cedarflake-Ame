@@ -337,8 +337,11 @@ the twelve delivered Dart owners reports no issues; the isolated delivery's form
 669 Dart files unchanged. Four native installation cases pass, including operation admission,
 cancellation while preparation owns its resources, and rejection of retired operation reuse.
 The bridge checks verify 27 asynchronous method contracts and reject
-the malformed method/owner/lease fixtures. Real-window first-use interaction remains pending after
-the previous Computer Use interruption; these checks do not claim a production model download.
+the malformed method/owner/lease fixtures. Real-window first use was interrupted at this checkpoint;
+the subsequent [isolated first-use interaction](r5-desktop-classification.md#isolated-first-use-and-review-continuation--2026-11-01)
+verifies installation and prediction publication using retained verified artifacts. The
+[current setup entrypoint](r5-desktop-classification.md#automatic-analysis-and-setup-removal--2026-11-02)
+replaces the former Settings controls. These checks do not measure a fresh production download.
 
 The existing `AlertDialog`, `TextButton` and `FilledButton` own dialog layout, focus and actions;
 `AmeFeedbackCard`/`AmeNotificationSurface` own progress and result presentation. Installed Flutter
