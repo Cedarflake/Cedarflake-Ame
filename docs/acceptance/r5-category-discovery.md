@@ -60,10 +60,11 @@ the fixture's expected file/directory component counts.
 The adapter, naming, nomination evaluation and runtime discovery owners have respectively 135,
 167, 224 and 184 lines with no inline tests. The adapter, naming and purpose-nomination test owners
 have 150, 240 and 412 lines; runtime-policy tests have 103. Purpose-label validation owns 42 lines.
-This verifies the bounded native transition and its
-calibration behavior. Nonempty sidebar integration, affected desktop interaction and submitted-head
-CI remain separate outstanding work. The four
-observed categories do not establish quality for every permitted combination.
+This verifies the bounded native transition and its calibration behavior. The
+[nonempty-navigation check](r5-smart-albums.md#nonempty-category-navigation--2026-11-03)
+records the connected sidebar, Windows interaction, retained-scale query and preservation checks.
+Submitted-head CI remains owned by the PR checks. The four observed categories do not establish
+quality for every permitted combination.
 
 ### Existing generated categories
 

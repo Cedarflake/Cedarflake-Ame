@@ -9,6 +9,7 @@ mod annotations;
 mod continuation;
 mod counts;
 mod evolution;
+mod navigation;
 mod predictions;
 mod publication;
 

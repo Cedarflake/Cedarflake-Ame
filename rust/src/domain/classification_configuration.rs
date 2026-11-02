@@ -1,5 +1,7 @@
+use std::collections::BTreeSet;
+
 use super::classification::work::{ClassificationDispatchMode, ClassificationDispatchState};
-use super::classification::{ClassificationAnalysisSetup, ClassificationRecordId};
+use super::classification::{CategoryId, ClassificationAnalysisSetup, ClassificationRecordId};
 use super::classification_catalog::ClassificationCatalogState;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -37,6 +39,11 @@ pub struct ClassificationSettings {
 pub struct ClassificationConfigurationSnapshot {
     pub catalog: ClassificationCatalogState,
     pub dispatch: ClassificationDispatchState,
+}
+
+pub struct ClassificationNavigationSnapshot {
+    pub configuration: ClassificationConfigurationSnapshot,
+    pub populated_categories: BTreeSet<CategoryId>,
 }
 
 pub struct ClassificationConfigurationChange {

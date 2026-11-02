@@ -1206,8 +1206,9 @@ section below manual albums in Albums' secondary sidebar. Use the same compact s
 alignment as manual albums, with a trailing expand/collapse arrow. The heading is plain text with
 no click target, hover treatment or navigation action; only the arrow expands or collapses the list.
 Category rows open the corresponding derived results.
-Category rows show application-managed categories with current results, using a coherent bounded
-count snapshot. An empty category remains configured but has no sidebar row. First use relies on
+Category rows show application-managed categories with current results, using one coherent bounded
+presence snapshot with the gallery's membership rules. An empty category remains configured but has
+no sidebar row; an already-open category retains its title and browsing scope. First use relies on
 the existing setup and empty-state surfaces without a category-definition form. The Settings canvas has no smart-album
 section or status-only dialog. Missing-model setup uses a download icon with the `下载模型` tooltip
 in the smart-album empty row. Keep the adjacent empty-state text on one line; the confirmation states

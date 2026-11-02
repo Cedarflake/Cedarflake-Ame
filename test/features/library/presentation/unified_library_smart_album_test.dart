@@ -41,6 +41,7 @@ void main() {
       Future<LibraryClassificationSettings?> settings = Future.value(
         _settings("插画"),
       );
+      Future<LibraryClassificationSettings?> navigation = settings;
       final container = ProviderContainer(
         overrides: [
           initialLibraryStateProvider.overrideWithValue(state),
@@ -48,6 +49,9 @@ void main() {
           libraryOrganizationProvider.overrideWithValue(albums),
           libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
           libraryClassificationSettingsProvider.overrideWith((ref) => settings),
+          libraryClassificationNavigationProvider.overrideWith(
+            (ref) => navigation,
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -132,9 +136,12 @@ void main() {
 
       final delayed = Completer<LibraryClassificationSettings?>();
       settings = delayed.future;
+      navigation = delayed.future;
       container.invalidate(libraryClassificationSettingsProvider);
+      container.invalidate(libraryClassificationNavigationProvider);
       await tester.pump();
       expect(heading(), "插画");
+      expect(smartEntry, findsOneWidget);
       await tester.tap(find.byKey(const Key("workbench-gallery")));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key("workbench-albums")));
@@ -152,6 +159,26 @@ void main() {
       await tester.pumpAndSettle();
       expect(catalog.loadQueries.last, categoryQuery);
       expect(heading(), "绘画");
+      expect(tester.widget<ListTile>(smartEntry).selected, isTrue);
+
+      navigation = Future.value(_settings("绘画", populated: false));
+      container.invalidate(libraryClassificationNavigationProvider);
+      await tester.pumpAndSettle();
+      expect(smartEntry, findsNothing);
+      expect(find.text("还没有分类结果"), findsOneWidget);
+      expect(heading(), "绘画");
+      expect(catalog.loadQueries.last, categoryQuery);
+
+      await tester.tap(find.byKey(const Key("workbench-gallery")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("workbench-albums")));
+      await tester.pumpAndSettle();
+      expect(heading(), "绘画");
+      expect(smartEntry, findsNothing);
+      navigation = Future.value(_settings("绘画"));
+      container.invalidate(libraryClassificationNavigationProvider);
+      await tester.pumpAndSettle();
+      expect(smartEntry, findsOneWidget);
       expect(tester.widget<ListTile>(smartEntry).selected, isTrue);
       expect(tester.takeException(), isNull);
     },
@@ -188,6 +215,9 @@ void main() {
             libraryClassificationSettingsProvider.overrideWith(
               (ref) async => _settings("插画"),
             ),
+            libraryClassificationNavigationProvider.overrideWith(
+              (ref) async => _settings("插画"),
+            ),
           ],
           child: const AmeApp(),
         ),
@@ -214,7 +244,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            libraryClassificationSettingsProvider.overrideWith(
+            libraryClassificationNavigationProvider.overrideWith(
               (ref) async => LibraryClassificationSettings(
                 revision: BigInt.zero,
                 dispatchRevision: BigInt.zero,
@@ -275,21 +305,24 @@ void main() {
   );
 }
 
-LibraryClassificationSettings _settings(String label) =>
-    LibraryClassificationSettings(
-      revision: BigInt.one,
-      dispatchRevision: BigInt.one,
-      mode: LibraryClassificationMode.paused,
-      installationSelected: true,
-      runId: "run",
-      categories: [
-        LibraryClassificationCategory(
-          id: "drawing",
-          label: label,
-          descriptions: const ["drawing"],
-        ),
-      ],
-    );
+LibraryClassificationSettings _settings(
+  String label, {
+  bool populated = true,
+}) => LibraryClassificationSettings(
+  revision: BigInt.one,
+  dispatchRevision: BigInt.one,
+  mode: LibraryClassificationMode.paused,
+  installationSelected: true,
+  runId: "run",
+  categories: [
+    if (populated)
+      LibraryClassificationCategory(
+        id: "drawing",
+        label: label,
+        descriptions: const ["drawing"],
+      ),
+  ],
+);
 
 class _UnclassifiedCatalog extends RecordingQueryCatalog {
   _UnclassifiedCatalog(super.snapshot);

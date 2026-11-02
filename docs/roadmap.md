@@ -34,7 +34,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
 | R4 | Independent Favorites, flat group-based albums, and durable organization progress | Completed and merged into main on 2026-10-30 |
-| R5 | Metadata, smart albums, and calibrated initial screening | R5-02 curated-category transition; implemented workflows retained in PR #45 |
+| R5 | Metadata, smart albums, and calibrated initial screening | Curated-category integration verified; submitted-head gate and review remain in PR #45 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run with conflicts and no execution | Planned after R7 |
@@ -95,11 +95,12 @@ R3's selected workflow are handled at their owning layer under the repository co
 R4 is integrated into `main`. R5 continues on `codex/r5-smart-albums`. Complete the R5-02 curated
 category transition in this order: the consolidated catalog, explicit purposes and direct matching
 have their [native comparison](acceptance/r5-category-discovery.md#curated-catalog-and-direct-matching--2026-11-03).
-Existing generated definitions now have guarded catalog-reconciliation coverage. Next show only
-categories with current results, then verify affected desktop, recovery and resource behavior
-using retained features and evidence. Preserve stable identities, legacy choices, the selected SigLIP
-runtime and source safeguards. No additional naming model is included. Keep PR #45 in draft until
-these affected workflows and submitted-head checks pass. The previous
+Existing generated definitions have guarded catalog-reconciliation coverage. The
+[nonempty-navigation check](acceptance/r5-smart-albums.md#nonempty-category-navigation--2026-11-03)
+completes affected native membership, Windows navigation, retained-scale reads and record preservation.
+The remaining step is the submitted-head hosted gate and stage PR review. Preserve stable identities,
+legacy choices, the selected SigLIP runtime and source safeguards; no additional naming model is
+included. Keep PR #45 in draft until its submitted-head checks pass. The previous
 [naming boundary record](acceptance/r5-category-discovery.md#open-category-naming-boundary--2026-11-02)
 remains evidence of the superseded open-ended design, not an outstanding expansion requirement.
 

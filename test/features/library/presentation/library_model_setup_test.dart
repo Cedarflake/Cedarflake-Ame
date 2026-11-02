@@ -380,6 +380,9 @@ class _Configuration implements LibraryClassificationConfigurationService {
   final saved = <List<LibraryClassificationCategory>>[];
 
   @override
+  Future<LibraryClassificationSettings> loadNavigation() => load();
+
+  @override
   Future<LibraryClassificationSettings> load() async =>
       LibraryClassificationSettings(
         revision: BigInt.one,

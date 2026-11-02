@@ -41,6 +41,7 @@ class LibraryClassificationSettings {
 
 abstract interface class LibraryClassificationConfigurationService {
   Future<LibraryClassificationSettings> load();
+  Future<LibraryClassificationSettings> loadNavigation();
   Future<List<LibraryClassificationCategory>> initialCategories();
   Future<LibraryClassificationSettings> save({
     required String operationId,
@@ -59,13 +60,20 @@ class LibraryClassificationConfiguration {
   final LibraryClassificationConfigurationService _service;
   final LibraryClassificationLifecycle _lifecycle;
 
-  Future<LibraryClassificationSettings> load() async {
+  Future<LibraryClassificationSettings> load() => _load(_service.load);
+
+  Future<LibraryClassificationSettings> loadNavigation() =>
+      _load(_service.loadNavigation);
+
+  Future<LibraryClassificationSettings> _load(
+    Future<LibraryClassificationSettings> Function() read,
+  ) async {
     try {
       await _lifecycle.waitUntilOpened();
     } on Object {
       // Saved intent remains readable while the lifecycle exposes its startup failure.
     }
-    return _service.load();
+    return read();
   }
 
   Future<void> enableManagedInstallation({

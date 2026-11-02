@@ -18,6 +18,17 @@ pub fn load_classification_settings() -> Result<ClassificationSettings, ScanErro
     }
 }
 
+pub fn load_classification_navigation() -> Result<ClassificationSettings, ScanError> {
+    #[cfg(all(windows, feature = "classification-worker"))]
+    {
+        classification_configuration::load_navigation()
+    }
+    #[cfg(not(all(windows, feature = "classification-worker")))]
+    {
+        Err(super::classification::unsupported())
+    }
+}
+
 pub fn initial_classification_categories() -> Result<Vec<ClassificationCategoryInput>, ScanError> {
     #[cfg(all(windows, feature = "classification-worker"))]
     {

@@ -15,8 +15,10 @@ finding. On 2026-11-03, open-ended naming was withdrawn in favor of a curated ap
 The [curated comparison](r5-category-discovery.md#curated-catalog-and-direct-matching--2026-11-03)
 verifies consolidated topics, purpose restrictions, direct matching and packaging boundaries.
 Generated-definition reconciliation also has focused persistence and runtime coverage in that record.
-Nonempty-only sidebar integration still requires its affected checks. Existing checks retain their
-original scope; the roadmap owns the remaining work.
+The [nonempty-navigation check](r5-smart-albums.md#nonempty-category-navigation--2026-11-03)
+adds native membership, retained-scale reads and connected Windows navigation with source and
+durable-record preservation. Existing checks retain their original scope; the roadmap owns the
+remaining submitted-head gate and review.
 
 ## Slice coverage
 
@@ -113,4 +115,5 @@ although callers require only its opaque `DownloadIntent` type. The repair resto
 installation/task modules and re-exports that type through the adapter facade. All ten focused
 `root_availability_` regressions pass, including the three failing assertions and the rejection
 cases, with unchanged contract expectations. Rust formatting and diff whitespace checks pass.
-The submitted PR checks own the replacement-head result; the separate naming gap above remains.
+The submitted PR checks own the replacement-head result. The later curated-catalog transition and
+its affected verification are linked above; the open-ended naming requirement is superseded.

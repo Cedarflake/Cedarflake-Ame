@@ -8,7 +8,7 @@ use super::duplicates::{DISPLAY_FINGERPRINTS, compatible_fingerprint};
 use super::organization::record_expression;
 
 #[derive(Clone, Copy)]
-pub(super) enum PredictionReadStrategy {
+pub(in crate::adapters::sqlite_catalog) enum PredictionReadStrategy {
     Shared,
     Indexed,
 }
@@ -83,7 +83,10 @@ pub(super) fn push_filter(
     ));
 }
 
-pub(super) fn effective_projection(location: &str, scope: PredictionReadStrategy) -> String {
+pub(in crate::adapters::sqlite_catalog) fn effective_projection(
+    location: &str,
+    scope: PredictionReadStrategy,
+) -> String {
     let record = record_expression(location);
     let fingerprint = compatible_fingerprint(location);
     let (shared, predictions) = match scope {

@@ -14,6 +14,11 @@ Future<ClassificationSettings> loadClassificationSettings() => RustLib
     .api
     .crateApiClassificationSettingsLoadClassificationSettings();
 
+Future<ClassificationSettings> loadClassificationNavigation() => RustLib
+    .instance
+    .api
+    .crateApiClassificationSettingsLoadClassificationNavigation();
+
 Future<List<ClassificationCategoryInput>> initialClassificationCategories() =>
     RustLib.instance.api
         .crateApiClassificationSettingsInitialClassificationCategories();

@@ -12,6 +12,10 @@ class RustLibraryClassificationConfiguration
       _settings(await native.loadClassificationSettings());
 
   @override
+  Future<LibraryClassificationSettings> loadNavigation() async =>
+      _settings(await native.loadClassificationNavigation());
+
+  @override
   Future<List<LibraryClassificationCategory>> initialCategories() async =>
       List.unmodifiable(
         (await native.initialClassificationCategories()).map(_category),

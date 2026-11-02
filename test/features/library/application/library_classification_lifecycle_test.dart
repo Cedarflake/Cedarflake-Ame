@@ -618,6 +618,8 @@ class _SetupConfiguration implements LibraryClassificationConfigurationService {
   @override
   Future<LibraryClassificationSettings> load() async => settings;
   @override
+  Future<LibraryClassificationSettings> loadNavigation() => load();
+  @override
   Future<List<LibraryClassificationCategory>> initialCategories() async {
     initialLoads += 1;
     return categories;

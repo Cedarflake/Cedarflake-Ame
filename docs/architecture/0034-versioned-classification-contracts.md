@@ -68,7 +68,11 @@ compatible cached image features, distinct-content recurrence and guarded expans
 remain reusable. Unsupported refinements keep the broad category rather than inventing another name.
 
 The catalog supplies a finite candidate set, not mandatory sidebar membership. Presentation consumes
-bounded current category counts and omits empty rows without retiring definitions or saved choices.
+one bounded category-presence snapshot and omits empty rows without retiring definitions or saved
+choices. The adapter reads active definitions and populated identities in one database snapshot,
+reusing gallery membership, latest compatible predictions, legacy human precedence and retained
+display evidence. No per-category gallery reads or media access are required. The ordinary settings
+query retains all definitions so a category becoming empty does not replace its open page or title.
 Category membership remains single-primary and independent of R4 manual albums and Favorites.
 
 The lexical retrieval, consolidation and source-resource sections below retain the contracts of

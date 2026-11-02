@@ -21,6 +21,9 @@ use super::classification_desktop::installation_path;
 use super::classification_runtime::while_retired;
 use super::storage::{StoragePaths, storage_paths};
 
+mod navigation;
+pub(crate) use navigation::load_navigation;
+
 pub(crate) fn load() -> Result<ClassificationSettings, ScanError> {
     load_with_storage(&storage_paths()?)
 }

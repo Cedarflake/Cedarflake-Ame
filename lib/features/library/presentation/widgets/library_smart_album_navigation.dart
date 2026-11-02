@@ -33,7 +33,7 @@ class _LibrarySmartAlbumNavigationState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final settings = ref.watch(libraryClassificationSettingsProvider);
+    final settings = ref.watch(libraryClassificationNavigationProvider);
     final canInstall = ref.watch(
       libraryModelInstallationProvider.select(
         (installation) => installation?.canStart == true,
@@ -138,7 +138,7 @@ class _LibrarySmartAlbumNavigationState
                 title: const Text("分类暂时无法加载"),
                 trailing: TextButton(
                   onPressed: () {
-                    ref.invalidate(libraryClassificationSettingsProvider);
+                    ref.invalidate(libraryClassificationNavigationProvider);
                   },
                   child: const Text("重试"),
                 ),

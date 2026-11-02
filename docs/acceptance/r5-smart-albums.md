@@ -9,6 +9,61 @@ The [roadmap](../roadmap.md#r5-implementation-sequence) owns delivery status and
 effective-category and query contract. This record covers the R5-05 query integration; the sidebar
 and connected review controls retain their R5-06 verification.
 
+## Nonempty category navigation — 2026-11-03
+
+The sidebar now consumes one native category-presence snapshot. It shares the gallery's effective
+membership projection and reads current definitions and populated identities in one transaction.
+The result is bounded by the active taxonomy; ordinary settings still return every definition.
+Empty categories disappear from navigation without replacing an already-open category or its title.
+The generated bridge exposes this read without adding schema, media reads or per-category queries.
+
+Five focused native cases compare presence with actual gallery results across latest predictions,
+legacy choices and undo, late duplicate conflicts, changed content, source removal, semantic rule
+replacement, retirement and retained display evidence. All pass. The affected Flutter suites pass
+48 cases across navigation, model setup, automatic startup and joined lifecycle. The navigation
+case retains rows during refresh, removes an empty entry while preserving its page, and restores
+the selected entry when results return.
+
+An optimized isolated-storage DLL reads the retained local-primary fixture of 63,077 locations,
+14,548 classified content keys and 43,644 historical predictions. Six definitions remain available;
+only `other` and `photo` populate navigation. Their actual gallery scopes contain 7,216 groups each,
+with 14,865 and 14,811 physical members respectively.
+
+| Read | First call in a fresh process | Following call |
+| --- | ---: | ---: |
+| Populated category navigation | 1,751.104 ms | 704.274 ms |
+| Empty configured state after preparation | Includes older-catalog migration | 8.107 ms |
+
+The populated process takes 5.25 seconds including two navigation reads and the two gallery checks;
+peak private memory is 365,862,912 bytes. Preparing the older baseline includes its existing forward
+migrations and takes 45.868 seconds on first admission, separately from the populated-query timings.
+No source media or models are opened by this diagnostic. Digests preserve all 63 classification and
+organization tables and all location identity tuples. SQLite quick-check and foreign keys pass;
+the retained baseline hash is unchanged and the leased 435-MB copy is removed.
+
+The first preservation script expected records created by an earlier batch-organization workflow.
+That assertion did not apply to this read-only run. The replacement compares complete before/after
+table digests, preserving the integrity and source-identity checks; the repeated scoped run passes.
+
+The rebuilt isolated Profile client displays the existing 51-file / 50-group gallery. Computer Use
+can capture it, but repeated activation and input return `failed to activate captured window`; no
+successful pointer-interaction result is claimed. The helper and owned client are retired. A focused
+Windows Flutter integration then uses the real configuration, classification lifecycle, catalog and
+organization adapters with the same isolated profile and verified native DLL. It passes category
+visibility, opening the native result page, collapse/expand and Library/Albums return: six definitions,
+three visible categories (`comic`, `other`, `screenshot`) and the selected category's actual image.
+The temporary diagnostic's helper-name error is corrected before that passing run. Its final source
+analysis reports no issues. All 51 fixture hashes and nine durable-table digests remain unchanged.
+The native test process, classification worker and Computer Use helper are closed; leased storage
+and the temporary integration entrypoint are removed.
+
+The tested DLL SHA-256 is `ce912c7fc0d2da9b91c768d3a79e66b4ab5c8f4c14732e4e0d83903cac5e05a3`.
+Small ignored reports remain under `build/test/derived/r5-smart-album-scale/navigation-*` and
+`build/test/derived/r5-smart-album-client/curated-*`. Production SQLite navigation, application
+navigation, shared membership SQL, provider and sidebar owners have 67, 22, 136, 39 and 197 lines,
+with no inline tests. Dedicated native and widget owners have 171 and 366 lines. Hosted verification
+belongs to the submitted PR head; this check does not repeat model-quality or cloud benchmarks.
+
 ## Query boundary
 
 The typed gallery collection carries an optional category and an independent review filter.

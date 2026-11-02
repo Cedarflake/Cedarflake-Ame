@@ -138,6 +138,9 @@ class _Configuration implements LibraryClassificationConfigurationService {
   }
 
   @override
+  Future<LibraryClassificationSettings> loadNavigation() => load();
+
+  @override
   Future<List<LibraryClassificationCategory>> initialCategories() async {
     events.add("initial categories");
     return categories;

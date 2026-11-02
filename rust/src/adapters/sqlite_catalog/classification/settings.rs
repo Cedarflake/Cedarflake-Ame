@@ -17,6 +17,7 @@ mod catalog_reconciliation;
 mod coverage;
 mod maintenance;
 mod merging;
+mod navigation;
 mod retirement;
 
 impl ClassificationConfigurationRepository for SqliteCatalog {
