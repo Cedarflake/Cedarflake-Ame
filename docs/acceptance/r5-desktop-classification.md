@@ -570,5 +570,7 @@ directories are removed after normal exit; no complete profile copy is created f
 
 The preview classification owner contains 52 production lines and no inline tests. Its new dedicated
 semantics fixture contains 115 lines; the existing 141-line behavior fixture is unchanged. The
-submitted tooltip repair still requires its own hosted result. Large-library complete-query and
-bulk-action latency remain in the roadmap's existing performance step.
+submitted tooltip repair `0d5801af` passes all 15 applicable jobs in
+[run 41400808080](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41400808080);
+the three conditional signing jobs are skipped. The roadmap retains the measured large-library
+latency as follow-up work after accepting the current performance on 2026-11-02.

@@ -148,9 +148,8 @@ R5-07 is active, retaining its existing order and required outcomes:
    [retained-catalog check](acceptance/r5-smart-albums.md#retained-catalog-scale--2026-11-01)
    passes count/window and memory bounds. The
    [complete-query follow-up](acceptance/r5-smart-albums.md#unused-review-count-queries--2026-11-01)
-   removes unused classification review totals and reduces repeated reads. First-call and remaining
-   complete-snapshot latency still need optimization before claiming responsive large-library
-   category switching. The [integrated retained-library acceptance](acceptance/r5-smart-albums.md#integrated-retained-library-acceptance--2026-11-01)
+   removes unused classification review totals and reduces repeated reads. The
+   [integrated retained-library acceptance](acceptance/r5-smart-albums.md#integrated-retained-library-acceptance--2026-11-01)
    verifies scoped paging, bulk organization, undo/redo, archive replay and process restart. It also
    repairs per-record archive staging commits. The
    [shared-prediction and scoped-count optimization](acceptance/r5-smart-albums.md#shared-prediction-reads-and-scoped-counts--2026-11-01)
@@ -160,15 +159,17 @@ R5-07 is active, retaining its existing order and required outcomes:
    removes unrelated same-size file work from group validation and writes. The
    [classification admission reuse](acceptance/r5-smart-albums.md#classification-admission-reuse--2026-11-02)
    reduces repeated run/taxonomy reconstruction while retaining full evidence validation.
-   Complete-query, remaining first-admission and bulk-action latency remain in this
-   performance step. The [scope-recovery handoff repair](acceptance/r5-smart-albums.md#terminal-scope-recovery-handoff--2026-11-02)
+   On 2026-11-02, the current performance is accepted for this round; remaining complete-query,
+   first-admission and bulk-action latency retain their measured limits as follow-up work. Continue
+   with functional bug reproduction and repair, reusing these measurements without another unchanged
+   performance cycle. The [scope-recovery handoff repair](acceptance/r5-smart-albums.md#terminal-scope-recovery-handoff--2026-11-02)
    resolves the configured-catalog validation refusal on an isolated copy, with completed-parent
    provenance, atomic recovery and unchanged original catalog/media. The integrated head through
-   `e801841b` passes its applicable hosted gate. The
+   `0d5801af` passes its applicable hosted gate. The
    [resumed isolated desktop acceptance](acceptance/r5-desktop-classification.md#resumed-isolated-desktop-acceptance--2026-11-02)
    covers silent failed-image handling, smart-album/Favorite/manual-album browsing and restart. It
-   also repairs a reproduced Windows preview-tooltip crash through the existing shared component;
-   that repair requires its submitted-head hosted result. Window control is authorized again.
+   also repairs a reproduced Windows preview-tooltip crash through the existing shared component.
+   Window control is authorized for the isolated test library.
 4. Complete the applicable hosted gate for the final submitted head and record the R5 exit decision.
    Remaining behavior changes require their own submitted-head result. Earlier checks and measurements
    cover unchanged inputs only; detailed results remain in the acceptance records.
