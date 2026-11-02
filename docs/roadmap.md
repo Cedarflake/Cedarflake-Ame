@@ -95,9 +95,10 @@ R3's selected workflow are handled at their owning layer under the repository co
 R4 is integrated into `main`. R5 continues on `codex/r5-smart-albums`. R5-02 must first remove the
 fixed naming frontier without admitting the previously rejected raw dictionary rankings. Reuse
 retained image/text features and prior naming diagnostics to establish useful names outside the
-authored topic list, bounded discovery and stable category maintenance. Preserve the selected
-SigLIP runtime, source safeguards and delivered workflows; additional model/dependency admission
-requires its own evidence and applicable architecture decision. Keep PR #45 in draft while this
+authored topic list, bounded discovery and stable category maintenance. The
+[model scope](product/r5-classification.md#model-admission-and-low-resource-execution) excludes an
+additional generative naming model. Preserve the selected SigLIP runtime, source safeguards and
+delivered workflows. Keep PR #45 in draft while this
 requirement remains unmet. Its [naming boundary record](acceptance/r5-category-discovery.md#open-category-naming-boundary--2026-11-02)
 identifies the current limitation and required evidence.
 

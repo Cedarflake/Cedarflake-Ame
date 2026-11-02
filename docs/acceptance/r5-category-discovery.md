@@ -38,6 +38,29 @@ Japanese-bank interpretation of a property document. This condition improves som
 establishing reliable open naming or admitting the generator. The bounded script and raw output are
 retained in ignored `build/test/derived/r5-open-naming` storage.
 
+A cache-only comparison then applies the current v7 distinct-topic competition to the four retained
+raw-purpose fixtures, covering six cohorts and their repeated passes. The retained executable's
+SHA-256 is `202e71fcc11ec4aad40a25a8cca9c1c790a341d14c9961ee597fcdbf572af4ff`, matching the earlier
+topic-competition record. Worker/model/runtime paths deliberately point to an absent resource, so a
+cache miss cannot start inference. The four processes finish in 16.65 seconds combined, peaking at
+94,502,912 bytes, with no added cache entries or source reads. The fixtures retain their earlier
+two-member diagnostic minimum; these are not the production three-member admission profile.
+
+Competition rejects `chordate表情`, `discord表情`, `secretaryship插画` and `语言截图`; the code cohort
+still proposes `coding system截图`, and the document cohort has no candidate. A second, single-pass
+diagnostic makes only the failed selected names traversal-only, leaving scores, graph relationships
+and thresholds unchanged. It takes 12.02 seconds with a 95,219,712-byte peak and no inference or
+source reads. The replacement names include `生物区系表情`, `玩具表情`, `短曲插画` and `rhetoric截图`,
+all rejected; the code result remains unchanged. This pass supplies no evidence for admitting a
+fallback-selection policy. Its temporary fixture is removed after each process exits; the compact
+results and bounded runners remain in the same ignored diagnostic directory.
+
+The SmolVLM2-500M alternative received only a metadata/license/size inspection. Its selected ONNX
+graphs and supporting files total 378,977,965 bytes at revision
+`7b375e1b73b11138ff12fe22c8f2822d8fe03467`. The model test was cancelled before any weight download.
+The [current model scope](../product/r5-classification.md#model-admission-and-low-resource-execution)
+keeps naming within the existing SigLIP/vocabulary budget; no additional model or dependency is admitted.
+
 ## Retained-feature grouping
 
 The exploratory probe reuses the 240 retained calibration feature vectors from the native SigLIP

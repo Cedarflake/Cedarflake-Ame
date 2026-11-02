@@ -219,6 +219,11 @@ guides admission; CLIP B/32 INT8 remains a lightweight reference, and large mode
 Product admission still verifies artifact licenses/integrity, worker recovery and resource limits.
 The unfinished historical folder classification and provisional visual labels are not human ground truth.
 
+Category naming reuses the admitted SigLIP model, vocabulary resources and compatible cached features.
+Do not add a separate generative model solely for naming: its additional download, memory and inference
+cost is outside the selected R5 scope. This constraint preserves the requirement for useful categories
+beyond the authored starting topics; it does not admit the rejected raw dictionary naming policy.
+
 Use representative labeled groups from the target library under existing source-safe execution
 rules. Separate calibration and held-out evaluation by content group to prevent duplicate leakage.
 Record per-category quality, confidence-band coverage and errors, sampled high-confidence quality,
