@@ -10,6 +10,34 @@ Date: 2026-11-01. This record covers the missing category discovery and naming p
 establish product acceptance or replace the admitted SigLIP screening runtime. The
 [roadmap](../roadmap.md#current-execution-queue) owns delivery order and remaining work.
 
+## Open-category naming boundary — 2026-11-02
+
+The current production resource includes 82,115 lexical concepts but only 42 authored naming
+contexts. `ContextualVocabulary` makes source concepts traversal-only, while
+`ManagedDiscoveryPolicy` composes the authored context names with six initial-purpose patterns.
+Consequently, runtime discovery can select, combine, retire and restore categories within that
+frontier but cannot name a topic outside it. The fixture's earlier description as a calibration
+input without a permanent category limit does not describe the shipped naming boundary.
+
+This leaves the open-category requirement in R5-02 incomplete. Existing runtime, maintenance,
+classification and recovery evidence retains its tested scope. Before admission, the replacement
+naming path needs useful, supported names outside the authored list, comparisons against the
+retained semantic failures, bounded work and resource measurements, and regression coverage for
+stable identity, existing decisions and source preservation. Merely enlarging the authored list or
+making raw dictionary matches nameable does not resolve the requirement. The experiments below
+retain the rejected candidates and valid reusable features; unchanged comparisons need no replay.
+
+A new single-thumbnail probe supplies the known image purpose before requesting a topic, separating
+purpose selection from open naming. It reuses the pinned Qwen 0.8B Q4 artifacts and six retained
+calibration thumbnails (B132, B186, B151, B191, B021, B057), with 65,536 pixels, one CPU thread,
+24 output tokens, a 180-second deadline and a 2-GiB limit. All 14 model files pass their retained
+digest checks; no source media, held-out samples or network downloads are used. The process exits
+after 51.38 seconds with a 1,035,517,952-byte peak working set. Code-editing and cat topics appear,
+but other outputs contain empty formatting templates, mixed-language descriptions and an unsupported
+Japanese-bank interpretation of a property document. This condition improves some subjects without
+establishing reliable open naming or admitting the generator. The bounded script and raw output are
+retained in ignored `build/test/derived/r5-open-naming` storage.
+
 ## Retained-feature grouping
 
 The exploratory probe reuses the 240 retained calibration feature vectors from the native SigLIP

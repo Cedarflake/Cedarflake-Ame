@@ -34,7 +34,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
 | R4 | Independent Favorites, flat group-based albums, and durable organization progress | Completed and merged into main on 2026-10-30 |
-| R5 | Metadata, smart albums, and calibrated initial screening | Implemented in PR #45; R5-07 delivery gate and review |
+| R5 | Metadata, smart albums, and calibrated initial screening | R5-02 open-category naming gap; implemented workflows retained in PR #45 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run with conflicts and no execution | Planned after R7 |
@@ -59,7 +59,9 @@ functional, recovery, source-preservation, retained-scale and complete hosted ev
 The implementation is verified through `17c16c7d`, with subsequent changes limited to delivery
 records. The R4 branch through `53bbb5bc` is integrated without conflict or history rewriting.
 R5's [requirements](product/r5-classification.md) and [implementation plan](plans/r5-classification.md)
-are implemented on `codex/r5-smart-albums` through `0ef6af57`. The
+have connected workflows on `codex/r5-smart-albums` through `0ef6af57`, but R5-02's category naming
+remains limited to 42 application-authored topics and six purpose patterns. Automatic selection
+within that set does not fulfill open-category discovery. The
 [integrated evidence map](acceptance/r5-closeout.md) covers R5-01 through R5-07, including the current
 automatic-analysis and browsing controls. Stage delivery uses PR #45, its submitted-head hosted gate,
 and a separately authorized merge. No later product stage is active.
@@ -90,7 +92,16 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
-R4 is integrated into `main`. R5 continues on `codex/r5-smart-albums`. The 2026-11-02 model-delivery
+R4 is integrated into `main`. R5 continues on `codex/r5-smart-albums`. R5-02 must first remove the
+fixed naming frontier without admitting the previously rejected raw dictionary rankings. Reuse
+retained image/text features and prior naming diagnostics to establish useful names outside the
+authored topic list, bounded discovery and stable category maintenance. Preserve the selected
+SigLIP runtime, source safeguards and delivered workflows; additional model/dependency admission
+requires its own evidence and applicable architecture decision. Keep PR #45 in draft while this
+requirement remains unmet. Its [naming boundary record](acceptance/r5-category-discovery.md#open-category-naming-boundary--2026-11-02)
+identifies the current limitation and required evidence.
+
+The 2026-11-02 model-delivery
 follow-up has its scoped local evidence: compact download entry, existing-notification-center
 progress, installer-bundled models and authorized download recovery across restart. The
 [delivery checks](acceptance/r5-desktop-classification.md#model-restart-recovery-and-installer-payload--2026-11-02)
@@ -119,8 +130,9 @@ The [retained query measurements](acceptance/r5-smart-albums.md) and
 [paired foreground comparison](acceptance/r5-incremental-analysis.md#connected-localcloud-foreground-comparison--2026-11-01)
 own those observations. No additional unchanged performance cycle is required for R5 closure.
 
-R5's exit condition is the applicable hosted gate for the submitted PR head, together with the linked
-functional, quality, resource and preservation evidence. After that gate passes, make PR #45 reviewable.
+R5's exit condition includes evidence that useful category names are not restricted to the authored
+topic list, together with the applicable hosted gate for the submitted PR head and the linked
+functional, quality, resource and preservation evidence. After those conditions pass, make PR #45 reviewable.
 Merging into `main` remains separately authorized; preserve the branch until that decision. Further
 behavior changes require their affected checks and submitted-head result. R6 and the deferred rendering
 follow-up retain their existing order and scope.

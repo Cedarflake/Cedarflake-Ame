@@ -8,6 +8,13 @@ This record connects the ordered R5 slices to their applicable evidence. The
 [PR #45](https://github.com/Cedarflake/Cedarflake-Ame/pull/45) contains the stage implementation.
 The observations below reuse unchanged inputs and include the subsequent desktop removals.
 
+The naming boundary inspection on 2026-11-02 finds an unmet R5-02 requirement: all production
+names come from 42 authored topics composed with six purpose patterns. Vocabulary traversal and
+automatic category maintenance are connected, but cannot admit another topic. The
+[boundary record](r5-category-discovery.md#open-category-naming-boundary--2026-11-02) owns the finding;
+the existing quality and functional checks do not prove open-category naming. Keep their valid
+coverage while completing that requirement.
+
 ## Slice coverage
 
 | Slice | Connected result | Evidence |
