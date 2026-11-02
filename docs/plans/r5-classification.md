@@ -62,6 +62,9 @@ Depends on the delivered R4 baseline.
    remain unavailable until R5-05 supplies their authoritative projection.
 4. Connect search to pages, counts, selection, layout, and viewer navigation without whole-library
    reads or a separate search page. Keep indexes rebuildable independently of user decisions.
+   The metadata-condition editor was withdrawn on 2026-11-02. Preserve native predicates and archive
+   compatibility, retain the original four-choice Filter menu, and use current conditions when
+   restoring organization progress so retired conditions cannot silently narrow the desktop.
 
 Exit: metadata/search works end to end without a model; query consistency, invalidation, malformed
 metadata, migration, and unchanged originals have focused evidence.
@@ -190,7 +193,7 @@ its former manual-review scope was withdrawn on 2026-11-01.
    heading, collapse arrow, category rows, empty row, neutral icons, and shared gallery motion.
 2. Remove confirmation/correction, deferral, review-filter/count/badge, continuation, and classification
    undo controls from the gallery, selection bar, context menus, and preview.
-3. Retain read-only category display, metadata filters, and ordinary Library navigation. Recover
+3. Retain read-only category display, the shared gallery filter, and ordinary Library navigation. Recover
    per-image failures silently by failure type and changed input; remove failure indicators and
    retry commands. Runtime errors use the existing bottom and viewer-top feedback templates.
 4. Preserve Favorite and manual-album actions, ordinary navigation/selection rules, and R4's retained

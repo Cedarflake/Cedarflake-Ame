@@ -36,6 +36,7 @@ pub(super) fn load(
         }
         query.sort_key = requested.sort_key.clone();
         query.sort_direction = requested.order_direction().clone();
+        query.metadata_filter = requested.metadata_filter.clone();
     }
     if let Err(error) = scope::validate(connection, &query) {
         if error.code != "organization_review_scope_unavailable"

@@ -346,7 +346,9 @@ R5-01 is verified through `44d54b6a`. Indexed literal path search under
 [ADR 0006](architecture/0006-exif-capture-time-adapter.md) are connected, with
 [focused migration/query and client evidence](acceptance/r5-metadata-search.md). Structured metadata
 conditions under [ADR 0033](architecture/0033-structured-gallery-filters.md) now share gallery queries,
-organization continuation and portable recovery, with focused and desktop apply/cancel/clear evidence.
+organization continuation and portable recovery, with historical apply/cancel/clear evidence. The
+desktop condition form was withdrawn on 2026-11-02; retain the original four-choice Filter menu and
+native query/archive compatibility, without restoring hidden conditions on desktop continuation.
 Post-scan incremental reclamation meets the final-storage bound in local and hosted workloads.
 The combined scan-publication, migration and fixture corrections pass focused checks and the complete
 exact-commit hosted gate. R5-02 admission work establishes configurable category and feature-compatibility

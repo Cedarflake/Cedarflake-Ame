@@ -169,14 +169,6 @@ class NoGalleryResults extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (query.metadataFilter.isActive) {
-      return const LibraryGalleryMessage(
-        key: Key("library-no-results"),
-        icon: Symbols.filter_list_rounded,
-        title: "没有符合条件的图片",
-        detail: "可以在筛选菜单中调整或清除条件。",
-      );
-    }
     if (query.organizationQueue case final queue?) {
       return LibraryGalleryMessage(
         key: const Key("library-no-results"),
@@ -197,7 +189,7 @@ class NoGalleryResults extends StatelessWidget {
         key: const Key("library-no-results"),
         icon: Symbols.auto_awesome_rounded,
         title: "还没有这个分类的图片",
-        detail: "可以切换分类或筛选条件。",
+        detail: "可以切换分类或返回图库。",
       );
     }
     if (wholeCollection && query.collection is LibraryAlbumCollection) {

@@ -166,7 +166,7 @@ Adding an item to a manual album from a smart-album view uses the existing tray 
 behavior. A group ignored for R4 organization can still have a category result. Classification does
 not infer an album destination, mark organization complete, or change Favorite state.
 
-Smart albums retain normal browsing, bounded selection, sorting, metadata filters, and viewer
+Smart albums retain normal browsing, bounded selection, sorting, the shared gallery filter, and viewer
 navigation. There are no single-image or batch confirmation/correction commands, deferred-review
 actions, review-status filters, classification undo, or classification continuation. Opening an image
 or menu does not create manual classification activity. New results and grouping changes preserve
@@ -188,6 +188,11 @@ size, source, manual album, category, and supported metadata. Search, pages, cou
 and viewer navigation must describe the same query. Make category predicates available when their
 projection is connected; metadata/search delivery does not require a classification model. Indexes
 are rebuildable independently of durable decisions and do not require full-library UI materialization.
+
+The desktop metadata-condition form was withdrawn on 2026-11-02. The shared Filter menu retains only
+descendant and duplicate-display choices. Keep metadata extraction and typed native query/archive
+compatibility; no additional condition editor is required. Continuing organization uses the current
+desktop query without resurrecting retired metadata restrictions from a saved bookmark.
 
 ## Model admission and low-resource execution
 

@@ -6,9 +6,8 @@ import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_models.dart";
 import "../library_duplicate_strings.dart";
-import "library_metadata_filter_editor.dart";
 
-enum _FilterChoice { descendants, folderOnly, all, merged, metadata }
+enum _FilterChoice { descendants, folderOnly, all, merged }
 
 class LibraryGalleryFilter extends StatelessWidget {
   const LibraryGalleryFilter({
@@ -28,7 +27,6 @@ class LibraryGalleryFilter extends StatelessWidget {
         LibraryDuplicateStrings.hideDescendants,
         LibraryDuplicateStrings.allImages,
         LibraryDuplicateStrings.mergeDuplicates,
-        "筛选条件…",
       ],
       hasContentIcon: false,
       leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
@@ -58,20 +56,8 @@ class LibraryGalleryFilter extends StatelessWidget {
           query.foldsDuplicates,
           enabled: !query.requiresMergedDuplicates,
         ),
-        const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
-        _choice(_FilterChoice.metadata, "筛选条件…", query.metadataFilter.isActive),
       ],
-      onSelected: (choice) async {
-        if (choice == _FilterChoice.metadata) {
-          final filter = await showLibraryMetadataFilterEditor(
-            context: context,
-            filter: query.metadataFilter,
-          );
-          if (context.mounted && filter != null) {
-            onChanged(query.copyWith(metadataFilter: filter));
-          }
-          return;
-        }
+      onSelected: (choice) {
         onChanged(switch (choice) {
           _FilterChoice.descendants => query.copyWith(includeDescendants: true),
           _FilterChoice.folderOnly => query.copyWith(includeDescendants: false),
@@ -81,13 +67,10 @@ class LibraryGalleryFilter extends StatelessWidget {
           _FilterChoice.merged => query.copyWith(
             duplicateMode: LibraryGalleryDuplicateMode.merged,
           ),
-          _FilterChoice.metadata => query,
         });
       },
       builder: (context, openMenu) => AmeTooltip(
-        message: query.metadataFilter.isActive
-            ? "筛选（已设置条件）"
-            : LibraryDuplicateStrings.filter,
+        message: LibraryDuplicateStrings.filter,
         child: IconButton(
           key: const Key("library-filter-menu"),
           onPressed: openMenu,

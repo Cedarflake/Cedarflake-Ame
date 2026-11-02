@@ -538,8 +538,6 @@ The gallery Filter menu retains two independent single-choice groups:
 ────────────────
 全部图片
 合并重复图片
-────────────────
-筛选条件…
 ```
 
 The source group controls descendants of the current folder. The duplicate group controls whether
@@ -552,17 +550,11 @@ choices remain visible and disabled. Manual albums, smart albums and organizatio
 merged groups: their duplicate choices remain visible and disabled, with `合并重复图片` selected.
 Library and Favorites retain their supported duplicate-display choices.
 
-`筛选条件…` opens the shared desktop form for filename extension, file size, width/height,
-capture/created/modified date and camera make/model text. Blank fields impose no condition. Byte and
-dimension limits and both calendar dates are inclusive; missing metadata does not satisfy a
-condition on that field. Capture dates use recorded capture evidence without filesystem fallback.
-File-size entries use decimal MB, with six fractional digits retaining individual-byte precision.
-The extension field describes the filename rather than asserting its encoded format.
-Applying preserves the current source, manual album, literal search and ordering. Cancelling keeps
-the current conditions; `清除条件` removes only these metadata conditions. An active form marks its
-menu entry with the existing selection dot and the filter tooltip describes the active conditions.
-Empty filtered scopes explain that conditions can be adjusted or cleared. Organization continuation
-and portable recovery retain these conditions with the bookmarked scope.
+The menu applies each choice directly. The metadata-condition entry and form were withdrawn on
+2026-11-02; do not replace them with another panel or menu. Ordinary desktop queries have no metadata
+conditions, and organization continuation uses the current query's conditions rather than restoring
+hidden restrictions from an older bookmark. Historical payloads remain readable for archive
+compatibility without erasing organization progress.
 
 Consecutive filter/search changes retain the original visible image and its fractional viewport
 position. A missing image, empty result or automatic clamp to an edge does not replace that intent;
@@ -1234,7 +1226,7 @@ mobile layout, or competing gallery.
 Selecting a category immediately displays its known name and result count in the existing header.
 Retain the title during asynchronous loading, using the same
 ownership rule as manual album names. Keep Select, Sort, Filter, Layout, and More in their existing
-upper-right positions. Filter retains metadata conditions; no pending/confirmed classification
+upper-right positions. Filter uses the same four choices as Library; no pending/confirmed classification
 filters, counts, or badges are shown.
 
 Per-image analysis failures recover silently under the failure-specific lifecycle. Cards and

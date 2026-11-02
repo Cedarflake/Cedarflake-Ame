@@ -27,11 +27,12 @@ not classification or album decisions. Portable archive version 4 appends the pa
 scope; readers of versions 1 through 3 supply empty metadata conditions. Restoration preserves an
 existing local bookmark and imports the archived conditions atomically with a newly restored one.
 
-The current Filter menu opens a standard desktop form for these conditions. Applying changes uses
-the existing query transition; cancellation leaves the query intact. Clearing metadata conditions
-retains source, album, text, duplicate and sorting choices. The form composes Material text fields,
-dropdown and dialog primitives; no additional primary navigation or custom selection control is
-needed. The native filter remains authoritative when requests bypass the form.
+The desktop condition form was withdrawn on 2026-11-02 in favor of the original descendant and
+duplicate-display choices. Native predicates and versioned archive payloads remain compatible.
+When continuation supplies a current query, its metadata conditions take precedence before choosing
+the saved or next image, alongside its existing sort precedence. Ordinary desktop queries supply
+empty conditions, preventing hidden restrictions after the form's removal. Reads without a current
+query retain the saved payload for compatibility; this change does not rewrite bookmarks or decisions.
 
 ## Alternatives and consequences
 
@@ -45,7 +46,7 @@ Existing SQLite and serde dependencies suffice; licensing and runtime packaging 
 
 Verify compound/null/boundary predicates, invalid dates and ranges, literal special characters,
 group representative selection, page/count/layout/selection agreement, query identity, migration
-rollback, restart continuation, and the actual desktop apply/cancel/clear workflow. Preserve source
+rollback, restart continuation with current conditions, and the shared four-choice menu. Preserve source
 hashes. Native persistence and query modules own separate focused tests under ADR 0025.
 
 A later forward migration can replace the bounded scope payload while preserving its versioned

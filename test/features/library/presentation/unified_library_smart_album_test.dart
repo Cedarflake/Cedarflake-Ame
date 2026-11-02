@@ -120,7 +120,7 @@ void main() {
       }
       expect(find.text("待确认"), findsNothing);
       expect(find.text("已确认"), findsNothing);
-      expect(find.text("筛选条件…"), findsOneWidget);
+      expect(find.text("筛选条件…"), findsNothing);
       await tester.tapAt(Offset.zero);
       await tester.pumpAndSettle();
       expect(

@@ -589,3 +589,31 @@ The rebuilt isolated Profile client shows matching Library and Screenshot filter
 smart-album duplicate choices disabled and the shared metadata action available. No source, model,
 schema or native query behavior changes. The query model/filter owners contain 437/111 production
 lines and no inline tests; the amended metadata/smart-album fixtures contain 138/331 lines.
+
+## Four-choice filter restoration — 2026-11-02
+
+The metadata-condition entry and form are removed following scope withdrawal. The shared menu keeps
+the original descendant and duplicate groups, including forced-folding state in albums. The empty
+smart-album message no longer points to removed conditions. Continuation resolves its candidate with
+the current query's metadata conditions before returning a target, so an older bookmark cannot
+restore hidden restrictions. Native queries, stored payloads and archive compatibility remain intact.
+
+Five focused Flutter checks and two native continuation checks pass. The native regression reopens
+a catalog whose old camera condition excludes the next image, resumes that image using the current
+empty conditions, and confirms the stored bookmark remains unchanged. The first native invocation
+could not create a fixture in the system temporary directory; rerunning in the existing leased
+scratch owner resolves that environment failure. Initial test expectations were corrected to account
+for ordinary All-images defaults and the organization's required merged groups. Owned Dart analysis,
+formatting and whitespace checks pass.
+
+The Profile client rebuilt from `7222cdb0` plus this change uses a newly verified optimized native
+library with test-storage support. Library exposes exactly four choices; selecting All images closes
+the menu and changes the header from 51 images / 50 merged to 51 images. Screenshot retains six groups
+and exposes the same four choices with its fixed-group choices disabled and Merge duplicates selected.
+There is no metadata entry or form. All 51 source-file digests and the nine sampled durable-table
+digests match before and after these interactions. No original library is opened.
+
+Production owners contain 94 filter lines, 285 gallery-state lines and 111 continuation lines, with
+no inline tests. Dedicated fixtures contain 99 menu, 331 smart-album and 85 native-filter lines.
+The 305-line condition editor and its obsolete form fixture are deleted. Hosted verification follows
+the submitted commit; prior checks do not establish its final gate result.
