@@ -61,6 +61,62 @@ graphs and supporting files total 378,977,965 bytes at revision
 The [current model scope](../product/r5-classification.md#model-admission-and-low-resource-execution)
 keeps naming within the existing SigLIP/vocabulary budget; no additional model or dependency is admitted.
 
+### Competition before name subsumption — 2026-11-03
+
+Nomination previously removed a narrower name as soon as a broader description covered its members
+against the starting taxonomy. Distinct-topic competition ran only after that removal, so a broader
+name could fail while its supported child was already lost. A new regression reproduces this with
+one output slot: the old algorithm returns the weaker parent; the corrected algorithm retains the
+child and final admission confirms its two fixture members.
+
+The version-8 evaluation owner compares up to 64 detailed candidates with every baseline-eligible
+alternative before ancestry and additional-coverage selection. It shares the final admission's
+member policy. Thresholds, purpose patterns, graph limits and output capacity are unchanged; the
+historical calibration fixture retains its version-7 identity. Evaluation truncation remains
+explicit. This repairs selection without granting raw dictionary senses production naming authority.
+
+All 54 focused discovery/admission/preparation tests and five ancestry-selection tests pass. They
+include unsupported-parent recovery, 67-candidate truncation, separation thresholds, shared-purpose
+competition, cancellation, cache reuse and stale publication. The default Windows temporary path
+denied fixture creation; the successful run uses the repository's leased scratch owner with its
+normal cache namespace checks. The scratch directory is removed after completion.
+
+The native comparison uses the same four retained fixture identities described above, replacing
+only their diagnostic admission values with the production three-member profile. Both algorithms
+receive identical bytes, cached vectors and thresholds; each covers six cohorts twice. The old
+probe retains its verified version-7 digest. The new Debug probe's SHA-256 is
+`7c1ee8b1540c92a072f5ef8b920c53da6a44196528c88979f8dd29a738646e46`.
+
+| Cohort | Version 7 | Version 8 |
+| --- | --- | --- |
+| B001, B151, B186 | Unsupported broad names reach final admission and are rejected | No supported name survives nomination |
+| B132 | `coding system截图`, supported by six of seven members | `programming language截图`, supported by all seven members |
+| B075, B191 | No proposed name | No proposed name |
+
+All processes retire successfully, with zero source reads, zero worker starts and an unchanged
+29,597-entry feature cache. Version 8 takes 25.63 seconds across four Debug processes and peaks at
+96,071,680 bytes, within the per-process 120-second/512-MiB diagnostic bounds. Version 7 takes
+14.00 seconds using its retained optimized executable; differing build profiles prevent a speed
+comparison. The temporary fixtures are removed, while compact outputs remain in ignored
+`build/test/derived/r5-open-naming` storage. A report-collection error in the first harness attempt
+is corrected before the complete paired run.
+
+A bounded cache-export example supplies cached text vectors for the preceding score diagnosis
+without constructing an encoder. Both exports find every requested description (2,325 lexical and
+210 managed-context descriptions). Their reconstructed version-7 member support matches the native
+probe for all six cohorts. Adding the managed contexts to that comparison still leaves incorrect
+fine-grained lexical candidates; it is not an admitted naming policy. No held-out samples or
+additional model downloads are used.
+
+| Affected owner | Production lines | Inline tests | Dedicated tests |
+| --- | ---: | ---: | ---: |
+| Nomination composition / candidate evaluation | 211 / 206 | 0 | 870 shared nomination lines |
+| Final admission / member policy | 305 / 95 | 0 | Existing admission fixtures retained |
+| Cache export diagnostic | 82 | 0 | Native-cache parity comparison above |
+
+The production vocabulary still permits names only from the 42 authored contexts. The useful-name
+and open-frontier requirement remains in the roadmap; this selection repair does not close R5-02.
+
 ## Retained-feature grouping
 
 The exploratory probe reuses the 240 retained calibration feature vectors from the native SigLIP

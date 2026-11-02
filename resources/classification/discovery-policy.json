@@ -1,7 +1,7 @@
 {
   "cohort_minimum_pair_cosine": 0.75,
   "nomination": {
-    "algorithm_revision": "ame.classification.automatic-context-nomination.v7",
+    "algorithm_revision": "ame.classification.automatic-context-nomination.v8",
     "max_candidates": 64,
     "minimum_context_relatedness": 0.9
   },

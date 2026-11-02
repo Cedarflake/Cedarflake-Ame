@@ -1,5 +1,8 @@
 use crate::domain::ScanError;
-use crate::domain::classification::ClassificationRevision;
+use crate::domain::classification::discovery::CategoryNaming;
+use crate::domain::classification::{CategoryScore, ClassificationRevision};
+
+use super::MemberAdmission;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CategoryAdmissionCriteria {
@@ -14,6 +17,28 @@ pub struct CategoryAdmissionCriteria {
 pub struct CategoryAdmissionPolicy {
     criteria: CategoryAdmissionCriteria,
     revision: ClassificationRevision,
+}
+
+impl CategoryAdmissionCriteria {
+    pub(in crate::application::classification_discovery) fn member_admission(
+        self,
+        naming: &CategoryNaming,
+        current: &CategoryScore,
+        similarity: f32,
+        competing: f32,
+    ) -> MemberAdmission {
+        let improvement = similarity - current.similarity;
+        let separation = similarity - competing;
+        if !naming.includes(&current.category_id) {
+            MemberAdmission::DifferentPurpose
+        } else if improvement <= 0.0 || improvement < self.minimum_improvement {
+            MemberAdmission::NoImprovement
+        } else if separation <= 0.0 || separation < self.minimum_separation {
+            MemberAdmission::CompetingContext
+        } else {
+            MemberAdmission::Supports
+        }
+    }
 }
 
 impl CategoryAdmissionPolicy {

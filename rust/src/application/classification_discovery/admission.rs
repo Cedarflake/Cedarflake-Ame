@@ -126,17 +126,12 @@ pub fn assess_category_candidates(
             }
             let improvement = similarity - current.similarity;
             let separation = similarity - competing;
-            let disposition = if !discovery.naming.includes(&current.category_id) {
-                MemberAdmission::DifferentPurpose
-            } else if improvement <= 0.0 || improvement < criteria.minimum_improvement {
-                MemberAdmission::NoImprovement
-            } else if separation <= 0.0 || separation < criteria.minimum_separation {
-                MemberAdmission::CompetingContext
-            } else {
+            let disposition =
+                criteria.member_admission(&discovery.naming, current, similarity, competing);
+            if disposition == MemberAdmission::Supports {
                 supporting_members += 1;
                 improvement_total += f64::from(improvement);
-                MemberAdmission::Supports
-            };
+            }
             members.push(CategoryMemberEvidence {
                 content: cohort.member_samples()[member_index].content.clone(),
                 current: current.clone(),

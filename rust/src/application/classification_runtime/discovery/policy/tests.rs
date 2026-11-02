@@ -3,20 +3,19 @@ use crate::domain::classification::{CategoryDefinition, CategoryId};
 use super::*;
 
 #[test]
-fn managed_policy_preserves_the_retained_calibration_inputs() {
+fn managed_policy_preserves_calibrated_thresholds_with_versioned_nomination() {
     let retained: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../../docs/acceptance/fixtures/r5-naming-profile.json"
     ))
     .unwrap();
     let current: serde_json::Value = serde_json::from_str(PROFILE).unwrap();
-    for key in [
-        "cohort_minimum_pair_cosine",
-        "nomination",
-        "admission",
-        "purposes",
-    ] {
+    for key in ["cohort_minimum_pair_cosine", "admission", "purposes"] {
         assert_eq!(current[key], retained[key], "{key}");
     }
+    let mut expected_nomination = retained["nomination"].clone();
+    expected_nomination["algorithm_revision"] =
+        serde_json::json!("ame.classification.automatic-context-nomination.v8");
+    assert_eq!(current["nomination"], expected_nomination);
     let taxonomy = classification_candidate::initial_categories().unwrap();
     let policy = ManagedDiscoveryPolicy::for_taxonomy(&taxonomy).unwrap();
     assert!(policy.is_available());

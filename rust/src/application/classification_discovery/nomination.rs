@@ -2,27 +2,23 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 
 use crate::domain::ScanError;
-use crate::domain::classification::discovery::{
-    CategoryNaming, ConceptId, ConceptMemberSimilarity, ConceptNamingScope, DiscoveryCohort,
-};
-use crate::domain::classification::{CategoryScore, ClassificationRevision};
+use crate::domain::classification::ClassificationRevision;
+use crate::domain::classification::discovery::{CategoryNaming, DiscoveryCohort};
 use crate::ports::classification_encoder::ClassificationEncoderFactory;
-use crate::ports::classification_features::{ClassificationFeatureRepository, TEXT_FEATURE_WINDOW};
+use crate::ports::classification_features::ClassificationFeatureRepository;
 use crate::ports::classification_vocabulary::ClassificationVocabulary;
 
-use super::super::classification_features::load_or_encode_descriptions;
 use super::super::classification_matching::CategoryMatcher;
 use super::super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
-use super::competition::{self, CompetitionRequest};
 use super::context_graph::{self, limit_error};
 use super::{
-    CategoryAdmissionCriteria, CategoryAdmissionPolicy, ConceptConsolidation,
-    ConceptConsolidationLimits, ConceptMatch, ConsolidatedConcept, ContextComparisonPolicy,
-    DiscoveryCandidates, check_cancelled, check_revision,
+    CategoryAdmissionPolicy, ConceptConsolidation, ConceptConsolidationLimits,
+    ContextComparisonPolicy, DiscoveryCandidates, check_cancelled, check_revision,
 };
 
+mod evaluation;
 mod selection;
-use selection::{ContextSupport, MemberCoverage};
+use evaluation::ContextEvaluationRequest;
 
 pub struct ConceptNominationRequest<'a> {
     pub cohort: &'a DiscoveryCohort,
@@ -117,39 +113,24 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
                 .clone(),
         );
     }
-    let mut eligible = Vec::new();
-    let concepts: Vec<_> = projected
-        .values()
-        .filter(|concept| concept.naming_scope() == ConceptNamingScope::Candidate)
-        .collect();
-    for window in concepts.chunks(TEXT_FEATURE_WINDOW) {
-        check_cancelled(cancelled)?;
-        check_revision(vocabulary, revision)?;
-        let descriptions: Vec<_> = window.iter().map(|concept| concept.description()).collect();
-        let features = load_or_encode_descriptions(&descriptions, residency, cache, cancelled)?;
-        for concept in window {
-            check_cancelled(cancelled)?;
-            let feature = &features[&ClassificationRevision::description(concept.description())];
-            let scores = cohort.score(feature).map_err(feature_error)?;
-            let members = cohort.member_similarities(feature).map_err(feature_error)?;
-            if let Some(context) = qualify(
-                concept.id(),
-                scores.contrast,
-                &members,
-                &baseline,
-                policy.criteria(),
-                naming,
-            ) {
-                eligible.push(context);
-            }
-        }
-    }
+    let evaluated = evaluation::evaluate(
+        ContextEvaluationRequest {
+            cohort,
+            graph: &graph,
+            projected: &projected,
+            baseline: &baseline,
+            criteria: policy.criteria(),
+            naming,
+            minimum_relatedness: minimum_context_relatedness,
+        },
+        residency,
+        cache,
+        cancelled,
+    )?;
     check_cancelled(cancelled)?;
     check_revision(vocabulary, revision)?;
-    let eligible_concepts = eligible.len();
-    let eligible_ids: BTreeSet<_> = eligible.iter().map(|context| context.id).collect();
     let selection = selection::select(
-        eligible,
+        evaluated.supported,
         &graph.parents,
         policy.criteria().minimum_members,
         max_candidates,
@@ -157,40 +138,11 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     )?;
     check_cancelled(cancelled)?;
     let selected: BTreeSet<_> = selection.selected.iter().copied().collect();
-    let descriptions: Vec<_> = selection
-        .selected
-        .iter()
-        .map(|id| projected[id].description())
+    let candidates: Vec<_> = evaluated
+        .candidates
+        .into_iter()
+        .filter(|candidate| selected.contains(&candidate.candidate.concept.id()))
         .collect();
-    let features = load_or_encode_descriptions(&descriptions, residency, cache, cancelled)?;
-    let mut candidates = Vec::with_capacity(selected.len());
-    for id in &selection.selected {
-        check_cancelled(cancelled)?;
-        let concept = &projected[id];
-        let feature = &features[&ClassificationRevision::description(concept.description())];
-        candidates.push(ConsolidatedConcept {
-            comparison: None,
-            candidate: ConceptMatch {
-                concept: concept.clone(),
-                scores: cohort.score(feature).map_err(feature_error)?,
-            },
-            member_similarities: cohort.member_similarities(feature).map_err(feature_error)?,
-            narrower_concepts: graph.groups[id].iter().copied().collect(),
-        });
-    }
-    competition::retain(
-        CompetitionRequest {
-            cohort,
-            qualified: &projected,
-            topics: &graph.concepts,
-            eligible: &eligible_ids,
-            minimum_relatedness: minimum_context_relatedness,
-        },
-        &mut candidates,
-        residency,
-        cache,
-        cancelled,
-    )?;
     check_cancelled(cancelled)?;
     check_revision(vocabulary, revision)?;
     let covered: BTreeSet<_> = candidates
@@ -209,7 +161,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     let relatedness = minimum_context_relatedness.to_le_bytes();
     let naming_revision = naming.revision();
     let frontier_revision = ClassificationRevision::derive(
-        "ame.classification.automatic-context-frontier.v7",
+        "ame.classification.automatic-context-frontier.v8",
         [
             taxonomy_revision.bytes().as_slice(),
             policy_revision.bytes().as_slice(),
@@ -222,10 +174,10 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     );
     Ok(ConceptNomination {
         considered_concepts: graph.concepts.len(),
-        naming_concepts: concepts.len(),
-        eligible_concepts,
+        naming_concepts: evaluated.naming_concepts,
+        eligible_concepts: evaluated.eligible_concepts,
         subsumed_concepts: selection.subsumed,
-        candidate_limit_reached: selection.candidate_limit_reached,
+        candidate_limit_reached: evaluated.limit_reached || selection.candidate_limit_reached,
         ancestry_edges: selection.ancestry_edges,
         contexts: ConceptConsolidation {
             naming: naming.clone(),
@@ -239,7 +191,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
             retrieval_limits: retrieved.limits,
             frontier_revision,
             consolidation_revision: ClassificationRevision::derive(
-                "ame.classification.automatic-context-nomination.v7",
+                "ame.classification.automatic-context-nomination.v8",
                 std::iter::empty(),
             ),
             limits,
@@ -247,43 +199,6 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
             unresolved_concepts: seeds.difference(&covered).copied().collect(),
             visited_edges: graph.visited_edges,
         },
-    })
-}
-
-fn qualify(
-    id: ConceptId,
-    contrast: f32,
-    members: &[ConceptMemberSimilarity],
-    baseline: &[CategoryScore],
-    criteria: CategoryAdmissionCriteria,
-    naming: &CategoryNaming,
-) -> Option<ContextSupport> {
-    if contrast <= 0.0 || contrast < criteria.minimum_context_contrast {
-        return None;
-    }
-    let mut coverage = MemberCoverage::default();
-    let mut improvement = 0.0_f64;
-    for (index, (member, current)) in members.iter().zip(baseline).enumerate() {
-        let gain = member.similarity - current.similarity;
-        if naming.includes(&current.category_id)
-            && gain > 0.0
-            && gain >= criteria.minimum_improvement
-        {
-            coverage.insert(index);
-            improvement += f64::from(gain);
-        }
-    }
-    let supporting_members = coverage.count();
-    if supporting_members < criteria.minimum_members
-        || supporting_members * 1000 < baseline.len() * usize::from(criteria.coverage_per_thousand)
-    {
-        return None;
-    }
-    Some(ContextSupport {
-        id,
-        contrast,
-        coverage,
-        mean_improvement: (improvement / supporting_members as f64) as f32,
     })
 }
 

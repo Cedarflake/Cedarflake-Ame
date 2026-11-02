@@ -108,26 +108,9 @@ fn shared_prefix_does_not_erase_competition_between_different_topics() {
     let nomination = harness
         .nominate(64, context_limits(), &AtomicBool::new(false))
         .unwrap();
-    assert_eq!(nomination.contexts.candidates.len(), 1);
-    let candidate = &nomination.contexts.candidates[0];
-    assert_eq!(candidate.candidate.concept.id(), id(5));
-    let alternative = candidate.comparison.as_ref().unwrap().members[0]
-        .alternative
-        .unwrap();
-    assert_eq!(alternative.concept, id(3));
-    assert_eq!(alternative.relatedness, 0.0);
-    assert!((alternative.similarity - 0.8).abs() < 1e-6);
+    assert!(nomination.contexts.candidates.is_empty());
     let assessment = assess(&harness, &nomination).unwrap();
-    assert_eq!(assessment.candidates[0].supporting_members, 0);
-    assert_eq!(
-        assessment.candidates[0].disposition,
-        CategoryAdmissionDisposition::InsufficientMembers
-    );
-    assert_eq!(
-        assessment.candidates[0].members[0].disposition,
-        MemberAdmission::CompetingContext
-    );
-    assert!((assessment.candidates[0].members[0].separation - 0.1).abs() < 1e-6);
+    assert!(assessment.candidates.is_empty());
     let encoded = harness.calls.encoded.borrow().len();
     let repeated = harness
         .nominate(64, context_limits(), &AtomicBool::new(false))
@@ -135,6 +118,28 @@ fn shared_prefix_does_not_erase_competition_between_different_topics() {
     assert_eq!(repeated.contexts.candidates, nomination.contexts.candidates);
     assert_eq!(harness.calls.encoded.borrow().len(), encoded);
     assert!(harness.residency.resident_kind().is_none());
+
+    let mut criteria = harness.policy.criteria();
+    criteria.minimum_separation = 0.05;
+    harness.policy = CategoryAdmissionPolicy::new(revision(11), criteria).unwrap();
+    let separated = harness
+        .nominate(64, context_limits(), &AtomicBool::new(false))
+        .unwrap();
+    let candidate = &separated.contexts.candidates[0];
+    assert_eq!(candidate.candidate.concept.id(), id(5));
+    let alternative = candidate.comparison.as_ref().unwrap().members[0]
+        .alternative
+        .unwrap();
+    assert_eq!(alternative.concept, id(3));
+    assert_eq!(alternative.relatedness, 0.0);
+    assert!((alternative.similarity - 0.8).abs() < 1e-6);
+    let assessment = assess(&harness, &separated).unwrap();
+    assert_eq!(
+        assessment.candidates[0].disposition,
+        CategoryAdmissionDisposition::Proposed
+    );
+    assert!((assessment.candidates[0].members[0].separation - 0.1).abs() < 1e-6);
+    assert_eq!(harness.calls.encoded.borrow().len(), encoded);
 }
 
 #[test]

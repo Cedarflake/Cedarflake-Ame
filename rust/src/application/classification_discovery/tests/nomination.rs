@@ -5,6 +5,7 @@ use crate::domain::classification::{CategoryDefinition, CategoryId, Taxonomy};
 use super::*;
 
 mod purpose;
+mod support;
 
 struct Harness {
     _directory: tempfile::TempDir,
@@ -276,11 +277,7 @@ fn a_pruned_distinct_context_still_prevents_false_member_support() {
     let nomination = harness
         .nominate(64, context_limits(), &AtomicBool::new(false))
         .unwrap();
-    assert_eq!(nomination.contexts.candidates.len(), 1);
-    assert_eq!(
-        nomination.contexts.candidates[0].candidate.concept.id(),
-        id(3)
-    );
+    assert!(nomination.contexts.candidates.is_empty());
     let assessment = assess_category_candidates(
         &harness.cohort,
         &nomination.contexts,
@@ -289,20 +286,7 @@ fn a_pruned_distinct_context_still_prevents_false_member_support() {
         &AtomicBool::new(false),
     )
     .unwrap();
-    let candidate = &assessment.candidates[0];
-    assert_eq!(candidate.supporting_members, 1);
-    assert_eq!(
-        candidate.disposition,
-        CategoryAdmissionDisposition::InsufficientMembers
-    );
-    assert_eq!(
-        candidate.members[1].disposition,
-        MemberAdmission::CompetingContext
-    );
-    assert_eq!(
-        candidate.members[1].alternative_context.unwrap().concept,
-        id(4)
-    );
+    assert!(assessment.candidates.is_empty());
 
     let encoded = harness.calls.encoded.borrow().len();
     harness.minimum_relatedness = 0.55;

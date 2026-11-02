@@ -2,7 +2,7 @@
 
 - Status: Accepted for implementation
 - Date: 2026-10-30
-- Last amended: 2026-11-02
+- Last amended: 2026-11-03
 
 ## Context
 
@@ -168,8 +168,17 @@ as category names. This applicability belongs to the immutable concept definitio
 revision; it does not alter the description's feature key or define a fixed product category list.
 
 The admission profile supplies the minimum repeated-content support, coverage, improvement and
-contextual contrast for nomination. A qualifying broader context subsumes finer ones only when its
-own description covers all their supported members. This comparison follows every already-resolved
+contextual contrast for nomination. Evaluation first ranks baseline-eligible contexts by their own
+member coverage, mean improvement, contrast and stable identity. At most 64 retain detailed evidence;
+an omitted evaluation candidate is reported through the candidate-limit flag. Every eligible context,
+including those outside that evaluation window, remains an alternative in distinct-topic comparison.
+The evaluation owner applies the same per-member purpose, improvement and separation policy as final
+admission before allowing a context to suppress another name. A broader context that loses support
+to a competing topic cannot erase a supported child. This prevents an early coverage-only choice
+from making later admission reject the only remaining name.
+
+A qualifying broader context subsumes finer ones only when its own description covers all their
+competition-supported members. This comparison follows every already-resolved
 broader ancestor, including paths through inapplicable or unsupported intermediate concepts; those
 intermediates contribute no scores or support. Per-origin visited sets prevent repeated expansion,
 and ancestor-edge work has the same explicit edge ceiling as context traversal. Exhaustion rejects
@@ -179,9 +188,12 @@ context contrast and stable identity. Each addition must cover the profile's min
 previously uncovered members, preventing closely overlapping descriptions from multiplying categories.
 Candidates keep their own scores; subsumption never inherits a finer description's evidence.
 At most 64 retain full member evidence, and all other eligible contexts retain only compact coverage
-and ranking data during selection. Lexical origin counts do not increase rank. The result records
+and ranking data. The evaluation ceiling is independent of the caller's smaller output frontier;
+asking for one name does not eliminate alternatives before their support is checked. Lexical origin
+counts do not increase rank. The result records
 considered/nameable/eligible/subsumed counts and candidate truncation. Final admission still resolves
-competition and names among nominated contexts.
+competition and names among nominated contexts. Version 8 binds this evaluation-before-subsumption
+order in the frontier and algorithm revisions; unchanged text and image features remain reusable.
 
 Pruning a name does not remove its conflicting image evidence. Nomination retains the strongest
 eligible, semantically distinct alternative for every member of each selected context. Distinctness
@@ -190,7 +202,7 @@ cutoff; identical topic descriptions remain related. Purpose-qualified descripti
 image similarity. A shared purpose prefix must not make different topics exempt from competition.
 Unconditioned naming uses the same descriptions for both comparisons. The cutoff is a measured
 nomination input, not a probability or a product default. Alternative contexts are streamed after
-selection, retaining at most 64 selected topic features and at most 64 features in each topic and
+evaluation-frontier selection, retaining at most 64 evaluated topic features and at most 64 features in each topic and
 qualified-description window. Both views use independent description cache keys and the existing
 worker lifetime. Evidence retains the alternative identity, qualified image similarity and topic
 relatedness without promoting that alternative to a category. Final admission compares this evidence
