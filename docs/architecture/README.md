@@ -51,3 +51,4 @@ Recorded decisions:
 - [ADR 0034: Separate category rules from encoder compatibility](0034-versioned-classification-contracts.md)
 - [ADR 0035: Keep classification evidence and human authority independent](0035-classification-decision-authority.md)
 - [ADR 0036: Durable classification dispatch and publication authority](0036-durable-classification-dispatch.md)
+- [ADR 0037: Feature module dependencies and production composition](0037-feature-module-dependency-boundaries.md)

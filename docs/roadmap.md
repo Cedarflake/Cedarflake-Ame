@@ -315,6 +315,21 @@ withdrawn. The current product contracts own their replacements and retained com
 historical interaction checks do not reinstate removed UI. Final hosted verification and review follow
 the current execution queue above. R6 through R10 retain their order.
 
+## Project organization after R5
+
+After R5 closure and its separately authorized merge, the
+[project-organization plan](plans/project-organization.md) defines the requested maintenance pass.
+Its planned position is before R6 implementation; R5 remains the active stage and the later product
+stages retain their order. The separate rendering follow-up keeps its existing scope and disposition.
+
+[ADR 0037](architecture/0037-feature-module-dependency-boundaries.md) owns the future dependency and
+composition target, and the [repository layout](development/repository-layout.md) owns placement.
+Apply the target to new and materially changed modules when this rollout starts. Inventory legacy
+edges once, reject new violations from O1, and remove exceptions with each migrated boundary.
+The execution plan owns the ordered slices, behavior-preservation checks and rollback units.
+Closure requires repository conformance and applicable hosted/client evidence; publishing the
+documents does not establish migration, activate implementation or reopen completed stage acceptance.
+
 ## Deferred constrained-device rendering
 
 By explicit user decision on 2026-10-30, first-use rendering optimization on cloud-primary is a

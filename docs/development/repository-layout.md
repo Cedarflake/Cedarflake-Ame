@@ -33,33 +33,70 @@ of copying its complete implementation history into the roadmap.
 
 ## Dart ownership
 
+The tree below is the target for the [post-R5 organization rollout](../roadmap.md#project-organization-after-r5).
+Current files move through its execution slices. Dependency direction, public contracts,
+composition and exceptions belong to
+[ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md), not a second rule list here.
+
 ```text
 lib/
 ├─ app/
-│  ├─ bootstrap/
+│  ├─ bootstrap/              # Feature-specific production bindings and startup
+│  ├─ notifications/
 │  ├─ presentation/
 │  └─ window/
 ├─ features/
-│  ├─ library/
-│  │  ├─ adapters/
-│  │  ├─ application/
-│  │  ├─ domain/
-│  │  └─ presentation/
-│  ├─ settings/
-│  │  ├─ adapters/
-│  │  ├─ application/
-│  │  └─ presentation/
-│  └─ storage/
+│  └─ <feature>/             # Existing library, settings and storage owners
+│     ├─ domain/
 │     ├─ application/
-│     └─ domain/
+│     │  ├─ ports/
+│     │  └─ <capability>/
+│     ├─ adapters/
+│     │  ├─ rust/
+│     │  └─ platform/
+│     └─ presentation/
+│        ├─ pages/
+│        ├─ widgets/
+│        └─ coordination/
 └─ src/rust/
 ```
 
-- Put a platform implementation beside the feature or application contract it implements.
-- Put cross-feature application bootstrap in `lib/app`, not in a global adapter bucket.
-- Put reusable visual primitives in `lib/app/presentation` only when more than one feature owns no
-  better home for them.
-- Keep tests under the corresponding `test/app` or `test/features` path.
+| Location | Contents |
+| --- | --- |
+| Feature `domain` | Ame value models and stable domain rules |
+| Feature `application/ports` | Interfaces for capabilities consumed by that feature |
+| Feature `application/<capability>` | Use cases, application state/lifecycle owners and their Provider declarations |
+| Feature `adapters/rust` | Native bridge implementations, engine DTO/error mappings and opaque-handle wrappers |
+| Feature `adapters/platform` | Native pickers, Explorer actions and platform-backed preference implementations |
+| Feature `presentation/pages` | Page entries and surface composition |
+| Feature `presentation/widgets` | Feature-owned visual components, grouped by capability when useful |
+| Feature `presentation/coordination` | View-only state/lifecycle coordination and presentation projections |
+| `lib/app/bootstrap` | Separate feature-binding modules and cross-feature startup/shutdown composition |
+| `lib/app/presentation` | Shared visual primitives with no feature-policy owner |
+
+Create only directories with real content. A small capability may keep its files directly in its
+owning layer; introduce capability subdirectories when several collaborators need a clear home.
+Possible library groupings include catalog, previews, scanning, synchronization, duplicates,
+organization and classification. Preserve the existing feature boundary unless a separate
+ownership decision justifies changing it. File and directory names follow repository/language
+conventions rather than a new naming scheme.
+
+Move a native mapper with the adapter that uses it; shared adapter mappings may have a named helper
+within that adapter area. Keep port failure/value types in their contract or domain owner. Keep
+Provider declarations beside the state owner and production implementations in bootstrap bindings.
+The contract and its platform implementation share a feature, not a source file or directory.
+
+Tests mirror their resulting source area. Keep an integration workflow at its canonical entrypoint
+while moving only owned private support. Temporary compatibility exports belong to the migrating
+slice and are removed before its closure; do not create a permanent parallel directory layout.
+
+## Rust ownership
+
+Retain `rust/src/domain`, `ports`, `application`, `adapters` and `api`. Cohesive capability modules
+remain under their owning layer, with their tests beside the owner or under the existing test
+convention. Production-composition admission follows ADR 0037's named-boundary rule; it does not
+require new crates or moving generated FRB files. Existing process hosts and Windows platform
+owners retain their accepted architecture and canonical entrypoints.
 
 ## Test ownership
 

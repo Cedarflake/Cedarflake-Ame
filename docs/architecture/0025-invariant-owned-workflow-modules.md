@@ -19,6 +19,10 @@ silently change unrelated workflows.
 
 ## Decision
 
+[ADR 0037](0037-feature-module-dependency-boundaries.md) extends this ownership rule with the future
+module dependency and production-composition target. It does not replace the lifecycle and
+transaction boundaries below.
+
 Top-level workflow files are composition boundaries. They may translate inputs, select a typed use
 case, sequence owned collaborators, and publish a typed outcome. They do not own the detailed state
 machine or persistence contract of every collaborator.

@@ -11,6 +11,7 @@ only the contracts, execution details, and evidence that own the task.
 | In what order should R4 be implemented, and what must each slice deliver? | [R4 implementation plan](plans/r4-organization.md), ordered by the [roadmap](roadmap.md#r4-implementation-sequence) |
 | What are R5's metadata, smart-album, analysis, and recovery rules? | [R5 requirements](product/r5-classification.md), with the accepted [smart-album UI](product/gallery-ui.md#smart-album-workflow) |
 | How should R5 be implemented from the delivered R4 foundation? | [R5 implementation plan](plans/r5-classification.md), ordered by the [roadmap](roadmap.md#r5-implementation-sequence) |
+| How will project organization be refactored after R5? | [Organization execution plan](plans/project-organization.md), activated by the [roadmap](roadmap.md#project-organization-after-r5) |
 | How should the accepted gallery and controls behave, and why? | [Gallery UI contract and rationale](product/gallery-ui.md#design-principles-and-rationale), under the accepted UI ADRs |
 | Which shared UI owner, regression and client path apply to a change? | [UI verification map](acceptance/quality-gates.md#ui-workflow-verification) |
 | Where does the current maintenance work resume? | [Maintainability refactor execution](plans/maintainability-refactor.md), selected by the roadmap |
@@ -19,6 +20,7 @@ only the contracts, execution details, and evidence that own the task.
 | Why was a technical boundary chosen? | [Architecture decisions](architecture/README.md) |
 | What must be proved, what actually ran, and what remains unverified? | [Acceptance index](acceptance/README.md) and [quality gates](acceptance/quality-gates.md) |
 | Where do implementation and tool files belong? | [Repository layout](development/repository-layout.md) |
+| Which future module dependencies, public contracts and production bindings are allowed? | [ADR 0037](architecture/0037-feature-module-dependency-boundaries.md), with staged adoption through the roadmap |
 | Which durable engineering and safety rules apply? | [Repository contract](../AGENTS.md), with its required [delivery/verification workflow](acceptance/quality-gates.md#delivery-and-verification) |
 | Where did the reorganized rules move, and how was their loading checked? | [Rule organization evidence](acceptance/engineering-rules-organization.md) |
 
