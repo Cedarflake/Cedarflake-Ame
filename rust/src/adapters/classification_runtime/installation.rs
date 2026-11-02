@@ -38,7 +38,7 @@ pub(crate) struct VerifiedModelInstallation {
 
 enum InstallationStorage {
     Managed {
-        _namespace: PreviewCacheNamespace,
+        _namespace: Box<PreviewCacheNamespace>,
         _lease: staging::StagingLease,
     },
     Bundled,
@@ -145,7 +145,7 @@ fn prepare_with(
         runtime: runtime.to_path_buf(),
         _files: files,
         _storage: InstallationStorage::Managed {
-            _namespace: namespace,
+            _namespace: Box::new(namespace),
             _lease: lease,
         },
     })

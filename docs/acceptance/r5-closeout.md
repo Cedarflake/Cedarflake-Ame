@@ -53,8 +53,9 @@ Final source inspection follows automatic startup through the raw configuration 
 session lifetime, and setup through prepare/commit/reopen, cancellation and disposal. It also checks
 the ordinary menu/filter callers and removal of the retired Settings section. Earlier native and
 resource checks cover unchanged owners; no new model evaluation or broad acceptance run is added.
-Computer Use is released after the final interaction. The retained test client remains available
-for inspection, with its temporary runtime owned by the existing process lease.
+Computer Use and the diagnostic clients are closed after the final model-delivery checks. Reusable
+test fixtures and binaries remain available; disposable profiles and the temporary model bundle
+are retired.
 
 ## Measured limits and preserved resources
 
@@ -72,7 +73,7 @@ for inspection, with its temporary runtime owned by the existing process lease.
   that catalog test query and persistence behavior, independently of model quality.
 - Original media, placeholder state and the original retained catalog are preserved. Disposable
   acceptance copies and cloud transfer outputs were retired; reusable fixtures, verified models,
-  baseline catalogs and small reports remain. The current test client holds only its own runtime lease.
+  baseline catalogs and small reports remain. No model-delivery diagnostic client remains active.
 
 ## Hosted gate
 
@@ -85,6 +86,12 @@ Protected release/signing jobs are outside ordinary PR admission.
 The feedback revision `bb7f197b363dbcf5bd0c64893fb2f92e0bb60ed3` passed all applicable jobs in
 [run 41441422558](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41441422558), testing merge
 snapshot `94197c8ddb6ebd5c563ad542f52b622f347fcb29` against base
-`1e0e1701845ce9455ea46ea91c8c183c7fadc087`. The subsequent restart and installer changes require
-their own submitted-head result. The roadmap requires that gate before the PR becomes reviewable,
-followed by a separately authorized merge.
+`1e0e1701845ce9455ea46ea91c8c183c7fadc087`. The restart and installer implementation is
+`f0a05b4bd7c7cd1bb361305c7a670ddd45f556f1`. Its
+[Static job](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41453277226/job/125303516026)
+rejects the new 208-byte managed-storage enum variant; the follow-up boxes its namespace guard,
+preserving ownership and destruction order. Focused local `cargo clippy --lib --tests --all-features`
+with warnings denied passes, together with Rust formatting and whitespace checks. The submitted PR
+checks above own the result for the
+replacement head. The roadmap requires that gate before the PR becomes reviewable, followed by a
+separately authorized merge.
