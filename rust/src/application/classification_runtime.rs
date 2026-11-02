@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::adapters::SqliteCatalog;
 use crate::domain::classification::ClassificationRecordId;
@@ -80,12 +80,8 @@ impl NativeClassificationRuntime {
     pub fn run(&mut self) -> Result<(), ScanError> {
         self.dispatcher.run()
     }
-    pub fn run_until_maintenance(
-        &mut self,
-        application_directory: &Path,
-    ) -> Result<Option<CategoryMaintenancePlan>, ScanError> {
-        let mut maintenance =
-            discovery::NativeCategoryDiscovery::new(application_directory.to_path_buf());
+    pub fn run_until_maintenance(&mut self) -> Result<Option<CategoryMaintenancePlan>, ScanError> {
+        let mut maintenance = discovery::NativeCategoryDiscovery::new();
         self.dispatcher.run_with_maintenance(&mut maintenance)
     }
     pub fn step(&mut self) -> Result<ClassificationDispatchStep, ScanError> {

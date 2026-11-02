@@ -11,7 +11,6 @@ param(
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
-. (Join-Path $PSScriptRoot "release_classification_vocabulary.ps1")
 
 & (Join-Path $PSScriptRoot "release_validate_version.ps1") `
     -Tag $Tag `
@@ -73,8 +72,7 @@ try {
         "Cedarflake-Ame/flutter_windows.dll",
         "Cedarflake-Ame/data/app.so",
         "Cedarflake-Ame/data/icudtl.dat"
-    ) + @(Get-AmeClassificationRuntimePayloadNames | ForEach-Object { "Cedarflake-Ame/$_" }) +
-        @(Get-AmeClassificationVocabularyPayloadNames | ForEach-Object { "Cedarflake-Ame/$_" })
+    ) + @(Get-AmeClassificationRuntimePayloadNames | ForEach-Object { "Cedarflake-Ame/$_" })
     foreach ($requiredEntry in $requiredEntries) {
         if (-not $entryNames.Contains($requiredEntry)) {
             throw "Portable archive is missing required entry: $requiredEntry"

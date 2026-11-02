@@ -118,7 +118,7 @@ pub(super) fn identity(namespace: &str, key: &str) -> Result<ConceptId, ScanErro
     Ok(ConceptId::from_bytes(*hash.finalize().as_bytes()))
 }
 
-fn validate_key(value: &str) -> Result<(), ScanError> {
+pub(super) fn validate_key(value: &str) -> Result<(), ScanError> {
     if value.is_empty()
         || value.len() > 128
         || !value.is_ascii()

@@ -100,7 +100,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     let mut projected = BTreeMap::new();
     for concept in graph.concepts.values() {
         check_cancelled(cancelled)?;
-        projected.insert(concept.id(), naming.project(concept));
+        projected.insert(concept.id(), naming.project_comparison(concept));
     }
     let mut baseline = Vec::with_capacity(cohort.member_samples().len());
     for sample in cohort.member_samples() {
@@ -161,7 +161,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     let relatedness = minimum_context_relatedness.to_le_bytes();
     let naming_revision = naming.revision();
     let frontier_revision = ClassificationRevision::derive(
-        "ame.classification.automatic-context-frontier.v8",
+        "ame.classification.automatic-context-frontier.v9",
         [
             taxonomy_revision.bytes().as_slice(),
             policy_revision.bytes().as_slice(),
@@ -191,7 +191,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
             retrieval_limits: retrieved.limits,
             frontier_revision,
             consolidation_revision: ClassificationRevision::derive(
-                "ame.classification.automatic-context-nomination.v8",
+                "ame.classification.automatic-context-nomination.v9",
                 std::iter::empty(),
             ),
             limits,

@@ -37,10 +37,9 @@ The current desktop has no manual category-decision commands, under the
 [scope amendment](0035-classification-decision-authority.md#desktop-scope-amendment--2026-11-01).
 An empty active scheme has no classifier and produces no invented `其他` result.
 
-The application owns the starting vocabulary and category maintenance. Automatic discovery and maintenance are
-required R5 behavior. Their candidate naming and admission policy still requires measured evidence
-before implementation can claim that behavior. SigLIP supplies image/text compatibility; its matching
-adapter does not generate category names or decide whether a new category is useful. The scoped
+The application owns a finite curated topic catalog and category maintenance. Each topic declares
+its permitted broad purposes and complete visible names. SigLIP supplies image/text compatibility;
+its matching adapter does not generate category names or expand that catalog. The scoped
 [discovery evidence](../acceptance/r5-category-discovery.md) records the naming probes separately from
 the admitted screening encoder.
 
@@ -48,8 +47,34 @@ Do not generate categories from isolated low scores. A useful addition or split 
 meaningful distinction in the collection; small occupancy alone neither deletes a category nor
 establishes an error. Maintenance must retain stable identities and saved human intent. Labeled
 examples can supply evaluation evidence without silently training a model or researching
-new cultural context. A larger fixed candidate list or user-authored definitions cannot substitute
-for the missing discovery/maintenance owner.
+new cultural context. The curated-catalog decision below replaces the former requirement for
+open-ended naming; it does not establish quality for every catalog entry.
+
+### Curated topic catalog — 2026-11-03
+
+Production nomination reads a small application-owned catalog directly. It performs no WordNet
+traversal or generative naming. Consolidated topics replace overlapping definitions with new
+identities where their meaning changes; unchanged topics retain their existing concept identities.
+Each topic declares a nonempty, bounded mapping from supported purpose IDs to visible category
+names. Absent combinations have no naming authority, including an unconditioned request. For
+example, programming can refine screenshots without becoming a code illustration.
+
+Purpose restrictions and names bind concept and catalog revisions. Complete composed comparison
+descriptions retain their existing independent feature keys. Naming eligibility is separate from
+comparison evidence: unsupported topic/purpose combinations can reject a competing candidate but
+cannot be nominated or published. No composed descriptions are encoded when the purpose has no
+allowed names. Final admission checks the same restriction. The ordinary six-purpose baseline,
+compatible cached image features, distinct-content recurrence and guarded expansion/retirement
+remain reusable. Unsupported refinements keep the broad category rather than inventing another name.
+
+The catalog supplies a finite candidate set, not mandatory sidebar membership. Presentation consumes
+bounded current category counts and omits empty rows without retiring definitions or saved choices.
+Category membership remains single-primary and independent of R4 manual albums and Favorites.
+
+The lexical retrieval, consolidation and source-resource sections below retain the contracts of
+existing diagnostic and compatibility owners. They do not require those engines or lexical resources
+in the production curated path. Their historical evidence remains valid only for its original inputs;
+curated topic/purpose quality and the changed production path require their own affected verification.
 
 ### Automatic cohort formation
 
@@ -875,7 +900,7 @@ durable dispatch intent and publication fences belong to the analysis scheduler.
 
 ## Alternatives and consequences
 
-Fixed output classes would prevent user descriptions and are rejected. Re-encoding images for
+Fixed model output classes would prevent application description updates and are rejected. Re-encoding images for
 description edits wastes source reads; canonical rule and pipeline revisions make that unnecessary.
 Comparing raw unversioned arrays is rejected because dimensions alone do not establish compatibility.
 Mean/prototype aggregation showed no consistent advantage in the retained diagnostic and would

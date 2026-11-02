@@ -73,22 +73,19 @@ metadata, migration, and unchanged originals have focused evidence.
 
 Follows R5-01; its output fixes the model/taxonomy compatibility used by later slices.
 
-1. Define configurable flat category identities, display labels, versioned semantic descriptions,
-   retirement/remapping rules, and purpose-aware ambiguous examples. Distinguish failed analysis from a legitimate `其他` category. Sample labels are
-   evaluation inputs, not a fixed product class list.
-   Settle category granularity, inclusion/exclusion examples, starting coverage, and the policy for
-   proposing additions/merges before freezing the scheme. Evaluate a soft category-count budget
-   against coverage and usefulness; neither unbounded generated categories nor a permanently tiny
-   fixed list meets the requirement. Model similarity alone does not establish a useful category.
-   New memes can depend on cultural context absent from the local model: description changes do
-   not guarantee that knowledge. Evaluate labeled local examples for repeated cases
-   without assuming online research, automatic learning, or reliable recognition of every new meme.
-   Supply application-owned starting descriptions and implement measured category discovery and
-   maintenance. First use and later settings expose no manual category or prompt authoring. Preserve
-   legacy definitions; an editable fixed sample list or a larger fixed vocabulary does not fulfill this slice.
-   Admit candidate discovery, naming, expansion/merge thresholds and human-choice preservation before
-   connecting automatic maintenance. Preserve valid runtime evidence while measuring this missing
-   policy; do not repeat an unchanged encoder comparison or use similarity alone to name categories.
+1. Define the finite application-owned category catalog with stable identities, display labels,
+   versioned semantic descriptions and purpose-aware boundary examples. Starting from the retained
+   42 topics, consolidate overlapping concepts and declare the allowed purposes and names for each
+   topic. Replace production dictionary traversal and unrestricted topic/purpose composition with
+   direct bounded evaluation of these definitions. Keep broad categories for unsupported refinements
+   and distinguish failed analysis from legitimate `其他` content.
+   Preserve legacy definitions, saved choices and guarded category activation/retirement. Admit
+   refinements from distinct-content evidence; expose only categories with current results through
+   coherent bounded sidebar queries. No manual category or prompt authoring is added.
+   Evaluate useful coverage, overlap and errors by allowed combination. Reuse the unchanged model,
+   cached features and valid runtime evidence. New cultural meaning remains limited by visible
+   evidence and the local model; no online research, automatic learning or extra naming model is
+   included. The former requirement for names outside the authored catalog is withdrawn.
 2. Create a source-safe evaluation protocol with representative labeled groups, calibration and
    held-out partitions, duplicate-leakage prevention, and per-category/band metrics.
    Freeze the purpose-aware rubric before comparing predictions. Record the label's authoring
@@ -202,8 +199,8 @@ its former manual-review scope was withdrawn on 2026-11-01.
    organization context. Smart albums remain absent from manual-album destinations and management.
 5. Verify first use, loading, empty results, legacy decisions, failed/unavailable images, stale reads,
    automatic recovery, cancellation, and restart through the real application services.
-6. Retain managed model setup, verified installation, bundled runtime, and automatic category
-   maintenance. Setup needs no user-authored taxonomy or model/runtime directory selection. Remove
+6. Retain managed model setup, verified installation, bundled runtime, and automatic activation of
+   supported catalog categories. Setup needs no user-authored taxonomy or model/runtime directory selection. Remove
    analysis settings and manual run controls from gallery menus and the Settings page. Missing models
    offer explicit download in the smart-album empty state; installed analysis runs automatically
    without a status-only setup prompt.

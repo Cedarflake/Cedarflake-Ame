@@ -5,7 +5,9 @@ use super::{
 };
 
 mod naming;
+mod purpose_labels;
 pub use naming::{CategoryNaming, CategoryNamingPurpose};
+pub use purpose_labels::ConceptPurposeLabels;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ConceptId([u8; 32]);
@@ -39,6 +41,7 @@ pub struct VocabularyConcept {
     description: String,
     naming_scope: ConceptNamingScope,
     subject: Option<String>,
+    purpose_labels: Option<ConceptPurposeLabels>,
 }
 
 impl VocabularyConcept {
@@ -60,6 +63,7 @@ impl VocabularyConcept {
             description: description.to_owned(),
             naming_scope: ConceptNamingScope::Candidate,
             subject: None,
+            purpose_labels: None,
         })
     }
 
@@ -79,6 +83,11 @@ impl VocabularyConcept {
 
     pub fn subject(&self) -> Option<&str> {
         self.subject.as_deref()
+    }
+
+    pub fn with_purpose_labels(mut self, labels: ConceptPurposeLabels) -> Self {
+        self.purpose_labels = Some(labels);
+        self
     }
 
     pub fn with_naming_scope(mut self, scope: ConceptNamingScope) -> Self {
@@ -103,7 +112,7 @@ impl VocabularyConcept {
     }
 
     pub fn revision(&self) -> ClassificationRevision {
-        ClassificationRevision::derive(
+        let definition = ClassificationRevision::derive(
             "ame.classification.discovery-concept.v3",
             [
                 self.id.bytes().as_slice(),
@@ -115,7 +124,17 @@ impl VocabularyConcept {
                     ConceptNamingScope::TraversalOnly => b"traversal-only".as_slice(),
                 },
             ],
-        )
+        );
+        match &self.purpose_labels {
+            Some(labels) => ClassificationRevision::derive(
+                "ame.classification.discovery-concept.purpose-scoped.v1",
+                [
+                    definition.bytes().as_slice(),
+                    labels.revision().bytes().as_slice(),
+                ],
+            ),
+            None => definition,
+        }
     }
 }
 

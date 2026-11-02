@@ -49,13 +49,7 @@ struct Fixture {
     #[serde(default)]
     naming_contexts: Option<Vec<context_vocabulary::Context>>,
     #[serde(default)]
-    vocabulary_resource: Option<VocabularyResource>,
-}
-
-#[derive(Deserialize)]
-struct VocabularyResource {
-    file: String,
-    digest: [u8; 32],
+    vocabulary_resource: Option<context_vocabulary::Resource>,
 }
 
 #[derive(Deserialize)]
@@ -255,11 +249,7 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
                     .into(),
             );
         }
-        let path = fixture_path
-            .parent()
-            .ok_or("Missing fixture directory")?
-            .join(resource.file);
-        context_vocabulary::Vocabulary::open_resource(&path, &resource.digest, &cancelled)?
+        context_vocabulary::Vocabulary::open_resource(resource, fixture_path, &cancelled)?
     } else {
         let source = ProbeVocabulary::new(fixture.revision, fixture.concepts, fixture.entries)?;
         if arguments[5] == "--discovery-cost" {

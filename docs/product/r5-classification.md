@@ -47,13 +47,18 @@ category definitions independently of manual-album management.
 ## Primary taxonomy and result quality
 
 Categories are application-managed flat definitions with stable identities, display names, and
-classification descriptions. Ame supplies the starting vocabulary and maintains useful categories
-from recurring library evidence. Enabling smart albums does not require the user to name categories,
-write comparison descriptions or manage model prompts. The desktop offers no manual definition
-creation, editing, or removal. Previously saved definitions and their protection remain compatible.
-Preserve the text encoder so new descriptions do not require a fixed output-head class. Example
-categories and evaluation labels do not limit the product to a fixed seven- or six-class list; making
-that list manually editable alone does not satisfy category discovery or maintenance.
+classification descriptions. Ame supplies a finite, versioned catalog of useful everyday topics.
+The existing 42-topic vocabulary is the starting material: consolidate overlapping topics and define
+each topic's supported image purposes and visible names explicitly. Do not compose every topic with
+every purpose. Category meanings change through application updates, not automatic dictionary
+expansion, generated names, or a user-authored category table. Open-ended category discovery was
+withdrawn on 2026-11-03.
+
+Enabling smart albums requires no category names, comparison descriptions or model prompts from
+the user. The desktop offers no manual definition creation, editing, or removal. Previously saved
+definitions and their protection remain compatible. Preserve the text encoder so application-owned
+description updates reuse the current model and compatible image features. Only categories with
+current results appear in the sidebar; configuration and saved definitions survive an empty view.
 Display-only renaming preserves classification compatibility; semantic description changes and
 adding/removing definitions create a new classification-rule revision. Retired definitions retain
 legacy decision provenance; automatic maintenance does not remap a saved choice.
@@ -68,8 +73,8 @@ descriptions determine this precedence; being a toy or photograph alone does not
 Auxiliary content evidence does not create several primary memberships or a general tagging feature.
 Evaluate the same versioned rubric for every candidate without silently reinterpreting human choices.
 
-Use these boundary examples when authoring and evaluating descriptions; they are not a fixed product
-class list:
+Use these boundary examples when authoring and evaluating the broad purpose categories and their
+allowed topic refinements:
 
 | Intended category | Positive evidence and boundary |
 | --- | --- |
@@ -80,12 +85,13 @@ class list:
 | Photograph | A real scene, person, animal or object without stronger evidence for another configured purpose. |
 | Other defined content | Positive descriptions such as documents, charts or design assets. Missing evidence and analysis failure remain separate. |
 
-Start definitions broadly enough to cover the collection. Ame must detect recurring distinctions
-that support useful additions or splits, and excessive overlap that warrants a scheme adjustment.
-Candidate discovery, naming and admission belong to the application; a user-authored category table
-is not a prerequisite. Admit the maintenance policy against useful distinctions, stability,
-and coverage rather than a fixed target count. A larger hard-coded list is not a replacement for
-this policy. Isolated unusual images and small occupancy alone do not create or remove a category.
+Broad purpose categories cover content that has no supported fine category. The application may
+activate a catalog refinement when distinct verified contents support its declared purpose and
+meaning. A finite candidate catalog does not pre-create every sidebar entry or force fine-grained
+assignment. Evaluate each allowed topic/purpose combination for useful distinctions, stability,
+overlap and coverage. Unsupported combinations cannot become category names; their comparison
+evidence may still reject a weaker interpretation without creating a category.
+Isolated unusual images and small occupancy alone do not create or remove a category.
 Automatic maintenance preserves stable identities and saved legacy choices; it never silently
 remaps a saved human category or requests confirmation for every image or routine vocabulary change.
 Addition capacity follows distinct verified content and the recurrence required for a useful category;
@@ -219,10 +225,10 @@ guides admission; CLIP B/32 INT8 remains a lightweight reference, and large mode
 Product admission still verifies artifact licenses/integrity, worker recovery and resource limits.
 The unfinished historical folder classification and provisional visual labels are not human ground truth.
 
-Category naming reuses the admitted SigLIP model, vocabulary resources and compatible cached features.
-Do not add a separate generative model solely for naming: its additional download, memory and inference
-cost is outside the selected R5 scope. This constraint preserves the requirement for useful categories
-beyond the authored starting topics; it does not admit the rejected raw dictionary naming policy.
+Category matching reuses the admitted SigLIP model, application-owned descriptions and compatible
+cached features. No separate naming model or runtime dictionary traversal is required. The curated
+catalog replaces open-ended naming; the rejected raw dictionary rankings remain diagnostic evidence.
+Topic coverage and per-topic quality must be evaluated independently of the broad-purpose baseline.
 
 Use representative labeled groups from the target library under existing source-safe execution
 rules. Separate calibration and held-out evaluation by content group to prevent duplicate leakage.

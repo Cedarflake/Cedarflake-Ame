@@ -30,10 +30,9 @@ fn idle_runtime_returns_an_equivalent_retirement_without_model_or_source_access(
     )
     .unwrap();
     let control = runtime.control();
-    let application_directory = directory.path().join("absent-resources");
     let (sender, receiver) = std::sync::mpsc::channel();
     let running = std::thread::spawn(move || {
-        let result = runtime.run_until_maintenance(&application_directory);
+        let result = runtime.run_until_maintenance();
         drop(runtime);
         sender.send(result).unwrap();
     });

@@ -26,7 +26,6 @@ pub(crate) struct ClassificationDesktopSession {
     pending: Mutex<Option<NativeClassificationRuntime>>,
     control: ClassificationRuntimeControl,
     database: PathBuf,
-    application_directory: PathBuf,
 }
 
 pub(crate) fn save_installation(models: String, runtime: String) -> Result<(), ScanError> {
@@ -71,15 +70,6 @@ fn open_with_storage(
             )
         })?;
     let worker = executable.with_file_name("cedarflake_ame_classification_worker.exe");
-    let application_directory = executable
-        .parent()
-        .ok_or_else(|| {
-            ScanError::new(
-                "classification_worker_unavailable",
-                "The application directory is unavailable",
-            )
-        })?
-        .to_path_buf();
     let signals = ClassificationDispatchSignals::new(MonotonicDispatchClock::default());
     // The desktop supplies its current activity before allowing the first turn.
     signals.foreground_changed(ClassificationForegroundState {
@@ -111,7 +101,6 @@ fn open_with_storage(
         pending: Mutex::new(Some(runtime)),
         control,
         database: storage.catalog_path.clone(),
-        application_directory,
     }))
 }
 
@@ -129,7 +118,7 @@ impl ClassificationDesktopSession {
                 "The classification session has already started or closed",
             )
         })?;
-        let plan = runtime.run_until_maintenance(&self.application_directory);
+        let plan = runtime.run_until_maintenance();
         drop(runtime);
         plan.map(|plan| {
             plan.map(|plan| ClassificationDesktopMaintenance::new(self.database.clone(), plan))

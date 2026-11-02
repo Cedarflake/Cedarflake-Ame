@@ -1,7 +1,6 @@
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
-. (Join-Path $PSScriptRoot "release_classification_vocabulary.ps1")
 
 function Assert-AmeUnsignedBuildPath {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -154,7 +153,7 @@ function Get-AmeUnsignedWindowsPayloadFacts {
         'cedarflake_ame_classification_worker.exe',
         'rust_lib_cedarflake_ame.dll', 'flutter_windows.dll',
         'data/app.so', 'data/icudtl.dat'
-    ) + @(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeClassificationVocabularyPayloadNames)
+    ) + @(Get-AmeClassificationRuntimePayloadNames)
     foreach ($name in $requiredFiles) {
         $requiredFile = @($files | Where-Object { $_.relativePath -ceq $name })
         if ($requiredFile.Count -ne 1 -or $requiredFile[0].length -eq 0) {

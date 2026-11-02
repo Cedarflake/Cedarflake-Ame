@@ -51,6 +51,19 @@ pub(super) fn evaluate<F: ClassificationEncoderFactory, C: ResidencyClock>(
         .values()
         .filter(|concept| concept.naming_scope() == ConceptNamingScope::Candidate)
         .collect();
+    let naming_concepts = concepts
+        .iter()
+        .filter(|concept| request.naming.admits_description(concept))
+        .count();
+    if naming_concepts == 0 {
+        return Ok(ContextEvaluation {
+            candidates: Vec::new(),
+            supported: Vec::new(),
+            naming_concepts,
+            eligible_concepts: 0,
+            limit_reached: false,
+        });
+    }
     let mut eligible = Vec::new();
     for window in concepts.chunks(TEXT_FEATURE_WINDOW) {
         check_cancelled(cancelled)?;
@@ -83,8 +96,13 @@ pub(super) fn evaluate<F: ClassificationEncoderFactory, C: ResidencyClock>(
             }
         }
     }
-    let eligible_concepts = eligible.len();
     let eligible_ids: BTreeSet<_> = eligible.iter().map(|context| context.id).collect();
+    eligible.retain(|context| {
+        request
+            .naming
+            .admits_description(&request.projected[&context.id])
+    });
+    let eligible_concepts = eligible.len();
     eligible.sort_by(|left, right| {
         right
             .coverage
@@ -170,7 +188,7 @@ pub(super) fn evaluate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     Ok(ContextEvaluation {
         candidates,
         supported,
-        naming_concepts: concepts.len(),
+        naming_concepts,
         eligible_concepts,
         limit_reached: eligible_concepts > EVALUATION_LIMIT,
     })

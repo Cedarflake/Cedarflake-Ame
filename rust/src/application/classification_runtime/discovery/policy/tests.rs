@@ -20,6 +20,10 @@ fn managed_policy_preserves_calibrated_thresholds_with_versioned_nomination() {
     let policy = ManagedDiscoveryPolicy::for_taxonomy(&taxonomy).unwrap();
     assert!(policy.is_available());
     assert_eq!(policy.preparation().maximum_contents, 512);
+    assert_eq!(policy.preparation().retrieval.entry_points, 64);
+    assert_eq!(policy.preparation().retrieval.hops, 0);
+    assert_eq!(policy.preparation().consolidation.concepts, 64);
+    assert_eq!(policy.preparation().consolidation.hops, 0);
     assert_eq!(policy.naming.len(), taxonomy.categories().len());
     for naming in &policy.naming {
         naming.validate(&taxonomy).unwrap();

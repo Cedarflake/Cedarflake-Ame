@@ -23,10 +23,10 @@ if ($firstProduct -cne (Get-AmeInstallerGuid "product/0.1.0") -or
 $names = @(
     "cedarflake_ame.exe", "cedarflake_ame_journal_broker.exe", "cedarflake_ame_classification_worker.exe", "rust_lib_cedarflake_ame.dll",
     "flutter_windows.dll", "data/app.so", "data/icudtl.dat", "data/flutter_assets/AssetManifest.bin"
-) + @(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeClassificationVocabularyPayloadNames) + @(Get-AmeClassificationModelsPayloadNames)
+) + @(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeClassificationModelsPayloadNames)
 $files = @($names | ForEach-Object { [pscustomobject]@{ relativePath = $_; length = 1L; sha256 = "a" * 64 } })
 Assert-AmeInstallerPayloadNames $files
-foreach ($missing in (@(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeClassificationVocabularyPayloadNames) + @(Get-AmeClassificationModelsPayloadNames))) {
+foreach ($missing in (@(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeClassificationModelsPayloadNames))) {
     $failure = $null
     try { Assert-AmeInstallerPayloadNames @($files | Where-Object { $_.relativePath -cne $missing }) } catch { $failure = $_ }
     if ($null -eq $failure -or $failure.Exception.Message -cne "Installer payload is missing $missing") {
@@ -56,11 +56,11 @@ try {
             throw 'Model installer components must bind the separately verified model payload'
         }
     }
-    if ($entries.Count -ne 25 -or
+    if ($entries.Count -ne 19 -or
         @($entries | Where-Object { $_.Source -like "*cedarflake_ame_journal_broker.exe" }).Count -ne 0 -or
         $source.SelectNodes("//w:Shortcut", $namespaces).Count -ne 2 -or
-        $source.SelectNodes("//w:ComponentRef", $namespaces).Count -ne 34 -or
-        $source.SelectNodes("//w:PermissionEx", $namespaces).Count -ne 32) {
+        $source.SelectNodes("//w:ComponentRef", $namespaces).Count -ne 27 -or
+        $source.SelectNodes("//w:PermissionEx", $namespaces).Count -ne 25) {
         throw "MSI generated component, broker exclusion, shortcut or ACL ownership is incomplete"
     }
     foreach ($name in @('AmeStartMenu', 'AmeDesktop')) {

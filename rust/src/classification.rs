@@ -1,4 +1,7 @@
-pub use crate::adapters::{LocalClassificationVocabulary, SqliteClassificationFeatureCache};
+pub use crate::adapters::{
+    CuratedClassificationVocabulary, LocalClassificationVocabulary,
+    SqliteClassificationFeatureCache,
+};
 #[cfg(all(windows, feature = "classification-worker"))]
 pub use crate::application::classification_analysis::analyze_classification_content;
 pub use crate::application::classification_decisions::plan_classification_change;

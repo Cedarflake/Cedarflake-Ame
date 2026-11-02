@@ -13,7 +13,6 @@ param(
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
-. (Join-Path $PSScriptRoot "release_classification_vocabulary.ps1")
 . (Join-Path $PSScriptRoot "release_journal_broker_common.ps1")
 
 $repositoryRoot = Get-AmeRepositoryRoot
@@ -67,7 +66,6 @@ foreach ($requiredSourcePath in $requiredSourcePaths) {
 $runtimeManifest = Get-AmeClassificationRuntimeManifest
 Assert-AmeClassificationRuntimeDirectory `
     (Join-Path $resolvedReleaseRoot $runtimeManifest.bundleDirectory) $runtimeManifest
-Assert-AmeClassificationVocabularyDirectory (Join-Path $resolvedReleaseRoot (Get-AmeClassificationVocabularyManifest).bundleDirectory)
 $brokerSourcePath = Join-Path $resolvedReleaseRoot (Get-AmeBrokerServicePlan).BinaryName
 $applicationSourcePath = Join-Path $resolvedReleaseRoot $script:AmeApplicationBinaryName
 Assert-AmeSignedX64Binary `

@@ -1,7 +1,6 @@
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
-. (Join-Path $PSScriptRoot "release_classification_vocabulary.ps1")
 
 $repositoryRoot = Get-AmeRepositoryRoot
 $buildRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot "build"))
@@ -59,7 +58,7 @@ try {
         $fixturePath = Join-Path $releaseRoot $relativePath
         [System.IO.File]::WriteAllText($fixturePath, $relativePath, $utf8)
     }
-    foreach ($relativePath in (@(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeClassificationVocabularyPayloadNames))) {
+    foreach ($relativePath in (Get-AmeClassificationRuntimePayloadNames)) {
         $fixturePath = Join-Path $releaseRoot $relativePath
         [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($fixturePath))
         [IO.File]::WriteAllText($fixturePath, $relativePath, $utf8)
@@ -96,7 +95,7 @@ try {
         -PubspecPath $pubspecFixture `
         -CargoManifestPath $cargoFixture
     $archivePath = $expectedArchivePath
-    foreach ($missing in (@(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeClassificationVocabularyPayloadNames))) {
+    foreach ($missing in (Get-AmeClassificationRuntimePayloadNames)) {
         $missingDirectory = Join-Path $scratchRoot ([Guid]::NewGuid().ToString("N"))
         [void][IO.Directory]::CreateDirectory($missingDirectory)
         $missingArchivePath = Join-Path $missingDirectory $archiveName

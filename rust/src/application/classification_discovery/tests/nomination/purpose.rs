@@ -1,8 +1,37 @@
-use crate::domain::classification::discovery::CategoryNamingPurpose;
+use crate::domain::classification::discovery::{CategoryNamingPurpose, ConceptPurposeLabels};
 
 use super::*;
 
 const DESCRIPTION: &str = "a reaction sticker featuring cat";
+
+#[test]
+fn unsupported_curated_purpose_never_encodes_or_nominates_its_description() {
+    let mut harness = purpose_harness();
+    let topic = harness.vocabulary.concepts.remove(&id(3)).unwrap();
+    harness.vocabulary.concepts.insert(
+        id(3),
+        topic.with_purpose_labels(
+            ConceptPurposeLabels::new(vec![(
+                CategoryId::new("photos".into()).unwrap(),
+                "猫咪".into(),
+            )])
+            .unwrap(),
+        ),
+    );
+    let nomination = harness
+        .nominate(64, context_limits(), &AtomicBool::new(false))
+        .unwrap();
+    assert!(nomination.contexts.candidates.is_empty());
+    assert!(
+        !harness
+            .calls
+            .encoded
+            .borrow()
+            .iter()
+            .any(|description| description == DESCRIPTION)
+    );
+    assert!(harness.residency.resident_kind().is_none());
+}
 
 fn purpose_harness() -> Harness {
     let mut harness = Harness::new();
@@ -140,6 +169,37 @@ fn shared_prefix_does_not_erase_competition_between_different_topics() {
     );
     assert!((assessment.candidates[0].members[0].separation - 0.1).abs() < 1e-6);
     assert_eq!(harness.calls.encoded.borrow().len(), encoded);
+}
+
+#[test]
+fn a_disallowed_name_still_competes_with_allowed_topics() {
+    let mut harness = shared_prefix_harness();
+    let portrait = harness.vocabulary.concepts.remove(&id(5)).unwrap();
+    harness.vocabulary.concepts.insert(
+        id(5),
+        portrait.with_purpose_labels(
+            ConceptPurposeLabels::new(vec![(
+                CategoryId::new("photos".into()).unwrap(),
+                "人物肖像".into(),
+            )])
+            .unwrap(),
+        ),
+    );
+    let nomination = harness
+        .nominate(64, context_limits(), &AtomicBool::new(false))
+        .unwrap();
+    assert_eq!(nomination.naming_concepts, 1);
+    assert!(nomination.contexts.candidates.is_empty());
+    assert!(
+        harness
+            .calls
+            .encoded
+            .borrow()
+            .iter()
+            .any(|description| { description == "a reaction sticker featuring people" })
+    );
+    assert!(assess(&harness, &nomination).unwrap().candidates.is_empty());
+    assert!(harness.residency.resident_kind().is_none());
 }
 
 #[test]

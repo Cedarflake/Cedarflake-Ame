@@ -1,6 +1,6 @@
 use rust_lib_cedarflake_ame::classification::{
-    ContextualVocabulary, LocalClassificationVocabulary, NamingContext, NamingContextCatalog,
-    ScanError,
+    ContextualVocabulary, CuratedClassificationVocabulary, LocalClassificationVocabulary,
+    NamingContext, NamingContextCatalog, ScanError,
 };
 
 use super::*;
@@ -20,19 +20,47 @@ pub(super) enum Vocabulary<'a> {
     Retrieval(ProbeVocabulary),
     Contextual(ContextualVocabulary<'a, ProbeVocabulary>),
     Resource(ContextualVocabulary<'a, LocalClassificationVocabulary>),
+    Curated(CuratedClassificationVocabulary),
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+pub(super) enum Resource {
+    File { file: String, digest: [u8; 32] },
+    Bundled { catalog: BundledCatalog },
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(super) enum BundledCatalog {
+    Curated,
 }
 
 impl<'a> Vocabulary<'a> {
     pub(super) fn open_resource(
-        path: &Path,
-        digest: &[u8; 32],
+        resource: Resource,
+        fixture: &Path,
         cancelled: &'a AtomicBool,
     ) -> Result<Self> {
-        let (source, contexts) = LocalClassificationVocabulary::open(path, digest, cancelled)?;
-        let catalog = NamingContextCatalog::new(contexts)?;
-        Ok(Self::Resource(ContextualVocabulary::new(
-            source, catalog, cancelled,
-        )))
+        match resource {
+            Resource::File { file, digest } => {
+                let path = fixture
+                    .parent()
+                    .ok_or("Missing fixture directory")?
+                    .join(file);
+                let (source, contexts) =
+                    LocalClassificationVocabulary::open(&path, &digest, cancelled)?;
+                let catalog = NamingContextCatalog::new(contexts)?;
+                Ok(Self::Resource(ContextualVocabulary::new(
+                    source, catalog, cancelled,
+                )))
+            }
+            Resource::Bundled {
+                catalog: BundledCatalog::Curated,
+            } => Ok(Self::Curated(CuratedClassificationVocabulary::bundled(
+                cancelled,
+            )?)),
+        }
     }
 
     pub(super) fn new(
@@ -97,6 +125,7 @@ impl ClassificationVocabulary for Vocabulary<'_> {
             Self::Retrieval(source) => source.revision(),
             Self::Contextual(source) => source.revision(),
             Self::Resource(source) => source.revision(),
+            Self::Curated(source) => source.revision(),
         }
     }
 
@@ -110,6 +139,7 @@ impl ClassificationVocabulary for Vocabulary<'_> {
             Self::Retrieval(source) => source.read_concepts(neighborhood, after, limit),
             Self::Contextual(source) => source.read_concepts(neighborhood, after, limit),
             Self::Resource(source) => source.read_concepts(neighborhood, after, limit),
+            Self::Curated(source) => source.read_concepts(neighborhood, after, limit),
         }
     }
 }

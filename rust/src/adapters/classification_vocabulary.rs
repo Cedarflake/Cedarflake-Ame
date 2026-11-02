@@ -11,8 +11,11 @@ use crate::ports::classification_vocabulary::{
     ClassificationVocabulary, ConceptNeighborhood, ConceptPage,
 };
 
+mod curated;
 mod distribution;
 mod resource;
+
+pub use curated::CuratedClassificationVocabulary;
 
 pub struct LocalClassificationVocabulary {
     concepts: BTreeMap<ConceptId, VocabularyConcept>,

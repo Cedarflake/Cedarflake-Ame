@@ -278,11 +278,11 @@ so its duration cannot delay work whose retry deadline has elapsed.
 
 Native discovery retains a bounded content cursor for one catalog-notification generation. A completed
 pass waits for another relevant notification; changed publication defers the old pass without rebasing
-its authority. The resource adapter resolves the bundled vocabulary from the packaging manifest and
-verifies its pinned digest. Each pass uses the retained calibration candidate's purpose patterns and
+its authority. The resource adapter loads the compiled curated topic catalog under ADR 0034;
+production discovery requires no external dictionary payload. Each pass uses the retained candidate's purpose patterns and
 limits. A renamed purpose retains its meaning; a changed or removed purpose loses automatic naming
 authority. Optional user definitions are not assigned an invented purpose. Resource release preserves
-the cursor and reusable feature cache while dropping the vocabulary graph on suspension, completion
+the cursor and reusable feature cache while dropping the catalog view on suspension, completion
 or handoff. The executor owns source execution, cached matchers and encoder residency; discovery owns
 the pass and naming resources. The runtime facade composes those owners and process admission.
 

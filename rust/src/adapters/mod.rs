@@ -35,7 +35,9 @@ pub use classification_feature_cache::SqliteClassificationFeatureCache;
 pub(crate) use classification_installation::{
     ClassificationInstallation, ClassificationInstallationStore, DownloadIntent,
 };
-pub use classification_vocabulary::LocalClassificationVocabulary;
+pub use classification_vocabulary::{
+    CuratedClassificationVocabulary, LocalClassificationVocabulary,
+};
 pub(crate) use durable_local_metadata_inventory::DurableLocalMetadataInventory;
 #[cfg(all(windows, test))]
 pub(crate) use local_files::force_publication_namespace_guard_failure_for_test;

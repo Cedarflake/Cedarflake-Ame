@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-02
+Last planning update: 2026-11-03
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage may be active. Detailed product contracts, execution procedures, architecture,
@@ -34,7 +34,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
 | R4 | Independent Favorites, flat group-based albums, and durable organization progress | Completed and merged into main on 2026-10-30 |
-| R5 | Metadata, smart albums, and calibrated initial screening | R5-02 open-category naming gap; implemented workflows retained in PR #45 |
+| R5 | Metadata, smart albums, and calibrated initial screening | R5-02 curated-category transition; implemented workflows retained in PR #45 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run with conflicts and no execution | Planned after R7 |
@@ -59,9 +59,9 @@ functional, recovery, source-preservation, retained-scale and complete hosted ev
 The implementation is verified through `17c16c7d`, with subsequent changes limited to delivery
 records. The R4 branch through `53bbb5bc` is integrated without conflict or history rewriting.
 R5's [requirements](product/r5-classification.md) and [implementation plan](plans/r5-classification.md)
-have connected workflows on `codex/r5-smart-albums` through `0ef6af57`, but R5-02's category naming
-remains limited to 42 application-authored topics and six purpose patterns. Automatic selection
-within that set does not fulfill open-category discovery. The
+have connected workflows on `codex/r5-smart-albums` through `0ef6af57`. On 2026-11-03, open-ended
+category naming was withdrawn in favor of an application-maintained finite catalog. R5-02 now owns
+consolidated topics, explicit purpose restrictions and their actual quality assessment. The
 [integrated evidence map](acceptance/r5-closeout.md) covers R5-01 through R5-07, including the current
 automatic-analysis and browsing controls. Stage delivery uses PR #45, its submitted-head hosted gate,
 and a separately authorized merge. No later product stage is active.
@@ -92,15 +92,16 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
-R4 is integrated into `main`. R5 continues on `codex/r5-smart-albums`. R5-02 must first remove the
-fixed naming frontier without admitting the previously rejected raw dictionary rankings. Reuse
-retained image/text features and prior naming diagnostics to establish useful names outside the
-authored topic list, bounded discovery and stable category maintenance. The
-[model scope](product/r5-classification.md#model-admission-and-low-resource-execution) excludes an
-additional generative naming model. Preserve the selected SigLIP runtime, source safeguards and
-delivered workflows. Keep PR #45 in draft while this
-requirement remains unmet. Its [naming boundary record](acceptance/r5-category-discovery.md#open-category-naming-boundary--2026-11-02)
-identifies the current limitation and required evidence.
+R4 is integrated into `main`. R5 continues on `codex/r5-smart-albums`. Complete the R5-02 curated
+category transition in this order: the consolidated catalog, explicit purposes and direct matching
+have their [native comparison](acceptance/r5-category-discovery.md#curated-catalog-and-direct-matching--2026-11-03).
+Next reconcile existing generated definitions, show only categories with current results, then
+verify affected desktop, recovery and resource behavior
+using retained features and evidence. Preserve stable identities, legacy choices, the selected SigLIP
+runtime and source safeguards. No additional naming model is included. Keep PR #45 in draft until
+these affected workflows and submitted-head checks pass. The previous
+[naming boundary record](acceptance/r5-category-discovery.md#open-category-naming-boundary--2026-11-02)
+remains evidence of the superseded open-ended design, not an outstanding expansion requirement.
 
 The 2026-11-02 model-delivery
 follow-up has its scoped local evidence: compact download entry, existing-notification-center
@@ -131,9 +132,10 @@ The [retained query measurements](acceptance/r5-smart-albums.md) and
 [paired foreground comparison](acceptance/r5-incremental-analysis.md#connected-localcloud-foreground-comparison--2026-11-01)
 own those observations. No additional unchanged performance cycle is required for R5 closure.
 
-R5's exit condition includes evidence that useful category names are not restricted to the authored
-topic list, together with the applicable hosted gate for the submitted PR head and the linked
-functional, quality, resource and preservation evidence. After those conditions pass, make PR #45 reviewable.
+R5's exit condition includes the connected curated catalog, enforced purpose boundaries, useful
+per-topic results and coherent nonempty sidebar categories, together with the applicable hosted gate
+for the submitted PR head and the linked functional, quality, resource and preservation evidence.
+After those conditions pass, make PR #45 reviewable.
 Merging into `main` remains separately authorized; preserve the branch until that decision. Further
 behavior changes require their affected checks and submitted-head result. R6 and the deferred rendering
 follow-up retain their existing order and scope.

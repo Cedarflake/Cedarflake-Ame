@@ -2,13 +2,68 @@
 
 The manual-classification workflow and human correction-time acceptance were withdrawn on
 2026-11-01. Historical references below to integrated human-work verification retain their original
-scope; current acceptance follows [R5 requirements](../product/r5-classification.md). Category
-discovery, automatic maintenance, measured quality, and legacy-decision protection remain applicable.
+scope; current acceptance follows [R5 requirements](../product/r5-classification.md). On 2026-11-03,
+open-ended naming was replaced by a curated application catalog with explicit purpose restrictions.
+Earlier naming failures and comparisons remain historical evidence. Automatic maintenance, measured
+quality and legacy-decision protection remain applicable; this scope change does not validate the
+replacement catalog or its production integration.
 
 Date: 2026-11-01. This record covers the missing category discovery and naming policy in
 [R5-02](../plans/r5-classification.md#r5-02-taxonomy-model-and-runtime-admission). It does not
 establish product acceptance or replace the admitted SigLIP screening runtime. The
 [roadmap](../roadmap.md#current-execution-queue) owns delivery order and remaining work.
+
+## Curated catalog and direct matching — 2026-11-03
+
+The production adapter now loads 38 compiled topics with 51 permitted topic/purpose names.
+City/architecture, document/reading, web/settings and spreadsheet/chart topics are consolidated.
+Other topic identities and raw descriptions retain compatible text-feature keys. The catalog SHA-256
+is `82d10f22f86eb88b6aa148ea60f86323c56dd7f1842f6d3be170d362351145ad`.
+Production evaluates these bounded entries directly, with no dictionary graph traversal. Windows
+build, portable and installer payload rules no longer require the six external vocabulary files
+(23,256,959 bytes). Diagnostic resource readers and their license records remain available.
+
+The retained-feature comparison covers the same 28 calibration cohorts and 139 distinct contents
+used by the earlier recurrence candidate. All six broad purposes are included. Each cohort runs
+twice through the actual adapter, nomination and final admission, producing identical candidate
+decisions. Every pass scores 38 entries, visits zero edges, stays within its bounds and retires its
+worker. No original media, held-out samples or image inference is used.
+
+An initial implementation removed disallowed names from comparison as well as nomination. This
+admitted a cat-reaction refinement for a mixed cohort containing two cats and two panda-face memes;
+one panda face supplied the third supporter. The final implementation retains competing topic
+evidence independently of naming permission. That cohort no longer nominates a refinement, while
+the following additions remain:
+
+| Cohort | Permitted category | Supporting contents |
+| --- | --- | ---: |
+| B186 | 兽耳角色插画 | 4 of 4 |
+| B042 | 兽耳角色表情 | 5 of 6 |
+| B151 | 猫咪表情 | 3 of 3 |
+| B132 | 代码截图 | 7 of 7 |
+
+The final 56 passes take 47.922 seconds across six supervised batches, add 23 composed text features
+and peak at 733,786,112 bytes of process-tree working set. These timings include missing-text encoder
+startup and warm repeats, not whole-library throughput. The retained Debug probe SHA-256 is
+`d18be8b49487633407e89d6dabf85aa3219d56423a07524d3923f2c2a865280e`.
+Ignored `build/test/derived/r5-open-naming/curated-v9-*` contains inputs' hashes, outputs and resource
+reports. The comparison keeps the existing recurrence, gain, separation and contrast thresholds.
+
+The affected native boundary suites pass 134 tests: 15 domain, 10 vocabulary-adapter, 101 discovery,
+three runtime-policy and five runtime-maintenance cases. Coverage includes malformed catalog IDs,
+revision compatibility, unsupported-purpose nomination, competing evidence, cancellation and cached
+reuse. The three affected packaging suites pass, retaining missing-runtime/model rejection and
+installer identity/ACL checks. The initial sandbox attempt could not create the existing junction
+fixture; the normal-identity run completed it. Removing dictionary files also required updating
+the fixture's expected file/directory component counts.
+
+The adapter, naming, nomination evaluation and runtime discovery owners have respectively 135,
+167, 224 and 184 lines with no inline tests. The adapter, naming and purpose-nomination test owners
+have 150, 240 and 412 lines; runtime-policy tests have 103. Purpose-label validation owns 42 lines.
+This verifies the bounded native transition and its
+calibration behavior. Existing generated-definition reconciliation, nonempty sidebar integration,
+affected desktop interaction and submitted-head CI remain separate outstanding work. The four
+observed categories do not establish quality for every permitted combination.
 
 ## Open-category naming boundary — 2026-11-02
 

@@ -92,6 +92,15 @@ impl CategoryNaming {
     }
 
     pub(crate) fn project(&self, concept: &VocabularyConcept) -> VocabularyConcept {
+        if !self.permits(concept) {
+            return concept
+                .clone()
+                .with_naming_scope(ConceptNamingScope::TraversalOnly);
+        }
+        self.project_comparison(concept)
+    }
+
+    pub(crate) fn project_comparison(&self, concept: &VocabularyConcept) -> VocabularyConcept {
         let Self::WithinCategory(purpose) = self else {
             return concept.clone();
         };
@@ -102,7 +111,12 @@ impl CategoryNaming {
         let Some(subject) = concept.subject() else {
             return projected.with_naming_scope(ConceptNamingScope::TraversalOnly);
         };
-        let label = purpose.label_pattern.replace(SUBJECT, concept.label());
+        let label = concept
+            .purpose_labels
+            .as_ref()
+            .and_then(|labels| labels.label(&purpose.category))
+            .map(str::to_owned)
+            .unwrap_or_else(|| purpose.label_pattern.replace(SUBJECT, concept.label()));
         let description = purpose.comparison_pattern.replace(SUBJECT, subject);
         if label.chars().count() > 80 || description.chars().count() > 1024 {
             return projected.with_naming_scope(ConceptNamingScope::TraversalOnly);
@@ -113,11 +127,24 @@ impl CategoryNaming {
     }
 
     pub(crate) fn admits_description(&self, concept: &VocabularyConcept) -> bool {
+        if !self.permits(concept) || concept.naming_scope() != ConceptNamingScope::Candidate {
+            return false;
+        }
         match self {
             Self::Unconditioned => true,
             Self::WithinCategory(purpose) => concept.subject().is_some_and(|subject| {
                 concept.description() == purpose.comparison_pattern.replace(SUBJECT, subject)
             }),
+        }
+    }
+
+    fn permits(&self, concept: &VocabularyConcept) -> bool {
+        match (&concept.purpose_labels, self) {
+            (None, _) => true,
+            (Some(_), Self::Unconditioned) => false,
+            (Some(labels), Self::WithinCategory(purpose)) => {
+                labels.label(&purpose.category).is_some()
+            }
         }
     }
 }

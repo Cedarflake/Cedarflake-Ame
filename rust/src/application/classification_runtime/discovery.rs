@@ -1,17 +1,16 @@
-use std::path::PathBuf;
 use std::sync::{
     Arc,
     atomic::{AtomicBool, AtomicU64, Ordering},
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::adapters::{LocalClassificationVocabulary, SqliteCatalog};
+use crate::adapters::{CuratedClassificationVocabulary, SqliteCatalog};
 use crate::domain::ScanError;
 use crate::domain::classification::ClassificationRecordId;
 use crate::domain::classification::maintenance::CategoryMaintenancePlan;
 
 use super::super::classification_discovery::{
-    ContextualVocabulary, DiscoveryPreparationRequest, DiscoverySampleCursor, NamingContextCatalog,
+    DiscoveryPreparationRequest, DiscoverySampleCursor, NamingContextCatalog,
     prepare_category_reduction, prepare_discovery_window,
 };
 use super::super::classification_dispatch::{
@@ -37,15 +36,13 @@ enum Pass {
 }
 
 pub(super) struct NativeCategoryDiscovery {
-    application_directory: PathBuf,
     pass: Pass,
-    vocabulary: Option<(LocalClassificationVocabulary, NamingContextCatalog)>,
+    vocabulary: Option<(CuratedClassificationVocabulary, NamingContextCatalog)>,
 }
 
 impl NativeCategoryDiscovery {
-    pub(super) fn new(application_directory: PathBuf) -> Self {
+    pub(super) fn new() -> Self {
         Self {
-            application_directory,
             pass: Pass::New,
             vocabulary: None,
         }
@@ -115,11 +112,9 @@ impl NativeCategoryDiscovery {
         }
         let policy = ManagedDiscoveryPolicy::for_taxonomy(executor.taxonomy())?;
         if policy.is_available() && self.vocabulary.is_none() {
-            let (source, contexts) = LocalClassificationVocabulary::open_bundled(
-                &self.application_directory,
-                cancelled,
-            )?;
-            self.vocabulary = Some((source, NamingContextCatalog::new(contexts)?));
+            let vocabulary = CuratedClassificationVocabulary::bundled(cancelled)?;
+            let contexts = NamingContextCatalog::new(vocabulary.naming_contexts())?;
+            self.vocabulary = Some((vocabulary, contexts));
         }
         if matches!(self.pass, Pass::Reducing { .. }) {
             let plan = prepare_category_reduction(
@@ -145,22 +140,19 @@ impl NativeCategoryDiscovery {
         };
         let operation_id = operation_id()?;
         let resources = executor.feature_resources()?;
-        let (source, contexts) = self.vocabulary.take().expect("the vocabulary was loaded");
-        let mut vocabulary = ContextualVocabulary::new(source, contexts, cancelled);
-        let result = prepare_discovery_window(
+        let (vocabulary, _) = self.vocabulary.as_mut().expect("the vocabulary was loaded");
+        let prepared = prepare_discovery_window(
             DiscoveryPreparationRequest {
                 operation_id,
                 cursor,
                 policy: &policy.preparation(),
             },
             repository,
-            &mut vocabulary,
+            vocabulary,
             resources.residency,
             resources.cache,
             cancelled,
-        );
-        self.vocabulary = Some(vocabulary.into_parts());
-        let prepared = result?;
+        )?;
         self.pass = match prepared.next {
             Some(cursor) => Pass::Sampling {
                 notification,

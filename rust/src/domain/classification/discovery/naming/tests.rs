@@ -1,5 +1,5 @@
 use super::*;
-use crate::domain::classification::discovery::ConceptId;
+use crate::domain::classification::discovery::{ConceptId, ConceptPurposeLabels};
 
 fn category(description: &str) -> CategoryDefinition {
     CategoryDefinition::new(
@@ -164,4 +164,77 @@ fn composition_identity_changes_with_the_parent_or_either_pattern() {
     .collect();
     assert_eq!(identities.len(), 4);
     assert!(!identities.contains(&CategoryNaming::Unconditioned.revision()));
+}
+
+#[test]
+fn curated_names_require_the_declared_purpose_even_with_matching_description() {
+    let restricted = concept()
+        .with_subject("cat".into())
+        .unwrap()
+        .with_purpose_labels(
+            ConceptPurposeLabels::new(vec![(
+                CategoryId::new("photos".into()).unwrap(),
+                "猫咪".into(),
+            )])
+            .unwrap(),
+        );
+    for naming in [purpose(), CategoryNaming::Unconditioned] {
+        let projected = naming.project(&restricted);
+        assert_eq!(projected.naming_scope(), ConceptNamingScope::TraversalOnly);
+        assert!(!naming.admits_description(&projected));
+        let comparison = naming.project_comparison(&restricted);
+        assert_eq!(comparison.naming_scope(), ConceptNamingScope::Candidate);
+        assert!(!naming.admits_description(&comparison));
+    }
+    let mut forged = restricted;
+    forged.description = "an internet meme or reaction sticker featuring cat".into();
+    assert!(!purpose().admits_description(&forged));
+}
+
+#[test]
+fn admitted_curated_label_preserves_semantic_composition_and_feature_identity() {
+    let ordinary = concept().with_subject("cat".into()).unwrap();
+    let restricted = ordinary.clone().with_purpose_labels(
+        ConceptPurposeLabels::new(vec![(
+            category("a reaction image").id().clone(),
+            "猫咪表情".into(),
+        )])
+        .unwrap(),
+    );
+    let projected = purpose().project(&restricted);
+    assert_eq!(projected.label(), "猫咪表情");
+    assert_eq!(
+        projected.description(),
+        purpose().project(&ordinary).description()
+    );
+    assert!(purpose().admits_description(&projected));
+    assert_ne!(restricted.revision(), ordinary.revision());
+}
+
+#[test]
+fn curated_purpose_labels_are_canonical_bounded_and_unique() {
+    let reaction = CategoryId::new("reactions".into()).unwrap();
+    let photo = CategoryId::new("photos".into()).unwrap();
+    let entries = vec![
+        (reaction.clone(), "猫咪表情".into()),
+        (photo.clone(), "猫咪".into()),
+    ];
+    let first = ConceptPurposeLabels::new(entries.clone()).unwrap();
+    let reversed = ConceptPurposeLabels::new(entries.into_iter().rev().collect()).unwrap();
+    assert_eq!(first.revision(), reversed.revision());
+    assert_ne!(
+        first.revision(),
+        ConceptPurposeLabels::new(vec![(photo, "猫咪".into())])
+            .unwrap()
+            .revision()
+    );
+    for entries in [
+        vec![],
+        vec![(reaction.clone(), "".into())],
+        vec![(reaction.clone(), "x".repeat(81))],
+        vec![(reaction.clone(), "猫\n咪".into())],
+        vec![(reaction.clone(), "猫咪".into()), (reaction, "重复".into())],
+    ] {
+        assert!(ConceptPurposeLabels::new(entries).is_err());
+    }
 }
