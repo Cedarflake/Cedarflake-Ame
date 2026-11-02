@@ -11,7 +11,7 @@ use crate::domain::classification::maintenance::CategoryMaintenancePlan;
 
 use super::super::classification_discovery::{
     DiscoveryPreparationRequest, DiscoverySampleCursor, NamingContextCatalog,
-    prepare_category_reduction, prepare_discovery_window,
+    prepare_category_catalog_reconciliation, prepare_category_reduction, prepare_discovery_window,
 };
 use super::super::classification_dispatch::{
     ClassificationMaintenance, ClassificationMaintenanceStep,
@@ -23,6 +23,9 @@ use policy::ManagedDiscoveryPolicy;
 
 enum Pass {
     New,
+    Reconciling {
+        notification: u64,
+    },
     Sampling {
         notification: u64,
         cursor: Option<Box<DiscoverySampleCursor>>,
@@ -96,25 +99,46 @@ impl NativeCategoryDiscovery {
                 self.vocabulary = None;
                 return Ok(ClassificationMaintenanceStep::Idle);
             }
-            Pass::Sampling {
+            Pass::Reconciling {
+                notification: previous,
+            }
+            | Pass::Sampling {
                 notification: previous,
                 ..
             }
             | Pass::Reducing {
                 notification: previous,
             } if *previous == notification => {}
-            _ => {
-                self.pass = Pass::Sampling {
-                    notification,
-                    cursor: None,
-                }
-            }
+            _ => self.pass = Pass::Reconciling { notification },
         }
         let policy = ManagedDiscoveryPolicy::for_taxonomy(executor.taxonomy())?;
-        if policy.is_available() && self.vocabulary.is_none() {
+        if self.vocabulary.is_none() {
             let vocabulary = CuratedClassificationVocabulary::bundled(cancelled)?;
             let contexts = NamingContextCatalog::new(vocabulary.naming_contexts())?;
             self.vocabulary = Some((vocabulary, contexts));
+        }
+        if matches!(self.pass, Pass::Reconciling { .. }) {
+            let vocabulary = &self
+                .vocabulary
+                .as_ref()
+                .expect("the vocabulary was loaded")
+                .0;
+            let plan = prepare_category_catalog_reconciliation(
+                operation_id()?,
+                vocabulary.managed_catalog(),
+                repository,
+                cancelled,
+            )?;
+            self.pass = Pass::Sampling {
+                notification,
+                cursor: None,
+            };
+            return Ok(match plan {
+                Some(plan) => ClassificationMaintenanceStep::Prepared(
+                    CategoryMaintenancePlan::CatalogReconciliation(Box::new(plan)),
+                ),
+                None => ClassificationMaintenanceStep::Progress,
+            });
         }
         if matches!(self.pass, Pass::Reducing { .. }) {
             let plan = prepare_category_reduction(

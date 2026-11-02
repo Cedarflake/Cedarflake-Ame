@@ -95,8 +95,8 @@ R3's selected workflow are handled at their owning layer under the repository co
 R4 is integrated into `main`. R5 continues on `codex/r5-smart-albums`. Complete the R5-02 curated
 category transition in this order: the consolidated catalog, explicit purposes and direct matching
 have their [native comparison](acceptance/r5-category-discovery.md#curated-catalog-and-direct-matching--2026-11-03).
-Next reconcile existing generated definitions, show only categories with current results, then
-verify affected desktop, recovery and resource behavior
+Existing generated definitions now have guarded catalog-reconciliation coverage. Next show only
+categories with current results, then verify affected desktop, recovery and resource behavior
 using retained features and evidence. Preserve stable identities, legacy choices, the selected SigLIP
 runtime and source safeguards. No additional naming model is included. Keep PR #45 in draft until
 these affected workflows and submitted-head checks pass. The previous

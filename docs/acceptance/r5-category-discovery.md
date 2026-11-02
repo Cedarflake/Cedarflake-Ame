@@ -61,9 +61,24 @@ The adapter, naming, nomination evaluation and runtime discovery owners have res
 167, 224 and 184 lines with no inline tests. The adapter, naming and purpose-nomination test owners
 have 150, 240 and 412 lines; runtime-policy tests have 103. Purpose-label validation owns 42 lines.
 This verifies the bounded native transition and its
-calibration behavior. Existing generated-definition reconciliation, nonempty sidebar integration,
-affected desktop interaction and submitted-head CI remain separate outstanding work. The four
+calibration behavior. Nonempty sidebar integration, affected desktop interaction and submitted-head
+CI remain separate outstanding work. The four
 observed categories do not establish quality for every permitted combination.
+
+### Existing generated categories
+
+The catalog reconciliation boundary passes five focused persistence tests, five runtime-maintenance
+tests and five curated-adapter tests. The cases preserve allowed generated identities, prior run
+definitions, known retired identities, manual edits and human choices. Reopening retains the new
+configuration; replay after stopping does not resume analysis. Concurrent pause, protection or human
+choice rejects the prepared plan. Cancellation during run replacement and failed evidence insertion
+roll back both definitions and run/evidence writes. An unchanged catalog creates no operation.
+
+The production idle-runtime check uses absent worker/model/runtime paths and no source inputs. It
+returns catalog reconciliation through the normal retired-runtime publication boundary and creates
+no feature cache. The domain plan, preparation, SQLite publication and runtime discovery owners have
+43, 90, 107 and 208 lines, with zero inline tests; dedicated reconciliation tests have 311 lines.
+This extends native upgrade coverage without repeating model inference or changing archive formats.
 
 ## Open-category naming boundary — 2026-11-02
 

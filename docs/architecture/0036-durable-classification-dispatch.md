@@ -286,6 +286,11 @@ the cursor and reusable feature cache while dropping the catalog view on suspens
 or handoff. The executor owns source execution, cached matchers and encoder residency; discovery owns
 the pass and naming resources. The runtime facade composes those owners and process admission.
 
+The first admitted idle step reconciles legacy generated identities against the current curated
+catalog. It uses the existing retired-runtime handoff and guarded publication before sampling.
+A matching catalog creates no run or encoder work. A committed change reopens through the ordinary
+configuration lifecycle; saved human choices and protected definitions retain their existing authority.
+
 After a complete discovery pass without an addition, the next admitted idle turn prepares category
 reduction. Exact-equivalent retirement takes precedence over sparse original-purpose or broader-context
 merges. Existing protection and complete-coverage rules remain authoritative; the scheduler supplies

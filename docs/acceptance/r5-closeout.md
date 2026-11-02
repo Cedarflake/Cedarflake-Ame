@@ -14,8 +14,9 @@ topics composed with six purpose patterns. The
 finding. On 2026-11-03, open-ended naming was withdrawn in favor of a curated application catalog.
 The [curated comparison](r5-category-discovery.md#curated-catalog-and-direct-matching--2026-11-03)
 verifies consolidated topics, purpose restrictions, direct matching and packaging boundaries.
-Generated-definition reconciliation and nonempty-only sidebar integration still require their
-affected checks. Existing checks retain their original scope; the roadmap owns the remaining work.
+Generated-definition reconciliation also has focused persistence and runtime coverage in that record.
+Nonempty-only sidebar integration still requires its affected checks. Existing checks retain their
+original scope; the roadmap owns the remaining work.
 
 ## Slice coverage
 

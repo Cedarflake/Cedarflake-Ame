@@ -5,18 +5,21 @@ use std::sync::{
 };
 
 use crate::domain::classification::maintenance::{
-    CategoryExpansionPlan, CategoryMaintenancePlan, CategoryMergePlan, CategoryRetirementPlan,
+    CategoryCatalogReconciliationPlan, CategoryExpansionPlan, CategoryMaintenancePlan,
+    CategoryMergePlan, CategoryRetirementPlan,
 };
 use crate::domain::classification_configuration::ClassificationConfigurationSnapshot;
 use crate::domain::{LibraryChangeLane, ScanError};
 use crate::ports::classification_configuration::{
-    CategoryExpansionRepository, CategoryMergeRepository, CategoryRetirementRepository,
+    CategoryCatalogRepository, CategoryExpansionRepository, CategoryMergeRepository,
+    CategoryRetirementRepository,
 };
 
 use super::super::catalog_session::open_catalog;
 use super::while_retired;
 
 pub enum PreparedCategoryMaintenance<'a> {
+    CatalogReconciliation(&'a CategoryCatalogReconciliationPlan),
     Expansion(&'a CategoryExpansionPlan),
     Retirement(&'a CategoryRetirementPlan),
     Merge(&'a CategoryMergePlan),
@@ -25,6 +28,9 @@ pub enum PreparedCategoryMaintenance<'a> {
 impl<'a> From<&'a CategoryMaintenancePlan> for PreparedCategoryMaintenance<'a> {
     fn from(plan: &'a CategoryMaintenancePlan) -> Self {
         match plan {
+            CategoryMaintenancePlan::CatalogReconciliation(plan) => {
+                Self::CatalogReconciliation(plan)
+            }
             CategoryMaintenancePlan::Expansion(plan) => Self::Expansion(plan),
             CategoryMaintenancePlan::Retirement(plan) => Self::Retirement(plan),
             CategoryMaintenancePlan::Merge(plan) => Self::Merge(plan),
@@ -46,6 +52,9 @@ pub fn commit_category_maintenance(
     while_retired(|| {
         let mut catalog = open_catalog(database, LibraryChangeLane::Recovery)?;
         match plan {
+            PreparedCategoryMaintenance::CatalogReconciliation(plan) => {
+                catalog.apply_category_catalog_reconciliation(plan, cancelled)
+            }
             PreparedCategoryMaintenance::Expansion(plan) => {
                 catalog.apply_category_expansion(plan, cancelled)
             }

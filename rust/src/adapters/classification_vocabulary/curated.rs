@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 
 use serde::Deserialize;
@@ -6,6 +6,9 @@ use serde::Deserialize;
 use crate::domain::ScanError;
 use crate::domain::classification::discovery::{
     ConceptId, ConceptPurposeLabels, NamingContext, VocabularyConcept,
+};
+use crate::domain::classification::maintenance::{
+    ManagedCategoryCatalog, managed_category_identity,
 };
 use crate::domain::classification::{CategoryId, ClassificationRevision};
 use crate::ports::classification_vocabulary::{
@@ -35,6 +38,7 @@ struct PurposeLabel {
 pub struct CuratedClassificationVocabulary {
     concepts: BTreeMap<ConceptId, VocabularyConcept>,
     revision: ClassificationRevision,
+    managed_catalog: ManagedCategoryCatalog,
 }
 
 impl CuratedClassificationVocabulary {
@@ -52,6 +56,7 @@ impl CuratedClassificationVocabulary {
             return Err(invalid());
         }
         let mut concepts = BTreeMap::new();
+        let mut categories = BTreeSet::new();
         for topic in topics {
             check_cancelled(cancelled)?;
             resource::validate_key(&topic.id)?;
@@ -67,6 +72,10 @@ impl CuratedClassificationVocabulary {
                     ))
                 })
                 .collect::<Result<Vec<_>, ScanError>>()?;
+            for (purpose, _) in &purposes {
+                categories
+                    .insert(managed_category_identity(id, Some(purpose)).map_err(|_| invalid())?);
+            }
             let concept =
                 VocabularyConcept::new(id, topic.label, format!("An image of {}.", topic.subject))
                     .and_then(|concept| concept.with_subject(topic.subject))
@@ -84,7 +93,16 @@ impl CuratedClassificationVocabulary {
             revisions.iter().map(|revision| revision.bytes().as_slice()),
         );
         check_cancelled(cancelled)?;
-        Ok(Self { concepts, revision })
+        let managed_catalog = ManagedCategoryCatalog::new(revision, categories)?;
+        Ok(Self {
+            concepts,
+            revision,
+            managed_catalog,
+        })
+    }
+
+    pub fn managed_catalog(&self) -> &ManagedCategoryCatalog {
+        &self.managed_catalog
     }
 
     pub fn naming_contexts(&self) -> Vec<NamingContext> {

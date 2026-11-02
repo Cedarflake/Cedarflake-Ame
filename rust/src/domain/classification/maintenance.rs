@@ -11,6 +11,8 @@ use crate::domain::classification_configuration::{
 
 mod activation;
 pub(crate) use activation::CategoryActivation;
+mod catalog;
+pub use catalog::{CategoryCatalogReconciliationPlan, ManagedCategoryCatalog};
 mod coverage;
 pub use coverage::{
     CategoryCoverageEntry, CategoryCoverageMember, CategoryCoveragePage, CategoryCoverageSnapshot,
@@ -25,6 +27,7 @@ pub use retirement::{
 };
 
 pub enum CategoryMaintenancePlan {
+    CatalogReconciliation(Box<CategoryCatalogReconciliationPlan>),
     Expansion(Box<CategoryExpansionPlan>),
     Retirement(Box<CategoryRetirementPlan>),
     Merge(Box<CategoryMergePlan>),

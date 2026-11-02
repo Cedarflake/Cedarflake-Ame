@@ -76,6 +76,17 @@ existing diagnostic and compatibility owners. They do not require those engines 
 in the production curated path. Their historical evidence remains valid only for its original inputs;
 curated topic/purpose quality and the changed production path require their own affected verification.
 
+Catalog upgrades reconcile generated identities before sampling in the existing idle maintenance
+pass. A bounded immutable catalog identifies supported concept/purpose pairs. Retire an active
+generated definition outside that set only when its origin, admitted definition and absence of
+human choices still grant automatic authority. Preserve manual definitions, edited/protected origins,
+purpose parents, existing allowed definitions and historical records. A reconciliation plan binds
+the full retirement snapshot and catalog revision; publication revalidates configuration/run
+authority and the protected set inside the existing atomic setup transaction. It records the catalog
+and retired definitions as maintenance evidence, replaces the analysis run, and reuses compatible
+image features. Cancellation or persistence failure rolls back the whole update. An identical replay
+returns current state without undoing later control or user changes. No schema migration is needed.
+
 ### Automatic cohort formation
 
 The sampling owner reads the existing distinct-current-content coverage projection in windows of

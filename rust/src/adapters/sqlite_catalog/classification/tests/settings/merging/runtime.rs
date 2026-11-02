@@ -11,7 +11,7 @@ use crate::application::classification_runtime::{
 use super::*;
 
 #[test]
-fn idle_runtime_returns_an_equivalent_retirement_without_model_or_source_access() {
+fn idle_runtime_reconciles_the_curated_catalog_without_model_or_source_access() {
     let directory = tempfile::tempdir().unwrap();
     let database = directory.path().join("catalog.sqlite3");
     let mut catalog = SqliteCatalog::open(database.clone()).unwrap();
@@ -45,19 +45,20 @@ fn idle_runtime_returns_an_equivalent_retirement_without_model_or_source_access(
         .expect("idle maintenance did not finish")
         .unwrap()
         .unwrap();
-    let crate::domain::classification::maintenance::CategoryMaintenancePlan::Retirement(retired) =
-        &plan
+    let crate::domain::classification::maintenance::CategoryMaintenancePlan::CatalogReconciliation(
+        retired,
+    ) = &plan
     else {
-        panic!("expected equivalent retirement from the idle pass");
+        panic!("expected catalog reconciliation from the idle pass");
     };
-    assert_eq!(retired.retirements().len(), 2);
+    assert_eq!(retired.retired().len(), 3);
     let saved = commit_category_maintenance(
         &database,
         PreparedCategoryMaintenance::from(&plan),
         &Arc::new(AtomicBool::new(false)),
     )
     .unwrap();
-    assert_eq!(saved.catalog.taxonomy.unwrap().categories().len(), 2);
+    assert_eq!(saved.catalog.taxonomy.unwrap().categories().len(), 1);
     assert!(!feature_cache_directory.exists());
 }
 

@@ -14,6 +14,7 @@ use super::classification_features::load_or_encode_descriptions;
 use super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
 
 mod admission;
+mod catalog_reconciliation;
 mod cohorts;
 mod competition;
 mod consolidation;
@@ -37,6 +38,8 @@ pub use admission::{
     CategoryAdmissionDisposition, CategoryAdmissionPolicy, CategoryMemberEvidence, MemberAdmission,
     assess_category_candidates,
 };
+pub(crate) use catalog_reconciliation::catalog_retirements;
+pub use catalog_reconciliation::prepare_category_catalog_reconciliation;
 pub use cohorts::{
     DeferredDiscoveryCohort, DiscoveryCohortBatch, DiscoveryCohortDeferral, DiscoveryCohortPolicy,
     form_discovery_cohorts,

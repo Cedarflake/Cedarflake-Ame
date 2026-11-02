@@ -2,9 +2,9 @@ use std::sync::{Arc, atomic::AtomicBool};
 
 use crate::domain::ScanError;
 use crate::domain::classification::maintenance::{
-    CategoryCoveragePage, CategoryCoverageSnapshot, CategoryExpansionPlan,
-    CategoryExpansionSnapshot, CategoryMergePlan, CategoryMergeSnapshot, CategoryRetirementPlan,
-    CategoryRetirementSnapshot,
+    CategoryCatalogReconciliationPlan, CategoryCoveragePage, CategoryCoverageSnapshot,
+    CategoryExpansionPlan, CategoryExpansionSnapshot, CategoryMergePlan, CategoryMergeSnapshot,
+    CategoryRetirementPlan, CategoryRetirementSnapshot,
 };
 use crate::domain::classification::{CategoryId, ClassificationContent};
 use crate::domain::classification_configuration::ClassificationConfigurationSnapshot;
@@ -28,6 +28,14 @@ pub trait CategoryRetirementRepository {
     fn apply_category_retirement(
         &mut self,
         plan: &CategoryRetirementPlan,
+        cancelled: &AtomicBool,
+    ) -> Result<ClassificationConfigurationSnapshot, ScanError>;
+}
+
+pub trait CategoryCatalogRepository {
+    fn apply_category_catalog_reconciliation(
+        &mut self,
+        plan: &CategoryCatalogReconciliationPlan,
         cancelled: &AtomicBool,
     ) -> Result<ClassificationConfigurationSnapshot, ScanError>;
 }

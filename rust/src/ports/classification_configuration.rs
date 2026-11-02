@@ -5,8 +5,8 @@ use crate::domain::classification_configuration::{
 
 mod maintenance;
 pub use maintenance::{
-    CategoryCoverageRepository, CategoryExpansionRepository, CategoryMergeRepository,
-    CategoryRetirementRepository,
+    CategoryCatalogRepository, CategoryCoverageRepository, CategoryExpansionRepository,
+    CategoryMergeRepository, CategoryRetirementRepository,
 };
 
 pub trait ClassificationConfigurationRepository {
