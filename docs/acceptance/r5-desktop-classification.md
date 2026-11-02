@@ -499,9 +499,10 @@ The rebuilt isolated Profile client opens the existing 51-file / 50-group test l
 ordinary-Library context menus and failed-image preview retain Favorite/manual-album operations
 without `重新分析`; the 6,000 × 4,000 fixture opens normally. Before/after read-only comparisons
 preserve all nine sampled durable-table digests and all 51 fixture-media hashes. The subsequent
-silent-indicator removal passes the card/preview checks above; final-window verification remains
-deferred and the existing isolated client has not been replaced. The submitted repair
-still requires its own hosted CI result; earlier-head results do not establish that result.
+silent-indicator removal passes the card/preview checks above. Its resumed client verification is
+recorded below. The integrated implementation through `e801841b` passes all 15 applicable jobs in
+[run 41331763486](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41331763486);
+the three conditional signing jobs are skipped.
 
 Production line counts are 1,892 for the gallery facade, 432 for the photo tile, 202 for its context
 menu, 49 for preview classification, 72/145 for lifecycle/session ownership, and 150 for foreground
@@ -518,3 +519,56 @@ the valid archive unchanged. The fixture now derives the unsupported version fro
 current version and requires each malformed sample to differ from its input. All six focused codec
 tests pass, including truncation, digest/count corruption, unsupported fields/kinds and cancellation.
 No archive reader, format, stored record or restoration policy changes. Hosted CI follows the fix.
+
+## Resumed isolated desktop acceptance — 2026-11-02
+
+The existing 51-file / 50-group Profile client is rebuilt from `e801841b` with the preview repair
+below. Its receipt verifies the optimized native library's test-storage override before launch.
+The existing synthetic corpus, catalog and model are reused. Each process uses a leased temporary
+directory, including `TEMP` and `TMP`; no original library or catalog is opened or changed.
+
+The first resumed run reproduces a Windows crash twice: add a smart-album image to Favorites,
+open it from Favorites, then cancel Favorite in the preview. Flutter reports an invalid AXTree
+update with pending nodes before exiting in `flutter_windows.dll`. Preview classification used a
+direct `Tooltip` and an implicit `IconButton.tooltip`, bypassing the accepted Windows boundary in
+[ADR 0009](../architecture/0009-accepted-unified-gallery-ui-contract.md). Both now use the existing
+`AmeTooltip`; the catalog-read retry retains its accessible name. Per-image analysis failures remain
+silent, and no runtime, schema, model or classification policy changes.
+
+The retained-semantics regression embeds classification in the actual `LibraryImageViewer`, whose
+slider also owns a portal. A row-only fixture misses the failure; the real-viewer fixture rejects
+a missing traversal child before the repair. It now passes category hover, loading, empty results,
+catalog-read failure, recovery and disposal on Windows. This regression and the 11 existing preview
+classification checks pass, as do owned formatting, Dart analysis and whitespace checks.
+
+The resumed isolated-client interactions, including replay after the preview repair, verify:
+
+- The original Favorite cancellation path completes without a crash or AXTree error. A second
+  preview cancellation after process restart also completes; both repaired processes exit normally.
+- Continue Analysis resumes the saved paused setup and updates the Screenshot category from one
+  to six groups. Pausing again survives restart, and the menu offers Continue Analysis afterward.
+- An empty Illustration category shows the existing empty state; returning to Screenshot restores
+  its six groups. The previously classified duplicate remains one card with two locations.
+- A 7,680 × 4,320 image recorded as `classification_image_limit` opens normally. Its card, context
+  menu, preview and preview menu expose no analysis-failure indicator or manual retry command.
+- A smart-album image can be favorited, opened and unfavorited, and can join the ordinary `r5` album.
+  The bottom result and preview-top result use the shared feedback surfaces. The destination tray
+  contains only the ordinary album. The album gains that image and retains it after restart.
+
+Automated Undo inputs produce no saved undo, and the next observations show the notices gone; those
+attempts do not establish a new desktop Undo result. The retained native organization/undo coverage
+is unchanged. Final fixture state retains the newly added album member without a Favorite mark;
+the original two album members and two Favorites remain unchanged.
+
+Before/after comparisons preserve all 51 source-file SHA-256 hashes, eight complete durable-table
+digests and all five pre-existing organization records. The sole new organization record belongs
+to the exercised image. All nine sampled tables match exactly across the process restart. The 15
+permanent failed work items retain failure count one across Continue Analysis and restart; no retry
+budget is reset. SQLite quick-check returns `ok` and foreign-key checking returns no rows. Both
+sources complete their journal-loss recovery and display synchronized status. Both leased runtime
+directories are removed after normal exit; no complete profile copy is created for this replay.
+
+The preview classification owner contains 52 production lines and no inline tests. Its new dedicated
+semantics fixture contains 115 lines; the existing 141-line behavior fixture is unchanged. The
+submitted tooltip repair still requires its own hosted result. Large-library complete-query and
+bulk-action latency remain in the roadmap's existing performance step.

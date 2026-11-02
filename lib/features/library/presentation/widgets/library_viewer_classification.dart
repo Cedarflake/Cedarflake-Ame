@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_classification_review.dart";
 import "../../application/library_classification_settings.dart";
 import "../../domain/library_organization.dart";
@@ -18,12 +19,14 @@ class LibraryViewerClassification extends ConsumerWidget {
     }
     final result = ref.watch(libraryClassificationItemProvider(target));
     if (result.hasError) {
-      return IconButton(
-        key: const Key("library-reload-classification"),
-        tooltip: "重新读取分类",
-        onPressed: () =>
-            ref.invalidate(libraryClassificationItemProvider(target)),
-        icon: const Icon(Symbols.refresh_rounded),
+      return AmeTooltip(
+        message: "重新读取分类",
+        child: IconButton(
+          key: const Key("library-reload-classification"),
+          onPressed: () =>
+              ref.invalidate(libraryClassificationItemProvider(target)),
+          icon: const Icon(Symbols.refresh_rounded, semanticLabel: "重新读取分类"),
+        ),
       );
     }
     final item = result.asData?.value;
@@ -33,7 +36,7 @@ class LibraryViewerClassification extends ConsumerWidget {
     if (category == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Tooltip(
+      child: AmeTooltip(
         message: "分类：${category.label}",
         child: Row(
           mainAxisSize: MainAxisSize.min,

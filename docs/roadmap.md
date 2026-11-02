@@ -123,17 +123,18 @@ recovery without per-image status indicators, notifications, or retry commands.
 The manual confirmation/correction workflow and its filters,
 deferral, continuation and undo were withdrawn on 2026-11-01. Their removal has focused and
 [isolated-client evidence](acceptance/r5-desktop-classification.md#manual-classification-workflow-removal--2026-11-01),
-including retry, normal restart, and preserved legacy/R4 records; submitted-head CI remains required.
+including the former retry path, normal restart, and preserved legacy/R4 records. The integrated
+hosted coverage is recorded in step 3 below.
 Preserve old records, archive compatibility, automatic analysis, and R4 organization behavior.
 Historical manual-review checks remain evidence of the former scope, not current requirements.
 
 R5-07 is active, retaining its existing order and required outcomes:
 
-1. Retain the completed local verification of manual-workflow removal and finish its submitted-head
-   hosted gate. Finish integrated lifecycle and recovery coverage using applicable retained evidence,
+1. Retain the completed local and hosted verification of manual-workflow removal. Finish integrated
+   lifecycle and recovery coverage using applicable retained evidence,
    preserving original media, saved decisions, category browsing, cause-aware automatic recovery,
-   startup-error feedback, and R4 actions. Include the corrected runtime-integration configuration calls
-   in the submitted-head hosted gate.
+   startup-error feedback, and R4 actions. The integrated hosted coverage includes the corrected
+   runtime-integration configuration calls.
 2. The [integrated quality assessment](acceptance/r5-calibration.md#integrated-quality-assessment--2026-11-01)
    confirms current-policy correspondence with the sealed screening and managed-naming inputs and
    records retained coverage, category/band quality and automatic-adjustment effects. Preserve the
@@ -162,10 +163,14 @@ R5-07 is active, retaining its existing order and required outcomes:
    Complete-query, remaining first-admission and bulk-action latency remain in this
    performance step. The [scope-recovery handoff repair](acceptance/r5-smart-albums.md#terminal-scope-recovery-handoff--2026-11-02)
    resolves the configured-catalog validation refusal on an isolated copy, with completed-parent
-   provenance, atomic recovery and unchanged original catalog/media. Its submitted-head gate remains
-   required. Window-control verification remains deferred at the user's request.
+   provenance, atomic recovery and unchanged original catalog/media. The integrated head through
+   `e801841b` passes its applicable hosted gate. The
+   [resumed isolated desktop acceptance](acceptance/r5-desktop-classification.md#resumed-isolated-desktop-acceptance--2026-11-02)
+   covers silent failed-image handling, smart-album/Favorite/manual-album browsing and restart. It
+   also repairs a reproduced Windows preview-tooltip crash through the existing shared component;
+   that repair requires its submitted-head hosted result. Window control is authorized again.
 4. Complete the applicable hosted gate for the final submitted head and record the R5 exit decision.
-   Current removal changes require their own submitted-head result. Earlier checks and measurements
+   Remaining behavior changes require their own submitted-head result. Earlier checks and measurements
    cover unchanged inputs only; detailed results remain in the acceptance records.
 
 The separate deferred rendering follow-up retains its bounded scope and does not reopen R4 verification.
