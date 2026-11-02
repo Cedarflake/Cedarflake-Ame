@@ -19,7 +19,7 @@ use super::factory::runtime_error;
 use super::manifest::{self, Artifact};
 use download::{HttpsModelDownload, ModelDownload};
 
-const PACKAGE_DIRECTORY: &str = "siglip2-b16-224-ba1f3b0843f2";
+pub(crate) const PACKAGE_DIRECTORY: &str = "siglip2-b16-224-ba1f3b0843f2";
 const MODEL_FILES: [&Artifact; 3] = [&manifest::IMAGE, &manifest::TEXT, &manifest::TOKENIZER];
 const NOTICES: [(&str, &[u8]); 2] = [
     (
@@ -33,8 +33,15 @@ pub(crate) struct VerifiedModelInstallation {
     pub models: PathBuf,
     pub runtime: PathBuf,
     _files: Vec<File>,
-    _namespace: PreviewCacheNamespace,
-    _lease: staging::StagingLease,
+    _storage: InstallationStorage,
+}
+
+enum InstallationStorage {
+    Managed {
+        _namespace: PreviewCacheNamespace,
+        _lease: staging::StagingLease,
+    },
+    Bundled,
 }
 
 pub(crate) fn prepare(
@@ -100,13 +107,10 @@ fn prepare_with(
                     completed_bytes,
                     total_bytes,
                 });
-                let response = download.open(artifact);
-                check_cancelled(cancelled)?;
-                let mut response = response?;
                 transfer::download_artifact(
                     root,
                     artifact,
-                    response.as_mut(),
+                    download,
                     cancelled,
                     &mut |received| {
                         progress(ModelInstallationProgress {
@@ -119,6 +123,11 @@ fn prepare_with(
             }
             Err(error) => return Err(io_error(error)),
         }
+        progress(ModelInstallationProgress {
+            phase: ModelInstallationPhase::Verifying,
+            completed_bytes: completed_bytes + artifact.length,
+            total_bytes,
+        });
         files.push(verify_file_cancellable(&path, artifact, cancelled).map_err(runtime_error)?);
         completed_bytes += artifact.length;
     }
@@ -135,8 +144,74 @@ fn prepare_with(
         models: models.to_path_buf(),
         runtime: runtime.to_path_buf(),
         _files: files,
-        _namespace: namespace,
-        _lease: lease,
+        _storage: InstallationStorage::Managed {
+            _namespace: namespace,
+            _lease: lease,
+        },
+    })
+}
+
+pub(crate) fn prepare_bundled(
+    models: &Path,
+    runtime: &Path,
+    cancelled: &AtomicBool,
+    progress: &mut dyn FnMut(ModelInstallationProgress),
+) -> Result<VerifiedModelInstallation, ScanError> {
+    prepare_bundled_with(
+        models,
+        runtime,
+        &MODEL_FILES,
+        &[&manifest::RUNTIME, &manifest::PROVIDER],
+        cancelled,
+        progress,
+    )
+}
+
+fn prepare_bundled_with(
+    models: &Path,
+    runtime: &Path,
+    model_files: &[&Artifact],
+    runtime_files: &[&Artifact],
+    cancelled: &AtomicBool,
+    progress: &mut dyn FnMut(ModelInstallationProgress),
+) -> Result<VerifiedModelInstallation, ScanError> {
+    check_cancelled(cancelled)?;
+    let total_bytes = model_files.iter().map(|artifact| artifact.length).sum();
+    progress(ModelInstallationProgress {
+        phase: ModelInstallationPhase::Verifying,
+        completed_bytes: 0,
+        total_bytes,
+    });
+    let mut files = pin_directory(runtime).map_err(runtime_error)?;
+    files.extend(pin_directory(models).map_err(runtime_error)?);
+    for artifact in runtime_files {
+        files.push(
+            verify_file_cancellable(&runtime.join(artifact.name), artifact, cancelled)
+                .map_err(runtime_error)?,
+        );
+    }
+    let mut completed_bytes = 0;
+    for artifact in model_files {
+        files.push(
+            verify_file_cancellable(&models.join(artifact.name), artifact, cancelled)
+                .map_err(runtime_error)?,
+        );
+        completed_bytes += artifact.length;
+        progress(ModelInstallationProgress {
+            phase: ModelInstallationPhase::Verifying,
+            completed_bytes,
+            total_bytes,
+        });
+    }
+    for (name, contents) in NOTICES {
+        verify_notice(models, name, contents, &mut files)?;
+    }
+    check_cancelled(cancelled)?;
+    Ok(VerifiedModelInstallation {
+        models: models.to_path_buf(),
+        runtime: runtime.to_path_buf(),
+        _files: files,
+        _storage: InstallationStorage::Bundled,
     })
 }
 
@@ -162,6 +237,15 @@ fn install_notice(
         Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => {}
         Err(error) => return Err(io_error(error.error)),
     }
+    verify_notice(root, name, contents, files)
+}
+
+fn verify_notice(
+    root: &Path,
+    name: &str,
+    contents: &[u8],
+    files: &mut Vec<File>,
+) -> Result<(), ScanError> {
     let mut file =
         super::artifacts::open_local_artifact(&root.join(name)).map_err(runtime_error)?;
     let mut bytes = Vec::new();
@@ -192,5 +276,7 @@ fn io_error(error: impl std::fmt::Display) -> ScanError {
     )
 }
 
+#[cfg(test)]
+mod bundle_tests;
 #[cfg(test)]
 mod tests;

@@ -1,8 +1,9 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use crate::adapters::classification_installation::task::DownloadIntent;
 use crate::adapters::classification_runtime::installation::{
-    VerifiedModelInstallation, check_cancelled, prepare,
+    PACKAGE_DIRECTORY, VerifiedModelInstallation, check_cancelled, prepare, prepare_bundled,
 };
 use crate::adapters::{ClassificationInstallation, ClassificationInstallationStore};
 use crate::domain::ScanError;
@@ -14,6 +15,8 @@ use super::classification_runtime::while_retired;
 static INSTALLING: AtomicBool = AtomicBool::new(false);
 
 pub(crate) mod operation;
+mod recovery;
+use recovery::{InstallationSource, PendingDownload, application_data};
 
 struct InstallationOwnership;
 
@@ -41,6 +44,7 @@ pub struct PreparedModelInstallation {
     settings: PathBuf,
     expected: Option<ClassificationInstallation>,
     verified: VerifiedModelInstallation,
+    pending: Option<PendingDownload>,
     _ownership: InstallationOwnership,
 }
 
@@ -48,23 +52,73 @@ pub fn prepare_managed_classification_installation(
     cancelled: &AtomicBool,
     progress: &mut dyn FnMut(ModelInstallationProgress),
 ) -> Result<PreparedModelInstallation, ScanError> {
-    check_cancelled(cancelled)?;
-    let ownership = InstallationOwnership::acquire()?;
-    let settings = installation_path(&super::storage_paths()?);
-    let expected = ClassificationInstallationStore::load(&settings)?;
-    let executable = std::env::current_exe().map_err(path_error)?;
-    let runtime = executable
-        .parent()
-        .ok_or_else(|| path_error("Missing application directory"))?
-        .join("data")
-        .join("classification-runtime");
-    let verified = prepare(&model_storage()?, &runtime, cancelled, progress)?;
-    Ok(PreparedModelInstallation {
-        settings,
-        expected,
-        verified,
-        _ownership: ownership,
-    })
+    ModelPreparation::begin(InstallationSource::Download, cancelled)?.prepare(cancelled, progress)
+}
+
+struct ModelPreparation {
+    settings: PathBuf,
+    expected: Option<ClassificationInstallation>,
+    source: InstallationSource,
+    pending: Option<PendingDownload>,
+    ownership: InstallationOwnership,
+}
+
+impl ModelPreparation {
+    fn begin(source: InstallationSource, cancelled: &AtomicBool) -> Result<Self, ScanError> {
+        check_cancelled(cancelled)?;
+        let ownership = InstallationOwnership::acquire()?;
+        let settings = installation_path(&super::storage_paths()?);
+        let expected = ClassificationInstallationStore::load(&settings)?;
+        let intent = match &source {
+            InstallationSource::Download => {
+                Some(DownloadIntent::authorize(&settings, PACKAGE_DIRECTORY)?)
+            }
+            InstallationSource::Resume(pending) => {
+                if pending.settings != settings {
+                    return Err(path_error(
+                        "The pending download belongs to another profile",
+                    ));
+                }
+                pending.intent.require_current(&settings)?;
+                Some(pending.intent.clone())
+            }
+            InstallationSource::Bundled(_) => None,
+        };
+        let pending = intent.map(|intent| PendingDownload {
+            settings: settings.clone(),
+            intent,
+        });
+        Ok(Self {
+            settings,
+            expected,
+            source,
+            pending,
+            ownership,
+        })
+    }
+
+    fn prepare(
+        self,
+        cancelled: &AtomicBool,
+        progress: &mut dyn FnMut(ModelInstallationProgress),
+    ) -> Result<PreparedModelInstallation, ScanError> {
+        let runtime = application_data()?.join("classification-runtime");
+        let verified = match &self.source {
+            InstallationSource::Bundled(models) => {
+                prepare_bundled(models, &runtime, cancelled, progress)?
+            }
+            InstallationSource::Download | InstallationSource::Resume(_) => {
+                prepare(&model_storage()?, &runtime, cancelled, progress)?
+            }
+        };
+        Ok(PreparedModelInstallation {
+            settings: self.settings,
+            expected: self.expected,
+            verified,
+            pending: self.pending,
+            _ownership: self.ownership,
+        })
+    }
 }
 
 impl PreparedModelInstallation {
@@ -77,6 +131,7 @@ impl PreparedModelInstallation {
             &self.settings,
             self.expected.as_ref(),
             &installation,
+            self.pending.as_ref().map(|pending| &pending.intent),
             cancelled,
         )
     }
@@ -86,14 +141,24 @@ fn publish_installation(
     settings: &Path,
     expected: Option<&ClassificationInstallation>,
     installation: &ClassificationInstallation,
+    intent: Option<&DownloadIntent>,
     cancelled: &AtomicBool,
 ) -> Result<(), ScanError> {
     while_retired(|| {
         check_cancelled(cancelled)?;
-        ClassificationInstallationStore::save_if_unchanged(
+        if intent.is_none() {
+            return ClassificationInstallationStore::save_if_unchanged(
+                settings,
+                expected,
+                installation,
+                cancelled,
+            );
+        }
+        ClassificationInstallationStore::publish(
             settings,
             expected,
             installation,
+            intent,
             cancelled,
         )
     })

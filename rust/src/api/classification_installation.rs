@@ -24,7 +24,28 @@ pub fn create_model_installation() -> Result<DesktopModelInstallation, ScanError
     }
 }
 
+pub fn recover_model_installation() -> Result<Option<DesktopModelInstallation>, ScanError> {
+    #[cfg(all(windows, feature = "classification-worker"))]
+    {
+        Ok(ModelInstallationOperation::recover()?.map(|inner| DesktopModelInstallation { inner }))
+    }
+    #[cfg(not(all(windows, feature = "classification-worker")))]
+    {
+        Err(super::classification::unsupported())
+    }
+}
+
 impl DesktopModelInstallation {
+    pub fn discard(&self) -> Result<(), ScanError> {
+        #[cfg(all(windows, feature = "classification-worker"))]
+        {
+            self.inner.discard()
+        }
+        #[cfg(not(all(windows, feature = "classification-worker")))]
+        {
+            Err(super::classification::unsupported())
+        }
+    }
     pub fn prepare(&self) -> Result<(), ScanError> {
         #[cfg(all(windows, feature = "classification-worker"))]
         {

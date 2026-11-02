@@ -4,7 +4,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::domain::ScanError;
 use crate::domain::classification::installation::ModelInstallationProgress;
 
-use super::{PreparedModelInstallation, prepare_managed_classification_installation};
+use super::recovery::{InstallationSource, PendingDownload, pending_source};
+use super::{ModelPreparation, PreparedModelInstallation};
 
 enum PreparationState {
     New,
@@ -18,19 +19,39 @@ pub(crate) struct ModelInstallationOperation {
     state: Mutex<PreparationState>,
     progress: Mutex<Option<ModelInstallationProgress>>,
     cancelled: AtomicBool,
+    source: InstallationSource,
+    pending: Mutex<Option<PendingDownload>>,
 }
 
 impl ModelInstallationOperation {
     pub fn new() -> Self {
+        Self::with_source(InstallationSource::Download)
+    }
+
+    fn with_source(source: InstallationSource) -> Self {
+        let pending = match &source {
+            InstallationSource::Resume(pending) => Some(pending.clone()),
+            _ => None,
+        };
         Self {
             state: Mutex::new(PreparationState::New),
             progress: Mutex::new(None),
             cancelled: AtomicBool::new(false),
+            source,
+            pending: Mutex::new(pending),
         }
     }
 
+    pub fn recover() -> Result<Option<Self>, ScanError> {
+        Ok(pending_source()?.map(Self::with_source))
+    }
+
     pub fn prepare(&self) -> Result<(), ScanError> {
-        self.prepare_with(prepare_managed_classification_installation)
+        self.prepare_with(|cancelled, progress| {
+            let preparation = ModelPreparation::begin(self.source.clone(), cancelled)?;
+            *self.pending.lock().map_err(|_| state_error())? = preparation.pending.clone();
+            preparation.prepare(cancelled, progress)
+        })
     }
 
     fn prepare_with(
@@ -99,6 +120,20 @@ impl ModelInstallationOperation {
         let result = prepared.commit(&self.cancelled);
         *self.state.lock().map_err(|_| state_error())? = PreparationState::Closed;
         result
+    }
+
+    pub fn discard(&self) -> Result<(), ScanError> {
+        let state = self.state.lock().map_err(|_| state_error())?;
+        if matches!(
+            *state,
+            PreparationState::Preparing | PreparationState::Committing
+        ) {
+            return Err(state_error());
+        }
+        if let Some(pending) = self.pending.lock().map_err(|_| state_error())?.as_ref() {
+            pending.cancel()?;
+        }
+        Ok(())
     }
 }
 

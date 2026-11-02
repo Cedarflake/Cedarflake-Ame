@@ -58,17 +58,17 @@ fn server_status_length_and_encoding_are_validated_before_streaming() {
         "HTTP/1.1 200 OK\r\nContent-Length: 2",
         "HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Length: 3",
     ] {
-        assert!(admitted_response(&response(headers), &artifact).is_err());
+        assert!(admitted_response(&response(headers), &artifact, 0).is_err());
     }
     let mut valid = response("HTTP/1.1 200 OK\r\nContent-Length: 3");
-    admitted_response(&valid, &artifact).unwrap();
+    admitted_response(&valid, &artifact, 0).unwrap();
     let mut body = String::new();
     valid.read_to_string(&mut body).unwrap();
     assert_eq!(body, "abc");
 }
 
 #[test]
-fn stalled_body_is_bounded_and_its_partial_file_is_retired() {
+fn stalled_body_is_bounded_and_its_partial_file_can_resume() {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let address = listener.local_addr().unwrap();
     let (finish, finished) = std::sync::mpsc::channel::<()>();
@@ -81,7 +81,7 @@ fn stalled_body_is_bounded_and_its_partial_file_is_retired() {
             .unwrap();
         let _ = finished.recv_timeout(Duration::from_secs(5));
     });
-    let mut response = Client::builder()
+    let response = Client::builder()
         .no_proxy()
         .timeout(Duration::from_secs(1))
         .build()
@@ -95,19 +95,69 @@ fn stalled_body_is_bounded_and_its_partial_file_is_retired() {
         length: 3,
         digest: "unused",
     };
+    struct OneResponse(Option<Response>);
+    impl ModelDownload for OneResponse {
+        fn open(&mut self, _: &Artifact, offset: u64) -> Result<DownloadBody, ScanError> {
+            Ok(DownloadBody {
+                reader: Box::new(self.0.take().unwrap()),
+                offset,
+            })
+        }
+    }
     let result = super::super::transfer::download_artifact(
         directory.path(),
         &artifact,
-        &mut response,
+        &mut OneResponse(Some(response)),
         &std::sync::atomic::AtomicBool::new(false),
         &mut |_| {},
     );
-    drop(response);
     drop(finish);
     server.join().unwrap();
     assert_eq!(
         result.unwrap_err().code,
         "classification_download_interrupted"
     );
-    assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 0);
+    let entries = std::fs::read_dir(directory.path())
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(std::fs::read(entries[0].path()).unwrap(), b"a");
+}
+
+#[test]
+fn only_the_exact_requested_range_or_a_complete_response_is_admitted() {
+    let artifact = Artifact {
+        name: "fixture",
+        length: 3,
+        digest: "unused",
+    };
+    for headers in [
+        "HTTP/1.1 206 Partial Content\r\nContent-Range: bytes 0-2/3\r\nContent-Length: 3",
+        "HTTP/1.1 206 Partial Content\r\nContent-Range: bytes 1-2/4\r\nContent-Length: 2",
+        "HTTP/1.1 206 Partial Content\r\nContent-Range: bytes 1-1/3\r\nContent-Length: 1",
+        "HTTP/1.1 416 Range Not Satisfiable\r\nContent-Length: 3",
+    ] {
+        assert!(admitted_response(&response(headers), &artifact, 1).is_err());
+    }
+    assert_eq!(
+        admitted_response(
+            &response(
+                "HTTP/1.1 206 Partial Content\r\nContent-Range: bytes 1-2/3\r\nContent-Length: 2"
+            ),
+            &artifact,
+            1
+        )
+        .unwrap(),
+        1
+    );
+    assert_eq!(
+        admitted_response(
+            &response("HTTP/1.1 200 OK\r\nContent-Length: 3"),
+            &artifact,
+            1
+        )
+        .unwrap(),
+        0
+    );
 }

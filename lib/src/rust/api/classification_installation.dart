@@ -11,11 +11,18 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 DesktopModelInstallation createModelInstallation() => RustLib.instance.api
     .crateApiClassificationInstallationCreateModelInstallation();
 
+Future<DesktopModelInstallation?> recoverModelInstallation() => RustLib
+    .instance
+    .api
+    .crateApiClassificationInstallationRecoverModelInstallation();
+
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>>
 abstract class DesktopModelInstallation implements RustOpaqueInterface {
   void cancel();
 
   Future<void> commit();
+
+  Future<void> discard();
 
   Future<void> prepare();
 

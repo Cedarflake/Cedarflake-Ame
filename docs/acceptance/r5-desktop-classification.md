@@ -699,3 +699,51 @@ The notification adapter contains 132 production lines, the shared notification 
 the shared screen 1,896; the screen adds only action delegation. None contains inline tests. The
 setup fixture contains 411 dedicated test lines. Native installation and classifier ownership are
 unchanged by this feedback delivery. Hosted verification follows the submitted commit.
+
+## Model restart recovery and installer payload — 2026-11-02
+
+The settings database migrates installation selection to version 2 without changing the catalog.
+One generation-bound download intent survives application shutdown; explicit cancellation retires
+that intent after transfer retirement. Selection and intent completion publish atomically. The
+transport retains one digest-bound partial per artifact, rehashes its prefix, validates HTTP ranges,
+and verifies the complete artifact before publication. A server returning a full response restarts
+only that incomplete file. Completed model files and compatible analysis results remain reusable.
+
+The installer builder composes three pinned model files and two attribution files with the verified
+unsigned application payload. The models total 503,840,830 bytes. Startup verifies bundled models
+in place, selects them through the existing activation boundary and creates no second model copy.
+Portable builds without models recover only a previously authorized download. Recovered work uses
+the existing notification center; no additional progress surface or serialized callback is added.
+
+Twenty-nine focused native tests pass across settings migration, stale intent retirement, guarded
+publication, interruption/range handling, corrupt prefixes, bundled file guards and joined operation
+lifetimes. Seven controller and thirteen setup/notification widget tests pass, including startup
+before the first frame, recovery completed before mount, hidden progress and cancellation. Both
+compiler-free model-payload and installer-component suites pass. The regenerated bridge passes its
+31-contract and generated-hash check. Formatting and whitespace checks pass.
+
+The isolated Profile client consumes a retained fully staged model artifact, publishes installation
+and retires the pending intent. Normal close and a second startup preserve that selection without
+starting another download. A separate fresh profile activates the actual verified installer model
+payload directly from application data and has no managed model copy. A later uninstrumented client
+replay displays the bell's unread indicator after recovery. Opening its notification list was blocked
+by two `failed to activate captured window` errors; the last two diagnostic clients were retired by
+their verified process identities after persistence checks. Computer Use was reset and disposable
+profiles and the temporary bundled payload were removed. The earlier manual-setup bell interaction
+and current startup notification fixtures retain their respective coverage. An initial empty-bell
+observation did not recur in the final client; its cause remains unestablished.
+
+This checks real artifact reuse and activation, not a fresh 504-MB network transfer or a signed MSI
+installation. HTTP response/range cases use controlled adapter fixtures. The selected model, licenses,
+source roots and existing classifier results are unchanged. Initial native test compilation exhausted
+local debug-symbol memory; focused tests completed with local test debug info disabled. A later
+native link attempt used an already retired temporary directory and succeeded after moving the build
+inside its live scratch lease. Neither workaround changes repository or hosted build requirements.
+
+Production owners contain 135 settings, 52 migration, 94 intent, 282 artifact preparation, 151 HTTP,
+200 partial-transfer, 189 application preparation, 154 operation and 56 recovery lines. Their
+dedicated fixtures contain 218 settings, 695 transport/preparation and 152 application lines.
+The Dart coordinator/activation owners contain 214/22 lines, with 670 dedicated controller/setup
+test lines. Model packaging, installer composition and component generation contain 148/144/186
+lines, with 144 dedicated packaging test lines. These owners have no inline tests; generated bridge
+code is excluded from handwritten review. The submitted-head hosted gate remains required.

@@ -34,6 +34,7 @@ fn preparation_retains_ownership_until_cancelled_work_returns() {
     );
     assert!(operation.commit().is_err());
     operation.cancel().unwrap();
+    assert!(operation.discard().is_err());
     assert!(matches!(
         *operation.state.lock().unwrap(),
         PreparationState::Preparing
@@ -48,6 +49,31 @@ fn preparation_retains_ownership_until_cancelled_work_returns() {
         PreparationState::Closed
     ));
     assert!(operation.commit().is_err());
+}
+
+#[test]
+fn shutdown_preserves_recovered_intent_and_explicit_cancel_retires_it_before_preparation() {
+    use crate::adapters::classification_installation::task::DownloadIntent;
+
+    let directory = tempfile::tempdir().unwrap();
+    let settings = directory.path().join("installation.sqlite");
+    let intent = DownloadIntent::authorize(&settings, "fixture").unwrap();
+    let operation =
+        ModelInstallationOperation::with_source(InstallationSource::Resume(PendingDownload {
+            settings: settings.clone(),
+            intent: intent.clone(),
+        }));
+    operation.cancel().unwrap();
+    assert_eq!(
+        DownloadIntent::pending(&settings, "fixture").unwrap(),
+        Some(intent)
+    );
+    operation.discard().unwrap();
+    assert!(
+        DownloadIntent::pending(&settings, "fixture")
+            .unwrap()
+            .is_none()
+    );
 }
 
 #[test]

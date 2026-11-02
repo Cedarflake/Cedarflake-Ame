@@ -1,6 +1,7 @@
 # R5 integrated delivery evidence
 
-Date: 2026-11-02. Implementation revision: `0ef6af57d6b5bd3aa219f84df86280ad2a338446`.
+Date: 2026-11-02. Integrated baseline: `0ef6af57d6b5bd3aa219f84df86280ad2a338446`.
+The subsequent model-delivery changes and their verification are recorded below.
 
 This record connects the ordered R5 slices to their applicable evidence. The
 [roadmap](../roadmap.md#current-execution-queue) owns stage disposition, and
@@ -27,6 +28,14 @@ the setup action to the sidebar has nine widget cases covering confirmation, can
 during preparation, failed activation/retry and restored definitions without installed models.
 Native installation admission, hashing, publication and cancellation retain their focused evidence.
 This coverage does not measure a fresh production network download.
+
+The [model feedback and actual-media check](r5-desktop-classification.md#model-setup-feedback-and-real-library-screening--2026-11-02)
+adds the compact download icon, one hideable task in the existing notification center and 471 actual
+predictions from an isolated local-primary catalog. The
+[restart and installer checks](r5-desktop-classification.md#model-restart-recovery-and-installer-payload--2026-11-02)
+cover durable download intent, range continuation, guarded bundled-model activation and the composed
+installer payload. They retain the recorded desktop activation limitation and exclude signed MSI
+installation and a fresh full network transfer.
 
 The final isolated Profile client verifies the four-choice Filter menu, normal smart-album browsing,
 Settings without the analysis section, and More without analysis commands. Installed analysis keeps
@@ -73,7 +82,9 @@ and accessibility, five synthetic workloads, and unsigned Release. PR workflows 
 snapshot against `main`; preserve the associated head, base and tested snapshot when reporting a run.
 Protected release/signing jobs are outside ordinary PR admission.
 
-The documentation closeout changes no production, test, dependency or build input after the
-implementation revision above. Local checks validate its relative links/anchors and whitespace;
-the normal PR workflow covers the submitted documentation head. The roadmap requires that gate
-before the PR becomes reviewable, followed by a separately authorized merge.
+The feedback revision `bb7f197b363dbcf5bd0c64893fb2f92e0bb60ed3` passed all applicable jobs in
+[run 41441422558](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41441422558), testing merge
+snapshot `94197c8ddb6ebd5c563ad542f52b622f347fcb29` against base
+`1e0e1701845ce9455ea46ea91c8c183c7fadc087`. The subsequent restart and installer changes require
+their own submitted-head result. The roadmap requires that gate before the PR becomes reviewable,
+followed by a separately authorized merge.

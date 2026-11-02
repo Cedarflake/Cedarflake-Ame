@@ -32,11 +32,13 @@ abstract interface class LibraryModelInstallationSession {
   LibraryModelDownloadProgress? progress();
   void cancel();
   Future<void> commit();
+  Future<void> discard();
   void dispose();
 }
 
 abstract interface class LibraryModelInstallationService {
   LibraryModelInstallationSession create();
+  Future<LibraryModelInstallationSession?> recover();
 }
 
 typedef EnablePreparedLibraryModel =
@@ -74,6 +76,17 @@ class LibraryModelInstallation extends ChangeNotifier {
           _stage == LibraryModelInstallationStage.downloading);
 
   Future<void> start(EnablePreparedLibraryModel enable) {
+    return _begin(enable, recovering: false);
+  }
+
+  Future<void> recover(EnablePreparedLibraryModel enable) {
+    return _begin(enable, recovering: true);
+  }
+
+  Future<void> _begin(
+    EnablePreparedLibraryModel enable, {
+    required bool recovering,
+  }) {
     if (_closed || _operation != null) {
       return Future.error(StateError("Model installation is unavailable"));
     }
@@ -82,18 +95,32 @@ class LibraryModelInstallation extends ChangeNotifier {
     _error = null;
     _finishedAt = null;
     _sequence += 1;
-    _stage = LibraryModelInstallationStage.preparing;
-    final operation = Future<void>.microtask(() => _run(enable));
+    _stage = recovering
+        ? LibraryModelInstallationStage.idle
+        : LibraryModelInstallationStage.preparing;
+    final operation = Future<void>.microtask(
+      () => _run(enable, recovering: recovering),
+    );
     _operation = operation;
     notifyListeners();
     return operation;
   }
 
-  Future<void> _run(EnablePreparedLibraryModel enable) async {
+  Future<void> _run(
+    EnablePreparedLibraryModel enable, {
+    required bool recovering,
+  }) async {
     try {
       if (_closed || _cancelRequested) return;
-      final session = _service.create();
+      final session = recovering ? await _service.recover() : _service.create();
       _session = session;
+      if (session == null) return;
+      if (_closed || _cancelRequested) {
+        session.cancel();
+        return;
+      }
+      _stage = LibraryModelInstallationStage.preparing;
+      notifyListeners();
       _poll = Timer.periodic(const Duration(milliseconds: 200), (_) {
         try {
           final progress = session.progress();
@@ -129,6 +156,12 @@ class LibraryModelInstallation extends ChangeNotifier {
       _poll = null;
       final session = _session;
       _session = null;
+      try {
+        if (_cancelRequested) await session?.discard();
+      } on Object catch (error) {
+        _error ??= error;
+        _stage = LibraryModelInstallationStage.failed;
+      }
       try {
         session?.dispose();
       } on Object catch (error) {
@@ -172,7 +205,6 @@ class LibraryModelInstallation extends ChangeNotifier {
 
   Future<void> close() async {
     _closed = true;
-    _cancelRequested = true;
     try {
       _session?.cancel();
     } finally {

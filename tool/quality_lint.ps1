@@ -41,6 +41,7 @@ try {
     & (Join-Path $PSScriptRoot "release_test_version_validation.ps1")
     & (Join-Path $PSScriptRoot "release_test_installer_payload.ps1")
     & (Join-Path $PSScriptRoot "release_test_classification_runtime.ps1")
+    & (Join-Path $PSScriptRoot "release_test_classification_models.ps1")
     & (Join-Path $PSScriptRoot "release_test_classification_vocabulary.ps1")
     & (Join-Path $PSScriptRoot "release_test_portable_archive.ps1")
     & (Join-Path $PSScriptRoot "release_test_portable_publication.ps1")

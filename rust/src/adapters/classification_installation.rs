@@ -5,6 +5,11 @@ use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 
 use crate::domain::ScanError;
 
+mod schema;
+pub(crate) mod task;
+use schema::open;
+use task::DownloadIntent;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ClassificationInstallation {
     pub models: PathBuf,
@@ -33,6 +38,16 @@ impl ClassificationInstallationStore {
         installation: &ClassificationInstallation,
         cancelled: &AtomicBool,
     ) -> Result<(), ScanError> {
+        Self::publish(path, expected, installation, None, cancelled)
+    }
+
+    pub fn publish(
+        path: &Path,
+        expected: Option<&ClassificationInstallation>,
+        installation: &ClassificationInstallation,
+        intent: Option<&DownloadIntent>,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ScanError> {
         let mut connection = writable_installation(path, installation)?;
         let transaction = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -43,6 +58,9 @@ impl ClassificationInstallationStore {
                 "classification_installation_changed",
                 "The selected model installation changed while preparing these files",
             ));
+        }
+        if let Some(intent) = intent {
+            task::complete(&transaction, intent)?;
         }
         write_installation(&transaction, installation)?;
         check_publication_cancelled(cancelled)?;
@@ -107,37 +125,6 @@ fn write_installation(
         )
         .map_err(storage_error)?;
     Ok(())
-}
-
-fn open(path: &Path) -> Result<Connection, ScanError> {
-    let mut connection = Connection::open(path).map_err(storage_error)?;
-    connection
-        .busy_timeout(std::time::Duration::from_secs(5))
-        .map_err(storage_error)?;
-    let transaction = connection.transaction().map_err(storage_error)?;
-    let version: u32 = transaction
-        .pragma_query_value(None, "user_version", |row| row.get(0))
-        .map_err(storage_error)?;
-    match version {
-        0 => transaction
-            .execute_batch(
-                "CREATE TABLE installation (
-                id INTEGER PRIMARY KEY CHECK(id = 1),
-                models TEXT NOT NULL CHECK(length(models) > 0),
-                runtime TEXT NOT NULL CHECK(length(runtime) > 0)
-             ) STRICT;
-             PRAGMA user_version = 1;",
-            )
-            .map_err(storage_error)?,
-        1 => {}
-        _ => {
-            return Err(storage_error(
-                "The classification installation format is newer than supported",
-            ));
-        }
-    }
-    transaction.commit().map_err(storage_error)?;
-    Ok(connection)
 }
 
 fn storage_error(error: impl std::fmt::Display) -> ScanError {

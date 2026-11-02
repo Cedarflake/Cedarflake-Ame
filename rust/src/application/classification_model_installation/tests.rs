@@ -14,13 +14,15 @@ fn prepared_publication_preserves_prior_selection_on_cancel_stale_or_active_runt
     };
     ClassificationInstallationStore::save(&settings, &original).unwrap();
     let cancelled = AtomicBool::new(true);
-    assert!(publish_installation(&settings, Some(&original), &replacement, &cancelled).is_err());
+    assert!(
+        publish_installation(&settings, Some(&original), &replacement, None, &cancelled).is_err()
+    );
     cancelled.store(false, Ordering::Release);
-    let stale = publish_installation(&settings, None, &replacement, &cancelled).unwrap_err();
+    let stale = publish_installation(&settings, None, &replacement, None, &cancelled).unwrap_err();
     assert_eq!(stale.code, "classification_installation_changed");
     while_retired(|| {
-        let busy =
-            publish_installation(&settings, Some(&original), &replacement, &cancelled).unwrap_err();
+        let busy = publish_installation(&settings, Some(&original), &replacement, None, &cancelled)
+            .unwrap_err();
         assert_eq!(busy.code, "classification_runtime_active");
         Ok(())
     })
@@ -29,7 +31,7 @@ fn prepared_publication_preserves_prior_selection_on_cancel_stale_or_active_runt
         ClassificationInstallationStore::load(&settings).unwrap(),
         Some(original.clone())
     );
-    publish_installation(&settings, Some(&original), &replacement, &cancelled).unwrap();
+    publish_installation(&settings, Some(&original), &replacement, None, &cancelled).unwrap();
     assert_eq!(
         ClassificationInstallationStore::load(&settings).unwrap(),
         Some(replacement)

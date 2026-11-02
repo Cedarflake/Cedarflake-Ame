@@ -2,6 +2,7 @@
 
 - Status: Accepted for implementation
 - Date: 2026-10-30
+- Last amended: 2026-11-02
 
 ## Context
 
@@ -698,8 +699,10 @@ installation of these hash-pinned conversions under the upstream
 [Apache-2.0 grant](https://www.apache.org/licenses/LICENSE-2.0), which includes mechanically converted
 object forms. Preserve Google's attribution, the license, conversion source
 and quantization notice. This admission applies to these artifacts, not every file in the conversion
-repository. Model weights are separate, explicitly installed data; they are not bundled or mirrored
-by the application. A later redistribution must retain the applicable license and notices.
+repository. The Windows installer includes these three artifacts with the Apache-2.0 license and
+conversion notice under `data/classification-models`. Installer ownership covers their upgrade,
+repair and removal under ADR 0027. Portable/development distributions may omit that payload and use
+explicit managed download. Model files remain outside Git, catalogs, previews and source trees.
 
 ### Managed model installation
 
@@ -707,6 +710,20 @@ Explicit installation downloads only the three admitted model artifacts from the
 revision above. The application resolves local model storage separately from catalogs and previews;
 the runtime resolves from its own `data/classification-runtime` bundle. Callers select neither URLs
 nor runtime libraries. Preparation does not enable classification, open a worker, or change a taxonomy.
+
+Startup first recovers a previously authorized, unfinished download. Otherwise, an unselected bundled
+model is verified in place with read-only held-file/namespace guards and then selected through the
+same guarded publication boundary. No writable lock or duplicate model copy is created in the
+installation directory. Missing bundles do not authorize a network request. The existing automatic
+classification lifecycle activates the verified selection and reuses completed analysis evidence.
+
+A separate settings-database migration preserves installation selection and adds one versioned
+download intent. Its generation binds cancellation and publication; a stale operation cannot retire
+a newer request. Model revision is part of that intent. Closing the application signals and joins
+the active transfer while retaining intent and partial bytes. Explicit cancellation retires intent
+after the transfer joins. Committing model selection retires the matching intent atomically. On
+restart, current artifact lengths reconstruct progress and the existing notification center receives
+the recovered task. No catalog migration or persistence of arbitrary notification callbacks is needed.
 
 The Windows transport is `reqwest` 0.13.5 (MIT/Apache-2.0), with blocking streaming, native TLS and
 system proxy support. Windows certificate validation uses Schannel; automatic decompression,
@@ -722,14 +739,20 @@ ten-second timeout. The owning call retains the response until transfer has stop
 thread can continue writing or publish after cancellation returns.
 
 An application installation owner spans preparation and publication. Downloads use one 64-KiB
-buffer, exact length limits and incremental SHA-256. Each file is written to a unique temporary file
-inside the pinned local package namespace, synced and published without overwriting another file.
+buffer, exact length limits and incremental SHA-256. Each artifact has one deterministic partial
+file whose name includes its pinned digest. The partial is reopened without following reparse or
+cloud entries and its existing prefix is rehashed before an HTTP Range request. Admit a 206 response
+only when Content-Range exactly matches the requested offset and pinned total; a valid 200 response
+restarts only this incomplete file. Wrong ranges, encoding and oversized transfers fail closed.
+Complete bytes pass length/digest verification before synced publication without replacing a file.
 Its final file handle is independently verified and held against changes until publication. Verified
-complete files survive interruption and are rechecked before retry reuse; partial files belonging
-to the current operation are removed. A package-directory file lease excludes concurrent installers
+complete files and bounded partials survive interruption and are rechecked before reuse. Invalid
+partial bytes are reset within this installer-owned namespace; corrupt final artifacts still fail
+admission. A package-directory file lease excludes concurrent installers
 across processes. Under that lease, a bounded directory read retires only the exact temporary naming
-format owned by this installer, so process termination cannot accumulate abandoned downloads across
-retries. Complete artifacts and unrelated entries remain untouched. Existing corrupt, reparse or cloud-placeholder entries fail
+format from the previous non-resumable installer. The three current digest-bound partials remain;
+repeated interruptions cannot accumulate another full partial per attempt. Complete artifacts and
+unrelated entries remain untouched. Existing corrupt, reparse or cloud-placeholder entries fail
 admission without download, replacement or hydration. License and conversion/quantization notices
 are installed from application-owned text and remain alongside the model artifacts.
 
@@ -757,10 +780,10 @@ Model or runtime revision changes retain the original admission and feature-comp
 The default `classification-worker` Cargo feature builds a separate native executable and its adapter.
 Windows desktop bundles include that executable beside Ame; portable and installer payload checks
 require it. The admitted CPU runtime ships in `data/classification-runtime` with its license,
-third-party notices, privacy documentation, version and upstream revision. Model weights remain
-separate, explicitly installed data. Bundling the small compatible runtime removes a second user
-installation choice and binds it to the application build; models keep their separate download and
-storage lifecycle. Desktop startup does
+third-party notices, privacy documentation, version and upstream revision. Installer model weights
+use the separately verified payload above; optional managed downloads keep their own storage and
+resume lifecycle. Bundling the compatible runtime removes a second user installation choice and
+binds it to the application build. Desktop startup does
 not load an inference runtime. The worker accepts one encoder for its
 entire lifetime; replacing image with text inference requires retiring that process first. Ame's
 supervisor starts it below normal priority, attaches a Windows Job before sending initialization,
@@ -786,9 +809,10 @@ deny writes/deletion from verification through use. No artifact lookup falls bac
 network download or source directory. Hashing uses a bounded buffer. Runtime notices remain alongside
 the bundled DLLs.
 
-Explicit model setup validates both encoders and the bundled runtime before storing the managed
-installation in a separate versioned settings database. The worker repeats held-file verification
-when an encoder is demanded. Installation does not enable analysis or change its durable mode. Feature
+Model preparation validates both encoders and the bundled runtime before storing the installation
+in a separate versioned settings database. The worker repeats held-file verification when an encoder
+is demanded. Desktop activation serializes installation publication and analysis configuration through
+the existing runtime-retirement boundary. Preparing files alone does not enable analysis. Feature
 storage is a separate rebuildable database beside the active catalog, outside the source tree.
 
 The Windows CMake dependency prepares the hash-pinned official runtime archive before the application

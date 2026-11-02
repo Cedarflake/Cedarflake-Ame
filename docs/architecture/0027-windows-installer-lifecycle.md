@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-12
-- Last amended: 2026-10-13
+- Last amended: 2026-11-02
 
 ## Context and decision drivers
 
@@ -30,6 +30,13 @@ suffixes, a fourth numeric component and values outside MSI's 255/255/65535 limi
 silently collapsing distinct versions. Increment that version for each distributed change.
 The product code is stable for an exact version and changes for an upgrade; component identities
 are stable for their installed paths. The package embeds its complete bounded payload.
+
+The smart-album model payload follows ADR 0034's pinned three artifacts and two attribution files.
+The installer builder composes those independently verified files with the passing unsigned
+application manifest and records the combined payload in its receipt. The existing component and
+ACL generator owns every model file; no installer-time network request or model custom action is
+added. Installed clients verify and read the models in place. Portable builds may omit this separate
+payload and retain explicit managed download with restart recovery.
 
 Schedule major-upgrade removal after `InstallInitialize`, inside the rollback transaction.
 Reject downgrades and disabled rollback. Repair reinstalls owned components and revalidates

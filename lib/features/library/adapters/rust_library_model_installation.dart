@@ -8,6 +8,12 @@ class RustLibraryModelInstallation implements LibraryModelInstallationService {
   @override
   LibraryModelInstallationSession create() =>
       _RustModelInstallationSession(native.createModelInstallation());
+
+  @override
+  Future<LibraryModelInstallationSession?> recover() async {
+    final session = await native.recoverModelInstallation();
+    return session == null ? null : _RustModelInstallationSession(session);
+  }
 }
 
 class _RustModelInstallationSession implements LibraryModelInstallationSession {
@@ -34,6 +40,9 @@ class _RustModelInstallationSession implements LibraryModelInstallationSession {
 
   @override
   Future<void> commit() => _session.commit();
+
+  @override
+  Future<void> discard() => _session.discard();
 
   @override
   void dispose() => _session.dispose();

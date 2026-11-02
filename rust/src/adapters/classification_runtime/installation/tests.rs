@@ -1,4 +1,4 @@
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 use std::sync::atomic::Ordering;
 
 use super::*;
@@ -20,7 +20,11 @@ struct FixtureDownload {
 }
 
 impl ModelDownload for FixtureDownload {
-    fn open(&mut self, artifact: &Artifact) -> Result<Box<dyn Read>, ScanError> {
+    fn open(
+        &mut self,
+        artifact: &Artifact,
+        offset: u64,
+    ) -> Result<download::DownloadBody, ScanError> {
         self.calls.push(artifact.name.to_owned());
         if self.fail_second && artifact.name == SECOND.name {
             return Err(ScanError::new(
@@ -28,7 +32,10 @@ impl ModelDownload for FixtureDownload {
                 "Connection is unavailable",
             ));
         }
-        Ok(Box::new(Cursor::new(self.bytes)))
+        Ok(download::DownloadBody {
+            reader: Box::new(Cursor::new(&self.bytes[offset as usize..])),
+            offset,
+        })
     }
 }
 
@@ -138,13 +145,19 @@ fn truncation_tampering_and_oversize_never_publish_a_partial_artifact() {
         )
         .err()
         .unwrap();
-        assert_eq!(error.code, "classification_download_mismatch");
-        assert_eq!(std::fs::read_dir(models).unwrap().count(), 1);
+        let expected = if bytes.len() < 3 {
+            "classification_download_interrupted"
+        } else {
+            "classification_download_mismatch"
+        };
+        assert_eq!(error.code, expected);
+        assert!(!models.join(FIRST.name).exists());
+        assert_eq!(std::fs::read_dir(models).unwrap().count(), 2);
     }
 }
 
 #[test]
-fn cancellation_during_transfer_removes_owned_partial_and_allows_retry() {
+fn cancellation_during_transfer_preserves_owned_partial_and_allows_retry() {
     let directory = tempfile::tempdir().unwrap();
     let models = directory.path().join("models");
     let cancelled = AtomicBool::new(false);
@@ -166,7 +179,7 @@ fn cancellation_during_transfer_removes_owned_partial_and_allows_retry() {
     .err()
     .unwrap();
     assert_eq!(error.code, "classification_cancelled");
-    assert_eq!(std::fs::read_dir(&models).unwrap().count(), 1);
+    assert_eq!(std::fs::read_dir(&models).unwrap().count(), 2);
     cancelled.store(false, Ordering::Release);
     assert!(
         prepare_with(

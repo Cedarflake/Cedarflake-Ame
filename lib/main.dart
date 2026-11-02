@@ -27,6 +27,7 @@ import "features/library/application/library_organization_conflicts.dart";
 import "features/library/application/library_exact_duplicates.dart";
 import "features/library/application/library_foreground_reads.dart";
 import "features/library/application/library_model_installation.dart";
+import "features/library/application/library_model_activation.dart";
 import "features/library/application/library_scan_shutdown.dart";
 import "features/library/application/library_synchronization.dart";
 import "features/library/application/library_view_preferences.dart";
@@ -48,6 +49,7 @@ Future<void> main() async {
 
   LibrarySynchronizationLifecycleOwner? synchronizationLifecycle;
   LibraryClassificationLifecycle? classificationLifecycle;
+  Future<void> Function()? recoverModelInstallation;
   late final Widget application;
   try {
     await initializeRustLibrary();
@@ -103,6 +105,9 @@ Future<void> main() async {
       const RustLibraryModelInstallation(),
     );
     shutdownCoordinator.register(modelInstallation.close);
+    recoverModelInstallation = () => modelInstallation.recover(
+      activateLibraryModel(classificationConfiguration),
+    );
     application = ProviderScope(
       overrides: [
         libraryModelInstallationProvider.overrideWith(
@@ -149,6 +154,8 @@ Future<void> main() async {
     startInBackground: () {
       synchronizationLifecycle?.startInBackground();
       classificationLifecycle?.startInBackground();
+      final recover = recoverModelInstallation;
+      if (recover != null) unawaited(recover());
     },
     revealWindowAfterFirstFrame: showAmeWindowAfterFirstFrame,
   );

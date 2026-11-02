@@ -85,7 +85,7 @@ impl StagingLease {
     }
 }
 
-fn local_attributes(attributes: u32) -> bool {
+pub(super) fn local_attributes(attributes: u32) -> bool {
     attributes
         & (FILE_ATTRIBUTE_OFFLINE
             | FILE_ATTRIBUTE_RECALL_ON_OPEN

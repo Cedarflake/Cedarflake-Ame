@@ -1310,6 +1310,12 @@ The Windows CMake application target invokes `./tool/release_prepare_classificat
 only the pinned official archive when that build directory is absent, verifies its digest and the
 seven selected payload files, and reuses only complete verified output. `-ArchivePath <local-zip>`
 supports an offline build using the same archive checks. Models remain outside this build step.
+The installer adds its separately admitted model payload with
+`release_prepare_classification_models.ps1 -OutputDirectory <repository-build-subdirectory>`;
+`-SourceDirectory <verified-model-directory>` supports offline preparation. The installer builder
+accepts that source through `-ModelSourceDirectory`, verifies artifacts/notices, and composes them
+with the unsigned application manifest. `release_test_classification_models.ps1` covers bounded
+preparation, retained notices, omission/tamper rejection and interrupted staging cleanup in Static.
 `./tool/release_test_classification_runtime.ps1` supplies compiler-free archive, tamper, omission,
 namespace and output-scope checks through Static. The native distribution-contract regression ties
 the packaging DLL pins to the worker's compiled pins. Normal unsigned Release verifies the connected

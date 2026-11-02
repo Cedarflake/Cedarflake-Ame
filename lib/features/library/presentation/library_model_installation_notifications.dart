@@ -90,7 +90,7 @@ class LibraryModelInstallationNotifications {
         dedupeKey: key,
         title: title,
         message: message,
-        detail: failed ? "已下载的完整模型文件会保留，可以重试。" : null,
+        detail: failed ? "下载进度已保留，可以重试。" : null,
         severity: severity,
         isPersistent: installation.busy || failed,
         actionId: action,

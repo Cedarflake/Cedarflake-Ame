@@ -260,6 +260,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  DesktopModelInstallation
+  dco_decode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation(
+    dynamic raw,
+  );
+
+  @protected
   PreparedClassificationMaintenance
   dco_decode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
     dynamic raw,
@@ -845,6 +851,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  DesktopModelInstallation?
+  dco_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation(
+    dynamic raw,
+  );
+
+  @protected
   PreparedClassificationMaintenance?
   dco_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
     dynamic raw,
@@ -1355,6 +1367,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   DesktopClassificationSession
   sse_decode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DesktopModelInstallation
+  sse_decode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation(
     SseDeserializer deserializer,
   );
 
@@ -2100,6 +2118,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  DesktopModelInstallation?
+  sse_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PreparedClassificationMaintenance?
   sse_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
     SseDeserializer deserializer,
@@ -2722,6 +2746,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     DesktopClassificationSession self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation(
+    DesktopModelInstallation self,
     SseSerializer serializer,
   );
 
@@ -3624,6 +3655,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     DesktopClassificationSession? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation(
+    DesktopModelInstallation? self,
     SseSerializer serializer,
   );
 

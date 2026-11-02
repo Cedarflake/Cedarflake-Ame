@@ -12,7 +12,12 @@ const DOWNLOAD_BASE: &str = "https://huggingface.co/onnx-community/siglip2-base-
 const NETWORK_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub(super) trait ModelDownload {
-    fn open(&mut self, artifact: &Artifact) -> Result<Box<dyn Read>, ScanError>;
+    fn open(&mut self, artifact: &Artifact, offset: u64) -> Result<DownloadBody, ScanError>;
+}
+
+pub(super) struct DownloadBody {
+    pub reader: Box<dyn Read>,
+    pub offset: u64,
 }
 
 pub(super) struct HttpsModelDownload {
@@ -50,39 +55,77 @@ impl HttpsModelDownload {
 }
 
 impl ModelDownload for HttpsModelDownload {
-    fn open(&mut self, artifact: &Artifact) -> Result<Box<dyn Read>, ScanError> {
+    fn open(&mut self, artifact: &Artifact, offset: u64) -> Result<DownloadBody, ScanError> {
         let directory = if artifact.name.ends_with(".onnx") {
             "onnx/"
         } else {
             ""
         };
-        let response = self
+        let mut request = self
             .client()?
             .get(format!("{DOWNLOAD_BASE}/{directory}{}", artifact.name))
-            .header(reqwest::header::ACCEPT_ENCODING, "identity")
-            .send()
-            .map_err(|_| network_error())?;
-        admitted_response(&response, artifact)?;
-        Ok(Box::new(response))
+            .header(reqwest::header::ACCEPT_ENCODING, "identity");
+        if offset > 0 {
+            request = request.header(reqwest::header::RANGE, format!("bytes={offset}-"));
+        }
+        let response = request.send().map_err(|_| network_error())?;
+        let offset = admitted_response(&response, artifact, offset)?;
+        Ok(DownloadBody {
+            reader: Box::new(response),
+            offset,
+        })
     }
 }
 
-fn admitted_response(response: &Response, artifact: &Artifact) -> Result<(), ScanError> {
-    if response.status() != StatusCode::OK
-        || response
-            .content_length()
-            .is_some_and(|length| length != artifact.length)
+fn admitted_response(
+    response: &Response,
+    artifact: &Artifact,
+    requested: u64,
+) -> Result<u64, ScanError> {
+    let offset = match response.status() {
+        StatusCode::OK
+            if !response
+                .headers()
+                .contains_key(reqwest::header::CONTENT_RANGE) =>
+        {
+            0
+        }
+        StatusCode::PARTIAL_CONTENT if requested > 0 && requested < artifact.length => {
+            let expected = format!(
+                "bytes {requested}-{}/{}",
+                artifact.length - 1,
+                artifact.length
+            );
+            if response
+                .headers()
+                .get(reqwest::header::CONTENT_RANGE)
+                .and_then(|value| value.to_str().ok())
+                != Some(expected.as_str())
+            {
+                return Err(response_error());
+            }
+            requested
+        }
+        _ => return Err(response_error()),
+    };
+    if response
+        .content_length()
+        .is_some_and(|length| length != artifact.length - offset)
         || response
             .headers()
             .get(reqwest::header::CONTENT_ENCODING)
             .is_some_and(|encoding| encoding != "identity")
     {
-        return Err(ScanError::new(
-            "classification_download_response_invalid",
-            "The model server did not return the expected file",
-        ));
+        return Err(response_error());
     }
-    Ok(())
+    Ok(offset)
+}
+
+fn response_error() -> ScanError {
+    ScanError::new(
+        "classification_download_response_invalid",
+        "The model server did not return the expected file",
+    )
 }
 
 fn admitted_url(url: &Url) -> bool {

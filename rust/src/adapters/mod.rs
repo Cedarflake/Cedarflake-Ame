@@ -2,7 +2,7 @@ mod classification_feature_cache;
 #[cfg(all(windows, any(feature = "classification-worker", test)))]
 pub(crate) mod classification_image_input;
 #[cfg(any(all(windows, feature = "classification-worker"), test))]
-mod classification_installation;
+pub(crate) mod classification_installation;
 #[cfg(feature = "classification-worker")]
 pub(crate) mod classification_runtime;
 mod classification_vocabulary;

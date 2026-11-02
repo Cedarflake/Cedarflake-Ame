@@ -1,11 +1,11 @@
 import "dart:async";
-import "dart:math";
 
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../application/library_classification_configuration.dart";
 import "../../application/library_model_installation.dart";
+import "../../application/library_model_activation.dart";
 
 Future<void> showLibraryModelSetup(BuildContext context, WidgetRef ref) async {
   final configuration = ref.read(libraryClassificationConfigurationProvider);
@@ -37,19 +37,5 @@ Future<void> showLibraryModelSetup(BuildContext context, WidgetRef ref) async {
   );
   if (confirmed != true || !context.mounted || !installation.canStart) return;
 
-  final random = Random.secure();
-  final operationId = List.generate(
-    16,
-    (_) => random.nextInt(256).toRadixString(16).padLeft(2, "0"),
-  ).join();
-  unawaited(
-    installation.start((commit) async {
-      final observed = await configuration.load();
-      await configuration.enableManagedInstallation(
-        operationId: operationId,
-        observed: observed,
-        commitInstallation: commit,
-      );
-    }),
-  );
+  unawaited(installation.start(activateLibraryModel(configuration)));
 }

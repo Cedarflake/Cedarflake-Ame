@@ -17,6 +17,38 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets(
+    "recovery completed before mount still retains its notification",
+    (tester) async {
+      final fixture = _Fixture();
+      addTearDown(fixture.dispose);
+      fixture.installer.pending = true;
+      final recovered = fixture.installation.recover((commit) => commit());
+      await tester.pump();
+      fixture.installer.sessions.single.prepared.complete();
+      await tester.pump();
+      await recovered;
+      await fixture.open(tester);
+      expect(fixture.notifications.history.single.title, "已启用智能相册");
+      await fixture.close(tester);
+    },
+  );
+  testWidgets(
+    "startup recovery publishes to notification history from the app owner",
+    (tester) async {
+      final fixture = _Fixture();
+      addTearDown(fixture.dispose);
+      fixture.installer.pending = true;
+      final recovering = fixture.installation.recover((commit) => commit());
+      await fixture.open(tester);
+      expect(fixture.notifications.history, hasLength(1));
+      fixture.installer.sessions.single.prepared.complete();
+      await tester.pumpAndSettle();
+      await recovering;
+      expect(fixture.notifications.history.single.title, "已启用智能相册");
+      await fixture.close(tester);
+    },
+  );
   testWidgets("restored categories without a model retain download access", (
     tester,
   ) async {
@@ -241,59 +273,63 @@ class _Fixture {
           ),
           libraryModelInstallationProvider.overrideWith((ref) => installation),
         ],
-        child: MaterialApp(
-          home: Scaffold(
-            body: Consumer(
-              builder: (context, ref, _) {
-                ref.watch(libraryModelInstallationNotificationsProvider);
-                notifications = ref.watch(ameNotificationControllerProvider);
-                return Stack(
-                  children: [
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: AmeNotificationHistoryButton(
-                        state: notifications,
-                        onOpened: () => ref
-                            .read(ameNotificationControllerProvider.notifier)
-                            .markAllRead(),
-                        onSelected: (entry) => showAmeNotificationDetails(
-                          context,
-                          entry,
-                          onAction: (observed) =>
-                              handleLibraryModelInstallationNotification(
-                                context,
-                                ref,
-                                observed,
-                              ),
-                        ),
-                      ),
-                    ),
-                    Column(
-                      children: [
-                        SizedBox(
-                          width: 244,
-                          child: LibrarySmartAlbumNavigation(
-                            collection:
-                                const LibraryGalleryCollection.library(),
-                            enabled: true,
-                            onSelect: (_) {},
+        child: _NotificationOwner(
+          child: MaterialApp(
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, _) {
+                  notifications = ref.watch(ameNotificationControllerProvider);
+                  return Stack(
+                    children: [
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: AmeNotificationHistoryButton(
+                          state: notifications,
+                          onOpened: () => ref
+                              .read(ameNotificationControllerProvider.notifier)
+                              .markAllRead(),
+                          onSelected: (entry) => showAmeNotificationDetails(
+                            context,
+                            entry,
+                            onAction: (observed) =>
+                                handleLibraryModelInstallationNotification(
+                                  context,
+                                  ref,
+                                  observed,
+                                ),
                           ),
                         ),
-                        TextButton(
-                          onPressed: () => browseClicks += 1,
-                          child: const Text("浏览图片"),
-                        ),
-                      ],
-                    ),
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child:
-                          buildLibraryModelInstallationFeedback(context, ref) ??
-                          const SizedBox.shrink(),
-                    ),
-                  ],
-                );
-              },
+                      ),
+                      Column(
+                        children: [
+                          SizedBox(
+                            width: 244,
+                            child: LibrarySmartAlbumNavigation(
+                              collection:
+                                  const LibraryGalleryCollection.library(),
+                              enabled: true,
+                              onSelect: (_) {},
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => browseClicks += 1,
+                            child: const Text("浏览图片"),
+                          ),
+                        ],
+                      ),
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child:
+                            buildLibraryModelInstallationFeedback(
+                              context,
+                              ref,
+                            ) ??
+                            const SizedBox.shrink(),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),
@@ -318,6 +354,17 @@ class _Fixture {
   }
 
   void dispose() => reads.dispose();
+}
+
+class _NotificationOwner extends ConsumerWidget {
+  const _NotificationOwner({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(libraryModelInstallationNotificationsProvider);
+    return child;
+  }
 }
 
 class _Inactive implements LibraryClassification {
@@ -378,6 +425,11 @@ class _Configuration implements LibraryClassificationConfigurationService {
 
 class _Installation implements LibraryModelInstallationService {
   final sessions = <_InstallationSession>[];
+  bool pending = false;
+
+  @override
+  Future<LibraryModelInstallationSession?> recover() async =>
+      pending ? create() : null;
 
   @override
   LibraryModelInstallationSession create() {
@@ -406,6 +458,8 @@ class _InstallationSession implements LibraryModelInstallationSession {
   void cancel() => cancelled = true;
   @override
   Future<void> commit() async => committed = true;
+  @override
+  Future<void> discard() async {}
   @override
   void dispose() => disposed = true;
 }
