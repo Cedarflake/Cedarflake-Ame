@@ -17,6 +17,7 @@ import "features/library/adapters/rust_library_classification.dart";
 import "features/library/adapters/rust_library_classification_configuration.dart";
 import "features/library/adapters/rust_library_model_installation.dart";
 import "features/library/application/library_classification_configuration.dart";
+import "features/library/application/library_automatic_classification.dart";
 import "features/library/application/library_classification_lifecycle.dart";
 import "features/library/application/library_controller.dart";
 import "features/library/application/library_exact_analysis_controller.dart";
@@ -78,7 +79,10 @@ Future<void> main() async {
     );
     shutdownCoordinator.register(exactScheduler.close);
     classificationLifecycle = LibraryClassificationLifecycle(
-      const RustLibraryClassification(),
+      const LibraryAutomaticClassification(
+        RustLibraryClassification(),
+        RustLibraryClassificationConfiguration(),
+      ),
       foregroundReads: libraryForegroundReads,
     );
     final classificationEnvironment = AmeAnalysisEnvironment(

@@ -42,7 +42,7 @@ implementation, repairs, and verification around complete user workflows.
 | [Indexed text search](../architecture/0032-indexed-catalog-text-search.md) | Preserve literal path matching through the shared query while keeping FTS data rebuildable from catalog rows. |
 | [Classification contracts and runtime](../architecture/0034-versioned-classification-contracts.md) | Reuse independent category/encoder revisions and the verified worker boundary; application admission and publication retain their own authority. |
 | [Classification decision authority](../architecture/0035-classification-decision-authority.md) | Keep prediction evidence and legacy human conflict/restore precedence independent of R4 state; no desktop manual-classification commands. |
-| [Durable classification dispatch](../architecture/0036-durable-classification-dispatch.md) | Persist manual intent, compatible shared work and publication leases independently of worker lifetime and portable human decisions. |
+| [Durable classification dispatch](../architecture/0036-durable-classification-dispatch.md) | Persist compatible shared work and publication leases independently of worker lifetime and portable human decisions; recover legacy modes into automatic desktop scheduling. |
 | [Workspace navigation](../architecture/0029-functional-workbench-navigation.md) | Retain primary navigation, ordinary reset rules, and the organizing Library's retained state. |
 | [Invariant-owned modules](../architecture/0025-invariant-owned-workflow-modules.md) | Give inference, category projection, retry, and recovery cohesive owners before extending shared facades. |
 
@@ -150,10 +150,12 @@ Depends on admitted runtime/quality policy and R5-03 persistence.
    re-screen and make its prompts/configuration part of the immutable run evidence.
 5. Implement demand loading, separately releasable text/image encoders, and bounded warm residency.
    Measure the proposed three-second initial quiet interval and 60-second idle retention with small
-   batches; pressure, disable, shutdown, and suspend release resources under the admitted deadline.
-6. Preserve explicit pause across restarts, resume automatic yielding only after readiness and source
-   revalidation, and reuse committed work after worker failure. Bound retries per failure/content
-   version; stop/cancel fences late publications and never silently recreates the same stopped run.
+   batches; pressure, shutdown, and suspend release resources under the admitted deadline.
+6. Resume automatic yielding only after readiness and source revalidation, and reuse committed work
+   after worker failure. The desktop manual controls were withdrawn on 2026-11-02. Installed legacy
+   paused setup resumes its run; disabled/stopped setup activates a fresh run under existing guards.
+   Missing models retain explicit download setup. Bound retries per failure/content version and keep
+   stopped identities retired; startup does not reset compatible failure budgets.
 7. Connect existing progress and feedback owners. Keep directory synchronization independent,
    publish compatible batches atomically, and preserve prior valid results and visible anchors.
    Cache cleanup must not erase decisions or immediately trigger a complete feature rebuild.
@@ -161,7 +163,7 @@ Depends on admitted runtime/quality policy and R5-03 persistence.
 Exit: real local inference publishes compatible results incrementally, resumes without repeating
 completed work, respects measured resource limits, and handles corrupt/offline/placeholder inputs
 without ending the desktop session or modifying sources. Focused tests cover concurrent duplicate
-arrival, stale publication, starvation, foreground yielding, manual pause after restart, virtual-clock
+arrival, stale publication, starvation, foreground yielding, legacy-mode startup, virtual-clock
 residency, worker termination, suspend/resume, and rule-only rematching without image inference.
 
 Retain completed runtime and local foreground measurements when advancing to the query and desktop
@@ -201,7 +203,10 @@ its former manual-review scope was withdrawn on 2026-11-01.
 5. Verify first use, loading, empty results, legacy decisions, failed/unavailable images, stale reads,
    automatic recovery, cancellation, and restart through the real application services.
 6. Retain managed model setup, verified installation, bundled runtime, and automatic category
-   maintenance. Setup needs no user-authored taxonomy or model/runtime directory selection.
+   maintenance. Setup needs no user-authored taxonomy or model/runtime directory selection. Remove
+   analysis settings and manual run controls from gallery menus and the Settings page. Missing models
+   offer explicit download in the smart-album empty state; installed analysis runs automatically
+   without a status-only setup prompt.
 
 Exit: browsing, automatic recovery, and manual-album/Favorite workflows remain connected, with no manual
 classification flow. The sketch retains layout intent; its superseded review controls are removed.

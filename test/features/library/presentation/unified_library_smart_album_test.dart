@@ -100,7 +100,9 @@ void main() {
 
       await tester.tap(find.byKey(const Key("library-more-menu")));
       await tester.pumpAndSettle();
-      expect(find.text("智能相册设置"), findsOneWidget);
+      for (final label in ["智能相册设置", "暂停分析", "继续分析", "停止分析", "关闭后台分析"]) {
+        expect(find.text(label), findsNothing);
+      }
       expect(find.text("全选"), findsOneWidget);
       expect(find.text("整理模式"), findsNothing);
       expect(find.text("继续确认分类"), findsNothing);

@@ -617,3 +617,48 @@ Production owners contain 94 filter lines, 285 gallery-state lines and 111 conti
 no inline tests. Dedicated fixtures contain 99 menu, 331 smart-album and 85 native-filter lines.
 The 305-line condition editor and its obsolete form fixture are deleted. Hosted verification follows
 the submitted commit; prior checks do not establish its final gate result.
+
+## Automatic analysis and setup removal — 2026-11-02
+
+Smart albums reuse the ordinary gallery More menu. Manual pause, continue, stop and disable commands,
+the Settings section and the status-only settings dialog are removed. Missing models retain an
+explicit download action in the existing sidebar, including restored categories without a local
+model. Download progress, cancellation and failure retry use the existing shared feedback owner.
+Installed models add no setup or status prompt.
+
+The new application startup owner recovers installed legacy pause through the observed run's resume
+command, and disabled/stopped setup through guarded activation with retained categories. It leaves
+automatic runs unchanged and missing models inactive. Session retirement, immutable native evidence,
+configuration guards and compatible failure budgets retain their existing owners; no schema or
+generated bridge changes are required.
+
+Focused startup and session-lifetime regressions pass, covering missing models, legacy modes,
+unchanged automatic runs, failed transitions and the existing joined shutdown/configuration boundary.
+The nine setup, three integrated smart-album and fifteen Settings-page checks pass. They cover download
+confirmation/cancel, browsing during preparation, joined cancellation, failed activation and retry,
+restored categories without models, removal of setup after installation and absence of manual controls.
+Owned Dart analysis, formatting and whitespace checks pass. No new model download is performed.
+
+The optimized test-storage Profile client built from `ecd5e761` plus this change opens the retained
+isolated library. Settings moves directly from Organization records to Storage with no smart-album
+section or status explanation. Screenshot opens six groups and its More menu contains only Select
+all. The installed sidebar has no download action. The persisted automatic run identity is unchanged;
+137 completed work records and 15 permanent image-limit failures retain their previous states and
+failure counts. All 51 source-file hashes and nine sampled durable-table digests match before and
+after. Legacy paused/stopped/disabled transitions have focused application coverage; this native
+replay starts from automatic mode. First-use download and cancellation use the focused widget fixture,
+reusing retained native installation evidence.
+
+Window activation initially timed out on the minimized old client. Only its receipt-verified test
+process was retired before rebuilding. The rebuilt client was checked after the foreground became
+available and remains open for inspection. Computer Use's JavaScript session was reset after use;
+the owned runtime scratch remains leased until that client exits. No original library or complete
+profile copy is involved.
+
+Production owners contain 46 automatic-startup, 55 model-setup, 184 sidebar, 83 installation-feedback,
+267 Settings-page, 526 gallery-header and 1,888 shared-screen lines; the screen/header changes only
+remove the special menu hook. The entrypoint contains 155 lines. These files have no inline tests.
+Dedicated fixtures contain 175 startup, 316 setup, 333 smart-album and 1,209 Settings-page lines;
+the unchanged 744-line session-lifetime fixture supplies retained lifecycle coverage. The former
+216-line settings dialog, 25-line section, 130-line menu and 346-line settings fixture are deleted.
+Hosted verification follows the submitted head.

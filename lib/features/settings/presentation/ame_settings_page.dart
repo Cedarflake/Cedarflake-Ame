@@ -10,7 +10,6 @@ import "../../../app/presentation/ame_scroll_motion.dart";
 import "../application/ame_preferences.dart";
 import "widgets/settings_section.dart";
 import "widgets/album_settings_section.dart";
-import "widgets/classification_settings_section.dart";
 import "widgets/organization_archive_section.dart";
 import "widgets/storage_settings_section.dart";
 
@@ -201,8 +200,6 @@ class AmeSettingsPage extends ConsumerWidget {
                         const AlbumSettingsSection(),
                         const SizedBox(height: 28),
                         const OrganizationArchiveSection(),
-                        const SizedBox(height: 28),
-                        const ClassificationSettingsSection(),
                         const SizedBox(height: 28),
                         StorageSettingsSection(
                           hasLibraryRoots: hasLibraryRoots,

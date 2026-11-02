@@ -107,12 +107,16 @@ remain integrated acceptance questions; a larger fixed list does not settle them
 R5-03 durable classification evidence and portable legacy-decision recovery are
 connected under [ADR 0035](architecture/0035-classification-decision-authority.md). The corrected archive
 fixtures pass the retained hosted gate. R5-04 connects verified source admission, shared compatible
-work, feature reuse, guarded publication, durable manual controls and joined worker lifetimes under
+work, feature reuse, guarded publication, durable dispatch state and joined worker lifetimes under
 [ADR 0036](architecture/0036-durable-classification-dispatch.md). Its
 [incremental-analysis evidence](acceptance/r5-incremental-analysis.md) includes real-model Windows
 control/restart checks, power/pressure handling and the local-primary foreground comparison. Managed
 model installation, bundled runtime/vocabulary and automatic maintenance use the same retirement and
 publication boundary.
+Manual desktop analysis controls were withdrawn on 2026-11-02. Installed analysis now runs
+automatically, including recovery from old paused/stopped/disabled setup; missing models retain
+explicit download from the smart-album empty state. The Settings page and gallery menus contain no
+analysis controls or status-only setup prompts. Native compatibility states and publication guards remain intact.
 
 R5-05 supplies coherent effective-category queries, counts, pages, selection and viewer scope
 through the shared gallery, with [query evidence](acceptance/r5-smart-albums.md). R5-06 connects the
@@ -336,7 +340,7 @@ informs R5-02 admission; functional, license, runtime, and resource gates remain
 | R5-01 | [Metadata and structured search](plans/r5-classification.md#r5-01-metadata-and-bounded-structured-search) | Admitted metadata and coherent bounded search through the existing gallery, usable without a model |
 | R5-02 | [Taxonomy, model, and runtime admission](plans/r5-classification.md#r5-02-taxonomy-model-and-runtime-admission) | Labeling rubric, quality/calibration evidence, licenses, runtime boundary, and measured resource budgets |
 | R5-03 | [Durable classification and recovery](plans/r5-classification.md#r5-03-durable-classification-decisions-and-recovery) | Immutable classification evidence, preserved legacy decisions, migrations, and portable recovery |
-| R5-04 | [Incremental local analysis](plans/r5-classification.md#r5-04-incremental-local-analysis) | Compatible model publication with bounded resources, pause/retry/restart, and foreground priority |
+| R5-04 | [Incremental local analysis](plans/r5-classification.md#r5-04-incremental-local-analysis) | Compatible model publication with bounded resources, automatic yielding/recovery/restart, and foreground priority |
 | R5-05 | [Smart-album projections](plans/r5-classification.md#r5-05-smart-album-projections-and-coherent-queries) | Coherent derived categories, metadata filters, counts, pages, selection, and viewer scope |
 | R5-06 | [Desktop smart albums](plans/r5-classification.md#r5-06-desktop-smart-albums) | Approved browsing controls, read-only categories, automatic recovery, and shared feedback |
 | R5-07 | [Integrated verification](plans/r5-classification.md#r5-07-integrated-quality-scale-and-closure) | Measured screening quality, source-safe recovery, usable low-resource browsing, and applicable hosted gates |

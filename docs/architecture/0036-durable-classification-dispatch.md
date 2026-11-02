@@ -6,13 +6,36 @@ Date: 2026-10-30
 
 ## Context
 
-The R5 lifecycle requires explicit pause across restart, incremental work before global duplicate
+The original R5 lifecycle required explicit pause across restart, incremental work before global duplicate
 analysis finishes, shared analysis of identical content, and rejection of late results after stop
 or configuration changes. Worker residency under ADR 0034 owns processes and memory; it cannot
 establish durable scheduling intent or authorize catalog publication. ADR 0035 owns human decisions
 and immutable prediction evidence, independently of these execution records.
 
 ## Decision
+
+### Desktop automatic startup amendment — 2026-11-02
+
+The desktop no longer exposes manual pause, continue, stop or disable controls. The retained native
+states and commands below remain compatibility and publication-fencing contracts. Before opening a
+runtime, `LibraryAutomaticClassification` loads the saved setup through the configuration port.
+An installed paused setup resumes the same run; an installed disabled/stopped setup activates retained
+categories (or the admitted initial scheme when absent) through the existing guarded transaction and
+a fresh operation identity. Automatic setup opens without a configuration write. Missing installation
+returns inactive and leaves download authority with explicit setup.
+The desktop Settings entry and status-only dialog are withdrawn. Missing-model setup is reachable
+from the existing smart-album empty row and requires a size-bearing download confirmation. The
+shared installation feedback owns progress, cancellation and retry; an installed model adds no
+setup or status prompt.
+
+This application owner runs inside the existing joined session-opening lifetime, before native
+runtime ownership. It does not call the facade that waits for that same opening. Configuration errors
+propagate without opening a worker; closing during activation joins it and retires any returned session
+before running. Startup does not reset compatible failure budgets, revive a stopped run identity,
+change legacy decisions or weaken source/configuration guards. The earlier persisted-manual-pause
+desktop policy is superseded; low-level commands retain their original transactional semantics.
+
+### Durable execution and compatibility
 
 Schema 66 adds separate dispatch state, stopped-run identities, and bounded-query work records to
 the catalog. These are execution state, excluded from portable decision archives. A typed repository
@@ -134,10 +157,11 @@ quiet without modifying durable manual intent. Manual controls signal cancellati
 short persistence transaction and signal its committed result afterward; only the persisted epoch
 authorizes publication. Close retires the runtime while preserving the selected durable mode.
 
-The desktop opens an opaque application session after the first usable catalog frame. Disabled or
-stopped dispatch stays inactive. An enabled or manually paused setup restores its selected local
-installation without starting an encoder. The native session initially inhibits admission until
-the desktop supplies its latest foreground state. Its blocking loop runs on a bridge background
+After the first usable catalog frame, the desktop applies the automatic-startup policy above and
+opens an opaque application session. The raw native opening contract leaves disabled/stopped dispatch
+inactive and restores an enabled or manually paused installation without starting an encoder.
+These raw compatibility rules do not replace desktop legacy-mode recovery. The native session
+initially inhibits admission until the desktop supplies its latest foreground state. Its blocking loop runs on a bridge background
 executor; synchronous activity and cancellation calls only update the dispatch signal.
 
 The desktop lifecycle owner retains the open/run future and joins it during shutdown. A close that

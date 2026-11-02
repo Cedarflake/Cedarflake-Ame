@@ -203,7 +203,9 @@ is not an admitted dependency. Model setup and downloads require an explicit use
 The normal setup offers the application's admitted model and manages its verified files. Ship the
 compatible inference runtime with the application. Users enable smart albums and authorize any
 required model download; they do not choose model/runtime directories or supply category definitions.
-Installation failure retains a retryable setup state without enabling analysis against partial files.
+The Settings page has no smart-album section or status prompt. Missing models offer download from
+the smart-album empty state; installed models need no setup prompt. Installation failure uses the
+shared download feedback's retry action without enabling analysis against partial files.
 
 The selected initial-screening candidate is SigLIP 2 Base/16-224 with an FP16 image encoder and INT8
 text encoder through ONNX. Its [local exploratory comparison](../acceptance/r5-model-evaluation.md)
@@ -227,13 +229,14 @@ optimization rather than a prerequisite. Record measured budgets before enabling
 Analysis runs off the UI thread with bounded workers, input windows, queues, caches, and runtime
 threads. Foreground previews and interaction have priority. Process newly indexed or invalidated
 content incrementally, reuse compatible exact-group work, and resume committed analysis after restart.
-Pause/stop must reach a bounded checkpoint; worker failure must preserve the desktop session and
+Automatic yielding and shutdown must reach a bounded checkpoint; worker failure must preserve the desktop session and
 completed results. Never hydrate cloud-only files or hold catalog transactions over decoding/inference.
 
 ## Analysis lifecycle
 
 Task admission, model residency, derived results, and retained legacy decisions have separate lifetimes.
-Classification starts after explicit enablement and verified model setup. Queue existing catalog
+Classification runs automatically after explicit model download and verified setup. The desktop
+offers no pause, continue, stop or disable controls. Queue existing catalog
 content and later changes in bounded persistent windows; eligibility still requires each content
 version's completed exact verification. Initial import and foreground image work retain priority.
 
@@ -259,14 +262,16 @@ existing backlog, with bounded fairness so continuous arrivals cannot starve old
 Load a supervised worker only when eligible work can run. Cache compatible text vectors and release
 the text encoder after descriptions are encoded. Keep the image encoder warm across short gaps;
 start with a 60-second idle-residency candidate, to be measured during runtime admission. Memory
-pressure, disabling analysis, shutdown, and suspend retire the worker promptly within the measured
+pressure, shutdown, and suspend retire the worker promptly within the measured
 checkpoint/termination budget. These timer candidates are tuning inputs, not measured guarantees.
 Releasing runtime memory does not delete installed model files, durable queue state, or decisions.
 
-Automatic yielding resumes when its condition clears. Manual pause persists across restarts until
-explicit Continue. Disabling analysis fences new dispatch; retained suggestions and human decisions
-stay usable. Shutdown/suspend fence dispatch and preserve committed progress; startup/resume checks
-source/configuration generations before continuing previously automatic work after foreground readiness.
+Automatic yielding resumes when its condition clears. The manual-control workflow was withdrawn on
+2026-11-02. At startup, an installed legacy paused setup resumes the same run; installed disabled or
+stopped setup activates a new run through the existing guarded configuration transaction. A stopped
+run identity remains retired, compatible evidence and failure budgets remain reusable, and missing
+models never trigger a download. Shutdown/suspend fence dispatch and preserve committed progress;
+startup/resume checks source/configuration generations before continuing after foreground readiness.
 An unfinished batch is safely retryable, while committed work is reused. A failed file does not block
 other candidates. Short-lived worker failures retry after 5 seconds and then 30 seconds; three
 failed attempts exhaust that input's budget. Permanent or exhausted failures wait for a changed
@@ -314,7 +319,7 @@ R5 must demonstrate:
 - real desktop paths following the accepted UI contract, with shared feedback and stable layout;
 - bounded two-core/8-GiB operation while ordinary browsing and preview remain usable;
 - per-content release before global deduplication finishes, shared duplicate tasks, configuration-only
-  rematching, persisted manual pause, bounded warm residency, shutdown/suspend recovery, and cache cleanup;
+  rematching, automatic recovery from legacy modes, bounded warm residency, shutdown/suspend recovery, and cache cleanup;
 - unchanged original media and placeholder state, with no automatic file operation or hydration.
 
 Record actual evidence in `docs/acceptance` when implementation exists. A layout sketch, requirements

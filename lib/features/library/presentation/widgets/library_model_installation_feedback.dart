@@ -5,7 +5,7 @@ import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_feedback_card.dart";
 import "../../../../app/presentation/ame_notifications.dart";
 import "../../application/library_model_installation.dart";
-import "library_classification_settings_editor.dart";
+import "library_model_setup.dart";
 
 Widget? buildLibraryModelInstallationFeedback(
   BuildContext context,
@@ -52,12 +52,12 @@ Widget? buildLibraryModelInstallationFeedback(
     return AmeFeedbackCard(
       key: const Key("classification-installation-failure"),
       title: "智能相册未能启用",
-      message: "已下载的完整模型文件会保留，可从设置重新尝试。",
+      message: "已下载的完整模型文件会保留，可以重试。",
       severity: AmeNotificationSeverity.error,
       actions: [
         AmeFeedbackAction(
-          label: "打开设置",
-          onPressed: () => showLibraryClassificationSettings(context),
+          label: "重试",
+          onPressed: () => showLibraryModelSetup(context, ref),
         ),
         AmeFeedbackAction(label: "关闭", onPressed: installation.dismiss),
       ],

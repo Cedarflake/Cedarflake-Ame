@@ -1208,10 +1208,14 @@ no click target, hover treatment or navigation action; only the arrow expands or
 Category rows open the corresponding derived results.
 Category rows reflect the active application-managed scheme. First use relies on the existing setup
 and empty-state surfaces, without a mandatory category-definition form or a permanent sample-class
-list presented as the available classification capability. Setup and
-analysis controls use the existing gallery More menu and Settings entry, keeping the sidebar
-heading's trailing action for collapse. Normal setup asks only for enablement and any required
-model download. There are no category creation, editing, removal, or comparison-description forms.
+list presented as the available classification capability. The Settings canvas has no smart-album
+section or status-only dialog. Missing-model setup uses a `下载模型` action in the smart-album empty
+row; its confirmation states the download size and starts the existing installation feedback.
+Restored categories without a local model retain the same download action below their rows.
+Installed models remove that action and add no status explanation. The sidebar heading's trailing
+action remains collapse. Smart albums reuse the ordinary gallery More menu, with no settings,
+pause, continue, stop or disable-analysis actions. There are no category creation, editing, removal,
+or comparison-description forms.
 Model/runtime directory selection stays outside normal setup. Existing definitions remain preserved
 and are maintained through the application's admitted discovery policy.
 When expanded without categories, use the same static icon-and-text empty row as the Library's
@@ -1233,8 +1237,8 @@ Per-image analysis failures recover silently under the failure-specific lifecycl
 previews show no failure label, icon, tooltip, or notification; image context menus contain no
 analysis command. Album conflicts retain their independent label. Ordinary suggestions and legacy
 review states add no classification badge, confidence percentage, or repeated model information.
-Paused analysis waits for Continue, and disabled/stopped analysis keeps enablement in the existing
-settings flow.
+Installed analysis runs automatically. Legacy paused, stopped or disabled setup transitions to
+automatic scheduling at desktop startup; missing models retain explicit download setup.
 Runtime startup or execution failure uses the existing bottom and viewer-top error feedback;
 successful recovery resolves that notification without producing per-image retry notices.
 

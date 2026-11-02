@@ -16,7 +16,6 @@ class LibraryGalleryHeader extends StatelessWidget {
     required this.galleryTitle,
     this.leading,
     this.filter,
-    this.more,
     this.selectionToolbar,
     this.reviewToolbar,
     this.reviewCounts,
@@ -43,7 +42,6 @@ class LibraryGalleryHeader extends StatelessWidget {
   final String galleryTitle;
   final Widget? leading;
   final Widget? filter;
-  final Widget? more;
   final Widget? selectionToolbar;
   final Widget? reviewToolbar;
   final LibraryOrganizationCounts? reviewCounts;
@@ -137,7 +135,6 @@ class LibraryGalleryHeader extends StatelessWidget {
                         _SelectionToolbar(onCancel: onCancelSelection)
                   : _BrowsingToolbar(
                       filter: filter,
-                      more: more,
                       isReviewing: isReviewing,
                       onToggleReview: onToggleReview,
                       layoutShape: layoutShape,
@@ -168,7 +165,6 @@ class LibraryGalleryHeader extends StatelessWidget {
 class _BrowsingToolbar extends StatelessWidget {
   const _BrowsingToolbar({
     this.filter,
-    this.more,
     required this.isReviewing,
     this.onToggleReview,
     required this.layoutShape,
@@ -184,7 +180,6 @@ class _BrowsingToolbar extends StatelessWidget {
   });
 
   final Widget? filter;
-  final Widget? more;
   final bool isReviewing;
   final VoidCallback? onToggleReview;
   final GalleryLayoutShape layoutShape;
@@ -224,12 +219,11 @@ class _BrowsingToolbar extends StatelessWidget {
           onShapeChanged: onLayoutShapeChanged,
           onSizeChanged: onThumbnailSizeChanged,
         ),
-        more ??
-            _MoreMenu(
-              onSelectAll: onSelectAll,
-              isReviewing: isReviewing,
-              onToggleReview: onToggleReview,
-            ),
+        _MoreMenu(
+          onSelectAll: onSelectAll,
+          isReviewing: isReviewing,
+          onToggleReview: onToggleReview,
+        ),
       ],
     );
   }

@@ -5,7 +5,9 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../application/library_classification_configuration.dart";
 import "../../application/library_classification_settings.dart";
+import "../../application/library_model_installation.dart";
 import "../../domain/library_gallery_collection.dart";
+import "library_model_setup.dart";
 
 class LibrarySmartAlbumNavigation extends ConsumerStatefulWidget {
   const LibrarySmartAlbumNavigation({
@@ -32,6 +34,11 @@ class _LibrarySmartAlbumNavigationState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final settings = ref.watch(libraryClassificationSettingsProvider);
+    final canInstall = ref.watch(
+      libraryModelInstallationProvider.select(
+        (installation) => installation?.canStart == true,
+      ),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -75,10 +82,18 @@ class _LibrarySmartAlbumNavigationState
             skipLoadingOnReload: true,
             data: (value) => [
               if (value == null || value.categories.isEmpty)
-                const ListTile(
-                  key: Key("library-sidebar-smart-empty"),
-                  leading: Icon(Symbols.photo_album_rounded),
-                  title: Text("还没有分类结果"),
+                ListTile(
+                  key: const Key("library-sidebar-smart-empty"),
+                  leading: const Icon(Symbols.photo_album_rounded),
+                  title: const Text("还没有分类结果"),
+                  trailing: value?.installationSelected == false
+                      ? TextButton(
+                          onPressed: canInstall
+                              ? () => showLibraryModelSetup(context, ref)
+                              : null,
+                          child: const Text("下载模型"),
+                        )
+                      : null,
                 ),
               for (final category
                   in value?.categories ??
@@ -92,6 +107,15 @@ class _LibrarySmartAlbumNavigationState
                           category.id,
                   onSelect: widget.enabled
                       ? () => widget.onSelect(category)
+                      : null,
+                ),
+              if (value?.installationSelected == false &&
+                  value!.categories.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Symbols.download_rounded),
+                  title: const Text("下载模型"),
+                  onTap: canInstall
+                      ? () => showLibraryModelSetup(context, ref)
                       : null,
                 ),
             ],
