@@ -102,3 +102,12 @@ with warnings denied passes, together with Rust formatting and whitespace checks
 checks above own the result for the
 replacement head. The roadmap requires that gate before the PR becomes reviewable, followed by a
 separately authorized merge.
+
+[Run 41456317006](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41456317006)
+passes Static and reports three failures in the Remaining Rust partition's existing module-loading
+contracts. The download-intent implementation made `classification_installation` crate-visible,
+although callers require only its opaque `DownloadIntent` type. The repair restores the private
+installation/task modules and re-exports that type through the adapter facade. All ten focused
+`root_availability_` regressions pass, including the three failing assertions and the rejection
+cases, with unchanged contract expectations. Rust formatting and diff whitespace checks pass.
+The submitted PR checks own the replacement-head result; the separate naming gap above remains.

@@ -6,9 +6,9 @@ use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use crate::domain::ScanError;
 
 mod schema;
-pub(crate) mod task;
+mod task;
 use schema::open;
-use task::DownloadIntent;
+pub(crate) use task::DownloadIntent;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ClassificationInstallation {

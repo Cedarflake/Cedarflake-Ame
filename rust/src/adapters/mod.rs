@@ -2,7 +2,7 @@ mod classification_feature_cache;
 #[cfg(all(windows, any(feature = "classification-worker", test)))]
 pub(crate) mod classification_image_input;
 #[cfg(any(all(windows, feature = "classification-worker"), test))]
-pub(crate) mod classification_installation;
+mod classification_installation;
 #[cfg(feature = "classification-worker")]
 pub(crate) mod classification_runtime;
 mod classification_vocabulary;
@@ -33,7 +33,7 @@ mod windows_library_change_source;
 pub use classification_feature_cache::SqliteClassificationFeatureCache;
 #[cfg(all(windows, feature = "classification-worker"))]
 pub(crate) use classification_installation::{
-    ClassificationInstallation, ClassificationInstallationStore,
+    ClassificationInstallation, ClassificationInstallationStore, DownloadIntent,
 };
 pub use classification_vocabulary::LocalClassificationVocabulary;
 pub(crate) use durable_local_metadata_inventory::DurableLocalMetadataInventory;

@@ -53,7 +53,7 @@ fn preparation_retains_ownership_until_cancelled_work_returns() {
 
 #[test]
 fn shutdown_preserves_recovered_intent_and_explicit_cancel_retires_it_before_preparation() {
-    use crate::adapters::classification_installation::task::DownloadIntent;
+    use crate::adapters::DownloadIntent;
 
     let directory = tempfile::tempdir().unwrap();
     let settings = directory.path().join("installation.sqlite");

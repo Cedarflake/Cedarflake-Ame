@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::adapters::ClassificationInstallationStore;
-use crate::adapters::classification_installation::task::DownloadIntent;
+use crate::adapters::DownloadIntent;
 use crate::adapters::classification_runtime::installation::PACKAGE_DIRECTORY;
 use crate::domain::ScanError;
 

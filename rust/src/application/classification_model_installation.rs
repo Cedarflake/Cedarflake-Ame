@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::adapters::classification_installation::task::DownloadIntent;
+use crate::adapters::DownloadIntent;
 use crate::adapters::classification_runtime::installation::{
     PACKAGE_DIRECTORY, VerifiedModelInstallation, check_cancelled, prepare, prepare_bundled,
 };
