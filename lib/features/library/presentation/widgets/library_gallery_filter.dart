@@ -7,7 +7,6 @@ import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_models.dart";
 import "../library_duplicate_strings.dart";
 import "library_metadata_filter_editor.dart";
-import "library_smart_album_filter.dart";
 
 enum _FilterChoice { descendants, folderOnly, all, merged, metadata }
 
@@ -23,9 +22,6 @@ class LibraryGalleryFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (query.collection is LibrarySmartAlbumCollection) {
-      return LibrarySmartAlbumFilter(query: query, onChanged: onChanged);
-    }
     return AmePopupMenuButton<_FilterChoice>(
       labels: const [
         LibraryDuplicateStrings.showDescendants,
@@ -53,12 +49,14 @@ class LibraryGalleryFilter extends StatelessWidget {
         _choice(
           _FilterChoice.all,
           LibraryDuplicateStrings.allImages,
-          query.duplicateMode == LibraryGalleryDuplicateMode.all,
+          !query.foldsDuplicates,
+          enabled: !query.requiresMergedDuplicates,
         ),
         _choice(
           _FilterChoice.merged,
           LibraryDuplicateStrings.mergeDuplicates,
-          query.duplicateMode == LibraryGalleryDuplicateMode.merged,
+          query.foldsDuplicates,
+          enabled: !query.requiresMergedDuplicates,
         ),
         const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
         _choice(_FilterChoice.metadata, "筛选条件…", query.metadataFilter.isActive),

@@ -547,6 +547,11 @@ all physical instances or one representative per confirmed exact group appears. 
 exact analysis and incremental maintenance are connected, every image remains visible. Once folding
 is connected, it becomes the initial default while preserving an explicit saved choice.
 
+Library, Favorites, manual albums and smart albums share this menu. Outside a folder, the source
+choices remain visible and disabled. Manual albums, smart albums and organization queues require
+merged groups: their duplicate choices remain visible and disabled, with `合并重复图片` selected.
+Library and Favorites retain their supported duplicate-display choices.
+
 `筛选条件…` opens the shared desktop form for filename extension, file size, width/height,
 capture/created/modified date and camera make/model text. Blank fields impose no condition. Byte and
 dimension limits and both calendar dates are inclusive; missing metadata does not satisfy a

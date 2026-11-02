@@ -147,10 +147,13 @@ class LibraryGalleryQuery {
       sortKey != LibraryGallerySortKey.fileName &&
       sortKey != LibraryGallerySortKey.libraryAdmission;
 
-  bool get foldsDuplicates =>
+  bool get requiresMergedDuplicates =>
       organizationQueue != null ||
       collection is LibraryAlbumCollection ||
-      collection is LibrarySmartAlbumCollection ||
+      collection is LibrarySmartAlbumCollection;
+
+  bool get foldsDuplicates =>
+      requiresMergedDuplicates ||
       duplicateMode == LibraryGalleryDuplicateMode.merged;
 
   LibraryGalleryQuery copyWith({

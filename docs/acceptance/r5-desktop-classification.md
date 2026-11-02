@@ -574,3 +574,18 @@ submitted tooltip repair `0d5801af` passes all 15 applicable jobs in
 [run 41400808080](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41400808080);
 the three conditional signing jobs are skipped. The roadmap retains the measured large-library
 latency as follow-up work after accepting the current performance on 2026-11-02.
+
+## Shared filter menu — 2026-11-02
+
+Smart albums now use the existing gallery Filter menu, including its source, duplicate-display and
+metadata groups. The separate one-entry menu is removed. Fixed-group scopes show Merge duplicates
+selected and disable both duplicate choices; manual albums previously offered All images even
+though their query always remained folded. Library and Favorites keep their supported choices.
+
+The integrated smart-album fixture fails on the missing shared entries before the repair. All six
+affected filter, metadata-editor and smart-album checks pass afterward, including Windows retained
+semantics, disabled actions and metadata apply/cancel/clear. Owned Dart analysis has no warnings.
+The rebuilt isolated Profile client shows matching Library and Screenshot filter layouts, with the
+smart-album duplicate choices disabled and the shared metadata action available. No source, model,
+schema or native query behavior changes. The query model/filter owners contain 437/111 production
+lines and no inline tests; the amended metadata/smart-album fixtures contain 138/331 lines.

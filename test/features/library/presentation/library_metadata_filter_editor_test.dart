@@ -30,6 +30,26 @@ void main() {
         ),
       ),
     );
+    await tester.tap(find.byKey(const Key("library-filter-menu")));
+    await tester.pumpAndSettle();
+    final allImages = find.ancestor(
+      of: find.text("全部图片"),
+      matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+    );
+    expect(tester.widget<PopupMenuItem<Object?>>(allImages).enabled, isFalse);
+    expect(
+      tester
+          .widget<Semantics>(find.byKey(const ValueKey("menu-choice-合并重复图片")))
+          .properties
+          .checked,
+      isTrue,
+    );
+    await tester.tap(allImages);
+    await tester.pumpAndSettle();
+    expect(find.text("合并重复图片"), findsOneWidget);
+    expect(query.foldsDuplicates, isTrue);
+    await tester.tapAt(Offset.zero);
+    await tester.pumpAndSettle();
     await _open(tester);
     await _enter(tester, "extension", ".JPG");
     await _enter(tester, "minimum-bytes", "0.000001");
