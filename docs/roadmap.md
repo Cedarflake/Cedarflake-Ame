@@ -34,7 +34,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
 | R4 | Independent Favorites, flat group-based albums, and durable organization progress | Completed and merged into main on 2026-10-30 |
-| R5 | Metadata, smart albums, and calibrated initial screening | Implemented in PR #45; R5-07 final hosted gate and review |
+| R5 | Metadata, smart albums, and calibrated initial screening | PR #45; model delivery follow-up before R5-07 final gate and review |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run with conflicts and no execution | Planned after R7 |
@@ -90,15 +90,19 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
-R4 is integrated into `main`. R5's implementation and connected functional verification are complete
-on `codex/r5-smart-albums`; the final submitted hosted gate and PR review remain in R5-07.
+R4 is integrated into `main`. R5 continues on `codex/r5-smart-albums`. The 2026-11-02 model-delivery
+follow-up precedes the final submitted hosted gate and PR review in R5-07: finish the compact download
+entry and existing-notification-center progress, then installer-bundled models and authorized download
+recovery across restart. Verify the affected smart-album path on actual media; preserve completed
+base-gallery checks instead of replaying them as the R5 focus.
 [PR #45](https://github.com/Cedarflake/Cedarflake-Ame/pull/45) covers the complete stage rather than
 an individual slice. The [integrated evidence map](acceptance/r5-closeout.md) links each slice to its
 native, desktop, recovery, quality and resource checks. No later product stage is active.
 
 The delivered desktop retains the existing four-choice Filter menu, passive smart-album heading,
-category rows and ordinary gallery/preview actions. Model setup requires explicit download; installed
-analysis runs automatically, including recovery from legacy modes, with cause-aware silent per-image
+category rows and ordinary gallery/preview actions. Installer models activate after verification;
+missing-model downloads require explicit authorization and preserve an unfinished task across restart.
+Installed analysis runs automatically, including recovery from legacy modes, with cause-aware silent per-image
 recovery. Manual classification, category authoring, analysis controls and Settings prompts were
 withdrawn. Preserve legacy records, archive compatibility, R4 organization and source-safety guards.
 

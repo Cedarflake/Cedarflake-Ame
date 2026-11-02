@@ -199,13 +199,19 @@ desktop query without resurrecting retired metadata restrictions from a saved bo
 Evaluate candidate models and runtimes before selecting dependencies. Record exact versions, code
 and weight licenses, redistribution terms, download/storage sizes, artifact integrity, Windows CPU
 support, failure isolation, maintenance, and replacement contracts. A runtime mentioned in planning
-is not an admitted dependency. Model setup and downloads require an explicit user action.
-The normal setup offers the application's admitted model and manages its verified files. Ship the
-compatible inference runtime with the application. Users enable smart albums and authorize any
-required model download; they do not choose model/runtime directories or supply category definitions.
+is not an admitted dependency. The Windows installer includes the admitted model and compatible
+inference runtime, with their licenses and notices. First startup verifies the installed model and
+activates smart albums without a separate download. A distribution without models offers an explicit
+download; users do not choose model/runtime directories or supply category definitions.
 The Settings page has no smart-album section or status prompt. Missing models offer download from
 the smart-album empty state; installed models need no setup prompt. Installation failure uses the
 shared download feedback's retry action without enabling analysis against partial files.
+Keep one download task in the existing notification history. Hiding its bottom presentation leaves
+the operation running and its progress available from the notification button. Persist authorized
+unfinished downloads and resume after restart, reusing verified files and admitted partial bytes.
+Explicit cancellation retires automatic continuation. Range replies and the completed artifact must
+pass the existing pinned identity, length and digest checks before publication; a server without range
+support restarts only the incomplete file. No new consent is inferred merely from missing models.
 
 The selected initial-screening candidate is SigLIP 2 Base/16-224 with an FP16 image encoder and INT8
 text encoder through ONNX. Its [local exploratory comparison](../acceptance/r5-model-evaluation.md)
@@ -235,7 +241,7 @@ completed results. Never hydrate cloud-only files or hold catalog transactions o
 ## Analysis lifecycle
 
 Task admission, model residency, derived results, and retained legacy decisions have separate lifetimes.
-Classification runs automatically after explicit model download and verified setup. The desktop
+Classification runs automatically after verified bundled setup or an explicitly authorized download. The desktop
 offers no pause, continue, stop or disable controls. Queue existing catalog
 content and later changes in bounded persistent windows; eligibility still requires each content
 version's completed exact verification. Initial import and foreground image work retain priority.
@@ -270,7 +276,7 @@ Automatic yielding resumes when its condition clears. The manual-control workflo
 2026-11-02. At startup, an installed legacy paused setup resumes the same run; installed disabled or
 stopped setup activates a new run through the existing guarded configuration transaction. A stopped
 run identity remains retired, compatible evidence and failure budgets remain reusable, and missing
-models never trigger a download. Shutdown/suspend fence dispatch and preserve committed progress;
+models without an unfinished authorized task never trigger a download. Shutdown/suspend fence dispatch and preserve committed progress;
 startup/resume checks source/configuration generations before continuing after foreground readiness.
 An unfinished batch is safely retryable, while committed work is reused. A failed file does not block
 other candidates. Short-lived worker failures retry after 5 seconds and then 30 seconds; three

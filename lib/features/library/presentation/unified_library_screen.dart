@@ -43,6 +43,7 @@ import "library_gallery_query_transition.dart";
 import "library_gallery_title.dart";
 import "library_organization_mode.dart";
 import "library_conflict_notifications.dart";
+import "library_model_installation_notifications.dart";
 import "library_pending_source.dart";
 import "library_review_query_transition.dart";
 import "library_strings.dart";
@@ -288,6 +289,13 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   }
 
   void _handleNotificationAction(AmeNotificationEntry notification) {
+    if (handleLibraryModelInstallationNotification(
+      context,
+      ref,
+      notification,
+    )) {
+      return;
+    }
     if (_conflictNotifications.admit(notification)) {
       unawaited(_showOrganizationConflicts());
       return;

@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../features/library/presentation/unified_library_screen.dart";
+import "../features/library/presentation/library_model_installation_notifications.dart";
 import "../features/library/presentation/widgets/library_analysis_activity.dart";
 import "../features/settings/application/ame_preferences.dart";
 import "presentation/ame_localizations.dart";
@@ -14,6 +15,7 @@ class AmeApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(libraryModelInstallationNotificationsProvider);
     final preferences = ref.watch(amePreferencesControllerProvider);
     return AmeSystemThemeBuilder(
       builder: (context, seedColor) => MaterialApp(

@@ -6,6 +6,7 @@ import "package:flutter_riverpod/legacy.dart";
 enum LibraryModelInstallationStage {
   idle,
   preparing,
+  verifying,
   downloading,
   stopping,
   enabling,
@@ -69,6 +70,7 @@ class LibraryModelInstallation extends ChangeNotifier {
   bool get canCancel =>
       busy &&
       (_stage == LibraryModelInstallationStage.preparing ||
+          _stage == LibraryModelInstallationStage.verifying ||
           _stage == LibraryModelInstallationStage.downloading);
 
   Future<void> start(EnablePreparedLibraryModel enable) {
@@ -99,7 +101,7 @@ class LibraryModelInstallation extends ChangeNotifier {
           _progress = progress;
           _stage = progress.downloading
               ? LibraryModelInstallationStage.downloading
-              : LibraryModelInstallationStage.preparing;
+              : LibraryModelInstallationStage.verifying;
           notifyListeners();
         } on Object catch (error) {
           _poll?.cancel();

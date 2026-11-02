@@ -667,3 +667,35 @@ Dedicated fixtures contain 175 startup, 316 setup, 333 smart-album and 1,209 Set
 the unchanged 744-line session-lifetime fixture supplies retained lifecycle coverage. The former
 216-line settings dialog, 25-line section, 130-line menu and 346-line settings fixture are deleted.
 Hosted verification follows the submitted head.
+
+## Model setup feedback and real-library screening — 2026-11-02
+
+The empty row keeps its text on one line and exposes a framework download icon with the existing
+tooltip. Model preparation publishes one live entry through the existing notification controller.
+The bottom card shows phase, transfer percentage/bytes and the shared progress bar; Hide dismisses
+only that surface. Notification details continue to update and retain guarded Cancel/Retry actions.
+Completion updates the same entry without reopening a hidden bottom surface.
+
+Twenty-one focused setup, notification-controller and detail checks pass, including live updates
+after hiding, cancellation from notification details, verification wording and hidden completion.
+The Profile desktop reused the three verified model artifacts in a fresh disposable profile,
+completed model selection and retained exactly one completed notification in the existing bell menu.
+The download icon and adjacent single line were checked at the ordinary sidebar width. Its first
+local build reused an old font subset; invalidating that owned asset stamp and rebuilding restored
+the glyph without changing the icon library. The test windows closed normally, scratch profiles
+were retired, and Computer Use was reset immediately afterward. Native restart/download persistence
+and installer payload follow-up remain in the roadmap queue.
+
+Separately, a read-only local-primary desktop run used an isolated retained catalog and the admitted
+model, with no seeded predictions. Startup reconciled the snapshot to 63,090 locations / 47,846
+groups. The run produced 471 actual predictions. The illustration smart album populated while
+analysis continued; a selected image stayed visible as its result count advanced from 407 to 423.
+The viewer displayed its read-only category. The baseline catalog digest and 17 sampled source-file
+digests were unchanged; the disposable catalog passed quick-check and foreign-key checks, then was
+removed. This is incremental real-media workflow evidence, not full-library completion or an
+independent accuracy measurement. Prior base-gallery checks were retained without another replay.
+
+The notification adapter contains 132 production lines, the shared notification controller 316 and
+the shared screen 1,896; the screen adds only action delegation. None contains inline tests. The
+setup fixture contains 411 dedicated test lines. Native installation and classifier ownership are
+unchanged by this feedback delivery. Hosted verification follows the submitted commit.

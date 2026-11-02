@@ -1209,8 +1209,9 @@ Category rows open the corresponding derived results.
 Category rows reflect the active application-managed scheme. First use relies on the existing setup
 and empty-state surfaces, without a mandatory category-definition form or a permanent sample-class
 list presented as the available classification capability. The Settings canvas has no smart-album
-section or status-only dialog. Missing-model setup uses a `下载模型` action in the smart-album empty
-row; its confirmation states the download size and starts the existing installation feedback.
+section or status-only dialog. Missing-model setup uses a download icon with the `下载模型` tooltip
+in the smart-album empty row. Keep the adjacent empty-state text on one line; the confirmation states
+the download size and starts the existing installation feedback.
 Restored categories without a local model retain the same download action below their rows.
 Installed models remove that action and add no status explanation. The sidebar heading's trailing
 action remains collapse. Smart albums reuse the ordinary gallery More menu, with no settings,
@@ -1222,6 +1223,11 @@ When expanded without categories, use the same static icon-and-text empty row as
 folder list, with `还没有分类结果`. Hide it when collapsed or when category rows become available;
 keep loading and failure separate. Do not substitute evaluation categories or add a setup paragraph
 to this row.
+Model preparation uses one task in the existing top-right notification history. Its bottom surface
+can be hidden without cancelling the operation; subsequent progress updates keep it hidden. The
+notification details remain live and retain the applicable cancellation or retry action. Downloading
+shows a progress bar, percentage and transferred/total bytes; verification has its own phase label.
+Completion updates the same history entry. The sidebar does not provide a second progress entrypoint.
 Favorites remains independent above the manual albums. This adds no primary workspace, dashboard,
 mobile layout, or competing gallery.
 

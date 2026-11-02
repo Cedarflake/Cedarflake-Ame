@@ -1,5 +1,7 @@
 import "dart:async";
 
+import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
+import "package:cedarflake_ame/app/presentation/ame_notifications.dart";
 import "package:cedarflake_ame/features/library/application/library_classification.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_lifecycle.dart";
@@ -8,7 +10,9 @@ import "package:cedarflake_ame/features/library/application/library_model_instal
 import "package:cedarflake_ame/features/library/domain/library_gallery_collection.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_model_installation_feedback.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_smart_album_navigation.dart";
+import "package:cedarflake_ame/features/library/presentation/library_model_installation_notifications.dart";
 import "package:flutter/material.dart";
+import "package:flutter/rendering.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -39,7 +43,13 @@ void main() {
     addTearDown(fixture.dispose);
     await fixture.open(tester);
     expect(find.text("还没有分类结果"), findsOneWidget);
-    await tester.tap(find.text("下载模型"));
+    expect(
+      tester
+          .renderObject<RenderParagraph>(find.text("还没有分类结果"))
+          .didExceedMaxLines,
+      isFalse,
+    );
+    await tester.tap(find.byTooltip("下载模型"));
     await tester.pumpAndSettle();
     expect(find.textContaining("504 MB"), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
@@ -93,7 +103,65 @@ void main() {
     expect(session.committed, isFalse);
     expect(session.disposed, isTrue);
     expect(fixture.backend.saved, isEmpty);
-    expect(find.text("下载模型"), findsOneWidget);
+    expect(find.byTooltip("下载模型"), findsOneWidget);
+    await fixture.close(tester);
+  });
+
+  testWidgets("hidden download stays live in existing notification history", (
+    tester,
+  ) async {
+    final fixture = _Fixture();
+    addTearDown(fixture.dispose);
+    await fixture.open(tester);
+    await fixture.download(tester);
+    final session = fixture.installer.sessions.single;
+    expect(find.text("50% · 0.0 / 0.0 MB"), findsOneWidget);
+    await tester.tap(find.text("隐藏"));
+    await tester.pump();
+    expect(
+      find.byKey(const Key("classification-installation-progress")),
+      findsNothing,
+    );
+    expect(session.cancelled, isFalse);
+    await tester.tap(find.byKey(const Key("notification-history-button")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("正在下载智能相册模型"));
+    await tester.pumpAndSettle();
+    session.completedBytes = 75;
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text("75% · 0.0 / 0.0 MB"), findsOneWidget);
+    await tester.tap(find.text("取消"));
+    await tester.pump();
+    expect(session.cancelled, isTrue);
+    session.prepared.completeError(StateError("Download cancelled"));
+    await tester.pumpAndSettle();
+    expect(fixture.notifications.history, hasLength(1));
+    expect(fixture.notifications.history.single.title, "已取消启用智能相册");
+    expect(fixture.notifications.pendingIds, isEmpty);
+    expect(fixture.backend.saved, isEmpty);
+    await fixture.close(tester);
+  });
+
+  testWidgets("hidden preparation can finish without reopening feedback", (
+    tester,
+  ) async {
+    final fixture = _Fixture();
+    addTearDown(fixture.dispose);
+    await fixture.open(tester);
+    await fixture.download(tester);
+    final session = fixture.installer.sessions.single;
+    session.downloading = false;
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text("正在校验模型"), findsOneWidget);
+    await tester.tap(find.text("隐藏"));
+    await tester.pump();
+    session.prepared.complete();
+    await tester.pumpAndSettle();
+    expect(fixture.backend.saved, hasLength(1));
+    expect(find.text("已启用智能相册"), findsNothing);
+    expect(fixture.notifications.history.single.title, "已启用智能相册");
+    expect(fixture.notifications.history.single.isActive, isFalse);
+    expect(fixture.notifications.pendingIds, isEmpty);
     await fixture.close(tester);
   });
 
@@ -150,6 +218,7 @@ class _Fixture {
   final installer = _Installation();
   late final installation = LibraryModelInstallation(installer);
   int browseClicks = 0;
+  late AmeNotificationState notifications;
   final reads = LibraryForegroundReads();
   late final lifecycle = LibraryClassificationLifecycle(
     _Inactive(),
@@ -175,32 +244,56 @@ class _Fixture {
         child: MaterialApp(
           home: Scaffold(
             body: Consumer(
-              builder: (context, ref, _) => Stack(
-                children: [
-                  Column(
-                    children: [
-                      SizedBox(
-                        width: 300,
-                        child: LibrarySmartAlbumNavigation(
-                          collection: const LibraryGalleryCollection.library(),
-                          enabled: true,
-                          onSelect: (_) {},
+              builder: (context, ref, _) {
+                ref.watch(libraryModelInstallationNotificationsProvider);
+                notifications = ref.watch(ameNotificationControllerProvider);
+                return Stack(
+                  children: [
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: AmeNotificationHistoryButton(
+                        state: notifications,
+                        onOpened: () => ref
+                            .read(ameNotificationControllerProvider.notifier)
+                            .markAllRead(),
+                        onSelected: (entry) => showAmeNotificationDetails(
+                          context,
+                          entry,
+                          onAction: (observed) =>
+                              handleLibraryModelInstallationNotification(
+                                context,
+                                ref,
+                                observed,
+                              ),
                         ),
                       ),
-                      TextButton(
-                        onPressed: () => browseClicks += 1,
-                        child: const Text("浏览图片"),
-                      ),
-                    ],
-                  ),
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child:
-                        buildLibraryModelInstallationFeedback(context, ref) ??
-                        const SizedBox.shrink(),
-                  ),
-                ],
-              ),
+                    ),
+                    Column(
+                      children: [
+                        SizedBox(
+                          width: 244,
+                          child: LibrarySmartAlbumNavigation(
+                            collection:
+                                const LibraryGalleryCollection.library(),
+                            enabled: true,
+                            onSelect: (_) {},
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => browseClicks += 1,
+                          child: const Text("浏览图片"),
+                        ),
+                      ],
+                    ),
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child:
+                          buildLibraryModelInstallationFeedback(context, ref) ??
+                          const SizedBox.shrink(),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -210,7 +303,7 @@ class _Fixture {
   }
 
   Future<void> download(WidgetTester tester) async {
-    await tester.tap(find.text("下载模型"));
+    await tester.tap(find.byTooltip("下载模型"));
     await tester.pumpAndSettle();
     await tester.tap(find.text("下载并启用"));
     await tester.pump();
@@ -299,12 +392,14 @@ class _InstallationSession implements LibraryModelInstallationSession {
   bool committed = false;
   bool cancelled = false;
   bool disposed = false;
+  bool downloading = true;
+  int completedBytes = 50;
   @override
   Future<void> prepare() => prepared.future;
   @override
-  LibraryModelDownloadProgress progress() => const LibraryModelDownloadProgress(
-    downloading: true,
-    completedBytes: 50,
+  LibraryModelDownloadProgress progress() => LibraryModelDownloadProgress(
+    downloading: downloading,
+    completedBytes: completedBytes,
     totalBytes: 100,
   );
   @override

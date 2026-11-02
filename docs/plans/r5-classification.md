@@ -207,6 +207,10 @@ its former manual-review scope was withdrawn on 2026-11-01.
    analysis settings and manual run controls from gallery menus and the Settings page. Missing models
    offer explicit download in the smart-album empty state; installed analysis runs automatically
    without a status-only setup prompt.
+7. Complete the 2026-11-02 model-delivery follow-up: compact single-line empty row and download icon;
+   one live task in the existing notification center with hide/cancel/retry; bundled verified models
+   in the Windows installer; durable authorized downloads with safe range continuation after restart.
+   Retain the current model identity, notices, guarded publication and bounded worker lifecycle.
 
 Exit: browsing, automatic recovery, and manual-album/Favorite workflows remain connected, with no manual
 classification flow. The sketch retains layout intent; its superseded review controls are removed.

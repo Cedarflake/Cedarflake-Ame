@@ -85,13 +85,26 @@ class _LibrarySmartAlbumNavigationState
                 ListTile(
                   key: const Key("library-sidebar-smart-empty"),
                   leading: const Icon(Symbols.photo_album_rounded),
-                  title: const Text("还没有分类结果"),
+                  minLeadingWidth: 24,
+                  horizontalTitleGap: 12,
+                  title: const Text(
+                    "还没有分类结果",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   trailing: value?.installationSelected == false
-                      ? TextButton(
+                      ? IconButton(
+                          tooltip: "下载模型",
+                          style: IconButton.styleFrom(
+                            fixedSize: const Size.square(36),
+                            iconSize: 20,
+                            padding: const EdgeInsets.all(8),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           onPressed: canInstall
                               ? () => showLibraryModelSetup(context, ref)
                               : null,
-                          child: const Text("下载模型"),
+                          icon: const Icon(Symbols.download_rounded),
                         )
                       : null,
                 ),
