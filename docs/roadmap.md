@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-03
+Last planning update: 2026-11-04
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -71,7 +71,7 @@ the [repository layout](development/repository-layout.md) owns placement. The
 
 | Order | Remaining outcome |
 | --- | --- |
-| O7 | Scan/preview and continuity conformance; final exception audit and handover |
+| O7 | Scan/preview and continuity conformance; dependency audit, test consolidation and real-library client verification |
 
 New and materially changed modules follow the target. Do not replace the fixed legacy inventory
 with a fresh baseline; retire each exception with its owning migration. Preserve established scan,

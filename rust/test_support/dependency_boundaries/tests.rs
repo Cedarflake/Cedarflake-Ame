@@ -228,3 +228,98 @@ fn domain_ports_and_bridge_accept_only_their_direction() {
 fn included_code_cannot_hide_unparsed_dependencies() {
     collect_dependencies(&fixture(r#"mod application { include!("unparsed.rs"); }"#));
 }
+
+#[test]
+fn adapters_can_implement_ports_and_use_domain_rules_and_external_engines() {
+    let modules = fixture(
+        r#"
+        mod domain { pub fn validate() {} }
+        mod ports { pub trait Repository { fn write(&self); } }
+        mod adapters {
+            struct Database { connection: rusqlite::Connection }
+            impl crate::ports::Repository for Database {
+                fn write(&self) { crate::domain::validate(); }
+            }
+        }
+    "#,
+    );
+    assert!(collect_dependencies(&modules).is_empty());
+}
+
+#[test]
+fn adapters_cannot_reach_application_policy_through_aliases_or_reexports() {
+    let modules = fixture(
+        r#"
+        mod application { pub fn validate() {} }
+        mod adapters {
+            mod imports { pub use crate::application::validate as shared; }
+            mod database { use super::imports::shared as check; fn write() { check(); } }
+        }
+    "#,
+    );
+    let dependencies = collect_dependencies(&modules);
+    assert_eq!(dependencies.len(), 2);
+    assert!(dependencies.iter().all(|dependency| {
+        dependency.target == "crate::application::validate" && dependency.rule == "outward-layer"
+    }));
+}
+
+#[test]
+fn conditional_adapters_cannot_depend_on_application_or_bridge_entrypoints() {
+    let modules = fixture(
+        r#"
+        mod application { pub fn run() {} }
+        mod api { pub fn run() {} }
+        mod adapters {
+            #[cfg(test)] fn helper() { crate::application::run(); }
+            #[cfg(any(test, windows))] fn native() { crate::application::run(); }
+            fn bridge() { crate::api::run(); }
+            fn generated() -> crate::frb_generated::StreamSink<u32> { todo!() }
+        }
+    "#,
+    );
+    let dependencies = collect_dependencies(&modules);
+    assert_eq!(dependencies.len(), 3);
+    assert!(
+        dependencies
+            .iter()
+            .all(|dependency| dependency.rule == "outward-layer")
+    );
+    assert!(
+        dependencies
+            .iter()
+            .all(|dependency| !dependency.symbol.ends_with("::helper"))
+    );
+}
+
+#[test]
+fn production_loading_resolves_reverse_dependencies_through_root_facades() {
+    let repository = tempfile::tempdir().unwrap();
+    let source = repository.path().join("rust/src");
+    std::fs::create_dir_all(&source).unwrap();
+    for (file, content) in [
+        (
+            "lib.rs",
+            "mod application; mod adapters; mod classification; mod frb_generated;",
+        ),
+        ("application.rs", "pub fn validate() {}"),
+        (
+            "classification.rs",
+            "pub use crate::application::validate as shared;",
+        ),
+        (
+            "adapters.rs",
+            "fn write() { crate::classification::shared(); }",
+        ),
+    ] {
+        std::fs::write(source.join(file), content).unwrap();
+    }
+    let modules = super::dependency_boundaries::load_modules(repository.path());
+    assert!(modules.contains_key("crate::classification"));
+    let dependencies = collect_dependencies(&modules);
+    assert_eq!(dependencies.len(), 1);
+    let dependency = dependencies.first().unwrap();
+    assert_eq!(dependency.symbol, "crate::adapters::write");
+    assert_eq!(dependency.target, "crate::application::validate");
+    assert_eq!(dependency.rule, "outward-layer");
+}

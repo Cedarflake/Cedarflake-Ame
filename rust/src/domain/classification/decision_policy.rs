@@ -1,4 +1,4 @@
-use crate::domain::classification::{
+use super::{
     ClassificationAction, ClassificationChange, ClassificationError, ClassificationObservation,
     HumanCategoryChoice, HumanClassification, HumanDecisionOrigin, Taxonomy,
 };

@@ -607,3 +607,29 @@ viewer-guard and 20 dependency cases. Real fixtures retain source bytes, block f
 while held, recover capacity under the current accounting owner and reject post-acquisition catalog
 changes. Assertions are unchanged, builds have no warnings and leased scratch cleanup succeeds.
 The roster has 175 legacy entries and 54 exact technical edges; the frozen baseline is unchanged.
+
+## O7 Classification rules and reverse dependencies — 2026-11-04
+
+The five SQLite-to-application dependencies present at `3f0a4567` now consume domain-owned decision,
+merge and retirement rules. Transaction-local revalidation, cancellation, replay and publication
+remain in their existing owners. Application preparation retains repository and vocabulary access;
+the public classification facade retains its signature. All 92 affected original function bodies,
+including tests, compare identically after relocation and the eligibility-path substitution.
+
+All 98 focused checks pass: 26 domain, four contextual-selection, 44 SQLite workflow and 24 dependency
+cases. They retain stale-plan rejection, human-intent protection, cancellation, rollback, undo and
+restart/replay. A redundant unused helper found during the first build was removed; final library
+and test builds emit no warnings, and leased scratch cleanup succeeds. No source-library read,
+schema change, model download or generated bridge change is included.
+
+The gate now checks adapters as dependency sources and loads handwritten root facades for alias
+resolution. Four new cases cover admitted engine/port/domain dependencies, forbidden application/API
+and bridge dependencies, conditional code and a root-facade bypass. A redundant combination of
+already-covered forward and reverse edges was removed. Both frozen inventories remain unchanged,
+with 175 active legacy entries and 54 retained technical edges. Broker direction and complete
+cross-layer cycle coverage remain in O7.
+
+Decision and merge-rule owners have 104 and 210 production lines plus three test declarations each;
+their dedicated tests have 514 and 169 lines, with one 130-line shared fixture. Dependency collection
+has 250 lines, the extracted rule owner 68 and parser tests 325. The final client/real-library check
+remains required after the complete migration under the execution plan.

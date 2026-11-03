@@ -123,7 +123,10 @@ scroll/selection, viewer entry/return, focus and shared feedback retain their ac
 
 ### O7 Repository conformance and handover
 
-Verify the scoped Rust domain/port/API boundaries and the exact production-composition roster.
+Verify Rust domain, ports, application, adapters and API boundaries, including broker/platform
+entrypoints and the exact production-composition roster. Resolve aliases and re-exports before
+checking dependency direction and cross-layer cycles; the frozen inventory is not the complete
+set of paths the final gate must inspect.
 Repair a demonstrated ownership violation in its narrow owner, with its regression, rather than
 bulk moving native code. Keep generated bridge and canonical tool entrypoint paths stable.
 
@@ -131,9 +134,11 @@ Resolve the native inventory in independently reversible groups:
 
 1. Duplicate source-state probing and duplicate/organization resource composition.
 2. Catalog-session, storage and bounded-read boundaries.
-3. Classification execution, configuration and authorized installation boundaries.
+3. Classification execution, configuration, authorized installation and shared decision rules;
+   preserve transaction-local validation when moving pure rules into domain.
 4. Scan admission/publication and preview/source capabilities.
-5. Synchronization, journal and recovery integration, followed by the final exception audit.
+5. Synchronization, journal and recovery integration, including broker protocol translation behind
+   Ame contracts, followed by the final exception audit.
 
 Each group distinguishes resource factories from use-case policy, establishes only the missing port
 or owner, and retires its exact migration IDs. Retained composition records require a scoped
@@ -144,6 +149,13 @@ Remove migration-only exports, duplicate bindings and legacy exceptions for comp
 tests with their owners and update live documentation/tool links; historical evidence retains its
 revision and is not rewritten as a current path map. Check that new feature examples can follow the
 target without importing implementation details or reviving a retired entrypoint.
+
+Consolidate low-value tests before handover. Remove obsolete cases, assertions coupled only to
+implementation structure and duplicate coverage without a distinct behavior or failure boundary.
+Merge overlapping cases under their owning invariant. Identify the remaining coverage before each
+removal, retain independently meaningful source-safety, cancellation, concurrency, transaction and
+recovery cases, and verify the affected suite. Record the coverage rationale and actual reductions
+in acceptance evidence; a lower test count alone is not the exit condition.
 
 Exit: all target boundaries are covered, remaining exceptions are explicitly accepted technical
 exceptions rather than unfinished migration, and applicable submitted-commit CI and client checks
@@ -164,6 +176,13 @@ campaign when the relevant inputs are unchanged.
 Evidence must cover no duplicate runtime construction, stable Provider scope/disposal, unchanged
 port results/error conversion, preserved cancellation/publication authority and the affected real
 interactions. Startup failure and incomplete bindings are part of composition verification.
+
+After the complete migration, launch the resulting desktop client and check regressions using the
+configured real library with isolated derived storage. Cover startup and retained browsing, queries,
+previews, full-resolution viewing and the affected background workflows. Select bounded checks from
+the existing client/source-safety procedures; preserve original media and catalogs, never hydrate
+placeholders, and reuse installed resources. Record the actual interactions and failures in the
+acceptance record before closing O7.
 
 Revert an owned failing slice with an ordinary commit if required. Revert its bindings, imports,
 tests and live documentation together; preserve unrelated work, catalogs, user decisions and media.

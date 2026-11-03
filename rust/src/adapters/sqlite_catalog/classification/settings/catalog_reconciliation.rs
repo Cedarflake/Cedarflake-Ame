@@ -3,9 +3,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use rusqlite::params;
 use serde_json::{Value, json};
 
-use crate::application::classification_discovery::catalog_retirements;
 use crate::domain::ScanError;
 use crate::domain::classification::maintenance::CategoryCatalogReconciliationPlan;
+use crate::domain::classification::maintenance::catalog_retirements;
 use crate::domain::classification::work::ClassificationDispatchMode;
 use crate::domain::classification_configuration::ClassificationConfigurationSnapshot;
 use crate::ports::classification_configuration::CategoryCatalogRepository;

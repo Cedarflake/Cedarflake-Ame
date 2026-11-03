@@ -1,5 +1,6 @@
 mod names;
 pub(crate) mod references;
+mod rules;
 pub(crate) mod sources;
 
 pub use references::collect_dependencies;

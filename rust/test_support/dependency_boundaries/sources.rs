@@ -120,12 +120,7 @@ impl Loader<'_> {
                 continue;
             }
             let namespace = format!("{}::{}", owner.namespace, module.ident);
-            if owner.namespace == "crate"
-                && !matches!(
-                    module.ident.to_string().as_str(),
-                    "domain" | "ports" | "application" | "api" | "adapters"
-                )
-            {
+            if owner.namespace == "crate" && module.ident == "frb_generated" {
                 continue;
             }
             let nested_directory = directory.join(module.ident.to_string());

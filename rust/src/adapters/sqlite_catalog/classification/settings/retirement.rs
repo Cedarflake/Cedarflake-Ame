@@ -3,8 +3,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use rusqlite::{Connection, params};
 
-use crate::application::classification_discovery::equivalent_retirements;
 use crate::domain::ScanError;
+use crate::domain::classification::maintenance::equivalent_retirements;
 use crate::domain::classification::maintenance::{
     CategoryRetirementPlan, CategoryRetirementSnapshot,
 };

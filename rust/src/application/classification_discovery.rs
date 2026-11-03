@@ -38,7 +38,6 @@ pub use admission::{
     CategoryAdmissionDisposition, CategoryAdmissionPolicy, CategoryMemberEvidence, MemberAdmission,
     assess_category_candidates,
 };
-pub(crate) use catalog_reconciliation::catalog_retirements;
 pub use catalog_reconciliation::prepare_category_catalog_reconciliation;
 pub use cohorts::{
     DeferredDiscoveryCohort, DiscoveryCohortBatch, DiscoveryCohortDeferral, DiscoveryCohortPolicy,
@@ -57,7 +56,6 @@ pub use maintenance::{
     CategoryExpansionAssessment, CategoryExpansionBudget, CategoryExpansionRequest,
     prepare_category_expansion,
 };
-pub(crate) use merging::validate_category_merge;
 pub use merging::{prepare_category_merge, prepare_purpose_category_merge};
 pub use nomination::{
     ConceptNomination, ConceptNominationRequest, nominate_classification_contexts,
@@ -68,7 +66,6 @@ pub use preparation::{
 };
 pub use ranking::{ConceptMatch, DiscoveryCandidates};
 pub use reduction::prepare_category_reduction;
-pub(crate) use retirement::equivalent_retirements;
 pub use retirement::prepare_equivalent_category_retirement;
 pub use sampling::{DiscoverySampleCursor, DiscoverySampleWindow, read_discovery_samples};
 pub use scheme::{

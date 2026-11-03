@@ -1,3 +1,4 @@
+mod decision_policy;
 mod decisions;
 pub mod discovery;
 mod evidence;
@@ -10,6 +11,7 @@ mod setup;
 mod taxonomy;
 pub mod work;
 
+pub use decision_policy::plan_classification_change;
 pub use decisions::{
     ClassificationAction, ClassificationChange, ClassificationFieldAuthority,
     ClassificationObservation, ClassificationReview, ClassificationSubject, ClassificationTarget,

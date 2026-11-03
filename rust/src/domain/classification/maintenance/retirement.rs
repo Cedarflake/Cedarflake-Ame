@@ -1,6 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::atomic::AtomicBool;
 
-use super::ManagedCategoryOrigin;
+use crate::domain::ScanError;
+
+use super::{ManagedCategoryOrigin, check_cancelled};
 use crate::domain::classification::{CategoryDefinition, CategoryId, ModelCompatibility};
 use crate::domain::classification_configuration::{
     ClassificationConfigurationChange, ClassificationConfigurationSnapshot,
@@ -49,4 +52,57 @@ impl CategoryRetirementPlan {
     pub fn configuration(&self) -> &ClassificationConfigurationChange {
         &self.configuration
     }
+}
+
+pub(crate) fn equivalent_retirements(
+    snapshot: &CategoryRetirementSnapshot,
+    cancelled: &AtomicBool,
+) -> Result<Vec<EquivalentCategoryRetirement>, ScanError> {
+    let rules = snapshot
+        .configuration
+        .catalog
+        .taxonomy
+        .as_ref()
+        .ok_or_else(changed)?;
+    let mut groups: BTreeMap<_, Vec<&CategoryDefinition>> = BTreeMap::new();
+    for category in rules.categories() {
+        check_cancelled(cancelled)?;
+        let purpose = snapshot
+            .origins
+            .get(category.id())
+            .and_then(|origin| origin.purpose.as_ref());
+        groups
+            .entry((purpose, category.descriptions()))
+            .or_default()
+            .push(category);
+    }
+    let mut retirements = Vec::new();
+    for group in groups.values() {
+        check_cancelled(cancelled)?;
+        let Some(retained) = group
+            .iter()
+            .min_by_key(|category| (!snapshot.protects(category), category.id()))
+        else {
+            continue;
+        };
+        for category in group {
+            if category.id() == retained.id() || snapshot.protects(category) {
+                continue;
+            }
+            retirements.push(EquivalentCategoryRetirement {
+                category_id: category.id().clone(),
+                retained_id: retained.id().clone(),
+            });
+        }
+    }
+    retirements.sort_by(|left, right| left.category_id.cmp(&right.category_id));
+    retirements.truncate(64);
+    Ok(retirements)
+}
+
+fn changed() -> ScanError {
+    ScanError::new(
+        "classification_changed",
+        "The category configuration or maintenance authority changed",
+    )
 }

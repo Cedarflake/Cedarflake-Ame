@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
+use std::sync::atomic::AtomicBool;
 
-use super::CategoryRetirementSnapshot;
+use super::{CategoryRetirementSnapshot, check_cancelled};
 use crate::domain::ScanError;
 use crate::domain::classification::{CategoryId, ClassificationRevision};
 use crate::domain::classification_configuration::ClassificationConfigurationChange;
@@ -40,4 +41,21 @@ impl CategoryCatalogReconciliationPlan {
     pub fn retired(&self) -> &BTreeSet<CategoryId> {
         &self.retired
     }
+}
+
+pub(crate) fn catalog_retirements(
+    snapshot: &CategoryRetirementSnapshot,
+    catalog: &ManagedCategoryCatalog,
+    cancelled: &AtomicBool,
+) -> Result<BTreeSet<CategoryId>, ScanError> {
+    let mut retired = BTreeSet::new();
+    if let Some(rules) = &snapshot.configuration.catalog.taxonomy {
+        for category in rules.categories() {
+            check_cancelled(cancelled)?;
+            if !catalog.categories.contains(category.id()) && !snapshot.protects(category) {
+                retired.insert(category.id().clone());
+            }
+        }
+    }
+    Ok(retired)
 }

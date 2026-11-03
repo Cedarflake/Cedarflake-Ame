@@ -1,13 +1,12 @@
-use std::collections::BTreeSet;
 use std::sync::atomic::AtomicBool;
 
 use crate::domain::ScanError;
 use crate::domain::classification::maintenance::{
-    CategoryCatalogReconciliationPlan, CategoryRetirementSnapshot, ManagedCategoryCatalog,
+    CategoryCatalogReconciliationPlan, ManagedCategoryCatalog, catalog_retirements,
 };
 use crate::domain::classification::work::ClassificationDispatchMode;
 use crate::domain::classification::{
-    CategoryId, ClassificationAnalysisSetup, ClassificationRecordId, ClassificationRun, Taxonomy,
+    ClassificationAnalysisSetup, ClassificationRecordId, ClassificationRun, Taxonomy,
 };
 use crate::domain::classification_configuration::{
     ClassificationConfigurationAction, ClassificationConfigurationChange,
@@ -63,23 +62,6 @@ pub fn prepare_category_catalog_reconciliation(
         configuration,
         retired,
     }))
-}
-
-pub(crate) fn catalog_retirements(
-    snapshot: &CategoryRetirementSnapshot,
-    catalog: &ManagedCategoryCatalog,
-    cancelled: &AtomicBool,
-) -> Result<BTreeSet<CategoryId>, ScanError> {
-    let mut retired = BTreeSet::new();
-    if let Some(rules) = &snapshot.configuration.catalog.taxonomy {
-        for category in rules.categories() {
-            check_cancelled(cancelled)?;
-            if !catalog.categories.contains(category.id()) && !snapshot.protects(category) {
-                retired.insert(category.id().clone());
-            }
-        }
-    }
-    Ok(retired)
 }
 
 fn changed() -> ScanError {

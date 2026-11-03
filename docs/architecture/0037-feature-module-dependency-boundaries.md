@@ -161,6 +161,11 @@ Retain the existing domain, ports, application, adapters and bridge API modules.
 port signatures expose Ame contracts. Business use cases consume ports; adapters own engine calls,
 SQL and persistence implementation. Bridge APIs translate requests/results into application calls.
 
+Pure rules shared by use cases and persistence validation belong to domain. Adapters re-evaluate
+those rules against transaction-local state before committing; they cannot import application
+orchestration or bridge entrypoints to obtain them. Moving a rule does not move its transaction,
+stale-state check or cancellation boundary.
+
 Production factories may construct concrete adapters in explicitly identified composition functions
 or runtime hosts, including the catalog-session boundary. Such admission is scoped to named owners,
 not every file under `application`. Factories own construction and retirement, while use cases retain

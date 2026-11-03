@@ -1,10 +1,8 @@
 use std::sync::{Arc, atomic::AtomicBool};
 
 use crate::domain::ScanError;
-use crate::domain::classification::maintenance::{
-    CategoryCoverageSummary, CategoryMergePlan, CategoryMergeSnapshot, PurposeCategoryMerge,
-};
-use crate::domain::classification::work::ClassificationDispatchMode;
+use crate::domain::classification::maintenance::merging_rules::select_purpose_category_merge;
+use crate::domain::classification::maintenance::{CategoryCoverageSummary, CategoryMergePlan};
 use crate::domain::classification::{
     ClassificationAnalysisSetup, ClassificationRecordId, ClassificationRun, Taxonomy,
 };
@@ -16,8 +14,6 @@ use crate::ports::classification_configuration::CategoryMergeRepository;
 use super::{NamingContextCatalog, check_cancelled};
 
 mod contexts;
-mod eligibility;
-pub(crate) use contexts::validate_category_merge;
 
 pub fn prepare_purpose_category_merge(
     operation_id: ClassificationRecordId,
@@ -85,33 +81,6 @@ pub fn prepare_category_merge(
         configuration,
         merged,
     }))
-}
-
-pub(crate) fn select_purpose_category_merge(
-    snapshot: &CategoryMergeSnapshot,
-    coverage: &CategoryCoverageSummary,
-    cancelled: &AtomicBool,
-) -> Result<Option<PurposeCategoryMerge>, ScanError> {
-    for category in eligibility::sparse_categories(snapshot, coverage, cancelled)? {
-        check_cancelled(cancelled)?;
-        let basis = &snapshot.bases[&category];
-        let support = &coverage.categories[&category];
-        if support.retained_members.iter().any(|member| {
-            member
-                .alternative
-                .as_ref()
-                .is_none_or(|alternative| &alternative.category_id != basis.naming.category())
-        }) {
-            continue;
-        }
-        return Ok(Some(PurposeCategoryMerge {
-            category_id: category,
-            retained_id: basis.naming.category().clone(),
-            context: None,
-        }));
-    }
-    check_cancelled(cancelled)?;
-    Ok(None)
 }
 
 fn changed() -> ScanError {
