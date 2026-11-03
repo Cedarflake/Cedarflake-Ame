@@ -1,6 +1,6 @@
 import "dart:async";
 
-import "package:cedarflake_ame/features/library/application/library_classification_review.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_classification_review.dart";
 import "package:cedarflake_ame/features/library/domain/library_classification_review.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 

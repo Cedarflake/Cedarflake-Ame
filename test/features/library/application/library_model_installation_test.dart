@@ -1,6 +1,8 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_model_installation.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_model_installation.dart";
+import "package:cedarflake_ame/features/library/domain/library_model_installation.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {

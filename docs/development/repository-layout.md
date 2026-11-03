@@ -121,6 +121,12 @@ task wrappers and event conversion live beside their native adapters. Sidebar mo
 values live in domain; optimistic ordering remains with its existing application owner. Settings
 uses the explicit library controller and read contracts documented in ADR 0037.
 
+[`library_classification_bindings.dart`](../../lib/app/bootstrap/library_classification_bindings.dart)
+selects classification and model-installation ports and composes their existing application owners.
+Configuration and progress values live in domain; native calls and error translation live in
+`adapters/rust`. The [lifetime contract](../architecture/workflow-ownership/dart-presentation-and-composition.md#classification-composition)
+owns startup, shutdown and required-binding behavior.
+
 Tests mirror their resulting source area. Keep an integration workflow at its canonical entrypoint
 while moving only owned private support. Temporary compatibility exports belong to the migrating
 slice and are removed before its closure; do not create a permanent parallel directory layout.

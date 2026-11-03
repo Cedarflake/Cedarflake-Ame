@@ -6,32 +6,26 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "app/ame_app.dart";
 import "app/bootstrap/ame_bootstrap_failure.dart";
 import "app/bootstrap/ame_provider_assembly.dart";
+import "app/bootstrap/ame_startup_orchestrator.dart";
+import "app/bootstrap/library_classification_bindings.dart";
+import "app/bootstrap/library_duplicate_bindings.dart";
+import "app/bootstrap/library_organization_bindings.dart";
 import "app/bootstrap/library_platform_bindings.dart";
 import "app/bootstrap/library_read_bindings.dart";
 import "app/bootstrap/library_scan_bindings.dart";
-import "app/bootstrap/library_duplicate_bindings.dart";
-import "app/bootstrap/library_organization_bindings.dart";
+import "app/bootstrap/library_synchronization_bindings.dart";
+import "app/bootstrap/library_synchronization_lifecycle_owner.dart";
+import "app/bootstrap/rust_library_loader.dart";
 import "app/bootstrap/settings_bindings.dart";
 import "app/bootstrap/storage_bindings.dart";
-import "app/bootstrap/ame_startup_orchestrator.dart";
-import "app/bootstrap/library_synchronization_lifecycle_owner.dart";
-import "app/bootstrap/library_synchronization_bindings.dart";
-import "app/bootstrap/rust_library_loader.dart";
-import "app/window/ame_window_actions.dart";
 import "app/window/ame_analysis_environment.dart";
 import "app/window/ame_shutdown_coordinator.dart";
+import "app/window/ame_window_actions.dart";
 import "app/window/window_manager_actions.dart";
 import "features/library/application/library_catalog.dart";
-import "features/library/adapters/rust_library_classification.dart";
-import "features/library/adapters/rust_library_classification_configuration.dart";
-import "features/library/adapters/rust_library_model_installation.dart";
-import "features/library/application/library_classification_configuration.dart";
-import "features/library/application/library_automatic_classification.dart";
 import "features/library/application/library_classification_lifecycle.dart";
 import "features/library/application/library_controller.dart";
 import "features/library/application/library_foreground_reads.dart";
-import "features/library/application/library_model_installation.dart";
-import "features/library/application/library_model_activation.dart";
 import "features/library/application/library_scan_shutdown.dart";
 import "features/library/domain/library_models.dart";
 import "features/library/domain/library_state.dart";
@@ -84,13 +78,11 @@ Future<void> main() async {
           foregroundReads: libraryForegroundReads,
         );
         shutdownCoordinator.register(exactAnalysisBindings.close);
-        final classificationOwner = LibraryClassificationLifecycle(
-          const LibraryAutomaticClassification(
-            RustLibraryClassification(),
-            RustLibraryClassificationConfiguration(),
-          ),
+        final classificationBindings = LibraryClassificationBindings(
+          services: const LibraryClassificationServices.production(),
           foregroundReads: libraryForegroundReads,
         );
+        final classificationOwner = classificationBindings.lifecycle;
         classificationLifecycle = classificationOwner;
         shutdownCoordinator.register(classificationOwner.close);
         final classificationEnvironment = AmeAnalysisEnvironment(
@@ -100,17 +92,11 @@ Future<void> main() async {
         );
         shutdownCoordinator.register(classificationEnvironment.dispose);
         unawaited(classificationEnvironment.start());
-        final classificationConfiguration = LibraryClassificationConfiguration(
-          const RustLibraryClassificationConfiguration(),
-          classificationOwner,
+        shutdownCoordinator.register(
+          classificationBindings.modelInstallation.close,
         );
-        final modelInstallation = LibraryModelInstallation(
-          const RustLibraryModelInstallation(),
-        );
-        shutdownCoordinator.register(modelInstallation.close);
-        recoverModelInstallation = () => modelInstallation.recover(
-          activateLibraryModel(classificationConfiguration),
-        );
+        recoverModelInstallation =
+            classificationBindings.recoverModelInstallation;
         final container = providerAssembly.assemble(
           requirements: [
             ...libraryPlatformRequirements,
@@ -121,6 +107,7 @@ Future<void> main() async {
             ...libraryDuplicateRequirements,
             ...libraryExactAnalysisRequirements,
             ...libraryOrganizationRequirements,
+            ...libraryClassificationRequirements,
             ...librarySynchronizationRequirements,
           ],
           overrides: [
@@ -139,15 +126,7 @@ Future<void> main() async {
             ...exactAnalysisBindings.overrides,
             ...libraryOrganizationBindings(),
             ...synchronizationBindings.overrides,
-            libraryModelInstallationProvider.overrideWith(
-              (ref) => modelInstallation,
-            ),
-            libraryClassificationConfigurationProvider.overrideWithValue(
-              classificationConfiguration,
-            ),
-            libraryClassificationLifecycleProvider.overrideWith(
-              (ref) => classificationOwner,
-            ),
+            ...classificationBindings.overrides,
             ameWindowActionsProvider.overrideWithValue(windowActions),
             libraryScanShutdownCoordinatorProvider.overrideWithValue(
               scanShutdownCoordinator,

@@ -52,13 +52,13 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-Continue [project organization](#project-organization-after-r5) from O5.3. This maintenance runs on
+Continue [project organization](#project-organization-after-r5) from O6. This maintenance runs on
 the authorized `codex/project-organization` branch before R6.
 PR metadata remains fixed by user direction.
 
 The [execution plan](plans/project-organization.md) owns implementation slices and rollback units;
 its [evidence](acceptance/project-organization.md) records completed checks and failures.
-O1–O4, O5.1 and O5.2 are delivered. O5.3 has local work in progress and is not complete.
+O1–O5 are delivered; O6 is next. Completed slice evidence remains in the linked acceptance record.
 No model replacement, new product feature or broader performance campaign is part of this queue.
 
 ## Project organization after R5
@@ -69,7 +69,6 @@ the [repository layout](development/repository-layout.md) owns placement. The
 
 | Order | Remaining outcome |
 | --- | --- |
-| O5.3 | Classification, model-installation and automatic-lifecycle ports and production bindings |
 | O6 | Presentation pages and capability placement, preserving interaction ownership |
 | O7 | Scoped Rust conformance, remaining exception resolution and handover |
 

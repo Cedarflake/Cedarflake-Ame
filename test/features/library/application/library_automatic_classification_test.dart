@@ -1,6 +1,7 @@
 import "package:cedarflake_ame/features/library/application/library_automatic_classification.dart";
-import "package:cedarflake_ame/features/library/application/library_classification.dart";
-import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_classification.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_classification_configuration.dart";
+import "package:cedarflake_ame/features/library/domain/library_classification_configuration.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {

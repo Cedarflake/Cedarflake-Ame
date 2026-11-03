@@ -1,8 +1,8 @@
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
-import "package:cedarflake_ame/features/library/application/library_classification.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_lifecycle.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_foreground_reads.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_classification.dart";
 import "package:cedarflake_ame/features/library/presentation/library_classification_notifications.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_analysis_activity.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_bottom_feedback.dart";
@@ -10,9 +10,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../support/library_organization_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
+import "../support/library_organization_fixture.dart";
 
 void main() {
   testWidgets(

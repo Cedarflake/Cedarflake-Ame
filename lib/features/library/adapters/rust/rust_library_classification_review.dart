@@ -1,10 +1,10 @@
-import "../../../src/rust/api/classification_review.dart" as api;
-import "../../../src/rust/domain.dart" as rust;
-import "../../../src/rust/domain/classification_selection.dart" as dto;
-import "../../../src/rust/domain/organization.dart" as organization;
-import "../application/library_classification_review.dart";
-import "../domain/library_classification_review.dart";
-import "../domain/library_organization.dart";
+import "../../../../src/rust/api/classification_review.dart" as api;
+import "../../../../src/rust/domain/classification_selection.dart" as dto;
+import "../../../../src/rust/domain/organization.dart" as organization;
+import "../../application/ports/library_classification_review.dart";
+import "../../domain/library_classification_review.dart";
+import "../../domain/library_organization.dart";
+import "library_classification_failure.dart";
 
 class RustLibraryClassificationReview
     implements LibraryClassificationReviewService {
@@ -13,7 +13,7 @@ class RustLibraryClassificationReview
   @override
   Future<List<LibraryClassificationItem>> loadItems(
     List<LibraryOrganizationTarget> targets,
-  ) => _call(() async {
+  ) => invokeClassificationBridge(() async {
     final values = await api.loadClassificationItems(
       selections: [
         for (final target in targets)
@@ -31,7 +31,7 @@ class RustLibraryClassificationReview
   Future<Map<String, LibraryClassificationReviewReason>> annotations(
     BigInt revision,
     List<LibraryOrganizationTarget> targets,
-  ) => _call(() async {
+  ) => invokeClassificationBridge(() async {
     final values = await api.loadClassificationAnnotations(
       catalogRevision: revision,
       selections: [
@@ -47,14 +47,6 @@ class RustLibraryClassificationReview
       for (final value in values) value.locationId: _reason(value.reason),
     };
   });
-}
-
-Future<T> _call<T>(Future<T> Function() operation) async {
-  try {
-    return await operation();
-  } on rust.ScanError catch (error) {
-    throw LibraryClassificationFailure(error.code, error.message);
-  }
 }
 
 LibraryClassificationItem _item(dto.ClassificationItemState value) =>

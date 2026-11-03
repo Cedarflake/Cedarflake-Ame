@@ -1,9 +1,9 @@
 import "dart:async";
 
-import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_review.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_settings.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/domain/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/domain/library_classification_review.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_classification.dart";
@@ -12,12 +12,11 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../../../support/semantics/retained_semantics_update_harness.dart";
+import "../../../support/application_test_bindings.dart";
 import "../../../support/duplicate_review_fixtures.dart";
+import "../../../support/semantics/retained_semantics_update_harness.dart";
 import "../support/library_classification_review_fixture.dart";
 import "../support/library_organization_fixture.dart";
-
-import "../../../support/application_test_bindings.dart";
 
 void main() {
   RetainedSemanticsUpdateBinding();

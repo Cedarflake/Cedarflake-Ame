@@ -334,3 +334,39 @@ cleanup, 69 / 0 for conflicts and 27 / 0 for sidebar order. Dedicated archive/cl
 185 and 109 lines, ordering tests 74 and conflict workflow tests 371. Production-roster tests contain
 140 lines and the native records helper 131. No Rust, generated bridge, schema, archive format,
 dependency-version, model, original-media or user-catalog changes are included.
+
+## O5.3 Classification and model installation — 2026-11-03
+
+Classification/session, configuration, review and installation contracts live in application ports;
+configuration and progress values live in domain. Native implementations and synchronous/asynchronous
+failure translation live under `adapters/rust`. The classification binding module selects those
+ports and composes the existing runtime. Missing production bindings fail during acquisition;
+explicit inactive bindings remain test-only. The review-service application/adapter cycle is removed.
+
+Six application class bodies, configuration/review DTO mappings and native request arguments retain
+their behavior. Existing startup, authorized recovery and reverse-order shutdown remain in place.
+The immutable inventories are unchanged; D047, D055–D058 and D067 are retired. The dependency check
+passes for 487 modules with seven presentation migration exceptions and 48 public cross-feature edges.
+Analysis of source, tests and integration entries is clean. All 82 focused tests across 11 files pass,
+covering production identity, each omitted binding, partial acquisition, no-installation startup,
+error code/message/stack retention, cancellation/recovery, notifications and retained viewer semantics.
+
+The first added native check (`9cc2ce5f90844dc6a31ef754681e0b2c`) incorrectly expected an unclassified
+item before any taxonomy existed. The unchanged selection reader explicitly returns an empty list
+in that state; the fixture now asserts absent categories and empty results. The stale-revision
+failure assertion remains. That failed run retired without cleanup failures.
+
+Canonical Windows run `e4cc8e790deb4bb3945afe18726f4dfd` passes all four cases in 157,909 ms, exits zero
+and reports no cleanup failures. Production bindings share their instances with the desktop scope;
+real configuration/navigation reads, disabled startup, empty classification reads and translated
+`catalog_revision_changed` errors pass. Existing scan, source-byte, viewer, duplicate and organization
+record checks also pass. No temporary native probes are present. The prior O5.2 retained-import
+timeout did not recur; its cause remains unresolved. Hosted execution continues independently.
+
+Implementation / inline-test counts are 83 / 0 for bindings, 76 / 0 for lifecycle, 145 / 0 for session
+lifetime, 149 / 0 for environment, 85 / 0 for configuration and 181 / 0 for installation. Native
+classification/configuration/review/installation adapters contain 79/111/91/54 lines, with no inline
+tests. Dedicated binding, lifecycle, automatic-startup and installation tests contain 226/748/180/207
+lines; the native classification helper contains 59. Unchanged model installation and analysis
+protocols retain their [R5 evidence](r5-closeout.md); this slice adds no model download, evaluation,
+Rust, generated bridge, schema, archive-format, dependency-version or source-media change.

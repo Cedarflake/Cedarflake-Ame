@@ -5,6 +5,20 @@ Status: binding scoped requirements under [0025-invariant-owned-workflow-modules
 Read this file when the task touches its listed workflow or owners. The parent document retains
 shared principles; the roadmap owns current delivery order and acceptance status.
 
+## Classification composition
+
+`LibraryClassificationServices` selects the classification, configuration, review and installation
+ports. `LibraryClassificationBindings` composes their existing application owners and required
+Provider identities. One configuration service serves automatic startup and explicit configuration;
+one lifecycle supplies environment updates and configuration retirement. Construction performs no
+native work or installation admission. Startup and authorized recovery remain in the existing
+post-mount sequence. Shutdown joins model installation, retires environment observation and joins
+classification before the root Provider container disposes its notifiers. Session, maintenance and
+installation handles retain their application lifetimes; native adapters translate failures into
+Ame values. Missing bindings fail during acquisition and release acquired lifetimes.
+
+## Presentation and application owners
+
 - `CatalogReclamationController` owns application-facing reclamation state, polling, command epochs,
   ordered full-storage snapshots, and terminal usage refresh. A snapshot started before or during a
   newer command cannot replace that command's result. Settings persistence and preview cleanup

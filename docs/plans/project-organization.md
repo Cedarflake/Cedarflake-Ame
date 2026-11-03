@@ -1,6 +1,6 @@
 # Project organization after R5
 
-Status: O1–O4, O5.1 and O5.2 implemented; O5.3 is next in the roadmap-owned delivery order.
+Status: active execution specification; the roadmap owns current slice disposition.
 
 The [roadmap](../roadmap.md#project-organization-after-r5) selects this maintenance scope after R5.
 [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md) owns the target dependency
@@ -157,48 +157,13 @@ tests and live documentation together; preserve unrelated work, catalogs, user d
 Retain the useful evidence and continue only from a coherent baseline. No destructive Git operation,
 source mutation, schema reset or release publication is part of this plan.
 
-## Execution record
+## Execution baseline and evidence
 
-On 2026-11-03, the user authorized implementation on a new branch. `codex/project-organization`
-starts from merged R5 baseline `f74146a4`. Entry verification found a failed final R5 Windows Scan
-job; its scoped diagnosis and verification-boundary repair are recorded in
-[project organization verification](../acceptance/project-organization.md). The user subsequently
-directed that GitHub own CI execution without waiting or blocking subsequent work. Continue the
-ordered slices from the integrated R5 source with necessary local preparation and focused checks;
-record hosted results separately without treating pending checks as a migration prerequisite.
+The authorized branch is `codex/project-organization`, based on merged R5 revision `f74146a4`.
+The user directed that GitHub run CI without waiting or blocking subsequent slices, and that PR
+metadata remain fixed. Normal hosted checks continue independently of scoped local preparation.
 
-The Dart and scoped Rust inventories and enforceable boundary checks are implemented with their
-parser, rule and exact-exception regressions. Named native composition owners retain their resource
-lifetimes; unclassified application references stay individually frozen for O7.
-
-O2 separates platform/storage ports, concrete adapters, preference values and feature-specific
-production bindings. Required ports are validated in one root Provider container, with acquisition
-failure cleanup and background-before-container retirement. Storage snapshot/reclamation owners
-move intact into application; the theme-preference translation moves out of shared visual code as
-part of the preference split. The O2 migration exceptions are retired.
-
-O3 separates catalog/folder reads, layout manifests, previews and guarded source reads, together
-with the native callers required by the shared-mapper closure. Ten required ports use their
-capability binding modules. One application source scheduler is inherited across child scopes;
-retirement cancels pending work while the existing buffer-copy owner keeps its lease until completion.
-All 19 catalog/preview exceptions and 16 shared-mapper caller exceptions are retired.
-
-O4 separates the native synchronization gateway and snapshot mapping from application polling,
-phase-age projection and diagnostics. The existing start/poll/stop generation logic and bootstrap
-lifecycle owner retain their authority. Required production binding replaces the inactive fallback;
-the inactive implementation is test-only. The five remaining scan/synchronization entries are
-retired, and the recovery-status propagation defect is repaired in its own commit.
-
-O5.1 separates exact-analysis/query and gallery-annotation ports from their native adapters. The
-duplicate binding module selects those ports and duplicate review; its runtime owner shares the
-exact service with one controller/scheduler pair and joins shutdown before notifier disposal.
-Native failures become Ame values, while the existing run, cancellation, publication and batching
-owners retain their behavior. All remaining duplicate-service exceptions are retired.
-
-O5.2 separates archive, cleanup, conflict and sidebar-order ports from native adapters. The
-organization binding module selects all seven capabilities; existing archive/cleanup task
-lifetimes, confirmation guards and optimistic ordering remain in application. Settings consumes
-explicitly registered library controller, state and value contracts. Thirty corresponding legacy
-entries are retired. Continue with O5.3's classification, model-installation and automatic-lifecycle
-composition. Evidence, including the unresolved single retained-import timeout, belongs to the
-linked acceptance record; hosted results remain independent of this progression.
+The [acceptance record](../acceptance/project-organization.md) owns delivered slices, exact checks,
+failures and limitations, including the native-picker verification repair and the unresolved
+retained-import timeout. The [roadmap queue](../roadmap.md#current-execution-queue) selects the next
+slice. Completed implementation details belong in those records rather than accumulating here.

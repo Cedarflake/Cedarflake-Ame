@@ -1,7 +1,7 @@
 import "dart:async";
 
-import "library_classification.dart";
 import "library_classification_environment.dart";
+import "ports/library_classification.dart";
 
 class LibraryClassificationSessionLifetime {
   LibraryClassificationSessionLifetime(

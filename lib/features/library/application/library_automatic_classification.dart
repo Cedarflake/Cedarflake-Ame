@@ -1,7 +1,8 @@
 import "dart:math";
 
-import "library_classification.dart";
-import "library_classification_configuration.dart";
+import "../domain/library_classification_configuration.dart";
+import "ports/library_classification.dart";
+import "ports/library_classification_configuration.dart";
 
 class LibraryAutomaticClassification implements LibraryClassification {
   const LibraryAutomaticClassification(

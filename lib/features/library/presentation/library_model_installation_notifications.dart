@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../app/notifications/ame_notification_controller.dart";
 import "../application/library_model_installation.dart";
+import "../domain/library_model_installation.dart";
 import "widgets/library_model_setup.dart";
 
 String libraryModelInstallationNotificationKey(int sequence) =>

@@ -128,6 +128,10 @@ sidebar-order ports. Native task wrappers own bridge handles and event conversio
 archive/cleanup controllers retain cancellation, terminal-result admission, handle retirement and
 post-commit publication. Required binding does not create an operation or grant confirmation.
 
+Classification runtime and model-installation composition follow the
+[scoped lifetime contract](workflow-ownership/dart-presentation-and-composition.md#classification-composition).
+Their port definitions and required Provider identities follow the same rules above.
+
 ### Presentation ownership
 
 Pages compose surfaces and connect user intent to application entrypoints. Widgets render bounded
