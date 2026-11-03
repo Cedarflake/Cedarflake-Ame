@@ -92,6 +92,10 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   the quantum, and ordinary path fallback never extends a partially consumed scope batch. Root
   choice and rotation remain in the coordinator; a presentation poll is not a per-scope execution
   permit. The quantum stops new admission rather than promising interruption of a running scope.
+- `production/root_location.rs` owns missing-root selection, binding-specific retry state and joined
+  discovery-worker retirement. It consumes the located namespace capability and `RootLocationRepository`;
+  `sqlite_catalog/root_location_recovery.rs` retains the complete preemptible recovery transaction.
+  Native locator selection follows the [root-location composition contract](native-composition.md#root-location-resources).
 - `library_synchronization/observer_handoff.rs` owns the uncommitted observation plan, partial
   capacity publication, and its opaque writer reservation through `ports/LibraryChangeIngress`.
   The runtime cannot overwrite that plan or claim freshness before submission. Adapter-owned

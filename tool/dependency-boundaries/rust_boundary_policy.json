@@ -18,10 +18,6 @@
     "R149",
     "R152",
     "R153",
-    "R156",
-    "R157",
-    "R158",
-    "R159",
     "R172",
     "R249"
   ],
@@ -225,6 +221,19 @@
         "rust/src/application/incremental_library_changes/tests/authoritative_path_rebase.rs",
         "rust/src/application/preview/tests/source_reconciliation.rs",
         "rust/src/adapters/local_files/file_admission/tests.rs"
+      ]
+    },
+    "root-location-composition": {
+      "responsibility": "Select metadata-only directory identity discovery behind the held namespace contract",
+      "reason": "Only the named factory selects the Windows locator; application recovery scheduling and catalog publication consume Ame contracts.",
+      "lifetime": "The located value retains its original directory and ancestor guards through identity revalidation, the recovery transaction and terminal worker retirement.",
+      "replacement": "Replace the locator and PublicationNamespace implementation without changing no-recall admission, cancellation, catalog generation checks or atomic recovery publication.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#root-location-resources",
+      "coverage": [
+        "rust/src/adapters/local_files/root_location/tests.rs",
+        "rust/src/adapters/sqlite_catalog/root_location_recovery/tests.rs",
+        "rust/src/application/library_synchronization/production/root_location/tests.rs",
+        "rust/src/application/library_synchronization/production/tests/root_location_recovery.rs"
       ]
     }
   },
@@ -836,6 +845,16 @@
         "source": "rust/src/application/incremental_library_changes/production.rs",
         "symbol": "crate::application::incremental_library_changes::production::media_inspector",
         "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "root-location-factory",
+      "owner": "root-location-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/root_location.rs",
+        "symbol": "crate::application::library_synchronization::production::root_location::new_production_root_location_recovery",
+        "target": "crate::adapters::local_files::root_location::locate_library_root",
         "rule": "concrete-adapter"
       }
     }

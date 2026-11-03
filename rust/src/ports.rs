@@ -36,6 +36,8 @@ pub(crate) mod organization_conflicts;
 pub(crate) mod organization_review;
 pub(crate) mod preview_cache_storage;
 pub(crate) mod preview_source;
+#[cfg(windows)]
+pub(crate) mod root_location;
 pub(crate) mod scan_admission;
 pub(crate) mod scan_discovery;
 pub(crate) mod scan_publication;

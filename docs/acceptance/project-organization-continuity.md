@@ -160,3 +160,27 @@ fixture. Journal baseline persistence has 488 source/594 dedicated-test lines an
 the journal facade changes one import and retains 1,316 source/3,131 inline-test lines. The application
 baseline has 453 source/327 inline-test lines and its opening fixture has 468 lines. First-import
 admission retains its 690-line dedicated fixture.
+
+## Located-root capability and recovery — 2026-11-04
+
+Against `852da552`, the located directory value moves to `ports/root_location` and retains the same
+native namespace through `PublicationNamespace`. The recovery worker accepts validated catalog
+sessions and `RootLocationRepository`; its named production factory selects the locator. Initial
+fixture compilation exposed the old capability's shared-thread requirement, now preserved by the
+boxed guard's `Send + Sync` bounds. Existing tests and assertions are unchanged.
+
+Source comparison preserves both recovery transaction bodies, the locator and both worker/use-case
+bodies apart from guard boxing and an explicit generic-session borrow. Identity validation still
+precedes the write and commit; cancellation, preemption, rollback and source safety retain their
+owners. Four migration entries retire, leaving 20; the exact locator factory is a documented
+composition edge, bringing retained technical edges to 62. Both frozen inventories are unchanged.
+
+All 38 existing checks pass: four native discovery, four persistence, two worker-lifetime, four
+production relocation/availability and 24 dependency cases. Final test and production builds emit
+no warnings. Formatting reports 794 files unchanged; the scratch lease retires, and the three changed
+documents have 16 resolving local links and anchors.
+
+The production facade has 1,662 source lines including conditional fixture helpers, no inline cases
+and 934 primary dedicated-test lines; its changes select the required factory. The local-files facade
+retains 2,603 source/3,460 inline-test lines and changes only its export. Recovery persistence has
+288 source/242 primary dedicated-test lines, and native root discovery retains its 90-line fixture.

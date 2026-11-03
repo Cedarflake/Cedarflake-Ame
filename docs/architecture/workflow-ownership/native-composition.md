@@ -218,6 +218,20 @@ is rechecked after native acquisition; failure drops the unpublished guard. Repl
 that ordering, source sharing restrictions and opaque bridge lifetime without exposing native handles
 or admitting an unchecked path fallback.
 
+## Root location resources
+
+`library_synchronization/production/root_location::new_production_root_location_recovery` selects the
+attribute-only native locator through the recovery owner's required callable contract. Ordinary
+construction takes that contract explicitly; test defaults use the same production factory.
+
+`ports/root_location::LocatedLibraryRoot` owns the recovered path and a `PublicationNamespace` guard.
+The native locator retains its existing volume/identity checks and complete ancestor acquisition;
+boxing the guard preserves its drop lifetime. `RootLocationRepository` binds the existing SQLite
+recovery transaction, including identity revalidation before acquisition and before commit, generation
+checks, cancellation, writer preemption and atomic path/queue publication. The application retains
+retry timing, worker cancellation and joined retirement. Replacing the locator or persistence must
+preserve these boundaries without searching other volumes, hydrating sources or modifying media.
+
 ## Catalog reclamation resources
 
 `catalog_reclamation/production.rs::{maintenance,capacity}` select the existing SQLite maintenance

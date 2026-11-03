@@ -127,7 +127,7 @@ pub(crate) use preview_source::LocalPreviewSources;
 #[cfg(any(not(windows), test))]
 pub(crate) use preview_source::open_preview_source;
 #[cfg(windows)]
-pub(crate) use root_location::{LocatedLibraryRoot, locate_library_root};
+pub(crate) use root_location::locate_library_root;
 #[cfg(all(windows, test))]
 use source_content_observation::record_source_content_open;
 #[cfg(all(windows, test))]

@@ -4,12 +4,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use rusqlite::{OptionalExtension, Transaction, params};
 
-use crate::adapters::LocatedLibraryRoot;
 use crate::domain::{
     IncrementalCatalogRoot, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeLane,
     LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration,
     ScanError,
 };
+use crate::ports::root_location::{LocatedLibraryRoot, RootLocationRepository};
 
 use super::change_queue::{activate_root_change_queue, enqueue_intents_in_transaction};
 use super::scan_admission::root_binding::RootScanBinding;
@@ -27,8 +27,8 @@ struct NamespaceOrigin {
     updated_unix_ms: i64,
 }
 
-impl SqliteCatalog {
-    pub(crate) fn recover_located_root(
+impl RootLocationRepository for SqliteCatalog {
+    fn recover_located_root(
         &mut self,
         expected: &IncrementalCatalogRoot,
         located: &LocatedLibraryRoot,
@@ -44,7 +44,9 @@ impl SqliteCatalog {
         let _handler_cleanup = self.connection.progress_handler(0, None::<fn() -> bool>);
         result.map_err(|error| attempt.classify(error))
     }
+}
 
+impl SqliteCatalog {
     fn recover_root_in_attempt(
         &mut self,
         expected: &IncrementalCatalogRoot,
