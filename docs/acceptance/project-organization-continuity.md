@@ -336,3 +336,18 @@ The coordinator has 1,640 source lines, including conditional helpers, and 10,60
 test lines; the worker has 359 source lines. Neither has inline cases. The native connection adapter
 has 138 source lines including test assembly, and the port has 33. Their lifecycle coverage remains
 in the existing production and runtime-registry fixtures.
+
+## Synchronization resource bindings — 2026-11-04
+
+Against `6ebae723`, source review confirms that R109 binds only the opaque ingress reservation in
+the production resource host, and R115 selects the existing `LibraryChangeSourceStarter`. The generic
+handoff consumes `LibraryChangeIngress`; SQLite retains binding validation, zero-wait admission,
+commit/rollback and timeout restoration. Neither reference adds use-case policy or native operations
+outside the [two scoped bindings](../architecture/workflow-ownership/native-composition.md#synchronization-observation-resources).
+
+These entries become accepted technical composition boundaries with explicit lifetime, replacement
+and regression owners. The repository inventory check passes with one migration entry (R172) and
+78 technical edges. Only the policy and its owning documents change; source, tests, generated files
+and frozen inventories are unchanged. The earlier ingress/scheduling evidence and `6ebae723` startup,
+shutdown and late-completion results retain their scope; no product workload is repeated for this
+classification. Full dependency conformance and real-library acceptance remain open under O7.

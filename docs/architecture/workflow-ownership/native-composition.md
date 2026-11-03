@@ -237,6 +237,25 @@ or admitting an unchecked path fallback.
 metadata-only, no-recall inspection. Availability evidence and runtime projection remain Ame-owned;
 replacement changes this factory and port implementation without adding source reads or hydration.
 
+## Synchronization observation resources
+
+`production::new_production_synchronization` selects `production_library_change_source_factory`
+through `LibraryChangeSourceStarter`. Selection creates only the callback; each observer starts its
+source from the admitted root request and owns bounded draining, stop and joined retirement through
+`LibraryChangeSource`. Application retains restart, root-generation and publication decisions.
+
+`ProductionSynchronization::runtime` binds the opaque `LibraryChangeIngress::Reservation` associated
+type from the retained SQLite catalog. `LibrarySynchronizationRuntime` and `ObserverHandoff` remain
+generic over that reservation; they neither inspect it nor acquire a database transaction. Handoff
+retains the unpublished plan and ordering place across writer contention, retires admission before
+other retries, and releases it on stop or root removal without claiming publication.
+
+The adapter validates catalog identity, root generation and lane before zero-wait writer admission;
+its complete enqueue transaction owns commit/rollback and restores the connection timeout. Replace
+the observation factory through its source port, and replace the reservation binding together with
+the poll catalog's ingress implementation. These two exact bindings admit no native calls in other
+coordinator methods and expose no database or watcher types through ports or bridge contracts.
+
 ## Journal boundary resources
 
 `JournalRuntimeSession::boundary_source` borrows the retained journal session and caller inside the

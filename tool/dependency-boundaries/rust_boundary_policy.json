@@ -1,7 +1,5 @@
 {
   "activeIds": [
-    "R109",
-    "R115",
     "R172"
   ],
   "retainedOwners": {
@@ -284,6 +282,19 @@
         "rust/src/application/library_synchronization/production/tests/journal_baseline.rs",
         "rust/src/application/library_synchronization/production/ordinary_journal.rs",
         "rust/src/application/library_synchronization/production/ordinary_journal/import_resumption.rs"
+      ]
+    },
+    "synchronization-observation-composition": {
+      "responsibility": "Bind the poll catalog ingress reservation and select the native observation starter",
+      "reason": "The reservation stays opaque behind LibraryChangeIngress and the generic handoff; observers consume LibraryChangeSource. Only these two production bindings select native types or implementations.",
+      "lifetime": "Each observer owns its source until joined retirement. The handoff retains its unpublished plan and writer position through contention, releasing admission on completion, other failures, stop or root removal.",
+      "replacement": "Replace the source factory through its port; replace the reservation and poll catalog ingress implementation together while preserving ordering, transaction-local validation, rollback and publication authority.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#synchronization-observation-resources",
+      "coverage": [
+        "rust/src/application/library_synchronization/tests/observer_contention.rs",
+        "rust/src/adapters/sqlite_catalog/change_queue/ingress/tests.rs",
+        "rust/src/application/library_synchronization/production/tests/startup.rs",
+        "rust/src/application/library_synchronization/production/runtime_lifecycle/tests/shutdown.rs"
       ]
     }
   },
@@ -1045,6 +1056,26 @@
         "source": "rust/src/application/library_synchronization/production.rs",
         "symbol": "crate::application::library_synchronization::production::new_production_synchronization",
         "target": "crate::adapters::journal_runtime::production_journal_runtime_factory",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "synchronization-ingress-reservation-type",
+      "owner": "synchronization-observation-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::ProductionSynchronization",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "synchronization-observation-factory",
+      "owner": "synchronization-observation-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::new_production_synchronization",
+        "target": "crate::adapters::production_library_change_source_factory",
         "rule": "concrete-adapter"
       }
     }
