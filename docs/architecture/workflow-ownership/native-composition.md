@@ -22,6 +22,12 @@ replace a session owned by an active scan. Idle recovery keeps its current-sessi
 checks around acquisition and the supplied operation. Maintenance retains its separate reservation
 and proof-retention contract in [catalog ownership](catalog-and-migrations.md).
 
+`CatalogLaneSession` exposes owned lane connections from the retained validated proof. Live and
+queue-drain workers retain the same shared session through their original thread lifetime and require
+only the repository ports they use. Its SQLite binding delegates the existing lane-open operation;
+database identity, schema proof and write admission remain in that operation. Session validation and
+replacement stay with the resource host above, independently of worker cancellation and retirement.
+
 SQL, schema/row validation, database identity and connection preparation remain in the adapter.
 The host admission covers only the registered concrete session/catalog/executor references. Replacing
 persistence substitutes those proof and connection resources together, preserving shared waiters,

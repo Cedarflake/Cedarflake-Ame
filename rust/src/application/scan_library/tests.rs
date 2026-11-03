@@ -1,3 +1,5 @@
+use crate::ports::LibraryChangeDispatch;
+
 use std::fs;
 use std::io::Cursor;
 use std::path::PathBuf;

@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 
 pub(crate) mod catalog_capacity;
 pub(crate) mod catalog_reader;
+pub(crate) mod catalog_session;
 pub(crate) mod classification;
 #[cfg(any(all(windows, feature = "classification-worker"), test))]
 pub(crate) mod classification_analysis;
@@ -61,6 +62,8 @@ mod inventory_cleanup_control;
 pub use inventory_cleanup_control::InventoryCleanupControl;
 mod library_change_readiness;
 pub(crate) use library_change_readiness::LibraryChangeReadiness;
+mod library_change_dispatch;
+pub(crate) use library_change_dispatch::LibraryChangeDispatch;
 mod library_change_ingress;
 pub(crate) use library_change_ingress::LibraryChangeIngress;
 mod persistent_identity_journal;

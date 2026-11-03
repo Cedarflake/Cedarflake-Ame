@@ -122,6 +122,11 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   `migrations/foreground_queue_index.rs` owns the v34 optional active-origin access path and its
   atomic upgrade. Readiness retains both lane authority and the guarded origin constraint; the
   migration coordinator only dispatches the step and retains its existing compatibility checks.
+- `ports/LibraryChangeDispatch` exposes lane-specific authoritative/control leases and bounded
+  compaction of unowned legacy recovery controls. `sqlite_catalog/change_queue/dispatch.rs` binds
+  these operations to the existing lease selection, Live-gap transfer and recovery transaction.
+  Root-generation checks, candidate/authority exclusions, evidence merging and atomic retirement
+  remain inside persistence; worker cancellation and completed-result accumulation stay in application.
 - `sqlite_catalog/metadata_inventory/lifecycle.rs` owns inventory-start and terminal-cleanup
   admission. Restoring an existing run reads its frontier and active-root evidence in one short
   read snapshot; a missing run ends that snapshot before writer admission and epoch allocation.

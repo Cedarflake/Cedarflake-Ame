@@ -1,3 +1,5 @@
+use crate::ports::LibraryChangeDispatch;
+
 use tempfile::{TempDir, tempdir};
 
 use crate::adapters::sqlite_catalog::SqliteCatalog;

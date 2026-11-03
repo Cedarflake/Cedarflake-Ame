@@ -1,3 +1,5 @@
+use crate::ports::LibraryChangeDispatch;
+
 use crate::adapters::SqliteCatalog;
 
 use super::*;

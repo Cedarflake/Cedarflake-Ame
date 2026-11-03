@@ -1346,8 +1346,8 @@ mod tests {
         persistent_journal_pending_rename_id,
     };
     use crate::ports::{
-        CatalogRepository, LibraryChangeQueue, LibraryChangeReadiness, MetadataInventoryRepository,
-        PersistentJournalRepository,
+        CatalogRepository, LibraryChangeDispatch, LibraryChangeQueue, LibraryChangeReadiness,
+        MetadataInventoryRepository, PersistentJournalRepository,
     };
 
     use super::super::{SqliteCatalog, sqlite_integer};

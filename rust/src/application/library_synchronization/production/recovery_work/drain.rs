@@ -2,8 +2,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 
+use crate::ports::catalog_session::CatalogLaneSession;
+use crate::ports::{IncrementalCatalogRepository, LibraryChangeDispatch, LibraryChangeQueue};
+
 use super::{RecoveryTask, RecoveryTaskKind, RecoveryTaskOutcome, RecoveryWorkRoot};
-use crate::adapters::SqliteCatalogSession;
 use crate::application::{
     process_ready_metadata_inventory_recovery_candidates_cancellable,
     process_ready_unowned_recovery_paths_cancellable,
@@ -13,12 +15,16 @@ use crate::domain::{
     LibrarySynchronizationPhase, ScanError,
 };
 
-pub(in super::super) fn start_candidates(
+pub(in super::super) fn start_candidates<Session>(
     root: RecoveryWorkRoot,
     now_unix_ms: i64,
-    catalog_session: Arc<SqliteCatalogSession>,
+    catalog_session: Arc<Session>,
     policy: LibraryChangeQueuePolicy,
-) -> Result<RecoveryTask, ScanError> {
+) -> Result<RecoveryTask, ScanError>
+where
+    Session: CatalogLaneSession,
+    Session::Catalog: IncrementalCatalogRepository + LibraryChangeQueue,
+{
     let RecoveryWorkRoot {
         root_id,
         root_generation,
@@ -71,12 +77,16 @@ pub(in super::super) fn start_candidates(
     })
 }
 
-pub(in super::super) fn start_legacy_unowned(
+pub(in super::super) fn start_legacy_unowned<Session>(
     root: RecoveryWorkRoot,
     now_unix_ms: i64,
-    catalog_session: Arc<SqliteCatalogSession>,
+    catalog_session: Arc<Session>,
     policy: LibraryChangeQueuePolicy,
-) -> Result<RecoveryTask, ScanError> {
+) -> Result<RecoveryTask, ScanError>
+where
+    Session: CatalogLaneSession,
+    Session::Catalog: IncrementalCatalogRepository + LibraryChangeDispatch,
+{
     let RecoveryWorkRoot {
         root_id,
         root_generation,

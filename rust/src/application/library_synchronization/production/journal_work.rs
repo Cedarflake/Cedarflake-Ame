@@ -11,6 +11,8 @@ use crate::domain::{
     LibraryRootGeneration, ScanError,
 };
 use crate::journal_broker::{CallerClaim, PersistentChangeJournalSession};
+use crate::ports::catalog_session::CatalogLaneSession;
+use crate::ports::{IncrementalCatalogRepository, LibraryChangeDispatch, LibraryChangeReadiness};
 
 use super::super::{journal_baseline, journal_drain};
 use super::finish_runtime_task_until;
@@ -300,14 +302,19 @@ impl JournalTask {
         })
     }
 
-    fn start_journal_drain(
+    fn start_journal_drain<Session>(
         root_id: String,
         root_generation: LibraryRootGeneration,
         now_unix_ms: i64,
-        catalog_session: Arc<SqliteCatalogSession>,
+        catalog_session: Arc<Session>,
         policy: LibraryChangeQueuePolicy,
         recovery_policy: AuthoritativeRecoveryPolicy,
-    ) -> Result<Self, ScanError> {
+    ) -> Result<Self, ScanError>
+    where
+        Session: CatalogLaneSession,
+        Session::Catalog:
+            IncrementalCatalogRepository + LibraryChangeDispatch + LibraryChangeReadiness,
+    {
         let cancelled = Arc::new(AtomicBool::new(false));
         let worker_cancelled = Arc::clone(&cancelled);
         let (sender, receiver) = mpsc::sync_channel(1);

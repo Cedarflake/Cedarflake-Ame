@@ -111,3 +111,25 @@ cases and 934 primary dedicated-fixture lines. Journal baseline has 443 source/3
 The queue facade has 1,613 source lines and its primary dedicated fixture has 6,185 lines. The
 readiness owner has 617 source lines with 386 dedicated readiness-test lines; these queue owners have
 no inline tests.
+
+## Worker catalog sessions and queue dispatch — 2026-11-04
+
+Against `3f0437e3`, `CatalogLaneSession` supplies the existing validated lane connection to Live,
+Journal-drain and Recovery-drain workers. `LibraryChangeDispatch` owns the missing lane-specific
+lease/legacy-control operations; their implementation moves to the native dispatch owner. Shared
+session retention, cancellation points, lane selection, bounded admission and joined retirement are
+preserved. Source comparison confirms four native dispatch bodies, seven worker/use-case bodies and
+the original native lane-opening body are unchanged.
+
+Seven migration entries retire, leaving 42, with 61 retained technical edges and unchanged frozen
+inventories. Existing fixtures retain their native construction and assertions; only contract imports
+change. No tests, transaction rules, schema, source authority or bridge contracts are added or removed.
+
+All 55 existing checks pass: 31 worker lifecycle, cancellation, lane priority, directory/recovery and
+session-identity cases, plus 24 dependency cases. Test and production builds emit no warnings.
+Formatting reports 794 files unchanged, and the worker-session scratch lease retires.
+
+The queue facade has 1,413 source lines and 6,187 primary dedicated-fixture lines; its extracted
+dispatch owner has 216 source lines. The SQLite facade has 3,329 source lines including conditional
+diagnostic helpers, with 91 lines in the affected session-validation fixture. Neither facade has
+inline tests. The SQLite facade changes only its module declaration.

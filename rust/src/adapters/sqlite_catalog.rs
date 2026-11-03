@@ -50,6 +50,7 @@ mod operation_diagnostics;
 mod organization;
 mod organization_archive;
 pub(crate) use organization::SqliteOrganizationBatch;
+mod lane_session;
 #[cfg_attr(
     not(test),
     expect(

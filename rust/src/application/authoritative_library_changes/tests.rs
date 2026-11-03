@@ -26,7 +26,7 @@ use crate::domain::{
     PreviewRequest, PreviewStatus, ScanRequest,
 };
 use crate::ports::{
-    CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue,
+    CatalogRepository, IncrementalCatalogRepository, LibraryChangeDispatch, LibraryChangeQueue,
     PersistentJournalRepository,
 };
 

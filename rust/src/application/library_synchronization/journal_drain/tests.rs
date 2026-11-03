@@ -5,6 +5,7 @@ use image::{ImageFormat, Rgb, RgbImage};
 use tempfile::tempdir;
 
 use super::*;
+use crate::adapters::SqliteCatalog;
 use crate::application::StoragePaths;
 use crate::application::scan_library::run_scan_with_storage;
 use crate::domain::{
