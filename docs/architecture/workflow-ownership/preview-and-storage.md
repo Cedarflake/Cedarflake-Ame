@@ -33,6 +33,10 @@ shared principles; the roadmap owns current delivery order and acceptance status
   a cursor and are consumed sequentially. The port grants no path reopen, source mutation or new
   publication authority. The native store retains its existing decode limits, JPEG fallback, cache
   admission and staged publication; application source revalidation and held guards remain unchanged.
+- `ports/preview_cache_storage.rs` exposes cache identity, recognition, preparation and held-directory
+  capabilities. Cleanup/recovery consume these contracts and the catalog port; format details and
+  native namespace proofs remain adapter-owned. Store borrowing exposes materialization and atomic
+  accounting ports without changing access-first selection or capacity-handoff lifetime.
 - `application/storage/preview_activation.rs` owns the cross-database restart obligation for
   switch-and-regenerate. Target initialization and idempotent catalog reset precede pending-intent
   retirement. The storage facade selects this use case; it does not carry compensating SQL or a

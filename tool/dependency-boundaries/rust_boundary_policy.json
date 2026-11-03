@@ -96,34 +96,7 @@
     "R170",
     "R171",
     "R172",
-    "R185",
-    "R186",
-    "R188",
-    "R189",
-    "R190",
-    "R191",
-    "R192",
-    "R193",
-    "R194",
-    "R195",
-    "R196",
-    "R197",
-    "R198",
-    "R199",
-    "R200",
-    "R201",
-    "R202",
-    "R203",
-    "R204",
-    "R205",
-    "R206",
-    "R207",
-    "R208",
-    "R218",
-    "R249",
-    "R272",
-    "R273",
-    "R275"
+    "R249"
   ],
   "retainedOwners": {
     "duplicate-native-readers": {
@@ -195,15 +168,18 @@
       ]
     },
     "storage-composition": {
-      "responsibility": "Select settings persistence, preview-cache layout/accounting and OS default locations",
+      "responsibility": "Select settings persistence, preview-cache capabilities and OS default locations",
       "reason": "Only these factories select native implementations; application retains validation, transition admission, budgets and activation policy.",
-      "lifetime": "Settings callers own the original connection scope; cache inspection is stateless and read-only, and default-path selection retains no handle or filesystem mutation.",
+      "lifetime": "Settings callers own the original connection scope; cleanup and recovery retain observed namespace guards through completion, while default-path selection acquires no resource.",
       "replacement": "Replace the settings/cache ports and OS directory selection without changing restart policy, overlap checks or pending-root retirement.",
       "decision": "docs/architecture/workflow-ownership/native-composition.md#storage-resources-and-layout",
       "coverage": [
         "rust/src/application/storage/tests.rs",
         "rust/src/application/storage/tests/activation_tests.rs",
-        "rust/src/application/storage/catalog_admission/tests.rs"
+        "rust/src/application/storage/catalog_admission/tests.rs",
+        "rust/src/application/preview_cleanup/source_admission_tests.rs",
+        "rust/src/application/preview_recovery/namespace_tests.rs",
+        "rust/src/application/storage/tests/preview_capability_tests.rs"
       ]
     },
     "classification-execution-composition": {
@@ -713,16 +689,6 @@
         "source": "rust/src/application/preview/store_admission.rs",
         "symbol": "crate::application::preview::store_admission::PreviewStoreAdmission",
         "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
-        "rule": "concrete-adapter"
-      }
-    },
-    {
-      "id": "preview-store-borrow",
-      "owner": "preview-store-composition",
-      "dependency": {
-        "source": "rust/src/application/preview/store_admission.rs",
-        "symbol": "crate::application::preview::store_admission::PreviewStoreAdmission<'a,Access>::store",
-        "target": "crate::adapters::preview_cache::LocalPreviewStore",
         "rule": "concrete-adapter"
       }
     },

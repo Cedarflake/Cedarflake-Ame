@@ -6,11 +6,13 @@ use crate::domain::{ScanError, StorageConfiguration};
 use crate::ports::StorageSettingsRepository;
 use crate::ports::preview_cache_storage::PreviewCacheStorage;
 
-pub(super) fn settings(path: &Path) -> Result<impl StorageSettingsRepository + use<>, ScanError> {
+pub(in crate::application) fn settings(
+    path: &Path,
+) -> Result<impl StorageSettingsRepository + use<>, ScanError> {
     crate::adapters::SqliteStorageSettings::open(path.to_path_buf())
 }
 
-pub(super) fn preview_cache() -> impl PreviewCacheStorage {
+pub(in crate::application) fn preview_cache() -> impl PreviewCacheStorage {
     crate::adapters::LocalPreviewCacheStorage
 }
 

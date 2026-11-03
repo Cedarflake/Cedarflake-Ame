@@ -757,3 +757,27 @@ and consolidation have 198 and 109 source lines. Their dedicated coverage, conso
 files remain 372, 491 and 347 lines. The synchronization facade has 1,664 source lines, including
 conditional instrumentation, with its affected first-import fixtures unchanged at 356 lines.
 The new namespace port/binding have 30/50 lines and root-admission port/binding 60/90 lines.
+
+## O7 Preview cache capabilities — 2026-11-04
+
+Cleanup, recovery, health checks and scan reuse now obtain cache recognition, artifact/temporary
+classification, algorithm identity, root preparation and held namespaces through `PreviewCacheStorage`.
+Store admission lends only `PreviewStore` and `PreviewCacheAccounting`; its original access, namespace
+and current-accounting lifetimes remain intact. Against `3c4e306b`, native namespace, installation and
+staging owners are unchanged, as are the original cache/preparation function bodies. No cache format,
+schema, source authority or generated bridge changes are included.
+
+All 68 focused cases pass: 14 cleanup, six recovery, seven health, two reclamation, four capacity-handoff,
+seven activation/capability, four publication/legacy-preview and 24 dependency cases. After temporary
+classification moved, its nine affected behavior cases and the dependency gate passed again; other
+valid results were retained. No tests or assertions are added or removed. Test/production builds emit
+no warnings, formatting reports 794 files unchanged, and all three leased scratch directories retire.
+Twenty-seven legacy entries and the concrete store-borrow exception retire, leaving 97 legacy and 57
+retained technical edges. Both frozen inventories are unchanged. Final real-library client verification
+remains required after the rest of O7.
+
+Cleanup has 605 source/459 inline-test/471 dedicated-test lines; recovery has 311/274/229 and health
+133/0/473. Reclamation has 159 source/184 inline-test lines. Store admission has 282 source lines and
+200 dedicated capacity-handoff test lines. The native cache has 932 source/901 inline-test lines;
+its capability binding has 100. Activation has 167 source lines and 252/215 dedicated activation and
+capability-test lines. The cache and materialization ports have 46 and 28 lines respectively.

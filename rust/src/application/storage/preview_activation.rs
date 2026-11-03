@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use crate::adapters::{PreviewRootPreparation, prepare_preview_root};
 use crate::domain::{LibraryChangeLane, ScanError, StorageConfiguration};
+use crate::ports::preview_cache_storage::{PreviewCacheStorage, PreviewRootPreparation};
 use crate::ports::{CatalogRepository, StorageSettingsRepository};
 
 use super::validate_preview_root_outside_sources;
@@ -15,7 +15,7 @@ pub(super) fn activate_configured_preview_root(
         settings_path,
         catalog_path,
         configured,
-        |path, _| prepare_preview_root(path),
+        |path, _| super::production::preview_cache().prepare_root(path),
     )
 }
 

@@ -4,10 +4,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
 
 #[cfg(test)]
-use crate::adapters::SqliteCatalog;
-use crate::adapters::{PreviewCacheNamespace, SqliteStorageSettings, is_ame_preview_cache_entry};
+use crate::adapters::{SqliteCatalog, SqliteStorageSettings};
 use crate::domain::user_visible_path;
 use crate::domain::{LibraryChangeLane, PreviewCleanupEvent, ScanError, ScanIssue};
+use crate::ports::preview_cache_storage::{PreviewCacheDirectory, PreviewCacheStorage};
 use crate::ports::{CatalogRepository, StorageSettingsRepository};
 
 use super::{StoragePaths, storage_paths};
@@ -96,7 +96,7 @@ impl CleanupScope {
         else {
             return Ok(());
         };
-        let mut settings = SqliteStorageSettings::open(settings_path.clone())?;
+        let mut settings = super::storage::production::settings(settings_path)?;
         if !settings.forget_retired_preview_root(stored_preview_root)? {
             return Err(ScanError::new(
                 "retired_preview_root_ownership_changed",
@@ -168,7 +168,7 @@ pub fn clear_retired_previews(
             "The active preview root cannot be cleaned as a retired root",
         ));
     }
-    let mut settings = SqliteStorageSettings::open(storage.settings_path.clone())?;
+    let mut settings = super::storage::production::settings(&storage.settings_path)?;
     let mut stored_preview_root = None;
     for stored in settings.load_retired_preview_roots()? {
         if super::storage::resolved_paths_same(Path::new(&stored), &requested_root)? {
@@ -227,14 +227,15 @@ fn clear_preview_scope(
         operation_id: operation_id.clone(),
     };
     let _exclusive_access = preview_access().acquire_reclamation()?;
-    let namespace = PreviewCacheNamespace::open(scope.preview_root())?;
+    let cache = super::storage::production::preview_cache();
+    let namespace = cache.open_cleanup_namespace(scope.preview_root())?;
     let _source_exclusion =
         super::storage::source_cleanup_admission::reserve_preview_cleanup(scope.preview_root())?;
     super::storage::validate_preview_root_outside_sources(
         scope.catalog_path(),
         scope.preview_root(),
     )?;
-    let Some(summary) = summarize_managed_files(&namespace, &cancellation)? else {
+    let Some(summary) = summarize_managed_files(&namespace, &cache, &cancellation)? else {
         publish(cancelled_event(&operation_id, 0, 0, 0));
         return Ok(());
     };
@@ -291,7 +292,7 @@ fn clear_preview_scope(
                 }
             };
             let path = entry.path();
-            if !path.is_file() || !is_ame_preview_cache_entry(&path) {
+            if !path.is_file() || cache.managed_entry_kind(&path).is_none() {
                 continue;
             }
             processed_files = processed_files.saturating_add(1);
@@ -349,7 +350,7 @@ fn clear_preview_scope(
         ));
         return Ok(());
     }
-    let Some(remaining) = summarize_managed_files(&namespace, &cancellation)? else {
+    let Some(remaining) = summarize_managed_files(&namespace, &cache, &cancellation)? else {
         publish(cancelled_event(
             &operation_id,
             removed_files,
@@ -383,7 +384,8 @@ fn clear_preview_scope(
 }
 
 fn summarize_managed_files(
-    namespace: &PreviewCacheNamespace,
+    namespace: &impl PreviewCacheDirectory,
+    cache: &impl PreviewCacheStorage,
     cancellation: &AtomicBool,
 ) -> Result<Option<CleanupSummary>, ScanError> {
     let Some(preview_root) = namespace.root() else {
@@ -404,7 +406,7 @@ fn summarize_managed_files(
             ScanError::new("preview_cleanup_entry_unavailable", error.to_string())
         })?;
         let path = entry.path();
-        if !path.is_file() || !is_ame_preview_cache_entry(&path) {
+        if !path.is_file() || cache.managed_entry_kind(&path).is_none() {
             continue;
         }
         summary.files = summary.files.saturating_add(1);

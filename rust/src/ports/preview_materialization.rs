@@ -1,6 +1,6 @@
 use std::io::{self, Read, Seek};
 
-use crate::domain::{DiscoveredFile, PreviewMaterialization, ScanIssue};
+use crate::domain::{DiscoveredFile, PreviewArtifact, PreviewMaterialization, ScanIssue};
 
 pub trait PreviewSource {
     type Reader: Read + Seek;
@@ -20,4 +20,9 @@ pub trait PreviewStore {
         source_height: u32,
         force_regenerate: bool,
     ) -> Result<PreviewMaterialization, ScanIssue>;
+    fn commit(&self, materialization: PreviewMaterialization)
+    -> Result<PreviewArtifact, ScanIssue>;
+    fn discard_staged(&self, materialization: &PreviewMaterialization) -> Result<(), ScanIssue>;
+    fn has_usable_artifact(&self, artifact_path: &str) -> bool;
+    fn take_rejected_reservation_bytes(&self) -> u64;
 }

@@ -45,11 +45,13 @@ move preview recovery, catalog publication or source-read authority.
 
 ## Storage resources and layout
 
-`storage/production.rs` selects settings through `StorageSettingsRepository`, cache layout/accounting
+`storage/production.rs` selects settings through `StorageSettingsRepository`, cache capabilities
 through `PreviewCacheStorage`, and default locations through the existing OS directory provider.
-The default byte budget remains application policy. The cache adapter owns its versioned child path
-and read-only accounting of recognized current/legacy entries; it does not traverse nested directories
-or delete files. Default-path selection creates no directory or database.
+The cache adapter owns versioned layout, format recognition, algorithm identity, read-only accounting,
+namespace acquisition and root preparation. Accounting does not traverse nested directories.
+`PreviewCacheDirectory` retains the original root/ancestor guards; an absent root grants no later
+deletion authority. Cleanup traversal/deletion, recovery, budgets and cross-database activation remain
+application policy. Default-path selection creates no directory or database.
 
 Each settings call owns its original connection lifetime. Configuration validation, transition
 admission, restart activation and cross-database pending-root retirement keep their existing order.
@@ -145,7 +147,9 @@ concrete adapters; persistence, final validation and publication receive no neig
 
 `preview/store_admission.rs` owns native store and cache-namespace composition under the existing
 [budget and reclamation contract](../0005-storage-governance-and-budget.md#budget-and-automatic-reclamation).
-Its exact host fields, constructors, resolution and borrow methods may name these concrete resources.
+Its exact host fields, constructors and resolution methods may name these concrete resources.
+Borrowed access exposes only `PreviewStore` and `PreviewCacheAccounting`; materialization, staged
+commit/discard and atomic accounting retain their original adapter implementation.
 Generation or reclamation access precedes store selection. The operation retains its directory
 identity across the bounded capacity handoff; each new access selects the current accounting owner.
 

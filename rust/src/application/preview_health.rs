@@ -1,8 +1,8 @@
 use std::io::ErrorKind;
 use std::path::Path;
 
-use crate::adapters::{is_current_preview_artifact, is_managed_preview_cleanup_entry};
 use crate::domain::{CatalogSnapshot, PreviewStatus, ScanError};
+use crate::ports::preview_cache_storage::PreviewCacheStorage;
 use crate::ports::{
     CatalogRepository, PreviewHealthObservation, PreviewHealthOutcome, PreviewHealthTarget,
 };
@@ -44,7 +44,9 @@ pub(super) fn reconcile_snapshot_previews(
 
 pub(super) fn is_active_location_file(path: &str, root: &Path) -> Result<bool, ScanError> {
     Ok(!path.is_empty()
-        && is_current_preview_artifact(path)
+        && super::storage::production::preview_cache()
+            .current_artifact_key(Path::new(path))
+            .is_some()
         && Path::new(path).is_file()
         && super::storage::resolved_path_is_within(Path::new(path), root)?)
 }
@@ -89,13 +91,14 @@ pub(super) fn reconcile(
         Err(error) => return Err(error),
     };
     let path = Path::new(target.path());
+    let cache = super::storage::production::preview_cache();
     let is_compatible = match target {
         PreviewHealthTarget::Artifact(_) => {
-            path.parent() == Some(root) && is_managed_preview_cleanup_entry(path)
+            path.parent() == Some(root) && cache.managed_entry_kind(path).is_some()
         }
         PreviewHealthTarget::Location(_) => {
             !path.as_os_str().is_empty()
-                && is_current_preview_artifact(target.path())
+                && cache.current_artifact_key(path).is_some()
                 && super::storage::resolved_path_is_within(path, root)?
         }
     };

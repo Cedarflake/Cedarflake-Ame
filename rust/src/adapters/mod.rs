@@ -74,17 +74,13 @@ pub(crate) use local_metadata_inventory::{
 };
 pub(crate) use media_inspector::LocalMediaInspector;
 pub use preview_cache::LocalPreviewStore;
-pub(crate) use preview_cache::{
-    PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION, PREVIEW_ORIENTATION_CONTRACT,
-    PreviewRootPreparation, current_preview_artifact_key, is_ame_preview_cache_entry,
-    is_current_preview_artifact, is_managed_preview_cleanup_entry,
-    open_preview_cache_operation_namespace, prepare_preview_root,
-};
+pub(crate) use preview_cache::open_preview_cache_operation_namespace;
 #[cfg(test)]
 pub(crate) use preview_cache::{
-    PREVIEW_CACHE_VERSION, fail_next_atomic_replace_for_test,
-    prepare_preview_root_with_namespace_probe, replace_file_atomically_for_test,
-    seed_legacy_jpeg_preview,
+    PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION, PREVIEW_CACHE_VERSION,
+    PREVIEW_ORIENTATION_CONTRACT, current_preview_artifact_key, fail_next_atomic_replace_for_test,
+    is_current_preview_artifact, prepare_preview_root, prepare_preview_root_with_namespace_probe,
+    replace_file_atomically_for_test, seed_legacy_jpeg_preview,
 };
 pub(crate) use sqlite_catalog::MetadataInventorySpoolExecution;
 pub use sqlite_catalog::SqliteCatalog;

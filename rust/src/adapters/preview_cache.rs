@@ -16,6 +16,7 @@ use crate::domain::{
     DiscoveredFile, FileIdentityEvidence, ImageOrientation, PreviewArtifact,
     PreviewMaterialization, ScanIssue,
 };
+use crate::ports::preview_cache_storage::PreviewCacheAccounting;
 use crate::ports::{PreviewSource, PreviewStore};
 
 use super::PreviewCacheNamespace;
@@ -27,9 +28,7 @@ mod installation;
 mod preparation;
 #[cfg(test)]
 pub(crate) use preparation::prepare_preview_root_with_namespace_probe;
-pub(crate) use preparation::{
-    PreviewRootPreparation, open_preview_cache_operation_namespace, prepare_preview_root,
-};
+pub(crate) use preparation::{open_preview_cache_operation_namespace, prepare_preview_root};
 #[cfg(test)]
 mod media_format_tests;
 mod staging_encoding;
@@ -414,6 +413,25 @@ fn preview_cache_key(algorithm: &str, file: &DiscoveredFile, preview_edge: u32) 
 }
 
 impl PreviewStore for LocalPreviewStore {
+    fn commit(
+        &self,
+        materialization: PreviewMaterialization,
+    ) -> Result<PreviewArtifact, ScanIssue> {
+        Self::commit(self, materialization)
+    }
+
+    fn discard_staged(&self, materialization: &PreviewMaterialization) -> Result<(), ScanIssue> {
+        Self::discard_staged(self, materialization)
+    }
+
+    fn has_usable_artifact(&self, artifact_path: &str) -> bool {
+        Self::has_usable_artifact(self, artifact_path)
+    }
+
+    fn take_rejected_reservation_bytes(&self) -> u64 {
+        Self::take_rejected_reservation_bytes(self)
+    }
+
     fn materialize(
         &self,
         file: &DiscoveredFile,
@@ -512,6 +530,16 @@ impl PreviewStore for LocalPreviewStore {
                 force_regenerate,
             },
         )
+    }
+}
+
+impl PreviewCacheAccounting for LocalPreviewStore {
+    fn used_bytes(&self) -> u64 {
+        Self::used_bytes(self)
+    }
+
+    fn release(&self, preview_size: u64) {
+        Self::release(self, preview_size);
     }
 }
 

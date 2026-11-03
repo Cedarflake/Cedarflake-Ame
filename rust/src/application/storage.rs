@@ -15,7 +15,7 @@ use crate::ports::{CatalogRepository, StorageSettingsRepository};
 pub(super) mod catalog_admission;
 mod configuration_update;
 mod preview_activation;
-mod production;
+pub(in crate::application) mod production;
 pub(super) mod source_cleanup_admission;
 use preview_activation::activate_configured_preview_root;
 #[cfg(test)]
