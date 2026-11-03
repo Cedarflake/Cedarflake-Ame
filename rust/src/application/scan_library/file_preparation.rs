@@ -1,14 +1,13 @@
 use std::path::Path;
 
-use crate::adapters::{SqliteCatalog, is_current_preview_artifact};
+use crate::adapters::is_current_preview_artifact;
 use crate::domain::user_visible_path;
 use crate::domain::{
     AssetLocationView, DiscoveredFile, MediaInspection, MetadataInspection, PreviewStatus,
     ScanError,
 };
-use crate::ports::{
-    CatalogRepository, IncrementalCatalogRepository, MediaInspectionFailure, MediaInspector,
-};
+use crate::ports::scan_staging::ScanStagingRepository;
+use crate::ports::{MediaInspectionFailure, MediaInspector};
 
 use super::{stable_id, stable_location_id};
 
@@ -25,7 +24,7 @@ pub(super) struct PreparedScanFile<'a> {
 
 impl<'a> PreparedScanFile<'a> {
     pub fn load(
-        catalog: &SqliteCatalog,
+        catalog: &impl ScanStagingRepository,
         inspector: &impl MediaInspector,
         scan_id: &'a str,
         root_id: &'a str,

@@ -1,6 +1,6 @@
-use crate::adapters::SqliteCatalog;
 use crate::domain::{FileVisitOutcome, ScanCheckpoint, ScanError, ScanEvent};
-use crate::ports::{CatalogRepository, IncrementalCatalogRepository, MediaInspector};
+use crate::ports::MediaInspector;
+use crate::ports::scan_publication::ScanPublicationRepository;
 
 use super::file_preparation::PreparedScanFile;
 use super::finalization::FinalizationPlan;
@@ -28,9 +28,9 @@ pub(super) enum ScanEntryOutcome {
     Detached,
 }
 
-pub(super) fn apply_scan_entry(
-    catalog: &mut SqliteCatalog,
-    finalization: &mut FinalizationPlan,
+pub(super) fn apply_scan_entry<Repository: ScanPublicationRepository>(
+    catalog: &mut Repository,
+    finalization: &mut FinalizationPlan<Repository::RejectedRoster>,
     inspector: &impl MediaInspector,
     context: ScanEntryContext<'_>,
     checkpoint: &mut ScanCheckpoint,

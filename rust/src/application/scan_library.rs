@@ -8,6 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use blake3::Hasher;
 
+#[cfg(test)]
 use crate::adapters::SqliteCatalog;
 use crate::domain::user_visible_path;
 #[cfg(test)]
@@ -630,7 +631,7 @@ fn current_unix_ms() -> Result<i64, ScanError> {
 
 fn finish_if_controlled(
     control: u8,
-    catalog: &mut SqliteCatalog,
+    catalog: &mut impl CatalogRepository,
     request: &ScanRequest,
     checkpoint: &crate::domain::ScanCheckpoint,
     issue_count: u64,

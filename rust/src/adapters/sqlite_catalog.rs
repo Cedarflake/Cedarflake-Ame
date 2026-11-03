@@ -82,6 +82,7 @@ mod search_index_hints;
 pub(crate) use journal_namespace::SqliteJournalNamespaceReader;
 mod scan_lifecycle;
 mod scan_publication;
+mod scan_repository;
 mod scan_resume_inventory;
 mod scan_resumption;
 mod scan_staging;
@@ -117,11 +118,6 @@ pub(crate) use metadata_inventory::MetadataInventorySpoolExecution;
 use migrations::{migrate_schema, prepare_fresh_catalog_auto_vacuum};
 pub(crate) use read_retry::SqliteCatalogReadExecutor;
 pub(crate) use reclamation::SqliteCatalogSpaceMaintenance;
-pub(crate) use scan_publication::{
-    RejectedInputValidationRoster, StagedValidationOutcome, StagedValidationRoster,
-    ValidatedStagingProof, load_retained_scan_issue_window, retained_scan_has_unclassified_issues,
-};
-
 mod catalog_delta;
 #[cfg(test)]
 mod catch_up;

@@ -2,13 +2,13 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::time::{Duration, Instant};
 
-use crate::adapters::{SqliteCatalog, ValidatedStagingProof};
 use crate::domain::{
     LibraryChangeLane, LibraryChangeQueuePolicy, LibraryRootGeneration, ScanCheckpoint, ScanError,
     ScanEvent, ScanRequest,
 };
 
 use super::finalization::FinalizationPlan;
+use crate::ports::scan_publication::ScanPublicationRepository;
 use crate::ports::{RootConsolidationPlan, ScanPublicationControl};
 
 const PUBLICATION_RETRY_WAIT: Duration = Duration::from_millis(250);
@@ -17,7 +17,7 @@ const PUBLICATION_PROGRESS_INTERVAL: Duration = Duration::from_secs(1);
 #[cfg(all(test, windows))]
 mod control_tests;
 
-pub(super) struct ForegroundPublicationContext<'a> {
+pub(super) struct ForegroundPublicationContext<'a, Proof> {
     pub(super) control: &'a Arc<AtomicU8>,
     pub(super) request: &'a ScanRequest,
     pub(super) checkpoint: &'a ScanCheckpoint,
@@ -29,7 +29,7 @@ pub(super) struct ForegroundPublicationContext<'a> {
     pub(super) visited_entries: u64,
     pub(super) issue_count: u64,
     pub(super) had_published_root: bool,
-    pub(super) validation_proof: &'a ValidatedStagingProof,
+    pub(super) validation_proof: &'a Proof,
     pub(super) root_consolidation: Option<&'a RootConsolidationPlan>,
 }
 
@@ -42,10 +42,10 @@ pub(super) enum ForegroundPublicationOutcome {
     Interrupted,
 }
 
-pub(super) fn publish_foreground_scan(
-    catalog: &mut SqliteCatalog,
-    finalization: &FinalizationPlan,
-    context: ForegroundPublicationContext<'_>,
+pub(super) fn publish_foreground_scan<Repository: ScanPublicationRepository>(
+    catalog: &mut Repository,
+    finalization: &FinalizationPlan<Repository::RejectedRoster>,
+    context: ForegroundPublicationContext<'_, Repository::StagingProof>,
     publish: &mut impl FnMut(ScanEvent) -> bool,
 ) -> Result<ForegroundPublicationOutcome, ScanError> {
     finalization.handoff_foreground_revalidation(
@@ -66,8 +66,8 @@ pub(super) fn publish_foreground_scan(
             return Ok(ForegroundPublicationOutcome::Interrupted);
         }
         let observed_write_epoch = catalog.completed_write_epoch();
-        match context.validation_proof.publish(
-            catalog,
+        match catalog.publish_validated_scan(
+            context.validation_proof,
             context.root_id,
             context.accepted_items,
             context.issue_count,
@@ -129,9 +129,9 @@ pub(super) fn publish_foreground_scan(
     }
 }
 
-fn settle_requested_control(
-    catalog: &mut SqliteCatalog,
-    context: &ForegroundPublicationContext<'_>,
+fn settle_requested_control<Repository: ScanPublicationRepository>(
+    catalog: &mut Repository,
+    context: &ForegroundPublicationContext<'_, Repository::StagingProof>,
     publish: &mut impl FnMut(ScanEvent) -> bool,
 ) -> Result<bool, ScanError> {
     super::finish_if_controlled(
@@ -145,9 +145,9 @@ fn settle_requested_control(
     )
 }
 
-fn drain_one_live_batch(
-    catalog: &mut SqliteCatalog,
-    context: &ForegroundPublicationContext<'_>,
+fn drain_one_live_batch<Repository: ScanPublicationRepository>(
+    catalog: &mut Repository,
+    context: &ForegroundPublicationContext<'_, Repository::StagingProof>,
 ) -> Result<bool, ScanError> {
     let report = super::super::incremental_library_changes::process_ready_library_changes_in_lane(
         catalog,

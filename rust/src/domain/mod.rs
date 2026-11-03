@@ -44,9 +44,13 @@ mod media_admission_recheck;
 pub use media_admission_recheck::MediaAdmissionRecheck;
 pub(crate) mod library_synchronization;
 pub(crate) mod persistent_journal;
+mod scan_publication;
 mod scan_resume_coverage;
 mod source_discovery;
 
+pub(crate) use scan_publication::{
+    RetainedScanIssue, ScanPublicationReceipt, StagedValidationOutcome,
+};
 pub(crate) use scan_resume_coverage::ScanResumeCoverage;
 pub use source_discovery::{FileVisit, FileVisitOutcome};
 

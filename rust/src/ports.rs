@@ -32,6 +32,8 @@ pub(crate) mod organization_conflicts;
 pub(crate) mod organization_review;
 pub(crate) mod preview_cache_storage;
 pub(crate) mod scan_discovery;
+pub(crate) mod scan_publication;
+pub(crate) mod scan_staging;
 pub(crate) mod search_index;
 pub(crate) mod sidebar_order;
 pub(crate) mod source_state;

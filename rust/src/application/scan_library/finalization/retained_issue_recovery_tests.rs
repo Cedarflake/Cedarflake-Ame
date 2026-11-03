@@ -1,4 +1,5 @@
 use super::*;
+use crate::adapters::SqliteCatalog;
 
 #[test]
 fn metadata_warnings_do_not_consume_the_retained_rejection_path_bound_after_reopen() {
@@ -131,14 +132,9 @@ fn retained_terminal_paths_are_read_in_bounded_keyset_windows_without_warning_pa
     let mut after_id = 0;
     let mut observed = 0;
     for expected in [256, 256, 18, 0] {
-        let window = load_retained_scan_issue_window(
-            &catalog,
-            &request.scan_id,
-            TERMINAL_CODES,
-            after_id,
-            256,
-        )
-        .expect("bounded filtered window");
+        let window = catalog
+            .load_retained_scan_issue_window(&request.scan_id, TERMINAL_CODES, after_id, 256)
+            .expect("bounded filtered window");
         assert_eq!(window.len(), expected);
         for issue in window {
             assert!(issue.id > after_id);

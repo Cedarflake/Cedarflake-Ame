@@ -93,6 +93,11 @@ shared principles; the roadmap owns current delivery order and acceptance status
   directory-completion boundaries. It composes the staging transaction without publishing progress
   ahead of accepted locations or retiring an in-memory batch before commit. Writer admission,
   checkpoint status rules and current-directory authority remain unchanged.
+- `ports/scan_staging.rs` and `ports/scan_publication.rs` expose retained inventory, bounded validation
+  and atomic publication through Ame values and opaque session-bound rosters/proofs. Application
+  finalization owns validation order, cancellation and live-change handoff; `sqlite_catalog/scan_repository.rs`
+  binds these contracts to the existing catalog session. Temporary tables, payload revalidation,
+  writer admission and transaction rollback remain in the SQLite owners below that binding.
 - `scan_publication/live_change_admission.rs` owns the distinction between unfinished and exhausted
   uncovered P0 debt. It shares retained-subtree eligibility and current capacity with the queue
   owner. Foreground publication cannot wait for a full P2 lane to drain while that foreground

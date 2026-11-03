@@ -88,10 +88,8 @@ pub(crate) use preview_cache::{
 pub(crate) use sqlite_catalog::MetadataInventorySpoolExecution;
 pub use sqlite_catalog::SqliteCatalog;
 pub(crate) use sqlite_catalog::{
-    RejectedInputValidationRoster, SqliteCatalogReadExecutor, SqliteCatalogSession,
-    SqliteCatalogSpaceMaintenance, SqliteJournalNamespaceReader, SqliteOrganizationBatch,
-    StagedValidationOutcome, StagedValidationRoster, ValidatedStagingProof,
-    load_retained_scan_issue_window, retained_scan_has_unclassified_issues,
+    SqliteCatalogReadExecutor, SqliteCatalogSession, SqliteCatalogSpaceMaintenance,
+    SqliteJournalNamespaceReader, SqliteOrganizationBatch,
 };
 #[cfg(test)]
 pub(crate) use sqlite_catalog::{

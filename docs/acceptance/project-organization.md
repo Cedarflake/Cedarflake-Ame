@@ -701,3 +701,30 @@ edges remain, with both frozen inventories unchanged. The new port has 23 lines,
 owner 101, and the preview store 904 source/901 inline-test lines. JPEG decoding has 141 source,
 112 inline benchmark and 79 dedicated contract-test lines. No package, cache-format, engine
 version, schema or generated bridge change is included.
+
+## O7 Scan staging and publication contracts — 2026-11-04
+
+Application traversal, retained-issue recovery, validation and foreground publication now consume
+`ScanStagingRepository` and `ScanPublicationRepository`. Domain owns the validation outcome, retained
+issue and publication receipt; concrete rosters/proofs remain private to SQLite and its session.
+The binding preserves temporary-table ownership, payload comparison, write admission and atomic
+publication. Source namespace capabilities stay in their existing owners for the remaining migration.
+Against `31bbb457`, 67 existing function bodies retain their logic after the explicit port-call
+substitutions; the scan facade changes only its repository parameter and test import.
+
+All 67 focused checks pass: five finalization/recovery, eight publication-control, 12 entry
+processing/resumption, four adapter-roster, 11 live-finalization, three complete scan workflows and
+24 dependency cases. They retain post-validation tamper rejection, live add/delete and preview
+precedence, session-local rosters, bounded issue recovery, cancellation, pause/resume and staging
+rollback. No test is added or removed; the two affected test files retain their fixtures and
+assertions. A redundant test import found by the first build was removed; final test/production
+builds emit no warnings, the format check reports 794 files unchanged and both leased scratch
+directories retire.
+
+The change retires 28 exact legacy IDs, leaving 139 legacy and 56 retained technical dependencies.
+Both frozen inventories are unchanged. No schema, source authority, generated contract or production
+composition registration changes. Finalization has 435 source/33 inline-test lines; publication has
+178/26. The catalog and publication facades retain 3,329 and 704 source lines, including conditional
+instrumentation. Native validation has 375/64 and its transaction owner 247 source lines. The new
+binding, ports and domain values have 166, 89/20 and 19 lines respectively. The final client/real-library
+check remains in O7.
