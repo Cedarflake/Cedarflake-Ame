@@ -2,15 +2,19 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::adapters::classification_runtime::verify_local_installation;
-use crate::adapters::{ClassificationInstallation, ClassificationInstallationStore};
 use crate::domain::classification::ClassificationRecordId;
+use crate::domain::classification::installation::ClassificationInstallation;
 use crate::domain::classification::work::{ClassificationDispatchMode, ClassificationRecoveryRoot};
 use crate::domain::{LibraryChangeLane, LibraryRootGeneration, ScanError};
+use crate::ports::classification_installation::ClassificationInstallationRepository;
+use crate::ports::classification_model_package::ClassificationModelPackage;
 use crate::ports::classification_work::ClassificationWorkRepository;
 
 use super::classification_dispatch::{
     ClassificationDispatchSignals, ClassificationForegroundState, MonotonicDispatchClock,
+};
+use super::classification_model_installation::production::{
+    installation_repository, model_package,
 };
 use super::classification_runtime::{
     ClassificationRuntimeControl, ClassificationRuntimePaths, NativeClassificationRuntime,
@@ -34,8 +38,8 @@ pub(crate) fn save_installation(models: String, runtime: String) -> Result<(), S
         runtime: PathBuf::from(runtime),
     };
     super::classification_runtime::while_retired(|| {
-        verify_local_installation(&installation.models, &installation.runtime)?;
-        ClassificationInstallationStore::save(&installation_path(&storage_paths()?), &installation)
+        model_package().verify(&installation)?;
+        installation_repository().save(&installation_path(&storage_paths()?), &installation)
     })
 }
 
@@ -62,7 +66,8 @@ fn open_with_storage(
         return Ok(None);
     }
     drop(catalog);
-    let installation = ClassificationInstallationStore::load(&installation_path(storage))?
+    let installation = installation_repository()
+        .load(&installation_path(storage))?
         .ok_or_else(|| {
             ScanError::new(
                 "classification_installation_missing",

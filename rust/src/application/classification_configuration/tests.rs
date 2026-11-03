@@ -19,7 +19,7 @@ fn change(action: ClassificationConfigurationAction) -> ClassificationConfigurat
         setup: classification_candidate::prepare(
             id,
             classification_candidate::initial_categories().unwrap(),
-            selected_model_compatibility(),
+            model_package().compatibility(),
         )
         .unwrap(),
         action,

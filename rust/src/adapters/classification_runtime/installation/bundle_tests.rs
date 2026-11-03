@@ -53,6 +53,11 @@ fn bundled_preparation_only_reads_and_pins_verified_files() {
         &mut |progress| updates.push(progress),
     )
     .unwrap();
+    let installation: Box<
+        dyn crate::ports::classification_model_package::PreparedClassificationModel,
+    > = Box::new(installation);
+    assert_eq!(installation.installation().models, models);
+    assert_eq!(installation.installation().runtime, directory.path());
     assert_eq!(updates.last().unwrap().completed_bytes, 3);
     assert!(
         updates

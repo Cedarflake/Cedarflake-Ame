@@ -94,6 +94,27 @@ notification. The dispatcher releases maintenance resources and retires its exec
 a plan. Replacing the vocabulary selection or repository implementations preserves that lifecycle,
 catalog revision, cancellation, bounded sampling and the existing prepared-plan publication rules.
 
+## Classification installation resources
+
+`classification_model_installation/production.rs` selects the installation repository, pinned model
+package and OS model-storage directory. Configuration, desktop startup and installation recovery use
+the same repository and model-package contracts. Installation paths and download intent generations
+are Ame-owned values; a token acquires authority only through the repository's current-intent checks.
+Persistence retains the immediate transaction that compares selection, completes the matching intent
+and checks cancellation before commit. Merely constructing either adapter opens no resource.
+
+The model-package adapter owns compatibility, artifact selection and verification. Its prepared
+resource implements `PreparedClassificationModel`; the application retains that complete owner
+through publication or disposal. File handles, namespace guards and the staging lease remain inside
+the adapter and retire before the application releases installation ownership. Recovery precedence,
+explicit download authority, bundled read-only verification and runtime-retirement admission stay
+with their existing workflow owners. The three factories admit no neighboring policy function.
+
+Replacement must preserve the [managed installation contract](../0034-versioned-classification-contracts.md#managed-model-installation),
+including digest/length admission, guarded source/storage identities, bounded transfer and durable
+intent recovery. The prepared contract exposes selection paths without transferring or releasing its
+guards; publication cannot detach those resources or extend their authority to another request.
+
 ## Catalog reclamation resources
 
 `catalog_reclamation/production.rs::{maintenance,capacity}` select the existing SQLite maintenance

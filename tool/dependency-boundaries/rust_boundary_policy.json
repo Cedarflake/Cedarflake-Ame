@@ -3,34 +3,6 @@
     "R001",
     "R002",
     "R003",
-    "R027",
-    "R028",
-    "R029",
-    "R030",
-    "R031",
-    "R032",
-    "R033",
-    "R034",
-    "R035",
-    "R036",
-    "R037",
-    "R038",
-    "R039",
-    "R040",
-    "R041",
-    "R042",
-    "R043",
-    "R044",
-    "R045",
-    "R046",
-    "R047",
-    "R048",
-    "R049",
-    "R050",
-    "R051",
-    "R052",
-    "R053",
-    "R054",
     "R072",
     "R073",
     "R074",
@@ -334,6 +306,22 @@
         "rust/src/adapters/classification_vocabulary/curated/tests.rs",
         "rust/src/application/classification_discovery/tests/preparation.rs",
         "rust/src/adapters/sqlite_catalog/classification/tests/work/dispatch/maintenance.rs"
+      ]
+    },
+    "classification-installation-composition": {
+      "responsibility": "Select installation persistence, the pinned native model package and OS model storage",
+      "reason": "Three stateless factories bind Ame installation and prepared-resource contracts; configuration, recovery and publication consume those contracts.",
+      "lifetime": "Construction opens no database or model; each operation retains its transaction or verified file/namespace guards, and the application installation owner spans preparation and publication.",
+      "replacement": "Replace persistence or the model package behind these contracts while preserving durable intent generations, atomic selection, fixed artifact verification and guarded retirement before publication.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#classification-installation-resources",
+      "coverage": [
+        "rust/src/adapters/classification_installation/task/tests.rs",
+        "rust/src/adapters/classification_runtime/installation/tests.rs",
+        "rust/src/adapters/classification_runtime/installation/bundle_tests.rs",
+        "rust/src/application/classification_model_installation/tests.rs",
+        "rust/src/application/classification_model_installation/operation/tests.rs",
+        "rust/src/application/classification_configuration/tests.rs",
+        "rust/src/application/classification_desktop/tests.rs"
       ]
     }
   },
@@ -696,6 +684,36 @@
         "symbol": "crate::application::classification_runtime::production::vocabulary",
         "target": "crate::adapters::classification_vocabulary::curated::CuratedClassificationVocabulary",
         "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-installation-repository",
+      "owner": "classification-installation-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation/production.rs",
+        "symbol": "crate::application::classification_model_installation::production::installation_repository",
+        "target": "crate::adapters::classification_installation::ClassificationInstallationStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-model-package",
+      "owner": "classification-installation-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation/production.rs",
+        "symbol": "crate::application::classification_model_installation::production::model_package",
+        "target": "crate::adapters::classification_runtime::package::LocalClassificationModelPackage",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-model-storage",
+      "owner": "classification-installation-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation/production.rs",
+        "symbol": "crate::application::classification_model_installation::production::model_storage",
+        "target": "directories::ProjectDirs::from",
+        "rule": "external-engine"
       }
     }
   ]

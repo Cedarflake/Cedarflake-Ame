@@ -3,56 +3,49 @@ use std::path::Path;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 
 use crate::domain::ScanError;
+use crate::domain::classification::installation::DownloadIntent;
 
 use super::{schema::open, storage_error};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct DownloadIntent {
-    generation: i64,
-    package: String,
+pub(super) fn pending(path: &Path, package: &str) -> Result<Option<DownloadIntent>, ScanError> {
+    if !path.try_exists().map_err(storage_error)? {
+        return Ok(None);
+    }
+    read_pending(&open(path)?, package)
 }
 
-impl DownloadIntent {
-    pub fn pending(path: &Path, package: &str) -> Result<Option<Self>, ScanError> {
-        if !path.try_exists().map_err(storage_error)? {
-            return Ok(None);
-        }
-        read_pending(&open(path)?, package)
+pub(super) fn authorize(path: &Path, package: &str) -> Result<DownloadIntent, ScanError> {
+    let mut connection = open(path)?;
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(storage_error)?;
+    let pending = read_pending(&transaction, package)?;
+    if let Some(pending) = pending {
+        return Ok(pending);
     }
-
-    pub fn authorize(path: &Path, package: &str) -> Result<Self, ScanError> {
-        let mut connection = open(path)?;
-        let transaction = connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(storage_error)?;
-        let pending = read_pending(&transaction, package)?;
-        if let Some(pending) = pending {
-            return Ok(pending);
-        }
-        transaction.execute(
+    transaction.execute(
             "INSERT INTO download_intent(id, generation, package, pending) VALUES (1, 1, ?1, 1)
              ON CONFLICT(id) DO UPDATE SET generation = generation + 1, package = excluded.package, pending = 1",
             [package],
         ).map_err(storage_error)?;
-        let pending = read_pending(&transaction, package)?.ok_or_else(stale)?;
-        transaction.commit().map_err(storage_error)?;
-        Ok(pending)
-    }
+    let pending = read_pending(&transaction, package)?.ok_or_else(stale)?;
+    transaction.commit().map_err(storage_error)?;
+    Ok(pending)
+}
 
-    pub fn require_current(&self, path: &Path) -> Result<(), ScanError> {
-        if Self::pending(path, &self.package)?.as_ref() == Some(self) {
-            Ok(())
-        } else {
-            Err(stale())
-        }
-    }
-
-    pub fn cancel(&self, path: &Path) -> Result<(), ScanError> {
-        // An old operation may finish retiring after a newer explicit request was admitted.
-        let connection = open(path)?;
-        retire(&connection, self)?;
+pub(super) fn require_current(path: &Path, intent: &DownloadIntent) -> Result<(), ScanError> {
+    if pending(path, &intent.package)?.as_ref() == Some(intent) {
         Ok(())
+    } else {
+        Err(stale())
     }
+}
+
+pub(super) fn cancel(path: &Path, intent: &DownloadIntent) -> Result<(), ScanError> {
+    // An old operation may finish retiring after a newer explicit request was admitted.
+    let connection = open(path)?;
+    retire(&connection, intent)?;
+    Ok(())
 }
 
 pub(super) fn complete(connection: &Connection, intent: &DownloadIntent) -> Result<(), ScanError> {

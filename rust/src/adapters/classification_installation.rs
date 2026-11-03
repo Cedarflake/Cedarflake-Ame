@@ -4,22 +4,17 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 
 use crate::domain::ScanError;
+use crate::domain::classification::installation::{ClassificationInstallation, DownloadIntent};
+use crate::ports::classification_installation::ClassificationInstallationRepository;
 
 mod schema;
 mod task;
 use schema::open;
-pub(crate) use task::DownloadIntent;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct ClassificationInstallation {
-    pub models: PathBuf,
-    pub runtime: PathBuf,
-}
 
 pub(crate) struct ClassificationInstallationStore;
 
-impl ClassificationInstallationStore {
-    pub fn load(path: &Path) -> Result<Option<ClassificationInstallation>, ScanError> {
+impl ClassificationInstallationRepository for ClassificationInstallationStore {
+    fn load(&self, path: &Path) -> Result<Option<ClassificationInstallation>, ScanError> {
         if !path.try_exists().map_err(storage_error)? {
             return Ok(None);
         }
@@ -27,21 +22,17 @@ impl ClassificationInstallationStore {
         read_installation(&connection)
     }
 
-    pub fn save(path: &Path, installation: &ClassificationInstallation) -> Result<(), ScanError> {
+    fn save(
+        &self,
+        path: &Path,
+        installation: &ClassificationInstallation,
+    ) -> Result<(), ScanError> {
         let connection = writable_installation(path, installation)?;
         write_installation(&connection, installation)
     }
 
-    pub fn save_if_unchanged(
-        path: &Path,
-        expected: Option<&ClassificationInstallation>,
-        installation: &ClassificationInstallation,
-        cancelled: &AtomicBool,
-    ) -> Result<(), ScanError> {
-        Self::publish(path, expected, installation, None, cancelled)
-    }
-
-    pub fn publish(
+    fn publish(
+        &self,
         path: &Path,
         expected: Option<&ClassificationInstallation>,
         installation: &ClassificationInstallation,
@@ -65,6 +56,30 @@ impl ClassificationInstallationStore {
         write_installation(&transaction, installation)?;
         check_publication_cancelled(cancelled)?;
         transaction.commit().map_err(storage_error)
+    }
+
+    fn pending_download(
+        &self,
+        path: &Path,
+        package: &str,
+    ) -> Result<Option<DownloadIntent>, ScanError> {
+        task::pending(path, package)
+    }
+
+    fn authorize_download(&self, path: &Path, package: &str) -> Result<DownloadIntent, ScanError> {
+        task::authorize(path, package)
+    }
+
+    fn require_current_download(
+        &self,
+        path: &Path,
+        intent: &DownloadIntent,
+    ) -> Result<(), ScanError> {
+        task::require_current(path, intent)
+    }
+
+    fn cancel_download(&self, path: &Path, intent: &DownloadIntent) -> Result<(), ScanError> {
+        task::cancel(path, intent)
     }
 }
 

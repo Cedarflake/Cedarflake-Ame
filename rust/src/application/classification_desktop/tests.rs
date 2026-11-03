@@ -73,14 +73,15 @@ fn paused_startup_close_before_run_and_joined_shutdown_preserve_intent_without_l
         .err()
         .unwrap();
     assert_eq!(error.code, "classification_installation_missing");
-    ClassificationInstallationStore::save(
-        &installation_path(&storage),
-        &ClassificationInstallation {
-            models: directory.path().join("absent-models"),
-            runtime: directory.path().join("absent-runtime"),
-        },
-    )
-    .unwrap();
+    installation_repository()
+        .save(
+            &installation_path(&storage),
+            &ClassificationInstallation {
+                models: directory.path().join("absent-models"),
+                runtime: directory.path().join("absent-runtime"),
+            },
+        )
+        .unwrap();
     let session = open_with_storage(&storage, executable.clone())
         .unwrap()
         .unwrap();

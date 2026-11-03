@@ -5,12 +5,12 @@ mod transfer;
 use std::fs::File;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 
 use crate::adapters::local_files::PreviewCacheNamespace;
 use crate::domain::ScanError;
 use crate::domain::classification::installation::{
-    ModelInstallationPhase, ModelInstallationProgress,
+    ModelInstallationPhase, ModelInstallationProgress, check_cancelled,
 };
 
 use super::RuntimeError;
@@ -259,14 +259,6 @@ fn verify_notice(
     }
     files.push(file);
     Ok(())
-}
-
-pub(crate) fn check_cancelled(cancelled: &AtomicBool) -> Result<(), ScanError> {
-    if cancelled.load(Ordering::Acquire) {
-        Err(runtime_error(RuntimeError::Cancelled))
-    } else {
-        Ok(())
-    }
 }
 
 fn io_error(error: impl std::fmt::Display) -> ScanError {

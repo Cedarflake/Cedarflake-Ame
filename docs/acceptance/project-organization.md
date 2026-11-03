@@ -566,3 +566,29 @@ and 36 exact technical edges remain, with both frozen inventories unchanged.
 The discovery owner has 219 production lines; its runtime host has 101 plus three test declarations,
 the vocabulary port 34, its factory ten, and the curated adapter 152 plus three test declarations.
 No lifecycle policy, model data, schema, source authority or bridge change is included.
+
+## O7 Classification configuration and installation — 2026-11-03
+
+Configuration, desktop startup and model installation consume installation-persistence and
+model-package contracts. Paths and versioned download intents move to Ame domain values; three exact
+factories select persistence, the pinned package and OS storage. The prepared-resource contract keeps
+the existing file/namespace guards and staging lease until publication or disposal. Its application
+owner and runtime-retirement admission retain their order. Against `3eff021e`, 52 complete persistence,
+application, transfer and resource bodies compare identically after typed substitutions.
+
+All 53 focused checks pass: seven installation-storage, 17 native package/transfer, six application
+installation, one configuration, two desktop and 20 dependency cases. The existing managed/bundled
+fixtures now hold their native guards through the prepared contract and still reject overwrite,
+deletion and namespace replacement. The new terminal-outcome regression observes durable selection
+at resource release for success, cancellation, stale selection, active runtime and disposal; each
+releases installation ownership afterward. Migration, restart intent, bounded transfer and atomic
+publication assertions remain intact. Both builds have no warnings; leased scratch cleanup succeeds.
+No model payload download or user-library read is involved. R027–R054 retire, leaving 190 legacy
+entries and 39 exact technical edges; both frozen inventories are unchanged.
+
+The installation facade has 166 production lines plus three test declarations; its operation owner
+is unchanged at 151 plus three. Their dedicated fixtures have 132 and 110 lines. Native preparation
+has 269 production lines plus five test declarations and 348 main/bundled fixture lines. Persistence
+has 147 plus three, its intent owner 84 plus three, and their fixtures 271. New factories, repository
+port, package port and package adapter have 29, 44, 37 and 73 lines. Schema, pinned artifacts, transfer
+protocol, public bridge and classification policy are unchanged. The roadmap advances to scan/preview.

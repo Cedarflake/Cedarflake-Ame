@@ -12,6 +12,10 @@ pub(crate) mod classification_configuration;
 pub(crate) mod classification_encoder;
 pub(crate) mod classification_execution;
 pub(crate) mod classification_features;
+#[cfg(any(all(windows, feature = "classification-worker"), test))]
+pub(crate) mod classification_installation;
+#[cfg(all(windows, feature = "classification-worker"))]
+pub(crate) mod classification_model_package;
 pub(crate) mod classification_review;
 pub(crate) mod classification_setup;
 pub(crate) mod classification_source;

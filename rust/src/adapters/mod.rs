@@ -38,9 +38,7 @@ mod windows_library_change_source;
 
 pub use classification_feature_cache::SqliteClassificationFeatureCache;
 #[cfg(all(windows, feature = "classification-worker"))]
-pub(crate) use classification_installation::{
-    ClassificationInstallation, ClassificationInstallationStore, DownloadIntent,
-};
+pub(crate) use classification_installation::ClassificationInstallationStore;
 pub use classification_vocabulary::{
     CuratedClassificationVocabulary, LocalClassificationVocabulary,
 };

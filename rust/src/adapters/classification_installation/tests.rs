@@ -7,24 +7,28 @@ fn no_selection_leaves_storage_absent_and_explicit_selection_survives_reopen() {
         .path()
         .join("settings")
         .join("classification.sqlite3");
-    assert_eq!(ClassificationInstallationStore::load(&path).unwrap(), None);
+    assert_eq!(ClassificationInstallationStore.load(&path).unwrap(), None);
     assert!(!path.exists());
     let selected = ClassificationInstallation {
         models: directory.path().join("models"),
         runtime: directory.path().join("runtime"),
     };
-    ClassificationInstallationStore::save(&path, &selected).unwrap();
+    ClassificationInstallationStore
+        .save(&path, &selected)
+        .unwrap();
     assert_eq!(
-        ClassificationInstallationStore::load(&path).unwrap(),
+        ClassificationInstallationStore.load(&path).unwrap(),
         Some(selected.clone())
     );
     let replacement = ClassificationInstallation {
         models: directory.path().join("replacement"),
         ..selected
     };
-    ClassificationInstallationStore::save(&path, &replacement).unwrap();
+    ClassificationInstallationStore
+        .save(&path, &replacement)
+        .unwrap();
     assert_eq!(
-        ClassificationInstallationStore::load(&path).unwrap(),
+        ClassificationInstallationStore.load(&path).unwrap(),
         Some(replacement)
     );
 }
@@ -37,7 +41,7 @@ fn an_unknown_storage_version_is_preserved_and_rejected() {
     connection
         .execute_batch("PRAGMA user_version = 3;")
         .unwrap();
-    assert!(ClassificationInstallationStore::load(&path).is_err());
+    assert!(ClassificationInstallationStore.load(&path).is_err());
     assert_eq!(
         connection
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
@@ -63,22 +67,28 @@ fn prepared_replacement_rejects_a_later_installation_selected_by_another_connect
         ..first.clone()
     };
     let cancelled = AtomicBool::new(false);
-    ClassificationInstallationStore::save_if_unchanged(&path, None, &first, &cancelled).unwrap();
-    ClassificationInstallationStore::save(&path, &second).unwrap();
+    ClassificationInstallationStore
+        .save_if_unchanged(&path, None, &first, &cancelled)
+        .unwrap();
+    ClassificationInstallationStore
+        .save(&path, &second)
+        .unwrap();
     assert_eq!(
-        ClassificationInstallationStore::save_if_unchanged(&path, Some(&first), &third, &cancelled)
+        ClassificationInstallationStore
+            .save_if_unchanged(&path, Some(&first), &third, &cancelled)
             .unwrap_err()
             .code,
         "classification_installation_changed"
     );
     assert_eq!(
-        ClassificationInstallationStore::load(&path).unwrap(),
+        ClassificationInstallationStore.load(&path).unwrap(),
         Some(second.clone())
     );
-    ClassificationInstallationStore::save_if_unchanged(&path, Some(&second), &third, &cancelled)
+    ClassificationInstallationStore
+        .save_if_unchanged(&path, Some(&second), &third, &cancelled)
         .unwrap();
     assert_eq!(
-        ClassificationInstallationStore::load(&path).unwrap(),
+        ClassificationInstallationStore.load(&path).unwrap(),
         Some(third)
     );
 }
@@ -91,12 +101,14 @@ fn cancellation_before_database_publication_preserves_the_saved_installation() {
         models: directory.path().join("original"),
         runtime: directory.path().join("runtime"),
     };
-    ClassificationInstallationStore::save(&path, &original).unwrap();
+    ClassificationInstallationStore
+        .save(&path, &original)
+        .unwrap();
     let replacement = ClassificationInstallation {
         models: directory.path().join("replacement"),
         ..original.clone()
     };
-    let result = ClassificationInstallationStore::save_if_unchanged(
+    let result = ClassificationInstallationStore.save_if_unchanged(
         &path,
         Some(&original),
         &replacement,
@@ -104,7 +116,7 @@ fn cancellation_before_database_publication_preserves_the_saved_installation() {
     );
     assert_eq!(result.unwrap_err().code, "classification_cancelled");
     assert_eq!(
-        ClassificationInstallationStore::load(&path).unwrap(),
+        ClassificationInstallationStore.load(&path).unwrap(),
         Some(original)
     );
 }

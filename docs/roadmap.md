@@ -52,7 +52,7 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-Continue [project organization](#project-organization-after-r5) with O7's classification boundaries.
+Continue [project organization](#project-organization-after-r5) with O7's scan and preview boundaries.
 This maintenance runs on
 the authorized `codex/project-organization` branch before R6.
 PR metadata remains fixed by user direction.
@@ -71,7 +71,7 @@ the [repository layout](development/repository-layout.md) owns placement. The
 
 | Order | Remaining outcome |
 | --- | --- |
-| O7 | Catalog/storage, classification, scan/preview and continuity conformance; final exception audit and handover |
+| O7 | Scan/preview and continuity conformance; final exception audit and handover |
 
 New and materially changed modules follow the target. Do not replace the fixed legacy inventory
 with a fresh baseline; retire each exception with its owning migration. Preserve established scan,
