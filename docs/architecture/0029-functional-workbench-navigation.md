@@ -16,7 +16,7 @@ The Library workspace contains a collapsible source/folder sidebar and the exist
 Favorites is accessible only from Albums; Library contains source and folder navigation.
 Albums owns a separate flat album sidebar and uses the same photo wall.
 The other workspaces own their contextual controls without duplicating the catalog or viewer.
-The accepted interaction blueprint is in [the gallery contract](../product/gallery-ui.md#workbench-blueprint).
+The accepted interaction blueprint is in [the gallery contract](../product/gallery/workbench-and-navigation.md#workbench-blueprint).
 
 Sidebar order belongs to a separate typed application/repository boundary. Schema 58 stores one
 position per imported root and album, preserving the previous visible order on upgrade. Creation

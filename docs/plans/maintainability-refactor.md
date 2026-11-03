@@ -29,7 +29,7 @@ schedule a framework replacement, package upgrade, schema change or new product 
 
 The [repository contract](../../AGENTS.md) owns safety and delivery rules. [ADR 0025](../architecture/0025-invariant-owned-workflow-modules.md)
 owns responsibility boundaries; amend its applicable entries as boundaries are implemented.
-[Quality gates](../acceptance/quality-gates.md#required-engineering-workflow) owns verification execution.
+[Quality gates](../acceptance/quality/verification-workflow.md#required-engineering-workflow) owns verification execution.
 This plan tracks work and completion conditions without duplicating those rules.
 
 ## Current maintenance slice

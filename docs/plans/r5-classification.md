@@ -4,7 +4,7 @@ Status: execution plan; stage activation, order, blockers, and closure belong to
 
 The [roadmap sequence](../roadmap.md#r5-implementation-sequence) selects the work below.
 [R5 requirements](../product/r5-classification.md) own behavior, and the
-[gallery contract](../product/gallery-ui.md#smart-album-workflow) owns the accepted desktop interface.
+[gallery contract](../product/gallery/smart-albums.md#smart-album-workflow) owns the accepted desktop interface.
 This plan does not claim implementation, model admission, or acceptance from the interaction sketch.
 
 ## Outcome and boundaries
@@ -239,7 +239,7 @@ R4/legacy classification decisions remain intact.
 
 Before each slice, recover current decisions, inspect Git/live owners, and read the owning ADRs.
 Commit implementation, focused regressions, and necessary documentation as one reversible outcome;
-follow the [required workflow](../acceptance/quality-gates.md#required-engineering-workflow).
+follow the [required workflow](../acceptance/quality/verification-workflow.md#required-engineering-workflow).
 Do not start heavy local CI or new real-library copies merely because a planning document changed.
 
 The selected model configuration and lifecycle requirements constrain the named slices. Exact runtime

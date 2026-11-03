@@ -211,7 +211,7 @@ the scoped Rust boundaries while excluding only genuinely generated or admitted 
 
 For each migrated boundary, prove production/test assembly, adapter substitution and the affected
 success, failure, cancellation, disposal and stale-completion paths. Follow
-[quality-gate ownership](../acceptance/quality-gates.md#delivery-and-verification) for automated and
+[quality-gate ownership](../acceptance/quality/verification-workflow.md#delivery-and-verification) for automated and
 client verification. Change this decision to Accepted only after its structural and behavior gates
 have evidence for the delivered scope; code organization alone does not establish product acceptance.
 

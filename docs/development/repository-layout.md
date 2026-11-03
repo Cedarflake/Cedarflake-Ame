@@ -146,7 +146,7 @@ owners retain their accepted architecture and canonical entrypoints.
 
 Quality and acceptance scripts stay directly under `tool` because their paths are public repository
 commands indexed by `AGENTS.md` and defined in the
-[quality command reference](../acceptance/quality-gates.md#repository-command-reference).
+[quality command reference](../acceptance/quality/commands.md#repository-command-reference).
 Internal helpers may move into a
 support directory when more than one helper exists, but entrypoint paths must remain stable.
 

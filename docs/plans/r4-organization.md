@@ -5,7 +5,7 @@ Status: implementation reference; current delivery and acceptance status are own
 The [roadmap](../roadmap.md#r4-implementation-sequence) selects this sequence and owns stage status,
 priority, blockers and closure. This plan defines the work and exit conditions for each slice.
 [R4 requirements](../product/r4-organization.md) own behavior;
-[the gallery contract](../product/gallery-ui.md#review-workflow) owns the accepted desktop controls.
+[the gallery contract](../product/gallery/organization.md#review-workflow) owns the accepted desktop controls.
 Implementation was delivered on `codex/r4-organization`. Completing an internal slice does not
 expose or complete the later desktop workflow.
 
@@ -333,7 +333,7 @@ and apply the repository's branch/commit rules to the new scope. The
 transaction and upgrade-backup boundaries.
 
 Keep implementation, focused regressions and necessary documentation together for each reversible
-outcome. Use the [required engineering workflow](../acceptance/quality-gates.md#required-engineering-workflow),
+outcome. Use the [required engineering workflow](../acceptance/quality/verification-workflow.md#required-engineering-workflow),
 including hosted ownership of automated gates and scoped, serial local client verification.
 Do not add an extra full local CI prerequisite or treat UI shells as working capabilities.
 

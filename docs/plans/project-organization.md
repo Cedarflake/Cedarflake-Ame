@@ -142,7 +142,7 @@ Each slice records its affected invariant, public surface, resource lifetime, pr
 boundary. Keep functional behavior changes separate from organizational moves. A pure move retains
 existing assertions; add tests where assembly, ownership, failure or race coverage is missing.
 
-Use [quality-gate ownership](../acceptance/quality-gates.md#required-engineering-workflow): local
+Use [quality-gate ownership](../acceptance/quality/verification-workflow.md#required-engineering-workflow): local
 format/diff preparation and necessary affected-client checks, then normal hosted checks for the
 pushed commit. Use serial lock-aware local commands and the existing controlled test library.
 Do not turn directory migration into another full-library import, model evaluation or performance

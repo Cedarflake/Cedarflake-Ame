@@ -10,7 +10,7 @@ This record covers smart-album browsing and setup within R5-06, including the re
 The [integrated evidence map](r5-closeout.md) connects the current filter, automatic-analysis and
 setup boundaries to retained first-use and recovery checks. The
 [roadmap](../roadmap.md#current-execution-queue) owns stage disposition; the
-[desktop contract](../product/gallery-ui.md#smart-album-workflow) owns interaction requirements.
+[desktop contract](../product/gallery/smart-albums.md#smart-album-workflow) owns interaction requirements.
 
 ## Connected boundaries
 

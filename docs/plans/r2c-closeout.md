@@ -724,7 +724,7 @@ distinct C02 UIA assembly-loading timeout; the `82d911c` stop-deadline and mixed
 remain historical evidence. A later pass does not explain those failures, and no unchanged hosted
 rerun is admitted as a correction. Finish the concrete functional variants before returning to
 deferred attribution.
-The [worker-report boundary checkpoint](../acceptance/quality-gates.md#worker-report-preparation-boundary)
+The [worker-report boundary checkpoint](../acceptance/quality/continuity-regressions.md#worker-report-preparation-boundary)
 owns the completed tool correction and its verification; no repeat of that repair is needed.
 
 The [generated host arrival/update check](../acceptance/r2c-browsing-diagnosis.md#generated-arrival-and-ordinary-update-on-2026-10-10)

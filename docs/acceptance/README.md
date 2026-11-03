@@ -10,6 +10,7 @@ recorded local checkpoint does not establish that the current product source pas
 | --- | --- |
 | [Quality gates](quality-gates.md) | Canonical commands, workload admission, hosted/client boundaries, and authorization requirements |
 | [Project organization](project-organization.md) | Refactor baseline, boundary regressions and migrated-slice evidence |
+| [Completed maintenance](completed-maintenance.md) | Delivered outcomes, accepted limitations and post-R2c roadmap provenance |
 | [R4 organization verification](r4-organization.md) | Durable organization, migration recovery and connected desktop workflow evidence |
 | [R5 integrated delivery](r5-closeout.md) | Ordered slice coverage, current desktop boundaries, retained limits and submitted CI provenance |
 | [R5 exploratory model comparison](r5-model-evaluation.md) | Provisional local candidate comparison, source/provenance boundaries and remaining admission evidence |
@@ -63,6 +64,10 @@ Keep private catalogs/media, machine-specific roots, account labels, and raw use
 | R2c-R | [Change-driven reliability](r2c-r-change-driven-reliability.md) | Controlled Windows 11 evidence; external and final accumulated acceptance remain separate |
 
 ## Historical roadmap provenance
+
+The 2026-11-03 routing change moves completed maintenance out of the active queue. The
+[maintenance index](completed-maintenance.md) links each owning record and preserves the exact
+pre-change roadmap at `364fc2cf:docs/roadmap.md`; it does not maintain a parallel active plan.
 
 The 2026-09-09 organization removed duplicated implementation chronologies and drifting status
 snapshots from the active roadmap. The exact original remains in Git at

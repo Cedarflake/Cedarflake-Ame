@@ -10,7 +10,7 @@ Updated: 2026-10-18.
 Deliver the [R3 product contract](../product/organization-workflows.md#r3---exact-duplicate-understanding):
 identify byte-identical images, inspect every physical location, fold confirmed groups in the
 existing gallery, and preserve preferred-copy and ignore decisions across restarts and reanalysis.
-The [gallery contract](../product/gallery-ui.md#filter-and-exact-duplicate-behavior) owns the filter
+The [gallery contract](../product/gallery/header-and-controls.md#filter-and-exact-duplicate-behavior) owns the filter
 choices and the Duplicates workspace. [ADR 0029](../architecture/0029-functional-workbench-navigation.md)
 owns the function rail and collapsible Library sidebar. The roadmap alone owns stage order and closure.
 

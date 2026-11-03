@@ -328,7 +328,7 @@ defines this switch; edited-crate rebuilds may take longer. The local retained-l
 runner now leases one named scratch directory and removes its disposable profile, migration copies
 and archives on success or failure. Logs and reusable inputs remain outside that directory.
 The shared owner and its usage requirements live in
-[execution and storage safeguards](quality-gates.md#execution-scope-and-storage).
+[execution and storage safeguards](quality/execution-safety.md#execution-scope-and-storage).
 
 Focused checks cover success, action failure, invalid names, occupied files, interrupted-run
 reclamation, concurrent ownership, junction rejection and preservation of unowned directories.

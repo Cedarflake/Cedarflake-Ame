@@ -127,6 +127,6 @@ behavior or weakening the signed release chain.
 
 - [GitHub hosted Windows Server image](https://github.com/actions/runner-images/blob/main/images/windows/Windows2025-Readme.md)
 - [GitHub needs context](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#needs-context)
-- [ADR 0015: Windows distribution](./0015-windows-release-distribution.md)
-- [ADR 0024: Change-driven continuity](./0024-windows-change-driven-library-continuity.md)
-- [ADR 0025: Invariant-owned modules](./0025-invariant-owned-workflow-modules.md)
+- [ADR 0015: Windows distribution](0015-windows-release-distribution.md)
+- [ADR 0024: Change-driven continuity](0024-windows-change-driven-library-continuity.md)
+- [ADR 0025: Invariant-owned modules](0025-invariant-owned-workflow-modules.md)
