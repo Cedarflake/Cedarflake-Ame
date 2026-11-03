@@ -51,6 +51,10 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   and a fresh pass after interrupted verification. `metadata_inventory/recovery_journal` selects the
   journal or independently admitted inventory completion proof. The schema-46 owner validates that
   receipt separately from retained historical journal windows.
+  The [runtime connection contract](native-composition.md#journal-runtime-resources) owns native
+  connection/caller selection and close-error translation. The coordinator and workers consume its
+  ports; status projection and fallback admission receive only connected availability. Original
+  worker retirement, failure retention and replacement admission stay with the runtime registry.
   `recovery_lane` owns per-root retry timing and fair root rotation. Its typed selection preserves
   candidate-drain, legacy-capacity-debt and recovery-control precedence after the coordinator's
   higher-lane gate. Journal capacity debt restricts the eligible roots without admitting a new control

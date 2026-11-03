@@ -153,11 +153,13 @@ fn production_coordinator_completes_4096_real_files_across_the_default_page() {
         crate::ports::erase_library_change_source_factory(HealthyFactory),
         PersistentChangeJournalConnection::Connected(session),
     );
-    production.persistent_change_journal_caller = Some(crate::journal_broker::CallerClaim {
-        process_id: std::process::id(),
-        session_id: 1,
-        client_instance: [6; 16],
-    });
+    production
+        ._persistent_change_journal
+        .set_caller_for_test(crate::journal_broker::CallerClaim {
+            process_id: std::process::id(),
+            session_id: 1,
+            client_instance: [6; 16],
+        });
     production.runtime.queue_policy = policy;
     assert_eq!(
         production.metadata_inventory_page_entries,
@@ -559,9 +561,10 @@ fn p2_page_completion_rotates_to_another_root_and_retains_each_frontier() {
         catalog_session: WorkerCatalogSession::default(),
         poll_catalog: PollCatalogOwner::default(),
         persistent_change_journal_factory: None,
-        _persistent_change_journal: test_live_only_connection(),
+        _persistent_change_journal: crate::adapters::NativeJournalConnection::for_test(
+            test_live_only_connection(),
+        ),
         persistent_change_journal_opened: true,
-        persistent_change_journal_caller: None,
         journal: None,
         journal_status: JournalStatusOwner::default(),
         journal_lane: JournalLane::default(),

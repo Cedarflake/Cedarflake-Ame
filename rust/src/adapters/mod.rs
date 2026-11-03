@@ -14,9 +14,17 @@ mod exif_metadata;
 mod image_orientation;
 #[cfg(windows)]
 mod journal_boundary;
+#[cfg(windows)]
+mod journal_runtime;
+#[cfg(all(windows, test))]
+pub(crate) use journal_runtime::journal_runtime_factory_for_test;
+#[cfg(windows)]
+pub(crate) use journal_runtime::{NativeJournalConnection, production_journal_runtime_factory};
 mod jpeg_preview;
 #[cfg(windows)]
-pub(crate) use journal_boundary::{resume_boundary_source, session_boundary_source};
+pub(crate) use journal_boundary::resume_boundary_source;
+#[cfg(all(windows, test))]
+pub(crate) use journal_boundary::session_boundary_source;
 mod local_files;
 pub(crate) use local_files::LocalPublicationNamespaces;
 mod local_source_state;
@@ -25,8 +33,6 @@ pub(crate) use local_source_state::LocalSourceState;
 mod local_metadata_inventory;
 mod media_inspector;
 mod persistent_journal;
-#[cfg(windows)]
-pub(crate) use persistent_journal::volume_source as persistent_journal_volume_source;
 #[cfg(test)]
 pub(crate) use persistent_journal::{
     PersistentJournalBrokerRoot, SessionBackedPersistentJournalVolumeReader,

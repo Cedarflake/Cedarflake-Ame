@@ -292,9 +292,10 @@ fn startup_retires_legacy_full_scan_into_bounded_inventory_without_new_scan() {
         catalog_session: WorkerCatalogSession::default(),
         poll_catalog: PollCatalogOwner::default(),
         persistent_change_journal_factory: None,
-        _persistent_change_journal: test_live_only_connection(),
+        _persistent_change_journal: crate::adapters::NativeJournalConnection::for_test(
+            test_live_only_connection(),
+        ),
         persistent_change_journal_opened: true,
-        persistent_change_journal_caller: None,
         journal: None,
         journal_status: JournalStatusOwner::default(),
         journal_lane: JournalLane::default(),

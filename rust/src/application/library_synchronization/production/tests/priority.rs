@@ -262,11 +262,13 @@ fn run_priority_workload(
         crate::ports::erase_library_change_source_factory(source_factory.clone()),
         PersistentChangeJournalConnection::Connected(session),
     );
-    production.persistent_change_journal_caller = Some(crate::journal_broker::CallerClaim {
-        process_id: std::process::id(),
-        session_id: 1,
-        client_instance: [4; 16],
-    });
+    production
+        ._persistent_change_journal
+        .set_caller_for_test(crate::journal_broker::CallerClaim {
+            process_id: std::process::id(),
+            session_id: 1,
+            client_instance: [4; 16],
+        });
     production.runtime.queue_policy = policy;
     assert_eq!(
         production.metadata_inventory_page_entries,

@@ -304,3 +304,35 @@ Source/primary dedicated-test counts are 1,151/1,112 for the named reader, 436/7
 reader, 586/668 for application capture and 111/124 for the page worker, with no inline cases. The
 shared-ID move leaves the scan facade at 751/5,505 and incremental changes at 1,346/3,839; their
 workflow bodies remain unchanged, and the existing namespace-ID case moves to domain.
+
+## Journal runtime connection — 2026-11-04
+
+Against `1dbdb5c8`, `JournalRuntimeConnection`, `JournalRuntimeFactory` and `JournalRuntimeSession`
+separate native connection/caller admission from coordination. The generic coordinator and workers
+consume these ports; status and fallback projection consume connected availability. The adapter
+retains the same session, caller acquisition, boundary/volume sources and close-error conversion.
+The [two native bindings](../architecture/workflow-ownership/native-composition.md#journal-runtime-resources)
+replace the previous worker factories. R116 retires, leaving three fixed migration entries and
+76 exact technical edges. Frozen inventories, generated contracts and schema are unchanged.
+
+Source comparison preserves 48 coordinator bodies, the complete worker, page, registry facade,
+reader selection, source acquisition, moved identity-admission and close-error bodies, and retirement
+order. The 38 cases in modified test files retain their scenarios and assertions apart from the
+LiveOnly fixture's raw-enum inspection, which now checks unavailable connection and reader access.
+Test assembly uses the same native adapter with its original controlled sessions; no cases are added.
+Initial compilation identified two old fixture references; their imports and state checks now use
+the appropriate adapter and port boundaries.
+
+All 84 selected existing checks pass: 60 behavior cases and 24 dependency cases. Coverage includes
+watcher-before-journal startup, cached close failure, blocked/late connection, joined retirement,
+baseline publication, fallback recovery and status projection. The ordinary cross-process restart
+and paused-import fixtures pass in 3.71 and 3.49 seconds. One dependency parser case initially could
+not create its system temporary directory; it passes in leased repository scratch, while the other
+23 results remain valid. Test/production builds emit no warnings, formatting reports 794 unchanged
+files, and scratch leases retire. The retained-library timeout and final real-library client check
+remain with their existing acceptance owners.
+
+The coordinator has 1,640 source lines, including conditional helpers, and 10,605 primary dedicated-
+test lines; the worker has 359 source lines. Neither has inline cases. The native connection adapter
+has 138 source lines including test assembly, and the port has 33. Their lifecycle coverage remains
+in the existing production and runtime-registry fixtures.

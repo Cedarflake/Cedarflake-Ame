@@ -239,9 +239,9 @@ replacement changes this factory and port implementation without adding source r
 
 ## Journal boundary resources
 
-`production/journal_work::new_production_boundary_source` borrows the retained journal session and
-caller. `scan_library/resumption::new_production_resume_boundary_source` selects an independently
-owned connection. Both return `ports/journal_boundary` contracts; selection acquires no resources.
+`JournalRuntimeSession::boundary_source` borrows the retained journal session and caller inside the
+adapter. `scan_library/resumption::new_production_resume_boundary_source` selects an independently
+owned connection. Both expose `ports/journal_boundary` contracts; selection acquires no resources.
 The adapter owns root registration, request/response conversion and operation-error translation.
 
 `JournalBoundarySource::Root` retains the native root identity handle through baseline publication or
@@ -250,14 +250,36 @@ session. Resume acquisition preserves root description, caller admission and con
 `JournalBoundarySession::close` runs after verification, including a failed probe or verification,
 and its error retains precedence. Connection retirement precedes the root guard's drop.
 
-Replacement changes these two factories and their port implementations together. Preserve the same
+Replacement changes these source bindings and their port implementations together. Preserve the same
 root identity, bounded query timeout, no-recall opens, cancellation/publication checks and close
 authority. Baseline admission and scan-coverage decisions remain in application and persistence;
-this admission covers neither neighboring policy nor remaining journal-volume protocol dependencies.
+this admission covers only the independent resume factory outside the runtime binding below.
+
+## Journal runtime resources
+
+`production::new_production_synchronization` selects `production_journal_runtime_factory`;
+`ProductionSynchronization` binds its default connection type to `NativeJournalConnection`.
+The coordinator and scheduling functions are generic over `JournalRuntimeConnection`; workers
+consume `JournalRuntimeSession`. These two exact native bindings admit no neighboring native calls.
+
+The adapter retains the original connection and caller identity. Connection begins after watcher
+startup, then obtains the caller; failed identity acquisition attempts to close that connection before
+exposing LiveOnly availability. Session selection returns only an authenticated retained reader. Opening and
+closing workers borrow its boundary source, while a volume worker consumes a cloned session with
+the same caller. No worker opens another connection or gains runtime-close authority.
+
+Application retains once-only connection admission, status projection, root/volume rotation,
+cancellation, deadlines and worker joins. Close runs in its existing worker after core retirement;
+catalog retirement still precedes the close attempt and retains error precedence. The adapter maps
+close errors into the same `ScanError`; a failed or timed-out close retains the original runtime and
+prevents replacement. This boundary adds no scheduler, reconnect policy or shutdown registry.
+
+Replace the native type and factory together through these ports. Existing watcher-before-journal,
+close-failure, late-completion, baseline and cross-process recovery fixtures cover their lifetimes.
 
 ## Journal volume resources
 
-`production/journal_work::new_production_volume_source` selects the retained session and caller
+`JournalRuntimeSession::volume_source` selects the retained session and caller inside the adapter
 through `PersistentJournalVolumeSource`. Selection performs no I/O. The page worker retains each
 opaque root registration through capture and catalog publication; the adapter creates the same
 named or identity-based reader from those registrations and the catalog namespace port.
@@ -267,7 +289,7 @@ operation-error translation and trim diagnostics. Domain owns journal read-windo
 and shared deterministic identity generation. Application owns capture validation, failed-read
 budgets, cancellation, transactions and publication. Moving the reader does not move those authorities.
 
-Replacement changes this factory and the port implementation without exposing authorization DTOs
+Replacement changes this session binding and the port implementation without exposing authorization DTOs
 or raw handles to the page worker. Preserve per-root failure isolation, captured window limits,
 rename/lineage identity, namespace lookup, pending-read cancellation and borrowed-session lifetime.
 Root handles retire at the original post-publication point, before the reader releases its session.

@@ -10,7 +10,7 @@ fn unsigned_production_defers_the_journal_factory_until_after_watcher_start() {
         close_count: Arc::clone(&close_count),
         close_failures: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
     });
-    let mut production = new_production_synchronization_with_factory(
+    let mut production = new_test_synchronization_with_factory(
         crate::ports::erase_library_change_source_factory(HealthyFactory),
         factory,
     );
@@ -59,7 +59,7 @@ fn production_poll_starts_the_watcher_before_opening_the_journal_boundary() {
     let probe = OrderingProbeFactory {
         events: Arc::clone(&events),
     };
-    let mut production = new_production_synchronization_with_factory(
+    let mut production = new_test_synchronization_with_factory(
         crate::ports::erase_library_change_source_factory(probe.clone()),
         Arc::new(probe),
     );
@@ -235,11 +235,13 @@ fn one_hundred_no_change_startups_complete_the_production_observer_path_without_
             PersistentChangeJournalConnection::Connected(session),
         );
         let client_seed = u8::try_from(startup_index + 1).expect("startup client instance");
-        production.persistent_change_journal_caller = Some(crate::journal_broker::CallerClaim {
-            process_id: std::process::id(),
-            session_id: 1,
-            client_instance: [client_seed; 16],
-        });
+        production._persistent_change_journal.set_caller_for_test(
+            crate::journal_broker::CallerClaim {
+                process_id: std::process::id(),
+                session_id: 1,
+                client_instance: [client_seed; 16],
+            },
+        );
 
         let expected_queries = startup_index + 1;
         availability_poll_count = availability_poll_count.saturating_add(1);
@@ -449,10 +451,8 @@ fn broker_absence_and_mismatch_remain_live_only_without_inventory() {
         let snapshot = poll_runtime_with_storage(&mut production, &storage)
             .expect("poll LiveOnly production synchronization");
 
-        assert!(matches!(
-            &production._persistent_change_journal,
-            PersistentChangeJournalConnection::LiveOnly(actual) if *actual == reason
-        ));
+        assert!(!production._persistent_change_journal.is_connected());
+        assert!(production._persistent_change_journal.session().is_none());
         assert!(production.recovery.is_none());
         assert_eq!(snapshot.roots.len(), 1);
         assert_eq!(

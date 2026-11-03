@@ -3,9 +3,9 @@ use std::sync::Arc;
 use crate::domain::{
     LibraryChangeQueuePolicy, LibraryRootGeneration, LibrarySynchronizationSnapshot, ScanError,
 };
-use crate::journal_broker::{CallerClaim, PersistentChangeJournalConnection};
 use crate::ports::journal_baseline::JournalBaselineAdmission;
 use crate::ports::journal_recovery::JournalRecoveryRepository;
+use crate::ports::journal_runtime::{JournalRuntimeConnection, JournalRuntimeSession};
 use crate::ports::scan_admission::FirstImportReadiness;
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeReadiness,
@@ -46,15 +46,14 @@ impl JournalLane {
         }
     }
 
-    pub(super) fn select<Repository>(
+    pub(super) fn select<Repository, Connection: JournalRuntimeConnection>(
         &mut self,
         catalog: &mut Repository,
         snapshot: &LibrarySynchronizationSnapshot,
         now_unix_ms: i64,
-        connection: &PersistentChangeJournalConnection,
-        caller: Option<&CallerClaim>,
+        connection: &Connection,
         policy: LibraryChangeQueuePolicy,
-    ) -> Result<Option<JournalWork>, ScanError>
+    ) -> Result<Option<JournalWork<Connection::Session>>, ScanError>
     where
         Repository: CatalogRepository
             + IncrementalCatalogRepository
@@ -65,7 +64,7 @@ impl JournalLane {
             + JournalRecoveryRepository,
     {
         self.fallback_session
-            .prepare(catalog, now_unix_ms, policy, connection)?;
+            .prepare(catalog, now_unix_ms, policy, connection.is_connected())?;
         self.failures
             .retain_roots(|id| snapshot.roots.iter().any(|root| root.root_id == id));
         if let Some((root_id, root_generation)) =
@@ -78,11 +77,9 @@ impl JournalLane {
                 root_generation,
             }));
         }
-        let (session, caller) = match (connection, caller) {
-            (PersistentChangeJournalConnection::Connected(session), Some(caller)) => {
-                (Arc::clone(session), caller.clone())
-            }
-            (PersistentChangeJournalConnection::LiveOnly(_), _) => {
+        let session = match connection.session() {
+            Some(session) => session,
+            None if !connection.is_connected() => {
                 if let Some(work) = journal_baseline::select_opening_work(
                     catalog,
                     snapshot,
@@ -108,7 +105,6 @@ impl JournalLane {
                 work,
                 failures: Arc::clone(&self.failures),
                 session,
-                caller,
             }));
         }
 
@@ -120,7 +116,6 @@ impl JournalLane {
                 failures: Arc::clone(&self.failures),
                 work,
                 session,
-                caller,
             }));
         }
         if let Some(work) = journal_baseline::select_opening_work(
@@ -130,11 +125,7 @@ impl JournalLane {
             session.identity_source().as_deref(),
         )? {
             self.root_cursor = Some(work.root_id().to_owned());
-            return Ok(Some(JournalWork::Opening {
-                work,
-                session,
-                caller,
-            }));
+            return Ok(Some(JournalWork::Opening { work, session }));
         }
 
         if self.next_action_is_read
@@ -155,7 +146,6 @@ impl JournalLane {
                 work,
                 failures: Arc::clone(&self.failures),
                 session,
-                caller,
             }));
         }
         self.next_action_is_read = true;
@@ -168,14 +158,10 @@ impl JournalLane {
              impl LibraryChangeReadiness + IncrementalCatalogRepository + PersistentJournalRepository
          ),
         snapshot: &LibrarySynchronizationSnapshot,
-        connection: &PersistentChangeJournalConnection,
-        caller: Option<&CallerClaim>,
+        connection: &impl JournalRuntimeConnection,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<Vec<(String, LibraryRootGeneration)>, ScanError> {
-        if !self.next_action_is_read
-            || !matches!(connection, PersistentChangeJournalConnection::Connected(_))
-            || caller.is_none()
-        {
+        if !self.next_action_is_read || connection.session().is_none() {
             return Ok(Vec::new());
         }
         let Some(work) = self.next_volume(catalog, snapshot)? else {

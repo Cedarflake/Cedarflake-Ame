@@ -5,7 +5,6 @@ use crate::domain::{
     PersistentJournalCapabilityState, PersistentJournalFailure, PersistentJournalRootFailure,
     PersistentJournalRootFailureKind, ScanError,
 };
-use crate::journal_broker::PersistentChangeJournalConnection;
 use crate::ports::PersistentJournalRepository;
 use crate::ports::journal_recovery::JournalRecoveryRepository;
 
@@ -21,10 +20,10 @@ impl JournalFallbackSession {
         catalog: &mut impl JournalRecoveryRepository,
         now: i64,
         policy: LibraryChangeQueuePolicy,
-        connection: &PersistentChangeJournalConnection,
+        is_connected: bool,
     ) -> Result<(), ScanError> {
         let capabilities = catalog.load_persistent_journal_capabilities()?;
-        let disconnected = matches!(connection, PersistentChangeJournalConnection::LiveOnly(_));
+        let disconnected = !is_connected;
         self.seen.retain(|id, generation| {
             capabilities
                 .iter()

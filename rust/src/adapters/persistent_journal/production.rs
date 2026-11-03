@@ -19,11 +19,11 @@ use super::session_reader::{
 pub(crate) fn volume_source(
     session: Arc<dyn PersistentChangeJournalSession>,
     caller: CallerClaim,
-) -> impl PersistentJournalVolumeSource {
+) -> SessionVolumeSource {
     SessionVolumeSource { session, caller }
 }
 
-struct SessionVolumeSource {
+pub(crate) struct SessionVolumeSource {
     session: Arc<dyn PersistentChangeJournalSession>,
     caller: CallerClaim,
 }

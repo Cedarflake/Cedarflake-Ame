@@ -30,6 +30,8 @@ pub(crate) mod journal_baseline;
 pub(crate) mod journal_boundary;
 pub(crate) mod journal_recovery;
 #[cfg(windows)]
+pub(crate) mod journal_runtime;
+#[cfg(windows)]
 pub(crate) mod journal_volume;
 pub(crate) mod media_inspection;
 pub(crate) mod organization;

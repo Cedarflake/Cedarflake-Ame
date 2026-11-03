@@ -63,11 +63,13 @@ fn runtime(
             attempts: Arc::clone(attempts),
         })),
     );
-    runtime.persistent_change_journal_caller = Some(crate::journal_broker::CallerClaim {
-        process_id: std::process::id(),
-        session_id: 1,
-        client_instance: [22; 16],
-    });
+    runtime
+        ._persistent_change_journal
+        .set_caller_for_test(crate::journal_broker::CallerClaim {
+            process_id: std::process::id(),
+            session_id: 1,
+            client_instance: [22; 16],
+        });
     runtime
 }
 

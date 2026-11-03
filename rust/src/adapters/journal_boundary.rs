@@ -24,16 +24,16 @@ const JOURNAL_BOUNDARY_TIMEOUT_MILLIS: u32 = 10_000;
 pub(crate) fn session_boundary_source<'a>(
     session: &'a dyn PersistentChangeJournalSession,
     caller: &'a CallerClaim,
-) -> impl JournalBoundarySource + 'a {
+) -> SessionBoundarySource<'a> {
     SessionBoundarySource { session, caller }
 }
 
-struct SessionBoundarySource<'a> {
+pub(crate) struct SessionBoundarySource<'a> {
     session: &'a dyn PersistentChangeJournalSession,
     caller: &'a CallerClaim,
 }
 
-struct SessionBoundaryRoot<'a> {
+pub(crate) struct SessionBoundaryRoot<'a> {
     session: &'a dyn PersistentChangeJournalSession,
     caller: &'a CallerClaim,
     registration: ProductionPersistentJournalRoot,

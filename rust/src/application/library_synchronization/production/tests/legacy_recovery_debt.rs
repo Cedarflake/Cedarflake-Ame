@@ -279,11 +279,13 @@ fn legacy_p2_capacity_debt_allows_only_one_bounded_drain_before_p1_admission() {
         crate::ports::erase_library_change_source_factory(HealthyFactory),
         PersistentChangeJournalConnection::Connected(session),
     );
-    production.persistent_change_journal_caller = Some(crate::journal_broker::CallerClaim {
-        process_id: std::process::id(),
-        session_id: 1,
-        client_instance: [5; 16],
-    });
+    production
+        ._persistent_change_journal
+        .set_caller_for_test(crate::journal_broker::CallerClaim {
+            process_id: std::process::id(),
+            session_id: 1,
+            client_instance: [5; 16],
+        });
     production.runtime.queue_policy = policy;
 
     poll_runtime_with_storage(&mut production, &storage)
@@ -523,11 +525,13 @@ fn exactly_3584_legacy_unowned_p2_rows_release_p1_then_continue_without_loss() {
         crate::ports::erase_library_change_source_factory(HealthyFactory),
         PersistentChangeJournalConnection::Connected(session),
     );
-    production.persistent_change_journal_caller = Some(crate::journal_broker::CallerClaim {
-        process_id: std::process::id(),
-        session_id: 1,
-        client_instance: [6; 16],
-    });
+    production
+        ._persistent_change_journal
+        .set_caller_for_test(crate::journal_broker::CallerClaim {
+            process_id: std::process::id(),
+            session_id: 1,
+            client_instance: [6; 16],
+        });
     production.runtime.queue_policy = policy;
 
     poll_runtime_with_storage(&mut production, &storage).expect("P0 preempts capacity debt");
@@ -762,11 +766,13 @@ fn exactly_one_legacy_unowned_nonpath_row_runs_once_blocks_durably_and_refresh_s
             close_failures: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         })),
     );
-    production.persistent_change_journal_caller = Some(crate::journal_broker::CallerClaim {
-        process_id: std::process::id(),
-        session_id: 1,
-        client_instance: [10; 16],
-    });
+    production
+        ._persistent_change_journal
+        .set_caller_for_test(crate::journal_broker::CallerClaim {
+            process_id: std::process::id(),
+            session_id: 1,
+            client_instance: [10; 16],
+        });
     production.runtime.queue_policy = policy;
     poll_runtime_with_storage(&mut production, &storage)
         .expect("production schedules the single legacy survivor");
@@ -838,11 +844,13 @@ fn exactly_one_legacy_unowned_nonpath_row_runs_once_blocks_durably_and_refresh_s
             close_failures: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         })),
     );
-    reopened.persistent_change_journal_caller = Some(crate::journal_broker::CallerClaim {
-        process_id: std::process::id(),
-        session_id: 1,
-        client_instance: [11; 16],
-    });
+    reopened
+        ._persistent_change_journal
+        .set_caller_for_test(crate::journal_broker::CallerClaim {
+            process_id: std::process::id(),
+            session_id: 1,
+            client_instance: [11; 16],
+        });
     reopened.runtime.queue_policy = policy;
     for _ in 0..3 {
         let snapshot = poll_runtime_with_storage(&mut reopened, &storage)

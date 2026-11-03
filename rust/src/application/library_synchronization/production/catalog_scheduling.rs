@@ -2,7 +2,7 @@ use crate::ports::LibraryChangeDispatch;
 
 use super::*;
 
-impl ProductionSynchronization {
+impl<Connection: JournalRuntimeConnection> ProductionSynchronization<Connection> {
     pub(super) fn schedule_catalog_work<Repository>(
         &mut self,
         catalog: &mut Repository,

@@ -9,9 +9,9 @@ use crate::domain::{
     IncrementalLibraryChangeReport, LibraryChangeLane, LibraryChangeQueuePolicy,
     LibraryRootGeneration, ScanError,
 };
-use crate::journal_broker::{CallerClaim, PersistentChangeJournalSession};
 use crate::ports::catalog_session::{CatalogLaneSession, JournalCatalogSession};
 use crate::ports::journal_baseline::JournalBaselineAdmission;
+use crate::ports::journal_runtime::JournalRuntimeSession;
 use crate::ports::{
     IncrementalCatalogRepository, LibraryChangeDispatch, LibraryChangeReadiness,
     PersistentJournalRepository,
@@ -24,23 +24,20 @@ use super::journal_volume::JournalVolumeWork;
 pub(super) mod fallback;
 mod page;
 
-pub(super) enum JournalWork {
+pub(super) enum JournalWork<Journal: JournalRuntimeSession> {
     Opening {
         work: journal_baseline::JournalBaselineOpeningWork,
-        session: Arc<dyn PersistentChangeJournalSession>,
-        caller: CallerClaim,
+        session: Journal,
     },
     Closing {
         failures: Arc<fallback::JournalReadFailures>,
         work: journal_baseline::JournalBaselineClosingWork,
-        session: Arc<dyn PersistentChangeJournalSession>,
-        caller: CallerClaim,
+        session: Journal,
     },
     Page {
         work: JournalVolumeWork,
         failures: Arc<fallback::JournalReadFailures>,
-        session: Arc<dyn PersistentChangeJournalSession>,
-        caller: CallerClaim,
+        session: Journal,
     },
     Drain {
         root_id: String,
@@ -61,8 +58,8 @@ pub(super) struct JournalTask {
 }
 
 impl JournalTask {
-    pub(super) fn start<Session>(
-        work: JournalWork,
+    pub(super) fn start<Session, Journal: JournalRuntimeSession>(
+        work: JournalWork<Journal>,
         catalog_session: Arc<Session>,
         queue_policy: LibraryChangeQueuePolicy,
         recovery_policy: AuthoritativeRecoveryPolicy,
@@ -76,14 +73,9 @@ impl JournalTask {
             + JournalBaselineAdmission,
     {
         match work {
-            JournalWork::Opening {
+            JournalWork::Opening { work, session } => Self::start_baseline_opening(
                 work,
                 session,
-                caller,
-            } => Self::start_baseline_opening(
-                work,
-                session,
-                caller,
                 observed_unix_ms,
                 catalog_session,
                 queue_policy,
@@ -92,11 +84,9 @@ impl JournalTask {
                 failures,
                 work,
                 session,
-                caller,
             } => Self::start_baseline_closing(
                 work,
                 session,
-                caller,
                 observed_unix_ms,
                 catalog_session,
                 (failures, queue_policy),
@@ -105,12 +95,10 @@ impl JournalTask {
                 work,
                 failures,
                 session,
-                caller,
             } => Self::start_journal_page(
                 work,
                 failures,
                 session,
-                caller,
                 observed_unix_ms,
                 catalog_session,
                 queue_policy,
@@ -182,10 +170,9 @@ impl JournalTask {
         )
     }
 
-    fn start_baseline_opening<Session>(
+    fn start_baseline_opening<Session, Journal: JournalRuntimeSession>(
         work: journal_baseline::JournalBaselineOpeningWork,
-        session: Arc<dyn crate::journal_broker::PersistentChangeJournalSession>,
-        caller: crate::journal_broker::CallerClaim,
+        session: Journal,
         observed_unix_ms: i64,
         catalog_session: Arc<Session>,
         queue_policy: LibraryChangeQueuePolicy,
@@ -200,7 +187,7 @@ impl JournalTask {
         let worker = thread::Builder::new()
             .name("ame-p1-baseline-opening".to_owned())
             .spawn(move || {
-                let boundary_source = new_production_boundary_source(session.as_ref(), &caller);
+                let boundary_source = session.boundary_source();
                 let result = journal_baseline::capture_opening_boundary(
                     work,
                     &boundary_source,
@@ -225,10 +212,9 @@ impl JournalTask {
         })
     }
 
-    fn start_baseline_closing<Session>(
+    fn start_baseline_closing<Session, Journal: JournalRuntimeSession>(
         work: journal_baseline::JournalBaselineClosingWork,
-        session: Arc<dyn crate::journal_broker::PersistentChangeJournalSession>,
-        caller: crate::journal_broker::CallerClaim,
+        session: Journal,
         observed_unix_ms: i64,
         catalog_session: Arc<Session>,
         fallback: (Arc<fallback::JournalReadFailures>, LibraryChangeQueuePolicy),
@@ -244,7 +230,7 @@ impl JournalTask {
             .name("ame-p1-baseline-closing".to_owned())
             .spawn(move || {
                 let root = (work.root_id().to_owned(), work.root_generation());
-                let boundary_source = new_production_boundary_source(session.as_ref(), &caller);
+                let boundary_source = session.boundary_source();
                 let result = journal_baseline::capture_closing_boundary(
                     work,
                     &boundary_source,
@@ -278,11 +264,10 @@ impl JournalTask {
         })
     }
 
-    fn start_journal_page<Session>(
+    fn start_journal_page<Session, Journal: JournalRuntimeSession>(
         work: JournalVolumeWork,
         failures: Arc<fallback::JournalReadFailures>,
-        session: Arc<dyn crate::journal_broker::PersistentChangeJournalSession>,
-        caller: crate::journal_broker::CallerClaim,
+        session: Journal,
         observed_unix_ms: i64,
         catalog_session: Arc<Session>,
         policy: LibraryChangeQueuePolicy,
@@ -297,7 +282,7 @@ impl JournalTask {
         let worker = thread::Builder::new()
             .name("ame-p1-journal-page".to_owned())
             .spawn(move || {
-                let source = new_production_volume_source(session, caller);
+                let source = session.volume_source();
                 let result = page::run(
                     work,
                     source,
@@ -371,18 +356,4 @@ impl JournalTask {
             worker: Some(worker),
         })
     }
-}
-
-fn new_production_boundary_source<'a>(
-    session: &'a dyn PersistentChangeJournalSession,
-    caller: &'a CallerClaim,
-) -> impl crate::ports::journal_boundary::JournalBoundarySource + 'a {
-    crate::adapters::session_boundary_source(session, caller)
-}
-
-fn new_production_volume_source(
-    session: Arc<dyn PersistentChangeJournalSession>,
-    caller: CallerClaim,
-) -> impl crate::ports::journal_volume::PersistentJournalVolumeSource {
-    crate::adapters::persistent_journal_volume_source(session, caller)
 }

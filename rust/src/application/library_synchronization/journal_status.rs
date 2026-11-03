@@ -9,7 +9,6 @@ use crate::domain::{
     PersistentJournalBaselinePhase, PersistentJournalContinuityState, PersistentJournalFailure,
     ScanError,
 };
-use crate::journal_broker::PersistentChangeJournalConnection;
 use crate::ports::{MetadataInventoryRepository, PersistentJournalRepository};
 
 #[derive(Default)]
@@ -28,7 +27,7 @@ impl JournalStatusOwner {
 
     pub(super) fn project(
         &mut self,
-        connection: &PersistentChangeJournalConnection,
+        is_connected: bool,
         catalog: &(impl MetadataInventoryRepository + PersistentJournalRepository),
         snapshot: &mut LibrarySynchronizationSnapshot,
     ) -> Result<(), ScanError> {
@@ -60,18 +59,14 @@ impl JournalStatusOwner {
                 status.last_issue_code =
                     Some(crate::domain::persistent_journal::METADATA_FALLBACK_CODE.into());
             }
-            match connection {
-                PersistentChangeJournalConnection::LiveOnly(_) => {
-                    status.continuity = PersistentJournalContinuityState::LiveOnly;
-                    continue;
-                }
-                PersistentChangeJournalConnection::Connected(_) => {
-                    status.continuity = capability.map_or(
-                        PersistentJournalContinuityState::BaselineRequired,
-                        |capability| capability.continuity,
-                    );
-                }
+            if !is_connected {
+                status.continuity = PersistentJournalContinuityState::LiveOnly;
+                continue;
             }
+            status.continuity = capability.map_or(
+                PersistentJournalContinuityState::BaselineRequired,
+                |capability| capability.continuity,
+            );
             self.apply_session_progress(status);
             if status.continuity == PersistentJournalContinuityState::RecoveryRequired
                 && let Some(generation) = LibraryRootGeneration::new(status.root_generation)

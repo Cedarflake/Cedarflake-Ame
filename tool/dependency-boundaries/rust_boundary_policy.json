@@ -2,7 +2,6 @@
   "activeIds": [
     "R109",
     "R115",
-    "R116",
     "R172"
   ],
   "retainedOwners": {
@@ -258,10 +257,10 @@
       ]
     },
     "journal-boundary-composition": {
-      "responsibility": "Select retained-session and independently owned journal boundary sources through Ame contracts",
-      "reason": "Only the two named factories select the protocol adapter; baseline publication and resume verification consume typed boundaries and root leases.",
-      "lifetime": "Selection acquires no resources. Root leases survive publication or verification; borrowed sessions remain active, while independent connections close after verification and retire before the root guard.",
-      "replacement": "Replace both boundary sources through their ports while preserving root identity, timeout and error precedence, cancellation/publication authority and independently owned connection close.",
+      "responsibility": "Select an independently owned journal boundary source for scan resume",
+      "reason": "The named factory selects the protocol adapter; resume verification consumes a typed boundary and root lease.",
+      "lifetime": "Selection acquires no resources. The root lease survives verification; the independent connection closes after verification and retires before the root guard.",
+      "replacement": "Replace the resume source through its port while preserving root identity, error precedence, verification authority and connection close.",
       "decision": "docs/architecture/workflow-ownership/native-composition.md#journal-boundary-resources",
       "coverage": [
         "rust/src/adapters/journal_boundary/tests.rs",
@@ -272,16 +271,17 @@
         "rust/src/application/scan_library/resumption_tests.rs"
       ]
     },
-    "journal-volume-composition": {
-      "responsibility": "Select a retained-session volume source behind opaque registrations and PersistentJournalVolumeReader",
-      "reason": "Only the named factory selects native journal readers; the page worker owns publication and per-root failure admission through Ame contracts.",
-      "lifetime": "Selection performs no I/O. The worker retains registrations through bounded capture and publication, dropping root handles before the borrowed-session reader retires.",
-      "replacement": "Replace the source and readers through their ports while retaining root identity, fixed read windows, namespace evidence, rename lineage, cancellation and borrowed-session ownership.",
-      "decision": "docs/architecture/workflow-ownership/native-composition.md#journal-volume-resources",
+    "journal-runtime-composition": {
+      "responsibility": "Bind the production journal connection type and select its native factory",
+      "reason": "The generic coordinator consumes journal lifecycle and reader ports; the native adapter owns connection/caller admission, protocol bindings and close-error translation.",
+      "lifetime": "One connection opens after watcher startup; all readers share it. Runtime retirement retains the original close worker, failure outcome and replacement fence.",
+      "replacement": "Replace the default connection type and factory through journal runtime, boundary and volume ports without changing scheduling, publication, cancellation or joined retirement.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#journal-runtime-resources",
       "coverage": [
-        "rust/src/adapters/persistent_journal/session_reader/tests.rs",
-        "rust/src/adapters/persistent_journal/identity_reader/tests.rs",
-        "rust/src/application/library_synchronization/production/journal_work/page/tests.rs",
+        "rust/src/application/library_synchronization/production/runtime_lifecycle/tests/journal_sessions.rs",
+        "rust/src/application/library_synchronization/production/runtime_lifecycle/tests/shutdown.rs",
+        "rust/src/application/library_synchronization/production/tests/startup.rs",
+        "rust/src/application/library_synchronization/production/tests/journal_baseline.rs",
         "rust/src/application/library_synchronization/production/ordinary_journal.rs",
         "rust/src/application/library_synchronization/production/ordinary_journal/import_resumption.rs"
       ]
@@ -1019,16 +1019,6 @@
       }
     },
     {
-      "id": "journal-retained-boundary-factory",
-      "owner": "journal-boundary-composition",
-      "dependency": {
-        "source": "rust/src/application/library_synchronization/production/journal_work.rs",
-        "symbol": "crate::application::library_synchronization::production::journal_work::new_production_boundary_source",
-        "target": "crate::adapters::journal_boundary::session_boundary_source",
-        "rule": "concrete-adapter"
-      }
-    },
-    {
       "id": "scan-resume-boundary-factory",
       "owner": "journal-boundary-composition",
       "dependency": {
@@ -1039,12 +1029,22 @@
       }
     },
     {
-      "id": "journal-volume-source-factory",
-      "owner": "journal-volume-composition",
+      "id": "journal-runtime-connection-type",
+      "owner": "journal-runtime-composition",
       "dependency": {
-        "source": "rust/src/application/library_synchronization/production/journal_work.rs",
-        "symbol": "crate::application::library_synchronization::production::journal_work::new_production_volume_source",
-        "target": "crate::adapters::persistent_journal::production::volume_source",
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::ProductionSynchronization",
+        "target": "crate::adapters::journal_runtime::NativeJournalConnection",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "journal-runtime-factory",
+      "owner": "journal-runtime-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::new_production_synchronization",
+        "target": "crate::adapters::journal_runtime::production_journal_runtime_factory",
         "rule": "concrete-adapter"
       }
     }

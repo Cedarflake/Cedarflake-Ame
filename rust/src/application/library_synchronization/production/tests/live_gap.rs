@@ -730,11 +730,13 @@ fn production_continuous_journal_range_owns_and_consumes_live_gap_before_superse
         factory.clone(),
         PersistentChangeJournalConnection::Connected(session),
     );
-    production.persistent_change_journal_caller = Some(crate::journal_broker::CallerClaim {
-        process_id: std::process::id(),
-        session_id: 1,
-        client_instance: [17; 16],
-    });
+    production
+        ._persistent_change_journal
+        .set_caller_for_test(crate::journal_broker::CallerClaim {
+            process_id: std::process::id(),
+            session_id: 1,
+            client_instance: [17; 16],
+        });
     let initial_deadline = Instant::now() + Duration::from_secs(3);
     loop {
         poll_runtime_with_storage(&mut production, &fixture.storage)

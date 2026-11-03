@@ -180,7 +180,7 @@ fn blocked_broker_connect_cannot_hold_the_registry_or_install_a_late_session() {
     let connect_release = Arc::new(AtomicBool::new(false));
     let connect_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let close_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-    let runtime = new_production_synchronization_with_factory(
+    let runtime = new_test_synchronization_with_factory(
         crate::ports::erase_library_change_source_factory(HealthyFactory),
         Arc::new(BlockingJournalFactory {
             connect_entered: Arc::clone(&connect_entered),

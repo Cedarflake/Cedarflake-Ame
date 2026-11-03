@@ -59,11 +59,13 @@ fn production_baseline_brackets_inventory_and_publishes_current_atomically() {
         crate::ports::erase_library_change_source_factory(HealthyFactory),
         PersistentChangeJournalConnection::Connected(session),
     );
-    production.persistent_change_journal_caller = Some(crate::journal_broker::CallerClaim {
-        process_id: std::process::id(),
-        session_id: 1,
-        client_instance: [8; 16],
-    });
+    production
+        ._persistent_change_journal
+        .set_caller_for_test(crate::journal_broker::CallerClaim {
+            process_id: std::process::id(),
+            session_id: 1,
+            client_instance: [8; 16],
+        });
 
     let mut saw_active_baseline = false;
     let mut completed = false;
@@ -180,11 +182,13 @@ fn production_baseline_replays_changes_during_inventory_before_publishing_curren
         crate::ports::erase_library_change_source_factory(HealthyFactory),
         PersistentChangeJournalConnection::Connected(session),
     );
-    production.persistent_change_journal_caller = Some(crate::journal_broker::CallerClaim {
-        process_id: std::process::id(),
-        session_id: 1,
-        client_instance: [5; 16],
-    });
+    production
+        ._persistent_change_journal
+        .set_caller_for_test(crate::journal_broker::CallerClaim {
+            process_id: std::process::id(),
+            session_id: 1,
+            client_instance: [5; 16],
+        });
 
     let mut saw_catching_up = false;
     let mut completed = false;
