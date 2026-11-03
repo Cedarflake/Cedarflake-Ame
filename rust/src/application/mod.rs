@@ -75,7 +75,6 @@ pub(crate) use incremental_library_changes::process_ready_library_changes_in_lan
 pub(crate) use incremental_library_changes::process_ready_library_changes_in_lane_cancellable;
 pub(crate) use incremental_library_changes::process_ready_metadata_inventory_recovery_candidates_cancellable;
 pub(crate) use incremental_library_changes::process_ready_unowned_recovery_paths_cancellable;
-pub(crate) use library_change_observer::LibraryChangeObserver;
 pub use library_change_queue::enqueue_library_change_plan;
 pub use load_catalog::{
     load_catalog, load_catalog_around_asset, load_catalog_around_location,

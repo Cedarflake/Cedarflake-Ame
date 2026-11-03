@@ -434,3 +434,31 @@ coverage has 549 dedicated lines. The catalog facade falls to 3,167 source lines
 dedicated-test lines; the session host has 373 source and 352 dedicated-test lines. Neither has inline
 cases. Classification query contracts, complete dependency audit, test consolidation and final
 real-library verification remain in the current roadmap queue.
+
+## Root facades and native entrypoints — 2026-11-04
+
+Against `90253158`, the dependency loader now reads all three Cargo binary targets, including
+feature-gated targets, and resolves their library aliases separately from their own crate paths.
+Root facades follow application rules; the classification worker follows native adapter rules.
+Existing rejecting fixtures cover a resolved application/native cycle, root-level construction,
+binary re-exports and a feature-gated binary outside the conventional `src/bin` directory.
+
+The unused `WindowsLibraryChangeObserver` wrapper, application re-export and synchronous stop
+convenience method retire. Repository-wide references identify no production caller of the wrapper;
+the real synchronization owner retains its existing `request_stop`/`finish_stop_until` lifecycle.
+The three classification constructors still consumed by repository tools retain their public names
+and receive exact technical registrations. Migration entries stay at zero; retained edges rise from
+77 to 80 without changing either frozen inventory.
+
+All 27 selected existing checks pass: 24 dependency checks and three observer/facade cases. The latter
+retain bounded shutdown, idempotent retirement and portable planning assertions; no test is added.
+The initial gate run exposed visibility-scope paths being treated as dependencies. The visitor now
+skips visibility syntax while still rejecting a whole-crate re-export from ports. Removal also
+exposed three unused-item warnings; their obsolete owners retire, and final compilation is warning-free.
+The final gate takes 23.96 seconds, the three behavior cases 0.50 seconds, and leased scratch retires.
+
+The loader, resolver, reference walker and rule classifier have 240/282/261/82 verification-source
+lines, with 444 parser-fixture lines. The observer has 564 production lines, 23 inline test-support
+lines and 804 dedicated-test lines; its production lifecycle bodies are unchanged. Inferred-call
+classification, the complete cycle audit, test consolidation and real-library verification remain
+in the roadmap queue, including the retained-import pause timeout.

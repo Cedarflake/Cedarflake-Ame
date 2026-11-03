@@ -1,6 +1,20 @@
 {
   "activeIds": [],
   "retainedOwners": {
+    "classification-tool-exports": {
+      "responsibility": "Expose the three native vocabulary and feature-cache constructors used by repository tools",
+      "reason": "Existing classification probe and cache-export entrypoints select these concrete implementations; alias resolution still identifies them as adapters for all consumers.",
+      "lifetime": "The facade only re-exports names. Each tool owns its opened vocabulary or cache and retains the implementation's existing read and close behavior.",
+      "replacement": "Replace the three tool constructors and their adapter contract implementations together while preserving public tool entrypoints and port results.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#native-tool-entrypoints",
+      "coverage": [
+        "rust/examples/classification_cache_export.rs",
+        "rust/examples/classification_worker_probe/discovery/context_vocabulary.rs",
+        "rust/src/adapters/classification_feature_cache/tests.rs",
+        "rust/src/adapters/classification_vocabulary/tests.rs",
+        "rust/src/adapters/classification_vocabulary/curated/tests.rs"
+      ]
+    },
     "duplicate-native-readers": {
       "responsibility": "Construct the admitted fingerprint reader and metadata-only source-state probe",
       "reason": "The factories select native implementations behind Ame ports; availability and analysis policy stay in application owners.",
@@ -298,6 +312,36 @@
     }
   },
   "retained": [
+    {
+      "id": "classification-tool-curated-vocabulary",
+      "owner": "classification-tool-exports",
+      "dependency": {
+        "source": "rust/src/classification.rs",
+        "symbol": "crate::classification::export::CuratedClassificationVocabulary",
+        "target": "crate::adapters::classification_vocabulary::curated::CuratedClassificationVocabulary",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-tool-local-vocabulary",
+      "owner": "classification-tool-exports",
+      "dependency": {
+        "source": "rust/src/classification.rs",
+        "symbol": "crate::classification::export::LocalClassificationVocabulary",
+        "target": "crate::adapters::classification_vocabulary::LocalClassificationVocabulary",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-tool-feature-cache",
+      "owner": "classification-tool-exports",
+      "dependency": {
+        "source": "rust/src/classification.rs",
+        "symbol": "crate::classification::export::SqliteClassificationFeatureCache",
+        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "rule": "concrete-adapter"
+      }
+    },
     {
       "id": "duplicate-review-catalog",
       "owner": "organization-catalog-composition",

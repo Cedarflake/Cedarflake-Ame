@@ -49,8 +49,27 @@ pub fn import_bindings(namespace: &str, tree: &UseTree) -> Vec<(String, String)>
     flatten(Vec::new(), tree, &mut result);
     result
         .into_iter()
-        .map(|(alias, path)| (alias, anchor(namespace, &path)))
+        .map(|(alias, path)| (alias, source_path(namespace, &path)))
         .collect()
+}
+
+fn source_path(namespace: &str, path: &str) -> String {
+    if let Some(binary) = namespace.strip_prefix("binary::") {
+        if let Some(tail) = path.strip_prefix("rust_lib_cedarflake_ame::") {
+            return format!("crate::{tail}");
+        }
+        if path == "rust_lib_cedarflake_ame" {
+            return "crate".to_owned();
+        }
+        let root = binary.split("::").next().expect("binary crate name");
+        if let Some(tail) = path.strip_prefix("crate::") {
+            return format!("binary::{root}::{tail}");
+        }
+        if path == "crate" {
+            return format!("binary::{root}");
+        }
+    }
+    anchor(namespace, path)
 }
 
 fn anchor(namespace: &str, path: &str) -> String {
@@ -66,7 +85,12 @@ fn anchor(namespace: &str, path: &str) -> String {
     }
     while parts.peek() == Some(&"super") {
         parts.next();
-        assert!(base.len() > 1, "super escaped the crate root");
+        let root_depth = if namespace.starts_with("binary::") {
+            2
+        } else {
+            1
+        };
+        assert!(base.len() > root_depth, "super escaped the crate root");
         base.pop();
     }
     base.extend(parts);
@@ -129,8 +153,20 @@ impl Names {
         path: &str,
         locals: &BTreeMap<String, String>,
     ) -> BTreeSet<String> {
-        let anchored = anchor(namespace, path);
-        let (first, suffix) = anchored.split_once("::").unwrap_or((&anchored, ""));
+        self.resolve_anchored(namespace, &source_path(namespace, path), locals)
+    }
+
+    pub fn resolve_export(&self, namespace: &str, target: &str) -> BTreeSet<String> {
+        self.resolve_anchored(namespace, target, &BTreeMap::new())
+    }
+
+    fn resolve_anchored(
+        &self,
+        namespace: &str,
+        anchored: &str,
+        locals: &BTreeMap<String, String>,
+    ) -> BTreeSet<String> {
+        let (first, suffix) = anchored.split_once("::").unwrap_or((anchored, ""));
         let tail = if suffix.is_empty() {
             String::new()
         } else {
@@ -163,7 +199,7 @@ impl Names {
                 return from_globs;
             }
         }
-        self.expand(namespace, &anchored, &mut BTreeSet::new())
+        self.expand(namespace, anchored, &mut BTreeSet::new())
     }
 
     fn known(&self, path: &str) -> bool {

@@ -213,8 +213,12 @@ fn external_crate_exports_are_distinct_from_ordinary_variable_names() {
 fn domain_ports_and_bridge_accept_only_their_direction() {
     let modules = fixture(
         r#"
-        mod domain { pub struct Value; fn bad() { std::fs::read("x"); } }
-        mod ports { trait Port { fn value() -> crate::domain::Value; } fn bad() { crate::application::run(); } }
+        mod domain { pub(crate) struct Value; fn bad() { std::fs::read("x"); } }
+        mod ports {
+            trait Port { fn value() -> crate::domain::Value; }
+            fn bad() { crate::application::run(); }
+            pub use crate as root;
+        }
         mod application { pub fn run() {} }
         mod api { fn good() { crate::application::run(); } fn bad() { rusqlite::Connection::open("x"); } }
     "#,
@@ -223,9 +227,22 @@ fn domain_ports_and_bridge_accept_only_their_direction() {
         .into_iter()
         .map(|dependency| dependency.rule)
         .collect::<Vec<_>>();
-    assert_eq!(rules, ["external-engine", "platform-io", "outward-layer"]);
+    assert_eq!(
+        rules,
+        [
+            "external-engine",
+            "platform-io",
+            "outward-layer",
+            "outward-layer"
+        ]
+    );
 
-    for native in ["adapters", "journal_broker", "windows_usn"] {
+    for native in [
+        "adapters",
+        "journal_broker",
+        "windows_usn",
+        "classification_worker",
+    ] {
         let source = r#"
             mod native_boundary { pub const VERSION: u16 = 5; }
             mod facade { pub use crate::native_boundary::VERSION as Current; }
@@ -236,12 +253,15 @@ fn domain_ports_and_bridge_accept_only_their_direction() {
         "#;
         let dependencies =
             collect_dependencies(&fixture(&source.replace("native_boundary", native)));
-        assert_eq!(dependencies.len(), 4, "{native}");
+        assert_eq!(dependencies.len(), 5, "{native}");
         for dependency in dependencies {
             assert_eq!(dependency.target, format!("crate::{native}::VERSION"));
             assert_eq!(
                 dependency.rule,
-                if dependency.symbol == "crate::application::bad" {
+                if matches!(
+                    dependency.symbol.as_str(),
+                    "crate::application::bad" | "crate::facade::export::Current"
+                ) {
                     "concrete-adapter"
                 } else {
                     "outward-layer"
@@ -269,7 +289,12 @@ fn adapters_can_implement_ports_and_use_domain_rules_and_external_engines() {
             }
         }
     "#;
-    for native in ["adapters", "journal_broker", "windows_usn"] {
+    for native in [
+        "adapters",
+        "journal_broker",
+        "windows_usn",
+        "classification_worker",
+    ] {
         let modules = fixture(&source.replace("native_boundary", native));
         assert!(collect_dependencies(&modules).is_empty(), "{native}");
     }
@@ -284,7 +309,12 @@ fn adapters_cannot_reach_application_policy_through_aliases_or_reexports() {
             mod database { use super::imports::shared as check; fn write() { check(); } }
         }
     "#;
-    for native in ["adapters", "journal_broker", "windows_usn"] {
+    for native in [
+        "adapters",
+        "journal_broker",
+        "windows_usn",
+        "classification_worker",
+    ] {
         let modules = fixture(&source.replace("native_boundary", native));
         let dependencies = collect_dependencies(&modules);
         assert_eq!(dependencies.len(), 2, "{native}");
@@ -324,16 +354,36 @@ fn conditional_adapters_cannot_depend_on_application_or_bridge_entrypoints() {
 }
 
 #[test]
-fn production_loading_resolves_reverse_dependencies_through_root_facades() {
+fn production_loading_checks_root_facades_and_binary_crates() {
     let repository = tempfile::tempdir().unwrap();
     let source = repository.path().join("rust/src");
     std::fs::create_dir_all(&source).unwrap();
+    std::fs::create_dir(source.join("tools")).unwrap();
+    std::fs::write(
+        source.parent().unwrap().join("Cargo.toml"),
+        r#"
+        [package]
+        name = "rust_lib_cedarflake_ame"
+        version = "0.1.0"
+        edition = "2024"
+        [features]
+        worker = []
+        [[bin]]
+        name = "native_worker"
+        path = "src/tools/worker.rs"
+        required-features = ["worker"]
+    "#,
+    )
+    .unwrap();
     for (file, content) in [
         (
             "lib.rs",
-            "mod application; mod adapters; mod classification; mod frb_generated;",
+            "mod application; mod adapters; mod classification; mod frb_generated; fn open() { crate::adapters::write(); }",
         ),
-        ("application.rs", "pub fn validate() {}"),
+        (
+            "application.rs",
+            "pub fn validate() { crate::adapters::write(); }",
+        ),
         (
             "classification.rs",
             "pub use crate::application::validate as shared;",
@@ -342,15 +392,53 @@ fn production_loading_resolves_reverse_dependencies_through_root_facades() {
             "adapters.rs",
             "fn write() { crate::classification::shared(); }",
         ),
+        (
+            "tools/worker.rs",
+            r#"
+                use rust_lib_cedarflake_ame::classification::shared as Check;
+                pub use rust_lib_cedarflake_ame::classification::shared as PublicCheck;
+                mod local;
+                fn main() { crate::local::run(); Check(); }
+            "#,
+        ),
+        ("tools/local.rs", "pub fn run() {}"),
     ] {
         std::fs::write(source.join(file), content).unwrap();
     }
     let modules = super::dependency_boundaries::load_modules(repository.path());
-    assert!(modules.contains_key("crate::classification"));
+    assert!(modules.contains_key("binary::native_worker::local"));
     let dependencies = collect_dependencies(&modules);
-    assert_eq!(dependencies.len(), 1);
-    let dependency = dependencies.first().unwrap();
-    assert_eq!(dependency.symbol, "crate::adapters::write");
-    assert_eq!(dependency.target, "crate::application::validate");
-    assert_eq!(dependency.rule, "outward-layer");
+    assert_eq!(dependencies.len(), 5);
+    for (symbol, target, rule) in [
+        ("crate::open", "crate::adapters::write", "concrete-adapter"),
+        (
+            "crate::application::validate",
+            "crate::adapters::write",
+            "concrete-adapter",
+        ),
+        (
+            "crate::adapters::write",
+            "crate::application::validate",
+            "outward-layer",
+        ),
+        (
+            "binary::native_worker::export::PublicCheck",
+            "crate::application::validate",
+            "outward-layer",
+        ),
+        (
+            "binary::native_worker::main",
+            "crate::application::validate",
+            "outward-layer",
+        ),
+    ] {
+        assert!(
+            dependencies.iter().any(|dependency| {
+                dependency.symbol == symbol
+                    && dependency.target == target
+                    && dependency.rule == rule
+            }),
+            "missing {symbol} -> {target} ({rule})"
+        );
+    }
 }

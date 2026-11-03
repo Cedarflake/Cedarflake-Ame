@@ -52,9 +52,10 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-Continue [project organization](#project-organization-after-r5) with O7's complete Rust dependency
-audit, including root facades, aliases, re-exports, inferred calls and cross-layer cycles beyond the
-fixed inventory.
+Continue [project organization](#project-organization-after-r5) with O7's remaining inferred-call
+and cross-layer cycle audit. Root facades and Cargo binary entrypoints now share the dependency gate;
+their [coverage](acceptance/project-organization-continuity.md#root-facades-and-native-entrypoints--2026-11-04)
+extends beyond the fixed inventory.
 Follow with test consolidation and real-library client verification.
 This maintenance runs on
 the authorized `codex/project-organization` branch before R6.

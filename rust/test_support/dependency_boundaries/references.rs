@@ -54,13 +54,15 @@ struct Collector<'a> {
 }
 
 impl Collector<'_> {
-    fn record(&mut self, path: &str, is_module_reference: bool) {
-        for target in self
-            .names
-            .resolve(&self.module.namespace, path, &self.locals)
-        {
-            if let Some(rule) = forbidden_rule(&self.module.namespace, &target, is_module_reference)
-            {
+    fn record(&mut self, path: &str, is_export: bool) {
+        let targets = if is_export {
+            self.names.resolve_export(&self.module.namespace, path)
+        } else {
+            self.names
+                .resolve(&self.module.namespace, path, &self.locals)
+        };
+        for target in targets {
+            if let Some(rule) = forbidden_rule(&self.module.namespace, &target, is_export) {
                 self.dependencies.insert(Dependency {
                     source: self.module.source.clone(),
                     symbol: self.symbol.clone(),
@@ -224,6 +226,9 @@ impl<'ast> Visit<'ast> for Collector<'_> {
             visit::visit_expr_if(self, value);
         }
     }
+
+    // Visibility paths name a scope, not a used contract.
+    fn visit_visibility(&mut self, _: &'ast Visibility) {}
 
     fn visit_path(&mut self, path: &'ast Path) {
         let path_text = path

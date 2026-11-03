@@ -1,7 +1,16 @@
 pub(super) fn layer(namespace: &str) -> Option<&str> {
+    if namespace.starts_with("binary::") {
+        return Some("adapters");
+    }
+    if namespace == "crate" {
+        return Some("application");
+    }
     match namespace.strip_prefix("crate::")?.split("::").next()? {
-        "journal_broker" | "windows_usn" => Some("adapters"),
-        layer => Some(layer),
+        "journal_broker" | "windows_usn" | "classification_worker" => Some("adapters"),
+        layer @ ("domain" | "ports" | "application" | "api" | "adapters" | "frb_generated") => {
+            Some(layer)
+        }
+        _ => Some("application"),
     }
 }
 

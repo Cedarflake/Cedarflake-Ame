@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
+use serde::Deserialize;
 use syn::parse::Parser;
 use syn::punctuated::Punctuated;
 use syn::{Attribute, Item, Meta, Token};
@@ -73,8 +75,66 @@ pub fn load_modules(repository: &Path) -> BTreeMap<String, Module> {
         repository,
         modules: BTreeMap::new(),
     };
-    loader.load_file(&repository.join("rust/src/lib.rs"), "crate".to_owned());
+    loader.load_file(
+        &repository.join("rust/src/lib.rs"),
+        "crate".to_owned(),
+        true,
+    );
+    for target in binary_targets(repository) {
+        loader.load_file(&target.src_path, format!("binary::{}", target.name), true);
+    }
     loader.modules
+}
+
+#[derive(Deserialize)]
+struct CargoMetadata {
+    packages: Vec<CargoPackage>,
+}
+
+#[derive(Deserialize)]
+struct CargoPackage {
+    manifest_path: PathBuf,
+    targets: Vec<CargoTarget>,
+}
+
+#[derive(Deserialize)]
+struct CargoTarget {
+    name: String,
+    kind: Vec<String>,
+    src_path: PathBuf,
+}
+
+fn binary_targets(repository: &Path) -> Vec<CargoTarget> {
+    let manifest = repository.join("rust/Cargo.toml");
+    let output = Command::new(env!("CARGO"))
+        .args([
+            "metadata",
+            "--no-deps",
+            "--locked",
+            "--offline",
+            "--format-version",
+            "1",
+            "--manifest-path",
+        ])
+        .arg(&manifest)
+        .output()
+        .expect("read Cargo entrypoints");
+    assert!(
+        output.status.success(),
+        "Cargo entrypoints: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let metadata: CargoMetadata =
+        serde_json::from_slice(&output.stdout).expect("parse Cargo entrypoints");
+    metadata
+        .packages
+        .into_iter()
+        .find(|package| package.manifest_path == manifest)
+        .expect("owned Cargo package")
+        .targets
+        .into_iter()
+        .filter(|target| target.kind.iter().any(|kind| kind == "bin"))
+        .collect()
 }
 
 struct Loader<'a> {
@@ -83,14 +143,15 @@ struct Loader<'a> {
 }
 
 impl Loader<'_> {
-    fn load_file(&mut self, path: &Path, namespace: String) {
+    fn load_file(&mut self, path: &Path, namespace: String, crate_root: bool) {
         let text = std::fs::read_to_string(path).expect("read owned Rust source as UTF-8");
         let ast = syn::parse_file(&text).expect("parse owned Rust source");
         let parent = path.parent().expect("source parent");
-        let directory = if matches!(
-            path.file_name().and_then(|name| name.to_str()),
-            Some("lib.rs" | "mod.rs")
-        ) {
+        let directory = if crate_root
+            || matches!(
+                path.file_name().and_then(|name| name.to_str()),
+                Some("lib.rs" | "mod.rs")
+            ) {
             parent.to_owned()
         } else {
             path.with_extension("")
@@ -167,7 +228,7 @@ impl Loader<'_> {
                     nested_directory.join("mod.rs")
                 }
             };
-            self.load_file(&path, namespace);
+            self.load_file(&path, namespace, false);
         }
         assert!(
             self.modules

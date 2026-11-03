@@ -8,6 +8,24 @@ source/symbol/target edges and regression owners live in
 Retained entries are technical composition boundaries; `activeIds` remain unfinished migration.
 Both kinds reject new or stale dependencies. The fixed legacy inventory is never regenerated.
 
+## Native tool entrypoints
+
+The classification facade retains three exact native exports for repository tools:
+`CuratedClassificationVocabulary`, `LocalClassificationVocabulary` and
+`SqliteClassificationFeatureCache`. The classification probe owns vocabulary/cache construction;
+the cache-export tool owns its cache connection. These exports allocate no resource or process and
+preserve existing public tool paths. Replacement changes those constructors and their port
+implementations together, retaining vocabulary admission, bounded cache reads and caller retirement.
+Their adapter contract tests remain the behavior owners. No neighboring export or facade function
+inherits this admission; application consumers resolve these aliases to their native definitions.
+
+`classification_worker` exposes native worker contracts; the worker and journal binaries delegate
+to their existing adapter process entrypoints. The boundary loader reads every Cargo binary target,
+including feature-gated targets, and distinguishes a binary's own `crate::` paths from the library's
+public aliases. Native entrypoints cannot call back into application or bridge policy. The existing
+production synchronization owner retains observation startup and shutdown; no separate public
+observer wrapper selects another factory.
+
 ## Validated catalog session
 
 `catalog_session.rs` is the application resource host for validated catalog sessions. Its registered
