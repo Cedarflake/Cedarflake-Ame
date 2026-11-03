@@ -102,6 +102,7 @@ const _presentationPackages = {
 
 // ADR 0012 and ADR 0037 retain these Ame-owned desktop contracts at their platform boundary.
 const _windowContracts = {
+  "lib/app/window/ame_runtime_platform.dart": {ModuleLayer.presentation},
   "lib/app/window/ame_window_chrome.dart": {ModuleLayer.presentation},
   "lib/app/window/ame_window_fullscreen.dart": {ModuleLayer.presentation},
   "lib/app/window/ame_window_placement.dart": {

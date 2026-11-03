@@ -3,15 +3,15 @@ import "dart:convert";
 import "dart:io";
 
 import "package:cedarflake_ame/app/ame_app.dart";
-import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_catalog.dart";
-import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_scanner.dart";
+import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/unified_library_screen.dart";
+import "package:cedarflake_ame/features/library/presentation/pages/unified_library_screen.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";

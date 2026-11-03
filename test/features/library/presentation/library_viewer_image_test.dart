@@ -3,11 +3,12 @@ import "dart:io";
 import "dart:typed_data";
 import "dart:ui" as ui;
 
+import "package:cedarflake_ame/features/library/adapters/platform/library_preview_image.dart";
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
-import "package:cedarflake_ame/features/library/presentation/library_viewer_source_state.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/library_viewer_source_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_notice.dart";
@@ -351,6 +352,7 @@ Widget _viewer(
 }) => MaterialApp(
   home: Scaffold(
     body: LibraryViewerImage(
+      previewImages: createLibraryPreviewImage,
       asset: asset,
       sourceReadScheduler: _sourceScheduler,
       sourceBufferLoader: bufferLoader,

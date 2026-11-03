@@ -7,17 +7,16 @@ import "package:cedarflake_ame/features/library/application/library_exact_analys
 import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
+import "package:cedarflake_ame/features/library/presentation/pages/library_exact_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_review_cards.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_review_grid.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_message.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "support/duplicate_review_fixtures.dart";
-
 import "support/application_test_bindings.dart";
+import "support/duplicate_review_fixtures.dart";
 
 void main() {
   for (final width in [400.0, 800.0, 1200.0, 1280.0]) {

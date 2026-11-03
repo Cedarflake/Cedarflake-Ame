@@ -7,6 +7,7 @@ import "package:cedarflake_ame/app/bootstrap/library_scan_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/library_synchronization_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/settings_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/storage_bindings.dart";
+import "package:cedarflake_ame/app/bootstrap/workbench_presentation_bindings.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_lifecycle.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
@@ -35,6 +36,7 @@ List<Override> applicationTestOverrides([List<Override> overrides = const []]) {
       initialPreferences: const AmePreferences(),
     ),
     ...storageBindings(),
+    ...workbenchPresentationBindings(),
     ...LibraryReadBindings.production().overrides,
     ...libraryScanBindings(),
     ...LibrarySynchronizationBindings(InertLibrarySynchronization()).overrides,

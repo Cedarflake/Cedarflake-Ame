@@ -1,5 +1,6 @@
 import "package:flutter_riverpod/misc.dart";
 
+import "../../features/library/adapters/platform/library_preview_image.dart";
 import "../../features/library/adapters/rust/rust_library_catalog.dart";
 import "../../features/library/adapters/rust/rust_library_layout_manifest_catalog.dart";
 import "../../features/library/adapters/rust/rust_library_previewer.dart";
@@ -13,6 +14,7 @@ import "../../features/library/application/ports/library_catalog.dart";
 import "../../features/library/application/ports/library_foreground_read_activity.dart";
 import "../../features/library/application/ports/library_previewer.dart";
 import "../../features/library/application/ports/library_source_reader.dart";
+import "../../features/library/presentation/library_preview_images.dart";
 
 class LibraryReadBindings {
   LibraryReadBindings.production({
@@ -39,6 +41,7 @@ class LibraryReadBindings {
     ),
     libraryPreviewerProvider.overrideWithValue(_previewer),
     librarySourceReaderProvider.overrideWithValue(_sourceReader),
+    libraryPreviewImagesProvider.overrideWithValue(createLibraryPreviewImage),
   ];
 }
 
@@ -48,4 +51,5 @@ final libraryReadRequirements = <ProviderListenable<Object?>>[
   libraryGalleryLayoutManifestCatalogProvider,
   libraryPreviewerProvider,
   librarySourceReaderProvider,
+  libraryPreviewImagesProvider,
 ];

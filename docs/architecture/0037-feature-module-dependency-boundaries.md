@@ -144,6 +144,13 @@ navigation destination or application contract, not that feature's internal widg
 Keep feature-specific widgets in their feature. Place a visual primitive in `lib/app/presentation`
 only when its inputs and behavior are independent of feature policy.
 
+Framework rendering and navigation capabilities use typed presentation contracts, with concrete
+selection in bootstrap. They remain separate from framework-independent application ports. The
+[workbench binding](workflow-ownership/dart-presentation-and-composition.md#workbench-destinations) and
+[preview rendering](workflow-ownership/dart-gallery-and-viewer.md#preview-image-construction) contracts
+own those boundaries. The read-only `app/window/ame_runtime_platform.dart` host fact is an admitted
+desktop contract; its conditional implementation files are private to that platform boundary.
+
 Assign a class by its responsibility rather than its `Controller`, `Service`, `Page` or `Widget`
 suffix. Moving a file does not justify moving cancellation, query-generation or source-lease
 authority to a different layer. Preserve complete lifecycle owners under ADR 0025.

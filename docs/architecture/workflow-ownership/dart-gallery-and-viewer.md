@@ -5,6 +5,17 @@ Status: binding scoped requirements under [0025-invariant-owned-workflow-modules
 Read this file when the task touches its listed workflow or owners. The parent document retains
 shared principles; the roadmap owns current delivery order and acceptance status.
 
+## Preview image construction
+
+`LibraryPreviewImages` is a presentation contract for Flutter image providers over derived preview
+paths. `LibraryReadBindings` selects the platform factory; tiles, filmstrip thumbnails and viewer
+fallbacks consume it without filesystem access. The factory preserves `FileImage` identity and
+native decoding. Existing callers retain resize keys, eviction, repair admission and image-reveal
+lifetimes. Original-image reads continue through the guarded source scheduler and leases; this
+factory neither replaces that path nor grants source-read authority.
+
+## Query and image lifetimes
+
 - `library_viewer_session.dart` owns viewer selection, navigation requests, stable-asset lookups,
   and preview demand. Closing or reopening creates a new selection identity even for the same
   asset. Old continuations, error handlers, finalizers, and post-frame callbacks cannot change the

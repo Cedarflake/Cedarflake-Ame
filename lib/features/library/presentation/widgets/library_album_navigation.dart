@@ -10,7 +10,7 @@ import "../../domain/library_sidebar_order.dart";
 import "../../application/library_sidebar_album_removal.dart";
 import "../../domain/library_gallery_collection.dart";
 import "../../domain/library_organization.dart";
-import "../library_sidebar_selection.dart";
+import "../coordination/library_sidebar_selection.dart";
 import "library_album_editor.dart";
 import "library_album_navigation_tile.dart";
 import "library_sidebar_reorder_list.dart";

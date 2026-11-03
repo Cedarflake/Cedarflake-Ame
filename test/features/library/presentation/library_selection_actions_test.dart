@@ -10,7 +10,7 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization_batch.dart";
 import "package:cedarflake_ame/features/library/domain/library_review.dart";
-import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_selection_actions.dart";
 import "package:cedarflake_ame/features/settings/domain/album_preferences.dart";
 import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";

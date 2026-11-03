@@ -17,6 +17,15 @@ classification before the root Provider container disposes its notifiers. Sessio
 installation handles retain their application lifetimes; native adapters translate failures into
 Ame values. Missing bindings fail during acquisition and release acquired lifetimes.
 
+## Workbench destinations
+
+`workbench_presentation_bindings.dart` connects the library's Settings destination and record-feedback
+slots to their owning Settings surfaces, and connects the Settings default-album choice to the library
+picker. Features declare typed presentation callbacks and required Providers; they do not import one
+another's pages or private widgets. The choice result distinguishes cancellation from clearing an
+album. Feedback watches the existing calling `WidgetRef`, preserving precedence, confirmation,
+retry and dismissal authority. The workbench retains visited pages, scroll position and focus.
+
 ## Presentation and application owners
 
 - `CatalogReclamationController` owns application-facing reclamation state, polling, command epochs,

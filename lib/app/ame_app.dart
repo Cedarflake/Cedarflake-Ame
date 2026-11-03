@@ -1,8 +1,8 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../features/library/presentation/unified_library_screen.dart";
 import "../features/library/presentation/library_model_installation_notifications.dart";
+import "../features/library/presentation/pages/unified_library_screen.dart";
 import "../features/library/presentation/widgets/library_analysis_activity.dart";
 import "../features/settings/application/ame_preferences.dart";
 import "../features/settings/presentation/ame_theme_preference.dart";

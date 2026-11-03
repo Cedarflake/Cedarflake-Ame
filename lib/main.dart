@@ -18,6 +18,7 @@ import "app/bootstrap/library_synchronization_lifecycle_owner.dart";
 import "app/bootstrap/rust_library_loader.dart";
 import "app/bootstrap/settings_bindings.dart";
 import "app/bootstrap/storage_bindings.dart";
+import "app/bootstrap/workbench_presentation_bindings.dart";
 import "app/window/ame_analysis_environment.dart";
 import "app/window/ame_shutdown_coordinator.dart";
 import "app/window/ame_window_actions.dart";
@@ -102,6 +103,7 @@ Future<void> main() async {
             ...libraryPlatformRequirements,
             ...settingsRequirements,
             ...storageRequirements,
+            ...workbenchPresentationRequirements,
             ...libraryReadRequirements,
             ...libraryScanRequirements,
             ...libraryDuplicateRequirements,
@@ -120,6 +122,7 @@ Future<void> main() async {
               initialPreferences: amePreferences,
             ),
             ...storageBindings(),
+            ...workbenchPresentationBindings(),
             ...reads.overrides,
             ...libraryScanBindings(),
             ...duplicates.overrides,

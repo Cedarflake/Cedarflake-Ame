@@ -6,7 +6,7 @@ import "../../application/library_controller.dart";
 import "../../domain/gallery_layout_manifest.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_state.dart";
-import "../gallery_selection.dart";
+import "../coordination/gallery_selection.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
 import "library_cover_preview_size.dart";

@@ -131,6 +131,16 @@ Tests mirror their resulting source area. Keep an integration workflow at its ca
 while moving only owned private support. Temporary compatibility exports belong to the migrating
 slice and are removed before its closure; do not create a permanent parallel directory layout.
 
+Gallery and duplicate-review entries live in `library/presentation/pages`; the Settings entry lives
+in `settings/presentation/pages`. Their widgets remain in their feature's `presentation/widgets`.
+Existing selection, gallery-transition, workspace, viewer and zoom state owners live together in
+`library/presentation/coordination`; their tests mirror that location. Their application collaborators
+retain catalog publication, query execution and source-read authority.
+[`workbench_presentation_bindings.dart`](../../lib/app/bootstrap/workbench_presentation_bindings.dart)
+connects cross-feature surfaces through declared callbacks. Preview provider construction lives in
+`library/adapters/platform`, with its rendering contract in library presentation. Host-platform facts
+live under `app/window` beside the existing desktop contracts.
+
 ## Rust ownership
 
 Retain `rust/src/domain`, `ports`, `application`, `adapters` and `api`. Cohesive capability modules

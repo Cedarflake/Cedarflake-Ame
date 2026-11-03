@@ -4,7 +4,7 @@ import "package:cedarflake_ame/features/library/application/library_query_refres
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/library_gallery_query_transition.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/library_gallery_query_transition.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
 import "package:flutter_test/flutter_test.dart";
 

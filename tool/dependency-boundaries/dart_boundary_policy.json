@@ -1,13 +1,5 @@
 {
-  "activeExceptions": [
-    "D005",
-    "D008",
-    "D031",
-    "D048",
-    "D049",
-    "D050",
-    "D051"
-  ],
+  "activeExceptions": [],
   "publicFeatureEdges": [
     {
       "source": "lib/features/library/application/library_album_proposal.dart",
@@ -25,12 +17,12 @@
       "contract": "AmePreferences and presentation preference values"
     },
     {
-      "source": "lib/features/library/presentation/library_viewer_zoom.dart",
+      "source": "lib/features/library/presentation/coordination/library_viewer_zoom.dart",
       "target": "lib/features/settings/domain/ame_preferences.dart",
       "contract": "AmePreferences and presentation preference values"
     },
     {
-      "source": "lib/features/library/presentation/unified_library_screen.dart",
+      "source": "lib/features/library/presentation/pages/unified_library_screen.dart",
       "target": "lib/features/settings/application/ame_preferences.dart",
       "contract": "amePreferencesControllerProvider and declared preference state"
     },

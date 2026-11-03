@@ -20,7 +20,7 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
-import "package:cedarflake_ame/features/library/presentation/unified_library_screen.dart";
+import "package:cedarflake_ame/features/library/presentation/pages/unified_library_screen.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/organization_archive_picker.dart";
 import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
@@ -45,6 +45,7 @@ import "support/organization_workflow.dart";
 import "support/parent_folder_workflow.dart";
 import "support/retained_import_workflow.dart";
 import "support/viewer_source_workflow.dart";
+import "support/workbench_destinations_workflow.dart";
 
 const _fixturePng =
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
@@ -516,6 +517,12 @@ void main() {
         tester.element(find.byType(UnifiedLibraryScreen)),
       ),
       archive,
+    );
+    await verifyWorkbenchDestinationsWorkflow(
+      tester,
+      ProviderScope.containerOf(
+        tester.element(find.byType(UnifiedLibraryScreen)),
+      ),
     );
     await verifyLibraryManagementWorkflow(
       tester,

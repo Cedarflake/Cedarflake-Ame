@@ -1,3 +1,5 @@
+import "dart:io";
+
 import "package:cedarflake_ame/app/bootstrap/ame_provider_assembly.dart";
 import "package:cedarflake_ame/app/bootstrap/library_duplicate_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/library_organization_bindings.dart";
@@ -8,29 +10,31 @@ import "package:cedarflake_ame/features/library/adapters/rust/rust_library_catal
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization.dart";
-import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization_batch.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization_archive.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization_batch.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization_cleanup.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization_conflicts.dart";
-import "package:cedarflake_ame/features/library/adapters/rust/rust_library_sidebar_order.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_previewer.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_review.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_scanner.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_sidebar_order.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_source_reader.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/application/library_foreground_reads.dart";
 import "package:cedarflake_ame/features/library/application/library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
-import "package:cedarflake_ame/features/library/application/library_organization_batch.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_archive.dart";
+import "package:cedarflake_ame/features/library/application/library_organization_batch.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_cleanup.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_conflicts.dart";
-import "package:cedarflake_ame/features/library/application/library_sidebar_order.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
 import "package:cedarflake_ame/features/library/application/library_review.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
+import "package:cedarflake_ame/features/library/application/library_sidebar_order.dart";
 import "package:cedarflake_ame/features/library/application/library_source_reader.dart";
+import "package:cedarflake_ame/features/library/presentation/library_preview_images.dart";
+import "package:flutter/painting.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
@@ -61,6 +65,14 @@ void main() {
       expect(container.read(libraryCatalogProvider), same(reads.catalog));
       expect(container.read(libraryCatalogProvider), isA<RustLibraryCatalog>());
       expect(container.read(libraryFolderCatalogProvider), same(reads.catalog));
+      final previewImages = container.read(libraryPreviewImagesProvider);
+      const previewPath = "test-cache/preview.jpg";
+      final expectedImage = FileImage(File(previewPath));
+      expect(previewImages(previewPath), expectedImage);
+      expect(
+        ResizeImage.resizeIfNeeded(128, null, previewImages(previewPath)),
+        ResizeImage.resizeIfNeeded(128, null, expectedImage),
+      );
       expect(
         container.read(libraryGalleryLayoutManifestCatalogProvider),
         isA<RustLibraryGalleryLayoutManifestCatalog>(),

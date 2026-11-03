@@ -262,6 +262,26 @@ const text = "export 'ignored.dart';";
     },
   );
 
+  test("runtime host facts expose only their named platform contract", () {
+    final modules = _graph({
+      _page: "import '../../../../app/window/ame_runtime_platform.dart';",
+      _widget: "import '../../../../app/window/ame_runtime_platform_io.dart';",
+      "lib/app/window/ame_runtime_platform.dart": """
+import 'ame_runtime_platform_stub.dart'
+  if (dart.library.io) 'ame_runtime_platform_io.dart' as host;
+bool get isAmeWindowsHost => host.isAmeWindowsHost;
+""",
+      "lib/app/window/ame_runtime_platform_stub.dart":
+          "bool get isAmeWindowsHost => false;",
+      "lib/app/window/ame_runtime_platform_io.dart":
+          "import 'dart:io'; bool get isAmeWindowsHost => Platform.isWindows;",
+    });
+    final violation = checkDartBoundaries(modules).single;
+    expect(violation.source, _widget);
+    expect(violation.rule, "layer");
+    expect(violation.target, "lib/app/window/ame_runtime_platform_io.dart");
+  });
+
   test(
     "only generated bridge files are excluded; new handwritten owners fail closed",
     () {

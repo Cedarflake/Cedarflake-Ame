@@ -12,7 +12,7 @@ import "../../domain/library_models.dart";
 import "../../domain/library_synchronization_models.dart";
 import "../library_pending_source.dart";
 import "../library_strings.dart";
-import "../library_sidebar_selection.dart";
+import "../coordination/library_sidebar_selection.dart";
 import "library_folder_navigation_tile.dart";
 import "library_source_navigation_tile.dart";
 import "library_sidebar_section_header.dart";

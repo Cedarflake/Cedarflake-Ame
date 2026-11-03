@@ -1,7 +1,7 @@
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_extent_sliver.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";

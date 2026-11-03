@@ -3,9 +3,9 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../library/application/library_album_pages.dart";
-import "../../../library/presentation/widgets/library_album_picker.dart";
-import "../../domain/album_preferences.dart";
 import "../../application/ame_preferences.dart";
+import "../../domain/album_preferences.dart";
+import "../default_album_picker.dart";
 import "settings_section.dart";
 
 class AlbumSettingsSection extends ConsumerStatefulWidget {
@@ -39,17 +39,7 @@ class _AlbumSettingsSectionState extends ConsumerState<AlbumSettingsSection> {
 
   Future<void> _choose() async {
     final id = ref.read(amePreferencesControllerProvider).albums.defaultAlbumId;
-    final current = id == null
-        ? null
-        : ref.read(libraryAlbumProvider(id)).value;
-    final result = await showLibraryAlbumPicker(
-      context: context,
-      actionLabel: "选择",
-      actionIcon: Symbols.check_rounded,
-      clearLabel: "未设置",
-      clearIcon: Symbols.close_rounded,
-      initialAlbum: current,
-    );
+    final result = await ref.read(defaultAlbumPickerProvider)(context, id);
     if (!mounted || result == null) return;
     await _save(
       AlbumPreferences(
@@ -57,7 +47,7 @@ class _AlbumSettingsSectionState extends ConsumerState<AlbumSettingsSection> {
             .read(amePreferencesControllerProvider)
             .albums
             .askBeforeAdding,
-        defaultAlbumId: result.album?.id,
+        defaultAlbumId: result.albumId,
       ),
     );
   }

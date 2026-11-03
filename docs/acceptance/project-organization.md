@@ -370,3 +370,41 @@ tests. Dedicated binding, lifecycle, automatic-startup and installation tests co
 lines; the native classification helper contains 59. Unchanged model installation and analysis
 protocols retain their [R5 evidence](r5-closeout.md); this slice adds no model download, evaluation,
 Rust, generated bridge, schema, archive-format, dependency-version or source-media change.
+
+## O6 Presentation organization — 2026-11-03
+
+Gallery, duplicate review and Settings entries now live under their feature's `presentation/pages`.
+Fourteen complete view-state owners and ten corresponding test files move to `presentation/coordination`;
+their bodies are identical. Settings and duplicate page bodies are identical, and the gallery body
+changes only its Settings destination call. Existing application and source-lifetime authority remains.
+
+Required presentation bindings connect the Settings destination, record feedback and default-album
+picker without cross-feature page/widget imports. Cancellation and clearing retain distinct results.
+Preview construction moves to a platform factory that preserves `FileImage` and resized cache keys;
+tiles, filmstrip and fallback rendering keep their repair and reveal owners. The read-only host fact
+moves to its named desktop contract; direct access to its private implementation remains rejected.
+All seven remaining Dart migration entries are retired. The fixed baseline is unchanged; final
+analysis and dependency checks pass for 492 modules, zero migration exceptions and 48 named public
+cross-feature edges. Boundary tests cover both the admitted host fact and rejected private access.
+
+All 96 focused tests across 12 files pass, including omitted bindings, cache identity, repair,
+source-generation and lease retirement, fallback pixels, Settings, album selection, feedback and
+retained semantics. Canonical Windows run `65d93f57823f4be386e94720377b033a` passes all four cases in
+140,294 ms, exits zero, has empty stderr and no cleanup failures. The new desktop path selects an
+existing native album, cancels without clearing it, clears the selection and returns to Gallery.
+Existing source viewing, organization, archive, duplicate and source-byte assertions also pass.
+The later coordinator relocation changes imports only; exact body comparisons and final analysis
+cover those paths while retaining the behavioral evidence. Hosted verification runs independently.
+
+| Large affected owner | Production / inline-test lines | Dedicated test lines |
+| --- | ---: | ---: |
+| Gallery / duplicate / Settings pages | 1,902 / 0; 290 / 0; 268 / 0 | 356; 495; 1,234 |
+| Dimension publication / gallery query transition | 260 / 0; 273 / 0 | 244; 397 |
+| Organization mode / viewer session | 408 / 0; 354 / 0 | 490; 595 |
+| Photo tile / filmstrip thumbnail / viewer image | 432 / 0; 259 / 0; 248 / 0 | 1,041; 314; 451 (source-lifetime suite: 634) |
+
+The view-only zoom owner has 210 production lines and no inline tests; retained viewer interaction
+checks cover its behavior. The workbench binding has 50 production lines, its admission tests 45 and
+the native destination helper 78. No Rust, generated bridge, dependency version, model, schema, source-media or user-catalog
+change is included. [Scoped ownership](../architecture/workflow-ownership/dart-presentation-and-composition.md#workbench-destinations)
+and the [verification map](quality/ui-verification.md) retain current paths and contracts.

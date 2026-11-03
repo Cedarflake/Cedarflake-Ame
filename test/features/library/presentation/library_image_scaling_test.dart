@@ -3,10 +3,11 @@ import "dart:typed_data";
 import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/presentation/ame_scroll_motion.dart";
+import "package:cedarflake_ame/features/library/adapters/platform/library_preview_image.dart";
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
-import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_cover_preview_size.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
@@ -17,9 +18,8 @@ import "package:flutter/rendering.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "support/gallery_wall_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
+import "support/gallery_wall_fixture.dart";
 
 void main() {
   test("cover demand includes the cropped extent and stays bounded", () {
@@ -75,6 +75,7 @@ void main() {
             child: SizedBox.square(
               dimension: 128,
               child: LibraryViewerImage(
+                previewImages: createLibraryPreviewImage,
                 asset: galleryAsset(0, "").withPreview(
                   previewPath: "",
                   width: 1024,

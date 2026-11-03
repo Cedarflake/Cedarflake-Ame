@@ -1,4 +1,4 @@
-import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_activity.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";

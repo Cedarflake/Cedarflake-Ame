@@ -1,5 +1,4 @@
 import "dart:async";
-import "dart:io";
 
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
@@ -11,11 +10,12 @@ import "../../application/library_preview_queue.dart";
 import "../../application/library_preview_store.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_organization.dart";
-import "library_cover_preview_size.dart";
+import "../library_preview_images.dart";
 import "library_conflict_label.dart";
+import "library_cover_preview_size.dart";
 import "library_image_reveal.dart";
-import "library_photo_tile_actions.dart";
 import "library_photo_context_menu.dart";
+import "library_photo_tile_actions.dart";
 import "library_preview_feedback.dart";
 
 int libraryPreviewDecodeWidth(double logicalWidth, double devicePixelRatio) {
@@ -246,7 +246,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       image: ResizeImage.resizeIfNeeded(
         cacheWidth,
         null,
-        FileImage(File(asset.previewPath)),
+        ref.read(libraryPreviewImagesProvider)(asset.previewPath),
       ),
       revealIdentity: LibraryPreviewSourceIdentity.fromAsset(asset),
       // Same-path repair must retire the failed image stream, even when it completes before
@@ -385,7 +385,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
     final provider = ResizeImage.resizeIfNeeded(
       cacheWidth,
       null,
-      FileImage(File(asset.previewPath)),
+      ref.read(libraryPreviewImagesProvider)(asset.previewPath),
     );
     try {
       await provider.evict();
