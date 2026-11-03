@@ -184,3 +184,23 @@ The production facade has 1,662 source lines including conditional fixture helpe
 and 934 primary dedicated-test lines; its changes select the required factory. The local-files facade
 retains 2,603 source/3,460 inline-test lines and changes only its export. Recovery persistence has
 288 source/242 primary dedicated-test lines, and native root discovery retains its 90-line fixture.
+
+## Scheduling and automatic recovery — 2026-11-04
+
+Against `fd88f23c`, Live/Journal selection and synchronous catalog scheduling consume existing
+readiness, admission and dispatch ports. Automatic recovery opens its lane through `CatalogLaneSession`
+and consumes `IndexedRecoveryRepository` and `LibraryChangeQueue`. Its optional search index is
+selected by the exact factory in the [composition contract](../architecture/workflow-ownership/native-composition.md#indexed-recovery-resources).
+Comparison preserves all four scheduling/worker bodies except that factory expression, including
+priority, retained-source handoff, root revalidation, failure deferral and failed-start restoration.
+
+Five migration entries retire, leaving 15; the index factory brings retained technical edges to 63.
+Both frozen inventories are unchanged. No tests, assertions, schema or source authority change.
+All 44 existing checks pass: 20 priority, ingress, recovery authority/handoff and indexed-startup
+cases, plus 24 dependency cases. Removing one unused trait import preserves those behavior results;
+final test and production compilation is warning-free, and the final inventory check passes.
+Formatting reports 794 files unchanged; both scratch leases retire.
+
+The production coordinator has 1,677 source lines including conditional fixture helpers, no inline
+cases and 934 primary dedicated-fixture lines. Catalog scheduling has 120 source lines and automatic
+recovery has 264, including its existing conditional thread-start failure helper.

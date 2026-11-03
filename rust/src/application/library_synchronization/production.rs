@@ -66,8 +66,14 @@ use crate::journal_broker::{
     PersistentChangeJournalLiveOnlyReason, production_persistent_journal_caller_claim,
 };
 #[cfg(windows)]
+use crate::ports::journal_baseline::JournalBaselineAdmission;
+#[cfg(windows)]
+use crate::ports::journal_recovery::JournalRecoveryRepository;
+#[cfg(windows)]
+use crate::ports::scan_admission::FirstImportReadiness;
+#[cfg(windows)]
 use crate::ports::{
-    IncrementalCatalogRepository, LibraryChangeQueue, LibraryChangeReadiness,
+    CatalogRepository, IncrementalCatalogRepository, LibraryChangeReadiness,
     LibraryChangeSourceStarter, MetadataInventoryRepository, PersistentJournalRepository,
 };
 
@@ -1006,7 +1012,7 @@ fn select_rotated_key<'a>(
 impl ProductionSynchronization {
     fn schedule_next_live_work(
         &mut self,
-        catalog: &SqliteCatalog,
+        catalog: &(impl LibraryChangeReadiness + IncrementalCatalogRepository),
         snapshot: &LibrarySynchronizationSnapshot,
         now_unix_ms: i64,
         storage: &crate::application::storage::StoragePaths,
@@ -1117,13 +1123,22 @@ impl ProductionSynchronization {
         }
     }
 
-    fn schedule_next_journal_work(
+    fn schedule_next_journal_work<Repository>(
         &mut self,
-        catalog: &mut SqliteCatalog,
+        catalog: &mut Repository,
         snapshot: &LibrarySynchronizationSnapshot,
         now_unix_ms: i64,
         storage: &crate::application::storage::StoragePaths,
-    ) -> Result<(), ScanError> {
+    ) -> Result<(), ScanError>
+    where
+        Repository: CatalogRepository
+            + IncrementalCatalogRepository
+            + LibraryChangeReadiness
+            + MetadataInventoryRepository
+            + FirstImportReadiness
+            + JournalBaselineAdmission
+            + JournalRecoveryRepository,
+    {
         if self.journal.is_some()
             || self.is_stopping
             || self.live.is_some()

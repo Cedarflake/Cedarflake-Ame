@@ -3,14 +3,24 @@ use crate::ports::LibraryChangeDispatch;
 use super::*;
 
 impl ProductionSynchronization {
-    pub(super) fn schedule_catalog_work(
+    pub(super) fn schedule_catalog_work<Repository>(
         &mut self,
-        catalog: &mut SqliteCatalog,
+        catalog: &mut Repository,
         snapshot: &LibrarySynchronizationSnapshot,
         poll_unix_ms: i64,
         change_capture_unix_ms: i64,
         storage: &crate::application::storage::StoragePaths,
-    ) -> Result<(), ScanError> {
+    ) -> Result<(), ScanError>
+    where
+        Repository: CatalogRepository
+            + IncrementalCatalogRepository
+            + LibraryChangeReadiness
+            + MetadataInventoryRepository
+            + FirstImportReadiness
+            + JournalBaselineAdmission
+            + JournalRecoveryRepository
+            + LibraryChangeDispatch,
+    {
         // Synchronous writes cannot wait behind this same poll's retained ingress position.
         // Worker retirement and read-only status projection remain outside this boundary.
         if self.runtime.has_reserved_ingress() {

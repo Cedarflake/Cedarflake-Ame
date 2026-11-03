@@ -218,6 +218,19 @@ is rechecked after native acquisition; failure drops the unpublished guard. Repl
 that ordering, source sharing restrictions and opaque bridge lifetime without exposing native handles
 or admitting an unchecked path fallback.
 
+## Indexed recovery resources
+
+`library_synchronization/production/recovery_work/automatic::new_production_search_index` selects
+Windows Search through `SearchIndex`. Selection remains inside the admitted Recovery worker, after
+root generation and scan-state revalidation, and only for indexed preparation. The stateless value
+acquires no resources; its bounded read owns and retires the COM apartment and cursor, including on
+cancellation or failure. Search results remain hints subject to existing namespace and source checks.
+
+The worker opens the Recovery lane through `CatalogLaneSession`; its catalog implements
+`IndexedRecoveryRepository` and `LibraryChangeQueue`. Retained-source handoff, lease deferral,
+optional-index failure handling and joined retirement keep their existing owners. Replacement changes
+the factory and `SearchIndex` implementation without moving recovery policy or source authority.
+
 ## Root location resources
 
 `library_synchronization/production/root_location::new_production_root_location_recovery` selects the

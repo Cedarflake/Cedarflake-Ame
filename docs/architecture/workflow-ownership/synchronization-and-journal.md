@@ -61,11 +61,13 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   validation precedes handoff, and pruning resolves all authority reads before removing stale
   entries. Completed pages publish their retained source through the same owner.
   `recovery_work` owns the admitted Recovery worker's cancellation, phase, result and join lifetime.
-  Its automatic and drain implementations accept an immutable root binding and bounded policy;
-  the coordinator retains slot admission, catalog-session validation, result publication and retry
+  Its automatic and drain implementations accept an immutable root binding, bounded policy and
+  `CatalogLaneSession`; their lane-local catalogs implement the required persistence ports.
+  The coordinator retains slot admission, catalog-session validation, result publication and retry
   scheduling. Automatic work takes the retained source before opening its lane, revalidates the
   root before processing, and restores the transfer if thread creation fails. Timeout retains the
-  same task and shutdown uses the existing absolute deadline.
+  same task and shutdown uses the existing absolute deadline. Optional search-index selection follows
+  the [indexed-recovery composition contract](native-composition.md#indexed-recovery-resources).
   Session replacement follows the admitted runtime lifecycle. A successful retirement allows a
   new factory connection; a cached close failure retains the old owner and prevents construction.
   There is no separate, unused runtime reconnect path with weaker close-failure semantics.
@@ -101,8 +103,9 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   The runtime cannot overwrite that plan or claim freshness before submission. Adapter-owned
   `change_queue/ingress.rs` binds reservation identity and owns zero-wait transaction attempts;
   `write_admission.rs` retains ordering independently from an active permit. Production
-  `catalog_scheduling.rs` owns synchronous follow-up writes and prevents same-poll self-waiting
-  behind any retained ingress reservation. Worker retirement and status projection remain outside
+  `catalog_scheduling.rs` consumes the readiness, admission and dispatch ports for synchronous
+  follow-up writes and prevents same-poll self-waiting behind any retained ingress reservation.
+  Worker retirement and status projection remain outside
   that write-admission boundary.
 - `sqlite_catalog/persistent_journal.rs` remains the journal facade. Root-unregistration lineage and
   cleanup live in `persistent_journal/root_unregister.rs` so removal cannot accidentally discard a

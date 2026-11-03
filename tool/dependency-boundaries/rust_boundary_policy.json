@@ -2,13 +2,10 @@
   "activeIds": [
     "R109",
     "R110",
-    "R112",
-    "R113",
     "R114",
     "R115",
     "R116",
     "R117",
-    "R122",
     "R123",
     "R144",
     "R145",
@@ -16,8 +13,6 @@
     "R147",
     "R148",
     "R149",
-    "R152",
-    "R153",
     "R172",
     "R249"
   ],
@@ -221,6 +216,18 @@
         "rust/src/application/incremental_library_changes/tests/authoritative_path_rebase.rs",
         "rust/src/application/preview/tests/source_reconciliation.rs",
         "rust/src/adapters/local_files/file_admission/tests.rs"
+      ]
+    },
+    "indexed-recovery-composition": {
+      "responsibility": "Select the optional platform search index behind SearchIndex",
+      "reason": "Only the named factory selects Windows Search; the recovery worker consumes catalog ports and indexed preparation owns hint admission.",
+      "lifetime": "The stateless index is selected inside the admitted Recovery worker after root revalidation; its read owns and retires the COM apartment and cursor.",
+      "replacement": "Replace the SearchIndex implementation without changing recovery selection, cancellation, bounded hint reads, source verification or journal failure fallback.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#indexed-recovery-resources",
+      "coverage": [
+        "rust/src/adapters/windows_search_index.rs",
+        "rust/src/application/metadata_inventory/tests/indexed_startup.rs",
+        "rust/src/application/library_synchronization/production/tests/indexed_startup.rs"
       ]
     },
     "root-location-composition": {
@@ -845,6 +852,16 @@
         "source": "rust/src/application/incremental_library_changes/production.rs",
         "symbol": "crate::application::incremental_library_changes::production::media_inspector",
         "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "indexed-recovery-search-factory",
+      "owner": "indexed-recovery-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/recovery_work/automatic.rs",
+        "symbol": "crate::application::library_synchronization::production::recovery_work::automatic::new_production_search_index",
+        "target": "crate::adapters::windows_search_index::WindowsSearchIndex",
         "rule": "concrete-adapter"
       }
     },
