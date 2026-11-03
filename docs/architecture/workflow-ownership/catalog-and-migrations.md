@@ -88,7 +88,10 @@ shared principles; the roadmap owns current delivery order and acceptance status
   states inside the caller's collection and physical scope. It reuses canonical record joins for
   both group identity and disposition without resolving a preferred representative. Queue filtering
   and admission ordering remain in `organization_queue.rs`; read transaction ownership is unchanged.
-- Database page reclamation remains a separate application operation and persistence adapter. It
+- `catalog_reclamation/execution.rs` owns page-reclamation sequencing through `CatalogSpaceRepository`
+  and `CatalogCapacity`; retry helpers consume the same repository contract. Its native resource
+  factories follow the [composition contract](native-composition.md#catalog-reclamation-resources).
+  Database page reclamation remains a separate application operation and persistence adapter. It
   is lower priority than foreground and ordinary recovery publication, is preemptible at SQLite
   progress boundaries, and carries a generation-specific request so cancellation cannot consume a
   later cleanup request. `catalog_reclamation/operation_registry.rs` owns atomic request admission,

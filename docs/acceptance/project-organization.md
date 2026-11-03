@@ -453,3 +453,28 @@ failure and retry, delayed waiters, invalidation during validation/maintenance, 
 independent catalog paths and incremental-reclamation proof retention. The leased scratch is retired.
 The unchanged runtime retains O7.1's native client evidence. Storage and bounded-read integration
 remain in the roadmap queue; this registration does not admit neighboring use cases.
+
+## O7 Catalog reclamation ports — 2026-11-03
+
+The complete reclamation sequence now consumes `CatalogSpaceRepository` and `CatalogCapacity` in
+`catalog_reclamation/execution.rs`. Four retry helpers use the existing repository port; native
+maintenance and capacity selection live in two named factories. The Windows capacity call moves to
+its adapter with the same unsafe boundary, errors and platform branches. The execution sequence,
+seven helper bodies and all three capacity bodies compare identically after their typed substitutions.
+Operation initialization, registry ownership, cancellation, maintenance reservations and checkpoint
+completion retain their order. ADR 0005's interruption wording now agrees with the existing scoped
+contract and implementation; normal incremental interruption preserves proof, while errors, unwind
+and independent invalidation retire it.
+
+All 31 reclamation regressions, two native Windows capacity fixtures and 20 dependency checks pass.
+New injected-port cases cover insufficient capacity, probe failure, cancellation before work and
+`FULL` conversion without a legacy capacity query. Real SQLite fixtures cover bounded release,
+foreground preemption, interleaved reads and retained proof. The controlled scan/reclamation fixture
+preserves search results, organization history, its album and exact source bytes. Scratch cleanup
+succeeds. R004–R010 are retired; 251 legacy entries and 22 exact technical edges remain, with the
+immutable baseline unchanged. Dart and bridge routing retain their prior client evidence.
+
+The facade has 312 production lines and no inline tests; execution has 88, factories 12 and the
+capacity port seven. Dedicated entry and execution tests contain 348 and 183 lines. The native
+capacity adapter has 62 implementation lines and 20 inline fixture lines. No catalog schema, runtime policy,
+source authority, dependency version or public bridge change is included.

@@ -1,3 +1,5 @@
+mod catalog_capacity;
+pub(crate) use catalog_capacity::LocalCatalogCapacity;
 mod classification_feature_cache;
 #[cfg(all(windows, any(feature = "classification-worker", test)))]
 pub(crate) mod classification_image_input;

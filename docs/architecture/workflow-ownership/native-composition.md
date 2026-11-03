@@ -28,6 +28,21 @@ persistence substitutes those proof and connection resources together, preservin
 foreground protection, lane selection and invalidation. It grants no business-use-case exemption and
 does not expose SQLite or engine types through domain, ports or bridge contracts.
 
+## Catalog reclamation resources
+
+`catalog_reclamation/production.rs::{maintenance,capacity}` select the existing SQLite maintenance
+adapter and the native capacity probe through `CatalogSpaceRepository` and `CatalogCapacity`.
+The maintenance value retains only its catalog path; each adapter operation owns its admitted
+connection, write permit and interruption registration. The stateless capacity probe performs only
+the read-only platform query covered by [ADR 0005](../0005-storage-governance-and-budget.md#catalog-database-page-reclamation).
+
+The application initializes the operation before selecting resources, then executes staging cleanup,
+inspection, mode conversion, bounded page release and checkpointing through those ports. Capacity
+admission remains specific to an eligible legacy rewrite; `FULL` mode keeps its online conversion.
+The operation registry and catalog-session maintenance owner retain cancellation, preemption, proof
+retention and terminal publication. Replacement changes the two factory selections and port
+implementations without moving those authorities or admitting SQL into application code.
+
 ## Duplicate and organization composition
 
 `exact_duplicates/production.rs::{content_reader,source_state}` select native implementations through

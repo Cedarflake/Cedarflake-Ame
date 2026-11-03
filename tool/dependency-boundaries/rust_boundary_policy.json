@@ -3,13 +3,6 @@
     "R001",
     "R002",
     "R003",
-    "R004",
-    "R005",
-    "R006",
-    "R007",
-    "R008",
-    "R009",
-    "R010",
     "R026",
     "R027",
     "R028",
@@ -304,6 +297,18 @@
         "rust/src/application/catalog_session/tests.rs",
         "rust/src/application/catalog_session/maintenance/tests.rs"
       ]
+    },
+    "catalog-reclamation-composition": {
+      "responsibility": "Select the catalog maintenance repository and native available-capacity probe",
+      "reason": "The factories construct path-scoped or stateless adapters behind existing maintenance operations and the capacity port; execution and retry policy consume the ports.",
+      "lifetime": "The maintenance value holds its path only; each adapter operation retires its connection, permit and interruption registration. Capacity queries retain no handle or output pointer.",
+      "replacement": "Replace the factory selections and port implementations while preserving operation identity, maintenance admission, source safety and terminal publication.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#catalog-reclamation-resources",
+      "coverage": [
+        "rust/src/application/catalog_reclamation/execution/tests.rs",
+        "rust/src/application/catalog_reclamation/tests.rs",
+        "rust/src/adapters/catalog_capacity.rs"
+      ]
     }
   },
   "retained": [
@@ -504,6 +509,26 @@
         "source": "rust/src/application/catalog_session.rs",
         "symbol": "crate::application::catalog_session::with_recovery_catalog_if_idle",
         "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-reclamation-maintenance",
+      "owner": "catalog-reclamation-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_reclamation/production.rs",
+        "symbol": "crate::application::catalog_reclamation::production::maintenance",
+        "target": "crate::adapters::sqlite_catalog::reclamation::SqliteCatalogSpaceMaintenance",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-reclamation-capacity",
+      "owner": "catalog-reclamation-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_reclamation/production.rs",
+        "symbol": "crate::application::catalog_reclamation::production::capacity",
+        "target": "crate::adapters::catalog_capacity::LocalCatalogCapacity",
         "rule": "concrete-adapter"
       }
     }
