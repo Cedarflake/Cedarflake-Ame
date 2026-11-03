@@ -1402,6 +1402,13 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   generator guardrail and non-mutating generation check before the formatting gate, runs Clippy for
   all targets and features with warnings denied, and runs the pinned Dart analyzer with warnings and
   informational lints treated as failures.
+- `./tool/quality_verify_dependencies.ps1` parses handwritten Dart imports, exports, conditional
+  branches and parts, checks resolved layer/cross-feature edges and cycles, and rejects changed,
+  unknown or stale legacy exceptions. Its fixed 55-file bridge roster excludes reviewed generated
+  output only; new handwritten files cannot gain an exemption by entering that directory. Static
+  runs this command after formatting. Flutter owns its positive/negative boundary regressions.
+  The existing locked `analyzer` package is a direct development dependency for this parser;
+  no resolved package version or runtime dependency changes.
 - `./tool/quality_lint_workflows.ps1 -ActionlintPath <path>` validates all hosted workflows with a
   caller-provided `actionlint` executable. Hosted CI supplies a fixed version with a verified
   checksum; the daily workstation gate does not silently download tools.

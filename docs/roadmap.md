@@ -34,7 +34,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
 | R4 | Independent Favorites, flat group-based albums, and durable organization progress | Completed and merged into main on 2026-10-30 |
-| R5 | Metadata, smart albums, and calibrated initial screening | Merged into main on 2026-11-03; final Windows Scan failure under investigation |
+| R5 | Metadata, smart albums, and calibrated initial screening | Merged into main on 2026-11-03; hosted verification continues independently |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run with conflicts and no execution | Planned after R7 |
@@ -95,9 +95,10 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 R4 and R5 are integrated into `main`; the R5 development branch has been deleted locally and remotely.
 The final hosted result is tracked in the [merge record](acceptance/r5-closeout.md#r5-merge--2026-11-03).
-Windows Scan failed; [entry verification](acceptance/project-organization.md#entry-verification--2026-11-03)
-owns its scoped diagnosis and repair. Preserve the remaining pending checks without replaying
-unchanged R5 acceptance.
+The original Windows Scan failure and its scoped verification repair belong to
+[entry verification](acceptance/project-organization.md#entry-verification--2026-11-03).
+By user direction on 2026-11-03, GitHub continues hosted checks independently; their pending status
+does not block the next organization slice or schedule local substitutes for unchanged CI workloads.
 The next planned maintenance is [project organization](#project-organization-after-r5), before R6.
 Preserve stable identities, legacy choices, the selected SigLIP runtime and source safeguards;
 no additional naming model is included. The previous
@@ -322,7 +323,8 @@ Following R5's authorized merge, the
 [project-organization plan](plans/project-organization.md) defines the requested maintenance pass.
 Its position is before R6 implementation. The user authorized the `codex/project-organization`
 implementation branch on 2026-11-03; entry verification and independent O1 preparation are active.
-Product migration awaits the final R5 verification repair. Later product stages have not started.
+Continue O1–O7 without waiting for hosted results, as explicitly directed by the user.
+Later product stages have not started.
 The separate rendering follow-up keeps its existing scope and disposition.
 
 [ADR 0037](architecture/0037-feature-module-dependency-boundaries.md) owns the future dependency and

@@ -55,3 +55,24 @@ test lines. The PowerShell wrapper has 34 lines, its Dart process launcher 81 an
 Submitted-commit CI remains pending. This verification repair does not establish O1–O7 completion
 or a passing final R5 hosted result; the original CI timeout remains distinct from the reproduced
 false-success protocol defect and local script-startup failure.
+
+## O1 Dart dependency foundation — 2026-11-03
+
+The checker inventories 417 Dart modules: 362 handwritten modules and 55 explicitly named FRB
+outputs. Its baseline retains 124 exact migration entries (46 cross-feature, 69 layer, seven
+external-library, one shared-feature and one cycle), with named responsibility, reason, regression
+owners and O2–O6 removal conditions. The baseline Git blob is pinned independently of the mutable
+active-ID policy; an arbitrary fresh violation list cannot replace it. The source/target and
+physical-size inventory is in the [execution inventory](../plans/project-organization-inventory.md).
+
+The 17 focused regressions pass through `quality_test_flutter.ps1`. They cover admitted layers,
+multiline/raw/package URI resolution, all conditional branches, transitive exports, parts, complete
+cycles, explicit cross-feature contracts, shared visuals, desktop contract admission, exact generated
+outputs, invalid syntax, new violations, stale/duplicate exceptions and immutable baseline identity.
+Scoped analysis reports no issues; the repository dependency command passes against the current
+124 active exceptions. These checks add no product behavior, catalog/schema or runtime changes.
+
+`analyzer` remains at its existing locked version 10.2.0 and hash; only its dependency classification
+changes from transitive to direct development use. The existing Static/Flutter workflow owners run
+the submitted checks. By current user direction, their pending results do not hold subsequent work.
+The Rust portion of O1 retains its own inventory and validation obligation.

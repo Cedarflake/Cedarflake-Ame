@@ -1,0 +1,979 @@
+{
+  "sourceRevision": "f74146a4e88d72325c576504825399df109774aa",
+  "owners": {
+    "preferences": {
+      "reason": "Preference values, store ports and cross-feature consumers still share application declarations; separate the contracts and register each public consumer.",
+      "coverage": [
+        "test/features/settings/adapters/shared_preferences_ame_store_test.dart",
+        "test/features/library/presentation/unified_library_view_preferences_test.dart"
+      ],
+      "removeIn": "O2"
+    },
+    "platform_actions": {
+      "reason": "Picker and Explorer contracts or Provider handles remain coupled to their concrete platform adapters; move contracts and production bindings together.",
+      "coverage": [
+        "test/features/library/adapters/windows_library_platform_actions_test.dart",
+        "integration_test/scan_workflow_test.dart"
+      ],
+      "removeIn": "O2"
+    },
+    "storage": {
+      "reason": "Storage contracts, native mapping, picker path preparation and settings coordination remain mixed or cross private presentation boundaries.",
+      "coverage": [
+        "test/features/storage/presentation/catalog_reclamation_controller_test.dart",
+        "test/features/settings/presentation/ame_settings_page_test.dart"
+      ],
+      "removeIn": "O2"
+    },
+    "catalog_reads": {
+      "reason": "Catalog read contracts and native DTO conversion remain in application files; retain bounded query owners while moving implementations and mapping.",
+      "coverage": [
+        "test/features/library/application/library_catalog_test.dart",
+        "test/features/library/application/library_layout_manifest_catalog_test.dart"
+      ],
+      "removeIn": "O3"
+    },
+    "preview_reads": {
+      "reason": "Preview and held-source implementations expose native bridge dependencies from the application layer; retain publication and opaque-handle retirement.",
+      "coverage": [
+        "test/features/library/application/library_preview_coordinator_test.dart",
+        "integration_test/support/viewer_source_workflow.dart"
+      ],
+      "removeIn": "O3"
+    },
+    "scan_sync": {
+      "reason": "Scan or synchronization ports, native translation and production construction share an application file; preserve their existing execution and retirement owners.",
+      "coverage": [
+        "test/features/library/application/library_primary_scan_workflow_test.dart",
+        "test/features/library/application/library_synchronization_test.dart"
+      ],
+      "removeIn": "O4"
+    },
+    "exact_duplicates": {
+      "reason": "Exact analysis and review contracts still share native implementation and mapping; separate adapters and production bindings without changing group authority.",
+      "coverage": [
+        "test/library_exact_duplicates_test.dart",
+        "test/library_duplicate_review_test.dart"
+      ],
+      "removeIn": "O5.1"
+    },
+    "organization": {
+      "reason": "Organization services and cross-feature archive/cleanup consumers need separated ports, adapters and explicitly registered application entrypoints.",
+      "coverage": [
+        "test/features/library/application/library_organization_actions_test.dart",
+        "test/features/settings/presentation/organization_archive_section_test.dart",
+        "test/features/settings/presentation/organization_cleanup_row_test.dart"
+      ],
+      "removeIn": "O5.2"
+    },
+    "classification": {
+      "reason": "Classification adapters still import mixed application contract/provider declarations; the review declaration also constructs its adapter, creating a cycle.",
+      "coverage": [
+        "test/features/library/application/library_classification_lifecycle_test.dart",
+        "test/features/library/application/library_automatic_classification_test.dart"
+      ],
+      "removeIn": "O5.3"
+    },
+    "presentation_composition": {
+      "reason": "Feature presentation imports another feature page or private widget; route navigation and shared feedback through their owning composition contracts.",
+      "coverage": [
+        "test/features/settings/presentation/ame_settings_page_test.dart",
+        "test/features/library/presentation/library_organization_feedback_test.dart"
+      ],
+      "removeIn": "O6"
+    },
+    "preview_rendering": {
+      "reason": "Derived-cache rendering imports unrestricted dart:io; establish narrow cache-only admission or the required adapter seam while preserving framework image ownership.",
+      "coverage": [
+        "test/features/library/presentation/library_preview_feedback_test.dart",
+        "integration_test/support/viewer_source_workflow.dart"
+      ],
+      "removeIn": "O6"
+    },
+    "platform_detection": {
+      "reason": "A shared presentation file contains platform detection; place the capability behind the existing desktop platform boundary.",
+      "coverage": [
+        "test/app/presentation/ame_theme_test.dart"
+      ],
+      "removeIn": "O6"
+    },
+    "shared_theme": {
+      "reason": "Shared theme construction imports a feature-owned preference enum; translate the preference at composition and keep the shared visual contract independent.",
+      "coverage": [
+        "test/app/presentation/ame_theme_test.dart",
+        "test/features/settings/presentation/ame_settings_page_test.dart"
+      ],
+      "removeIn": "O6"
+    }
+  },
+  "exceptions": [
+    {
+      "id": "D001",
+      "rule": "cross-feature",
+      "source": "lib/features/library/application/library_album_proposal.dart",
+      "target": "lib/features/settings/application/album_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D002",
+      "rule": "cross-feature",
+      "source": "lib/features/library/application/library_controller.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D003",
+      "rule": "cross-feature",
+      "source": "lib/features/library/presentation/library_viewer_zoom.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D004",
+      "rule": "cross-feature",
+      "source": "lib/features/library/presentation/unified_library_screen.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D005",
+      "rule": "cross-feature",
+      "source": "lib/features/library/presentation/unified_library_screen.dart",
+      "target": "lib/features/settings/presentation/ame_settings_page.dart",
+      "owner": "presentation_composition"
+    },
+    {
+      "id": "D006",
+      "rule": "cross-feature",
+      "source": "lib/features/library/presentation/widgets/library_album_viewer_action.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D007",
+      "rule": "cross-feature",
+      "source": "lib/features/library/presentation/widgets/library_analysis_activity.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D008",
+      "rule": "cross-feature",
+      "source": "lib/features/library/presentation/widgets/library_bottom_feedback.dart",
+      "target": "lib/features/settings/presentation/widgets/organization_record_feedback.dart",
+      "owner": "presentation_composition"
+    },
+    {
+      "id": "D009",
+      "rule": "cross-feature",
+      "source": "lib/features/library/presentation/widgets/library_duplicate_review_viewer.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D010",
+      "rule": "cross-feature",
+      "source": "lib/features/library/presentation/widgets/library_exact_analysis_actions.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D011",
+      "rule": "cross-feature",
+      "source": "lib/features/library/presentation/widgets/library_image_viewer.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D012",
+      "rule": "cross-feature",
+      "source": "lib/features/library/presentation/widgets/library_selection_actions.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D013",
+      "rule": "cross-feature",
+      "source": "lib/features/library/presentation/widgets/library_viewer_zoom_geometry.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D014",
+      "rule": "cross-feature",
+      "source": "lib/features/library/presentation/widgets/library_workbench.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D015",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/adapters/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/application/library_view_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D016",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/adapters/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_asset.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D017",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/adapters/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_gallery_collection.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D018",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/adapters/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_metadata_filter.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D019",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/adapters/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_models.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D020",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/adapters/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_organization_queue.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D021",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/adapters/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_root_consolidation.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D022",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/adapters/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_scroll_section.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D023",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/organization_archive_messages.dart",
+      "target": "lib/features/library/application/library_archive_requests.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D024",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/organization_archive_messages.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D025",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/organization_archive_messages.dart",
+      "target": "lib/features/library/domain/library_organization_archive.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D026",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/organization_record_actions.dart",
+      "target": "lib/features/library/application/library_archive_controller.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D027",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/organization_record_actions.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D028",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/organization_record_actions.dart",
+      "target": "lib/features/library/application/library_cleanup_controller.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D029",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/organization_record_actions.dart",
+      "target": "lib/features/library/application/library_cleanup_state.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D030",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/album_settings_section.dart",
+      "target": "lib/features/library/application/library_album_pages.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D031",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/album_settings_section.dart",
+      "target": "lib/features/library/presentation/widgets/library_album_picker.dart",
+      "owner": "presentation_composition"
+    },
+    {
+      "id": "D032",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/organization_archive_confirmation.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D033",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/organization_archive_section.dart",
+      "target": "lib/features/library/application/library_archive_controller.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D034",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/organization_archive_section.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D035",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_confirmation.dart",
+      "target": "lib/features/library/application/library_cleanup_controller.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D036",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_confirmation.dart",
+      "target": "lib/features/library/application/library_cleanup_state.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D037",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_confirmation.dart",
+      "target": "lib/features/library/domain/library_organization_cleanup.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D038",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_row.dart",
+      "target": "lib/features/library/application/library_cleanup_controller.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D039",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_row.dart",
+      "target": "lib/features/library/application/library_cleanup_state.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D040",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/organization_record_feedback.dart",
+      "target": "lib/features/library/application/library_archive_controller.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D041",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/organization_record_feedback.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D042",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/organization_record_feedback.dart",
+      "target": "lib/features/library/application/library_cleanup_controller.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D043",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/organization_record_feedback.dart",
+      "target": "lib/features/library/application/library_cleanup_state.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D044",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
+      "target": "lib/features/storage/application/storage_settings.dart",
+      "owner": "storage"
+    },
+    {
+      "id": "D045",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
+      "target": "lib/features/storage/domain/storage_models.dart",
+      "owner": "storage"
+    },
+    {
+      "id": "D046",
+      "rule": "cross-feature",
+      "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
+      "target": "lib/features/storage/presentation/catalog_reclamation_controller.dart",
+      "owner": "storage"
+    },
+    {
+      "id": "D047",
+      "rule": "cycle",
+      "source": "lib/features/library/adapters/rust_library_classification_review.dart",
+      "target": "lib/features/library/adapters/rust_library_classification_review.dart,lib/features/library/application/library_classification_review.dart",
+      "owner": "classification"
+    },
+    {
+      "id": "D048",
+      "rule": "external-layer",
+      "source": "lib/app/presentation/ame_runtime_platform_io.dart",
+      "target": "dart:io",
+      "owner": "platform_detection"
+    },
+    {
+      "id": "D049",
+      "rule": "external-layer",
+      "source": "lib/features/library/presentation/widgets/library_photo_tile.dart",
+      "target": "dart:io",
+      "owner": "preview_rendering"
+    },
+    {
+      "id": "D050",
+      "rule": "external-layer",
+      "source": "lib/features/library/presentation/widgets/library_viewer_filmstrip_thumbnail.dart",
+      "target": "dart:io",
+      "owner": "preview_rendering"
+    },
+    {
+      "id": "D051",
+      "rule": "external-layer",
+      "source": "lib/features/library/presentation/widgets/library_viewer_image.dart",
+      "target": "dart:io",
+      "owner": "preview_rendering"
+    },
+    {
+      "id": "D052",
+      "rule": "external-layer",
+      "source": "lib/features/settings/application/organization_archive_picker.dart",
+      "target": "package:file_selector/file_selector.dart",
+      "owner": "platform_actions"
+    },
+    {
+      "id": "D053",
+      "rule": "external-layer",
+      "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
+      "target": "dart:io",
+      "owner": "storage"
+    },
+    {
+      "id": "D054",
+      "rule": "external-layer",
+      "source": "lib/features/storage/application/storage_settings.dart",
+      "target": "package:file_selector/file_selector.dart",
+      "owner": "storage"
+    },
+    {
+      "id": "D055",
+      "rule": "layer",
+      "source": "lib/features/library/adapters/rust_library_classification.dart",
+      "target": "lib/features/library/application/library_classification.dart",
+      "owner": "classification"
+    },
+    {
+      "id": "D056",
+      "rule": "layer",
+      "source": "lib/features/library/adapters/rust_library_classification_configuration.dart",
+      "target": "lib/features/library/application/library_classification_configuration.dart",
+      "owner": "classification"
+    },
+    {
+      "id": "D057",
+      "rule": "layer",
+      "source": "lib/features/library/adapters/rust_library_classification_review.dart",
+      "target": "lib/features/library/application/library_classification_review.dart",
+      "owner": "classification"
+    },
+    {
+      "id": "D058",
+      "rule": "layer",
+      "source": "lib/features/library/adapters/rust_library_model_installation.dart",
+      "target": "lib/features/library/application/library_model_installation.dart",
+      "owner": "classification"
+    },
+    {
+      "id": "D059",
+      "rule": "layer",
+      "source": "lib/features/library/adapters/windows_library_platform_actions.dart",
+      "target": "lib/features/library/application/library_platform_actions.dart",
+      "owner": "platform_actions"
+    },
+    {
+      "id": "D060",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_asset_mapping.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "catalog_reads"
+    },
+    {
+      "id": "D061",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_catalog.dart",
+      "target": "lib/src/rust/api/catalog.dart",
+      "owner": "catalog_reads"
+    },
+    {
+      "id": "D062",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_catalog.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "catalog_reads"
+    },
+    {
+      "id": "D063",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_catalog.dart",
+      "target": "lib/src/rust/domain/gallery_query_snapshot.dart",
+      "owner": "catalog_reads"
+    },
+    {
+      "id": "D064",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_catalog.dart",
+      "target": "lib/src/rust/domain/gallery_scroll_section.dart",
+      "owner": "catalog_reads"
+    },
+    {
+      "id": "D065",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_catalog.dart",
+      "target": "lib/src/rust/domain/gallery_time_snapshot.dart",
+      "owner": "catalog_reads"
+    },
+    {
+      "id": "D066",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_catalog.dart",
+      "target": "lib/src/rust/domain/organization_queue.dart",
+      "owner": "catalog_reads"
+    },
+    {
+      "id": "D067",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_classification_review.dart",
+      "target": "lib/features/library/adapters/rust_library_classification_review.dart",
+      "owner": "classification"
+    },
+    {
+      "id": "D068",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_controller.dart",
+      "target": "lib/features/library/adapters/directory_picker.dart",
+      "owner": "platform_actions"
+    },
+    {
+      "id": "D069",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_duplicate_review.dart",
+      "target": "lib/src/rust/api/exact_duplicate_review.dart",
+      "owner": "exact_duplicates"
+    },
+    {
+      "id": "D070",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_duplicate_review.dart",
+      "target": "lib/src/rust/domain/exact_duplicate_review.dart",
+      "owner": "exact_duplicates"
+    },
+    {
+      "id": "D071",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_duplicate_review.dart",
+      "target": "lib/src/rust/domain/exact_duplicates.dart",
+      "owner": "exact_duplicates"
+    },
+    {
+      "id": "D072",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_exact_duplicates.dart",
+      "target": "lib/src/rust/api/exact_duplicates.dart",
+      "owner": "exact_duplicates"
+    },
+    {
+      "id": "D073",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_exact_duplicates.dart",
+      "target": "lib/src/rust/domain/exact_duplicates.dart",
+      "owner": "exact_duplicates"
+    },
+    {
+      "id": "D074",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_gallery_collection_mapping.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "catalog_reads"
+    },
+    {
+      "id": "D075",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_gallery_collection_mapping.dart",
+      "target": "lib/src/rust/domain/classification_review.dart",
+      "owner": "catalog_reads"
+    },
+    {
+      "id": "D076",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_gallery_duplicates.dart",
+      "target": "lib/src/rust/api/exact_duplicates.dart",
+      "owner": "exact_duplicates"
+    },
+    {
+      "id": "D077",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_gallery_query_mapping.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "catalog_reads"
+    },
+    {
+      "id": "D078",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_gallery_query_mapping.dart",
+      "target": "lib/src/rust/domain/organization_queue.dart",
+      "owner": "catalog_reads"
+    },
+    {
+      "id": "D079",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_layout_manifest_catalog.dart",
+      "target": "lib/src/rust/api/catalog.dart",
+      "owner": "catalog_reads"
+    },
+    {
+      "id": "D080",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_layout_manifest_catalog.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "catalog_reads"
+    },
+    {
+      "id": "D081",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_metadata_filter_mapping.dart",
+      "target": "lib/src/rust/domain/gallery_metadata_filter.dart",
+      "owner": "catalog_reads"
+    },
+    {
+      "id": "D082",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization.dart",
+      "target": "lib/src/rust/api/organization.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D083",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D084",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization.dart",
+      "target": "lib/src/rust/domain/organization.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D085",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization_archive.dart",
+      "target": "lib/src/rust/api/organization_archive.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D086",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization_archive.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D087",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization_archive.dart",
+      "target": "lib/src/rust/domain/organization_archive.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D088",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization_batch.dart",
+      "target": "lib/src/rust/api/organization_batch.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D089",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization_batch.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D090",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization_batch.dart",
+      "target": "lib/src/rust/domain/organization.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D091",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization_batch.dart",
+      "target": "lib/src/rust/domain/organization_batch.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D092",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization_cleanup.dart",
+      "target": "lib/src/rust/api/organization_cleanup.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D093",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization_cleanup.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D094",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization_cleanup.dart",
+      "target": "lib/src/rust/domain/organization_cleanup.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D095",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization_conflicts.dart",
+      "target": "lib/src/rust/api/organization_conflicts.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D096",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_organization_conflicts.dart",
+      "target": "lib/src/rust/domain/organization.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D097",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_previewer.dart",
+      "target": "lib/src/rust/api/preview.dart",
+      "owner": "preview_reads"
+    },
+    {
+      "id": "D098",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_previewer.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "preview_reads"
+    },
+    {
+      "id": "D099",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_primary_scan_lifecycle.dart",
+      "target": "lib/features/library/adapters/directory_picker.dart",
+      "owner": "platform_actions"
+    },
+    {
+      "id": "D100",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_review.dart",
+      "target": "lib/src/rust/api/organization_review.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D101",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_review.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D102",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_review.dart",
+      "target": "lib/src/rust/domain/organization.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D103",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_review.dart",
+      "target": "lib/src/rust/domain/organization_review.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D104",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_scanner.dart",
+      "target": "lib/src/rust/api/catalog.dart",
+      "owner": "scan_sync"
+    },
+    {
+      "id": "D105",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_scanner.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "scan_sync"
+    },
+    {
+      "id": "D106",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_sidebar_order.dart",
+      "target": "lib/src/rust/api/sidebar_order.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D107",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_sidebar_order.dart",
+      "target": "lib/src/rust/domain/sidebar_order.dart",
+      "owner": "organization"
+    },
+    {
+      "id": "D108",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_synchronization.dart",
+      "target": "lib/src/rust/api/synchronization.dart",
+      "owner": "scan_sync"
+    },
+    {
+      "id": "D109",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_synchronization.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "scan_sync"
+    },
+    {
+      "id": "D110",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_synchronization.dart",
+      "target": "lib/src/rust/domain/library_change.dart",
+      "owner": "scan_sync"
+    },
+    {
+      "id": "D111",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_synchronization.dart",
+      "target": "lib/src/rust/domain/library_synchronization.dart",
+      "owner": "scan_sync"
+    },
+    {
+      "id": "D112",
+      "rule": "layer",
+      "source": "lib/features/library/application/library_synchronization.dart",
+      "target": "lib/src/rust/domain/persistent_journal.dart",
+      "owner": "scan_sync"
+    },
+    {
+      "id": "D113",
+      "rule": "layer",
+      "source": "lib/features/library/application/rust_library_source_reader.dart",
+      "target": "lib/src/rust/api/viewer_source.dart",
+      "owner": "preview_reads"
+    },
+    {
+      "id": "D114",
+      "rule": "layer",
+      "source": "lib/features/library/application/rust_library_source_reader.dart",
+      "target": "lib/src/rust/application/viewer_source.dart",
+      "owner": "preview_reads"
+    },
+    {
+      "id": "D115",
+      "rule": "layer",
+      "source": "lib/features/library/application/rust_library_source_reader.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "preview_reads"
+    },
+    {
+      "id": "D116",
+      "rule": "layer",
+      "source": "lib/features/library/presentation/unified_library_screen.dart",
+      "target": "lib/features/library/adapters/windows_library_platform_actions.dart",
+      "owner": "platform_actions"
+    },
+    {
+      "id": "D117",
+      "rule": "layer",
+      "source": "lib/features/library/presentation/widgets/library_duplicate_reveal_action.dart",
+      "target": "lib/features/library/adapters/windows_library_platform_actions.dart",
+      "owner": "platform_actions"
+    },
+    {
+      "id": "D118",
+      "rule": "layer",
+      "source": "lib/features/library/presentation/widgets/library_duplicate_review_viewer.dart",
+      "target": "lib/features/library/adapters/windows_library_platform_actions.dart",
+      "owner": "platform_actions"
+    },
+    {
+      "id": "D119",
+      "rule": "layer",
+      "source": "lib/features/settings/adapters/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/application/library_view_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D120",
+      "rule": "layer",
+      "source": "lib/features/settings/adapters/shared_preferences_ame_store.dart",
+      "target": "lib/features/settings/application/album_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D121",
+      "rule": "layer",
+      "source": "lib/features/settings/adapters/shared_preferences_ame_store.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "owner": "preferences"
+    },
+    {
+      "id": "D122",
+      "rule": "layer",
+      "source": "lib/features/storage/application/storage_settings.dart",
+      "target": "lib/src/rust/api/storage.dart",
+      "owner": "storage"
+    },
+    {
+      "id": "D123",
+      "rule": "layer",
+      "source": "lib/features/storage/application/storage_settings.dart",
+      "target": "lib/src/rust/domain.dart",
+      "owner": "storage"
+    },
+    {
+      "id": "D124",
+      "rule": "shared-feature",
+      "source": "lib/app/presentation/ame_theme.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "owner": "shared_theme"
+    }
+  ]
+}

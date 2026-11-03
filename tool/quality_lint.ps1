@@ -55,6 +55,7 @@ try {
     )
     & (Join-Path $PSScriptRoot "quality_generate_library_synchronization_policy.ps1") -Check
     & (Join-Path $PSScriptRoot "quality_format.ps1") -Check
+    & (Join-Path $PSScriptRoot "quality_verify_dependencies.ps1")
     Invoke-AmeChecked $toolchain.Cargo @(
         "clippy",
         "--locked",

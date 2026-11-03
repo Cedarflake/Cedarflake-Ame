@@ -1,6 +1,6 @@
 # Project organization after R5
 
-Status: entry verification and O1 preparation; activation and delivery order belong to the roadmap.
+Status: O1 foundation in progress; activation and delivery order belong to the roadmap.
 
 The [roadmap](../roadmap.md#project-organization-after-r5) selects this maintenance scope after R5.
 [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md) owns the target dependency
@@ -40,6 +40,9 @@ Map each affected interface, implementation, mapping, binding, lifecycle owner, 
 its target location. Include cross-feature imports, generated DTO exposure, barrel exports and
 the exact Rust composition functions. Record production, inline-test and dedicated-test sizes for
 large affected owners without applying a universal line cap.
+
+The [Dart baseline inventory](project-organization-inventory.md) maps contracts, native mappings,
+bindings, existing lifecycle authority, consumers and regression owners to the target locations.
 
 Implement a dependency check in the existing quality workflow with a fixed inventory of legacy
 exceptions. New violations fail from this slice onward; each later slice removes its own exceptions.
@@ -153,5 +156,11 @@ source mutation, schema reset or release publication is part of this plan.
 On 2026-11-03, the user authorized implementation on a new branch. `codex/project-organization`
 starts from merged R5 baseline `f74146a4`. Entry verification found a failed final R5 Windows Scan
 job; its scoped diagnosis and verification-boundary repair are recorded in
-[project organization verification](../acceptance/project-organization.md). Product migration
-retains the roadmap's entry conditions while independent O1 preparation proceeds.
+[project organization verification](../acceptance/project-organization.md). The user subsequently
+directed that GitHub own CI execution without waiting or blocking subsequent work. Continue the
+ordered slices from the integrated R5 source with necessary local preparation and focused checks;
+record hosted results separately without treating pending checks as a migration prerequisite.
+
+The Dart inventory and enforceable boundary foundation are implemented with their focused parser,
+rule and exception regressions. The Rust composition inventory and scoped boundary checks remain
+within O1 before the platform/storage migration. Evidence belongs to the linked acceptance record.
