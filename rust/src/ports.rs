@@ -26,6 +26,7 @@ pub(crate) mod organization_batch;
 pub(crate) mod organization_cleanup;
 pub(crate) mod organization_conflicts;
 pub(crate) mod organization_review;
+pub(crate) mod preview_cache_storage;
 pub(crate) mod search_index;
 pub(crate) mod sidebar_order;
 pub(crate) mod source_state;

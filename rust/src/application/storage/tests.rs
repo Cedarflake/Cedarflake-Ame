@@ -1,4 +1,5 @@
 use super::*;
+use crate::adapters::{PREVIEW_CACHE_VERSION, SqliteStorageSettings};
 use crate::domain::{AssetLocationView, PreviewArtifact, PreviewStatus, ScanRequest};
 use crate::ports::StorageSettingsRepository;
 use tempfile::tempdir;

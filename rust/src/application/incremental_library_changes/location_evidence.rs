@@ -1,4 +1,5 @@
-use crate::adapters::{LocalMediaInspector, PublicationGuardedFileDiscovery, user_visible_path};
+use crate::adapters::{LocalMediaInspector, PublicationGuardedFileDiscovery};
+use crate::domain::user_visible_path;
 use crate::domain::{
     AssetLocationView, DerivedEvidenceDisposition, DiscoveredFile,
     IncrementalReconciliationDecision, IncrementalReconciliationOutcome, LeasedLibraryChange,

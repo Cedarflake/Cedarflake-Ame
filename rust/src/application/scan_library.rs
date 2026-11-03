@@ -8,7 +8,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use blake3::Hasher;
 
-use crate::adapters::{FileDiscovery, LocalMediaInspector, SqliteCatalog, user_visible_path};
+use crate::adapters::{FileDiscovery, LocalMediaInspector, SqliteCatalog};
+use crate::domain::user_visible_path;
 #[cfg(test)]
 use crate::domain::{AssetLocationView, PreviewStatus};
 use crate::domain::{

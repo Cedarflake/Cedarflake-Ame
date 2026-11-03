@@ -1,15 +1,15 @@
 use std::fs;
 use std::path::Path;
 
-use crate::adapters::{PREVIEW_CACHE_VERSION, SqliteStorageSettings};
 use crate::domain::{ScanError, StorageConfiguration, StorageSettingsUpdate};
 use crate::ports::StorageSettingsRepository;
+use crate::ports::preview_cache_storage::PreviewCacheStorage;
 
 use super::catalog_admission::reserve_catalog_transition;
 use super::{
     StoragePaths, active_catalog_has_roots, load_configured_storage,
-    preserve_active_path_if_equivalent, resolved_paths_same, validate_absolute_directory,
-    validate_budget, validate_configuration_paths,
+    preserve_active_path_if_equivalent, production, resolved_paths_same,
+    validate_absolute_directory, validate_budget, validate_configuration_paths,
 };
 
 pub(super) fn save_configuration(
@@ -31,7 +31,7 @@ pub(super) fn save_configuration(
     if let Some(preview_cache_directory) = update.preview_cache_directory {
         let directory = validate_absolute_directory(&preview_cache_directory, "preview cache")?;
         configured.preview_root = preserve_active_path_if_equivalent(
-            directory.join(PREVIEW_CACHE_VERSION),
+            production::preview_cache().versioned_root(&directory),
             &active.preview_root,
         )?
         .to_string_lossy()
@@ -62,7 +62,7 @@ pub(super) fn save_configuration(
             format!("Could not prepare the configured preview directory: {error}"),
         )
     })?;
-    let mut settings = SqliteStorageSettings::open(active.settings_path.clone())?;
+    let mut settings = production::settings(&active.settings_path)?;
     let active_preview_root = active.preview_root.to_string_lossy();
     let pending_preview_root =
         (!resolved_paths_same(Path::new(&configured.preview_root), &active.preview_root)?)

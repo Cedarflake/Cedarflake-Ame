@@ -22,7 +22,7 @@ use crate::domain::{
 };
 use crate::ports::CatalogRepository;
 
-use super::user_visible_path;
+use crate::domain::user_visible_path;
 
 mod catalog_namespace;
 use catalog_namespace::{

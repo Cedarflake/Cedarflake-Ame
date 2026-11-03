@@ -58,7 +58,6 @@
     "R082",
     "R083",
     "R084",
-    "R085",
     "R086",
     "R087",
     "R088",
@@ -66,7 +65,6 @@
     "R090",
     "R091",
     "R092",
-    "R093",
     "R094",
     "R095",
     "R096",
@@ -156,7 +154,6 @@
     "R184",
     "R185",
     "R186",
-    "R187",
     "R188",
     "R189",
     "R190",
@@ -180,13 +177,10 @@
     "R208",
     "R209",
     "R210",
-    "R211",
     "R212",
-    "R213",
     "R214",
     "R215",
     "R216",
-    "R217",
     "R218",
     "R219",
     "R220",
@@ -231,19 +225,8 @@
     "R259",
     "R260",
     "R261",
-    "R262",
-    "R263",
-    "R264",
-    "R265",
-    "R266",
-    "R267",
-    "R268",
-    "R269",
-    "R270",
-    "R271",
     "R272",
     "R273",
-    "R274",
     "R275",
     "R276",
     "R277",
@@ -317,6 +300,18 @@
       "coverage": [
         "rust/src/application/load_catalog/root_availability/tests.rs",
         "rust/src/application/load_catalog.rs"
+      ]
+    },
+    "storage-composition": {
+      "responsibility": "Select settings persistence, preview-cache layout/accounting and OS default locations",
+      "reason": "Only these factories select native implementations; application retains validation, transition admission, budgets and activation policy.",
+      "lifetime": "Settings callers own the original connection scope; cache inspection is stateless and read-only, and default-path selection retains no handle or filesystem mutation.",
+      "replacement": "Replace the settings/cache ports and OS directory selection without changing restart policy, overlap checks or pending-root retirement.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#storage-resources-and-layout",
+      "coverage": [
+        "rust/src/application/storage/tests.rs",
+        "rust/src/application/storage/tests/activation_tests.rs",
+        "rust/src/application/storage/catalog_admission/tests.rs"
       ]
     }
   },
@@ -549,6 +544,36 @@
         "symbol": "crate::application::load_catalog::production::source_state",
         "target": "crate::adapters::local_source_state::LocalSourceState",
         "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "storage-settings",
+      "owner": "storage-composition",
+      "dependency": {
+        "source": "rust/src/application/storage/production.rs",
+        "symbol": "crate::application::storage::production::settings",
+        "target": "crate::adapters::storage_settings::SqliteStorageSettings",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "storage-preview-cache",
+      "owner": "storage-composition",
+      "dependency": {
+        "source": "rust/src/application/storage/production.rs",
+        "symbol": "crate::application::storage::production::preview_cache",
+        "target": "crate::adapters::preview_cache_storage::LocalPreviewCacheStorage",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "storage-default-storage",
+      "owner": "storage-composition",
+      "dependency": {
+        "source": "rust/src/application/storage/production.rs",
+        "symbol": "crate::application::storage::production::default_storage",
+        "target": "directories::ProjectDirs::from",
+        "rule": "external-engine"
       }
     }
   ]

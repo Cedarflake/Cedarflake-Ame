@@ -1,6 +1,7 @@
 use std::path::Path;
 
-use crate::adapters::{SqliteCatalog, is_current_preview_artifact, user_visible_path};
+use crate::adapters::{SqliteCatalog, is_current_preview_artifact};
+use crate::domain::user_visible_path;
 use crate::domain::{
     AssetLocationView, DiscoveredFile, MediaInspection, MetadataInspection, PreviewStatus,
     ScanError,

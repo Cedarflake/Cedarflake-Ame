@@ -13,7 +13,7 @@ use crate::adapters::{
     FileDiscovery, FileVisitOutcome, LocalMediaInspector, PublicationGuardedFileDiscovery,
     SqliteCatalog, configured_root_open_count, remove_persistent_journal_v22_contract_for_test,
     reset_configured_root_open_instrumentation, reset_source_enumeration_instrumentation,
-    source_directory_open_count, source_entry_read_count, user_visible_path,
+    source_directory_open_count, source_entry_read_count,
 };
 #[cfg(windows)]
 use crate::adapters::{reset_source_content_open_instrumentation, source_content_open_count};
@@ -32,6 +32,7 @@ use crate::application::{
 };
 #[cfg(windows)]
 use crate::domain::PreviewRequest;
+use crate::domain::user_visible_path;
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaPublication, DerivedEvidenceDisposition,
     FileIdentityEvidence, JournalFileReference, JournalIdentifier, JournalUsn,

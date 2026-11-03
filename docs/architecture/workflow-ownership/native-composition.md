@@ -43,6 +43,23 @@ evidence and messages without probing media content or changing catalog identity
 unavailable root does not prevent later roots from being inspected. Replacing this probe does not
 move preview recovery, catalog publication or source-read authority.
 
+## Storage resources and layout
+
+`storage/production.rs` selects settings through `StorageSettingsRepository`, cache layout/accounting
+through `PreviewCacheStorage`, and default locations through the existing OS directory provider.
+The default byte budget remains application policy. The cache adapter owns its versioned child path
+and read-only accounting of recognized current/legacy entries; it does not traverse nested directories
+or delete files. Default-path selection creates no directory or database.
+
+Each settings call owns its original connection lifetime. Configuration validation, transition
+admission, restart activation and cross-database pending-root retirement keep their existing order.
+Replacing storage changes these factory selections and ports together, without moving those rules
+or acquiring a second process-wide configuration owner.
+
+`domain/path_display.rs` owns the pure Ame path-display projection shared by storage, catalog reads,
+scan events and diagnostics. It has no filesystem or platform dependency and grants no access
+authority; stored access paths remain intact. Its existing string contract needs no adapter port.
+
 ## Catalog reclamation resources
 
 `catalog_reclamation/production.rs::{maintenance,capacity}` select the existing SQLite maintenance

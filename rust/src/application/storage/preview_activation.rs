@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::adapters::{PreviewRootPreparation, SqliteStorageSettings, prepare_preview_root};
+use crate::adapters::{PreviewRootPreparation, prepare_preview_root};
 use crate::domain::{LibraryChangeLane, ScanError, StorageConfiguration};
 use crate::ports::{CatalogRepository, StorageSettingsRepository};
 
@@ -41,7 +41,7 @@ pub(super) fn activate_configured_preview_root_with_preparation(
     mut initialize: impl FnMut(&Path, u64) -> Result<PreviewRootPreparation, ScanError>,
 ) -> Result<PathBuf, ScanError> {
     let target = PathBuf::from(&configured.preview_root);
-    let mut settings = SqliteStorageSettings::open(settings_path.to_path_buf())?;
+    let mut settings = super::production::settings(settings_path)?;
     let pending_roots = settings.load_pending_preview_roots()?;
     if let Err(validation_error) = validate_preview_root_outside_sources(catalog_path, &target) {
         return initialize_previous_preview_root(

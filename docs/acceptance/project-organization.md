@@ -504,3 +504,29 @@ Production / inline-test-support lines are 230 / 524 for catalog loading, 405 / 
 retry owner and 346 / 26 for the session host. The read port has 86 lines; root projection has 11
 plus two test-module declaration lines and 94 dedicated test lines, and its factory has five. No schema, dependency, generated bridge, source
 authority or product-policy change is included.
+
+## O7 Storage resources and cache layout — 2026-11-03
+
+Storage selects settings persistence and preview-cache layout/accounting through ports. Three exact
+factories select the settings connection, stateless cache adapter and OS default directories. Budget,
+source-overlap validation, save admission and restart activation remain application policy. All 28
+affected storage function bodies, activation and default composition compare identically after the
+typed substitutions; the complete cache-accounting body is unchanged in its adapter.
+
+The pure path-display function and its existing test move to domain ownership. All consumers use
+that same function, and the old adapter export is removed. This shared import closure also retires
+six scan/preview/continuity edges; those workflow bodies are unchanged. Along with the ten storage
+entries and activation's settings construction, 17 migration entries retire. The fixed inventory is
+unchanged; 232 legacy entries and 26 exact technical edges remain.
+
+All 32 storage regressions, the relocated path-display regression and 20 dependency checks pass.
+Real SQLite fixtures cover save/scan admission races, restart isolation, both activation commit
+boundaries, source-overlap rejection, current/legacy cache accounting and access/display separation.
+Assertions are unchanged and leased scratch cleanup succeeds. The cache-version export is now
+test-only because production layout stays inside the cache adapter; the final production library
+check passes without warnings.
+
+Storage has 445 production lines plus six test-import/declaration lines, with 571 lines in its main
+dedicated fixture file. Configuration update remains 72 lines; factories have 44, the cache adapter
+49 and its port eight. Path display has 18 production and 20 inline-test lines. Other affected large
+workflow owners change only imports; source access, schema, bridge and cache formats are unchanged.

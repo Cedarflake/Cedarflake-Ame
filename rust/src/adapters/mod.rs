@@ -23,6 +23,8 @@ mod media_inspector;
 pub(crate) mod windows_search_index;
 pub(crate) use exact_content_reader::GuardedExactContentReader;
 mod preview_cache;
+mod preview_cache_storage;
+pub(crate) use preview_cache_storage::LocalPreviewCacheStorage;
 mod sqlite_catalog;
 mod storage_settings;
 #[cfg(windows)]
@@ -57,7 +59,6 @@ pub(crate) use local_files::{LocatedLibraryRoot, locate_library_root};
 pub(crate) use local_files::{
     PreviewCacheNamespace, PreviewPublicationGuard, PublicationGuardedFileDiscovery,
     open_preview_publication_guard, open_preview_source, revalidate_open_preview_source,
-    user_visible_path,
 };
 #[cfg(test)]
 pub(crate) use local_files::{
@@ -77,15 +78,16 @@ pub(crate) use local_metadata_inventory::{
 pub(crate) use media_inspector::LocalMediaInspector;
 pub use preview_cache::LocalPreviewStore;
 pub(crate) use preview_cache::{
-    PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION, PREVIEW_CACHE_VERSION,
-    PREVIEW_ORIENTATION_CONTRACT, PreviewRootPreparation, current_preview_artifact_key,
-    is_ame_preview_cache_entry, is_current_preview_artifact, is_managed_preview_cleanup_entry,
+    PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION, PREVIEW_ORIENTATION_CONTRACT,
+    PreviewRootPreparation, current_preview_artifact_key, is_ame_preview_cache_entry,
+    is_current_preview_artifact, is_managed_preview_cleanup_entry,
     open_preview_cache_operation_namespace, prepare_preview_root,
 };
 #[cfg(test)]
 pub(crate) use preview_cache::{
-    fail_next_atomic_replace_for_test, prepare_preview_root_with_namespace_probe,
-    replace_file_atomically_for_test, seed_legacy_jpeg_preview,
+    PREVIEW_CACHE_VERSION, fail_next_atomic_replace_for_test,
+    prepare_preview_root_with_namespace_probe, replace_file_atomically_for_test,
+    seed_legacy_jpeg_preview,
 };
 pub(crate) use sqlite_catalog::MetadataInventorySpoolExecution;
 pub use sqlite_catalog::SqliteCatalog;

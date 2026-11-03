@@ -7,6 +7,8 @@ pub mod classification_review;
 pub mod classification_selection;
 pub mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
+mod path_display;
+pub(crate) use path_display::user_visible_path;
 pub mod media_metadata;
 pub use media_metadata::CameraMetadata;
 pub mod organization;

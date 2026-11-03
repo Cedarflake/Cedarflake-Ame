@@ -5,9 +5,8 @@ use std::sync::{Arc, Condvar, Mutex, OnceLock};
 
 #[cfg(test)]
 use crate::adapters::SqliteCatalog;
-use crate::adapters::{
-    PreviewCacheNamespace, SqliteStorageSettings, is_ame_preview_cache_entry, user_visible_path,
-};
+use crate::adapters::{PreviewCacheNamespace, SqliteStorageSettings, is_ame_preview_cache_entry};
+use crate::domain::user_visible_path;
 use crate::domain::{LibraryChangeLane, PreviewCleanupEvent, ScanError, ScanIssue};
 use crate::ports::{CatalogRepository, StorageSettingsRepository};
 
