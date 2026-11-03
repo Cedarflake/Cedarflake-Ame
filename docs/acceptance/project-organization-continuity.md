@@ -411,3 +411,26 @@ two scan-recovery reads and two classification queries still call SQLite inheren
 port contracts. Its missing-definition diagnostics leave complete graph coverage unproven. These
 calls, root-facade/cycle coverage, test consolidation and final real-library verification remain in
 O7; the retained-import pause timeout keeps its existing acceptance owner.
+
+## Foreground recovery projection boundary — 2026-11-04
+
+Against `20934072`, idle recovery callbacks now borrow `ForegroundScanRecovery` instead of a concrete
+SQLite catalog. The two previously inferred native calls resolve through that port. Their existing
+convergence and query bodies move together to `sqlite_catalog/scan_lifecycle/recovery.rs`; the
+transaction, paused/newest-import precedence, publication preservation and post-commit pending-row
+retirement are unchanged. The catalog-session host retains its complete idle/current-session checks,
+refresh handling, lock lifetime and once-only callback body. No new reader, session or heap allocation
+is introduced. The now-unused `catalog-idle-recovery` registration retires.
+
+All eight selected existing checks pass: two crash-recovery cases, shared-session exclusion, stale
+session protection, detached first-import recovery, two deferred-retirement cases and the repository
+inventory. Source comparison preserves all three moved bodies and the complete admission host body;
+test changes only import the port, with fixtures, assertions and the 2,984-case count unchanged.
+Test and production builds emit no warnings, and leased scratch retires. The fixed inventory remains
+at zero migration entries, with 77 retained technical edges and unchanged frozen baselines.
+
+The recovery implementation/port have 79/10 source lines and no inline tests; existing interrupted-scan
+coverage has 549 dedicated lines. The catalog facade falls to 3,167 source lines with 11,606 primary
+dedicated-test lines; the session host has 373 source and 352 dedicated-test lines. Neither has inline
+cases. Classification query contracts, complete dependency audit, test consolidation and final
+real-library verification remain in the current roadmap queue.

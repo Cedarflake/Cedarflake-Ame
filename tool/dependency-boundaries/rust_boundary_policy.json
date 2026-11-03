@@ -489,16 +489,6 @@
       }
     },
     {
-      "id": "catalog-idle-recovery",
-      "owner": "catalog-session-composition",
-      "dependency": {
-        "source": "rust/src/application/catalog_session.rs",
-        "symbol": "crate::application::catalog_session::with_recovery_catalog_if_idle",
-        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
-        "rule": "concrete-adapter"
-      }
-    },
-    {
       "id": "catalog-reclamation-maintenance",
       "owner": "catalog-reclamation-composition",
       "dependency": {

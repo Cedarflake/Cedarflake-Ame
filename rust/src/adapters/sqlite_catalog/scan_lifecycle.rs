@@ -11,6 +11,8 @@ use super::{
     retire_root_change_queue, sqlite_integer, sqlite_unsigned,
 };
 
+mod recovery;
+
 #[cfg(test)]
 mod tests;
 

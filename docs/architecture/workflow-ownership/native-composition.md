@@ -19,8 +19,9 @@ entry-transition locks; a late flight cannot replace a newer owner or an invalid
 The registered catalog and read-executor factories select connections from that proof. Foreground
 scan acquisition rechecks the current session identity before protecting it; ordinary refresh cannot
 replace a session owned by an active scan. Idle recovery keeps its current-session and scan-exclusion
-checks around acquisition and the supplied operation. Maintenance retains its separate reservation
-and proof-retention contract in [catalog ownership](catalog-and-migrations.md).
+checks around acquisition and the supplied `ForegroundScanRecovery` operation. The callback borrows
+only the recovery port and cannot access unrelated SQLite operations. Maintenance retains its separate
+reservation and proof-retention contract in [catalog ownership](catalog-and-migrations.md).
 
 `CatalogLaneSession` exposes owned lane connections from the retained validated proof. Live and
 queue-drain workers retain the same shared session through their original thread lifetime and require

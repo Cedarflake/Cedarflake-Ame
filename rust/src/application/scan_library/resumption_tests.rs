@@ -1,3 +1,5 @@
+use crate::ports::scan_recovery::ForegroundScanRecovery;
+
 use crate::ports::scan_admission::FirstImportReadiness;
 
 use image::{Rgba, RgbaImage};

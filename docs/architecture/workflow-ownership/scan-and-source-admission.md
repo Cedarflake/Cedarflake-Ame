@@ -11,6 +11,11 @@ shared principles; the roadmap owns current delivery order and acceptance status
   first-import capture leases. `library_synchronization/admission.rs` distinguishes a published
   baseline, a currently owned first import, and a root that requires first import. A persisted
   checkpoint is recovery data, never proof that an execution is still alive.
+  `ports/scan_recovery.rs` exposes the two retained foreground recovery projections. Their
+  `sqlite_catalog/scan_lifecycle/recovery.rs` implementation first converges obsolete scans in one
+  transaction, prioritizing a paused initial import, then the newest initial import. It preserves
+  published snapshots, retires obsolete authority/staging and updates pending locations after commit.
+  The catalog-session host holds the existing idle/current-session checks around the whole operation.
 - `scan_library/traversal.rs` owns directory/window iteration and its existing checkpoint,
   cancellation and progress order. `entry_processing.rs` applies one typed discovery outcome and
   reports either accepted work or detached observation. `file_preparation.rs` owns path/identity

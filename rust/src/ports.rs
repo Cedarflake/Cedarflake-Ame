@@ -47,6 +47,7 @@ pub(crate) mod root_location;
 pub(crate) mod scan_admission;
 pub(crate) mod scan_discovery;
 pub(crate) mod scan_publication;
+pub(crate) mod scan_recovery;
 pub(crate) mod scan_staging;
 pub(crate) mod search_index;
 pub(crate) mod sidebar_order;

@@ -1,3 +1,5 @@
+use crate::ports::scan_recovery::ForegroundScanRecovery;
+
 use crate::ports::journal_baseline::JournalBaselineAdmission;
 
 use std::sync::Arc;
