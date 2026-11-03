@@ -167,6 +167,10 @@ not every file under `application`. Factories own construction and retirement, w
 policy and adapters retain transactions. A factory exemption does not admit SQL, engine types in
 public contracts or concrete dependencies in unrelated application code.
 
+Retained native factories follow the [scoped composition contract](workflow-ownership/native-composition.md).
+Its exact registrations distinguish accepted technical boundaries from the fixed migration inventory;
+each retains its invariant, regression owner and replacement path.
+
 The validation inventory must name the admitted Rust composition functions and their lifetimes.
 An existing construction call alone is not evidence that the surrounding module is a composition
 root. Establish the affected seam when responsibilities conflict; do not mechanically move every

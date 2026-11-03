@@ -12,6 +12,8 @@ mod exif_metadata;
 mod image_orientation;
 mod jpeg_preview;
 mod local_files;
+mod local_source_state;
+pub(crate) use local_source_state::LocalSourceState;
 #[cfg(test)]
 mod local_metadata_inventory;
 mod media_inspector;

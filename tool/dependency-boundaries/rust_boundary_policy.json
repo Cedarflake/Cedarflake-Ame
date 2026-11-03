@@ -67,10 +67,6 @@
     "R065",
     "R066",
     "R067",
-    "R068",
-    "R069",
-    "R070",
-    "R071",
     "R072",
     "R073",
     "R074",
@@ -164,8 +160,6 @@
     "R162",
     "R163",
     "R164",
-    "R165",
-    "R166",
     "R167",
     "R168",
     "R169",
@@ -279,5 +273,93 @@
     "R277",
     "R278",
     "R279"
+  ],
+  "retainedOwners": {
+    "duplicate-native-readers": {
+      "responsibility": "Construct the admitted fingerprint reader and metadata-only source-state probe",
+      "reason": "The factories select native implementations behind Ame ports; availability and analysis policy stay in application owners.",
+      "lifetime": "One stateless probe per inspection; fingerprint leases retain the existing shared background admission and held source until publication.",
+      "replacement": "Replace these two factories through ExactContentReader and SourceStateProbe while retaining lease and source-safety contracts.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#duplicate-and-organization-composition",
+      "coverage": [
+        "rust/src/application/exact_duplicates/availability/tests.rs",
+        "rust/src/application/exact_duplicates/execution/tests.rs",
+        "rust/src/application/background_analysis/exact_reader/tests.rs"
+      ]
+    },
+    "organization-catalog-composition": {
+      "responsibility": "Open lane-scoped catalog handles for duplicate review and virtual organization",
+      "reason": "These named factories select storage and the existing validated catalog session; callers use repository ports and adapters retain transactions.",
+      "lifetime": "The caller owns each handle; duplicate member reads release it before source inspection, and organization operations retain their transaction boundaries.",
+      "replacement": "Replace catalog-session construction together with the repository implementations without changing validation or operation policy.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#duplicate-and-organization-composition",
+      "coverage": [
+        "rust/src/adapters/sqlite_catalog/exact_duplicates/tests/review.rs",
+        "rust/src/adapters/sqlite_catalog/organization/tests.rs"
+      ]
+    },
+    "organization-batch-composition": {
+      "responsibility": "Acquire a bounded organization-selection session and its repository",
+      "reason": "The constructor acquires a permit and shared cancellation control, then selects the batch adapter; later operations consume OrganizationBatchRepository.",
+      "lifetime": "ActiveSelection owns the repository and capacity permit; failed construction drops the permit, and close signals cancellation before joined retirement.",
+      "replacement": "Substitute the batch repository at this constructor while preserving permit, cancellation and close ownership.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#duplicate-and-organization-composition",
+      "coverage": [
+        "rust/src/application/organization_batch/tests.rs",
+        "rust/src/adapters/sqlite_catalog/organization/tests/batch.rs"
+      ]
+    }
+  },
+  "retained": [
+    {
+      "id": "duplicate-review-catalog",
+      "owner": "organization-catalog-composition",
+      "dependency": {
+        "source": "rust/src/application/exact_duplicate_review.rs",
+        "symbol": "crate::application::exact_duplicate_review::open_catalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "organization-catalog",
+      "owner": "organization-catalog-composition",
+      "dependency": {
+        "source": "rust/src/application/organization.rs",
+        "symbol": "crate::application::organization::open_catalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "organization-batch",
+      "owner": "organization-batch-composition",
+      "dependency": {
+        "source": "rust/src/application/organization_batch.rs",
+        "symbol": "crate::application::organization_batch::OrganizationBatchSession::open",
+        "target": "crate::adapters::sqlite_catalog::organization::batch::SqliteOrganizationBatch",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "duplicate-content-reader",
+      "owner": "duplicate-native-readers",
+      "dependency": {
+        "source": "rust/src/application/exact_duplicates/production.rs",
+        "symbol": "crate::application::exact_duplicates::production::content_reader",
+        "target": "crate::adapters::exact_content_reader::GuardedExactContentReader",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "duplicate-source-state",
+      "owner": "duplicate-native-readers",
+      "dependency": {
+        "source": "rust/src/application/exact_duplicates/production.rs",
+        "symbol": "crate::application::exact_duplicates::production::source_state",
+        "target": "crate::adapters::local_source_state::LocalSourceState",
+        "rule": "concrete-adapter"
+      }
+    }
   ]
 }

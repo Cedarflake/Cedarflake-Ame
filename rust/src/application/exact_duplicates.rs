@@ -6,11 +6,13 @@ use crate::domain::exact_duplicates::{EXACT_DUPLICATE_PAGE_SIZE, ExactAnalysisRu
 use crate::domain::{
     DuplicateLocationAvailability, ExactAnalysisProgress, ExactDuplicateGroupCursor,
     ExactDuplicateGroupPage, ExactDuplicateLocation, ExactDuplicateLocationPage, LibraryChangeLane,
-    LibraryRootAvailability, ScanError,
+    ScanError,
 };
 use crate::ports::exact_duplicates::ExactDuplicateRepository;
 
+mod availability;
 mod execution;
+mod production;
 
 static ACTIVE_ANALYSIS: Mutex<Option<AnalysisFlight>> = Mutex::new(None);
 
@@ -60,10 +62,7 @@ pub(crate) fn run_exact_analysis(
         run_id,
         started_unix_ms: current_time_ms()?,
     };
-    let reader = super::background_analysis::AdmittedExactContentReader::new(
-        crate::adapters::GuardedExactContentReader,
-        super::background_analysis::shared(),
-    );
+    let reader = production::content_reader();
     let result = execution::analyze(&mut catalog, &reader, &run, &cancelled, &mut emit);
     drop(admission);
     result
@@ -140,42 +139,7 @@ pub(crate) fn load_exact_locations(
 pub(super) fn inspect_candidate_availability(
     candidate: &crate::domain::exact_duplicates::FingerprintCandidate,
 ) -> DuplicateLocationAvailability {
-    let root = crate::adapters::inspect_root_availability(&candidate.root.root_path);
-    match root.availability {
-        LibraryRootAvailability::Offline => DuplicateLocationAvailability::Offline,
-        LibraryRootAvailability::Missing | LibraryRootAvailability::Inaccessible => {
-            DuplicateLocationAvailability::Unavailable
-        }
-        _ => {
-            let location = &candidate.location;
-            let expected = crate::domain::ExpectedFileState {
-                absolute_path: location.absolute_path.clone(),
-                file_size: location.file_size,
-                modified_unix_ms: location.modified_unix_ms,
-                file_identity: location.file_identity.clone(),
-                source_revision: location.source_revision.clone(),
-            };
-            file_availability(crate::adapters::revalidate_file_state(&expected))
-        }
-    }
-}
-
-fn file_availability(
-    result: Result<(), crate::domain::ScanIssue>,
-) -> DuplicateLocationAvailability {
-    match result {
-        Ok(()) => DuplicateLocationAvailability::Local,
-        // Revalidation reports placeholder attributes before opening any content handle.
-        Err(issue)
-            if matches!(
-                issue.code.as_str(),
-                "cloud_placeholder_skipped" | "source_became_unavailable"
-            ) =>
-        {
-            DuplicateLocationAvailability::CloudOnly
-        }
-        Err(_) => DuplicateLocationAvailability::Unavailable,
-    }
+    availability::inspect(&production::source_state(), candidate)
 }
 
 pub(super) fn validate_identifier(value: &str) -> Result<(), ScanError> {
@@ -215,6 +179,3 @@ fn unavailable() -> ScanError {
         "Content analysis is temporarily unavailable",
     )
 }
-
-#[cfg(test)]
-mod tests;

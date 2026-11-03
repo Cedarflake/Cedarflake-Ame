@@ -52,13 +52,15 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-Continue [project organization](#project-organization-after-r5) from O7. This maintenance runs on
+Continue [project organization](#project-organization-after-r5) with O7's catalog-session, storage and
+bounded-read boundaries. This maintenance runs on
 the authorized `codex/project-organization` branch before R6.
 PR metadata remains fixed by user direction.
 
 The [execution plan](plans/project-organization.md) owns implementation slices and rollback units;
 its [evidence](acceptance/project-organization.md) records completed checks and failures.
-O1–O6 are delivered; O7 is next. Completed slice evidence remains in the linked acceptance record.
+O1–O6 and O7's duplicate/organization native boundaries are delivered. Remaining native groups follow
+the execution plan; completed slice evidence remains in the linked acceptance record.
 No model replacement, new product feature or broader performance campaign is part of this queue.
 
 ## Project organization after R5
@@ -69,7 +71,7 @@ the [repository layout](development/repository-layout.md) owns placement. The
 
 | Order | Remaining outcome |
 | --- | --- |
-| O7 | Scoped Rust conformance, remaining exception resolution and handover |
+| O7 | Catalog/storage, classification, scan/preview and continuity conformance; final exception audit and handover |
 
 New and materially changed modules follow the target. Do not replace the fixed legacy inventory
 with a fresh baseline; retire each exception with its owning migration. Preserve established scan,

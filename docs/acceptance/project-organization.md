@@ -408,3 +408,35 @@ checks cover its behavior. The workbench binding has 50 production lines, its ad
 the native destination helper 78. No Rust, generated bridge, dependency version, model, schema, source-media or user-catalog
 change is included. [Scoped ownership](../architecture/workflow-ownership/dart-presentation-and-composition.md#workbench-destinations)
 and the [verification map](quality/ui-verification.md) retain current paths and contracts.
+
+## O7.1 Duplicate and organization native boundaries — 2026-11-03
+
+Duplicate availability policy consumes the `SourceStateProbe` port; its native adapter retains the
+existing metadata and identity checks. The analysis factory selects the same guarded reader and
+shared background admission. Root-state precedence, file-failure classification and the existing
+regression body compare identically after the port substitutions. Catalog transactions, bounded
+reads, fingerprint publication and source/namespace lease retirement are unchanged.
+
+R068–R071 and R165–R166 leave the active migration roster. Five exact composition registrations
+follow the [native contract](../architecture/workflow-ownership/native-composition.md#duplicate-and-organization-composition),
+with lifetime, replacement and regression metadata. The immutable baseline is unchanged; 273 legacy
+entries remain for later O7 groups. All 20 boundary checks pass, including neighboring-function,
+stale-entry, duplicate-admission and missing-decision rejection.
+
+The first focused Rust run passes ten cases but fails 35 during system temporary-directory creation
+with `PermissionDenied`, before catalog setup. With process-local temporary paths inside the existing
+leased acceptance scratch, the same 45 duplicate checks pass. Source-retirement/admission and batch
+close/capacity checks also pass, for 47 cases in total; scratch cleanup succeeds. This changes only
+the diagnostic command's storage location, without changing assertions or product code.
+
+Canonical Windows run `de7891ada6744a1c9c60a677ece3ca27` passes all four cases in 237,624 ms, exits zero,
+has empty stderr and no cleanup failures. Real duplicate analysis, local location availability,
+gallery annotations and persisted preferred-copy selection pass through the new factories. Existing
+scan, viewer, organization, archive, classification and source-byte assertions also pass.
+
+Production / inline-test lines are 181 / 0 for the exact facade, 48 / 0 for availability, 13 / 0 for
+its factories, 14 / 0 for the native probe and 7 / 0 for its port. Availability and execution tests
+contain 186 and 250 lines. The dependency-policy owner has 164 production lines and 170 dedicated
+test lines; the shared 1,174-line ports facade gains only its module declaration, retaining existing
+test-support declarations. No schema, generated bridge, dependency version or original-media change
+is included. Hosted checks continue independently under the user's CI direction.

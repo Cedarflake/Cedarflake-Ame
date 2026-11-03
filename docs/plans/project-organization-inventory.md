@@ -14,7 +14,9 @@ The native inventory is fixed in
 Every entry names its exact source, function/type, resolved dependency and rule, with a responsibility,
 reason, lifetime, regression owner and disposition. The mutable
 [`rust_boundary_policy.json`](../../tool/dependency-boundaries/rust_boundary_policy.json) selects
-active IDs; a resolved dependency retires its ID without rewriting the baseline.
+active IDs; a resolved dependency retires its ID without rewriting the baseline. Retained technical
+boundaries have separate exact registrations under the
+[native composition contract](../architecture/workflow-ownership/native-composition.md).
 
 The initial inventory contains 279 edges: 26 retained composition edges, one borrowed preview-source
 capability and 252 application integration edges for O7 classification. The latter remain individual

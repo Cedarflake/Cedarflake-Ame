@@ -23,6 +23,7 @@ only the contracts, execution details, and evidence that own the task.
 | Where do implementation and tool files belong? | [Repository layout](development/repository-layout.md) |
 | How should documents be written, split and maintained? | [Documentation standard](development/documentation.md), required by `AGENTS.md` |
 | Which future module dependencies, public contracts and production bindings are allowed? | [ADR 0037](architecture/0037-feature-module-dependency-boundaries.md), with staged adoption through the roadmap |
+| Which native factories retain concrete adapters, and who owns their resources? | [Native composition contract](architecture/workflow-ownership/native-composition.md) and its exact dependency registrations |
 | Which durable engineering and safety rules apply? | [Repository contract](../AGENTS.md), with its required [delivery/verification workflow](acceptance/quality/verification-workflow.md#delivery-and-verification) |
 | Where did the reorganized rules move, and how was their loading checked? | [Rule organization evidence](acceptance/engineering-rules-organization.md) |
 

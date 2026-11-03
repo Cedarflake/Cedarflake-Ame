@@ -127,6 +127,19 @@ Verify the scoped Rust domain/port/API boundaries and the exact production-compo
 Repair a demonstrated ownership violation in its narrow owner, with its regression, rather than
 bulk moving native code. Keep generated bridge and canonical tool entrypoint paths stable.
 
+Resolve the native inventory in independently reversible groups:
+
+1. Duplicate source-state probing and duplicate/organization resource composition.
+2. Catalog-session, storage and bounded-read boundaries.
+3. Classification execution, configuration and authorized installation boundaries.
+4. Scan admission/publication and preview/source capabilities.
+5. Synchronization, journal and recovery integration, followed by the final exception audit.
+
+Each group distinguishes resource factories from use-case policy, establishes only the missing port
+or owner, and retires its exact migration IDs. Retained composition records require a scoped
+architecture decision, lifetime, replacement path and regression owner; their neighboring functions
+receive no admission. Preserve the inventory's original source and mappings for provenance.
+
 Remove migration-only exports, duplicate bindings and legacy exceptions for completed scope. Move
 tests with their owners and update live documentation/tool links; historical evidence retains its
 revision and is not rewritten as a current path map. Check that new feature examples can follow the

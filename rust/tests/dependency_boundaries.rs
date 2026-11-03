@@ -63,4 +63,18 @@ fn repository_dependencies_match_the_fixed_inventory() {
             );
         }
     }
+    for (name, owner) in &policy.retained_owners {
+        for coverage in &owner.coverage {
+            assert!(
+                repository.join(coverage).is_file(),
+                "Lost coverage owner for {name}: {coverage}"
+            );
+        }
+        let (document, anchor) = owner.decision.split_once('#').unwrap();
+        assert!(!anchor.is_empty(), "Missing decision section for {name}");
+        assert!(
+            repository.join(document).is_file(),
+            "Lost decision for {name}"
+        );
+    }
 }

@@ -26,6 +26,7 @@ pub(crate) mod organization_conflicts;
 pub(crate) mod organization_review;
 pub(crate) mod search_index;
 pub(crate) mod sidebar_order;
+pub(crate) mod source_state;
 pub use gallery_query::GalleryQueryRepository;
 mod source_reconciliation;
 pub(crate) use source_reconciliation::{
