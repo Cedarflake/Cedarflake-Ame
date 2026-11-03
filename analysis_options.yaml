@@ -5,6 +5,7 @@ analyzer:
     - build/**
     - lib/src/rust/**
     - rust_builder/cargokit/**
+    - windows/**
   language:
     strict-casts: true
     strict-inference: true
