@@ -21,6 +21,7 @@ pub(crate) trait JournalRuntimeConnection: Clone + Send + Sync + 'static {
     type Session: JournalRuntimeSession;
 
     fn unavailable() -> Self;
+    fn protocol_version(&self) -> u16;
     fn is_connected(&self) -> bool;
     fn session(&self) -> Option<Self::Session>;
     fn close(&self) -> Result<(), ScanError>;

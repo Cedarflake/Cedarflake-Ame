@@ -270,6 +270,8 @@ coordinator methods and expose no database or watcher types through ports or bri
 adapter. `scan_library/resumption::new_production_resume_boundary_source` selects an independently
 owned connection. Both expose `ports/journal_boundary` contracts; selection acquires no resources.
 The adapter owns root registration, request/response conversion and operation-error translation.
+Boundary results carry the adapter's protocol version, including LiveOnly results; opening and
+closing publication retain that provenance without importing the broker's wire-version constant.
 
 `JournalBoundarySource::Root` retains the native root identity handle through baseline publication or
 resume verification. Opening and closing captures release that root without closing their borrowed
@@ -294,6 +296,8 @@ startup, then obtains the caller; failed identity acquisition attempts to close 
 exposing LiveOnly availability. Session selection returns only an authenticated retained reader. Opening and
 closing workers borrow its boundary source, while a volume worker consumes a cloned session with
 the same caller. No worker opens another connection or gains runtime-close authority.
+An unavailable connection still supplies its protocol version through the connection port for
+LiveOnly capability publication. This metadata access neither connects nor acquires a resource.
 
 Application retains once-only connection admission, status projection, root/volume rotation,
 cancellation, deadlines and worker joins. Close runs in its existing worker after core retirement;

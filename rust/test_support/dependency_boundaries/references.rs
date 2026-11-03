@@ -7,7 +7,7 @@ use syn::visit::{self, Visit};
 use syn::{Attribute, Item, Path, Visibility};
 
 use super::names::{Names, import_bindings};
-use super::rules::forbidden_rule;
+use super::rules::{forbidden_rule, layer};
 use super::sources::{Module, is_test_only};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
@@ -22,7 +22,7 @@ pub fn collect_dependencies(modules: &BTreeMap<String, Module>) -> BTreeSet<Depe
     let names = Names::from_modules(modules);
     let mut dependencies = BTreeSet::new();
     for module in modules.values() {
-        let layer = module.namespace.split("::").nth(1).unwrap_or_default();
+        let layer = layer(&module.namespace).unwrap_or_default();
         if !matches!(
             layer,
             "domain" | "ports" | "application" | "api" | "adapters"
@@ -216,6 +216,12 @@ impl<'ast> Visit<'ast> for Collector<'_> {
     fn visit_expr_block(&mut self, value: &'ast syn::ExprBlock) {
         if !is_test_only(&value.attrs) {
             visit::visit_expr_block(self, value);
+        }
+    }
+
+    fn visit_expr_if(&mut self, value: &'ast syn::ExprIf) {
+        if !is_test_only(&value.attrs) {
+            visit::visit_expr_if(self, value);
         }
     }
 

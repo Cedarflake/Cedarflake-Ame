@@ -53,8 +53,9 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 ## Current execution queue
 
 Continue [project organization](#project-organization-after-r5) with O7's complete Rust dependency
-audit, including root facades, aliases, re-exports and inferred native calls beyond the fixed
-inventory. Follow with test consolidation and real-library client verification.
+audit. Resolve the confirmed inferred native calls in scan recovery and classification queries;
+complete root-facade, alias, re-export and cross-layer-cycle coverage beyond the fixed inventory.
+Follow with test consolidation and real-library client verification.
 This maintenance runs on
 the authorized `codex/project-organization` branch before R6.
 PR metadata remains fixed by user direction.

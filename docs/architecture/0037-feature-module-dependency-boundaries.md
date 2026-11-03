@@ -160,6 +160,8 @@ authority to a different layer. Preserve complete lifecycle owners under ADR 002
 Retain the existing domain, ports, application, adapters and bridge API modules. Domain models and
 port signatures expose Ame contracts. Business use cases consume ports; adapters own engine calls,
 SQL and persistence implementation. Bridge APIs translate requests/results into application calls.
+The crate-root `journal_broker` and `windows_usn` modules have native adapter ownership and follow
+the same dependency rules as `adapters`, including after alias or re-export resolution.
 
 Pure rules shared by use cases and persistence validation belong to domain. Adapters re-evaluate
 those rules against transaction-local state before committing; they cannot import application

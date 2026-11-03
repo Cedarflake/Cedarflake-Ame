@@ -53,7 +53,9 @@ impl JournalBoundaryReader for ResumeBoundarySession {
             PersistentChangeJournalConnection::Connected(session) => {
                 super::probe_journal_boundary(session.as_ref(), &self.caller, &self.registration)
             }
-            PersistentChangeJournalConnection::LiveOnly(_) => Ok(JournalBoundaryProbe::LiveOnly),
+            PersistentChangeJournalConnection::LiveOnly(_) => Ok(JournalBoundaryProbe::LiveOnly {
+                protocol_version: crate::journal_broker::PROTOCOL_VERSION,
+            }),
         }
     }
 }

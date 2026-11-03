@@ -69,7 +69,7 @@ fn accepted_control_retires_selected_opening_without_failing_or_publishing() {
         with_first_import(&scan_id, |catalog, work| {
             assert!(command(&scan_id));
             assert_eq!(
-                persist_unavailable_session(catalog, &work, 2)
+                persist_unavailable_session(catalog, &work, 2, 7)
                     .expect("selected opening retires after accepted control"),
                 OpeningCaptureOutcome::Retired,
             );
@@ -115,7 +115,7 @@ fn current_live_only_opening_records_capability_without_publishing_catalog() {
             .checked_add(1)
             .expect("observation after registration");
         assert_eq!(
-            persist_unavailable_session(catalog, &work, observed_unix_ms)
+            persist_unavailable_session(catalog, &work, observed_unix_ms, 7)
                 .expect("record live-only capability"),
             OpeningCaptureOutcome::Recorded,
         );
@@ -124,6 +124,7 @@ fn current_live_only_opening_records_capability_without_publishing_catalog() {
             .expect("capability evidence")[0];
         assert_eq!(capability.state, PersistentJournalCapabilityState::LiveOnly);
         assert_eq!(capability.updated_unix_ms, observed_unix_ms);
+        assert_eq!(capability.protocol_version, 7);
         assert!(
             catalog
                 .load_persistent_journal_baselines()
@@ -148,7 +149,7 @@ fn control_at_sqlite_admission_retires_the_rejected_write() {
             panic!("first-import work");
         };
         let result = catalog.save_first_import_journal_capability(
-            &live_only_capability("root", work.root_generation, 2),
+            &live_only_capability("root", work.root_generation, 2, 7),
             capture.scan_id(),
             || {
                 assert!(pause_scan(capture.scan_id()));
@@ -171,7 +172,7 @@ fn control_after_write_admission_preserves_the_committed_receipt() {
             panic!("first-import work");
         };
         let result = catalog.save_first_import_journal_capability(
-            &live_only_capability("root", work.root_generation, 2),
+            &live_only_capability("root", work.root_generation, 2, 7),
             capture.scan_id(),
             || {
                 let permit = capture.acquire_publication()?;
@@ -205,7 +206,7 @@ fn inactive_catalog_authority_with_current_execution_is_still_an_error() {
             .pause_scan("opening-catalog-retired", &ScanCheckpoint::default())
             .expect("persist retired scan");
         assert!(work.is_current(), "execution token was not controlled");
-        let error = persist_unavailable_session(catalog, &work, 2)
+        let error = persist_unavailable_session(catalog, &work, 2, 7)
             .expect_err("do not hide catalog authority mismatch");
         assert_eq!(error.code, "persistent_journal_first_import_inactive");
         assert_unrecorded(catalog);

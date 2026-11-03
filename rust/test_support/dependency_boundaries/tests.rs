@@ -156,6 +156,8 @@ fn test_only_code_is_excluded_without_hiding_conditional_production_code() {
             #[cfg(any(test, windows))] fn production() { crate::adapters::Database::open(); }
             #[cfg(not(test))] fn release() { crate::adapters::Database::open(); }
             fn neutral() { #[cfg(test)] { crate::adapters::Database::open(); } }
+            fn neutral_branch() { #[cfg(test)] if true { crate::adapters::Database::open(); } }
+            fn conditional_branch() { #[cfg(any(test, windows))] if true { crate::adapters::Database::open(); } }
         }
     "#,
     );
@@ -166,6 +168,7 @@ fn test_only_code_is_excluded_without_hiding_conditional_production_code() {
     assert_eq!(
         symbols,
         [
+            "crate::application::conditional_branch",
             "crate::application::production",
             "crate::application::release"
         ]
@@ -221,6 +224,31 @@ fn domain_ports_and_bridge_accept_only_their_direction() {
         .map(|dependency| dependency.rule)
         .collect::<Vec<_>>();
     assert_eq!(rules, ["external-engine", "platform-io", "outward-layer"]);
+
+    for native in ["adapters", "journal_broker", "windows_usn"] {
+        let source = r#"
+            mod native_boundary { pub const VERSION: u16 = 5; }
+            mod facade { pub use crate::native_boundary::VERSION as Current; }
+            mod domain { const BAD: u16 = crate::facade::Current; }
+            mod ports { const BAD: u16 = crate::facade::Current; }
+            mod application { fn bad() -> u16 { crate::facade::Current } }
+            mod api { fn bad() -> u16 { crate::facade::Current } }
+        "#;
+        let dependencies =
+            collect_dependencies(&fixture(&source.replace("native_boundary", native)));
+        assert_eq!(dependencies.len(), 4, "{native}");
+        for dependency in dependencies {
+            assert_eq!(dependency.target, format!("crate::{native}::VERSION"));
+            assert_eq!(
+                dependency.rule,
+                if dependency.symbol == "crate::application::bad" {
+                    "concrete-adapter"
+                } else {
+                    "outward-layer"
+                },
+            );
+        }
+    }
 }
 
 #[test]
@@ -231,37 +259,40 @@ fn included_code_cannot_hide_unparsed_dependencies() {
 
 #[test]
 fn adapters_can_implement_ports_and_use_domain_rules_and_external_engines() {
-    let modules = fixture(
-        r#"
+    let source = r#"
         mod domain { pub fn validate() {} }
         mod ports { pub trait Repository { fn write(&self); } }
-        mod adapters {
+        mod native_boundary {
             struct Database { connection: rusqlite::Connection }
             impl crate::ports::Repository for Database {
                 fn write(&self) { crate::domain::validate(); }
             }
         }
-    "#,
-    );
-    assert!(collect_dependencies(&modules).is_empty());
+    "#;
+    for native in ["adapters", "journal_broker", "windows_usn"] {
+        let modules = fixture(&source.replace("native_boundary", native));
+        assert!(collect_dependencies(&modules).is_empty(), "{native}");
+    }
 }
 
 #[test]
 fn adapters_cannot_reach_application_policy_through_aliases_or_reexports() {
-    let modules = fixture(
-        r#"
+    let source = r#"
         mod application { pub fn validate() {} }
-        mod adapters {
+        mod native_boundary {
             mod imports { pub use crate::application::validate as shared; }
             mod database { use super::imports::shared as check; fn write() { check(); } }
         }
-    "#,
-    );
-    let dependencies = collect_dependencies(&modules);
-    assert_eq!(dependencies.len(), 2);
-    assert!(dependencies.iter().all(|dependency| {
-        dependency.target == "crate::application::validate" && dependency.rule == "outward-layer"
-    }));
+    "#;
+    for native in ["adapters", "journal_broker", "windows_usn"] {
+        let modules = fixture(&source.replace("native_boundary", native));
+        let dependencies = collect_dependencies(&modules);
+        assert_eq!(dependencies.len(), 2, "{native}");
+        assert!(dependencies.iter().all(|dependency| {
+            dependency.target == "crate::application::validate"
+                && dependency.rule == "outward-layer"
+        }));
+    }
 }
 
 #[test]

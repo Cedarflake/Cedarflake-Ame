@@ -8,11 +8,12 @@ use crate::domain::{
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum JournalBoundaryProbe {
     Supported(SupportedJournalBoundary),
-    LiveOnly,
+    LiveOnly { protocol_version: u16 },
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct SupportedJournalBoundary {
+    pub(crate) protocol_version: u16,
     pub(crate) volume: PersistentJournalVolumeIdentity,
     pub(crate) root_file_reference: JournalFileReference,
     pub(crate) journal_id: JournalIdentifier,

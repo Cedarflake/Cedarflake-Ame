@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::ScanError;
 use crate::journal_broker::{
-    CallerClaim, PersistentChangeJournal, PersistentChangeJournalConnection,
+    CallerClaim, PROTOCOL_VERSION, PersistentChangeJournal, PersistentChangeJournalConnection,
     PersistentChangeJournalLiveOnlyReason, PersistentChangeJournalSession,
     production_persistent_journal_caller_claim,
 };
@@ -68,6 +68,10 @@ impl JournalRuntimeConnection for NativeJournalConnection {
             ),
             caller: None,
         }
+    }
+
+    fn protocol_version(&self) -> u16 {
+        PROTOCOL_VERSION
     }
 
     fn is_connected(&self) -> bool {

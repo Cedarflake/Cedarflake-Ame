@@ -5,9 +5,10 @@ use crate::domain::{
     PersistentJournalVolumeIdentity, ScanError,
 };
 use crate::journal_broker::{
-    BrokerResponse, CallerClaim, JournalCapability, PersistentChangeJournalOperationError,
-    PersistentChangeJournalSession, ProductionPersistentJournalRoot, QueryJournalRequest,
-    RegisterRootRequest, describe_production_persistent_journal_root,
+    BrokerResponse, CallerClaim, JournalCapability, PROTOCOL_VERSION,
+    PersistentChangeJournalOperationError, PersistentChangeJournalSession,
+    ProductionPersistentJournalRoot, QueryJournalRequest, RegisterRootRequest,
+    describe_production_persistent_journal_root,
 };
 use crate::ports::journal_boundary::{
     JournalBoundaryProbe, JournalBoundaryReader, JournalBoundarySource, SupportedJournalBoundary,
@@ -98,6 +99,7 @@ fn probe_journal_boundary(
             ..
         } if first_usn >= 0 && next_usn >= first_usn => {
             Ok(JournalBoundaryProbe::Supported(SupportedJournalBoundary {
+                protocol_version: PROTOCOL_VERSION,
                 volume: if let Some(source) = session.identity_source() {
                     source.volume_identity(&crate::ports::IdentityJournalRoot {
                         root_id: registration.authorization.root_id.clone(),
@@ -131,7 +133,9 @@ fn probe_journal_boundary(
             first_usn: None,
             next_usn: None,
             ..
-        } => Ok(JournalBoundaryProbe::LiveOnly),
+        } => Ok(JournalBoundaryProbe::LiveOnly {
+            protocol_version: PROTOCOL_VERSION,
+        }),
         _ => Err(ScanError::new(
             "persistent_journal_boundary_invalid",
             "The retained change boundary response is incomplete or inconsistent",

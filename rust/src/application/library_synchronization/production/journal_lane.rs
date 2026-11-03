@@ -86,7 +86,12 @@ impl JournalLane {
                     self.root_cursor.as_deref(),
                     None,
                 )? {
-                    journal_baseline::persist_unavailable_session(catalog, &work, now_unix_ms)?;
+                    journal_baseline::persist_unavailable_session(
+                        catalog,
+                        &work,
+                        now_unix_ms,
+                        connection.protocol_version(),
+                    )?;
                 }
                 return Ok(None);
             }

@@ -377,3 +377,37 @@ The reconciliation owner/path plan have 158/99 source lines and 1,004 dedicated-
 inline cases. Native identity lookup has 70 source lines; its 420-line journal facade removes only
 the old export and has no inline cases. Local preview sources have 173 source lines, retaining all
 existing source/publication bodies.
+
+## Journal protocol provenance and native-root checks — 2026-11-04
+
+Against `7a5ca2fe`, three production application references still read the broker's wire-version
+constant outside the frozen migration inventory. `JournalBoundaryProbe` now carries protocol
+provenance for supported and LiveOnly results; `JournalRuntimeConnection` supplies it for unavailable
+connections. Opening, closing and LiveOnly publication consume those values through ports. Native
+adapters retain version 5, acquisition/error handling and resource retirement; schema, publication
+authority and source access are unchanged.
+
+The dependency gate classifies crate-root `journal_broker` and `windows_usn` as native adapters in
+both directions, including aliases and re-exports. Existing parser cases cover admitted domain/port
+access and rejected native/application/bridge dependencies. Its first repository run also exposed a
+false positive in the test-only scan fixture: the visitor filtered conditional blocks but not
+conditional `if` expressions. The corrected visitor excludes `cfg(test)` branches while retaining
+branches that can compile for a production platform. No inventory or exception is added.
+
+All 60 selected existing checks pass: 36 boundary, baseline, first-import and admission cases, plus
+24 dependency checks. Existing application assertions use protocol version 7 to verify incoming
+provenance independently of the native constant; the native probe retains its version assertion.
+Cancellation, stale publication and atomic baseline cases remain intact. Product test count stays
+2,984 and gate test count stays 24. Test and production compilation emit no warnings; leased scratch
+retires after both the initial gate failure and corrected run.
+
+The baseline owner has 352 production and 224 inline-test lines; opening has 185 production and 472
+dedicated-test lines. The reference walker and rule classifier have 256/73 verification-source lines,
+with 356 dedicated parser-fixture lines. The fixed inventory remains at zero migration entries and
+78 exact technical edges.
+
+A Windows semantic-index diagnostic identifies further inferred calls; source inspection confirms
+two scan-recovery reads and two classification queries still call SQLite inherent methods without
+port contracts. Its missing-definition diagnostics leave complete graph coverage unproven. These
+calls, root-facade/cycle coverage, test consolidation and final real-library verification remain in
+O7; the retained-import pause timeout keeps its existing acceptance owner.

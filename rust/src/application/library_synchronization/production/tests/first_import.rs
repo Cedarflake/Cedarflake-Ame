@@ -41,6 +41,7 @@ fn stale_live_only_first_import_capability_is_refreshed_once() {
                 &root_id,
                 generation,
                 stale_unix_ms,
+                crate::journal_broker::PROTOCOL_VERSION,
             ),
         )
         .expect("seed stale LiveOnly capability");
@@ -170,6 +171,7 @@ fn failed_first_import_retries_with_fresh_generation_and_capture_owner() {
                 &root_id,
                 generation,
                 stale_unix_ms,
+                crate::journal_broker::PROTOCOL_VERSION,
             ),
         )
         .expect("seed failed import capability");

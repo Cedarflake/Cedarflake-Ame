@@ -257,6 +257,7 @@ fn closing_request(
     observed_unix_ms: i64,
 ) -> Result<PersistentJournalBaselineClosingBoundary, ScanError> {
     let SupportedJournalBoundary {
+        protocol_version,
         volume,
         root_file_reference,
         journal_id,
@@ -264,7 +265,7 @@ fn closing_request(
         ..
     } = match boundary {
         JournalBoundaryProbe::Supported(supported) => supported,
-        JournalBoundaryProbe::LiveOnly => {
+        JournalBoundaryProbe::LiveOnly { .. } => {
             return Err(ScanError::new(
                 "persistent_journal_baseline_closing_unavailable",
                 "The closing change boundary is unavailable",
@@ -277,7 +278,7 @@ fn closing_request(
         root_file_reference,
         journal_id,
         closing_next_usn: next_usn,
-        protocol_version: crate::journal_broker::PROTOCOL_VERSION,
+        protocol_version,
         captured_unix_ms: observed_unix_ms,
     })
 }
@@ -299,11 +300,12 @@ pub(super) fn live_only_capability(
     root_id: &str,
     root_generation: LibraryRootGeneration,
     observed_unix_ms: i64,
+    protocol_version: u16,
 ) -> PersistentJournalCapability {
     PersistentJournalCapability {
         root_id: root_id.to_owned(),
         root_generation,
-        protocol_version: crate::journal_broker::PROTOCOL_VERSION,
+        protocol_version,
         contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
         state: PersistentJournalCapabilityState::LiveOnly,
         continuity: PersistentJournalContinuityState::LiveOnly,
@@ -386,6 +388,7 @@ mod tests {
 
     fn supported_boundary() -> JournalBoundaryProbe {
         JournalBoundaryProbe::Supported(SupportedJournalBoundary {
+            protocol_version: 7,
             volume: PersistentJournalVolumeIdentity {
                 volume_guid: "volume-a".to_owned(),
                 volume_serial: 7,
@@ -400,7 +403,7 @@ mod tests {
     fn supported_opening_boundary() -> SupportedJournalBoundary {
         match supported_boundary() {
             JournalBoundaryProbe::Supported(boundary) => boundary,
-            JournalBoundaryProbe::LiveOnly => unreachable!("test boundary is supported"),
+            JournalBoundaryProbe::LiveOnly { .. } => unreachable!("test boundary is supported"),
         }
     }
 
@@ -491,6 +494,7 @@ mod tests {
         );
         assert_eq!(request.authorized_unix_ms, 100);
         assert_eq!(request.opening_next_usn.value(), 20);
+        assert_eq!(request.protocol_version, 7);
     }
 
     #[test]
@@ -554,9 +558,16 @@ mod tests {
         assert_eq!(closing.change_id, work.baseline.change_id);
         assert_eq!(closing.closing_next_usn.value(), 20);
         assert_eq!(closing.captured_unix_ms, 200);
+        assert_eq!(closing.protocol_version, 7);
 
-        let error = closing_request(&work, JournalBoundaryProbe::LiveOnly, 200)
-            .expect_err("live-only cannot close a retained baseline");
+        let error = closing_request(
+            &work,
+            JournalBoundaryProbe::LiveOnly {
+                protocol_version: 7,
+            },
+            200,
+        )
+        .expect_err("live-only cannot close a retained baseline");
         assert_eq!(
             error.code,
             "persistent_journal_baseline_closing_unavailable"

@@ -31,7 +31,7 @@ pub(super) fn load_resume_coverage(
             boundary.first_usn,
             boundary.next_usn,
         ),
-        Ok(JournalBoundaryProbe::LiveOnly) => Ok(None),
+        Ok(JournalBoundaryProbe::LiveOnly { .. }) => Ok(None),
         Err(error) => Err(error),
     };
     session.close()?;

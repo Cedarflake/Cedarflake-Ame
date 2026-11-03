@@ -1,16 +1,21 @@
+pub(super) fn layer(namespace: &str) -> Option<&str> {
+    match namespace.strip_prefix("crate::")?.split("::").next()? {
+        "journal_broker" | "windows_usn" => Some("adapters"),
+        layer => Some(layer),
+    }
+}
+
 pub(super) fn forbidden_rule(
     namespace: &str,
     target: &str,
     is_module_reference: bool,
 ) -> Option<&'static str> {
-    let layer = namespace.split("::").nth(1)?;
-    if layer == "api" && target == "crate::frb_generated::StreamSink" {
+    let source_layer = layer(namespace)?;
+    if source_layer == "api" && target == "crate::frb_generated::StreamSink" {
         return None;
     }
-    let target_layer = target
-        .strip_prefix("crate::")
-        .and_then(|path| path.split("::").next());
-    let outward = match layer {
+    let target_layer = layer(target);
+    let outward = match source_layer {
         "domain" => matches!(
             target_layer,
             Some("ports" | "application" | "adapters" | "api" | "frb_generated")
@@ -27,10 +32,10 @@ pub(super) fn forbidden_rule(
     if outward {
         return Some("outward-layer");
     }
-    if layer == "application" && target_layer == Some("adapters") {
+    if source_layer == "application" && target_layer == Some("adapters") {
         return Some("concrete-adapter");
     }
-    if layer == "adapters" {
+    if source_layer == "adapters" {
         return None;
     }
     let external = target.split("::").next().unwrap_or_default();
@@ -54,10 +59,10 @@ pub(super) fn forbidden_rule(
     {
         return Some("external-engine");
     }
-    if layer != "api" && external == "flutter_rust_bridge" {
+    if source_layer != "api" && external == "flutter_rust_bridge" {
         return Some("bridge-runtime");
     }
-    if matches!(layer, "domain" | "ports")
+    if matches!(source_layer, "domain" | "ports")
         && ["std::fs", "std::process", "std::net"]
             .iter()
             .any(|prefix| target == *prefix || target.starts_with(&format!("{prefix}::")))

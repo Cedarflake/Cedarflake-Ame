@@ -107,8 +107,8 @@ fn boundary_probe_binds_register_and_query_requests_to_the_same_root() {
     assert_eq!(query.timeout_ms, JOURNAL_BOUNDARY_TIMEOUT_MILLIS);
     assert!(matches!(
         boundary,
-        JournalBoundaryProbe::Supported(SupportedJournalBoundary { next_usn, .. })
-            if next_usn.value() == 20
+        JournalBoundaryProbe::Supported(SupportedJournalBoundary { next_usn, protocol_version, .. })
+            if next_usn.value() == 20 && protocol_version == PROTOCOL_VERSION
     ));
 }
 
