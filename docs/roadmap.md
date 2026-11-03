@@ -52,11 +52,9 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-Continue [project organization](#project-organization-after-r5) with O7's remaining inferred-call
-and cross-layer cycle audit. Root facades and Cargo binary entrypoints now share the dependency gate;
-their [coverage](acceptance/project-organization-continuity.md#root-facades-and-native-entrypoints--2026-11-04)
-extends beyond the fixed inventory.
-Follow with test consolidation and real-library client verification.
+Continue [project organization](#project-organization-after-r5) with O7's test consolidation, followed
+by real-library client verification. The [Rust dependency audit](acceptance/project-organization-continuity.md#final-rust-dependency-audit--2026-11-04)
+closes inferred-call and cross-layer cycle review, including root facades and Cargo binary entrypoints.
 This maintenance runs on
 the authorized `codex/project-organization` branch before R6.
 PR metadata remains fixed by user direction.
@@ -77,7 +75,7 @@ the [repository layout](development/repository-layout.md) owns placement. The
 
 | Order | Remaining outcome |
 | --- | --- |
-| O7 | Scan/preview and continuity conformance; dependency audit, test consolidation and real-library client verification |
+| O7 | Test consolidation and real-library client verification |
 
 New and materially changed modules follow the target. Do not replace the fixed legacy inventory
 with a fresh baseline; retire each exception with its owning migration. Preserve established scan,

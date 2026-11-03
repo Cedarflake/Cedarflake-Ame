@@ -462,3 +462,34 @@ lines, with 444 parser-fixture lines. The observer has 564 production lines, 23 
 lines and 804 dedicated-test lines; its production lifecycle bodies are unchanged. Inferred-call
 classification, the complete cycle audit, test consolidation and real-library verification remain
 in the roadmap queue, including the retained-import pause timeout.
+
+## Final Rust dependency audit — 2026-11-04
+
+Revision `fee59f68` combines the all-configuration source gate with a fresh Windows/default-feature
+type index from installed rust-analyzer `0.3.3097` (`0c4d74686b`). Offline indexing uses two workers
+and the repository lock. The index contains 840 documents and 213,100 reference occurrences;
+generated, vendored and test-only code is outside the production dependency conclusion.
+
+All 32 application-to-native inherent-method calls belong to reviewed resource owners: 19 validated
+catalog/poll-session calls, four media/discovery factories, three preview-store lifecycle calls,
+three classification vocabulary/cache acquisitions, and one each for settings, organization batches
+and catalog reclamation. Inspection against the [native composition contract](../architecture/workflow-ownership/native-composition.md)
+preserves acquisition, identity checks, leases, lane selection, retirement and adapter-owned SQL.
+The four previously repaired recovery/selection queries no longer call native inherent methods.
+
+The other 177 method references to native implementations implement 47 existing ports contracts.
+All three native field references initialize the registered encoder factory; no business consumer
+reads native implementation state. The source gate retains 80 exact technical edges, zero migration
+entries and unchanged frozen inventories. The 27 focused checks at `fee59f68` remain valid; this audit changes
+no executable source and adds no tests or baseline.
+
+The index lacks definition records for 2,619 owned-symbol occurrences, including implementation
+containers and generated/derived members. Qualified symbol ownership resolves their layer direction;
+none is an unresolved native symbol consumed by core layers. The sole apparent native-to-bridge
+reference is the `SseEncode` import inside `read_retry.rs`'s `cfg(test)` module. API StreamSink
+references retain their existing admission. Module-prefix tokens and visibility scopes are not
+item dependencies; the source gate independently checks production exports and conditional paths.
+The resulting layer graph orders API, application, adapters, ports and domain without a cross-layer
+cycle. No production outward-layer edge remains in the combined source/type review. Same-layer
+collaboration and generated bridge implementation are outside that layer-cycle claim. Test-value
+review and real-library client acceptance remain required before O7 closes.
