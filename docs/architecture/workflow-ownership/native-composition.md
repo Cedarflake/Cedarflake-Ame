@@ -8,6 +8,26 @@ source/symbol/target edges and regression owners live in
 Retained entries are technical composition boundaries; `activeIds` remain unfinished migration.
 Both kinds reject new or stale dependencies. The fixed legacy inventory is never regenerated.
 
+## Validated catalog session
+
+`catalog_session.rs` is the application resource host for validated catalog sessions. Its registered
+state/decision types and validation-flight methods retain the concrete, shared session proof.
+Validation and refresh functions share one flight per catalog path, including its original failure,
+bounded retry delay and invalidation result. Expensive validation runs outside the registry and
+entry-transition locks; a late flight cannot replace a newer owner or an invalidated proof.
+
+The registered catalog and read-executor factories select connections from that proof. Foreground
+scan acquisition rechecks the current session identity before protecting it; ordinary refresh cannot
+replace a session owned by an active scan. Idle recovery keeps its current-session and scan-exclusion
+checks around acquisition and the supplied operation. Maintenance retains its separate reservation
+and proof-retention contract in [catalog ownership](catalog-and-migrations.md).
+
+SQL, schema/row validation, database identity and connection preparation remain in the adapter.
+The host admission covers only the registered concrete session/catalog/executor references. Replacing
+persistence substitutes those proof and connection resources together, preserving shared waiters,
+foreground protection, lane selection and invalidation. It grants no business-use-case exemption and
+does not expose SQLite or engine types through domain, ports or bridge contracts.
+
 ## Duplicate and organization composition
 
 `exact_duplicates/production.rs::{content_reader,source_state}` select native implementations through

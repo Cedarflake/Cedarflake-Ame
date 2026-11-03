@@ -440,3 +440,16 @@ contain 186 and 250 lines. The dependency-policy owner has 164 production lines 
 test lines; the shared 1,174-line ports facade gains only its module declaration, retaining existing
 test-support declarations. No schema, generated bridge, dependency version or original-media change
 is included. Hosted checks continue independently under the user's CI direction.
+
+## O7 Catalog-session composition — 2026-11-03
+
+R011–R025 are retained as the exact session-host, validation-flight and connection-factory boundaries
+defined in the [native contract](../architecture/workflow-ownership/native-composition.md#validated-catalog-session).
+The roster contains 258 active legacy entries and 20 retained technical edges; the fixed baseline
+is unchanged. No Rust implementation or test body changes in this delivery.
+
+All 20 dependency checks and 13 existing session/maintenance regressions pass. They cover shared
+failure and retry, delayed waiters, invalidation during validation/maintenance, panic retirement,
+independent catalog paths and incremental-reclamation proof retention. The leased scratch is retired.
+The unchanged runtime retains O7.1's native client evidence. Storage and bounded-read integration
+remain in the roadmap queue; this registration does not admit neighboring use cases.

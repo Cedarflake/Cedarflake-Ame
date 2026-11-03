@@ -10,21 +10,6 @@
     "R008",
     "R009",
     "R010",
-    "R011",
-    "R012",
-    "R013",
-    "R014",
-    "R015",
-    "R016",
-    "R017",
-    "R018",
-    "R019",
-    "R020",
-    "R021",
-    "R022",
-    "R023",
-    "R024",
-    "R025",
     "R026",
     "R027",
     "R028",
@@ -308,6 +293,17 @@
         "rust/src/application/organization_batch/tests.rs",
         "rust/src/adapters/sqlite_catalog/organization/tests/batch.rs"
       ]
+    },
+    "catalog-session-composition": {
+      "responsibility": "Shared validated catalog session, validation flights and lane-scoped connection factories",
+      "reason": "These resource hosts retain adapter-owned identity/schema proof while application owns shared waiters, invalidation, backoff and foreground-scan exclusion.",
+      "lifetime": "One shared validation owner per catalog path; failed or invalidated flights wake their original waiters, and current-session identity guards scan acquisition and stale replacement.",
+      "replacement": "Replace the proof and connection factories together with persistence while retaining shared validation, scan protection, lane selection and caller-owned connections.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#validated-catalog-session",
+      "coverage": [
+        "rust/src/application/catalog_session/tests.rs",
+        "rust/src/application/catalog_session/maintenance/tests.rs"
+      ]
     }
   },
   "retained": [
@@ -358,6 +354,156 @@
         "source": "rust/src/application/exact_duplicates/production.rs",
         "symbol": "crate::application::exact_duplicates::production::source_state",
         "target": "crate::adapters::local_source_state::LocalSourceState",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-session-state",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogSessionState",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-validation-decision",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogValidationDecision",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-validation-flight",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogValidationFlight",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-validation-complete",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogValidationFlight::complete",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-validation-wait",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogValidationFlight::wait",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-open",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::open_catalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-foreground-open",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::open_catalog_for_foreground_scan",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-foreground-session",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::open_catalog_for_foreground_scan",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-reader",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::open_catalog_reader",
+        "target": "crate::adapters::sqlite_catalog::read_retry::SqliteCatalogReadExecutor",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-refresh",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::refresh_stale_catalog_session",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-refresh-for-scan",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::refresh_stale_catalog_session_for_scan",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-validate",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::validated_catalog_session",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-validate-with",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::validated_catalog_session_with",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-validate-with-exemption",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::validated_catalog_session_with_exemption",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-idle-recovery",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::with_recovery_catalog_if_idle",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
         "rule": "concrete-adapter"
       }
     }
