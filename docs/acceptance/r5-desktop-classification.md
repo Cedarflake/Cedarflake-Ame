@@ -747,3 +747,11 @@ The Dart coordinator/activation owners contain 214/22 lines, with 670 dedicated 
 test lines. Model packaging, installer composition and component generation contain 148/144/186
 lines, with 144 dedicated packaging test lines. These owners have no inline tests; generated bridge
 code is excluded from handwritten review. The submitted-head hosted gate remains required.
+
+## Sidebar download alignment — 2026-11-03
+
+The missing-model empty row uses the section heading's right inset, aligning its download control
+with the collapse arrow. The Windows Debug client based on `0c5f9e48` plus this padding change was
+checked at a 236-logical-pixel sidebar width: both icons share the same vertical axis and the adjacent
+text remains on one line. Repository formatting and whitespace checks pass. Computer Use was reset
+after inspection; model installation behavior is unchanged.

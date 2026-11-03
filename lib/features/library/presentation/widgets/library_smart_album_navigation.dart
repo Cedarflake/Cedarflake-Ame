@@ -84,6 +84,7 @@ class _LibrarySmartAlbumNavigationState
               if (value == null || value.categories.isEmpty)
                 ListTile(
                   key: const Key("library-sidebar-smart-empty"),
+                  contentPadding: const EdgeInsets.only(left: 16, right: 6),
                   leading: const Icon(Symbols.photo_album_rounded),
                   minLeadingWidth: 24,
                   horizontalTitleGap: 12,
