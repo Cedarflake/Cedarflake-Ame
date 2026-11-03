@@ -7,6 +7,7 @@ use crate::domain::classification_catalog::{
 };
 use crate::domain::organization::{OrganizationSelection, validate_selections};
 use crate::ports::classification::ClassificationRepository;
+use crate::ports::classification_selection::ClassificationSelectionReader;
 
 use super::{SqliteCatalog, database_error};
 
@@ -26,8 +27,17 @@ pub(super) mod validation;
 pub(super) mod work;
 mod writes;
 
-impl SqliteCatalog {
-    pub(crate) fn classification_items(
+impl ClassificationSelectionReader for SqliteCatalog {
+    fn classification_annotations(
+        &self,
+        revision: u64,
+        selections: &[OrganizationSelection],
+    ) -> Result<Vec<crate::domain::classification_selection::ClassificationAnnotation>, ScanError>
+    {
+        super::gallery::classification_annotations::load(&self.connection, revision, selections)
+    }
+
+    fn classification_items(
         &self,
         selections: &[OrganizationSelection],
     ) -> Result<Vec<crate::domain::classification_selection::ClassificationItemState>, ScanError>

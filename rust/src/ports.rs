@@ -18,6 +18,7 @@ pub(crate) mod classification_installation;
 #[cfg(all(windows, feature = "classification-worker"))]
 pub(crate) mod classification_model_package;
 pub(crate) mod classification_review;
+pub(crate) mod classification_selection;
 pub(crate) mod classification_setup;
 pub(crate) mod classification_source;
 pub(crate) mod classification_vocabulary;

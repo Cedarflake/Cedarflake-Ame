@@ -60,6 +60,11 @@ callback, SQL, connection or transaction crosses the port. SQLite protocol retry
 session proof remain in `sqlite_catalog/read_retry.rs`. Replacing persistence implements this port
 and changes the existing session factory together.
 
+`application/classification_selection.rs` borrows `ClassificationSelectionReader` from the existing
+Live-lane catalog binding. SQLite retains the annotation transaction's displayed-revision and
+selection checks, and the item-state transaction's configuration, source and human-decision rules.
+The read port returns Ame annotations and item states while preserving that connection's lifetime.
+
 `load_catalog/production::source_state` selects the stateless `SourceStateProbe` after preview
 reconciliation and recovery scheduling. `load_catalog/root_availability.rs` projects fresh root
 evidence and messages without probing media content or changing catalog identity/counts. An

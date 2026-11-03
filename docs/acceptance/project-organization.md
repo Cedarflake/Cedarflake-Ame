@@ -637,6 +637,22 @@ their dedicated tests have 514 and 169 lines, with one 130-line shared fixture. 
 has 250 lines, the extracted rule owner 68 and parser tests 325. The final client/real-library check
 remains required after the complete migration under the execution plan.
 
+## O7 Classification selection queries — 2026-11-04
+
+Against `08920430`, annotation and item-state application queries borrow
+`ClassificationSelectionReader` from the existing Live-lane catalog binding. The SQLite implementation
+delegates to the original query owners; the annotation owner now accepts its internal connection
+directly. Source comparison preserves every SQL/error string, the annotation transaction body and
+helpers, and the complete item-state query owner. Connection acquisition, drop timing, API values,
+schema and generated contracts are unchanged.
+
+All 12 selected existing checks pass: four annotation, three query-cost/count, two prediction and two
+failure-status cases, plus the repository inventory. They retain displayed-revision and stale-source
+rejection, the selection bound, human-decision precedence, indexed query cost and coherent retry
+feedback. Test changes only import the port; fixtures, assertions and the 2,984-case count are
+unchanged. Test and production builds emit no warnings, and leased scratch retires. Broader dependency
+audit and final client/real-library verification remain in O7.
+
 ## O7 Scan discovery boundary — 2026-11-04
 
 `ScanFileDiscovery` and its borrowed `ScanDirectoryEntries` expose source discovery without native
