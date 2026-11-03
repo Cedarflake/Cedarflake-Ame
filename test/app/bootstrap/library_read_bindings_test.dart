@@ -45,7 +45,7 @@ void main() {
         overrides: [
           ...reads.overrides,
           ...libraryScanBindings(),
-          ...libraryDuplicateBindings(),
+          ...LibraryDuplicateBindings.production().overrides,
           ...libraryOrganizationBindings(),
         ],
       );
@@ -96,7 +96,7 @@ void main() {
       final overrides = [
         ...LibraryReadBindings.production().overrides,
         ...libraryScanBindings(),
-        ...libraryDuplicateBindings(),
+        ...LibraryDuplicateBindings.production().overrides,
         ...libraryOrganizationBindings(),
       ];
       for (final omitted in requirements) {

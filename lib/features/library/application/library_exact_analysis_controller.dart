@@ -4,7 +4,7 @@ import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../domain/library_exact_duplicates.dart";
-import "library_exact_duplicates.dart";
+import "ports/library_exact_duplicates.dart";
 
 class LibraryExactAnalysisController extends ChangeNotifier {
   LibraryExactAnalysisController(this._service);
@@ -143,9 +143,7 @@ class LibraryExactAnalysisController extends ChangeNotifier {
 
 final libraryExactAnalysisControllerProvider =
     Provider<LibraryExactAnalysisController>((ref) {
-      final controller = LibraryExactAnalysisController(
-        ref.watch(libraryExactDuplicatesProvider),
+      throw StateError(
+        "LibraryExactAnalysisController must be bound during application startup",
       );
-      ref.onDispose(controller.dispose);
-      return controller;
     });

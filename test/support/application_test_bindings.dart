@@ -6,6 +6,10 @@ import "package:cedarflake_ame/app/bootstrap/library_duplicate_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/library_organization_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/settings_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/storage_bindings.dart";
+import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_exact_analysis_scheduler.dart";
+import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
+import "package:cedarflake_ame/features/library/application/library_gallery_duplicates.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_view_preference_store.dart";
 import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/ports/ame_preference_store.dart";
@@ -29,7 +33,16 @@ List<Override> applicationTestOverrides([List<Override> overrides = const []]) {
     ...LibraryReadBindings.production().overrides,
     ...libraryScanBindings(),
     ...LibrarySynchronizationBindings(InertLibrarySynchronization()).overrides,
-    ...libraryDuplicateBindings(),
+    ...LibraryDuplicateBindings.production().overrides,
+    libraryExactAnalysisControllerProvider.overrideWith((ref) {
+      final analysis = LibraryExactAnalysisController(
+        ref.watch(libraryExactDuplicatesProvider),
+      );
+      ref.onDispose(analysis.dispose);
+      return analysis;
+    }),
+    libraryExactAnalysisSchedulerProvider.overrideWithValue(null),
+    libraryGalleryDuplicatesProvider.overrideWithValue(null),
     ...libraryOrganizationBindings(),
   ];
   return {

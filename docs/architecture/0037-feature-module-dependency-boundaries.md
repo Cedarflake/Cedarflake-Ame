@@ -106,6 +106,14 @@ owner. The application constructor accepts only an Ame gateway; generated policy
 production cadence, and test-only constructors retain timing/failure injection. The inactive
 synchronization fixture exists only in test support.
 
+`LibraryDuplicateBindings` selects exact-analysis/query, gallery-annotation and duplicate-review
+ports. Its exact service is shared with `LibraryExactAnalysisBindings`, which constructs the one
+analysis controller and scheduler using the existing foreground-read authority. The runtime binding
+owns joined, idempotent close followed by notifier disposal; application owners retain admission,
+cancellation and publication policy. Required production Providers cannot fall back to an absent
+scheduler or a second controller. Test support explicitly selects inactive scheduling where needed.
+Duplicate adapters translate native failures into Ame-owned code/message values.
+
 ### Presentation ownership
 
 Pages compose surfaces and connect user intent to application entrypoints. Widgets render bounded

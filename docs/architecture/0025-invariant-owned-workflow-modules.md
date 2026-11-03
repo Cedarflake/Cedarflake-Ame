@@ -820,6 +820,12 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   provider still closes an acquired lease only after the buffer copy finishes. Admission that returns
   after retirement closes its lease before settling. The foreground-read port retains the same shared
   application activity counter for native previews and source leases.
+- `LibraryExactAnalysisController` retains stream/run identity, cancellation admission and terminal
+  completion; `LibraryExactAnalysisScheduler` retains publication generations, idle admission and
+  foreground yielding. Duplicate service bindings select the native ports without changing those
+  owners. `LibraryExactAnalysisBindings` owns their single production pair, joins scheduler close
+  before disposing both notifiers, and shares the exact-analysis port with duplicate queries.
+  Repeated close and partial-startup cleanup cannot construct or retire a replacement runtime.
 - Menus, loading feedback, task live regions, and startup orchestration use repository-owned shared
   components so one defect fix does not create a second interaction contract.
 - `library_bottom_feedback.dart` owns the single bottom feedback position and admission between

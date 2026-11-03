@@ -243,3 +243,41 @@ diagnostics, 42 / 0 for phase projection, 118 / 0 for the gateway and 132 / 0 fo
 The retained application regression has 1,349 lines; gateway regressions have 134, production binding
 regressions 73 and bootstrap-lifecycle regressions 161. The bootstrap lifetime implementation remains
 97 lines, with only its port import changed.
+
+## O5.1 Exact analysis and duplicates — 2026-11-03
+
+Exact-analysis/query and gallery-annotation contracts now live in application ports; native calls
+and DTO conversion live with duplicate review under Rust adapters. Native failures are translated
+to Ame code/message values, including synchronous admission and stream errors. Annotation batching,
+retired-window rejection, analysis cancellation/publication and foreground preemption remain with
+their existing application owners. Controller and scheduler class bodies are unchanged; query
+request/mapping bodies match after their explicit failure-translation wrapper.
+
+The duplicate binding module shares one exact service between queries and the production analysis
+controller/scheduler pair. Its idempotent close joins existing shutdown and disposes both notifiers.
+Missing required ports or runtime bindings fail during assembly. Test-only assembly explicitly
+selects inactive scheduling and permits scenario overrides through the same Provider identities.
+The immutable inventory is unchanged; D072, D073 and D076 are retired. The dependency command passes
+for 470 modules with 43 remaining migration exceptions and 28 public cross-feature contracts.
+
+All 47 focused tests across nine files pass: four duplicate-binding, two shared read-binding, two
+failure-conversion, seven publication, ten scheduler, three location-sheet, eight review, seven
+exact-workspace and four annotation cases. New coverage proves parent/child runtime identity,
+missing-binding failure, foreground-listener retirement, joined native completion, repeated close
+and partial-startup cleanup. Existing stale-result, bounded-batch, retained-choice and cancellation
+assertions remain. Source, test and integration-entry analysis is clean.
+
+The canonical Windows Scan workflow passes all four cases on local-primary. Run
+`11770b139ff4460fac99d07b6172dd95` takes 78,971 ms, exits zero and reports no cleanup failures. Its
+added duplicate workflow uses production ports and runtime bindings, analyzes the two controlled
+copies, verifies group/location/annotation results, opens the duplicate workspace and persists a
+preferred physical location through the desktop control. The existing source-byte checks, native
+picker, scan, source viewing, organization and removal workflows remain passing. Isolated evidence
+is retained by the canonical execution owner; hosted verification continues independently.
+
+Implementation / inline-test counts are 149 / 0 for the analysis controller, 190 / 0 for its scheduler,
+70 / 0 for annotation batching, 117 / 0 for the exact adapter, 38 / 0 for annotations, 152 / 0 for
+review and 75 / 0 for bindings. Dedicated scheduler and publication tests contain 305 and 199 lines;
+the retained exact/review workflow tests contain 496 and 312. Binding regressions contain 219 lines,
+failure-conversion tests 52 and the native duplicate helper 94. No Rust, generated bridge, schema,
+dependency-version, model, original-media or user-catalog changes are included.

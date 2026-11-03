@@ -1,5 +1,15 @@
 enum LibraryExactAnalysisPhase { running, completed, cancelled, failed }
 
+class LibraryDuplicateFailure implements Exception {
+  const LibraryDuplicateFailure({required this.code, required this.message});
+
+  final String code;
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 class LibraryExactAnalysisProgress {
   const LibraryExactAnalysisProgress({
     required this.runId,

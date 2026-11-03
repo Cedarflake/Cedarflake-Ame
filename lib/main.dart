@@ -29,11 +29,7 @@ import "features/library/application/library_classification_configuration.dart";
 import "features/library/application/library_automatic_classification.dart";
 import "features/library/application/library_classification_lifecycle.dart";
 import "features/library/application/library_controller.dart";
-import "features/library/application/library_exact_analysis_controller.dart";
-import "features/library/application/library_exact_analysis_scheduler.dart";
-import "features/library/application/library_gallery_duplicates.dart";
 import "features/library/application/library_organization_conflicts.dart";
-import "features/library/application/library_exact_duplicates.dart";
 import "features/library/application/library_foreground_reads.dart";
 import "features/library/application/library_model_installation.dart";
 import "features/library/application/library_model_activation.dart";
@@ -82,15 +78,13 @@ Future<void> main() async {
         final scanShutdownCoordinator = LibraryScanShutdownCoordinator();
         shutdownCoordinator.register(synchronizationOwner.close);
         shutdownCoordinator.register(scanShutdownCoordinator.suspend);
-        final exactAnalysis = LibraryExactAnalysisController(
-          const RustLibraryExactDuplicates(),
-        );
-        final exactScheduler = LibraryExactAnalysisScheduler(
-          exactAnalysis,
+        final duplicates = LibraryDuplicateBindings.production();
+        final exactAnalysisBindings = LibraryExactAnalysisBindings(
+          service: duplicates.exactDuplicates,
           paused: amePreferences.exactAnalysisPaused,
           foregroundReads: libraryForegroundReads,
         );
-        shutdownCoordinator.register(exactScheduler.close);
+        shutdownCoordinator.register(exactAnalysisBindings.close);
         final classificationOwner = LibraryClassificationLifecycle(
           const LibraryAutomaticClassification(
             RustLibraryClassification(),
@@ -126,6 +120,7 @@ Future<void> main() async {
             ...libraryReadRequirements,
             ...libraryScanRequirements,
             ...libraryDuplicateRequirements,
+            ...libraryExactAnalysisRequirements,
             ...libraryOrganizationRequirements,
             ...librarySynchronizationRequirements,
           ],
@@ -141,7 +136,8 @@ Future<void> main() async {
             ...storageBindings(),
             ...reads.overrides,
             ...libraryScanBindings(),
-            ...libraryDuplicateBindings(),
+            ...duplicates.overrides,
+            ...exactAnalysisBindings.overrides,
             ...libraryOrganizationBindings(),
             ...synchronizationBindings.overrides,
             libraryModelInstallationProvider.overrideWith(
@@ -155,15 +151,6 @@ Future<void> main() async {
             ),
             libraryOrganizationConflictsProvider.overrideWithValue(
               const RustLibraryOrganizationConflicts(),
-            ),
-            libraryGalleryDuplicatesProvider.overrideWithValue(
-              const RustLibraryGalleryDuplicates(),
-            ),
-            libraryExactAnalysisControllerProvider.overrideWithValue(
-              exactAnalysis,
-            ),
-            libraryExactAnalysisSchedulerProvider.overrideWithValue(
-              exactScheduler,
             ),
             ameWindowActionsProvider.overrideWithValue(windowActions),
             libraryScanShutdownCoordinatorProvider.overrideWithValue(

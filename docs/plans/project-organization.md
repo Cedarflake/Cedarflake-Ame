@@ -1,6 +1,6 @@
 # Project organization after R5
 
-Status: O1–O4 implemented; O5.1 is next in the roadmap-owned delivery order.
+Status: O1–O4 and O5.1 implemented; O5.2 is next in the roadmap-owned delivery order.
 
 The [roadmap](../roadmap.md#project-organization-after-r5) selects this maintenance scope after R5.
 [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md) owns the target dependency
@@ -187,6 +187,12 @@ O4 separates the native synchronization gateway and snapshot mapping from applic
 phase-age projection and diagnostics. The existing start/poll/stop generation logic and bootstrap
 lifecycle owner retain their authority. Required production binding replaces the inactive fallback;
 the inactive implementation is test-only. The five remaining scan/synchronization entries are
-retired, and the recovery-status propagation defect is repaired in its own commit. Continue with
-O5.1's remaining exact-analysis and duplicate services. Evidence belongs to the linked acceptance
-record; hosted results remain independent of this progression.
+retired, and the recovery-status propagation defect is repaired in its own commit.
+
+O5.1 separates exact-analysis/query and gallery-annotation ports from their native adapters. The
+duplicate binding module selects those ports and duplicate review; its runtime owner shares the
+exact service with one controller/scheduler pair and joins shutdown before notifier disposal.
+Native failures become Ame values, while the existing run, cancellation, publication and batching
+owners retain their behavior. All remaining duplicate-service exceptions are retired. Continue
+with O5.2's organization, archive, cleanup and conflict services. Evidence belongs to the linked
+acceptance record; hosted results remain independent of this progression.

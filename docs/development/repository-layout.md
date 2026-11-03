@@ -109,6 +109,12 @@ bootstrap start/close owner. Native status mappings stay beside the gateway; pha
 failure retention and diagnostics remain application collaborators. Production does not import the
 inactive synchronization fixture from test support.
 
+[`library_duplicate_bindings.dart`](../../lib/app/bootstrap/library_duplicate_bindings.dart) groups
+the duplicate ports and the separately owned analysis runtime. Native group/location/progress
+conversion and failure translation stay in library `adapters/rust`; batching, stale-window
+retirement, idle admission and foreground preemption remain in application. Production and test
+assembly use the same Provider identities, with required production ports validated before use.
+
 Tests mirror their resulting source area. Keep an integration workflow at its canonical entrypoint
 while moving only owned private support. Temporary compatibility exports belong to the migrating
 slice and are removed before its closure; do not create a permanent parallel directory layout.

@@ -3,6 +3,7 @@ import "dart:io";
 import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/ame_app.dart";
+import "package:cedarflake_ame/app/bootstrap/library_duplicate_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/library_synchronization_lifecycle_owner.dart";
 import "package:cedarflake_ame/app/bootstrap/library_synchronization_bindings.dart";
 import "package:cedarflake_ame/features/library/application/ports/directory_picker.dart";
@@ -11,6 +12,7 @@ import "package:cedarflake_ame/features/library/application/library_catalog.dart
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_catalog.dart";
 import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_foreground_reads.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
@@ -18,6 +20,8 @@ import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/unified_library_screen.dart";
 import "package:cedarflake_ame/features/storage/adapters/rust/rust_storage_settings_gateway.dart";
+import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:cedarflake_ame/src/rust/frb_generated.dart";
 import "package:file_selector/file_selector.dart";
 import "package:flutter/material.dart";
@@ -27,6 +31,7 @@ import "package:flutter_test/flutter_test.dart";
 import "package:integration_test/integration_test.dart";
 
 import "support/covered_folder_workflow.dart";
+import "support/duplicate_workflow.dart";
 import "support/library_management_workflow.dart";
 import "support/native_directory_picker.dart";
 import "support/organization_unavailable_workflow.dart";
@@ -439,9 +444,21 @@ void main() {
     );
     expect(secondRestoredState.roots, hasLength(2));
     expect(secondRestoredState.assets, hasLength(2));
+    final duplicates = LibraryDuplicateBindings.production();
+    final exactAnalysis = LibraryExactAnalysisBindings(
+      service: duplicates.exactDuplicates,
+      paused: true,
+      foregroundReads: libraryForegroundReads,
+    );
+    addTearDown(exactAnalysis.close);
     await tester.pumpWidget(
       ProviderScope(
         overrides: applicationTestOverrides([
+          ...duplicates.overrides,
+          ...exactAnalysis.overrides,
+          initialAmePreferencesProvider.overrideWithValue(
+            const AmePreferences(exactAnalysisPaused: true),
+          ),
           initialLibraryStateProvider.overrideWithValue(secondRestoredState),
           librarySynchronizationProvider.overrideWithValue(synchronization),
         ]),
@@ -452,6 +469,12 @@ void main() {
     await verifyViewerSourceWorkflow(tester);
     await verifyOrganizationUnavailableWorkflow(tester);
     await verifyOrganizationWorkflow(
+      tester,
+      ProviderScope.containerOf(
+        tester.element(find.byType(UnifiedLibraryScreen)),
+      ),
+    );
+    await verifyDuplicateWorkflow(
       tester,
       ProviderScope.containerOf(
         tester.element(find.byType(UnifiedLibraryScreen)),

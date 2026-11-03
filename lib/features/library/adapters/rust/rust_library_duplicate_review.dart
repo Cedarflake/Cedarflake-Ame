@@ -1,3 +1,4 @@
+import "library_duplicate_failure.dart";
 import "../../../../src/rust/api/exact_duplicate_review.dart" as api;
 import "../../../../src/rust/domain/exact_duplicate_review.dart" as dto;
 import "../../../../src/rust/domain/exact_duplicates.dart" as exact;
@@ -29,14 +30,16 @@ class RustLibraryDuplicateReview implements LibraryDuplicateReview {
     LibraryDuplicateGroupCursor? after, {
     required bool ignored,
   }) async {
-    final page = await api.loadExactDuplicateReviewGroups(
-      after: after == null
-          ? null
-          : exact.ExactDuplicateGroupCursor(
-              digest: after.digest,
-              byteLength: BigInt.from(after.byteLength),
-            ),
-      ignored: ignored,
+    final page = await invokeDuplicateBridge(
+      () => api.loadExactDuplicateReviewGroups(
+        after: after == null
+            ? null
+            : exact.ExactDuplicateGroupCursor(
+                digest: after.digest,
+                byteLength: BigInt.from(after.byteLength),
+              ),
+        ignored: ignored,
+      ),
     );
     return _groups(page);
   }
@@ -46,9 +49,11 @@ class RustLibraryDuplicateReview implements LibraryDuplicateReview {
     int index, {
     required bool ignored,
   }) async {
-    final range = await api.seekExactDuplicateReviewGroups(
-      index: BigInt.from(index),
-      ignored: ignored,
+    final range = await invokeDuplicateBridge(
+      () => api.seekExactDuplicateReviewGroups(
+        index: BigInt.from(index),
+        ignored: ignored,
+      ),
     );
     return LibraryDuplicateReviewRange(
       startIndex: range.startIndex.toInt(),
@@ -89,9 +94,9 @@ class RustLibraryDuplicateReview implements LibraryDuplicateReview {
     LibraryDuplicateGroup group,
     String? after,
   ) async {
-    final page = await api.loadExactDuplicateReviewLocations(
-      key: _key(group),
-      after: after,
+    final page = await invokeDuplicateBridge(
+      () =>
+          api.loadExactDuplicateReviewLocations(key: _key(group), after: after),
     );
     return LibraryDuplicateReviewLocations(
       locations: page.locations
@@ -121,15 +126,17 @@ class RustLibraryDuplicateReview implements LibraryDuplicateReview {
     LibraryDuplicateGroup group,
     LibraryAsset? asset,
   ) async => _decision(
-    await api.setExactDuplicatePreference(
-      key: _key(group),
-      preferred: asset == null
-          ? null
-          : dto.ExactDuplicatePreference(
-              locationId: asset.locationId,
-              assetId: asset.assetId,
-              sourceGeneration: asset.sourceGeneration,
-            ),
+    await invokeDuplicateBridge(
+      () => api.setExactDuplicatePreference(
+        key: _key(group),
+        preferred: asset == null
+            ? null
+            : dto.ExactDuplicatePreference(
+                locationId: asset.locationId,
+                assetId: asset.assetId,
+                sourceGeneration: asset.sourceGeneration,
+              ),
+      ),
     ),
   );
 
@@ -138,6 +145,8 @@ class RustLibraryDuplicateReview implements LibraryDuplicateReview {
     LibraryDuplicateGroup group,
     bool ignored,
   ) async => _decision(
-    await api.setExactDuplicateIgnored(key: _key(group), ignored: ignored),
+    await invokeDuplicateBridge(
+      () => api.setExactDuplicateIgnored(key: _key(group), ignored: ignored),
+    ),
   );
 }
