@@ -196,3 +196,13 @@ The application manifest loader has 111 / 0 / 199 implementation / inline-test /
 The source scheduler has 140 / 0 / 269; source-image composition has 136 implementation lines, with
 630 source-lifecycle and 449 viewer-image test lines. The production-roster regression has 116 lines.
 Existing request, publication and copy-completion owners remain intact.
+
+## O4 recovery-status repair — 2026-11-03
+
+Failure retention reconstructed a root status without its current `recoveryBlocked` value. Native
+status can report an active full scan while exhausted retries still block recovery; the projection
+then changed that flag to its default `false`. It now preserves the incoming native authority while
+retaining the prior error presentation. A later native `false` clears the flag, rather than retaining
+an obsolete blocked value. The focused regression failed with expected `true` / actual `false`
+before the repair. All four retention tests pass afterward, including first-import recovery and
+root-generation isolation. This independent repair precedes the O4 structural migration.
