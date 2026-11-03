@@ -115,6 +115,34 @@ including digest/length admission, guarded source/storage identities, bounded tr
 intent recovery. The prepared contract exposes selection paths without transferring or releasing its
 guards; publication cannot detach those resources or extend their authority to another request.
 
+## Preview store resources
+
+`preview/store_admission.rs` owns native store and cache-namespace composition under the existing
+[budget and reclamation contract](../0005-storage-governance-and-budget.md#budget-and-automatic-reclamation).
+Its exact host fields, constructors, resolution and borrow methods may name these concrete resources.
+Generation or reclamation access precedes store selection. The operation retains its directory
+identity across the bounded capacity handoff; each new access selects the current accounting owner.
+
+Store inventory runs outside the registry mutex. A second short lock publishes or joins the current
+owner, keyed by root, budget and namespace identity. Invalidation cannot cross admitted access, and a
+retained store reference cannot preserve a retired selection's authority. Replacement substitutes
+namespace and store construction together, preserving those lifetimes. This admission does not cover
+preview workflow, cleanup/recovery policy or engine details in public ports.
+
+## Viewer source resources
+
+`viewer_source::acquire_guard` constructs the native source/ancestor guard for a current catalog
+selection. `ViewerSourceLease` retains that guard before its process-capacity reservation, so drop
+retires native access before admitting a replacement lease. The exact factory result, acquisition
+and private field edges are retained; request validation, catalog comparisons and capacity policy
+receive no adapter exemption.
+
+The existing [original-image contract](../0009-accepted-unified-gallery-ui-contract.md#image-viewer)
+retains bounded acquisition, no-follow/no-recall opens and the complete namespace. Catalog admission
+is rechecked after native acquisition; failure drops the unpublished guard. Replacement must preserve
+that ordering, source sharing restrictions and opaque bridge lifetime without exposing native handles
+or admitting an unchecked path fallback.
+
 ## Catalog reclamation resources
 
 `catalog_reclamation/production.rs::{maintenance,capacity}` select the existing SQLite maintenance

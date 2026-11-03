@@ -592,3 +592,18 @@ has 269 production lines plus five test declarations and 348 main/bundled fixtur
 has 147 plus three, its intent owner 84 plus three, and their fixtures 271. New factories, repository
 port, package port and package adapter have 29, 44, 37 and 73 lines. Schema, pinned artifacts, transfer
 protocol, public bridge and classification policy are unchanged. The roadmap advances to scan/preview.
+
+## O7 Preview and viewer resource composition — 2026-11-03
+
+R173–R184 and R276–R278 become 15 exact resource-host, construction and borrow registrations under
+the [native composition contract](../architecture/workflow-ownership/native-composition.md#preview-store-resources).
+Store selection retains access-first admission, operation-scoped namespace identity, current-budget
+reacquisition and short registry locks. Viewer acquisition retains catalog revalidation and releases
+its native guard before lease capacity. Workflow policy and the remaining native interfaces are not
+covered by these registrations. Source and test files are byte-identical to `d2a1bfdd`.
+
+All 34 focused checks pass: four production-store reacquisition, eight viewer-source, two Windows
+viewer-guard and 20 dependency cases. Real fixtures retain source bytes, block file/ancestor mutation
+while held, recover capacity under the current accounting owner and reject post-acquisition catalog
+changes. Assertions are unchanged, builds have no warnings and leased scratch cleanup succeeds.
+The roster has 175 legacy entries and 54 exact technical edges; the frozen baseline is unchanged.

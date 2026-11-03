@@ -98,18 +98,6 @@
     "R170",
     "R171",
     "R172",
-    "R173",
-    "R174",
-    "R175",
-    "R176",
-    "R177",
-    "R178",
-    "R179",
-    "R180",
-    "R181",
-    "R182",
-    "R183",
-    "R184",
     "R185",
     "R186",
     "R188",
@@ -186,9 +174,6 @@
     "R272",
     "R273",
     "R275",
-    "R276",
-    "R277",
-    "R278",
     "R279"
   ],
   "retainedOwners": {
@@ -322,6 +307,27 @@
         "rust/src/application/classification_model_installation/operation/tests.rs",
         "rust/src/application/classification_configuration/tests.rs",
         "rust/src/application/classification_desktop/tests.rs"
+      ]
+    },
+    "preview-store-composition": {
+      "responsibility": "Own the selected native preview store and operation-scoped cache namespace",
+      "reason": "The resource host selects a store only under generation or reclamation access and keeps namespace identity across their bounded capacity handoff.",
+      "lifetime": "The operation retains its namespace guard; each acquired access selects the current store, while registry inventory runs outside the short publication lock.",
+      "replacement": "Replace namespace and store construction together while preserving access-first selection, shared current accounting, invalidation and guarded namespace retirement.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#preview-store-resources",
+      "coverage": [
+        "rust/src/application/preview/tests/store_reacquisition.rs"
+      ]
+    },
+    "viewer-source-composition": {
+      "responsibility": "Acquire and retain the native source and namespace guard for one bounded viewer lease",
+      "reason": "The exact guard factory and private lease field are a resource boundary; request, catalog and capacity policy remain outside the admitted edges.",
+      "lifetime": "Catalog authority is checked before and after native acquisition; the lease releases its file/ancestor guard before returning process source capacity.",
+      "replacement": "Replace guarded native acquisition while preserving no-follow/no-recall behavior, complete namespace retention, stale-catalog rejection and the opaque bridge close contract.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#viewer-source-resources",
+      "coverage": [
+        "rust/src/application/viewer_source/tests.rs",
+        "rust/src/adapters/local_files/viewer_source_guard/tests.rs"
       ]
     }
   },
@@ -714,6 +720,156 @@
         "symbol": "crate::application::classification_model_installation::production::model_storage",
         "target": "directories::ProjectDirs::from",
         "rule": "external-engine"
+      }
+    },
+    {
+      "id": "preview-active-store",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::ActiveStore",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-operation-source",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewOperationSource",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-store-admission",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewStoreAdmission",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-store-borrow",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewStoreAdmission<'a,Access>::store",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-store-source",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewStoreSource",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-operation-namespace",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewStoreSource<'a>::operation",
+        "target": "crate::adapters::preview_cache::preparation::open_preview_cache_operation_namespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-store-resolution",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewStoreSource<'a>::resolve",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-resolved-store",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::ResolvedStore",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-store-match-namespace",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::matching_store",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-store-match-instance",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::matching_store",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-active-store-namespace",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::resolve_active_store",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-active-store-construction",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::resolve_active_store",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "viewer-source-lease",
+      "owner": "viewer-source-composition",
+      "dependency": {
+        "source": "rust/src/application/viewer_source.rs",
+        "symbol": "crate::application::viewer_source::ViewerSourceLease",
+        "target": "crate::adapters::local_files::PreviewPublicationGuard",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "viewer-source-guard-result",
+      "owner": "viewer-source-composition",
+      "dependency": {
+        "source": "rust/src/application/viewer_source.rs",
+        "symbol": "crate::application::viewer_source::acquire_guard",
+        "target": "crate::adapters::local_files::PreviewPublicationGuard",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "viewer-source-guard-acquisition",
+      "owner": "viewer-source-composition",
+      "dependency": {
+        "source": "rust/src/application/viewer_source.rs",
+        "symbol": "crate::application::viewer_source::acquire_guard",
+        "target": "crate::adapters::local_files::viewer_source_guard::open_viewer_source_guard",
+        "rule": "concrete-adapter"
       }
     }
   ]
