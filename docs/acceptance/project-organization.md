@@ -206,3 +206,40 @@ retaining the prior error presentation. A later native `false` clears the flag, 
 an obsolete blocked value. The focused regression failed with expected `true` / actual `false`
 before the repair. All four retention tests pass afterward, including first-import recovery and
 root-generation isolation. This independent repair precedes the O4 structural migration.
+
+## O4 Scanning and synchronization — 2026-11-03
+
+The scanner port and native mapping moved with the O3 shared-mapper closure. The synchronization
+service now separates its Ame lifecycle contract, native gateway, snapshot mapping, phase-age
+projection and diagnostics. `LibrarySynchronizationController` retains the existing timer, retry,
+ticket/fence, generation, stop/dispose and publication flow. The lifecycle method bodies match the
+prior implementation under their explicit gateway, projection, error-type and diagnostic substitutions.
+Native DTOs and bridge failures stay inside the adapter; Ame failures preserve native codes/messages
+or the established unknown-error code. Phase-age retention preserves current native recovery authority.
+
+One production binding factory creates the selected gateway, application controller and existing
+bootstrap lifecycle owner. The same service enters the Provider and background start/close path.
+Missing bindings fail before application publication; the inactive fixture lives in test support.
+The generated 250 ms cadence is unchanged, with tuning available only through test-only constructors.
+No Rust, bridge, schema, dependency-version or original-media changes are included.
+
+All 102 focused tests across ten files pass: two startup-orchestrator, two binding, three lifecycle,
+two native-gateway, 15 primary-scan control, ten scan-restoration, four failure-retention, 32
+synchronization, 23 feedback and nine revision-refresh cases. Coverage includes actual timer cadence,
+one shared startup service, omitted binding, native ticket/fence forwarding, typed failure mapping,
+non-overlapping polls, stop during startup/retry, stale completions, repeat close, retained phase age,
+native recovery-flag changes and existing scan restoration. Source, test and integration-entry
+analysis is clean. The dependency command passes for 465 modules; all five remaining O4 entries are
+retired, leaving 46 later-slice entries and 28 public cross-feature contracts. The baseline is unchanged.
+
+The canonical Windows Scan workflow passes all four cases on local-primary with the production
+synchronization factory. Run `5ae02af2499f40fda43b7eeabea52d62` takes 93,137 ms, exits zero and reports
+no cleanup failures; stderr is empty. Native startup, active scanning, subsequent synchronization,
+preview/source/organization interactions and process retirement pass. Its isolated evidence remains
+with the canonical execution owner. Hosted execution continues independently under user direction.
+
+Implementation / inline-test line counts are 461 / 0 for the polling controller, 97 / 0 for
+diagnostics, 42 / 0 for phase projection, 118 / 0 for the gateway and 132 / 0 for native mapping.
+The retained application regression has 1,349 lines; gateway regressions have 134, production binding
+regressions 73 and bootstrap-lifecycle regressions 161. The bootstrap lifetime implementation remains
+97 lines, with only its port import changed.

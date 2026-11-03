@@ -3,72 +3,22 @@ import "dart:async";
 import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../../../src/rust/api/synchronization.dart" as rust_api;
-import "../../../src/rust/domain.dart" as rust_domain;
-import "../../../src/rust/domain/library_change.dart" as rust_change;
-import "../../../src/rust/domain/library_synchronization.dart" as rust_sync;
-import "../../../src/rust/domain/persistent_journal.dart" as rust_journal;
-import "../domain/library_models.dart";
 import "../domain/library_synchronization_models.dart";
+import "library_synchronization_diagnostics.dart";
 import "library_synchronization_failure_retention.dart";
+import "library_synchronization_phase_projection.dart";
 import "library_synchronization_policy.g.dart";
+import "ports/library_synchronization.dart";
+import "ports/library_synchronization_gateway.dart";
 
-enum LibrarySynchronizationStartResult { started, failed, skipped }
-
-abstract interface class LibrarySynchronization {
-  LibrarySynchronizationSnapshot get current;
-
-  Stream<LibrarySynchronizationSnapshot> watch();
-
-  Future<LibrarySynchronizationStartResult> start();
-
-  Future<void> stop();
-
-  Future<void> dispose();
-}
-
-class InertLibrarySynchronization implements LibrarySynchronization {
-  InertLibrarySynchronization();
-
-  final LibrarySynchronizationSnapshot _snapshot =
-      LibrarySynchronizationSnapshot.stopped();
-
-  @override
-  LibrarySynchronizationSnapshot get current => _snapshot;
-
-  @override
-  Future<LibrarySynchronizationStartResult> start() async =>
-      LibrarySynchronizationStartResult.skipped;
-
-  @override
-  Future<void> stop() async {}
-
-  @override
-  Future<void> dispose() async {}
-
-  @override
-  Stream<LibrarySynchronizationSnapshot> watch() => const Stream.empty();
-}
-
-typedef RustSynchronizationCall =
-    Future<rust_sync.LibrarySynchronizationSnapshot> Function();
-typedef RustSynchronizationStop = Future<void> Function();
-typedef RustSynchronizationTicketCall = BigInt Function();
-typedef _RustSynchronizationOwnedCall =
-    Future<rust_sync.LibrarySynchronizationSnapshot> Function(BigInt);
-typedef _RustSynchronizationFencedStop = Future<void> Function(BigInt);
-typedef SynchronizationClock = DateTime Function();
-
-class RustLibrarySynchronization implements LibrarySynchronization {
-  RustLibrarySynchronization.production() : this._();
+class LibrarySynchronizationController implements LibrarySynchronization {
+  LibrarySynchronizationController.production(
+    LibrarySynchronizationGateway gateway,
+  ) : this._(gateway: gateway);
 
   @visibleForTesting
-  RustLibrarySynchronization.testing({
-    RustSynchronizationCall? startCall,
-    RustSynchronizationCall? pollCall,
-    RustSynchronizationStop? stopCall,
-    RustSynchronizationTicketCall? reserveStartTicketCall,
-    RustSynchronizationTicketCall? reserveStopFenceCall,
+  LibrarySynchronizationController.testing({
+    required LibrarySynchronizationGateway gateway,
     Duration pollInterval = productionLibrarySynchronizationPollInterval,
     Duration transientFailureTolerance = const Duration(seconds: 30),
     List<Duration> startRetryDelays = const [
@@ -76,14 +26,10 @@ class RustLibrarySynchronization implements LibrarySynchronization {
       Duration(milliseconds: 500),
       Duration(seconds: 2),
     ],
-    SynchronizationClock? now,
+    DateTime Function()? now,
     bool enableDebugLogging = kDebugMode,
   }) : this._(
-         startCall: startCall,
-         pollCall: pollCall,
-         stopCall: stopCall,
-         reserveStartTicketCall: reserveStartTicketCall,
-         reserveStopFenceCall: reserveStopFenceCall,
+         gateway: gateway,
          pollInterval: pollInterval,
          transientFailureTolerance: transientFailureTolerance,
          startRetryDelays: startRetryDelays,
@@ -91,12 +37,8 @@ class RustLibrarySynchronization implements LibrarySynchronization {
          enableDebugLogging: enableDebugLogging,
        );
 
-  RustLibrarySynchronization._({
-    RustSynchronizationCall? startCall,
-    RustSynchronizationCall? pollCall,
-    RustSynchronizationStop? stopCall,
-    RustSynchronizationTicketCall? reserveStartTicketCall,
-    RustSynchronizationTicketCall? reserveStopFenceCall,
+  LibrarySynchronizationController._({
+    required this._gateway,
     this._pollInterval = productionLibrarySynchronizationPollInterval,
     this._transientFailureTolerance = const Duration(seconds: 30),
     List<Duration> startRetryDelays = const [
@@ -104,48 +46,22 @@ class RustLibrarySynchronization implements LibrarySynchronization {
       Duration(milliseconds: 500),
       Duration(seconds: 2),
     ],
-    SynchronizationClock? now,
-    this._enableDebugLogging = kDebugMode,
+    DateTime Function()? now,
+    bool enableDebugLogging = kDebugMode,
   }) : assert(startRetryDelays.every((delay) => !delay.isNegative)),
        _startRetryDelays = List.unmodifiable(startRetryDelays),
-       _now = now ?? DateTime.now {
-    final localTickets =
-        startCall != null || pollCall != null || stopCall != null
-        ? _LocalLifecycleTicketAllocator()
-        : null;
-    _reserveStartTicket =
-        reserveStartTicketCall ??
-        localTickets?.reserve ??
-        rust_api.reserveLibrarySynchronizationStartTicket;
-    _reserveStopFence =
-        reserveStopFenceCall ??
-        localTickets?.reserve ??
-        rust_api.reserveLibrarySynchronizationStopFence;
-    _startCall = startCall == null
-        ? (ownerTicket) =>
-              rust_api.startLibrarySynchronization(ownerTicket: ownerTicket)
-        : (_) => startCall();
-    _pollCall = pollCall == null
-        ? (ownerTicket) =>
-              rust_api.pollLibrarySynchronization(ownerTicket: ownerTicket)
-        : (_) => pollCall();
-    _stopCall = stopCall == null
-        ? (cancellationFence) => rust_api.stopLibrarySynchronization(
-            cancellationFence: cancellationFence,
-          )
-        : (_) => stopCall();
-  }
+       _now = now ?? DateTime.now,
+       _diagnostics = LibrarySynchronizationDiagnostics(
+         enabled: enableDebugLogging,
+         now: now ?? DateTime.now,
+       );
 
-  late final RustSynchronizationTicketCall _reserveStartTicket;
-  late final RustSynchronizationTicketCall _reserveStopFence;
-  late final _RustSynchronizationOwnedCall _startCall;
-  late final _RustSynchronizationOwnedCall _pollCall;
-  late final _RustSynchronizationFencedStop _stopCall;
+  final LibrarySynchronizationGateway _gateway;
+  final LibrarySynchronizationDiagnostics _diagnostics;
   final Duration _pollInterval;
   final Duration _transientFailureTolerance;
   final List<Duration> _startRetryDelays;
-  final SynchronizationClock _now;
-  final bool _enableDebugLogging;
+  final DateTime Function() _now;
   final StreamController<LibrarySynchronizationSnapshot> _updates =
       StreamController.broadcast(sync: true);
   LibrarySynchronizationSnapshot _current =
@@ -166,8 +82,6 @@ class RustLibrarySynchronization implements LibrarySynchronization {
   DateTime? _transientFailureStartedAt;
   String? _transientFailureCode;
   int _transientFailureCount = 0;
-  DateTime? _lastDebugSnapshotAt;
-  Map<String, String> _lastDebugRootSignatures = const {};
 
   @override
   LibrarySynchronizationSnapshot get current => _current;
@@ -189,10 +103,11 @@ class RustLibrarySynchronization implements LibrarySynchronization {
 
     late final BigInt ownerTicket;
     try {
-      ownerTicket = _reserveStartTicket();
+      ownerTicket = _gateway.reserveStartTicket();
     } on Object catch (error) {
       final errorCode = _errorCode(error);
-      _debugFailure(
+      _diagnostics.failure(
+        attempt: _transientFailureCount,
         phase: "start-admission",
         errorCode: errorCode,
         error: error,
@@ -230,7 +145,7 @@ class RustLibrarySynchronization implements LibrarySynchronization {
         return LibrarySynchronizationStartResult.skipped;
       }
       final result = await _runCall(
-        _startCall,
+        _gateway.start,
         ownerTicket,
         phase: "start",
         generation: generation,
@@ -285,7 +200,7 @@ class RustLibrarySynchronization implements LibrarySynchronization {
       return Future.value();
     }
     final operation = _runCall(
-      _pollCall,
+      _gateway.poll,
       ownerTicket,
       phase: "poll",
       generation: generation,
@@ -299,14 +214,17 @@ class RustLibrarySynchronization implements LibrarySynchronization {
   }
 
   Future<_SynchronizationCallResult> _runCall(
-    _RustSynchronizationOwnedCall call,
+    Future<LibrarySynchronizationSnapshot> Function(BigInt) call,
     BigInt ownerTicket, {
     required String phase,
     required int generation,
   }) async {
     final stopwatch = Stopwatch()..start();
     try {
-      final incoming = _mapSnapshot(await call(ownerTicket));
+      final incoming = retainSynchronizationPhaseStarts(
+        previous: _current,
+        incoming: await call(ownerTicket),
+      );
       final snapshot = retainUnresolvedSynchronizationFailures(
         previous: _current,
         incoming: incoming,
@@ -323,7 +241,8 @@ class RustLibrarySynchronization implements LibrarySynchronization {
       }
       final errorCode = _errorCode(error);
       if (_shouldRetryTransiently(errorCode)) {
-        _debugFailure(
+        _diagnostics.failure(
+          attempt: _transientFailureCount,
           phase: phase,
           errorCode: errorCode,
           error: error,
@@ -335,7 +254,8 @@ class RustLibrarySynchronization implements LibrarySynchronization {
           isTransient: true,
         );
       }
-      _debugFailure(
+      _diagnostics.failure(
+        attempt: _transientFailureCount,
         phase: phase,
         errorCode: errorCode,
         error: error,
@@ -408,7 +328,7 @@ class RustLibrarySynchronization implements LibrarySynchronization {
 
     late final Future<void> operation;
     try {
-      final cancellationFence = _reserveStopFence();
+      final cancellationFence = _gateway.reserveStopFence();
       operation = _stop(cancellationFence);
     } on Object catch (error, stackTrace) {
       operation = Future.error(error, stackTrace);
@@ -426,8 +346,8 @@ class RustLibrarySynchronization implements LibrarySynchronization {
 
   Future<void> _stop(BigInt cancellationFence) async {
     try {
-      await _stopCall(cancellationFence);
-    } on rust_domain.ScanError catch (error) {
+      await _gateway.stop(cancellationFence);
+    } on LibrarySynchronizationFailure catch (error) {
       if (error.code != "library_synchronization_not_started") {
         rethrow;
       }
@@ -470,11 +390,11 @@ class RustLibrarySynchronization implements LibrarySynchronization {
     required Duration elapsed,
   }) {
     if (_current == snapshot) {
-      _debugSnapshot(phase, snapshot, elapsed);
+      _diagnostics.snapshot(phase, snapshot, elapsed);
       return;
     }
     _current = snapshot;
-    _debugSnapshot(phase, snapshot, elapsed);
+    _diagnostics.snapshot(phase, snapshot, elapsed);
     if (!_updates.isClosed) {
       _updates.add(snapshot);
     }
@@ -503,221 +423,8 @@ class RustLibrarySynchronization implements LibrarySynchronization {
     _transientFailureCount = 0;
   }
 
-  void _debugFailure({
-    required String phase,
-    required String errorCode,
-    required Object error,
-    required Duration elapsed,
-    required bool isTransient,
-  }) {
-    if (!_enableDebugLogging) {
-      return;
-    }
-    final detail = switch (error) {
-      rust_domain.ScanError(:final message) => message.replaceAll(
-        RegExp(r"[\r\n]+"),
-        " ",
-      ),
-      _ => error.toString(),
-    };
-    debugPrint(
-      "[Ame sync] phase=$phase result=${isTransient ? "retrying" : "failed"} "
-      "elapsed_ms=${elapsed.inMilliseconds} code=$errorCode "
-      "attempt=$_transientFailureCount message=$detail",
-    );
-  }
-
-  void _debugSnapshot(
-    String phase,
-    LibrarySynchronizationSnapshot snapshot,
-    Duration elapsed,
-  ) {
-    if (!_enableDebugLogging) {
-      return;
-    }
-    final now = _now();
-    final signatures = {
-      for (final entry in snapshot.roots.entries)
-        entry.key:
-            "${entry.value.freshness.name}:${entry.value.continuity.name}:"
-            "${entry.value.sourceStatus.name}:"
-            "${entry.value.phase.name}:${entry.value.lastIssueCode ?? "-"}",
-    };
-    final hasTransition =
-        signatures.length != _lastDebugRootSignatures.length ||
-        signatures.entries.any(
-          (entry) => _lastDebugRootSignatures[entry.key] != entry.value,
-        );
-    final shouldReportHeartbeat =
-        _lastDebugSnapshotAt == null ||
-        now.difference(_lastDebugSnapshotAt!) >= const Duration(seconds: 5);
-    if (!hasTransition &&
-        !shouldReportHeartbeat &&
-        elapsed.inMilliseconds < 500) {
-      return;
-    }
-    _lastDebugRootSignatures = signatures;
-    _lastDebugSnapshotAt = now;
-    if (snapshot.roots.isEmpty) {
-      debugPrint(
-        "[Ame sync] phase=$phase elapsed_ms=${elapsed.inMilliseconds} "
-        "running=${snapshot.isRunning} roots=0 code=${snapshot.lastErrorCode ?? "-"}",
-      );
-      return;
-    }
-    for (final status in snapshot.roots.values) {
-      final root = status.rootId.length <= 8
-          ? status.rootId
-          : status.rootId.substring(0, 8);
-      final phaseElapsed = now.difference(status.phaseStartedAt);
-      debugPrint(
-        "[Ame sync] phase=$phase elapsed_ms=${elapsed.inMilliseconds} "
-        "root=$root freshness=${status.freshness.name} "
-        "continuity=${status.continuity.name} "
-        "root_phase=${status.phase.name} "
-        "root_phase_elapsed_ms=${phaseElapsed.isNegative ? 0 : phaseElapsed.inMilliseconds} "
-        "source=${status.sourceStatus.name} pending=${status.pendingChangeCount} "
-        "retry=${status.retryWaitCount} gaps=${status.freshnessUnknownCount} "
-        "code=${status.lastIssueCode ?? snapshot.lastErrorCode ?? "-"}",
-      );
-    }
-  }
-
-  LibrarySynchronizationSnapshot _mapSnapshot(
-    rust_sync.LibrarySynchronizationSnapshot snapshot,
-  ) {
-    final observedAt = _now();
-    return LibrarySynchronizationSnapshot(
-      isRunning: snapshot.isRunning,
-      catalogRevision: snapshot.catalogRevision,
-      appliedMutationCount: snapshot.appliedMutationCount,
-      roots: {
-        for (final root in snapshot.roots)
-          root.rootId: _mapRootStatus(root, observedAt),
-      },
-    );
-  }
-
-  LibraryRootSynchronizationStatus _mapRootStatus(
-    rust_sync.LibraryRootSynchronizationStatus root,
-    DateTime observedAt,
-  ) {
-    final phase = switch (root.phase) {
-      rust_sync.LibrarySynchronizationPhase.watcherStartup =>
-        LibrarySynchronizationPhase.watcherStartup,
-      rust_sync.LibrarySynchronizationPhase.inventoryEnumeration =>
-        LibrarySynchronizationPhase.inventoryEnumeration,
-      rust_sync.LibrarySynchronizationPhase.inventoryComparison =>
-        LibrarySynchronizationPhase.inventoryComparison,
-      rust_sync.LibrarySynchronizationPhase.queuePublication =>
-        LibrarySynchronizationPhase.queuePublication,
-      rust_sync.LibrarySynchronizationPhase.retryWait =>
-        LibrarySynchronizationPhase.retryWait,
-      rust_sync.LibrarySynchronizationPhase.reconciliation =>
-        LibrarySynchronizationPhase.reconciliation,
-      rust_sync.LibrarySynchronizationPhase.fullScan =>
-        LibrarySynchronizationPhase.fullScan,
-      rust_sync.LibrarySynchronizationPhase.blocked =>
-        LibrarySynchronizationPhase.blocked,
-      rust_sync.LibrarySynchronizationPhase.synchronized =>
-        LibrarySynchronizationPhase.synchronized,
-      rust_sync.LibrarySynchronizationPhase.unavailable =>
-        LibrarySynchronizationPhase.unavailable,
-      rust_sync.LibrarySynchronizationPhase.backgroundVerification =>
-        LibrarySynchronizationPhase.backgroundVerification,
-    };
-    final previous = _current.roots[root.rootId];
-    final phaseStartedAt =
-        previous != null &&
-            previous.rootGeneration == root.rootGeneration &&
-            previous.phase == phase
-        ? previous.phaseStartedAt
-        : observedAt;
-    return LibraryRootSynchronizationStatus(
-      rootId: root.rootId,
-      rootGeneration: root.rootGeneration,
-      availability: _mapAvailability(root.availability),
-      freshness: switch (root.freshness) {
-        rust_change.CatalogFreshnessState.synchronized =>
-          LibraryCatalogFreshness.synchronized,
-        rust_change.CatalogFreshnessState.updating =>
-          LibraryCatalogFreshness.updating,
-        rust_change.CatalogFreshnessState.needsReconciliation =>
-          LibraryCatalogFreshness.needsReconciliation,
-        rust_change.CatalogFreshnessState.unavailable =>
-          LibraryCatalogFreshness.unavailable,
-      },
-      freshnessCause: switch (root.freshnessCause) {
-        rust_change.CatalogFreshnessCause.noPendingChanges =>
-          LibraryCatalogFreshnessCause.noPendingChanges,
-        rust_change.CatalogFreshnessCause.pendingChanges =>
-          LibraryCatalogFreshnessCause.pendingChanges,
-        rust_change.CatalogFreshnessCause.rootUnavailable =>
-          LibraryCatalogFreshnessCause.rootUnavailable,
-        rust_change.CatalogFreshnessCause.changeSourceUnhealthy =>
-          LibraryCatalogFreshnessCause.changeSourceUnhealthy,
-        rust_change.CatalogFreshnessCause.evidenceGap =>
-          LibraryCatalogFreshnessCause.evidenceGap,
-        rust_change.CatalogFreshnessCause.boundedCapacityExceeded =>
-          LibraryCatalogFreshnessCause.boundedCapacityExceeded,
-      },
-      continuity: switch (root.continuity) {
-        rust_journal.PersistentJournalContinuityState.baselineRequired =>
-          LibraryContinuityState.baselineRequired,
-        rust_journal.PersistentJournalContinuityState.catchingUp =>
-          LibraryContinuityState.catchingUp,
-        rust_journal.PersistentJournalContinuityState.current =>
-          LibraryContinuityState.current,
-        rust_journal.PersistentJournalContinuityState.recoveryRequired =>
-          LibraryContinuityState.recoveryRequired,
-        rust_journal.PersistentJournalContinuityState.liveOnly =>
-          LibraryContinuityState.liveOnly,
-        rust_journal.PersistentJournalContinuityState.unavailable =>
-          LibraryContinuityState.unavailable,
-      },
-      phase: phase,
-      phaseStartedAt: phaseStartedAt,
-      sourceStatus: switch (root.sourceHealth) {
-        rust_change.LibraryChangeSourceHealth.healthy =>
-          LibraryChangeSourceStatus.healthy,
-        rust_change.LibraryChangeSourceHealth.starting =>
-          LibraryChangeSourceStatus.starting,
-        rust_change.LibraryChangeSourceHealth.degraded =>
-          LibraryChangeSourceStatus.degraded,
-        rust_change.LibraryChangeSourceHealth.failed =>
-          LibraryChangeSourceStatus.failed,
-        rust_change.LibraryChangeSourceHealth.stopped =>
-          LibraryChangeSourceStatus.stopped,
-        rust_change.LibraryChangeSourceHealth.unsupported =>
-          LibraryChangeSourceStatus.unsupported,
-      },
-      pendingChangeCount: root.pendingChangeCount,
-      retryWaitCount: root.retryWaitCount,
-      freshnessUnknownCount: root.freshnessUnknownCount,
-      recoveryBlocked: root.recoveryBlocked,
-      lastIssueCode: root.lastIssueCode,
-    );
-  }
-
-  LibraryRootAvailability _mapAvailability(
-    rust_domain.LibraryRootAvailability availability,
-  ) {
-    return switch (availability) {
-      rust_domain.LibraryRootAvailability.unknown =>
-        LibraryRootAvailability.unknown,
-      rust_domain.LibraryRootAvailability.available =>
-        LibraryRootAvailability.available,
-      rust_domain.LibraryRootAvailability.missing =>
-        LibraryRootAvailability.missing,
-      rust_domain.LibraryRootAvailability.inaccessible =>
-        LibraryRootAvailability.inaccessible,
-      rust_domain.LibraryRootAvailability.offline =>
-        LibraryRootAvailability.offline,
-    };
-  }
-
   String _errorCode(Object error) {
-    if (error case rust_domain.ScanError(:final code)) {
+    if (error case LibrarySynchronizationFailure(:final code)) {
       return code;
     }
     return "library_synchronization_poll_failed";
@@ -747,15 +454,8 @@ class _SynchronizationCallResult {
   final bool isTransient;
 }
 
-class _LocalLifecycleTicketAllocator {
-  BigInt _next = BigInt.zero;
-
-  BigInt reserve() {
-    _next += BigInt.one;
-    return _next;
-  }
-}
-
 final librarySynchronizationProvider = Provider<LibrarySynchronization>((ref) {
-  return InertLibrarySynchronization();
+  throw StateError(
+    "LibrarySynchronization must be bound during application startup",
+  );
 });

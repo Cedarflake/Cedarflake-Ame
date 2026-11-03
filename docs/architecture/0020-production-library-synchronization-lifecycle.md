@@ -112,7 +112,16 @@ actually `Synchronized` clears it.
 Flutter starts synchronization after Rust and the initial catalog are ready. A single timer-driven
 service prevents overlapping polls, retains the last trustworthy revision on a polling failure, and
 projects known roots as degraded instead of replacing the catalog with an empty state. Stopping is
-idempotent and waits for an active poll before calling the Rust stop use case.
+idempotent, admits the native cancellation fence before asynchronous drain and retires the local
+generation immediately. The native lifecycle joins its owned work; late start/poll responses cannot
+publish into the retired desktop generation.
+
+The Flutter controller owns polling, retry, generations and publication through an Ame synchronization
+gateway. The native adapter owns lifecycle bridge calls and DTO/error translation; it stamps each
+received snapshot with its observation time. Application projection retains a root phase's prior
+start time only while its generation and phase match. Diagnostics have their own bounded reporting
+state. Bootstrap binds that controller and its existing lifecycle owner as one resource; missing
+production bindings cannot silently select an inactive service.
 
 The unified gallery subscribes to synchronization snapshots. It schedules at most one refresh at a
 time, coalesces newer revisions, and retries briefly when another query transition owns the controller.

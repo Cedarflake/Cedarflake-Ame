@@ -15,6 +15,7 @@ import "app/bootstrap/settings_bindings.dart";
 import "app/bootstrap/storage_bindings.dart";
 import "app/bootstrap/ame_startup_orchestrator.dart";
 import "app/bootstrap/library_synchronization_lifecycle_owner.dart";
+import "app/bootstrap/library_synchronization_bindings.dart";
 import "app/bootstrap/rust_library_loader.dart";
 import "app/window/ame_window_actions.dart";
 import "app/window/ame_analysis_environment.dart";
@@ -37,7 +38,6 @@ import "features/library/application/library_foreground_reads.dart";
 import "features/library/application/library_model_installation.dart";
 import "features/library/application/library_model_activation.dart";
 import "features/library/application/library_scan_shutdown.dart";
-import "features/library/application/library_synchronization.dart";
 import "features/library/domain/library_models.dart";
 import "features/library/domain/library_state.dart";
 
@@ -75,10 +75,9 @@ Future<void> main() async {
           query: query,
         );
         final initialState = LibraryState.fromSnapshot(snapshot, query: query);
-        final synchronization = RustLibrarySynchronization.production();
-        final synchronizationOwner = LibrarySynchronizationLifecycleOwner(
-          synchronization,
-        );
+        final synchronizationBindings =
+            LibrarySynchronizationBindings.production();
+        final synchronizationOwner = synchronizationBindings.lifecycle;
         synchronizationLifecycle = synchronizationOwner;
         final scanShutdownCoordinator = LibraryScanShutdownCoordinator();
         shutdownCoordinator.register(synchronizationOwner.close);
@@ -128,6 +127,7 @@ Future<void> main() async {
             ...libraryScanRequirements,
             ...libraryDuplicateRequirements,
             ...libraryOrganizationRequirements,
+            ...librarySynchronizationRequirements,
           ],
           overrides: [
             ...libraryPlatformBindings(
@@ -143,6 +143,7 @@ Future<void> main() async {
             ...libraryScanBindings(),
             ...libraryDuplicateBindings(),
             ...libraryOrganizationBindings(),
+            ...synchronizationBindings.overrides,
             libraryModelInstallationProvider.overrideWith(
               (ref) => modelInstallation,
             ),
@@ -168,7 +169,6 @@ Future<void> main() async {
             libraryScanShutdownCoordinatorProvider.overrideWithValue(
               scanShutdownCoordinator,
             ),
-            librarySynchronizationProvider.overrideWithValue(synchronization),
             initialLibraryStateProvider.overrideWithValue(initialState),
           ],
         );

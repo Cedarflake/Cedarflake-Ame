@@ -2,7 +2,7 @@ import "dart:async";
 
 import "package:cedarflake_ame/app/bootstrap/ame_startup_orchestrator.dart";
 import "package:cedarflake_ame/app/bootstrap/library_synchronization_lifecycle_owner.dart";
-import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
 import "package:flutter_test/flutter_test.dart";
 

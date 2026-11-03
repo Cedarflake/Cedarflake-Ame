@@ -2509,10 +2509,13 @@ closed.
 Normal mode writes deterministic UTF-8/LF bytes and `-Check` only compares; its guardrail covers
 drift and illegal input, including the exact maximum 9,223,372,036,854,775 milliseconds imposed by
 Dart's signed 64-bit microsecond `Duration` representation, and lint runs both before formatting.
-Dart production consumes the generated constant through a private implementation constructor and
-exposes only zero-argument
-`RustLibrarySynchronization.production()`. Dependency, clock, retry, diagnostics, and cadence
-injection remain on `@visibleForTesting .testing(...)`; analyzer policy makes production use fatal.
+Dart production consumes the generated constant through the private
+`LibrarySynchronizationController` constructor. The zero-argument bootstrap factory
+`LibrarySynchronizationBindings.production()` selects its native gateway and one lifecycle owner.
+The controller's production constructor accepts its Ame gateway port without exposing cadence or
+retry tuning. Clock, retry, diagnostics and cadence injection remain on
+`@visibleForTesting .testing(...)`; analyzer policy makes production use fatal. This separation
+follows ADR 0037 while retaining the same generated policy and actual timer installation.
 The owning test executes a successful start and observes the actual `Timer.periodic` duration through
 a Zone timer factory, so missing, hardcoded, or dead timer installation fails behaviorally.
 

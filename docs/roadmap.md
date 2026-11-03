@@ -325,7 +325,8 @@ Its position is before R6 implementation. The user authorized the `codex/project
 implementation branch on 2026-11-03. O1's Dart/Rust dependency inventories and checks are implemented;
 O2's platform/storage ports and O3's catalog/preview/source-read bindings are implemented. The O3
 shared-mapper closure also moves its native scan, duplicate-review and organization callers. O4's
-remaining scan/synchronization runtime composition is next.
+scan/synchronization ports and runtime composition are implemented. O5.1's remaining exact-analysis
+and duplicate services are next.
 Continue O1–O7 without waiting for hosted results, as explicitly directed by the user.
 Later product stages have not started.
 The separate rendering follow-up keeps its existing scope and disposition.

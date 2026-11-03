@@ -2,7 +2,7 @@ import "dart:async";
 
 import "package:flutter/foundation.dart";
 
-import "../../features/library/application/library_synchronization.dart";
+import "../../features/library/application/ports/library_synchronization.dart";
 
 typedef LibrarySynchronizationStartErrorReporter =
     void Function(Object error, StackTrace stackTrace);

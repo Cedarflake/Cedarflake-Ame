@@ -1,6 +1,8 @@
 import "dart:async";
 
-import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_synchronization_gateway.dart";
+
+import "package:cedarflake_ame/features/library/application/ports/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization_policy.g.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
@@ -16,6 +18,8 @@ import "package:cedarflake_ame/src/rust/domain/persistent_journal.dart"
 import "package:flutter/foundation.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/synchronization_fixture.dart";
+
 void main() {
   test(
     "a successful start schedules the generated production poll cadence",
@@ -25,7 +29,7 @@ void main() {
 
       await runZoned(
         () async {
-          final synchronization = RustLibrarySynchronization.testing(
+          final synchronization = createTestLibrarySynchronization(
             startCall: () async => _snapshot(revision: 1),
             pollCall: () async => _snapshot(revision: 1),
             stopCall: () async {},
@@ -64,7 +68,7 @@ void main() {
 
       await runZoned(
         () async {
-          final synchronization = RustLibrarySynchronization.testing(
+          final synchronization = createTestLibrarySynchronization(
             startCall: () async => _snapshot(revision: 1),
             pollCall: () async => _snapshot(revision: 1),
             stopCall: () async {},
@@ -96,7 +100,7 @@ void main() {
     final releaseSecondStart = Completer<void>();
     var startCalls = 0;
     var pollCalls = 0;
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async {
         startCalls += 1;
         if (startCalls == 1) {
@@ -137,7 +141,7 @@ void main() {
   test("an exhausted native start never enables polling", () async {
     var startCalls = 0;
     var pollCalls = 0;
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async {
         startCalls += 1;
         throw const rust_domain.ScanError(
@@ -166,7 +170,7 @@ void main() {
 
   test("a non-transient native start failure is attempted once", () async {
     var startCalls = 0;
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async {
         startCalls += 1;
         throw const rust_domain.ScanError(
@@ -193,7 +197,7 @@ void main() {
     final startEntered = Completer<void>();
     final releaseStart = Completer<void>();
     var startCalls = 0;
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async {
         startCalls += 1;
         startEntered.complete();
@@ -229,7 +233,7 @@ void main() {
       var stopFenceReservations = 0;
       var startCalls = 0;
       var stopCalls = 0;
-      final synchronization = RustLibrarySynchronization.testing(
+      final synchronization = createTestLibrarySynchronization(
         reserveStartTicketCall: () {
           startTicketReservations += 1;
           return BigInt.from(11);
@@ -292,7 +296,7 @@ void main() {
       var startCalls = 0;
       var pollCalls = 0;
       var stopCalls = 0;
-      final synchronization = RustLibrarySynchronization.testing(
+      final synchronization = createTestLibrarySynchronization(
         startCall: () async {
           startCalls += 1;
           firstStartFailed.complete();
@@ -337,7 +341,7 @@ void main() {
     "an unstarted controller drains the global owner admitted by its fence",
     () async {
       final nativeLifecycle = _FakeGlobalLifecycleRegistry();
-      final owner = RustLibrarySynchronization.testing(
+      final owner = createTestLibrarySynchronization(
         reserveStartTicketCall: nativeLifecycle.reserveTicket,
         reserveStopFenceCall: nativeLifecycle.reserveStopFence,
         startCall: nativeLifecycle.start,
@@ -346,7 +350,7 @@ void main() {
         pollInterval: const Duration(days: 1),
         enableDebugLogging: false,
       );
-      final unstartedController = RustLibrarySynchronization.testing(
+      final unstartedController = createTestLibrarySynchronization(
         reserveStartTicketCall: nativeLifecycle.reserveTicket,
         reserveStopFenceCall: nativeLifecycle.reserveStopFence,
         startCall: nativeLifecycle.start,
@@ -374,7 +378,7 @@ void main() {
   test("native not-started stop converges and permits a later epoch", () async {
     var startCalls = 0;
     var stopCalls = 0;
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async {
         startCalls += 1;
         if (startCalls == 1) {
@@ -426,7 +430,7 @@ void main() {
         final oldStart = Completer<rust_sync.LibrarySynchronizationSnapshot>();
         var startCalls = 0;
         var stopCalls = 0;
-        final synchronization = RustLibrarySynchronization.testing(
+        final synchronization = createTestLibrarySynchronization(
           startCall: () {
             startCalls += 1;
             if (startCalls == 1) {
@@ -473,7 +477,7 @@ void main() {
   test(
     "maps root freshness and preserves the latest catalog revision",
     () async {
-      final synchronization = RustLibrarySynchronization.testing(
+      final synchronization = createTestLibrarySynchronization(
         startCall: () async => _snapshot(revision: 7),
         pollCall: () async => _snapshot(revision: 7),
         stopCall: () async {},
@@ -509,7 +513,7 @@ void main() {
     };
 
     for (final entry in expected.entries) {
-      final synchronization = RustLibrarySynchronization.testing(
+      final synchronization = createTestLibrarySynchronization(
         startCall: () async => _snapshot(revision: 7, continuity: entry.key),
         pollCall: () async => _snapshot(revision: 7, continuity: entry.key),
         stopCall: () async {},
@@ -526,7 +530,7 @@ void main() {
   });
 
   test("preserves an explicit recovery block from the Rust snapshot", () async {
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async => _snapshot(
         revision: 7,
         freshness: rust_change.CatalogFreshnessState.needsReconciliation,
@@ -560,7 +564,7 @@ void main() {
       var maximumActivePolls = 0;
       var pollCalls = 0;
       var stopCalls = 0;
-      final synchronization = RustLibrarySynchronization.testing(
+      final synchronization = createTestLibrarySynchronization(
         startCall: () async => _snapshot(revision: 1),
         pollCall: () async {
           pollCalls += 1;
@@ -606,7 +610,7 @@ void main() {
     final neverCompletes =
         Completer<rust_sync.LibrarySynchronizationSnapshot>();
     var stopCalls = 0;
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async => _snapshot(revision: 20),
       pollCall: () {
         pollStarted.complete();
@@ -629,7 +633,7 @@ void main() {
     final oldPoll = Completer<rust_sync.LibrarySynchronizationSnapshot>();
     var starts = 0;
     var polls = 0;
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async => _snapshot(revision: ++starts * 10),
       pollCall: () {
         polls += 1;
@@ -657,7 +661,7 @@ void main() {
   });
 
   test("failed native stop does not publish a stopped snapshot", () async {
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async => _snapshot(revision: 11),
       pollCall: () async => _snapshot(revision: 11),
       stopCall: () async => throw const rust_domain.ScanError(
@@ -671,7 +675,7 @@ void main() {
     await expectLater(
       synchronization.stop(),
       throwsA(
-        isA<rust_domain.ScanError>().having(
+        isA<LibrarySynchronizationFailure>().having(
           (error) => error.code,
           "code",
           "library_synchronization_stop_timeout",
@@ -688,7 +692,7 @@ void main() {
     () async {
       var starts = 0;
       var stops = 0;
-      final synchronization = RustLibrarySynchronization.testing(
+      final synchronization = createTestLibrarySynchronization(
         startCall: () async => _snapshot(revision: ++starts),
         pollCall: () async => _snapshot(revision: starts),
         stopCall: () async => stops += 1,
@@ -708,7 +712,7 @@ void main() {
 
   test("failed stop can retry the native draining epoch", () async {
     var stopCalls = 0;
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async => _snapshot(revision: 12),
       pollCall: () async => _snapshot(revision: 12),
       stopCall: () async {
@@ -726,7 +730,7 @@ void main() {
     await synchronization.start();
     await expectLater(
       synchronization.stop(),
-      throwsA(isA<rust_domain.ScanError>()),
+      throwsA(isA<LibrarySynchronizationFailure>()),
     );
     expect(synchronization.current.isRunning, isTrue);
 
@@ -739,7 +743,7 @@ void main() {
   test("concurrent stop callers share one native operation", () async {
     final releaseStop = Completer<void>();
     var stopCalls = 0;
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async => _snapshot(revision: 13),
       pollCall: () async => _snapshot(revision: 13),
       stopCall: () async {
@@ -766,7 +770,7 @@ void main() {
     () async {
       final releaseStop = Completer<void>();
       var starts = 0;
-      final synchronization = RustLibrarySynchronization.testing(
+      final synchronization = createTestLibrarySynchronization(
         startCall: () async => _snapshot(revision: ++starts),
         pollCall: () async => _snapshot(revision: starts),
         stopCall: () => releaseStop.future,
@@ -792,7 +796,7 @@ void main() {
       final releaseStop = Completer<void>();
       var starts = 0;
       var stopCalls = 0;
-      final synchronization = RustLibrarySynchronization.testing(
+      final synchronization = createTestLibrarySynchronization(
         startCall: () async => _snapshot(revision: ++starts),
         pollCall: () async => _snapshot(revision: starts),
         stopCall: () async {
@@ -823,7 +827,7 @@ void main() {
   );
 
   test("poll failure degrades known roots without losing revision", () async {
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async => _snapshot(revision: 9),
       pollCall: () async => throw const rust_domain.ScanError(
         code: "watcher_failed",
@@ -847,7 +851,7 @@ void main() {
 
   test("short catalog writer contention retains the prior snapshot", () async {
     final firstPoll = Completer<void>();
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async => _snapshot(
         revision: 9,
         freshness: rust_change.CatalogFreshnessState.updating,
@@ -887,7 +891,7 @@ void main() {
       final secondPoll = Completer<void>();
       var pollCalls = 0;
       var currentTime = DateTime.utc(2026, 8, 21);
-      final synchronization = RustLibrarySynchronization.testing(
+      final synchronization = createTestLibrarySynchronization(
         startCall: () async => _snapshot(
           revision: 9,
           freshness: rust_change.CatalogFreshnessState.updating,
@@ -941,7 +945,7 @@ void main() {
       final releaseSynchronized = Completer<void>();
       final synchronizedReturned = Completer<void>();
       var pollCalls = 0;
-      final synchronization = RustLibrarySynchronization.testing(
+      final synchronization = createTestLibrarySynchronization(
         startCall: () async => _snapshot(revision: 9),
         pollCall: () async {
           pollCalls += 1;
@@ -998,7 +1002,7 @@ void main() {
       final recoveryReturned = Completer<void>();
       final releaseSynchronized = Completer<void>();
       var pollCalls = 0;
-      final synchronization = RustLibrarySynchronization.testing(
+      final synchronization = createTestLibrarySynchronization(
         startCall: () async => _snapshot(
           revision: 9,
           freshness: rust_change.CatalogFreshnessState.needsReconciliation,
@@ -1056,7 +1060,7 @@ void main() {
 
   test("blocked state does not cross a root generation boundary", () async {
     final nextGenerationReturned = Completer<void>();
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async => _snapshot(
         revision: 9,
         freshness: rust_change.CatalogFreshnessState.needsReconciliation,
@@ -1100,7 +1104,7 @@ void main() {
         }
       };
       addTearDown(() => debugPrint = priorDebugPrint);
-      final synchronization = RustLibrarySynchronization.testing(
+      final synchronization = createTestLibrarySynchronization(
         startCall: () async => _snapshot(
           revision: 9,
           freshness: rust_change.CatalogFreshnessState.updating,
@@ -1132,10 +1136,11 @@ void main() {
     final releaseTransition = Completer<void>();
     final transitionReturned = Completer<void>();
     var pollCalls = 0;
-    final synchronization = RustLibrarySynchronization.testing(
+    final synchronization = createTestLibrarySynchronization(
       startCall: () async => _snapshot(
         revision: 9,
         freshness: rust_change.CatalogFreshnessState.updating,
+        phase: rust_sync.LibrarySynchronizationPhase.fullScan,
       ),
       pollCall: () async {
         pollCalls += 1;
@@ -1144,6 +1149,8 @@ void main() {
           return _snapshot(
             revision: 9,
             freshness: rust_change.CatalogFreshnessState.updating,
+            phase: rust_sync.LibrarySynchronizationPhase.fullScan,
+            recoveryBlocked: true,
           );
         }
         await releaseTransition.future;
@@ -1174,6 +1181,10 @@ void main() {
       synchronization.current.statusFor("root-a")?.phaseStartedAt,
       initialPhaseStart,
     );
+    expect(
+      synchronization.current.statusFor("root-a")?.recoveryBlocked,
+      isTrue,
+    );
 
     currentTime = currentTime.add(const Duration(seconds: 3));
     releaseTransition.complete();
@@ -1186,6 +1197,7 @@ void main() {
       LibrarySynchronizationPhase.inventoryComparison,
     );
     expect(transitioned?.phaseStartedAt, currentTime);
+    expect(transitioned?.recoveryBlocked, isFalse);
     await synchronization.stop();
   });
 

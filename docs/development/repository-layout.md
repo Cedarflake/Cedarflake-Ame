@@ -103,6 +103,12 @@ or implementations. Test roots compose these production modules through
 [`application_test_bindings.dart`](../../test/support/application_test_bindings.dart), then apply
 scenario overrides by the same Provider identities.
 
+[`library_synchronization_bindings.dart`](../../lib/app/bootstrap/library_synchronization_bindings.dart)
+shows lifecycle composition: one selected gateway, one application polling controller and one
+bootstrap start/close owner. Native status mappings stay beside the gateway; phase-age preservation,
+failure retention and diagnostics remain application collaborators. Production does not import the
+inactive synchronization fixture from test support.
+
 Tests mirror their resulting source area. Keep an integration workflow at its canonical entrypoint
 while moving only owned private support. Temporary compatibility exports belong to the migrating
 slice and are removed before its closure; do not create a permanent parallel directory layout.

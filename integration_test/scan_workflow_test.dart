@@ -4,6 +4,7 @@ import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/bootstrap/library_synchronization_lifecycle_owner.dart";
+import "package:cedarflake_ame/app/bootstrap/library_synchronization_bindings.dart";
 import "package:cedarflake_ame/features/library/application/ports/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
@@ -11,6 +12,7 @@ import "package:cedarflake_ame/features/library/adapters/rust/rust_library_catal
 import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
@@ -55,7 +57,7 @@ class _InitialDirectoryPicker implements DirectoryPicker {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  late final RustLibrarySynchronization synchronization;
+  late final LibrarySynchronization synchronization;
   late final LibrarySynchronizationLifecycleOwner synchronizationLifecycle;
 
   setUpAll(() async {
@@ -71,10 +73,9 @@ void main() {
         debugInfo: "Windows integration Debug library",
       ),
     );
-    synchronization = RustLibrarySynchronization.production();
-    synchronizationLifecycle = LibrarySynchronizationLifecycleOwner(
-      synchronization,
-    );
+    final bindings = LibrarySynchronizationBindings.production();
+    synchronization = bindings.synchronization;
+    synchronizationLifecycle = bindings.lifecycle;
     synchronizationLifecycle.startInBackground();
     final startResult = await synchronizationLifecycle.startOperation;
     if (startResult != LibrarySynchronizationStartResult.started) {

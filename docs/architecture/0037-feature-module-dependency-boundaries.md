@@ -100,6 +100,12 @@ The application source-scheduler Provider constructs and retires its scheduler f
 neither image widgets nor image providers construct a replacement native reader. The existing image
 copy owner retains acquired-lease closure, including after container or widget retirement.
 
+`LibrarySynchronizationBindings.production()` selects the native lifecycle gateway and the
+application polling controller, then binds that same controller to the retained bootstrap lifecycle
+owner. The application constructor accepts only an Ame gateway; generated policy still controls
+production cadence, and test-only constructors retain timing/failure injection. The inactive
+synchronization fixture exists only in test support.
+
 ### Presentation ownership
 
 Pages compose surfaces and connect user intent to application entrypoints. Widgets render bounded

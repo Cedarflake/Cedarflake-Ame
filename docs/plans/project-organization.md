@@ -1,6 +1,6 @@
 # Project organization after R5
 
-Status: O1–O3 implemented; O4 is next in the roadmap-owned delivery order.
+Status: O1–O4 implemented; O5.1 is next in the roadmap-owned delivery order.
 
 The [roadmap](../roadmap.md#project-organization-after-r5) selects this maintenance scope after R5.
 [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md) owns the target dependency
@@ -181,6 +181,12 @@ O3 separates catalog/folder reads, layout manifests, previews and guarded source
 with the native callers required by the shared-mapper closure. Ten required ports use their
 capability binding modules. One application source scheduler is inherited across child scopes;
 retirement cancels pending work while the existing buffer-copy owner keeps its lease until completion.
-All 19 catalog/preview exceptions and 16 shared-mapper caller exceptions are retired. Continue with
-O4's remaining scan/synchronization runtime composition. Evidence belongs to the linked acceptance
+All 19 catalog/preview exceptions and 16 shared-mapper caller exceptions are retired.
+
+O4 separates the native synchronization gateway and snapshot mapping from application polling,
+phase-age projection and diagnostics. The existing start/poll/stop generation logic and bootstrap
+lifecycle owner retain their authority. Required production binding replaces the inactive fallback;
+the inactive implementation is test-only. The five remaining scan/synchronization entries are
+retired, and the recovery-status propagation defect is repaired in its own commit. Continue with
+O5.1's remaining exact-analysis and duplicate services. Evidence belongs to the linked acceptance
 record; hosted results remain independent of this progression.

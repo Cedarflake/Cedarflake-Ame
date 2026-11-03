@@ -742,6 +742,13 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   requested catalog revision. Disposal cancels scheduled retry and prevents late completion from
   reading presentation state or publishing feedback. It reports failure transitions to the screen's
   notification owner without owning notification history or actions.
+- `LibrarySynchronizationController` owns the desktop start/poll/stop generations, retry waits and
+  terminal publication. Its gateway owns native tickets, bridge calls and Ame-only error/results;
+  the adapter's snapshot mapping stamps observations without retaining controller state.
+  `library_synchronization_phase_projection.dart` preserves phase age within a root generation,
+  while the existing failure-retention owner preserves unresolved diagnostics and current recovery
+  authority. `library_synchronization_diagnostics.dart` owns report throttling only. Bootstrap retains
+  one `LibrarySynchronizationLifecycleOwner`, immediate stop fencing and joined native retirement.
 - `library_synchronization_notifications.dart` owns root-generation notification keys, condition
   resolution, live-only capability lifetime and typed action selection against current roots.
   Shared notification history and stale-action admission remain with `AmeNotificationController`;
