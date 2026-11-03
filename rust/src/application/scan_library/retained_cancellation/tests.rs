@@ -1,3 +1,5 @@
+use crate::ports::scan_admission::FirstImportReadiness;
+
 use rusqlite::Connection;
 use tempfile::TempDir;
 

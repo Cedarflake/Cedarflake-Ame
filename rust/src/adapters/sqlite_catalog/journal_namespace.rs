@@ -4,6 +4,7 @@ use rusqlite::types::Value;
 use rusqlite::{params, params_from_iter};
 
 use crate::domain::{FileIdentityEvidence, LibraryChangeLane, ScanError};
+use crate::ports::catalog_session::JournalCatalogSession;
 use crate::ports::{
     IdentityJournalLocation, IdentityJournalRoot, PersistentJournalNamespaceReader,
 };
@@ -16,7 +17,13 @@ pub(super) mod publication;
 #[cfg(test)]
 mod tests;
 
-pub(crate) struct SqliteJournalNamespaceReader(pub(crate) Arc<SqliteCatalogSession>);
+struct SqliteJournalNamespaceReader(Arc<SqliteCatalogSession>);
+
+impl JournalCatalogSession for SqliteCatalogSession {
+    fn namespace_reader(self: Arc<Self>) -> Arc<dyn PersistentJournalNamespaceReader> {
+        Arc::new(SqliteJournalNamespaceReader(self))
+    }
+}
 
 impl PersistentJournalNamespaceReader for SqliteJournalNamespaceReader {
     fn has_snapshot(&self, root: &IdentityJournalRoot) -> Result<bool, ScanError> {

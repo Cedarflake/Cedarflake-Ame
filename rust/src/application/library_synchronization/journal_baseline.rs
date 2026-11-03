@@ -2,7 +2,6 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::adapters::{SqliteCatalog, SqliteCatalogSession};
 use crate::application::scan_library::{FirstImportCaptureLease, first_import_capture_lease};
 use crate::domain::{
     JournalFileReference, JournalIdentifier, JournalUsn, LibraryChangeLane, LibraryRootGeneration,
@@ -17,6 +16,8 @@ use crate::journal_broker::{
     PersistentChangeJournalSession, ProductionPersistentJournalRoot, QueryJournalRequest,
     RegisterRootRequest, describe_production_persistent_journal_root,
 };
+use crate::ports::catalog_session::CatalogLaneSession;
+use crate::ports::scan_admission::FirstImportReadiness;
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, MetadataInventoryRepository,
     PersistentJournalRepository,
@@ -153,7 +154,12 @@ pub(super) fn select_closing_work(
 }
 
 pub(super) fn select_opening_work(
-    catalog: &SqliteCatalog,
+    catalog: &(
+         impl CatalogRepository
+         + IncrementalCatalogRepository
+         + PersistentJournalRepository
+         + FirstImportReadiness
+     ),
     snapshot: &LibrarySynchronizationSnapshot,
     root_cursor: Option<&str>,
     identity_source: Option<&dyn crate::ports::PersistentIdentityJournalSource>,
@@ -243,14 +249,18 @@ pub(super) fn select_opening_work(
     Ok(select_candidate(candidates, root_cursor))
 }
 
-pub(super) fn capture_closing_boundary(
+pub(super) fn capture_closing_boundary<Session>(
     work: JournalBaselineClosingWork,
     session: &dyn PersistentChangeJournalSession,
     caller: &CallerClaim,
     observed_unix_ms: i64,
-    catalog_session: &SqliteCatalogSession,
+    catalog_session: &Session,
     cancelled: &AtomicBool,
-) -> Result<(), ScanError> {
+) -> Result<(), ScanError>
+where
+    Session: CatalogLaneSession,
+    Session::Catalog: PersistentJournalRepository,
+{
     ensure_boundary_not_cancelled(cancelled, "closing")?;
     let registration = describe_production_persistent_journal_root(
         &work.root_id,
@@ -443,6 +453,7 @@ fn select_rotated_key<'a>(
 
 #[cfg(test)]
 mod tests {
+    use crate::adapters::SqliteCatalogSession;
     use std::path::PathBuf;
     use std::sync::Mutex;
 

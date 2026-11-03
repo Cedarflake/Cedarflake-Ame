@@ -78,9 +78,6 @@ mod scan_admission;
 mod scan_change_capture;
 mod scan_checkpoint;
 mod scan_directories;
-#[cfg(windows)]
-mod search_index_hints;
-pub(crate) use journal_namespace::SqliteJournalNamespaceReader;
 mod scan_lifecycle;
 mod scan_publication;
 mod scan_repository;
@@ -88,6 +85,8 @@ mod scan_resume_inventory;
 mod scan_resumption;
 mod scan_root_repository;
 mod scan_staging;
+#[cfg(windows)]
+mod search_index_hints;
 #[cfg(test)]
 mod session_open_diagnostics;
 mod sidebar_order;
@@ -824,49 +823,6 @@ impl SqliteCatalog {
         );
         self.pending_authoritative_retry_paths.clear();
         result
-    }
-
-    pub(crate) fn pristine_first_import_scan(
-        &self,
-        root_id: &str,
-        root_generation: LibraryRootGeneration,
-    ) -> Result<Option<(String, i64)>, ScanError> {
-        let mut statement = self
-            .connection
-            .prepare(
-                "SELECT scan.id, scan.started_unix_ms
-                 FROM scan_runs AS scan
-                 JOIN library_roots AS root ON root.id = scan.root_id
-                 JOIN library_change_root_state AS active
-                   ON active.root_id = scan.root_id
-                  AND active.generation = scan.root_generation_at_start
-                 WHERE scan.root_id = ?1 AND scan.root_generation_at_start = ?2
-                   AND scan.scan_owner = 'foreground' AND scan.status = 'running'
-                   AND scan.visited_entries = 0 AND scan.accepted_items = 0
-                   AND root.active_scan_id IS NULL AND active.is_active = 1
-                 ORDER BY scan.started_unix_ms, scan.id
-                 LIMIT 2",
-            )
-            .map_err(database_error)?;
-        let scan_ids = statement
-            .query_map(
-                params![
-                    root_id,
-                    sqlite_integer(root_generation.value(), "root generation")?,
-                ],
-                |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
-            )
-            .map_err(database_error)?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(database_error)?;
-        match scan_ids.as_slice() {
-            [] => Ok(None),
-            [scan] => Ok(Some(scan.clone())),
-            _ => Err(ScanError::new(
-                "catalog_first_import_scan_ambiguous",
-                "The root has more than one pristine first-import scan",
-            )),
-        }
     }
 
     pub(crate) fn first_import_change_capture_is_ready(

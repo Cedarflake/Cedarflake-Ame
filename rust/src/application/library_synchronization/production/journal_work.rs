@@ -4,15 +4,18 @@ use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread::{self, JoinHandle};
 use std::time::Instant;
 
-use crate::adapters::SqliteCatalogSession;
 use crate::application::{AuthoritativeRecoveryPolicy, JournalCaptureWindowReport};
 use crate::domain::{
     IncrementalLibraryChangeReport, LibraryChangeLane, LibraryChangeQueuePolicy,
     LibraryRootGeneration, ScanError,
 };
 use crate::journal_broker::{CallerClaim, PersistentChangeJournalSession};
-use crate::ports::catalog_session::CatalogLaneSession;
-use crate::ports::{IncrementalCatalogRepository, LibraryChangeDispatch, LibraryChangeReadiness};
+use crate::ports::catalog_session::{CatalogLaneSession, JournalCatalogSession};
+use crate::ports::journal_baseline::JournalBaselineAdmission;
+use crate::ports::{
+    IncrementalCatalogRepository, LibraryChangeDispatch, LibraryChangeReadiness,
+    PersistentJournalRepository,
+};
 
 use super::super::{journal_baseline, journal_drain};
 use super::finish_runtime_task_until;
@@ -58,13 +61,20 @@ pub(super) struct JournalTask {
 }
 
 impl JournalTask {
-    pub(super) fn start(
+    pub(super) fn start<Session>(
         work: JournalWork,
-        catalog_session: Arc<SqliteCatalogSession>,
+        catalog_session: Arc<Session>,
         queue_policy: LibraryChangeQueuePolicy,
         recovery_policy: AuthoritativeRecoveryPolicy,
         observed_unix_ms: i64,
-    ) -> Result<Self, ScanError> {
+    ) -> Result<Self, ScanError>
+    where
+        Session: JournalCatalogSession,
+        Session::Catalog: IncrementalCatalogRepository
+            + LibraryChangeDispatch
+            + LibraryChangeReadiness
+            + JournalBaselineAdmission,
+    {
         match work {
             JournalWork::Opening {
                 work,
@@ -172,14 +182,18 @@ impl JournalTask {
         )
     }
 
-    fn start_baseline_opening(
+    fn start_baseline_opening<Session>(
         work: journal_baseline::JournalBaselineOpeningWork,
         session: Arc<dyn crate::journal_broker::PersistentChangeJournalSession>,
         caller: crate::journal_broker::CallerClaim,
         observed_unix_ms: i64,
-        catalog_session: Arc<SqliteCatalogSession>,
+        catalog_session: Arc<Session>,
         queue_policy: LibraryChangeQueuePolicy,
-    ) -> Result<Self, ScanError> {
+    ) -> Result<Self, ScanError>
+    where
+        Session: CatalogLaneSession,
+        Session::Catalog: JournalBaselineAdmission,
+    {
         let cancelled = Arc::new(AtomicBool::new(false));
         let worker_cancelled = Arc::clone(&cancelled);
         let (sender, receiver) = mpsc::sync_channel(1);
@@ -211,14 +225,18 @@ impl JournalTask {
         })
     }
 
-    fn start_baseline_closing(
+    fn start_baseline_closing<Session>(
         work: journal_baseline::JournalBaselineClosingWork,
         session: Arc<dyn crate::journal_broker::PersistentChangeJournalSession>,
         caller: crate::journal_broker::CallerClaim,
         observed_unix_ms: i64,
-        catalog_session: Arc<SqliteCatalogSession>,
+        catalog_session: Arc<Session>,
         fallback: (Arc<fallback::JournalReadFailures>, LibraryChangeQueuePolicy),
-    ) -> Result<Self, ScanError> {
+    ) -> Result<Self, ScanError>
+    where
+        Session: CatalogLaneSession,
+        Session::Catalog: PersistentJournalRepository,
+    {
         let cancelled = Arc::new(AtomicBool::new(false));
         let worker_cancelled = Arc::clone(&cancelled);
         let (sender, receiver) = mpsc::sync_channel(1);
@@ -260,15 +278,19 @@ impl JournalTask {
         })
     }
 
-    fn start_journal_page(
+    fn start_journal_page<Session>(
         work: JournalVolumeWork,
         failures: Arc<fallback::JournalReadFailures>,
         session: Arc<dyn crate::journal_broker::PersistentChangeJournalSession>,
         caller: crate::journal_broker::CallerClaim,
         observed_unix_ms: i64,
-        catalog_session: Arc<SqliteCatalogSession>,
+        catalog_session: Arc<Session>,
         policy: LibraryChangeQueuePolicy,
-    ) -> Result<Self, ScanError> {
+    ) -> Result<Self, ScanError>
+    where
+        Session: JournalCatalogSession,
+        Session::Catalog: PersistentJournalRepository,
+    {
         let cancelled = Arc::new(AtomicBool::new(false));
         let worker_cancelled = Arc::clone(&cancelled);
         let (sender, receiver) = mpsc::sync_channel(1);

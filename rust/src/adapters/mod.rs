@@ -88,7 +88,7 @@ pub(crate) use sqlite_catalog::MetadataInventorySpoolExecution;
 pub use sqlite_catalog::SqliteCatalog;
 pub(crate) use sqlite_catalog::{
     SqliteCatalogReadExecutor, SqliteCatalogSession, SqliteCatalogSpaceMaintenance,
-    SqliteJournalNamespaceReader, SqliteOrganizationBatch,
+    SqliteOrganizationBatch,
 };
 #[cfg(test)]
 pub(crate) use sqlite_catalog::{

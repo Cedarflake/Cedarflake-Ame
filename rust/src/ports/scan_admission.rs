@@ -6,6 +6,16 @@ use crate::domain::{
 use super::RootConsolidationRegistration;
 use super::scan_staging::ScanStagingRepository;
 
+pub(crate) trait FirstImportReadiness {
+    fn pristine_first_import_scan(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+    ) -> Result<Option<(String, i64)>, ScanError>;
+
+    fn load_inactive_first_import_roots(&self) -> Result<Vec<IncrementalCatalogRoot>, ScanError>;
+}
+
 pub(crate) trait ScanAdmissionRepository: ScanStagingRepository {
     fn first_import_change_capture_is_ready(
         &self,

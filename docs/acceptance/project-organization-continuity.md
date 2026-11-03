@@ -133,3 +133,30 @@ The queue facade has 1,413 source lines and 6,187 primary dedicated-fixture line
 dispatch owner has 216 source lines. The SQLite facade has 3,329 source lines including conditional
 diagnostic helpers, with 91 lines in the affected session-validation fixture. Neither facade has
 inline tests. The SQLite facade changes only its module declaration.
+
+## Journal catalog and first-import admission — 2026-11-04
+
+Against `8b79062f`, journal opening/closing, page capture, registration failures and restart fallback
+consume catalog ports. First-import admission and journal selection use explicit readiness reads.
+The original native baseline and capability transactions implement `JournalBaselineAdmission`;
+publication permits retain their original acquisition and release points. `JournalCatalogSession`
+constructs the native namespace reader from the same retained session, removing its concrete exports.
+
+Comparison preserves six native and 17 application bodies, apart from the namespace factory
+expression and one relocated trait import. Both frozen inventories are unchanged; 18 migration
+entries retire, leaving 24 with the same 61 retained technical edges. Existing tests keep their
+assertions and fixtures. Schema, source authority, bridge contracts and broker protocol are unchanged.
+
+All 75 existing checks pass: 51 first-import admission, baseline, replay/fallback and namespace cases,
+plus 24 dependency cases. An initially unused production trait import moves into its opening fixture;
+the behavioral results remain applicable because that correction changes only import scope.
+Final test and production compilation emits no warnings, and the final inventory check passes.
+Formatting reports 794 files unchanged; both scratch leases retire. The three changed documents have
+15 resolving local links and anchors.
+
+The SQLite facade has 3,287 source lines including conditional fixture helpers, with no inline test
+cases. Its first-import queries now share the 230-line scan-lifecycle owner and 578-line dedicated
+fixture. Journal baseline persistence has 488 source/594 dedicated-test lines and no inline tests;
+the journal facade changes one import and retains 1,316 source/3,131 inline-test lines. The application
+baseline has 453 source/327 inline-test lines and its opening fixture has 468 lines. First-import
+admission retains its 690-line dedicated fixture.

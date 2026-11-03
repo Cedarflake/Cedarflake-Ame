@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
-use crate::adapters::{SqliteCatalog, SqliteCatalogSession};
 use crate::application::{
     PersistentJournalBrokerRoot, ProductionPersistentJournalVolumeReader,
     catch_up_persistent_journal_window, classify_persistent_journal_operation_failure,
@@ -16,6 +15,7 @@ use crate::journal_broker::{
     ProductionPersistentJournalRoot, describe_production_persistent_journal_root,
 };
 use crate::ports::PersistentJournalRepository;
+use crate::ports::catalog_session::JournalCatalogSession;
 
 use super::fallback::{FallbackReader, JournalReadFailures};
 use super::{JournalTaskOutcome, JournalVolumeWork};
@@ -25,15 +25,19 @@ pub(super) struct JournalPageControl {
     pub(super) cancelled: Arc<AtomicBool>,
 }
 
-pub(super) fn run(
+pub(super) fn run<Session>(
     work: JournalVolumeWork,
     session: Arc<dyn PersistentChangeJournalSession>,
     caller: CallerClaim,
     observed_unix_ms: i64,
-    catalog_session: Arc<SqliteCatalogSession>,
+    catalog_session: Arc<Session>,
     policy: LibraryChangeQueuePolicy,
     control: JournalPageControl,
-) -> Result<JournalTaskOutcome, ScanError> {
+) -> Result<JournalTaskOutcome, ScanError>
+where
+    Session: JournalCatalogSession,
+    Session::Catalog: PersistentJournalRepository,
+{
     let mut catalog = catalog_session.open_in_lane(LibraryChangeLane::Journal)?;
     let mut report = PersistentJournalEnrollmentReport::default();
     let mut registrations = Vec::<ProductionPersistentJournalRoot>::new();
@@ -76,9 +80,7 @@ pub(super) fn run(
         session,
         caller,
         broker_roots,
-        Arc::new(crate::adapters::SqliteJournalNamespaceReader(Arc::clone(
-            &catalog_session,
-        ))),
+        Arc::clone(&catalog_session).namespace_reader(),
         catalog.load_persistent_journal_baselines()?,
     )?;
     let reader = FallbackReader {
@@ -98,7 +100,7 @@ pub(super) fn run(
 }
 
 fn persist_journal_registration_failure(
-    catalog: &mut SqliteCatalog,
+    catalog: &mut impl PersistentJournalRepository,
     checkpoint: &PersistentJournalCheckpoint,
     failures: &JournalReadFailures,
     error: PersistentChangeJournalOperationError,

@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 
-use crate::adapters::SqliteCatalog;
 use crate::domain::{
     LibraryChangeQueuePolicy, LibraryRecoveryAuthorityReason, LibraryRootGeneration,
     PersistentJournalCapabilityState, PersistentJournalFailure, PersistentJournalRootFailure,
@@ -8,6 +7,7 @@ use crate::domain::{
 };
 use crate::journal_broker::PersistentChangeJournalConnection;
 use crate::ports::PersistentJournalRepository;
+use crate::ports::journal_recovery::JournalRecoveryRepository;
 
 #[derive(Default)]
 pub(super) struct JournalFallbackSession {
@@ -18,7 +18,7 @@ pub(super) struct JournalFallbackSession {
 impl JournalFallbackSession {
     pub(super) fn prepare(
         &mut self,
-        catalog: &mut SqliteCatalog,
+        catalog: &mut impl JournalRecoveryRepository,
         now: i64,
         policy: LibraryChangeQueuePolicy,
         connection: &PersistentChangeJournalConnection,
@@ -94,7 +94,7 @@ impl JournalFallbackSession {
 }
 
 fn admit_verification(
-    catalog: &mut SqliteCatalog,
+    catalog: &mut impl PersistentJournalRepository,
     root_id: &str,
     generation: LibraryRootGeneration,
     now: i64,

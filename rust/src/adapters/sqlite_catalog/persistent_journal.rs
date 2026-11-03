@@ -14,6 +14,7 @@ use crate::domain::{
 #[cfg(test)]
 use crate::domain::{LibraryChangeCatchUpEvidence, PersistentJournalEnrollmentBatch};
 use crate::ports::PersistentJournalRepository;
+use crate::ports::journal_baseline::JournalBaselineAdmission;
 
 #[cfg(test)]
 use super::change_queue::{

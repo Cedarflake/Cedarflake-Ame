@@ -4,8 +4,10 @@ use crate::domain::{
     LibraryChangeId, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin,
     LibraryChangeQueuePolicy, LibraryChangeScope, PersistentJournalBaseline,
     PersistentJournalBaselineClosingBoundary, PersistentJournalBaselinePhase,
-    PersistentJournalBaselineStartRequest, ScanError,
+    PersistentJournalBaselineStartRequest, PersistentJournalCapability, ScanError,
 };
+
+use crate::ports::journal_baseline::JournalBaselineAdmission;
 
 use super::super::change_queue::{cleanup_for_enqueue, enqueue_intents_in_transaction};
 
@@ -16,8 +18,8 @@ use super::{
     load_checkpoint, map_queue_backpressure, recovery_checkpoint, require_active_root_generation,
 };
 
-impl SqliteCatalog {
-    pub(crate) fn begin_journal_baseline_with_admission<Permit>(
+impl JournalBaselineAdmission for SqliteCatalog {
+    fn begin_journal_baseline_with_admission<Permit>(
         &mut self,
         request: &PersistentJournalBaselineStartRequest,
         policy: LibraryChangeQueuePolicy,
@@ -279,6 +281,15 @@ impl SqliteCatalog {
             .ok_or_else(|| invalid_batch("The durable one-time baseline was not stored"))?;
         transaction.commit().map_err(database_error)?;
         Ok(baseline)
+    }
+
+    fn save_first_import_journal_capability<Permit>(
+        &mut self,
+        capability: &PersistentJournalCapability,
+        scan_id: &str,
+        acquire: impl FnOnce() -> Result<Permit, ScanError>,
+    ) -> Result<(), ScanError> {
+        self.save_journal_capability(capability, Some(scan_id), acquire)
     }
 }
 

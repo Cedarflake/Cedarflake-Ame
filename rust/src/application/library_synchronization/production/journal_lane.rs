@@ -1,12 +1,15 @@
 use std::sync::Arc;
 
-use crate::adapters::SqliteCatalog;
 use crate::domain::{
     LibraryChangeQueuePolicy, LibraryRootGeneration, LibrarySynchronizationSnapshot, ScanError,
 };
 use crate::journal_broker::{CallerClaim, PersistentChangeJournalConnection};
+use crate::ports::journal_baseline::JournalBaselineAdmission;
+use crate::ports::journal_recovery::JournalRecoveryRepository;
+use crate::ports::scan_admission::FirstImportReadiness;
 use crate::ports::{
-    IncrementalCatalogRepository, LibraryChangeReadiness, PersistentJournalRepository,
+    CatalogRepository, IncrementalCatalogRepository, LibraryChangeReadiness,
+    MetadataInventoryRepository, PersistentJournalRepository,
 };
 
 use super::super::journal_baseline;
@@ -43,15 +46,24 @@ impl JournalLane {
         }
     }
 
-    pub(super) fn select(
+    pub(super) fn select<Repository>(
         &mut self,
-        catalog: &mut SqliteCatalog,
+        catalog: &mut Repository,
         snapshot: &LibrarySynchronizationSnapshot,
         now_unix_ms: i64,
         connection: &PersistentChangeJournalConnection,
         caller: Option<&CallerClaim>,
         policy: LibraryChangeQueuePolicy,
-    ) -> Result<Option<JournalWork>, ScanError> {
+    ) -> Result<Option<JournalWork>, ScanError>
+    where
+        Repository: CatalogRepository
+            + IncrementalCatalogRepository
+            + LibraryChangeReadiness
+            + MetadataInventoryRepository
+            + FirstImportReadiness
+            + JournalBaselineAdmission
+            + JournalRecoveryRepository,
+    {
         self.fallback_session
             .prepare(catalog, now_unix_ms, policy, connection)?;
         self.failures

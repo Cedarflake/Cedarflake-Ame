@@ -1,3 +1,5 @@
+use crate::adapters::{SqliteCatalog, SqliteCatalogSession};
+
 use crate::application::scan_library::{
     cancel_scan, first_import_capture_lease, hold_first_import_capture, pause_scan, suspend_scan,
 };
@@ -11,7 +13,7 @@ use crate::journal_broker::{
     PersistentChangeJournalRead, QueryJournalRequest, ReadJournalRangeRequest,
     ReadJournalVolumeRequest, RegisterRootRequest, ResponseBinding, RootCapability,
 };
-use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
+use crate::ports::{CatalogRepository, IncrementalCatalogRepository, PersistentJournalRepository};
 
 use super::*;
 

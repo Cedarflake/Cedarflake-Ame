@@ -1,6 +1,5 @@
 use std::sync::atomic::AtomicBool;
 
-use crate::adapters::{SqliteCatalog, SqliteCatalogSession};
 use crate::application::scan_library::FirstImportCaptureLease;
 use crate::domain::{
     LibraryChangeLane, LibraryChangeQueuePolicy, LibraryRecoveryAuthorityReason,
@@ -9,7 +8,8 @@ use crate::domain::{
 use crate::journal_broker::{
     CallerClaim, PersistentChangeJournalSession, describe_production_persistent_journal_root,
 };
-use crate::ports::PersistentJournalRepository;
+use crate::ports::catalog_session::CatalogLaneSession;
+use crate::ports::journal_baseline::JournalBaselineAdmission;
 
 use super::{
     JournalBaselineOpeningAuthority, JournalBaselineOpeningWork, JournalBoundaryProbe,
@@ -27,7 +27,7 @@ pub(in crate::application::library_synchronization) enum OpeningCaptureOutcome {
 }
 
 pub(in crate::application::library_synchronization) fn persist_unavailable_session(
-    catalog: &mut SqliteCatalog,
+    catalog: &mut impl JournalBaselineAdmission,
     work: &JournalBaselineOpeningWork,
     observed_unix_ms: i64,
 ) -> Result<OpeningCaptureOutcome, ScanError> {
@@ -51,15 +51,19 @@ pub(in crate::application::library_synchronization) fn persist_unavailable_sessi
     work.complete_publication(result)
 }
 
-pub(in crate::application::library_synchronization) fn capture_opening_boundary(
+pub(in crate::application::library_synchronization) fn capture_opening_boundary<Session>(
     work: JournalBaselineOpeningWork,
     session: &dyn PersistentChangeJournalSession,
     caller: &CallerClaim,
     observed_unix_ms: i64,
-    catalog_session: &SqliteCatalogSession,
+    catalog_session: &Session,
     queue_policy: LibraryChangeQueuePolicy,
     cancelled: &AtomicBool,
-) -> Result<OpeningCaptureOutcome, ScanError> {
+) -> Result<OpeningCaptureOutcome, ScanError>
+where
+    Session: CatalogLaneSession,
+    Session::Catalog: JournalBaselineAdmission,
+{
     ensure_boundary_not_cancelled(cancelled, "opening")?;
     if !work.is_current() {
         return Ok(OpeningCaptureOutcome::Retired);

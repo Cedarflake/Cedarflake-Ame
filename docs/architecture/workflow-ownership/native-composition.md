@@ -28,6 +28,10 @@ only the repository ports they use. Its SQLite binding delegates the existing la
 database identity, schema proof and write admission remain in that operation. Session validation and
 replacement stay with the resource host above, independently of worker cancellation and retirement.
 
+`JournalCatalogSession` supplies the namespace reader from that same shared proof. The native binding
+retains the session and opens each bounded identity lookup in the Journal lane. Journal workers keep
+registration guards through capture; reader construction adds no validation flight or runtime owner.
+
 SQL, schema/row validation, database identity and connection preparation remain in the adapter.
 The host admission covers only the registered concrete session/catalog/executor references. Replacing
 persistence substitutes those proof and connection resources together, preserving shared waiters,

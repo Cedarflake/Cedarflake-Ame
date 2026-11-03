@@ -2,6 +2,8 @@ use rusqlite::{Connection, Transaction, params};
 
 use crate::domain::{LibraryChangeId, LibraryRootGeneration, ScanError};
 
+use crate::ports::journal_recovery::JournalRecoveryRepository;
+
 use super::super::{SqliteCatalog, database_error, sqlite_integer};
 
 use crate::domain::persistent_journal::METADATA_FALLBACK_CODE;
@@ -64,8 +66,8 @@ pub(in crate::adapters::sqlite_catalog) fn owns(
         .map_err(database_error)
 }
 
-impl SqliteCatalog {
-    pub(crate) fn has_retained_recovery_inventory(
+impl JournalRecoveryRepository for SqliteCatalog {
+    fn has_retained_recovery_inventory(
         &self,
         root_id: &str,
         generation: LibraryRootGeneration,
@@ -85,7 +87,7 @@ impl SqliteCatalog {
             .map_err(database_error)
     }
 
-    pub(crate) fn resume_journal_after_metadata_fallback(
+    fn resume_journal_after_metadata_fallback(
         &mut self,
         root_id: &str,
         generation: LibraryRootGeneration,

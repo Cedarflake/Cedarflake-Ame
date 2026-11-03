@@ -79,6 +79,11 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   `journal_baseline/opening.rs` owns opening probe admission, capability/baseline publication and
   its typed recorded/retired outcome. A revoked first-import lease retires only its own work;
   database and broker failures remain errors, and a committed receipt survives later control.
+  `FirstImportReadiness` supplies pristine-scan and inactive-root reads from `scan_lifecycle`.
+  `JournalBaselineAdmission` acquires the first-import publication permit inside the existing write
+  transaction and retains it through commit. `JournalRecoveryRepository` checks retained inventory
+  and resumes the original cursor only after its recovery authority retires; application still owns
+  startup retry and interrupted-verification policy.
 - `production/live_work.rs` owns an admitted Live worker's thread, result, cancellation and bounded
   retirement. `live_work/batch.rs` owns continuation across ready authoritative scopes, bounded by
   the queue lease limit and a monotonic admission quantum. Each scope reloads root/generation and
