@@ -327,7 +327,8 @@ O2's platform/storage ports and O3's catalog/preview/source-read bindings are im
 shared-mapper closure also moves its native scan, duplicate-review and organization callers. O4's
 scan/synchronization ports and runtime composition are implemented. O5.1's exact-analysis and
 duplicate ports, adapters and runtime composition are implemented. O5.2's remaining organization,
-archive, cleanup and conflict services are next.
+archive, cleanup, conflict and ordering ports and bindings are implemented. O5.3's classification,
+model-installation and automatic-lifecycle composition is next.
 Continue O1–O7 without waiting for hosted results, as explicitly directed by the user.
 Later product stages have not started.
 The separate rendering follow-up keeps its existing scope and disposition.

@@ -281,3 +281,56 @@ review and 75 / 0 for bindings. Dedicated scheduler and publication tests contai
 the retained exact/review workflow tests contain 496 and 312. Binding regressions contain 219 lines,
 failure-conversion tests 52 and the native duplicate helper 94. No Rust, generated bridge, schema,
 dependency-version, model, original-media or user-catalog changes are included.
+
+## O5.2 Organization records and ordering — 2026-11-03
+
+Archive, cleanup, conflicts and sidebar ordering now have application ports and native adapters.
+Sidebar move values live in domain. The organization binding module selects all seven organization
+capabilities, including the command, batch and review adapters moved in O3. Settings consumes 20
+explicitly registered controller/state/value edges; no broad cross-feature exemption is added.
+Required ports fail when omitted, while inactive conflict reads are explicitly selected in test support.
+
+Archive/cleanup task methods and event/error conversions are unchanged after relocation. Their
+application controllers and optimistic sidebar-ordering owner retain identical lifecycle/policy
+bodies. Conflict and sidebar request/mapping bodies are unchanged apart from native error translation
+to the existing Ame organization failure. The immutable baseline remains unchanged. Ten native-layer
+exceptions and 20 declared cross-feature entries are retired; the dependency command passes for 480
+modules with 13 later-slice exceptions and 48 explicit public contracts. Source, test and integration
+analysis is clean.
+
+All 36 focused tests across eight files pass: two production-roster, seven archive-controller, four
+cleanup-controller, three ordering, seven conflict-workflow, three sidebar-drag, five archive-Settings
+and five cleanup-Settings cases. These retain cancellation versus terminal publication, failed and
+stale confirmation, operation identity on retry, bounded/coalesced reads, conflict provenance,
+optimistic rollback, native-picker cancellation and empty-inspection behavior. Required-binding
+coverage includes each new organization port.
+
+The first expanded Windows workflow, run `f5a7ec8ae986438f8869dabf8cecaaf0`, failed at its new Settings
+navigation step because the test used a nonexistent button key. Existing native organization and
+duplicate workflows had passed; the run retired without cleanup failures. The helper now uses the
+actual `library-sidebar-settings` entry, with its export/inspection/restore and cleanup assertions
+retained. A second run, `a03d012aea134c3696cafcc012a1d00d`, timed out in the earlier retained-import
+pause check before reaching the new workflow. Repeated native poll-busy responses accompanied the
+timeout; subsequent root-count failures followed the incomplete fixture retirement. That run took
+177,462 ms, exited one and reported no runner cleanup failures. Its cause is unresolved.
+
+A scoped diagnostic run, `5d398762db4a4675ae5520328bef5ca0`, recorded an accepted pause and stream
+completion in 144 ms. All four Windows cases passed, including production archive export,
+inspection, confirmed restoration, unchanged backup bytes, conflict reads, typed sidebar rejection
+and disabled empty cleanup. The run took 249,844 ms and reported no cleanup failures. Temporary
+native phase probes and test timing messages were subsequently removed; the original Rust and
+retained-import helper bodies match HEAD. No scan timeout or assertion was weakened, and no causal
+scan repair is claimed from this non-reproduction. Run `f1955f7ea5714c66a73172a018c24a43` reused the
+instrumented native build before the restoration took effect: all four cases passed in 202,626 ms,
+with no cleanup failures and retained-scan completion in 115 ms. It is additional diagnostic evidence,
+not a separate uninstrumented native result.
+The O5.2 ports and desktop flows passed with those probes enabled; the normal hosted run owns the
+submitted source's full gate. Revisit the retained-import timeout if it recurs, without repeating
+unchanged acceptance work solely for this unresolved observation.
+
+Implementation / inline-test counts are 167 / 0 for the archive controller, 156 / 0 for cleanup,
+103 / 0 for conflict projections, 77 / 0 for ordering, 108 / 0 for the archive adapter, 102 / 0 for
+cleanup, 69 / 0 for conflicts and 27 / 0 for sidebar order. Dedicated archive/cleanup tests contain
+185 and 109 lines, ordering tests 74 and conflict workflow tests 371. Production-roster tests contain
+140 lines and the native records helper 131. No Rust, generated bridge, schema, archive format,
+dependency-version, model, original-media or user-catalog changes are included.

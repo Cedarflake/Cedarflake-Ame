@@ -29,7 +29,6 @@ import "features/library/application/library_classification_configuration.dart";
 import "features/library/application/library_automatic_classification.dart";
 import "features/library/application/library_classification_lifecycle.dart";
 import "features/library/application/library_controller.dart";
-import "features/library/application/library_organization_conflicts.dart";
 import "features/library/application/library_foreground_reads.dart";
 import "features/library/application/library_model_installation.dart";
 import "features/library/application/library_model_activation.dart";
@@ -148,9 +147,6 @@ Future<void> main() async {
             ),
             libraryClassificationLifecycleProvider.overrideWith(
               (ref) => classificationOwner,
-            ),
-            libraryOrganizationConflictsProvider.overrideWithValue(
-              const RustLibraryOrganizationConflicts(),
             ),
             ameWindowActionsProvider.overrideWithValue(windowActions),
             libraryScanShutdownCoordinatorProvider.overrideWithValue(

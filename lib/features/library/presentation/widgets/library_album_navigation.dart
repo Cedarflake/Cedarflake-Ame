@@ -6,6 +6,7 @@ import "../../application/library_album_pages.dart";
 import "../../application/library_album_requests.dart";
 import "../../application/library_organization_actions.dart";
 import "../../application/library_sidebar_order.dart";
+import "../../domain/library_sidebar_order.dart";
 import "../../application/library_sidebar_album_removal.dart";
 import "../../domain/library_gallery_collection.dart";
 import "../../domain/library_organization.dart";

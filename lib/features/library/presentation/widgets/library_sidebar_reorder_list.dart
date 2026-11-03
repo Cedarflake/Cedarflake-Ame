@@ -5,7 +5,7 @@ import "package:flutter/material.dart";
 
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_transient_feedback.dart";
-import "../../application/library_sidebar_order.dart";
+import "../../domain/library_sidebar_order.dart";
 import "../../application/library_sidebar_ordering.dart";
 
 class LibrarySidebarReorderList<T extends Object> extends StatefulWidget {

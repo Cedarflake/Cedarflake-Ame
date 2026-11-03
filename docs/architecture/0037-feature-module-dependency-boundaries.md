@@ -61,6 +61,15 @@ entrypoint and its consumer in the affected boundary's documentation when that r
 State publication and cancellation stay with the owning feature; callers cannot acquire authority
 by mutating another controller's internal state.
 
+The Settings organization-record surfaces consume the library's named archive and cleanup
+controllers, their request/state projections, and archive/cleanup inspection/failure values.
+`libraryArchiveControllerProvider` owns export, inspection, confirmed restore and retry;
+`libraryCleanupControllerProvider` owns inspection and confirmed retirement. Settings renders their
+state and submits intents without owning task handles or publication. Album preferences use
+`libraryAlbumProvider` for a bounded saved-album lookup. Exact consumer-to-contract registrations
+live in `tool/dependency-boundaries/dart_boundary_policy.json`; this admits no other library internals
+or cross-feature widget imports.
+
 Cross-feature assembly belongs in application bootstrap. A business workflow spanning features
 still has one application owner and narrow collaborators. Promote a component to shared ownership
 only when independent consumers need the same stable behavior; shared visual primitives cannot
@@ -113,6 +122,11 @@ owns joined, idempotent close followed by notifier disposal; application owners 
 cancellation and publication policy. Required production Providers cannot fall back to an absent
 scheduler or a second controller. Test support explicitly selects inactive scheduling where needed.
 Duplicate adapters translate native failures into Ame-owned code/message values.
+
+`libraryOrganizationBindings` supplies organization, batches, review, archive, cleanup, conflicts and
+sidebar-order ports. Native task wrappers own bridge handles and event conversion; the existing
+archive/cleanup controllers retain cancellation, terminal-result admission, handle retirement and
+post-commit publication. Required binding does not create an operation or grant confirmation.
 
 ### Presentation ownership
 

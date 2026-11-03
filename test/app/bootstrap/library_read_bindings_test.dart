@@ -9,6 +9,10 @@ import "package:cedarflake_ame/features/library/adapters/rust/rust_library_dupli
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization_batch.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization_archive.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization_cleanup.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization_conflicts.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_sidebar_order.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_previewer.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_review.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_scanner.dart";
@@ -19,6 +23,10 @@ import "package:cedarflake_ame/features/library/application/library_foreground_r
 import "package:cedarflake_ame/features/library/application/library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_batch.dart";
+import "package:cedarflake_ame/features/library/application/library_organization_archive.dart";
+import "package:cedarflake_ame/features/library/application/library_organization_cleanup.dart";
+import "package:cedarflake_ame/features/library/application/library_organization_conflicts.dart";
+import "package:cedarflake_ame/features/library/application/library_sidebar_order.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
 import "package:cedarflake_ame/features/library/application/library_review.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
@@ -87,6 +95,22 @@ void main() {
         isA<RustLibraryOrganizationBatches>(),
       );
       expect(container.read(libraryReviewProvider), isA<RustLibraryReview>());
+      expect(
+        container.read(libraryOrganizationArchivesProvider),
+        isA<RustLibraryOrganizationArchives>(),
+      );
+      expect(
+        container.read(libraryOrganizationCleanupProvider),
+        isA<RustLibraryOrganizationCleanup>(),
+      );
+      expect(
+        container.read(libraryOrganizationConflictsProvider),
+        isA<RustLibraryOrganizationConflicts>(),
+      );
+      expect(
+        container.read(librarySidebarOrderProvider),
+        isA<RustLibrarySidebarOrder>(),
+      );
     },
   );
 

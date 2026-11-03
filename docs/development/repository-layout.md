@@ -115,6 +115,12 @@ conversion and failure translation stay in library `adapters/rust`; batching, st
 retirement, idle admission and foreground preemption remain in application. Production and test
 assembly use the same Provider identities, with required production ports validated before use.
 
+[`library_organization_bindings.dart`](../../lib/app/bootstrap/library_organization_bindings.dart)
+selects the organization, review, archive, cleanup, conflict and sidebar-order ports. Archive/cleanup
+task wrappers and event conversion live beside their native adapters. Sidebar move/kind/placement
+values live in domain; optimistic ordering remains with its existing application owner. Settings
+uses the explicit library controller and read contracts documented in ADR 0037.
+
 Tests mirror their resulting source area. Keep an integration workflow at its canonical entrypoint
 while moving only owned private support. Temporary compatibility exports belong to the migrating
 slice and are removed before its closure; do not create a permanent parallel directory layout.

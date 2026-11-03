@@ -6,7 +6,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../application/library_folder_controller.dart";
-import "../../application/library_sidebar_order.dart";
+import "../../domain/library_sidebar_order.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_synchronization_models.dart";

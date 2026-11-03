@@ -4,6 +4,7 @@ import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/bootstrap/library_duplicate_bindings.dart";
+import "package:cedarflake_ame/app/bootstrap/library_organization_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/library_synchronization_lifecycle_owner.dart";
 import "package:cedarflake_ame/app/bootstrap/library_synchronization_bindings.dart";
 import "package:cedarflake_ame/features/library/application/ports/directory_picker.dart";
@@ -21,6 +22,7 @@ import "package:cedarflake_ame/features/library/presentation/library_strings.dar
 import "package:cedarflake_ame/features/library/presentation/unified_library_screen.dart";
 import "package:cedarflake_ame/features/storage/adapters/rust/rust_storage_settings_gateway.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/application/organization_archive_picker.dart";
 import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:cedarflake_ame/src/rust/frb_generated.dart";
 import "package:file_selector/file_selector.dart";
@@ -36,6 +38,7 @@ import "support/library_management_workflow.dart";
 import "support/native_directory_picker.dart";
 import "support/organization_unavailable_workflow.dart";
 import "support/organization_workflow.dart";
+import "support/organization_records_workflow.dart";
 import "support/parent_folder_workflow.dart";
 import "support/retained_import_workflow.dart";
 import "support/viewer_source_workflow.dart";
@@ -451,11 +454,24 @@ void main() {
       foregroundReads: libraryForegroundReads,
     );
     addTearDown(exactAnalysis.close);
+    final workspace = Directory.current.path;
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final archive = File(
+      "$workspace/build/integration-archive-$stamp.ame-backup",
+    );
+    expect(await archive.exists(), isFalse);
+    addTearDown(() async {
+      if (await archive.exists()) await archive.delete();
+    });
     await tester.pumpWidget(
       ProviderScope(
         overrides: applicationTestOverrides([
           ...duplicates.overrides,
           ...exactAnalysis.overrides,
+          ...libraryOrganizationBindings(),
+          organizationArchivePickerProvider.overrideWithValue(
+            ControlledOrganizationArchivePicker(archive.path),
+          ),
           initialAmePreferencesProvider.overrideWithValue(
             const AmePreferences(exactAnalysisPaused: true),
           ),
@@ -479,6 +495,13 @@ void main() {
       ProviderScope.containerOf(
         tester.element(find.byType(UnifiedLibraryScreen)),
       ),
+    );
+    await verifyOrganizationRecordsWorkflow(
+      tester,
+      ProviderScope.containerOf(
+        tester.element(find.byType(UnifiedLibraryScreen)),
+      ),
+      archive,
     );
     await verifyLibraryManagementWorkflow(
       tester,

@@ -2,27 +2,7 @@
   "activeExceptions": [
     "D005",
     "D008",
-    "D023",
-    "D024",
-    "D025",
-    "D026",
-    "D027",
-    "D028",
-    "D029",
-    "D030",
     "D031",
-    "D032",
-    "D033",
-    "D034",
-    "D035",
-    "D036",
-    "D037",
-    "D038",
-    "D039",
-    "D040",
-    "D041",
-    "D042",
-    "D043",
     "D047",
     "D048",
     "D049",
@@ -32,17 +12,7 @@
     "D056",
     "D057",
     "D058",
-    "D067",
-    "D085",
-    "D086",
-    "D087",
-    "D092",
-    "D093",
-    "D094",
-    "D095",
-    "D096",
-    "D106",
-    "D107"
+    "D067"
   ],
   "publicFeatureEdges": [
     {
@@ -184,6 +154,106 @@
       "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
       "target": "lib/features/storage/domain/storage_models.dart",
       "contract": "StorageStatusModel, cleanup and reclamation results"
+    },
+    {
+      "source": "lib/features/settings/presentation/organization_archive_messages.dart",
+      "target": "lib/features/library/application/library_archive_requests.dart",
+      "contract": "LibraryArchiveRequest operation kind and path for Settings copy"
+    },
+    {
+      "source": "lib/features/settings/presentation/organization_archive_messages.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "contract": "LibraryArchiveState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/organization_archive_messages.dart",
+      "target": "lib/features/library/domain/library_organization_archive.dart",
+      "contract": "LibraryArchivePhase, inspection and failure values"
+    },
+    {
+      "source": "lib/features/settings/presentation/organization_record_actions.dart",
+      "target": "lib/features/library/application/library_archive_controller.dart",
+      "contract": "libraryArchiveControllerProvider and archive command entrypoints"
+    },
+    {
+      "source": "lib/features/settings/presentation/organization_record_actions.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "contract": "LibraryArchiveState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/organization_record_actions.dart",
+      "target": "lib/features/library/application/library_cleanup_controller.dart",
+      "contract": "libraryCleanupControllerProvider and cleanup command entrypoints"
+    },
+    {
+      "source": "lib/features/settings/presentation/organization_record_actions.dart",
+      "target": "lib/features/library/application/library_cleanup_state.dart",
+      "contract": "LibraryCleanupState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/album_settings_section.dart",
+      "target": "lib/features/library/application/library_album_pages.dart",
+      "contract": "libraryAlbumProvider bounded saved-album lookup"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_archive_confirmation.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "contract": "LibraryArchiveState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_archive_section.dart",
+      "target": "lib/features/library/application/library_archive_controller.dart",
+      "contract": "libraryArchiveControllerProvider and archive command entrypoints"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_archive_section.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "contract": "LibraryArchiveState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_confirmation.dart",
+      "target": "lib/features/library/application/library_cleanup_controller.dart",
+      "contract": "libraryCleanupControllerProvider and cleanup command entrypoints"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_confirmation.dart",
+      "target": "lib/features/library/application/library_cleanup_state.dart",
+      "contract": "LibraryCleanupState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_confirmation.dart",
+      "target": "lib/features/library/domain/library_organization_cleanup.dart",
+      "contract": "LibraryCleanupInspection counts and confirmation evidence"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_row.dart",
+      "target": "lib/features/library/application/library_cleanup_controller.dart",
+      "contract": "libraryCleanupControllerProvider and cleanup command entrypoints"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_row.dart",
+      "target": "lib/features/library/application/library_cleanup_state.dart",
+      "contract": "LibraryCleanupState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_record_feedback.dart",
+      "target": "lib/features/library/application/library_archive_controller.dart",
+      "contract": "libraryArchiveControllerProvider and archive command entrypoints"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_record_feedback.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "contract": "LibraryArchiveState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_record_feedback.dart",
+      "target": "lib/features/library/application/library_cleanup_controller.dart",
+      "contract": "libraryCleanupControllerProvider and cleanup command entrypoints"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_record_feedback.dart",
+      "target": "lib/features/library/application/library_cleanup_state.dart",
+      "contract": "LibraryCleanupState progress, confirmation and terminal projections"
     }
   ]
 }

@@ -1,6 +1,6 @@
 # Project organization after R5
 
-Status: O1–O4 and O5.1 implemented; O5.2 is next in the roadmap-owned delivery order.
+Status: O1–O4, O5.1 and O5.2 implemented; O5.3 is next in the roadmap-owned delivery order.
 
 The [roadmap](../roadmap.md#project-organization-after-r5) selects this maintenance scope after R5.
 [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md) owns the target dependency
@@ -193,6 +193,12 @@ O5.1 separates exact-analysis/query and gallery-annotation ports from their nati
 duplicate binding module selects those ports and duplicate review; its runtime owner shares the
 exact service with one controller/scheduler pair and joins shutdown before notifier disposal.
 Native failures become Ame values, while the existing run, cancellation, publication and batching
-owners retain their behavior. All remaining duplicate-service exceptions are retired. Continue
-with O5.2's organization, archive, cleanup and conflict services. Evidence belongs to the linked
-acceptance record; hosted results remain independent of this progression.
+owners retain their behavior. All remaining duplicate-service exceptions are retired.
+
+O5.2 separates archive, cleanup, conflict and sidebar-order ports from native adapters. The
+organization binding module selects all seven capabilities; existing archive/cleanup task
+lifetimes, confirmation guards and optimistic ordering remain in application. Settings consumes
+explicitly registered library controller, state and value contracts. Thirty corresponding legacy
+entries are retired. Continue with O5.3's classification, model-installation and automatic-lifecycle
+composition. Evidence, including the unresolved single retained-import timeout, belongs to the
+linked acceptance record; hosted results remain independent of this progression.

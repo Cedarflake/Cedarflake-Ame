@@ -10,6 +10,7 @@ import "package:cedarflake_ame/features/library/application/library_exact_analys
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/application/library_gallery_duplicates.dart";
+import "package:cedarflake_ame/features/library/application/library_organization_conflicts.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_view_preference_store.dart";
 import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/ports/ame_preference_store.dart";
@@ -44,6 +45,7 @@ List<Override> applicationTestOverrides([List<Override> overrides = const []]) {
     libraryExactAnalysisSchedulerProvider.overrideWithValue(null),
     libraryGalleryDuplicatesProvider.overrideWithValue(null),
     ...libraryOrganizationBindings(),
+    libraryOrganizationConflictsProvider.overrideWithValue(null),
   ];
   return {
     for (final override in production) override.origin: override,

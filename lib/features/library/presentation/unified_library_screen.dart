@@ -24,6 +24,7 @@ import "../application/library_organization_publication.dart";
 import "../application/library_organization_conflicts.dart";
 import "../application/library_review.dart";
 import "../application/library_sidebar_order.dart";
+import "../domain/library_sidebar_order.dart";
 import "../application/library_query_projection.dart";
 import "../application/library_synchronization.dart";
 import "../application/library_update_controller.dart";
