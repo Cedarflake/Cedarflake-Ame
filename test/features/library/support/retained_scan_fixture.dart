@@ -3,8 +3,10 @@ import "dart:async";
 import "package:cedarflake_ame/features/library/application/ports/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_scanner.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -12,7 +14,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "library_query_snapshot_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 Future<void> flushRetainedScanMicrotasks() async {
   await Future<void>.delayed(Duration.zero);
@@ -53,7 +55,7 @@ class RetainedScanFixture {
   RetainedScanFixture() {
     catalog = RetainedScanCatalog(scanner);
     container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryCatalogProvider.overrideWithValue(catalog),
         directoryPickerProvider.overrideWithValue(picker),

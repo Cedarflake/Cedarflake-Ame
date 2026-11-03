@@ -8,7 +8,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/duplicate_review_fixtures.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -17,7 +17,7 @@ void main() {
       var opened = 0;
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
             libraryClassificationReviewServiceProvider.overrideWith(
               (ref) => throw StateError("Card must not read analysis status"),

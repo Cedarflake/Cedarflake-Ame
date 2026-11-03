@@ -1,7 +1,7 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_preview_queue.dart";
-import "package:cedarflake_ame/features/library/application/library_previewer.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_previewer.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:flutter_test/flutter_test.dart";
 

@@ -15,7 +15,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "support/library_screen_fixture.dart";
 import "support/library_screen_menu_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("restores and saves stable gallery display preferences", (
@@ -43,7 +43,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           initialLibraryViewPreferencesProvider.overrideWithValue(
             initialPreferences,

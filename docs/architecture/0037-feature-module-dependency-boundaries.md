@@ -94,6 +94,12 @@ resources through the existing shutdown coordinator and preserves both acquisiti
 failures. This owner contains container lifetime and validation only; feature modules retain concrete
 service selection and application owners retain workflow policy.
 
+`LibraryReadBindings` supplies the same catalog to startup loading and the catalog/folder Providers.
+It selects native preview and source-reader adapters with one foreground-read activity contract.
+The application source-scheduler Provider constructs and retires its scheduler from the reader port;
+neither image widgets nor image providers construct a replacement native reader. The existing image
+copy owner retains acquired-lease closure, including after container or widget retirement.
+
 ### Presentation ownership
 
 Pages compose surfaces and connect user intent to application entrypoints. Widgets render bounded

@@ -11,7 +11,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "support/library_screen_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("shows scan controls in temporary import feedback", (
@@ -24,7 +24,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             const LibraryState(
               status: LibraryStatus.scanning,
@@ -57,7 +57,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             const LibraryState(
               status: LibraryStatus.scanning,
@@ -104,7 +104,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
         ]),
@@ -180,7 +180,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
           libraryUpdateControllerProvider.overrideWith(
@@ -238,7 +238,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
           libraryUpdateControllerProvider.overrideWith(() => updateController),
@@ -282,7 +282,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
         ]),
         child: const AmeApp(),
@@ -343,7 +343,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(snapshot),
           ),

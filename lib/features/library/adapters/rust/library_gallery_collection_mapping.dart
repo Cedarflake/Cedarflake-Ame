@@ -1,6 +1,7 @@
-import "../../../src/rust/domain.dart" as rust;
-import "../../../src/rust/domain/classification_review.dart" as classification;
-import "../domain/library_gallery_collection.dart";
+import "../../../../src/rust/domain.dart" as rust;
+import "../../../../src/rust/domain/classification_review.dart"
+    as classification;
+import "../../domain/library_gallery_collection.dart";
 
 rust.GalleryCollection mapLibraryCollection(LibraryGalleryCollection value) =>
     switch (value) {

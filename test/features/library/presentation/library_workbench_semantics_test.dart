@@ -15,7 +15,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/semantics/retained_semantics_update_harness.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   RetainedSemanticsUpdateBinding();
@@ -30,7 +30,7 @@ void main() {
     try {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides(),
+          overrides: applicationTestOverrides(),
           child: MaterialApp(
             home: Scaffold(
               body: LibraryWorkbench(
@@ -122,7 +122,7 @@ void main() {
         addTearDown(folded.dispose);
         var groups = <String, LibraryDuplicateGroup>{};
         final container = ProviderContainer(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             libraryGalleryDuplicateAnnotationsProvider.overrideWith(
               (ref) async => groups,
             ),

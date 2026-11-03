@@ -9,7 +9,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/concurrent_library_scanner.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -21,7 +21,7 @@ void main() {
       ];
       var refreshCount = 0;
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryUpdateConfiguredRootsProvider.overrideWithValue(roots),
           libraryUpdatePrimaryBusyProvider.overrideWithValue(false),

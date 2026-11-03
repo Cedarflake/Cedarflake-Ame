@@ -14,7 +14,7 @@ import "package:flutter_test/flutter_test.dart";
 import "../../library/support/library_cleanup_fixture.dart";
 import "../../library/support/library_organization_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   late CleanupServiceFixture service;
@@ -22,7 +22,7 @@ void main() {
   setUp(() {
     service = CleanupServiceFixture();
     container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryOrganizationCleanupProvider.overrideWithValue(service),
         libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
       ]),

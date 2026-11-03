@@ -12,7 +12,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_organization_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   late OrganizationServiceFixture service;
@@ -21,7 +21,7 @@ void main() {
   setUp(() {
     service = OrganizationServiceFixture();
     container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryOrganizationProvider.overrideWithValue(service),
         libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
       ]),

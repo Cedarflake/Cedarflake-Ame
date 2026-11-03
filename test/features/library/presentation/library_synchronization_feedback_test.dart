@@ -16,7 +16,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/concurrent_library_scanner.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   test(
@@ -473,7 +473,7 @@ void main() {
       addTearDown(scanner.dispose);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState(
                 status: LibraryStatus.completed,
@@ -544,7 +544,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState(
                 status: LibraryStatus.completed,

@@ -19,7 +19,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../support/library_organization_fixture.dart";
 import "../support/library_review_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   late ReviewServiceFixture review;
@@ -33,7 +33,7 @@ void main() {
     surface = ReviewSurfaceFixture();
     mode = LibraryOrganizationMode(review, surface);
     container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryOrganizationProvider.overrideWithValue(organization),
         libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
       ]),

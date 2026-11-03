@@ -23,7 +23,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../support/library_batch_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   late OrganizationBatchesFixture batches;
@@ -41,7 +41,7 @@ void main() {
     committed = 0;
     library = _RefreshingLibrary();
     container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryOrganizationBatchesProvider.overrideWithValue(batches),
         libraryOrganizationProvider.overrideWithValue(service),
         libraryControllerProvider.overrideWith(() => library),

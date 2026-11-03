@@ -1,4 +1,4 @@
-import "package:cedarflake_ame/features/library/application/library_gallery_collection_mapping.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/library_gallery_collection_mapping.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:flutter_test/flutter_test.dart";
 

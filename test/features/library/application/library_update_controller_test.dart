@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_scan_shutdown.dart";
 import "package:cedarflake_ame/features/library/application/library_scan_execution.dart";
@@ -14,7 +15,7 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/concurrent_library_scanner.dart";
 import "../support/library_query_snapshot_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final duringCommittedReload in [false, true]) {
@@ -30,7 +31,7 @@ void main() {
         final catalog = _RemovingUpdateCatalog(roots);
         final initial = catalog.snapshot;
         final container = ProviderContainer(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             libraryScannerProvider.overrideWithValue(scanner),
             libraryCatalogProvider.overrideWithValue(catalog),
             initialLibraryStateProvider.overrideWithValue(
@@ -176,7 +177,7 @@ void main() {
       _root("root-c", "C:\\C"),
     ];
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryUpdateConfiguredRootsProvider.overrideWithValue(roots),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
@@ -283,7 +284,7 @@ void main() {
       availability: LibraryRootAvailability.offline,
     );
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
@@ -308,7 +309,7 @@ void main() {
     final scanner = ConcurrentLibraryScanner();
     final root = _root("root-a", "C:\\Current");
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
@@ -339,7 +340,7 @@ void main() {
     ];
     var currentRoots = roots;
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryUpdateConfiguredRootsProvider.overrideWith(
           (ref) => currentRoots,
@@ -380,7 +381,7 @@ void main() {
     final primaryOwner = Object();
     expect(execution.tryAcquirePrimary(primaryOwner), isTrue);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryScanExecutionCoordinatorProvider.overrideWithValue(execution),
         libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
@@ -407,7 +408,7 @@ void main() {
     final scanner = ConcurrentLibraryScanner(delayedRegistration: true);
     final root = _root("root-a", "C:\\A");
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
@@ -470,7 +471,7 @@ void main() {
     final scanner = ConcurrentLibraryScanner();
     final root = _root("root-a", "C:\\A");
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
@@ -517,7 +518,7 @@ void main() {
       var refreshAttempts = 0;
       final root = _root("root-a", "C:\\A");
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
           libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
@@ -579,7 +580,7 @@ void main() {
       final scanner = ConcurrentLibraryScanner();
       final root = _root("root-a", "C:\\A");
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
           libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
@@ -637,7 +638,7 @@ void main() {
     var refreshCount = 0;
     final root = _root("root-a", "C:\\A");
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
@@ -697,7 +698,7 @@ void main() {
       _root("root-c", "C:\\C"),
     ];
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryScanShutdownCoordinatorProvider.overrideWithValue(coordinator),
         libraryUpdateConfiguredRootsProvider.overrideWithValue(roots),
@@ -735,7 +736,7 @@ void main() {
       final coordinator = LibraryScanShutdownCoordinator();
       final root = _root("root-a", "C:\\A");
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryScanShutdownCoordinatorProvider.overrideWithValue(coordinator),
           libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),

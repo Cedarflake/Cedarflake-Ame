@@ -1,4 +1,8 @@
 import "package:cedarflake_ame/app/bootstrap/library_platform_bindings.dart";
+import "package:cedarflake_ame/app/bootstrap/library_read_bindings.dart";
+import "package:cedarflake_ame/app/bootstrap/library_scan_bindings.dart";
+import "package:cedarflake_ame/app/bootstrap/library_duplicate_bindings.dart";
+import "package:cedarflake_ame/app/bootstrap/library_organization_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/settings_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/storage_bindings.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_view_preference_store.dart";
@@ -7,7 +11,7 @@ import "package:cedarflake_ame/features/settings/application/ports/ame_preferenc
 import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:flutter_riverpod/misc.dart";
 
-List<Override> platformTestOverrides([List<Override> overrides = const []]) {
+List<Override> applicationTestOverrides([List<Override> overrides = const []]) {
   final preferences = MemoryPreferenceStore();
   final production = [
     ...libraryPlatformBindings(
@@ -19,6 +23,10 @@ List<Override> platformTestOverrides([List<Override> overrides = const []]) {
       initialPreferences: const AmePreferences(),
     ),
     ...storageBindings(),
+    ...LibraryReadBindings.production().overrides,
+    ...libraryScanBindings(),
+    ...libraryDuplicateBindings(),
+    ...libraryOrganizationBindings(),
   ];
   return {
     for (final override in production) override.origin: override,

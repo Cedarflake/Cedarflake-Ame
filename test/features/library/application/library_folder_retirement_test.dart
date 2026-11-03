@@ -1,13 +1,14 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_folder_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final removesParent in [false, true]) {
@@ -166,7 +167,7 @@ Future<void> _load(
 );
 
 ProviderContainer _container(_Catalog catalog) => ProviderContainer(
-  overrides: platformTestOverrides([
+  overrides: applicationTestOverrides([
     libraryFolderCatalogProvider.overrideWithValue(catalog),
     libraryFolderConfiguredRootsProvider.overrideWith(
       (ref) => ref.watch(_rootsProvider),

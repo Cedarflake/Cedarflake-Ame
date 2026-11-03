@@ -1,21 +1,9 @@
-import "../domain/library_models.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 
-abstract interface class LibrarySourceReader {
-  Future<LibrarySourceReadLease> acquire(LibraryAsset asset);
-}
+import "ports/library_source_reader.dart";
 
-abstract interface class LibrarySourceReadLease {
-  String get sourcePath;
-
-  Future<void> close();
-}
-
-class LibrarySourceReadFailure implements Exception {
-  const LibrarySourceReadFailure(this.code, this.message);
-
-  final String code;
-  final String message;
-
-  @override
-  String toString() => "$code: $message";
-}
+final librarySourceReaderProvider = Provider<LibrarySourceReader>((ref) {
+  throw StateError(
+    "LibrarySourceReader must be bound during application startup",
+  );
+});

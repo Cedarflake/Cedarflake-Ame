@@ -15,7 +15,7 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_organization_fixture.dart";
 import "support/library_screen_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -38,7 +38,7 @@ void main() {
       final service = OrganizationServiceFixture()
         ..albumItems = [const LibraryOrganizationAlbum("a", "Landscape")];
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryOrganizationProvider.overrideWithValue(service),

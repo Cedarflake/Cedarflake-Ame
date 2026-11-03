@@ -1,5 +1,5 @@
+import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/application/library_source_reader.dart";
-import "package:cedarflake_ame/features/library/application/rust_library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_loading_indicator.dart";
@@ -8,11 +8,15 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_sou
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 
 Future<void> verifyViewerSourceWorkflow(WidgetTester tester) async {
   final openingTile = find.byType(LibraryPhotoTile).hitTestable().first;
   final selected = tester.widget<LibraryPhotoTile>(openingTile).asset;
-  const reader = RustLibrarySourceReader();
+  final reader = ProviderScope.containerOf(
+    tester.element(openingTile),
+    listen: false,
+  ).read(librarySourceReaderProvider);
   await _withSourceLeases((held) async {
     held.add(await reader.acquire(selected));
     held.add(await reader.acquire(selected));

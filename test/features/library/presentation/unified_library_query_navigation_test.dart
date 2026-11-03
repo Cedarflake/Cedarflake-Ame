@@ -17,7 +17,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "support/library_screen_fixture.dart";
 import "support/library_screen_menu_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("favorites belongs to Albums and preserves the Library source", (
@@ -39,7 +39,7 @@ void main() {
     );
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(catalog),
         ]),
@@ -145,7 +145,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(catalog),
         ]),
@@ -206,7 +206,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             populatedScreenState(totalItems: 1),
           ),
@@ -310,7 +310,7 @@ void main() {
       final catalog = AnchorResolvingQueryCatalog(initialSnapshot);
 
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           initialLibraryViewPreferencesProvider.overrideWithValue(
             const LibraryViewPreferences(
@@ -457,7 +457,7 @@ void main() {
     addTearDown(catalog.releaseHeldAnchorRequest);
 
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(initialState),
         initialLibraryViewPreferencesProvider.overrideWithValue(
           const LibraryViewPreferences(

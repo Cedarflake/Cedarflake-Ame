@@ -222,7 +222,12 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   LibrarySourceImage _createSourceImage() => LibrarySourceImage(
     widget.asset,
     retryGeneration: _retryGeneration,
-    scheduler: widget.sourceReadScheduler ?? _sourceScope?.scheduler,
+    scheduler:
+        widget.sourceReadScheduler ??
+        _sourceScope?.scheduler ??
+        (throw StateError(
+          "LibraryViewerImage requires a source-read scheduler",
+        )),
     bufferLoader: widget.sourceBufferLoader ?? _sourceScope?.bufferLoader,
   );
 

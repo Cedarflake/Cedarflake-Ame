@@ -15,7 +15,7 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_classification_review_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   Future<ProviderContainer> mount(
@@ -24,7 +24,7 @@ void main() {
     LibraryClassificationMode mode,
   ) async {
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryClassificationReviewServiceProvider.overrideWithValue(review),
         libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
         libraryClassificationSettingsProvider.overrideWith(

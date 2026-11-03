@@ -1,5 +1,7 @@
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
+import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
@@ -12,7 +14,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_query_snapshot_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final shape in GalleryLayoutShape.values) {
@@ -108,7 +110,7 @@ Future<_Catalog> _openGallery(
   final initial = catalog.snapshot(const LibraryGalleryQuery());
   await tester.pumpWidget(
     ProviderScope(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryCatalogProvider.overrideWithValue(catalog),
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(

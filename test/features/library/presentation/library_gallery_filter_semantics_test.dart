@@ -16,7 +16,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../support/duplicate_review_fixtures.dart";
 import "../../../support/semantics/retained_semantics_update_harness.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   RetainedSemanticsUpdateBinding();
@@ -30,7 +30,7 @@ void main() {
       try {
         await tester.pumpWidget(
           ProviderScope(
-            overrides: platformTestOverrides([
+            overrides: applicationTestOverrides([
               libraryControllerProvider.overrideWith(_FilterLibrary.new),
               libraryGalleryLayoutManifestProvider.overrideWith((
                 ref,

@@ -7,6 +7,8 @@ import "package:cedarflake_ame/app/bootstrap/library_synchronization_lifecycle_o
 import "package:cedarflake_ame/features/library/application/ports/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_catalog.dart";
+import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
@@ -31,7 +33,7 @@ import "support/parent_folder_workflow.dart";
 import "support/retained_import_workflow.dart";
 import "support/viewer_source_workflow.dart";
 
-import "../test/support/platform_test_bindings.dart";
+import "../test/support/application_test_bindings.dart";
 
 const _fixturePng =
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
@@ -94,7 +96,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           librarySynchronizationProvider.overrideWithValue(synchronization),
         ]),
         child: const AmeApp(),
@@ -191,7 +193,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           directoryPickerProvider.overrideWithValue(
             _InitialDirectoryPicker(sourceDirectory.path),
           ),
@@ -340,7 +342,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           directoryPickerProvider.overrideWithValue(
             _InitialDirectoryPicker(secondSourceDirectory.path),
           ),
@@ -438,7 +440,7 @@ void main() {
     expect(secondRestoredState.assets, hasLength(2));
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(secondRestoredState),
           librarySynchronizationProvider.overrideWithValue(synchronization),
         ]),

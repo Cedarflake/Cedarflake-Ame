@@ -1,7 +1,7 @@
 import "dart:math";
 
 import "../domain/library_organization.dart";
-import "library_organization.dart";
+import "ports/library_organization.dart";
 import "library_organization_publication.dart";
 
 String newOrganizationOperationId() {

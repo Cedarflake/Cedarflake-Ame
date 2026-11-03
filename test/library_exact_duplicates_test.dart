@@ -28,7 +28,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/semantics/retained_semantics_update_harness.dart";
 
-import "support/platform_test_bindings.dart";
+import "support/application_test_bindings.dart";
 
 const _group = LibraryDuplicateGroup(
   digest: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -116,7 +116,7 @@ void main() {
         final revealed = <String>[];
         await tester.pumpWidget(
           ProviderScope(
-            overrides: platformTestOverrides([
+            overrides: applicationTestOverrides([
               libraryControllerProvider.overrideWith(
                 () => ReviewFixtureLibrary(
                   duplicateMode: LibraryGalleryDuplicateMode.merged,
@@ -221,7 +221,7 @@ void main() {
         var outsideTaps = 0;
         await tester.pumpWidget(
           ProviderScope(
-            overrides: platformTestOverrides([
+            overrides: applicationTestOverrides([
               libraryControllerProvider.overrideWith(
                 () => ReviewFixtureLibrary(
                   duplicateMode: LibraryGalleryDuplicateMode.merged,
@@ -322,7 +322,7 @@ void main() {
         final scheduler = LibraryExactAnalysisScheduler(analysis, paused: true);
         final store = _PauseStore(saveFails: saveFails);
         final container = ProviderContainer(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
             libraryExactDuplicatesProvider.overrideWithValue(service),
             libraryDuplicateReviewProvider.overrideWithValue(
@@ -406,7 +406,7 @@ void main() {
       final service = _Service();
       final revealed = <String>[];
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
           libraryExactDuplicatesProvider.overrideWithValue(service),
           libraryDuplicateReviewProvider.overrideWithValue(

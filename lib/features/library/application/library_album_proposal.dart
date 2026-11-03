@@ -1,6 +1,6 @@
 import "../../settings/domain/album_preferences.dart";
 import "../domain/library_organization.dart";
-import "library_organization.dart";
+import "ports/library_organization.dart";
 
 class LibraryAlbumProposal {
   const LibraryAlbumProposal({

@@ -1,7 +1,7 @@
 import "../domain/library_models.dart";
 import "../domain/library_organization.dart";
 import "../domain/library_review.dart";
-import "library_review.dart";
+import "ports/library_review.dart";
 
 class LibraryReviewEntry {
   LibraryReviewEntry._(this.target);

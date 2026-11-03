@@ -1,4 +1,4 @@
-import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/library_gallery_query_mapping.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/src/rust/domain.dart" as rust_domain;
 import "package:flutter_test/flutter_test.dart";

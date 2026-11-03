@@ -5,10 +5,14 @@ import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_layout_manifest_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_previewer.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_scanner.dart";
 import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
@@ -33,7 +37,7 @@ import "package:integration_test/integration_test.dart";
 
 import "../test/features/library/support/library_query_snapshot_fixture.dart";
 
-import "../test/support/platform_test_bindings.dart";
+import "../test/support/application_test_bindings.dart";
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -84,7 +88,7 @@ void main() {
     try {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(state),
             libraryCatalogProvider.overrideWithValue(
               _StaticCatalog(snapshot, state.timeline!),
@@ -270,7 +274,7 @@ void main() {
     try {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(state),
             initialLibraryViewPreferencesProvider.overrideWithValue(
               const LibraryViewPreferences(

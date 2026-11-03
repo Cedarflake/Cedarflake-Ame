@@ -5,7 +5,9 @@ import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_layout_manifest_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_previewer.dart";
 import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
@@ -25,7 +27,7 @@ import "package:flutter_test/flutter_test.dart";
 import "support/library_screen_fixture.dart";
 import "support/library_screen_menu_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -90,7 +92,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryPreviewerProvider.overrideWithValue(previewer),
             libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(
@@ -263,7 +265,7 @@ void main() {
     final previewer = _ControlledLibraryPreviewer(assets);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryPreviewerProvider.overrideWithValue(previewer),
           libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(
@@ -431,7 +433,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryPreviewerProvider.overrideWithValue(previewer),
             libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(
@@ -563,7 +565,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             initialLibraryViewPreferencesProvider.overrideWithValue(
               const LibraryViewPreferences(

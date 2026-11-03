@@ -16,7 +16,7 @@ import "package:flutter_test/flutter_test.dart";
 import "../../library/support/library_archive_fixture.dart";
 import "../../library/support/library_organization_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   late ArchiveServiceFixture service;
@@ -26,7 +26,7 @@ void main() {
     service = ArchiveServiceFixture();
     picker = _Picker();
     container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryOrganizationArchivesProvider.overrideWithValue(service),
         organizationArchivePickerProvider.overrideWithValue(picker),
         libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),

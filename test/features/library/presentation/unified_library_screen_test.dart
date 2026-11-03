@@ -8,7 +8,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("shows the unified empty library shell", (tester) async {
@@ -18,7 +18,10 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      ProviderScope(overrides: platformTestOverrides(), child: const AmeApp()),
+      ProviderScope(
+        overrides: applicationTestOverrides(),
+        child: const AmeApp(),
+      ),
     );
 
     for (final key in const [
@@ -107,7 +110,10 @@ void main() {
     addTearDown(tester.view.resetPadding);
 
     await tester.pumpWidget(
-      ProviderScope(overrides: platformTestOverrides(), child: const AmeApp()),
+      ProviderScope(
+        overrides: applicationTestOverrides(),
+        child: const AmeApp(),
+      ),
     );
 
     expect(
@@ -126,7 +132,10 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      ProviderScope(overrides: platformTestOverrides(), child: const AmeApp()),
+      ProviderScope(
+        overrides: applicationTestOverrides(),
+        child: const AmeApp(),
+      ),
     );
     await tester.pump();
 
@@ -199,7 +208,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialAmePreferencesProvider.overrideWithValue(preferences),
           amePreferenceStoreProvider.overrideWithValue(preferenceStore),
         ]),
@@ -285,7 +294,10 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      ProviderScope(overrides: platformTestOverrides(), child: const AmeApp()),
+      ProviderScope(
+        overrides: applicationTestOverrides(),
+        child: const AmeApp(),
+      ),
     );
     await tester.pump();
 

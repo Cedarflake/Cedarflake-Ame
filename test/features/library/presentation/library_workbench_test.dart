@@ -5,7 +5,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("switches workspaces without rebuilding gallery state", (
@@ -17,7 +17,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     final scroll = ScrollController();
     addTearDown(scroll.dispose);
-    final container = ProviderContainer(overrides: platformTestOverrides());
+    final container = ProviderContainer(overrides: applicationTestOverrides());
     addTearDown(container.dispose);
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -138,7 +138,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides(),
+        overrides: applicationTestOverrides(),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryWorkbench(

@@ -13,7 +13,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
 
-import "support/platform_test_bindings.dart";
+import "support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -153,7 +153,7 @@ Widget _host(
   LibraryExactAnalysisController? analysis,
   LibraryExactAnalysisScheduler? scheduler,
 }) => ProviderScope(
-  overrides: platformTestOverrides([
+  overrides: applicationTestOverrides([
     libraryControllerProvider.overrideWith(
       () => library ?? ReviewFixtureLibrary(),
     ),

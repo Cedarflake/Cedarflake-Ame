@@ -13,7 +13,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/gallery_wall_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final withManifest in [false, true]) {
@@ -202,7 +202,7 @@ Future<_WallFixture> _mountWall(
   addTearDown(fixture.scroll.dispose);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: platformTestOverrides(),
+      overrides: applicationTestOverrides(),
       child: MaterialApp(
         home: MediaQuery(
           data: const MediaQueryData(disableAnimations: true),

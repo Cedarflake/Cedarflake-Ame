@@ -1,6 +1,6 @@
-import "../../../src/rust/domain.dart" as rust_domain;
+import "../../../../src/rust/domain.dart" as rust_domain;
 
-import "../domain/library_models.dart";
+import "../../domain/library_models.dart";
 
 LibraryAsset mapRustLibraryAsset(rust_domain.AssetLocationView asset) {
   final captureTime = asset.captureTime;

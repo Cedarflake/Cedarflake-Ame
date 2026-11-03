@@ -9,14 +9,17 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../support/platform_test_bindings.dart";
+import "../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("uses Simplified Chinese locale and dense text geometry", (
     tester,
   ) async {
     await tester.pumpWidget(
-      ProviderScope(overrides: platformTestOverrides(), child: const AmeApp()),
+      ProviderScope(
+        overrides: applicationTestOverrides(),
+        child: const AmeApp(),
+      ),
     );
 
     final context = tester.element(find.byType(UnifiedLibraryScreen));
@@ -44,7 +47,10 @@ void main() {
     );
 
     await tester.pumpWidget(
-      ProviderScope(overrides: platformTestOverrides(), child: const AmeApp()),
+      ProviderScope(
+        overrides: applicationTestOverrides(),
+        child: const AmeApp(),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -72,7 +78,10 @@ void main() {
     );
 
     await tester.pumpWidget(
-      ProviderScope(overrides: platformTestOverrides(), child: const AmeApp()),
+      ProviderScope(
+        overrides: applicationTestOverrides(),
+        child: const AmeApp(),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -89,7 +98,10 @@ void main() {
   ) async {
     const methodChannel = MethodChannel("cedarflake_ame/system_theme");
     await tester.pumpWidget(
-      ProviderScope(overrides: platformTestOverrides(), child: const AmeApp()),
+      ProviderScope(
+        overrides: applicationTestOverrides(),
+        child: const AmeApp(),
+      ),
     );
     await tester.pump();
     const accent = Color(0xFF2B8F4E);
@@ -129,7 +141,10 @@ void main() {
     );
 
     await tester.pumpWidget(
-      ProviderScope(overrides: platformTestOverrides(), child: const AmeApp()),
+      ProviderScope(
+        overrides: applicationTestOverrides(),
+        child: const AmeApp(),
+      ),
     );
     const newestAccent = Color(0xFF7D5128);
     unawaited(

@@ -1,6 +1,6 @@
 import "package:flutter/foundation.dart";
 
-import "../application/library_catalog.dart";
+import "../application/ports/library_catalog.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_viewer_navigation_window.dart";

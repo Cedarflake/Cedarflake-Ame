@@ -20,7 +20,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/semantics/retained_semantics_update_harness.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   RetainedSemanticsUpdateBinding();
@@ -793,7 +793,7 @@ void main() {
     try {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               _populatedLibraryState(),
             ),

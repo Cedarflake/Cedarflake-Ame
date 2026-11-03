@@ -7,7 +7,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
 
-import "support/platform_test_bindings.dart";
+import "support/application_test_bindings.dart";
 
 void main() {
   for (final singleColumn in [false, true]) {
@@ -19,7 +19,7 @@ void main() {
           addTearDown(() => tester.binding.setSurfaceSize(null));
           await tester.pumpWidget(
             ProviderScope(
-              overrides: platformTestOverrides([
+              overrides: applicationTestOverrides([
                 libraryControllerProvider.overrideWith(
                   ReviewFixtureLibrary.new,
                 ),

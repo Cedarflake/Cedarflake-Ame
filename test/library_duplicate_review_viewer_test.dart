@@ -16,7 +16,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
 
-import "support/platform_test_bindings.dart";
+import "support/application_test_bindings.dart";
 
 void main() {
   testWidgets("member publication waits until the open viewer closes", (
@@ -26,7 +26,7 @@ void main() {
     final library = _PublishingLibrary();
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryControllerProvider.overrideWith(() => library),
           libraryDuplicateReviewProvider.overrideWithValue(service),
         ]),
@@ -99,7 +99,7 @@ void main() {
       await window.ensureRange(63, 64);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
           ]),
           child: MaterialApp(
@@ -151,7 +151,7 @@ void main() {
     final library = ReviewFixtureLibrary();
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryControllerProvider.overrideWith(() => library),
         ]),
         child: MaterialApp(

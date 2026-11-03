@@ -16,7 +16,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/library_screen_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("groups server-ordered assets under capture and fallback dates", (
@@ -104,7 +104,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(snapshot),
           ),
@@ -150,7 +150,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             populatedScreenState(totalItems: 3).copyWith(
               timeline: LibraryTimeline(
@@ -216,7 +216,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(
@@ -331,7 +331,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryCatalogProvider.overrideWithValue(catalog),
         ]),
@@ -458,7 +458,7 @@ void main() {
         previousSnapshot: previousSnapshot,
       );
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(catalog),
         ]),

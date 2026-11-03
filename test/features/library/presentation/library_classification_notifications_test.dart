@@ -12,7 +12,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_organization_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -25,7 +25,7 @@ void main() {
         foregroundReads: reads,
       );
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryControllerProvider.overrideWith(
             OrganizationLibraryFixture.new,
           ),
@@ -76,7 +76,9 @@ void main() {
   test(
     "runtime failure is persistent, deduplicated and resolved after recovery",
     () {
-      final container = ProviderContainer(overrides: platformTestOverrides());
+      final container = ProviderContainer(
+        overrides: applicationTestOverrides(),
+      );
       addTearDown(container.dispose);
       final owner = container.read(ameNotificationControllerProvider.notifier);
       final feedback = LibraryClassificationNotifications(owner);

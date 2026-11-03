@@ -6,7 +6,7 @@ import "package:cedarflake_ame/features/library/presentation/library_synchroniza
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   late ProviderContainer container;
@@ -30,7 +30,7 @@ void main() {
   }
 
   setUp(() {
-    container = ProviderContainer(overrides: platformTestOverrides());
+    container = ProviderContainer(overrides: applicationTestOverrides());
     notifications = container.read(ameNotificationControllerProvider.notifier);
     roots = [_root()];
     rootReads = 0;

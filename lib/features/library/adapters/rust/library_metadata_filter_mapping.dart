@@ -1,5 +1,5 @@
-import "../../../src/rust/domain/gallery_metadata_filter.dart" as rust;
-import "../domain/library_metadata_filter.dart";
+import "../../../../src/rust/domain/gallery_metadata_filter.dart" as rust;
+import "../../domain/library_metadata_filter.dart";
 
 rust.GalleryMetadataFilter mapLibraryMetadataFilter(
   LibraryMetadataFilter filter,

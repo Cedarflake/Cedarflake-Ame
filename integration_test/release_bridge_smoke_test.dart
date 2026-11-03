@@ -1,6 +1,7 @@
 import "dart:io";
 
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_catalog.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/src/rust/frb_generated.dart";
 import "package:flutter/services.dart";

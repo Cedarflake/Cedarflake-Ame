@@ -16,7 +16,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/retained_scan_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -219,7 +219,7 @@ class _Fixture {
       ..clear()
       ..add(otherPublishedRoot);
     container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryCatalogProvider.overrideWithValue(catalog),
         directoryPickerProvider.overrideWithValue(picker),

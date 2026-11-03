@@ -15,7 +15,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/retained_scan_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("restored first import does not claim its folder is empty", (
@@ -340,7 +340,7 @@ _show(
     catalog.roots.removeWhere((root) => root.id == retainedScanRoot.id);
   }
   final container = ProviderContainer(
-    overrides: platformTestOverrides([
+    overrides: applicationTestOverrides([
       libraryScannerProvider.overrideWithValue(scanner),
       libraryCatalogProvider.overrideWithValue(catalog),
       initialLibraryStateProvider.overrideWithValue(

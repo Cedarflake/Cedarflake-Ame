@@ -95,6 +95,14 @@ Provider to that feature's binding module, and covers the actual production rost
 failure. Test-only memory preferences live in `test/support`; application declarations do not select
 them as defaults. The same preference-store instance serves application, library and window contracts.
 
+[`library_read_bindings.dart`](../../lib/app/bootstrap/library_read_bindings.dart) demonstrates native
+catalog, layout-manifest, preview and source-reader selection. Startup reads through its catalog port,
+and the same instance is bound for subsequent queries. Shared native mappings live in the library's
+`adapters/rust` directory with their callers. Provider declarations do not re-export those mappings
+or implementations. Test roots compose these production modules through
+[`application_test_bindings.dart`](../../test/support/application_test_bindings.dart), then apply
+scenario overrides by the same Provider identities.
+
 Tests mirror their resulting source area. Keep an integration workflow at its canonical entrypoint
 while moving only owned private support. Temporary compatibility exports belong to the migrating
 slice and are removed before its closure; do not create a permanent parallel directory layout.

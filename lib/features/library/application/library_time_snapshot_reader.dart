@@ -1,6 +1,8 @@
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
+import "ports/library_catalog.dart";
+import "../domain/library_time_snapshot.dart";
 import "library_time_navigation_requests.dart";
 
 class LibraryTimeSnapshotReader {

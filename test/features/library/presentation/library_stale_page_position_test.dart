@@ -4,6 +4,8 @@ import "dart:io";
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
+import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
@@ -18,7 +20,7 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/concurrent_library_scanner.dart";
 import "../support/library_query_snapshot_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("busy synchronization preserves a recovering middle window", (
@@ -45,7 +47,7 @@ void main() {
     addTearDown(scanner.dispose);
     addTearDown(synchronization.dispose);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryCatalogProvider.overrideWithValue(catalog),
         libraryScannerProvider.overrideWithValue(scanner),
         librarySynchronizationProvider.overrideWithValue(synchronization),

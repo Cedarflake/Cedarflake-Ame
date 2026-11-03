@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
@@ -15,7 +16,7 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_query_snapshot_fixture.dart";
 import "support/library_screen_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("reuses the gallery loading bar for a distant visible range", (
@@ -28,7 +29,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             populatedScreenState(
               totalItems: 64,
@@ -73,7 +74,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             initialLibraryViewPreferencesProvider.overrideWithValue(
               const LibraryViewPreferences(
@@ -129,7 +130,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
           ]),
@@ -176,7 +177,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
         ]),
         child: const AmeApp(),
@@ -248,7 +249,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState.fromSnapshot(snapshot),
             ),

@@ -18,7 +18,7 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_organization_fixture.dart";
 import "support/library_screen_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -45,7 +45,7 @@ void main() {
       );
       Future<LibraryClassificationSettings?> navigation = settings;
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryOrganizationProvider.overrideWithValue(albums),
@@ -205,7 +205,7 @@ void main() {
       );
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(state),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryOrganizationProvider.overrideWithValue(
@@ -245,7 +245,7 @@ void main() {
       LibraryClassificationCategory? selected;
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             libraryClassificationNavigationProvider.overrideWith(
               (ref) async => LibraryClassificationSettings(
                 revision: BigInt.zero,

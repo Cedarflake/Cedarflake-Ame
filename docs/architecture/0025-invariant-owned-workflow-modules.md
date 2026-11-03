@@ -804,10 +804,15 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   modification time must resolve a different stream when its source generation changes.
   Preview-only updates do not invalidate the viewer's source stream, and superseded source streams
   cannot publish into the current image widget. No layer may fall back to an unchecked source path.
-  `LibraryViewerSourceScope` supplies the existing scheduler/buffer-loader pair through an immutable
-  inherited dependency boundary. Explicit image-widget dependencies take precedence; absent scope
-  preserves the production defaults. Only effective dependency changes retire the provider, without
-  changing source admission, cancellation or the copy-completion release boundary.
+  `LibraryViewerSourceScope` supplies a scheduler/buffer-loader pair through an immutable inherited
+  dependency boundary. Explicit image-widget dependencies take precedence. The viewer entry reads
+  the application scheduler Provider when no inherited override exists; the image provider requires
+  that scheduler explicitly and never selects a native reader. Only effective dependency changes
+  retire the image provider. One root Provider container owns one scheduler, inherited by child
+  scopes. Container disposal retires pending requests and marks active requests cancelled; the image
+  provider still closes an acquired lease only after the buffer copy finishes. Admission that returns
+  after retirement closes its lease before settling. The foreground-read port retains the same shared
+  application activity counter for native previews and source leases.
 - Menus, loading feedback, task live regions, and startup orchestration use repository-owned shared
   components so one defect fix does not create a second interaction contract.
 - `library_bottom_feedback.dart` owns the single bottom feedback position and admission between

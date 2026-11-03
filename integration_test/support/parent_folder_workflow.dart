@@ -3,6 +3,7 @@ import "dart:io";
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
@@ -12,7 +13,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../../test/support/platform_test_bindings.dart";
+import "../../test/support/application_test_bindings.dart";
 
 void registerParentFolderWorkflowTests(
   LibrarySynchronization Function() readSynchronization,
@@ -37,7 +38,7 @@ void registerParentFolderWorkflowTests(
       });
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             librarySynchronizationProvider.overrideWithValue(
               readSynchronization(),
             ),

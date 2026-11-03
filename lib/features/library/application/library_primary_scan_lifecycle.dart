@@ -3,7 +3,7 @@ import "dart:async";
 import "ports/directory_picker.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
-import "library_catalog.dart";
+import "ports/library_catalog.dart";
 import "library_query_refresh.dart";
 import "library_scan_completion_recovery.dart";
 import "library_scan_control.dart";
@@ -14,7 +14,7 @@ import "library_scan_session.dart";
 import "library_scan_shutdown.dart";
 import "library_scan_source_admission.dart";
 import "library_scan_target.dart";
-import "library_scanner.dart";
+import "ports/library_scanner.dart";
 
 abstract interface class LibraryPrimaryScanHost {
   LibraryState get libraryState;

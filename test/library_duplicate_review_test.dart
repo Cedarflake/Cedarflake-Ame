@@ -17,7 +17,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
 
-import "support/platform_test_bindings.dart";
+import "support/application_test_bindings.dart";
 
 void main() {
   test(
@@ -201,7 +201,7 @@ void main() {
       final analysis = LibraryExactAnalysisController(_NoAnalysis());
       final library = ReviewFixtureLibrary();
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryControllerProvider.overrideWith(() => library),
           libraryDuplicateReviewProvider.overrideWithValue(service),
           libraryExactAnalysisControllerProvider.overrideWithValue(analysis),

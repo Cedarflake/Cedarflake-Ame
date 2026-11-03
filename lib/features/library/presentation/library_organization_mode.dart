@@ -2,7 +2,7 @@ import "dart:async";
 
 import "package:flutter/foundation.dart";
 
-import "../application/library_review.dart";
+import "../application/ports/library_review.dart";
 import "../application/library_review_session.dart";
 import "../application/library_organization_publication.dart";
 import "../domain/library_models.dart";

@@ -12,7 +12,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/duplicate_review_fixtures.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final update in ["catalog revision", "scroll window"]) {
@@ -98,7 +98,7 @@ void main() {
 Finder _badge(String id) => find.byKey(ValueKey("duplicate-badge-$id"));
 
 Widget _host(_Window library, _Annotations service) => ProviderScope(
-  overrides: platformTestOverrides([
+  overrides: applicationTestOverrides([
     libraryControllerProvider.overrideWith(() => library),
     libraryGalleryDuplicatesProvider.overrideWithValue(service),
   ]),

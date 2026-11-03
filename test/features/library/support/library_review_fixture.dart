@@ -1,4 +1,4 @@
-import "package:cedarflake_ame/features/library/application/library_review.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_review.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_review.dart";

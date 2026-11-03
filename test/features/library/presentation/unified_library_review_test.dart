@@ -1,6 +1,7 @@
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_batch.dart";
@@ -20,7 +21,7 @@ import "../support/library_organization_fixture.dart";
 import "../support/library_review_fixture.dart";
 import "support/library_screen_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -44,7 +45,7 @@ void main() {
         ),
       );
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryOrganizationProvider.overrideWithValue(organization),
@@ -166,7 +167,7 @@ void main() {
         ),
       );
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryOrganizationProvider.overrideWithValue(

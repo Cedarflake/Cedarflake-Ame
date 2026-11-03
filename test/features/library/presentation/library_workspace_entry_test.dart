@@ -16,7 +16,7 @@ import "../support/library_organization_fixture.dart";
 import "../support/library_review_fixture.dart";
 import "support/library_screen_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -40,7 +40,7 @@ void main() {
       final organization = OrganizationServiceFixture()
         ..albumItems = [const LibraryOrganizationAlbum("a", "Travel")];
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryOrganizationProvider.overrideWithValue(organization),

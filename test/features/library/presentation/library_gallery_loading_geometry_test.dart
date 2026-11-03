@@ -7,7 +7,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("loading feedback preserves the populated gallery viewport", (
@@ -19,7 +19,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     final controller = _LoadingFeedbackController();
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(_populatedState()),
         libraryControllerProvider.overrideWith(() => controller),
       ]),

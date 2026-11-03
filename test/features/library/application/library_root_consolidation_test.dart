@@ -11,7 +11,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/retained_scan_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 const _childQuery = LibraryGalleryQuery(
   rootId: "other",
@@ -193,7 +193,7 @@ class _Fixture {
         ),
       );
     container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryCatalogProvider.overrideWithValue(catalog),
         directoryPickerProvider.overrideWithValue(RetainedScanPicker()),

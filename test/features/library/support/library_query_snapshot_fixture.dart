@@ -1,4 +1,6 @@
-import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
+import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
+import "package:cedarflake_ame/features/library/domain/library_time_snapshot.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 
 mixin LibraryQuerySnapshotFixture implements LibraryCatalog {

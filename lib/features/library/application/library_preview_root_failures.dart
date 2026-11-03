@@ -1,5 +1,5 @@
 import "../domain/library_models.dart";
-import "library_previewer.dart";
+import "ports/library_previewer.dart";
 
 sealed class LibraryPreviewRootAdmission {
   const LibraryPreviewRootAdmission();

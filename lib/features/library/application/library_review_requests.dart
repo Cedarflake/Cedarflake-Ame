@@ -1,7 +1,7 @@
 import "../domain/library_organization.dart";
 import "../domain/library_review.dart";
 import "library_album_requests.dart";
-import "library_organization.dart";
+import "ports/library_organization.dart";
 import "library_organization_requests.dart";
 import "library_review_session.dart";
 

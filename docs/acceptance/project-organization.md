@@ -150,3 +150,49 @@ shared preferences 243 / 0 / 193; reclamation controller 385 / 0 / 905; snapshot
 71 implementation lines and 237 dedicated regression lines; `main.dart` has 189 lines. Existing
 assertions and asynchronous authority remain with their original owners. Hosted checks continue
 independently; O3 does not wait for them.
+
+## O3 Catalog and image reads — 2026-11-03
+
+Catalog/folder/query contracts, layout-manifest contracts, previews and source-reader leases are
+separate from their native implementations and mappings. Startup and subsequent catalog/folder
+reads share the same selected catalog. The shared asset/query mapping closure includes native scan,
+duplicate-review, organization, batch and review implementations; their existing bodies and ports
+move together, with required bindings in their named capability modules. Their remaining runtime
+work stays in O4/O5. Native bodies match the prior implementation after import/format changes; the
+preview/source constructors additionally receive the foreground activity port instead of selecting
+the application counter themselves. Native request/result/error and prepared-handle behavior remains
+unchanged. No compatibility exports expose bridge mappings from application files.
+
+The source-scheduler Provider owns one scheduler per root container, shared by child scopes.
+Container retirement cancels pending intent and rejects further requests. An acquired buffer lease
+stays with its image-copy owner until the copy finishes; retirement during native admission waits
+for the resulting lease to close before settling. Widgets resolve the application dependency or an
+explicit inherited override. The source image has no concrete native fallback. Preview/source reads
+share the existing foreground activity counter through its port.
+
+All 19 O3 legacy entries and 16 dependencies in the shared-mapper closure are retired. The immutable
+Dart inventory is unchanged. The dependency gate passes for 458 modules with 51 remaining migration
+entries and 28 public cross-feature contracts. Source, test and integration-entry analysis is clean.
+
+All 147 focused tests across 16 files pass: two production-roster tests, eight native-mapping fixture
+tests, 56 controller cases, three layout-manifest cases, 17 preview-coordinator cases, nine scheduler
+cases and 52 viewer/query/timeline/preview integration-widget cases. Required-binding tests omit each
+of the ten migrated ports in turn. Scheduler regressions verify parent/child identity, container
+retirement, pending cancellation and lease retention both during acquisition and during buffer use.
+Existing assertions for stale results, source-generation identity, preview recovery and bounded
+navigation remain in place. Four mapper test files now mirror their adapter owners; test roots use
+the same production binding modules before applying explicit scenario overrides.
+
+The canonical Windows Scan workflow passes all four cases on local-primary. Run
+`bda6b24015f54a958bf8f24902da42b6` takes 70,568 ms, reports exit code zero, no cleanup failures and empty
+stderr. Its controlled workflow exercises native folder selection, scan/query/preview publication,
+held source leases, original-image fallback/retry and organization interactions. The canonical
+execution owner retains the isolated evidence. No original-media, user-catalog, schema, generated
+bridge, dependency-version or model changes are included. Hosted execution proceeds independently.
+
+Large native owners have implementation / inline-test line counts of 400 / 0 for catalog,
+291 / 0 for scanning and 294 / 0 for organization; the shared native workflow entry has 511 test lines.
+The application manifest loader has 111 / 0 / 199 implementation / inline-test / dedicated-test lines.
+The source scheduler has 140 / 0 / 269; source-image composition has 136 implementation lines, with
+630 source-lifecycle and 449 viewer-image test lines. The production-roster regression has 116 lines.
+Existing request, publication and copy-completion owners remain intact.

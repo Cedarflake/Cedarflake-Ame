@@ -14,6 +14,7 @@ import "../../settings/presentation/ame_settings_page.dart";
 import "../application/library_browse_admission.dart";
 import "../application/library_album_pages.dart";
 import "../application/library_catalog.dart";
+import "../domain/library_query_snapshot.dart";
 import "../application/library_classification_settings.dart";
 import "../application/library_controller.dart";
 import "../application/library_folder_controller.dart";

@@ -19,7 +19,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("renders settings in the main canvas with plain-language rows", (
@@ -30,7 +30,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
         child: MaterialApp(
@@ -144,7 +144,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             storageSettingsGatewayProvider.overrideWithValue(gateway),
           ]),
           child: MaterialApp(
@@ -207,7 +207,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
         child: MaterialApp(
@@ -247,7 +247,7 @@ void main() {
 
       Widget buildPage(Set<String> rootIds) {
         return ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             storageSettingsGatewayProvider.overrideWithValue(gateway),
           ]),
           child: MaterialApp(
@@ -305,7 +305,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
         child: MaterialApp(
@@ -347,7 +347,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
         child: MaterialApp(
@@ -404,7 +404,7 @@ void main() {
     late StateSetter updateRoots;
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
         child: MaterialApp(
@@ -473,7 +473,7 @@ void main() {
     late StateSetter updateRoots;
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
         child: MaterialApp(
@@ -653,7 +653,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           amePreferenceStoreProvider.overrideWithValue(preferenceStore),
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
@@ -717,7 +717,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           amePreferenceStoreProvider.overrideWithValue(
             const _FailingAmePreferenceStore(),
           ),
@@ -757,7 +757,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
         child: MaterialApp(
@@ -804,7 +804,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
         child: MaterialApp(
@@ -895,7 +895,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
         child: MaterialApp(
@@ -958,7 +958,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
         child: MaterialApp(

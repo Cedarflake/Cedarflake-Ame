@@ -5,7 +5,7 @@ import "library_preview_failure.dart";
 import "library_preview_queue.dart";
 import "library_preview_sizing.dart";
 import "library_preview_store.dart";
-import "library_previewer.dart";
+import "ports/library_previewer.dart";
 
 class LibraryPreviewCoordinator {
   factory LibraryPreviewCoordinator({

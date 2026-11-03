@@ -6,7 +6,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../../support/platform_test_bindings.dart";
+import "../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("resolved history retains its message without recovery actions", (
@@ -20,7 +20,7 @@ void main() {
     ).copyWith(isActive: false);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides(),
+        overrides: applicationTestOverrides(),
         child: MaterialApp(
           theme: buildAmeTheme(),
           home: Builder(
@@ -244,7 +244,7 @@ void main() {
   testWidgets("notification details calculate elapsed time when opened", (
     tester,
   ) async {
-    final container = ProviderContainer(overrides: platformTestOverrides());
+    final container = ProviderContainer(overrides: applicationTestOverrides());
     addTearDown(container.dispose);
     container
         .read(ameNotificationControllerProvider.notifier)

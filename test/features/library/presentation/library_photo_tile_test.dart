@@ -4,11 +4,14 @@ import "dart:io";
 
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/application/library_preview_queue.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_previewer.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_scanner.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
@@ -22,7 +25,7 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_query_snapshot_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final sample in [
@@ -47,7 +50,7 @@ void main() {
           var opens = 0;
           await tester.pumpWidget(
             ProviderScope(
-              overrides: platformTestOverrides([
+              overrides: applicationTestOverrides([
                 initialLibraryStateProvider.overrideWithValue(
                   LibraryState.fromSnapshot(snapshot),
                 ),
@@ -138,7 +141,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryOrganizationProvider.overrideWithValue(
             OrganizationServiceFixture(),
           ),
@@ -213,7 +216,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(snapshot),
           ),
@@ -287,7 +290,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(snapshot),
           ),
@@ -350,7 +353,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState.fromSnapshot(snapshot),
             ),
@@ -442,7 +445,7 @@ void main() {
       final previewer = _ControlledRetryPreviewer();
       Widget buildTile(LibraryAsset displayed) {
         return ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(const _FakeScanner()),
@@ -551,7 +554,7 @@ void main() {
     );
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(snapshot),
           ),
@@ -624,7 +627,7 @@ void main() {
       var opens = 0;
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState.fromSnapshot(snapshot),
             ),
@@ -737,7 +740,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(snapshot),
           ),

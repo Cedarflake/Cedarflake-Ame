@@ -15,7 +15,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final fails in [false, true]) {
@@ -29,7 +29,7 @@ void main() {
           idleDelay: const Duration(milliseconds: 20),
         );
         final container = ProviderContainer(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             libraryControllerProvider.overrideWith(_Library.new),
             libraryExactAnalysisControllerProvider.overrideWithValue(analysis),
             libraryExactAnalysisSchedulerProvider.overrideWithValue(scheduler),

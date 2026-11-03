@@ -20,7 +20,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_organization_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 LibraryConflictStatus status(int revision, int groups) =>
     LibraryConflictStatus(revision: BigInt.from(revision), groups: groups);
@@ -42,7 +42,7 @@ void main() {
           );
         final conflicts = _PagedConflicts();
         final container = ProviderContainer(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             libraryOrganizationProvider.overrideWithValue(service),
             libraryOrganizationConflictsProvider.overrideWithValue(conflicts),
             libraryControllerProvider.overrideWith(
@@ -105,7 +105,9 @@ void main() {
   test(
     "conflict notices coalesce and dismissal never resolves persisted work",
     () {
-      final container = ProviderContainer(overrides: platformTestOverrides());
+      final container = ProviderContainer(
+        overrides: applicationTestOverrides(),
+      );
       addTearDown(container.dispose);
       final notifications = container.read(
         ameNotificationControllerProvider.notifier,
@@ -196,7 +198,7 @@ void main() {
 
   testWidgets("conflict label survives notification dismissal", (tester) async {
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryConflictAnnotationsProvider.overrideWith((ref) async => {"one"}),
       ]),
     );
@@ -249,7 +251,7 @@ void main() {
         ],
       );
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryOrganizationProvider.overrideWithValue(service),
           libraryOrganizationConflictsProvider.overrideWithValue(_Conflicts()),
           libraryControllerProvider.overrideWith(

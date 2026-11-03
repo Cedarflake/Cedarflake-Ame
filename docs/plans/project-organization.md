@@ -1,6 +1,6 @@
 # Project organization after R5
 
-Status: O1–O2 implemented; O3 is next in the roadmap-owned delivery order.
+Status: O1–O3 implemented; O4 is next in the roadmap-owned delivery order.
 
 The [roadmap](../roadmap.md#project-organization-after-r5) selects this maintenance scope after R5.
 [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md) owns the target dependency
@@ -70,6 +70,12 @@ Separate catalog, folder/time/query reads, layout manifests, previews and source
 Move native DTO and error mappings with their implementations. Keep Provider declarations and
 application projections with their state owners; remove direct bridge dependencies from these use
 cases and presentation. Preserve held-source capabilities and opaque-handle close ownership.
+
+The live mapper dependency closure also includes native scan, duplicate-review, organization,
+organization-batch and review implementations. Their existing contracts and bodies move with the
+shared asset/query mappings in O3, with required bindings in their named capability modules. O4 and
+O5 retain the remaining runtime, service and lifecycle work in their original order; this dependency
+closure does not broaden those workflows or duplicate their scheduling/publication owners.
 
 Exit: bounded paging, filtering, time navigation, preview publication and full-resolution viewing
 retain their contracts. Adapter fixtures and actual affected browsing paths cover failure, stale
@@ -169,5 +175,12 @@ O2 separates platform/storage ports, concrete adapters, preference values and fe
 production bindings. Required ports are validated in one root Provider container, with acquisition
 failure cleanup and background-before-container retirement. Storage snapshot/reclamation owners
 move intact into application; the theme-preference translation moves out of shared visual code as
-part of the preference split. The O2 migration exceptions are retired. Continue with O3's catalog
-reads and previews. Evidence belongs to the linked acceptance record.
+part of the preference split. The O2 migration exceptions are retired.
+
+O3 separates catalog/folder reads, layout manifests, previews and guarded source reads, together
+with the native callers required by the shared-mapper closure. Ten required ports use their
+capability binding modules. One application source scheduler is inherited across child scopes;
+retirement cancels pending work while the existing buffer-copy owner keeps its lease until completion.
+All 19 catalog/preview exceptions and 16 shared-mapper caller exceptions are retired. Continue with
+O4's remaining scan/synchronization runtime composition. Evidence belongs to the linked acceptance
+record; hosted results remain independent of this progression.

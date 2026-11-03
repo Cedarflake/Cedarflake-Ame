@@ -6,6 +6,8 @@ import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_browse_admission.dart";
 import "library_catalog.dart";
+import "ports/library_catalog.dart";
+import "../domain/library_query_snapshot.dart";
 import "library_catalog_publication.dart";
 import "library_page_operation.dart";
 import "library_query_projection.dart";

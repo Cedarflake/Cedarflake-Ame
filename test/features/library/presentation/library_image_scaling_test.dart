@@ -4,7 +4,7 @@ import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/presentation/ame_scroll_motion.dart";
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
-import "package:cedarflake_ame/features/library/application/library_source_reader.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
@@ -19,7 +19,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/gallery_wall_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   test("cover demand includes the cropped extent and stays bounded", () {
@@ -143,7 +143,7 @@ void main() {
           final opened = <LibraryAsset>[];
           await tester.pumpWidget(
             ProviderScope(
-              overrides: platformTestOverrides(),
+              overrides: applicationTestOverrides(),
               child: MaterialApp(
                 home: RepaintBoundary(
                   key: boundary,

@@ -1,4 +1,5 @@
-import "../application/library_catalog.dart";
+import "../application/ports/library_catalog.dart";
+import "../domain/library_query_snapshot.dart";
 import "../domain/library_models.dart";
 
 typedef LibraryViewerNeighbor = ({LibraryAsset asset, int ordinal});

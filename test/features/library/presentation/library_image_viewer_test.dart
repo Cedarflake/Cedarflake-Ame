@@ -5,6 +5,8 @@ import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:cedarflake_ame/app/window/ame_window_fullscreen.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_asset_information_sheet.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
@@ -15,12 +17,21 @@ import "package:cedarflake_ame/features/settings/application/ame_preferences.dar
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:flutter_riverpod/misc.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
+
+late LibrarySourceReadScheduler _sourceScheduler;
 
 void main() {
+  setUp(() {
+    _sourceScheduler = LibrarySourceReadScheduler(
+      reader: const _UnavailableSourceReader(),
+    );
+    addTearDown(_sourceScheduler.dispose);
+  });
   testWidgets(
     "actual size survives filmstrip and fullscreen while Escape restores the viewer",
     (tester) async {
@@ -40,7 +51,7 @@ void main() {
       addTearDown(fullscreen.dispose);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: _viewerOverrides([
             ameWindowFullscreenProvider.overrideWithValue(fullscreen),
           ]),
           child: MaterialApp(
@@ -140,7 +151,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides(),
+        overrides: _viewerOverrides(),
         child: MaterialApp(
           home: StatefulBuilder(
             builder: (context, setState) {
@@ -186,7 +197,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides(),
+        overrides: _viewerOverrides(),
         child: MaterialApp(
           theme: buildAmeTheme(),
           home: Scaffold(
@@ -321,7 +332,7 @@ void main() {
     var nextCount = 0;
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides(),
+        overrides: _viewerOverrides(),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryImageViewer(
@@ -367,7 +378,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides(),
+        overrides: _viewerOverrides(),
         child: MaterialApp(
           home: StatefulBuilder(
             builder: (context, setState) => Scaffold(
@@ -442,7 +453,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides(),
+        overrides: _viewerOverrides(),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryImageViewer(
@@ -499,7 +510,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides(),
+        overrides: _viewerOverrides(),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryImageViewer(
@@ -637,7 +648,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides(),
+        overrides: _viewerOverrides(),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryImageViewer(
@@ -688,7 +699,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides(),
+        overrides: _viewerOverrides(),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryImageViewer(
@@ -798,7 +809,7 @@ Future<LibraryAsset> _assetWithImage(
   required int height,
 }) async {
   final asset = _asset(width: width, height: height);
-  final source = LibrarySourceImage(asset);
+  final source = LibrarySourceImage(asset, scheduler: _sourceScheduler);
   await tester.runAsync(() async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
@@ -864,4 +875,22 @@ LibraryAsset _asset({
     captureTime: captureTime,
     camera: camera,
   );
+}
+
+List<Override> _viewerOverrides([List<Override> overrides = const []]) =>
+    applicationTestOverrides([
+      librarySourceReadSchedulerProvider.overrideWithValue(_sourceScheduler),
+      ...overrides,
+    ]);
+
+class _UnavailableSourceReader implements LibrarySourceReader {
+  const _UnavailableSourceReader();
+
+  @override
+  Future<LibrarySourceReadLease> acquire(LibraryAsset asset) async {
+    throw const LibrarySourceReadFailure(
+      "test_source_unavailable",
+      "This viewer fixture supplies its image through Flutter's image cache",
+    );
+  }
 }

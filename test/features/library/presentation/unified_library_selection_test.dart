@@ -11,7 +11,7 @@ import "package:flutter_test/flutter_test.dart";
 import "support/library_screen_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("keyboard select all uses the complete query", (tester) async {
@@ -22,7 +22,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             populatedScreenState(totalItems: 79013),
           ),
@@ -55,7 +55,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
         ]),
         child: const AmeApp(),
@@ -106,7 +106,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             libraryOrganizationProvider.overrideWithValue(
               OrganizationServiceFixture(),
             ),
@@ -146,7 +146,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             populatedScreenState(totalItems: 79013),
           ),

@@ -3,11 +3,15 @@ import "dart:async";
 import "package:cedarflake_ame/features/library/application/ports/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
+import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_previewer.dart";
 import "package:cedarflake_ame/features/library/application/library_scan_execution.dart";
 import "package:cedarflake_ame/features/library/application/library_scan_shutdown.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_scanner.dart";
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
@@ -21,7 +25,7 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/fixed_query_projection.dart";
 import "../support/library_query_snapshot_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   test(
@@ -34,7 +38,7 @@ void main() {
         revision: BigInt.two,
       );
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initial),
           ),
@@ -96,7 +100,7 @@ void main() {
         timeline: _timeline(queryId: "query-new", totalItems: 20),
       );
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initial),
@@ -153,7 +157,7 @@ void main() {
         timeline: _timeline(queryId: "query-latest", totalItems: 1),
       );
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initial),
           ),
@@ -231,7 +235,7 @@ void main() {
       timeline: _timeline(queryId: "query-new", totalItems: 1),
     );
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initial),
         ),
@@ -283,7 +287,7 @@ void main() {
         timeline: _timeline(queryId: "query-replacement", totalItems: 1),
       );
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initial),
           ),
@@ -354,7 +358,7 @@ void main() {
           _snapshot(assets: [_asset(suffix: "query-$index")]),
         ], initialRevision: initial.revision);
         final container = ProviderContainer(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState.fromSnapshot(initial).copyWith(
                 timeline: LibraryTimeline(
@@ -424,7 +428,7 @@ void main() {
       ),
     );
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         directoryPickerProvider.overrideWithValue(
           const _FakeDirectoryPicker(r"\\?\C:\Pictures"),
         ),
@@ -539,7 +543,7 @@ void main() {
           ],
         );
         final container = ProviderContainer(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState.fromSnapshot(initialSnapshot),
             ),
@@ -564,7 +568,7 @@ void main() {
   test("forwards cancellation to the active Rust scan", () async {
     final scanner = _FakeLibraryScanner();
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         directoryPickerProvider.overrideWithValue(
           const _FakeDirectoryPicker("C:\\Pictures"),
         ),
@@ -594,7 +598,7 @@ void main() {
       final scanner = _FakeLibraryScanner();
       final shutdownCoordinator = LibraryScanShutdownCoordinator();
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryScanShutdownCoordinatorProvider.overrideWithValue(
             shutdownCoordinator,
@@ -630,7 +634,7 @@ void main() {
   test("keeps source changes distinct from generic failures", () async {
     final scanner = _FakeLibraryScanner();
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         directoryPickerProvider.overrideWithValue(
           const _FakeDirectoryPicker("C:\\Pictures"),
         ),
@@ -659,7 +663,7 @@ void main() {
     () async {
       final scanner = _FakeLibraryScanner();
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryCatalogProvider.overrideWithValue(
             _FakeLibraryCatalog(_snapshot()),
@@ -732,7 +736,7 @@ void main() {
         );
       });
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot).copyWith(
               timeline: LibraryTimeline(
@@ -788,7 +792,7 @@ void main() {
   test("serializes overlapping scan starts", () async {
     final scanner = _FakeLibraryScanner();
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryCatalogProvider.overrideWithValue(
           _FakeLibraryCatalog(_snapshot()),
@@ -811,7 +815,7 @@ void main() {
   test("releases scan ownership when stream creation throws", () async {
     final scanner = _FakeLibraryScanner(throwFirstScan: true);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         directoryPickerProvider.overrideWithValue(
           const _FakeDirectoryPicker("C:\\Pictures"),
         ),
@@ -845,7 +849,7 @@ void main() {
     () async {
       final scanner = _DelayedDoneLibraryScanner();
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryCatalogProvider.overrideWithValue(
             _FakeLibraryCatalog(_snapshot()),
@@ -904,7 +908,7 @@ void main() {
         ),
       );
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryCatalogProvider.overrideWithValue(
             _FakeLibraryCatalog(_snapshot()),
@@ -981,7 +985,7 @@ void main() {
       ),
     );
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryCatalogProvider.overrideWithValue(
           _FakeLibraryCatalog(_snapshot()),
@@ -1012,7 +1016,7 @@ void main() {
   test("forwards pause and keeps the staged scan private", () async {
     final scanner = _FakeLibraryScanner();
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         directoryPickerProvider.overrideWithValue(
           const _FakeDirectoryPicker("C:\\Pictures"),
         ),
@@ -1079,7 +1083,7 @@ void main() {
       ),
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot),
         ),
@@ -1114,7 +1118,7 @@ void main() {
         ),
       ], initialRevision: initialSnapshot.revision);
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot),
           ),
@@ -1177,7 +1181,7 @@ void main() {
         ),
       );
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(catalog),
         ]),
@@ -1253,7 +1257,7 @@ void main() {
       ),
     );
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(initialState),
         libraryCatalogProvider.overrideWithValue(catalog),
       ]),
@@ -1323,7 +1327,7 @@ void main() {
         ),
       );
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(catalog),
         ]),
@@ -1378,7 +1382,7 @@ void main() {
         ),
       );
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(catalog),
         ]),
@@ -1430,7 +1434,7 @@ void main() {
       ),
     );
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(initialState),
         libraryCatalogProvider.overrideWithValue(catalog),
       ]),
@@ -1466,7 +1470,7 @@ void main() {
         response.future,
       ], initialRevision: initialSnapshot.revision);
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot).copyWith(
               timeline: LibraryTimeline(
@@ -1521,7 +1525,7 @@ void main() {
         response.future,
       ], initialRevision: initialSnapshot.revision);
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot).copyWith(
               timeline: LibraryTimeline(
@@ -1576,7 +1580,7 @@ void main() {
         replacementResponse.future,
       ], initialRevision: initialSnapshot.revision);
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot).copyWith(
               timeline: LibraryTimeline(
@@ -1652,7 +1656,7 @@ void main() {
           response.future,
         ], initialRevision: initialSnapshot.revision);
         final container = ProviderContainer(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState.fromSnapshot(initialSnapshot).copyWith(
                 timeline: LibraryTimeline(
@@ -1701,7 +1705,7 @@ void main() {
       latestResponse.future,
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot).copyWith(
             timeline: LibraryTimeline(
@@ -1778,7 +1782,7 @@ void main() {
       passiveSnapshot,
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot).copyWith(
             timeline: LibraryTimeline(
@@ -1823,7 +1827,7 @@ void main() {
         targetResponse.future,
       ], initialRevision: initialSnapshot.revision);
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot).copyWith(
               timeline: LibraryTimeline(
@@ -1886,7 +1890,7 @@ void main() {
       response.future,
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot).copyWith(
             timeline: LibraryTimeline(
@@ -1928,7 +1932,7 @@ void main() {
         disjointResponse.future,
       ], initialRevision: initialSnapshot.revision);
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot).copyWith(
               timeline: LibraryTimeline(
@@ -1984,7 +1988,7 @@ void main() {
       timeResponse.future,
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot).copyWith(
             timeline: LibraryTimeline(
@@ -2033,7 +2037,7 @@ void main() {
       activeResponse.future,
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot).copyWith(
             timeline: LibraryTimeline(
@@ -2076,7 +2080,7 @@ void main() {
       _snapshot(assets: [_asset(suffix: "target")]),
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot).copyWith(
             timeline: LibraryTimeline(
@@ -2145,7 +2149,7 @@ void main() {
       refreshedSnapshot,
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot),
         ),
@@ -2196,7 +2200,7 @@ void main() {
     );
     final catalog = _DeferredUnregisterLibraryCatalog(refreshedSnapshot);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(
@@ -2270,7 +2274,7 @@ void main() {
           ),
         );
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(initialState),
         libraryCatalogProvider.overrideWithValue(catalog),
       ]),
@@ -2335,7 +2339,7 @@ void main() {
       );
       final catalog = _DeferredUnregisterLibraryCatalog(refreshedSnapshot);
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot).copyWith(
               scanId: "stale-import-scan",
@@ -2426,7 +2430,7 @@ void main() {
     );
     final catalog = _FailThenSucceedUnregisterLibraryCatalog(refreshedSnapshot);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot),
         ),
@@ -2489,7 +2493,7 @@ void main() {
         refreshedSnapshot,
       ], initialRevision: initialSnapshot.revision);
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(
               initialSnapshot,
@@ -2570,7 +2574,7 @@ void main() {
     final execution = LibraryScanExecutionCoordinator();
     expect(execution.tryAcquireUpdate(root.id), isTrue);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot),
         ),
@@ -2594,7 +2598,7 @@ void main() {
     final execution = LibraryScanExecutionCoordinator();
     expect(execution.tryAcquireUpdate("root-update"), isTrue);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryScanExecutionCoordinatorProvider.overrideWithValue(execution),
       ]),
@@ -2658,7 +2662,7 @@ void main() {
       refreshedSnapshot,
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot),
         ),
@@ -2683,7 +2687,7 @@ void main() {
       assets: [_pendingAsset("1"), _pendingAsset("2"), _pendingAsset("3")],
     );
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot),
         ),
@@ -2731,7 +2735,7 @@ void main() {
         ],
       );
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot),
           ),
@@ -2793,7 +2797,7 @@ void main() {
     final pending = _pendingAsset("1");
     final initialSnapshot = _snapshot(assets: [pending]);
     final container = ProviderContainer(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot),
         ),
@@ -2848,7 +2852,7 @@ void main() {
       ];
       final initialSnapshot = _snapshot(assets: assets);
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot),
           ),
@@ -2898,7 +2902,7 @@ void main() {
       final ready = _asset();
       final initialSnapshot = _snapshot(assets: [ready]);
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot),
           ),
@@ -2941,7 +2945,7 @@ void main() {
       final second = _pendingAsset("2");
       final initialSnapshot = _snapshot(assets: [first, second]);
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot),
           ),
@@ -3000,7 +3004,7 @@ void main() {
       final known = _pendingAsset("2");
       final initialSnapshot = _snapshot(assets: [unknown, known]);
       final container = ProviderContainer(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(
               initialSnapshot,

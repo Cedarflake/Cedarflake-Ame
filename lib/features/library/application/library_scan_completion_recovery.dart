@@ -1,8 +1,9 @@
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
+import "ports/library_catalog.dart";
 import "library_scan_source_admission.dart";
-import "library_scanner.dart";
+import "ports/library_scanner.dart";
 
 sealed class LibraryScanCompletionResolution {
   const LibraryScanCompletionResolution();

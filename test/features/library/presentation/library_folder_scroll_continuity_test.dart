@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_folder_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
@@ -11,7 +12,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -22,7 +23,7 @@ void main() {
       addTearDown(revision.dispose);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             libraryFolderCatalogProvider.overrideWithValue(catalog),
             initialLibraryStateProvider.overrideWithValue(
               LibraryState(catalogRevision: BigInt.one, roots: const [_root]),
@@ -77,7 +78,7 @@ void main() {
       addTearDown(revision.dispose);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             libraryFolderCatalogProvider.overrideWithValue(catalog),
             initialLibraryStateProvider.overrideWithValue(
               LibraryState(catalogRevision: BigInt.one, roots: const [_root]),

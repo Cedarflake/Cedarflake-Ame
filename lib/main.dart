@@ -7,6 +7,10 @@ import "app/ame_app.dart";
 import "app/bootstrap/ame_bootstrap_failure.dart";
 import "app/bootstrap/ame_provider_assembly.dart";
 import "app/bootstrap/library_platform_bindings.dart";
+import "app/bootstrap/library_read_bindings.dart";
+import "app/bootstrap/library_scan_bindings.dart";
+import "app/bootstrap/library_duplicate_bindings.dart";
+import "app/bootstrap/library_organization_bindings.dart";
 import "app/bootstrap/settings_bindings.dart";
 import "app/bootstrap/storage_bindings.dart";
 import "app/bootstrap/ame_startup_orchestrator.dart";
@@ -60,13 +64,13 @@ Future<void> main() async {
       shutdown: shutdownCoordinator,
       acquire: () async {
         await initializeRustLibrary();
-        const catalog = RustLibraryCatalog();
+        final reads = LibraryReadBindings.production();
         final query = LibraryGalleryQuery(
           sortKey: viewPreferences.sortKey,
           sortDirection: viewPreferences.sortDirection,
           duplicateMode: viewPreferences.duplicateMode,
         );
-        final snapshot = await catalog.load(
+        final snapshot = await reads.catalog.load(
           maxItems: libraryCatalogWindow,
           query: query,
         );
@@ -120,6 +124,10 @@ Future<void> main() async {
             ...libraryPlatformRequirements,
             ...settingsRequirements,
             ...storageRequirements,
+            ...libraryReadRequirements,
+            ...libraryScanRequirements,
+            ...libraryDuplicateRequirements,
+            ...libraryOrganizationRequirements,
           ],
           overrides: [
             ...libraryPlatformBindings(
@@ -131,6 +139,10 @@ Future<void> main() async {
               initialPreferences: amePreferences,
             ),
             ...storageBindings(),
+            ...reads.overrides,
+            ...libraryScanBindings(),
+            ...libraryDuplicateBindings(),
+            ...libraryOrganizationBindings(),
             libraryModelInstallationProvider.overrideWith(
               (ref) => modelInstallation,
             ),
@@ -153,7 +165,6 @@ Future<void> main() async {
               exactScheduler,
             ),
             ameWindowActionsProvider.overrideWithValue(windowActions),
-            libraryCatalogProvider.overrideWithValue(catalog),
             libraryScanShutdownCoordinatorProvider.overrideWithValue(
               scanShutdownCoordinator,
             ),

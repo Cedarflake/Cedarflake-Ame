@@ -9,7 +9,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final findsSelection in [true, false]) {
@@ -23,7 +23,7 @@ void main() {
         addTearDown(selection.dispose);
         await tester.pumpWidget(
           ProviderScope(
-            overrides: platformTestOverrides([
+            overrides: applicationTestOverrides([
               libraryControllerProvider.overrideWith(() => controller),
               initialLibraryStateProvider.overrideWithValue(
                 LibraryState(assets: initial, windowStartItemOffset: 100),
@@ -85,7 +85,7 @@ void main() {
     addTearDown(selection.dispose);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryControllerProvider.overrideWith(() => controller),
           initialLibraryStateProvider.overrideWithValue(
             LibraryState(assets: assets),
@@ -219,7 +219,7 @@ void main() {
       LibraryAsset? selected;
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState(assets: assets),
             ),
@@ -274,7 +274,7 @@ void main() {
         LibraryAsset? selected;
         await tester.pumpWidget(
           ProviderScope(
-            overrides: platformTestOverrides([
+            overrides: applicationTestOverrides([
               initialLibraryStateProvider.overrideWithValue(
                 LibraryState(assets: assets),
               ),
@@ -334,7 +334,7 @@ void main() {
     var previousRequests = 0;
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           libraryControllerProvider.overrideWith(() => controller),
           initialLibraryStateProvider.overrideWithValue(
             LibraryState(

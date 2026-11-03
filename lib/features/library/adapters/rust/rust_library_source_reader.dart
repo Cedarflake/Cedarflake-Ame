@@ -1,21 +1,18 @@
-import "../../../src/rust/api/viewer_source.dart" as rust_api;
-import "../../../src/rust/application/viewer_source.dart" as rust_source;
-import "../../../src/rust/domain.dart" as rust_domain;
-import "../domain/library_models.dart";
-import "library_foreground_reads.dart";
-import "library_source_read_scheduler.dart";
-import "library_source_reader.dart";
-
-final librarySourceReadScheduler = LibrarySourceReadScheduler(
-  reader: const RustLibrarySourceReader(),
-);
+import "../../../../src/rust/api/viewer_source.dart" as rust_api;
+import "../../../../src/rust/application/viewer_source.dart" as rust_source;
+import "../../../../src/rust/domain.dart" as rust_domain;
+import "../../domain/library_models.dart";
+import "../../application/ports/library_foreground_read_activity.dart";
+import "../../application/ports/library_source_reader.dart";
 
 class RustLibrarySourceReader implements LibrarySourceReader {
-  const RustLibrarySourceReader();
+  const RustLibrarySourceReader({required this.foregroundReads});
+
+  final LibraryForegroundReadActivity foregroundReads;
 
   @override
   Future<LibrarySourceReadLease> acquire(LibraryAsset asset) async {
-    final foreground = libraryForegroundReads.acquire();
+    final foreground = foregroundReads.acquire();
     try {
       final revision = asset.sourceRevision;
       final lease = await rust_api.acquireViewerSource(

@@ -1,7 +1,10 @@
 import "dart:async";
 
+import "package:flutter_riverpod/flutter_riverpod.dart";
+
 import "../domain/library_models.dart";
 import "library_source_reader.dart";
+import "ports/library_source_reader.dart";
 
 /// Owns one active read and the latest waiting viewer intent, without closing an
 /// active lease before the native buffer copy that uses it has finished.
@@ -11,14 +14,23 @@ class LibrarySourceReadScheduler {
   final LibrarySourceReader _reader;
   LibrarySourceReadRequest? _active;
   LibrarySourceReadRequest? _pending;
+  bool _isDisposed = false;
 
   LibrarySourceReadRequest request(LibraryAsset asset) {
+    if (_isDisposed) throw _superseded();
     _active?.cancel();
     _pending?.cancel();
     final request = LibrarySourceReadRequest._(asset, this);
     _pending = request;
     _drain();
     return request;
+  }
+
+  void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    _active?.cancel();
+    _pending?.cancel();
   }
 
   void _cancel(LibrarySourceReadRequest request) {
@@ -116,3 +128,13 @@ class _ScheduledSourceReadLease implements LibrarySourceReadLease {
     }
   }
 }
+
+final librarySourceReadSchedulerProvider = Provider<LibrarySourceReadScheduler>(
+  (ref) {
+    final scheduler = LibrarySourceReadScheduler(
+      reader: ref.watch(librarySourceReaderProvider),
+    );
+    ref.onDispose(scheduler.dispose);
+    return scheduler;
+  },
+);

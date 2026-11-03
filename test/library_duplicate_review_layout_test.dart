@@ -17,7 +17,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
 
-import "support/platform_test_bindings.dart";
+import "support/application_test_bindings.dart";
 
 void main() {
   for (final width in [400.0, 800.0, 1200.0, 1280.0]) {
@@ -31,7 +31,7 @@ void main() {
         final analysis = LibraryExactAnalysisController(_NoAnalysis());
         final scheduler = LibraryExactAnalysisScheduler(analysis);
         final container = ProviderContainer(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
             libraryDuplicateReviewProvider.overrideWithValue(service),
             libraryExactAnalysisControllerProvider.overrideWithValue(analysis),
@@ -240,7 +240,7 @@ void main() {
       addTearDown(active.dispose);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             libraryControllerProvider.overrideWith(() => library),
           ]),
           child: MaterialApp(

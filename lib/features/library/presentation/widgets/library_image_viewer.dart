@@ -10,11 +10,13 @@ import "../../../../app/window/ame_window_fullscreen.dart";
 import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../../settings/domain/ame_preferences.dart";
 import "../../../settings/application/ame_preferences.dart";
+import "../../application/library_source_read_scheduler.dart";
 import "../../domain/library_models.dart";
 import "../library_viewer_source_state.dart";
 import "library_viewer_controls.dart";
 import "library_viewer_filmstrip_slot.dart";
 import "library_viewer_image.dart";
+import "library_viewer_source_scope.dart";
 import "library_viewer_source_notice.dart";
 import "../library_viewer_zoom.dart";
 import "library_viewer_toolbar.dart";
@@ -239,6 +241,9 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
       children: [
         LibraryViewerImage(
           asset: widget.asset,
+          sourceReadScheduler:
+              LibraryViewerSourceScope.maybeOf(context)?.scheduler ??
+              ref.watch(librarySourceReadSchedulerProvider),
           zoomScale: _zoom.transform.value.getMaxScaleOnAxis(),
           imageBuilder: _buildTransformedImage,
           operationNotice: widget.operationNotice,

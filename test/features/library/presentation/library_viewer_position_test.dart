@@ -6,9 +6,11 @@ import "package:cedarflake_ame/features/library/application/ports/directory_pick
 import "package:cedarflake_ame/features/library/application/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/application/library_update_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
@@ -24,7 +26,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_query_snapshot_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("preserves gallery position after closing the image viewer", (
@@ -37,7 +39,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(_libraryState()),
         ]),
         child: const AmeApp(),
@@ -88,7 +90,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             _libraryState(
               assetCount: 2,
@@ -149,7 +151,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             librarySynchronizationProvider.overrideWithValue(synchronization),
@@ -189,7 +191,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
@@ -241,7 +243,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
@@ -298,7 +300,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
@@ -437,7 +439,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(
               _SynchronizationViewerCatalog(_snapshotFromState(initialState)),
@@ -506,7 +508,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             _libraryState(assetCount: 1),
           ),
@@ -545,7 +547,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
@@ -625,7 +627,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
@@ -677,7 +679,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(
             _SynchronizationViewerCatalog(_snapshotFromState(initialState)),
@@ -722,7 +724,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
@@ -806,7 +808,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides([
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(
             _SynchronizationViewerCatalog(_snapshotFromState(initialState)),
@@ -855,7 +857,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
@@ -995,7 +997,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             directoryPickerProvider.overrideWithValue(
               const _FailingDirectoryPicker(),
@@ -1094,7 +1096,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             librarySynchronizationProvider.overrideWithValue(synchronization),
@@ -1170,7 +1172,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             librarySynchronizationProvider.overrideWithValue(synchronization),
@@ -1245,7 +1247,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides([
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             librarySynchronizationProvider.overrideWithValue(synchronization),
@@ -1409,7 +1411,7 @@ Future<void> _verifyTerminalScanFeedbackAcknowledgement(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: platformTestOverrides([
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(initialState),
         libraryCatalogProvider.overrideWithValue(catalog),
         libraryScannerProvider.overrideWithValue(scanner),

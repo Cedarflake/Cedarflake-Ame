@@ -10,7 +10,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/gallery_wall_fixture.dart";
 
-import "../../../support/platform_test_bindings.dart";
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final scenario in [
@@ -102,7 +102,7 @@ void main() {
         addTearDown(active.dispose);
         await tester.pumpWidget(
           ProviderScope(
-            overrides: platformTestOverrides(),
+            overrides: applicationTestOverrides(),
             child: MaterialApp(
               home: ValueListenableBuilder<bool>(
                 valueListenable: active,
@@ -194,7 +194,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: platformTestOverrides(),
+        overrides: applicationTestOverrides(),
         child: MaterialApp(
           home: SizedBox(
             width: 900,
@@ -248,7 +248,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: platformTestOverrides(),
+          overrides: applicationTestOverrides(),
           child: MaterialApp(
             home: SizedBox(
               width: 900,
