@@ -34,7 +34,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
 | R4 | Independent Favorites, flat group-based albums, and durable organization progress | Completed and merged into main on 2026-10-30 |
-| R5 | Metadata, smart albums, and calibrated initial screening | Curated-category integration verified; submitted-head gate and review remain in PR #45 |
+| R5 | Metadata, smart albums, and calibrated initial screening | Merged into main on 2026-11-03; final submitted-head CI remains pending |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run with conflicts and no execution | Planned after R7 |
@@ -59,12 +59,13 @@ functional, recovery, source-preservation, retained-scale and complete hosted ev
 The implementation is verified through `17c16c7d`, with subsequent changes limited to delivery
 records. The R4 branch through `53bbb5bc` is integrated without conflict or history rewriting.
 R5's [requirements](product/r5-classification.md) and [implementation plan](plans/r5-classification.md)
-have connected workflows on `codex/r5-smart-albums` through `0ef6af57`. On 2026-11-03, open-ended
+were integrated into `main` through PR #45 on 2026-11-03. On the same date, open-ended
 category naming was withdrawn in favor of an application-maintained finite catalog. R5-02 now owns
 consolidated topics, explicit purpose restrictions and their actual quality assessment. The
 [integrated evidence map](acceptance/r5-closeout.md) covers R5-01 through R5-07, including the current
-automatic-analysis and browsing controls. Stage delivery uses PR #45, its submitted-head hosted gate,
-and a separately authorized merge. No later product stage is active.
+automatic-analysis and browsing controls. The [merge record](acceptance/r5-closeout.md#r5-merge--2026-11-03)
+retains the explicit decision to merge before the final submitted-head CI completed. No later product
+stage is active.
 
 On 2026-10-30, the remaining cloud-primary first-viewer and mode-entry frame peaks are explicitly
 deferred to a [separate performance follow-up](#deferred-constrained-device-rendering).
@@ -92,15 +93,12 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
-R4 is integrated into `main`. R5 continues on `codex/r5-smart-albums`. Complete the R5-02 curated
-category transition in this order: the consolidated catalog, explicit purposes and direct matching
-have their [native comparison](acceptance/r5-category-discovery.md#curated-catalog-and-direct-matching--2026-11-03).
-Existing generated definitions have guarded catalog-reconciliation coverage. The
-[nonempty-navigation check](acceptance/r5-smart-albums.md#nonempty-category-navigation--2026-11-03)
-completes affected native membership, Windows navigation, retained-scale reads and record preservation.
-The remaining step is the submitted-head hosted gate and stage PR review. Preserve stable identities,
-legacy choices, the selected SigLIP runtime and source safeguards; no additional naming model is
-included. Keep PR #45 in draft until its submitted-head checks pass. The previous
+R4 and R5 are integrated into `main`; the R5 development branch has been deleted locally and remotely.
+The pending final hosted result is tracked in the [merge record](acceptance/r5-closeout.md#r5-merge--2026-11-03).
+Inspect that result and address any relevant failure without replaying unchanged R5 acceptance.
+The next planned maintenance is [project organization](#project-organization-after-r5), before R6.
+Preserve stable identities, legacy choices, the selected SigLIP runtime and source safeguards;
+no additional naming model is included. The previous
 [naming boundary record](acceptance/r5-category-discovery.md#open-category-naming-boundary--2026-11-02)
 remains evidence of the superseded open-ended design, not an outstanding expansion requirement.
 
@@ -108,8 +106,8 @@ The 2026-11-02 model-delivery
 follow-up has its scoped local evidence: compact download entry, existing-notification-center
 progress, installer-bundled models and authorized download recovery across restart. The
 [delivery checks](acceptance/r5-desktop-classification.md#model-restart-recovery-and-installer-payload--2026-11-02)
-retain the exact desktop and packaging coverage. R5-07 delivery uses the submitted-head hosted gate
-and PR review; the PR's live checks and review state own that publication status. Preserve the
+retain the exact desktop and packaging coverage. PR #45 contains the integrated R5-07 delivery;
+its live checks retain their actual hosted status. Preserve the
 completed actual-media and base-gallery checks without another replay.
 [PR #45](https://github.com/Cedarflake/Cedarflake-Ame/pull/45) covers the complete stage rather than
 an individual slice. The [integrated evidence map](acceptance/r5-closeout.md) links each slice to its
@@ -133,13 +131,11 @@ The [retained query measurements](acceptance/r5-smart-albums.md) and
 [paired foreground comparison](acceptance/r5-incremental-analysis.md#connected-localcloud-foreground-comparison--2026-11-01)
 own those observations. No additional unchanged performance cycle is required for R5 closure.
 
-R5's exit condition includes the connected curated catalog, enforced purpose boundaries, useful
-per-topic results and coherent nonempty sidebar categories, together with the applicable hosted gate
-for the submitted PR head and the linked functional, quality, resource and preservation evidence.
-After those conditions pass, make PR #45 reviewable.
-Merging into `main` remains separately authorized; preserve the branch until that decision. Further
-behavior changes require their affected checks and submitted-head result. R6 and the deferred rendering
-follow-up retain their existing order and scope.
+The R5 merge includes the connected curated catalog, enforced purpose boundaries, useful
+per-topic results and coherent nonempty sidebar categories, with the linked functional, quality,
+resource and preservation evidence. The final submitted-head hosted result remains pending after the
+explicitly authorized early merge. Further behavior changes require their affected checks and
+submitted-head result. R6 and the deferred rendering follow-up retain their existing order and scope.
 
 The separate deferred rendering follow-up retains its bounded scope and does not reopen R4 verification.
 
@@ -315,15 +311,15 @@ configuration remains an initial-screening candidate with the measured quality l
 
 The desktop metadata form, manual classification workflow, category editor and analysis controls are
 withdrawn. The current product contracts own their replacements and retained compatibility rules;
-historical interaction checks do not reinstate removed UI. Final hosted verification and review follow
+historical interaction checks do not reinstate removed UI. The pending final hosted result follows
 the current execution queue above. R6 through R10 retain their order.
 
 ## Project organization after R5
 
-After R5 closure and its separately authorized merge, the
+Following R5's authorized merge, the
 [project-organization plan](plans/project-organization.md) defines the requested maintenance pass.
-Its planned position is before R6 implementation; R5 remains the active stage and the later product
-stages retain their order. The separate rendering follow-up keeps its existing scope and disposition.
+Its planned position is before R6 implementation; implementation of this maintenance pass and later
+product stages has not started. The separate rendering follow-up keeps its existing scope and disposition.
 
 [ADR 0037](architecture/0037-feature-module-dependency-boundaries.md) owns the future dependency and
 composition target, and the [repository layout](development/repository-layout.md) owns placement.

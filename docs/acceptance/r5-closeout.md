@@ -18,7 +18,7 @@ Generated-definition reconciliation also has focused persistence and runtime cov
 The [nonempty-navigation check](r5-smart-albums.md#nonempty-category-navigation--2026-11-03)
 adds native membership, retained-scale reads and connected Windows navigation with source and
 durable-record preservation. Existing checks retain their original scope; the roadmap owns the
-remaining submitted-head gate and review.
+delivery queue, and the merge record below retains the final hosted result's pending status.
 
 ## Slice coverage
 
@@ -105,8 +105,8 @@ rejects the new 208-byte managed-storage enum variant; the follow-up boxes its n
 preserving ownership and destruction order. Focused local `cargo clippy --lib --tests --all-features`
 with warnings denied passes, together with Rust formatting and whitespace checks. The submitted PR
 checks above own the result for the
-replacement head. The roadmap requires that gate before the PR becomes reviewable, followed by a
-separately authorized merge.
+replacement head. At that checkpoint, the roadmap required that gate before the PR became reviewable,
+followed by a separately authorized merge.
 
 [Run 41456317006](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41456317006)
 passes Static and reports three failures in the Remaining Rust partition's existing module-loading
@@ -117,3 +117,22 @@ installation/task modules and re-exports that type through the adapter facade. A
 cases, with unchanged contract expectations. Rust formatting and diff whitespace checks pass.
 The submitted PR checks own the replacement-head result. The later curated-catalog transition and
 its affected verification are linked above; the open-ended naming requirement is superseded.
+
+## R5 merge — 2026-11-03
+
+[PR #45](https://github.com/Cedarflake/Cedarflake-Ame/pull/45) was merged as
+`7e8f953cf0055319254129281a1418a4175c4efb`, preserving the final head
+`a03888ca146ed756127b8165aa90a58df04e1666`. The local and remote `codex/r5-smart-albums`
+branches were deleted, and the local checkout returned to `main`.
+
+The final configuration retains Flutter's generated Windows analysis exclusion. The preceding
+sidebar padding change has its [desktop check](r5-desktop-classification.md#sidebar-download-alignment--2026-11-03).
+The curated-navigation head `0c5f9e48ac5875ffa26ce3b6f3a7a02b62afd1d9` passed all applicable
+jobs in [run 41503339874](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41503339874).
+
+By explicit authorization, the final head was merged while
+[run 41602861678](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41602861678) was still
+running. That run tests snapshot `e6dac1a1ad7f72a2b87ef0bf3049467e01d8493c` against base
+`1e0e1701845ce9455ea46ea91c8c183c7fadc087`; its result remains pending, separately from the
+completed earlier gate. Normal `main` push checks continue after the merge. Protected release and
+signing jobs remain outside ordinary PR admission. No release was published.
