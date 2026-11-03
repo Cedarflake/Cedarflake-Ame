@@ -27,6 +27,12 @@ shared principles; the roadmap owns current delivery order and acceptance status
   root identity are revalidated before any catalog delta. After an admitted attempt, acknowledged
   durable retry or deferral retains completion ownership and retires the stale preview request.
   A failed persistence operation propagates its error and cannot claim that transfer.
+- `ports/preview_materialization.rs` exposes preview generation through Ame values and a read/seek
+  source. `PreviewSource::reader_from_start` supplies byte-zero access to the already admitted source;
+  native file duplication and cursor reset stay in `local_files/preview_source.rs`. Readers may share
+  a cursor and are consumed sequentially. The port grants no path reopen, source mutation or new
+  publication authority. The native store retains its existing decode limits, JPEG fallback, cache
+  admission and staged publication; application source revalidation and held guards remain unchanged.
 - `application/storage/preview_activation.rs` owns the cross-database restart obligation for
   switch-and-regenerate. Target initialization and idempotent catalog reset precede pending-intent
   retirement. The storage facade selects this use case; it does not carry compensating SQL or a

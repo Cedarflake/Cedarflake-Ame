@@ -43,6 +43,8 @@ pub(crate) use source_reconciliation::{
 
 mod preview_health;
 pub use preview_health::{PreviewHealthObservation, PreviewHealthOutcome, PreviewHealthTarget};
+mod preview_materialization;
+pub use preview_materialization::{PreviewSource, PreviewStore};
 mod scan_publication_control;
 pub(crate) use scan_publication_control::ScanPublicationControl;
 mod root_consolidation;
@@ -77,8 +79,8 @@ use crate::domain::{
     PersistentJournalCheckpoint, PersistentJournalEnrollmentReport, PersistentJournalPendingRename,
     PersistentJournalReadFailure, PersistentJournalRootFailure, PersistentJournalRootReadOutcome,
     PersistentJournalVolumeBatch, PersistentJournalVolumeIdentity, PreviewArtifact,
-    PreviewMaterialization, PreviewReclamationCandidate, PreviewRequest, ScanCheckpoint, ScanError,
-    ScanIssue, ScanRequest, StorageConfiguration, TerminalMediaEvidence,
+    PreviewReclamationCandidate, PreviewRequest, ScanCheckpoint, ScanError, ScanIssue, ScanRequest,
+    StorageConfiguration, TerminalMediaEvidence,
 };
 
 type CatalogMaintenanceInterrupt = Arc<dyn Fn() + Send + Sync>;
@@ -1141,18 +1143,6 @@ pub trait StorageSettingsRepository {
     fn activate_preview_root(&mut self, preview_root: &str) -> Result<(), ScanError>;
     fn load_retired_preview_roots(&mut self) -> Result<Vec<String>, ScanError>;
     fn forget_retired_preview_root(&mut self, preview_root: &str) -> Result<bool, ScanError>;
-}
-
-pub trait PreviewStore {
-    fn materialize(
-        &self,
-        file: &DiscoveredFile,
-        source: &std::fs::File,
-        preview_edge: u32,
-        source_width: u32,
-        source_height: u32,
-        force_regenerate: bool,
-    ) -> Result<PreviewMaterialization, ScanIssue>;
 }
 
 pub(crate) trait MediaInspector {

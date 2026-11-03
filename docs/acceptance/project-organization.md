@@ -679,3 +679,25 @@ to 60×80 with unchanged cache/source bytes, and known catalog dimensions bypass
 No test is added; the original case now covers the previously missing cursor boundary. The owner
 has 911 source lines and 901 inline-test lines. Format checks report 794 files unchanged; scratch
 cleanup succeeds. Source admission, publication, schema and generated contracts remain unchanged.
+
+## O7 Preview source contract — 2026-11-04
+
+`PreviewStore` now consumes `PreviewSource`, whose associated reader exposes only standard read/seek
+operations. The native adapter duplicates the already admitted handle and resets it to byte zero;
+the three preview read paths reuse that owner. Source opening, revalidation and publication stay
+in their existing owners. JPEG decoding accepts a reader with the same algorithm, errors and limits.
+Application preview orchestration and real-format fixtures are byte-identical to `4ec40f5c`.
+
+All 43 focused checks pass: two cache-hit, 12 real-format, four JPEG decoder, one complete scan/preview
+and 24 dependency cases. Coverage retains wrong extensions, corrupt/truncated input, CMYK fallback,
+orientation, animation, cache accounting, unchanged source bytes and the repaired cursor boundary.
+The four decoder cases now use encoded bytes through `Cursor`, removing eight fixture lines and
+unnecessary temporary files; real-file safety remains covered by the adapter and complete workflow.
+No cases are added. Final test/production builds emit no warnings, the format check reports 794
+files unchanged and leased scratch cleanup succeeds.
+
+R279 retires without a replacement exception: 167 active legacy entries and 56 retained technical
+edges remain, with both frozen inventories unchanged. The new port has 23 lines, its native source
+owner 101, and the preview store 904 source/901 inline-test lines. JPEG decoding has 141 source,
+112 inline benchmark and 79 dedicated contract-test lines. No package, cache-format, engine
+version, schema or generated bridge change is included.

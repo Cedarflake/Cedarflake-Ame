@@ -1,5 +1,7 @@
 use std::collections::HashSet;
-use std::fs::{self, File};
+use std::fs;
+#[cfg(test)]
+use std::fs::File;
 use std::io::{BufReader, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 #[cfg(test)]
@@ -14,7 +16,7 @@ use crate::domain::{
     DiscoveredFile, FileIdentityEvidence, ImageOrientation, PreviewArtifact,
     PreviewMaterialization, ScanIssue,
 };
-use crate::ports::PreviewStore;
+use crate::ports::{PreviewSource, PreviewStore};
 
 use super::PreviewCacheNamespace;
 use super::image_orientation::{apply_image_orientation, from_image_orientation};
@@ -415,7 +417,7 @@ impl PreviewStore for LocalPreviewStore {
     fn materialize(
         &self,
         file: &DiscoveredFile,
-        source: &File,
+        source: &impl PreviewSource,
         preview_edge: u32,
         source_width: u32,
         source_height: u32,
@@ -447,21 +449,15 @@ impl PreviewStore for LocalPreviewStore {
             )
             .map(existing_materialization);
         }
-        let mut decode_source = source
-            .try_clone()
-            .map_err(|error| preview_issue(file, "image_open_failed", error))?;
-        decode_source
-            .seek(SeekFrom::Start(0))
+        let decode_source = source
+            .reader_from_start()
             .map_err(|error| preview_issue(file, "image_open_failed", error))?;
         let mut reader = ImageReader::new(BufReader::new(decode_source))
             .with_guessed_format()
             .map_err(|error| preview_issue(file, "image_open_failed", error))?;
         if reader.format() == Some(ImageFormat::Jpeg) {
-            let mut jpeg_source = source
-                .try_clone()
-                .map_err(|error| preview_issue(file, "image_open_failed", error))?;
-            jpeg_source
-                .seek(SeekFrom::Start(0))
+            let jpeg_source = source
+                .reader_from_start()
                 .map_err(|error| preview_issue(file, "image_open_failed", error))?;
             if let JpegPreviewDecode::Decoded(decoded) =
                 decode_scaled_jpeg(jpeg_source, edge, MAX_DECODER_ALLOCATION)
@@ -873,13 +869,10 @@ fn preview_issue(file: &DiscoveredFile, code: &str, error: impl std::fmt::Displa
 
 fn inspect_source_display_dimensions(
     file: &DiscoveredFile,
-    source: &File,
+    source: &impl PreviewSource,
 ) -> Result<(u32, u32), ScanIssue> {
-    let mut source = source
-        .try_clone()
-        .map_err(|error| preview_issue(file, "image_open_failed", error))?;
-    source
-        .seek(SeekFrom::Start(0))
+    let source = source
+        .reader_from_start()
         .map_err(|error| preview_issue(file, "image_open_failed", error))?;
     let mut reader = ImageReader::new(BufReader::new(source))
         .with_guessed_format()

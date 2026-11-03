@@ -1,8 +1,9 @@
 use std::fs::File;
-use std::io;
+use std::io::{self, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
 use crate::domain::{ExpectedFileState, FileIdentityEvidence, ScanIssue, SourceRevisionEvidence};
+use crate::ports::PreviewSource;
 
 use super::revalidate_open_preview_source;
 #[cfg(windows)]
@@ -14,6 +15,16 @@ pub(crate) struct OpenedPreviewSource {
     pub(crate) file: File,
     pub(crate) source_revision: Option<SourceRevisionEvidence>,
     pub(crate) source_root_path: PathBuf,
+}
+
+impl PreviewSource for File {
+    type Reader = File;
+
+    fn reader_from_start(&self) -> io::Result<Self::Reader> {
+        let mut reader = self.try_clone()?;
+        reader.seek(SeekFrom::Start(0))?;
+        Ok(reader)
+    }
 }
 
 pub(crate) fn open_preview_source(
