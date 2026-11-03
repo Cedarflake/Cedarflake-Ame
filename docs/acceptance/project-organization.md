@@ -75,4 +75,35 @@ Scoped analysis reports no issues; the repository dependency command passes agai
 `analyzer` remains at its existing locked version 10.2.0 and hash; only its dependency classification
 changes from transitive to direct development use. The existing Static/Flutter workflow owners run
 the submitted checks. By current user direction, their pending results do not hold subsequent work.
-The Rust portion of O1 retains its own inventory and validation obligation.
+The Rust portion of O1 is recorded below.
+
+## O1 Rust dependency foundation — 2026-11-03
+
+The Syn-based check covers the existing native domain, ports, application and bridge API modules.
+It resolves explicit references through grouped imports, renames, re-exports, module globs and
+block-local aliases, including macro paths. Test-only declarations are excluded without excluding
+potential production platform/feature branches. Source, owning function/type, resolved target and
+rule are reported together. Existing locked Syn/quote dependencies are reused without a Cargo
+manifest or lockfile change.
+
+The fixed R5 baseline has 279 entries: 26 named catalog-session, synchronization and classification
+composition edges; the held source-handle contract in `PreviewStore::materialize`; and 252 individually
+recorded application integration edges for O7 review. Domain/API contain no remaining rejected
+explicit references. Existing API `StreamSink` use stays inside the bridge boundary. The
+[execution inventory](../plans/project-organization-inventory.md#rust-composition-and-boundary-inventory)
+names the retained construction/resource owners and their lifetimes.
+
+The original inventory attempt exposed a parser recursion defect when a module and its re-exported
+function shared a name. Resolution now distinguishes a module path prefix from a value export and
+tracks alias cycles; the same-name regression passes. The repository scan then completed normally.
+The gate pins the baseline blob and rejects new symbols even inside an admitted source file, missing
+responsibility metadata, stale/duplicate/unknown IDs and directory-wide exceptions.
+
+All 16 focused tests pass, including the current repository inventory; scoped Clippy for the test
+and inventory example passes with warnings denied. The parser has 311 reference-walking lines,
+246 name-resolution lines and 184 source-loading lines; policy comparison has 106 lines. These
+owners have no inline tests and share 391 dedicated parser, policy and repository regression lines.
+The check is part of the existing Rust `other` partition; hosted execution continues independently
+under user direction.
+This slice changes verification infrastructure and its ownership inventory, with no product,
+schema, generated bridge or original-media changes.

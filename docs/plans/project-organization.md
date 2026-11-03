@@ -1,6 +1,6 @@
 # Project organization after R5
 
-Status: O1 foundation in progress; activation and delivery order belong to the roadmap.
+Status: O1 foundation implemented; O2 is next in the roadmap-owned delivery order.
 
 The [roadmap](../roadmap.md#project-organization-after-r5) selects this maintenance scope after R5.
 [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md) owns the target dependency
@@ -41,7 +41,7 @@ its target location. Include cross-feature imports, generated DTO exposure, barr
 the exact Rust composition functions. Record production, inline-test and dedicated-test sizes for
 large affected owners without applying a universal line cap.
 
-The [Dart baseline inventory](project-organization-inventory.md) maps contracts, native mappings,
+The [dependency baseline inventory](project-organization-inventory.md) maps contracts, native mappings,
 bindings, existing lifecycle authority, consumers and regression owners to the target locations.
 
 Implement a dependency check in the existing quality workflow with a fixed inventory of legacy
@@ -161,6 +161,7 @@ directed that GitHub own CI execution without waiting or blocking subsequent wor
 ordered slices from the integrated R5 source with necessary local preparation and focused checks;
 record hosted results separately without treating pending checks as a migration prerequisite.
 
-The Dart inventory and enforceable boundary foundation are implemented with their focused parser,
-rule and exception regressions. The Rust composition inventory and scoped boundary checks remain
-within O1 before the platform/storage migration. Evidence belongs to the linked acceptance record.
+The Dart and scoped Rust inventories and enforceable boundary checks are implemented with their
+parser, rule and exact-exception regressions. Named native composition owners retain their resource
+lifetimes; unclassified application references stay individually frozen for O7. Continue with O2's
+platform/storage migration. Evidence belongs to the linked acceptance record.

@@ -1,0 +1,2904 @@
+{
+  "baseline": "f74146a4e88d72325c576504825399df109774aa",
+  "owners": {
+    "catalog-session-composition": {
+      "responsibility": "Validated catalog session and read-executor construction",
+      "reason": "Named catalog-session resource hosts retain validation identity, shared waiters and stale-session replacement under ADR 0037.",
+      "lifetime": "One shared session entry per catalog path; validation waiters retire together and foreground scans preserve session identity.",
+      "disposition": "Retained named composition; O7 checks this exact roster.",
+      "coverage": [
+        "rust/src/application/catalog_session/tests.rs",
+        "rust/src/application/catalog_session/maintenance/tests.rs"
+      ]
+    },
+    "classification-executor-composition": {
+      "responsibility": "Native classification executor resources",
+      "reason": "The named native executor owns the feature cache and replaceable encoder factory under the accepted classification runtime.",
+      "lifetime": "One runtime executor owns lazy cache acquisition and encoder residency; close and cancellation remain with the runtime.",
+      "disposition": "Retained named runtime composition; O7 checks this exact roster.",
+      "coverage": [
+        "rust/src/application/classification_runtime/tests.rs",
+        "rust/src/application/classification_residency/tests.rs"
+      ]
+    },
+    "synchronization-composition": {
+      "responsibility": "Production synchronization factories and catalog session host",
+      "reason": "ProductionSynchronization stores its catalog session and selects the existing change-source and journal factories.",
+      "lifetime": "One production synchronization host per desktop lifecycle; existing runtime-lifecycle owner joins retirement.",
+      "disposition": "Retained named composition; policy methods in the same file remain separately inventoried.",
+      "coverage": [
+        "rust/src/application/library_synchronization/tests.rs"
+      ]
+    },
+    "held-preview-source": {
+      "responsibility": "Borrowed source capability at PreviewStore.materialize",
+      "reason": "ADR 0025 retains held-handle encoding after source admission; the port receives a borrow and never opens a path.",
+      "lifetime": "The caller retains the admitted source handle throughout encoding; the adapter cannot substitute another source.",
+      "disposition": "Retained exact standard-library capability; no other filesystem operation is admitted.",
+      "coverage": [
+        "rust/src/application/preview.rs",
+        "rust/src/adapters/preview_cache/staging_encoding.rs"
+      ]
+    },
+    "scan-integration": {
+      "responsibility": "Scan integration and final publication",
+      "reason": "Existing application references need exact composition or port classification without splitting publication authority.",
+      "lifetime": "Existing scan execution, checkpoint and terminal-publication owners remain authoritative.",
+      "disposition": "O7: remove migrated edges or record an individually justified composition seam.",
+      "coverage": [
+        "rust/src/application/scan_library/tests.rs"
+      ]
+    },
+    "preview-integration": {
+      "responsibility": "Preview generation, cleanup and recovery integration",
+      "reason": "Existing native resources and adapter helpers are frozen pending scoped ownership review.",
+      "lifetime": "Existing source guards, preview generations and cleanup permits retain their current owners.",
+      "disposition": "O7: remove migrated edges or record an individually justified composition seam.",
+      "coverage": [
+        "rust/src/application/preview.rs",
+        "rust/src/application/preview_cleanup.rs"
+      ]
+    },
+    "classification-integration": {
+      "responsibility": "Classification application integration",
+      "reason": "Concrete installation and persistence references require narrow resource-versus-policy classification.",
+      "lifetime": "Preserve run identity, download authorization, runtime residency and immutable result publication.",
+      "disposition": "O7: remove migrated edges or record an individually justified composition seam.",
+      "coverage": [
+        "rust/src/application/classification_runtime/tests.rs",
+        "rust/src/application/classification_model_installation.rs"
+      ]
+    },
+    "organization-integration": {
+      "responsibility": "Organization and archive integration",
+      "reason": "Freeze concrete persistence references while retaining transactional organization policy.",
+      "lifetime": "Existing command targets, transaction ownership, archive lifetime and cancellation remain unchanged.",
+      "disposition": "O7: remove migrated edges or record an individually justified composition seam.",
+      "coverage": [
+        "rust/src/application/organization.rs",
+        "rust/src/application/organization_archive.rs"
+      ]
+    },
+    "duplicates-integration": {
+      "responsibility": "Exact-content comparison integration",
+      "reason": "Existing guarded reader selection remains explicit pending factory classification.",
+      "lifetime": "Preserve bounded source leases, cancellation and whole-group publication.",
+      "disposition": "O7: remove migrated edges or record an individually justified composition seam.",
+      "coverage": [
+        "rust/src/application/exact_duplicates/tests.rs"
+      ]
+    },
+    "storage-read-integration": {
+      "responsibility": "Storage and catalog read integration",
+      "reason": "Existing concrete catalog, path and capacity dependencies require narrow ownership review.",
+      "lifetime": "Retain storage configuration admission, catalog sessions and bounded read windows.",
+      "disposition": "O7: remove migrated edges or record an individually justified composition seam.",
+      "coverage": [
+        "rust/src/application/storage/tests.rs",
+        "rust/src/application/load_catalog.rs"
+      ]
+    },
+    "continuity-integration": {
+      "responsibility": "Source observation and continuity integration",
+      "reason": "Existing adapter references are frozen while keeping live, journal and recovery authority intact.",
+      "lifetime": "Preserve root generations, queued-work leases, shared catalog sessions and joined shutdown.",
+      "disposition": "O7: remove migrated edges or record an individually justified composition seam.",
+      "coverage": [
+        "rust/src/application/library_synchronization/tests.rs",
+        "rust/src/application/incremental_library_changes.rs"
+      ]
+    }
+  },
+  "entries": [
+    {
+      "id": "R001",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/authoritative_library_changes.rs",
+        "symbol": "crate::application::authoritative_library_changes::enumerate_scopes",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R002",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/authoritative_library_changes.rs",
+        "symbol": "crate::application::authoritative_library_changes::enumerate_scopes",
+        "target": "crate::adapters::local_files::file_admission::FileVisitOutcome",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R003",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/authoritative_library_changes.rs",
+        "symbol": "crate::application::authoritative_library_changes::process_leased_authoritative_library_change_cancellable",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R004",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/catalog_reclamation.rs",
+        "symbol": "crate::application::catalog_reclamation::available_space_for",
+        "target": "windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW",
+        "rule": "external-engine"
+      }
+    },
+    {
+      "id": "R005",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/catalog_reclamation.rs",
+        "symbol": "crate::application::catalog_reclamation::catalog_reclamation_snapshot",
+        "target": "crate::adapters::sqlite_catalog::reclamation::SqliteCatalogSpaceMaintenance",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R006",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/catalog_reclamation.rs",
+        "symbol": "crate::application::catalog_reclamation::checkpoint_with_retry",
+        "target": "crate::adapters::sqlite_catalog::reclamation::SqliteCatalogSpaceMaintenance",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R007",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/catalog_reclamation.rs",
+        "symbol": "crate::application::catalog_reclamation::convert_with_retry",
+        "target": "crate::adapters::sqlite_catalog::reclamation::SqliteCatalogSpaceMaintenance",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R008",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/catalog_reclamation.rs",
+        "symbol": "crate::application::catalog_reclamation::inspect_with_retry",
+        "target": "crate::adapters::sqlite_catalog::reclamation::SqliteCatalogSpaceMaintenance",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R009",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/catalog_reclamation.rs",
+        "symbol": "crate::application::catalog_reclamation::reclaim_batch_with_retry",
+        "target": "crate::adapters::sqlite_catalog::reclamation::SqliteCatalogSpaceMaintenance",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R010",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/catalog_reclamation.rs",
+        "symbol": "crate::application::catalog_reclamation::run_reclamation_inner",
+        "target": "crate::adapters::sqlite_catalog::reclamation::SqliteCatalogSpaceMaintenance",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R011",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogSessionState",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R012",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogValidationDecision",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R013",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogValidationFlight",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R014",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogValidationFlight::complete",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R015",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogValidationFlight::wait",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R016",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::open_catalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R017",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::open_catalog_for_foreground_scan",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R018",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::open_catalog_for_foreground_scan",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R019",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::open_catalog_reader",
+        "target": "crate::adapters::sqlite_catalog::read_retry::SqliteCatalogReadExecutor",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R020",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::refresh_stale_catalog_session",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R021",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::refresh_stale_catalog_session_for_scan",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R022",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::validated_catalog_session",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R023",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::validated_catalog_session_with",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R024",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::validated_catalog_session_with_exemption",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R025",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::with_recovery_catalog_if_idle",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R026",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_analysis.rs",
+        "symbol": "crate::application::classification_analysis::analyze_classification_content",
+        "target": "crate::adapters::classification_image_input::GuardedClassificationImageReader",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R027",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_configuration.rs",
+        "symbol": "crate::application::classification_configuration::save",
+        "target": "crate::adapters::classification_runtime::manifest::compatibility",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R028",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_configuration.rs",
+        "symbol": "crate::application::classification_configuration::save_with_storage",
+        "target": "crate::adapters::classification_installation::ClassificationInstallationStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R029",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_configuration.rs",
+        "symbol": "crate::application::classification_configuration::save_with_storage",
+        "target": "crate::adapters::classification_runtime::verify_local_installation",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R030",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_configuration.rs",
+        "symbol": "crate::application::classification_configuration::settings",
+        "target": "crate::adapters::classification_installation::ClassificationInstallationStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R031",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_desktop.rs",
+        "symbol": "crate::application::classification_desktop::open_with_storage",
+        "target": "crate::adapters::classification_installation::ClassificationInstallationStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R032",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_desktop.rs",
+        "symbol": "crate::application::classification_desktop::save_installation",
+        "target": "crate::adapters::classification_installation::ClassificationInstallation",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R033",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_desktop.rs",
+        "symbol": "crate::application::classification_desktop::save_installation",
+        "target": "crate::adapters::classification_installation::ClassificationInstallationStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R034",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_desktop.rs",
+        "symbol": "crate::application::classification_desktop::save_installation",
+        "target": "crate::adapters::classification_runtime::verify_local_installation",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R035",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::ModelPreparation",
+        "target": "crate::adapters::classification_installation::ClassificationInstallation",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R036",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::ModelPreparation::begin",
+        "target": "crate::adapters::classification_installation::ClassificationInstallationStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R037",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::ModelPreparation::begin",
+        "target": "crate::adapters::classification_installation::task::DownloadIntent",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R038",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::ModelPreparation::begin",
+        "target": "crate::adapters::classification_runtime::installation::PACKAGE_DIRECTORY",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R039",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::ModelPreparation::begin",
+        "target": "crate::adapters::classification_runtime::installation::check_cancelled",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R040",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::ModelPreparation::prepare",
+        "target": "crate::adapters::classification_runtime::installation::prepare",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R041",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::ModelPreparation::prepare",
+        "target": "crate::adapters::classification_runtime::installation::prepare_bundled",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R042",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::PreparedModelInstallation",
+        "target": "crate::adapters::classification_installation::ClassificationInstallation",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R043",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::PreparedModelInstallation",
+        "target": "crate::adapters::classification_runtime::installation::VerifiedModelInstallation",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R044",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::PreparedModelInstallation::commit",
+        "target": "crate::adapters::classification_installation::ClassificationInstallation",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R045",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::model_storage",
+        "target": "directories::ProjectDirs::from",
+        "rule": "external-engine"
+      }
+    },
+    {
+      "id": "R046",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::publish_installation",
+        "target": "crate::adapters::classification_installation::ClassificationInstallation",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R047",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::publish_installation",
+        "target": "crate::adapters::classification_installation::ClassificationInstallationStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R048",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::publish_installation",
+        "target": "crate::adapters::classification_installation::task::DownloadIntent",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R049",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation.rs",
+        "symbol": "crate::application::classification_model_installation::publish_installation",
+        "target": "crate::adapters::classification_runtime::installation::check_cancelled",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R050",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation/operation.rs",
+        "symbol": "crate::application::classification_model_installation::operation::ModelInstallationOperation::prepare_with",
+        "target": "crate::adapters::classification_runtime::installation::check_cancelled",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R051",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation/recovery.rs",
+        "symbol": "crate::application::classification_model_installation::recovery::PendingDownload",
+        "target": "crate::adapters::classification_installation::task::DownloadIntent",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R052",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation/recovery.rs",
+        "symbol": "crate::application::classification_model_installation::recovery::pending_source",
+        "target": "crate::adapters::classification_installation::ClassificationInstallationStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R053",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation/recovery.rs",
+        "symbol": "crate::application::classification_model_installation::recovery::pending_source",
+        "target": "crate::adapters::classification_installation::task::DownloadIntent",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R054",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation/recovery.rs",
+        "symbol": "crate::application::classification_model_installation::recovery::pending_source",
+        "target": "crate::adapters::classification_runtime::installation::PACKAGE_DIRECTORY",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R055",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime.rs",
+        "symbol": "crate::application::classification_runtime::NativeClassificationRuntime",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R056",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/discovery.rs",
+        "symbol": "crate::application::classification_runtime::discovery::NativeCategoryDiscovery",
+        "target": "crate::adapters::classification_vocabulary::curated::CuratedClassificationVocabulary",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R057",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/discovery.rs",
+        "symbol": "crate::application::classification_runtime::discovery::NativeCategoryDiscovery",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R058",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/discovery.rs",
+        "symbol": "crate::application::classification_runtime::discovery::NativeCategoryDiscovery::prepare",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R059",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/discovery.rs",
+        "symbol": "crate::application::classification_runtime::discovery::NativeCategoryDiscovery::prepare_pass",
+        "target": "crate::adapters::classification_vocabulary::curated::CuratedClassificationVocabulary",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R060",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/discovery.rs",
+        "symbol": "crate::application::classification_runtime::discovery::NativeCategoryDiscovery::prepare_pass",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R061",
+      "owner": "classification-executor-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::FeatureResources",
+        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R062",
+      "owner": "classification-executor-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeEncoderResidency",
+        "target": "crate::adapters::classification_runtime::factory::LocalClassificationEncoderFactory",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R063",
+      "owner": "classification-executor-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor",
+        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R064",
+      "owner": "classification-executor-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::analyze",
+        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R065",
+      "owner": "classification-executor-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::feature_resources",
+        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R066",
+      "owner": "classification-executor-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::new",
+        "target": "crate::adapters::classification_runtime::factory::LocalClassificationEncoderFactory",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R067",
+      "owner": "classification-integration",
+      "dependency": {
+        "source": "rust/src/application/classification_verification.rs",
+        "symbol": "crate::application::classification_verification::verify_classification_source",
+        "target": "crate::adapters::exact_content_reader::GuardedExactContentReader",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R068",
+      "owner": "duplicates-integration",
+      "dependency": {
+        "source": "rust/src/application/exact_duplicate_review.rs",
+        "symbol": "crate::application::exact_duplicate_review::open_catalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R069",
+      "owner": "duplicates-integration",
+      "dependency": {
+        "source": "rust/src/application/exact_duplicates.rs",
+        "symbol": "crate::application::exact_duplicates::inspect_candidate_availability",
+        "target": "crate::adapters::local_files::file_revalidation::revalidate_file_state",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R070",
+      "owner": "duplicates-integration",
+      "dependency": {
+        "source": "rust/src/application/exact_duplicates.rs",
+        "symbol": "crate::application::exact_duplicates::inspect_candidate_availability",
+        "target": "crate::adapters::local_files::inspect_root_availability",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R071",
+      "owner": "duplicates-integration",
+      "dependency": {
+        "source": "rust/src/application/exact_duplicates.rs",
+        "symbol": "crate::application::exact_duplicates::run_exact_analysis",
+        "target": "crate::adapters::exact_content_reader::GuardedExactContentReader",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R072",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes.rs",
+        "symbol": "crate::application::incremental_library_changes::inspect_path",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R073",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes.rs",
+        "symbol": "crate::application::incremental_library_changes::inspect_path",
+        "target": "crate::adapters::local_files::file_admission::FileVisitOutcome",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R074",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes.rs",
+        "symbol": "crate::application::incremental_library_changes::prepare_change",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R075",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes.rs",
+        "symbol": "crate::application::incremental_library_changes::prepare_change",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R076",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes.rs",
+        "symbol": "crate::application::incremental_library_changes::prepare_path_change",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R077",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes.rs",
+        "symbol": "crate::application::incremental_library_changes::prepare_path_change",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R078",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes.rs",
+        "symbol": "crate::application::incremental_library_changes::process_ready_library_changes_internal",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R079",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes.rs",
+        "symbol": "crate::application::incremental_library_changes::process_ready_library_changes_internal",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R080",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes.rs",
+        "symbol": "crate::application::incremental_library_changes::revalidate_change",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R081",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/authoritative_path_set.rs",
+        "symbol": "crate::application::incremental_library_changes::authoritative_path_set::AuthoritativePathSetRequest",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R082",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/authoritative_path_set.rs",
+        "symbol": "crate::application::incremental_library_changes::authoritative_path_set::process_authoritative_path_set",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R083",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/authoritative_path_set.rs",
+        "symbol": "crate::application::incremental_library_changes::authoritative_path_set::process_authoritative_path_set_guarded",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R084",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/location_evidence.rs",
+        "symbol": "crate::application::incremental_library_changes::location_evidence::build_location",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R085",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/location_evidence.rs",
+        "symbol": "crate::application::incremental_library_changes::location_evidence::build_location",
+        "target": "crate::adapters::local_files::user_visible_path",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R086",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/location_evidence.rs",
+        "symbol": "crate::application::incremental_library_changes::location_evidence::build_location",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R087",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/location_evidence.rs",
+        "symbol": "crate::application::incremental_library_changes::location_evidence::inspection_metadata_is_compatible",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R088",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/preparation_rebase.rs",
+        "symbol": "crate::application::incremental_library_changes::preparation_rebase::preparation_is_current",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R089",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/preparation_rebase.rs",
+        "symbol": "crate::application::incremental_library_changes::preparation_rebase::refresh_preparation",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R090",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/preparation_rebase.rs",
+        "symbol": "crate::application::incremental_library_changes::preparation_rebase::refresh_preparation",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R091",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/rename_change.rs",
+        "symbol": "crate::application::incremental_library_changes::rename_change::prepare_rename_change",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R092",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/rename_change.rs",
+        "symbol": "crate::application::incremental_library_changes::rename_change::prepare_rename_change",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R093",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/terminal_media.rs",
+        "symbol": "crate::application::incremental_library_changes::terminal_media::terminal_media_change",
+        "target": "crate::adapters::local_files::user_visible_path",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R094",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/terminal_media.rs",
+        "symbol": "crate::application::incremental_library_changes::terminal_media::terminal_media_change",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R095",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/indexed_startup.rs",
+        "symbol": "crate::application::indexed_startup::changed_actual_paths",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R096",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/indexed_startup.rs",
+        "symbol": "crate::application::indexed_startup::changed_actual_paths",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R097",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/indexed_startup.rs",
+        "symbol": "crate::application::indexed_startup::prepare",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R098",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/indexed_startup.rs",
+        "symbol": "crate::application::indexed_startup::prepare",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R099",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/admission.rs",
+        "symbol": "crate::application::library_synchronization::admission::SynchronizationAdmissions::classify_roots",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R100",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/admission.rs",
+        "symbol": "crate::application::library_synchronization::admission::SynchronizationAdmissions::load",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R101",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/admission.rs",
+        "symbol": "crate::application::library_synchronization::admission::SynchronizationAdmissions::revalidate",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R102",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/journal_baseline.rs",
+        "symbol": "crate::application::library_synchronization::journal_baseline::capture_closing_boundary",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R103",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/journal_baseline.rs",
+        "symbol": "crate::application::library_synchronization::journal_baseline::select_closing_work",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R104",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/journal_baseline.rs",
+        "symbol": "crate::application::library_synchronization::journal_baseline::select_opening_work",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R105",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/journal_baseline/opening.rs",
+        "symbol": "crate::application::library_synchronization::journal_baseline::opening::capture_opening_boundary",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R106",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/journal_baseline/opening.rs",
+        "symbol": "crate::application::library_synchronization::journal_baseline::opening::persist_unavailable_session",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R107",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/journal_drain.rs",
+        "symbol": "crate::application::library_synchronization::journal_drain::process_ready",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R108",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/journal_status.rs",
+        "symbol": "crate::application::library_synchronization::journal_status::JournalStatusOwner::project",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R109",
+      "owner": "synchronization-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::ProductionSynchronization",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R110",
+      "owner": "synchronization-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::ProductionSynchronization",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R111",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::ProductionSynchronization::project_persistent_journal_continuity",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R112",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::ProductionSynchronization::schedule_next_journal_work",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R113",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::ProductionSynchronization::schedule_next_live_work",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R114",
+      "owner": "synchronization-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::ProductionSynchronization::validated_catalog_session",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R115",
+      "owner": "synchronization-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::new_production_synchronization",
+        "target": "crate::adapters::production_library_change_source_factory",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R116",
+      "owner": "synchronization-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::new_production_synchronization",
+        "target": "crate::adapters::windows_identity_journal::production_factory",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R117",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_runtime_with_storage_inner",
+        "target": "crate::adapters::local_files::inspect_root_availability",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R118",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::ready_live_root",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R119",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::ready_recovery_work",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R120",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::snapshot_has_ready_journal_work",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R121",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::snapshot_has_ready_live_work",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R122",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/catalog_scheduling.rs",
+        "symbol": "crate::application::library_synchronization::production::catalog_scheduling::ProductionSynchronization::schedule_catalog_work",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R123",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/inventory_cleanup.rs",
+        "symbol": "crate::application::library_synchronization::production::inventory_cleanup::InventoryCleanupOwner::poll",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R124",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_fallback_session.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_fallback_session::JournalFallbackSession::prepare",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R125",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_fallback_session.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_fallback_session::admit_verification",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R126",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_lane.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_lane::JournalLane::capacity_debt_roots",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R127",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_lane.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_lane::JournalLane::next_root",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R128",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_lane.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_lane::JournalLane::next_volume",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R129",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_lane.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_lane::JournalLane::select",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R130",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_recovery_admission.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_recovery_admission::select",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R131",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_volume.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_volume::select",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R132",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_work.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_work::JournalTask::start",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R133",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_work.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_work::JournalTask::start_baseline_closing",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R134",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_work.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_work::JournalTask::start_baseline_opening",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R135",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_work.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_work::JournalTask::start_journal_drain",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R136",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_work.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_work::JournalTask::start_journal_page",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R137",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_work/fallback.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_work::fallback::JournalReadFailures::handle_closing_failure",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R138",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_work/page.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_work::page::persist_journal_registration_failure",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R139",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_work/page.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_work::page::run",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R140",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_work/page.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_work::page::run",
+        "target": "crate::adapters::sqlite_catalog::journal_namespace::SqliteJournalNamespaceReader",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R141",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/live_work.rs",
+        "symbol": "crate::application::library_synchronization::production::live_work::LiveTask::start",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R142",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/live_work/batch.rs",
+        "symbol": "crate::application::library_synchronization::production::live_work::batch::LiveReconciliation",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R143",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/live_work/batch.rs",
+        "symbol": "crate::application::library_synchronization::production::live_work::batch::run",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R144",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/metadata_status.rs",
+        "symbol": "crate::application::library_synchronization::production::metadata_status::project_pending_metadata",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R145",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::PollCatalogCheckout",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R146",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::PollCatalogCheckout::install",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R147",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::PollCatalogCheckout::session",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R148",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::RetainedCatalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R149",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::RetainedCatalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R150",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/recovery_lane.rs",
+        "symbol": "crate::application::library_synchronization::production::recovery_lane::RecoveryLane::select",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R151",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/recovery_sources.rs",
+        "symbol": "crate::application::library_synchronization::production::recovery_sources::RecoverySources::prune",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R152",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/recovery_work/automatic.rs",
+        "symbol": "crate::application::library_synchronization::production::recovery_work::automatic::start",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R153",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/recovery_work/automatic.rs",
+        "symbol": "crate::application::library_synchronization::production::recovery_work::automatic::start",
+        "target": "crate::adapters::windows_search_index::WindowsSearchIndex",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R154",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/recovery_work/drain.rs",
+        "symbol": "crate::application::library_synchronization::production::recovery_work::drain::start_candidates",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R155",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/recovery_work/drain.rs",
+        "symbol": "crate::application::library_synchronization::production::recovery_work::drain::start_legacy_unowned",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R156",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/root_location.rs",
+        "symbol": "crate::application::library_synchronization::production::root_location::DirectoryLocator",
+        "target": "crate::adapters::local_files::root_location::LocatedLibraryRoot",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R157",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/root_location.rs",
+        "symbol": "crate::application::library_synchronization::production::root_location::RootLocationRecoveryOwner::default",
+        "target": "crate::adapters::local_files::root_location::locate_library_root",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R158",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/root_location.rs",
+        "symbol": "crate::application::library_synchronization::production::root_location::RootLocationRecoveryOwner::poll",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R159",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/root_location.rs",
+        "symbol": "crate::application::library_synchronization::production::root_location::recover",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R160",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/load_catalog.rs",
+        "symbol": "crate::application::load_catalog::finish_loaded_snapshot",
+        "target": "crate::adapters::local_files::inspect_root_availability",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R161",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/load_catalog.rs",
+        "symbol": "crate::application::load_catalog::prepare_catalog_reader",
+        "target": "crate::adapters::sqlite_catalog::read_retry::SqliteCatalogReadExecutor",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R162",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/metadata_inventory.rs",
+        "symbol": "crate::application::metadata_inventory::run_next_local_metadata_inventory",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R163",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/metadata_inventory.rs",
+        "symbol": "crate::application::metadata_inventory::run_started_metadata_inventory",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R164",
+      "owner": "continuity-integration",
+      "dependency": {
+        "source": "rust/src/application/metadata_inventory.rs",
+        "symbol": "crate::application::metadata_inventory::run_started_metadata_inventory",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R165",
+      "owner": "organization-integration",
+      "dependency": {
+        "source": "rust/src/application/organization.rs",
+        "symbol": "crate::application::organization::open_catalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R166",
+      "owner": "organization-integration",
+      "dependency": {
+        "source": "rust/src/application/organization_batch.rs",
+        "symbol": "crate::application::organization_batch::OrganizationBatchSession::open",
+        "target": "crate::adapters::sqlite_catalog::organization::batch::SqliteOrganizationBatch",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R167",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview.rs",
+        "symbol": "crate::application::preview::materialize_preview_attempt",
+        "target": "crate::adapters::local_files::file_revalidation::revalidate_open_preview_source",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R168",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview.rs",
+        "symbol": "crate::application::preview::materialize_preview_attempt",
+        "target": "crate::adapters::local_files::open_preview_publication_guard",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R169",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview.rs",
+        "symbol": "crate::application::preview::materialize_preview_attempt",
+        "target": "crate::adapters::local_files::preview_source::open_preview_source",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R170",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview.rs",
+        "symbol": "crate::application::preview::materialize_preview_attempt",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R171",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview/source_reconciliation.rs",
+        "symbol": "crate::application::preview::source_reconciliation::reconcile_source",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R172",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview/source_reconciliation/path_plan.rs",
+        "symbol": "crate::application::preview::source_reconciliation::path_plan::ReconciliationPaths::discover_relocation",
+        "target": "crate::adapters::windows_identity_journal::metadata_location::current_identity_paths",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R173",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::ActiveStore",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R174",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewOperationSource",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R175",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewStoreAdmission",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R176",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewStoreAdmission<'a,Access>::store",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R177",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewStoreSource",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R178",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewStoreSource<'a>::operation",
+        "target": "crate::adapters::preview_cache::preparation::open_preview_cache_operation_namespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R179",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewStoreSource<'a>::resolve",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R180",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::ResolvedStore",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R181",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::matching_store",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R182",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::matching_store",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R183",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::resolve_active_store",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R184",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::resolve_active_store",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R185",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_cleanup.rs",
+        "symbol": "crate::application::preview_cleanup::CleanupScope::finish",
+        "target": "crate::adapters::storage_settings::SqliteStorageSettings",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R186",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_cleanup.rs",
+        "symbol": "crate::application::preview_cleanup::clear_preview_scope",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R187",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_cleanup.rs",
+        "symbol": "crate::application::preview_cleanup::clear_preview_scope",
+        "target": "crate::adapters::local_files::user_visible_path",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R188",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_cleanup.rs",
+        "symbol": "crate::application::preview_cleanup::clear_preview_scope",
+        "target": "crate::adapters::preview_cache::is_ame_preview_cache_entry",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R189",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_cleanup.rs",
+        "symbol": "crate::application::preview_cleanup::clear_retired_previews",
+        "target": "crate::adapters::storage_settings::SqliteStorageSettings",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R190",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_cleanup.rs",
+        "symbol": "crate::application::preview_cleanup::summarize_managed_files",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R191",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_cleanup.rs",
+        "symbol": "crate::application::preview_cleanup::summarize_managed_files",
+        "target": "crate::adapters::preview_cache::is_ame_preview_cache_entry",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R192",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_health.rs",
+        "symbol": "crate::application::preview_health::is_active_location_file",
+        "target": "crate::adapters::preview_cache::is_current_preview_artifact",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R193",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_health.rs",
+        "symbol": "crate::application::preview_health::reconcile",
+        "target": "crate::adapters::preview_cache::is_current_preview_artifact",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R194",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_health.rs",
+        "symbol": "crate::application::preview_health::reconcile",
+        "target": "crate::adapters::preview_cache::is_managed_preview_cleanup_entry",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R195",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_reclamation.rs",
+        "symbol": "crate::application::preview_reclamation::reclaim_admitted_capacity",
+        "target": "crate::adapters::preview_cache::PREVIEW_ALGORITHM_ID",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R196",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_reclamation.rs",
+        "symbol": "crate::application::preview_reclamation::reclaim_admitted_capacity",
+        "target": "crate::adapters::preview_cache::PREVIEW_ALGORITHM_VERSION",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R197",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_reclamation.rs",
+        "symbol": "crate::application::preview_reclamation::reclaim_admitted_capacity",
+        "target": "crate::adapters::preview_cache::PREVIEW_ORIENTATION_CONTRACT",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R198",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_reclamation.rs",
+        "symbol": "crate::application::preview_reclamation::reclaim_admitted_capacity",
+        "target": "crate::adapters::preview_cache::is_managed_preview_cleanup_entry",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R199",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_reclamation.rs",
+        "symbol": "crate::application::preview_reclamation::remove_interrupted_and_unreferenced",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R200",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_reclamation.rs",
+        "symbol": "crate::application::preview_reclamation::remove_interrupted_and_unreferenced",
+        "target": "crate::adapters::preview_cache::current_preview_artifact_key",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R201",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_reclamation.rs",
+        "symbol": "crate::application::preview_reclamation::remove_interrupted_and_unreferenced",
+        "target": "crate::adapters::preview_cache::is_ame_preview_cache_entry",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R202",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_reclamation.rs",
+        "symbol": "crate::application::preview_reclamation::remove_interrupted_and_unreferenced",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R203",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_recovery.rs",
+        "symbol": "crate::application::preview_recovery::reconcile_directory",
+        "target": "crate::adapters::preview_cache::current_preview_artifact_key",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R204",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_recovery.rs",
+        "symbol": "crate::application::preview_recovery::reconcile_directory",
+        "target": "crate::adapters::preview_cache::is_managed_preview_cleanup_entry",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R205",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_recovery.rs",
+        "symbol": "crate::application::preview_recovery::reconcile_directory",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R206",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_recovery.rs",
+        "symbol": "crate::application::preview_recovery::reconcile_index",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R207",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_recovery.rs",
+        "symbol": "crate::application::preview_recovery::reconcile_index",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R208",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/preview_recovery.rs",
+        "symbol": "crate::application::preview_recovery::run_preview_recovery",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R209",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library.rs",
+        "symbol": "crate::application::scan_library::finish_if_controlled",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R210",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library.rs",
+        "symbol": "crate::application::scan_library::run_scan_with_storage_selection",
+        "target": "crate::adapters::local_files::FileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R211",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library.rs",
+        "symbol": "crate::application::scan_library::run_scan_with_storage_selection",
+        "target": "crate::adapters::local_files::user_visible_path",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R212",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library.rs",
+        "symbol": "crate::application::scan_library::run_scan_with_storage_selection",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R213",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library.rs",
+        "symbol": "crate::application::scan_library::user_visible_issue",
+        "target": "crate::adapters::local_files::user_visible_path",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R214",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/entry_processing.rs",
+        "symbol": "crate::application::scan_library::entry_processing::ScanEntryContext",
+        "target": "crate::adapters::local_files::file_admission::FileVisitOutcome",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R215",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/entry_processing.rs",
+        "symbol": "crate::application::scan_library::entry_processing::apply_scan_entry",
+        "target": "crate::adapters::local_files::file_admission::FileVisitOutcome",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R216",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/entry_processing.rs",
+        "symbol": "crate::application::scan_library::entry_processing::apply_scan_entry",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R217",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/file_preparation.rs",
+        "symbol": "crate::application::scan_library::file_preparation::PreparedScanFile<'a>::into_asset",
+        "target": "crate::adapters::local_files::user_visible_path",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R218",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/file_preparation.rs",
+        "symbol": "crate::application::scan_library::file_preparation::PreparedScanFile<'a>::into_asset",
+        "target": "crate::adapters::preview_cache::is_current_preview_artifact",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R219",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/file_preparation.rs",
+        "symbol": "crate::application::scan_library::file_preparation::PreparedScanFile<'a>::load",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R220",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization.rs",
+        "symbol": "crate::application::scan_library::finalization::FinalizationPlan::handoff_foreground_revalidation",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R221",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization.rs",
+        "symbol": "crate::application::scan_library::finalization::FinalizationPlan::record_rejected_input",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R222",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization.rs",
+        "symbol": "crate::application::scan_library::finalization::FinalizationPlan::restore_retained_scan_issues",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R223",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization.rs",
+        "symbol": "crate::application::scan_library::finalization::ForegroundRevalidationPlan::enqueue",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R224",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization.rs",
+        "symbol": "crate::application::scan_library::finalization::ValidatedScan",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R225",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization.rs",
+        "symbol": "crate::application::scan_library::finalization::ValidatedScan",
+        "target": "crate::adapters::sqlite_catalog::scan_publication::validation::ValidatedStagingProof",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R226",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization.rs",
+        "symbol": "crate::application::scan_library::finalization::validate_staged_locations",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R227",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization.rs",
+        "symbol": "crate::application::scan_library::finalization::validate_staged_locations",
+        "target": "crate::adapters::local_files::file_revalidation::revalidate_file_state",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R228",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization.rs",
+        "symbol": "crate::application::scan_library::finalization::validate_staged_locations",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R229",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization.rs",
+        "symbol": "crate::application::scan_library::finalization::validate_staged_locations",
+        "target": "crate::adapters::sqlite_catalog::scan_publication::validation::StagedValidationOutcome",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R230",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization.rs",
+        "symbol": "crate::application::scan_library::finalization::validate_staged_locations",
+        "target": "crate::adapters::sqlite_catalog::scan_publication::validation::StagedValidationRoster",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R231",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization/rejected_inputs.rs",
+        "symbol": "crate::application::scan_library::finalization::rejected_inputs::RejectedInputs",
+        "target": "crate::adapters::sqlite_catalog::scan_publication::rejected_input_validation::RejectedInputValidationRoster",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R232",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization/rejected_inputs.rs",
+        "symbol": "crate::application::scan_library::finalization::rejected_inputs::RejectedInputs::load_window",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R233",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization/rejected_inputs.rs",
+        "symbol": "crate::application::scan_library::finalization::rejected_inputs::RejectedInputs::record",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R234",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization/rejected_inputs.rs",
+        "symbol": "crate::application::scan_library::finalization::rejected_inputs::RejectedInputs::record",
+        "target": "crate::adapters::sqlite_catalog::scan_publication::rejected_input_validation::RejectedInputValidationRoster",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R235",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization/rejected_inputs.rs",
+        "symbol": "crate::application::scan_library::finalization::rejected_inputs::retain_detached",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R236",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization/rejected_inputs.rs",
+        "symbol": "crate::application::scan_library::finalization::rejected_inputs::validate_rejected_inputs",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R237",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization/rejected_inputs.rs",
+        "symbol": "crate::application::scan_library::finalization::rejected_inputs::validate_rejected_inputs",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R238",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization/retained_issue_recovery.rs",
+        "symbol": "crate::application::scan_library::finalization::retained_issue_recovery::require_complete_namespace",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R239",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization/retained_issue_recovery.rs",
+        "symbol": "crate::application::scan_library::finalization::retained_issue_recovery::require_complete_namespace",
+        "target": "crate::adapters::sqlite_catalog::scan_publication::retained_issues::retained_scan_has_unclassified_issues",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R240",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization/retained_issue_recovery.rs",
+        "symbol": "crate::application::scan_library::finalization::retained_issue_recovery::restore",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R241",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization/retained_issue_recovery.rs",
+        "symbol": "crate::application::scan_library::finalization::retained_issue_recovery::restore",
+        "target": "crate::adapters::sqlite_catalog::scan_publication::retained_issues::load_retained_scan_issue_window",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R242",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/finalization/retained_issue_recovery.rs",
+        "symbol": "crate::application::scan_library::finalization::retained_issue_recovery::restore",
+        "target": "crate::adapters::sqlite_catalog::scan_publication::retained_issues::retained_scan_has_unclassified_issues",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R243",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/inspection_failure.rs",
+        "symbol": "crate::application::scan_library::inspection_failure::record_failed_file",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R244",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/publication.rs",
+        "symbol": "crate::application::scan_library::publication::ForegroundPublicationContext",
+        "target": "crate::adapters::sqlite_catalog::scan_publication::validation::ValidatedStagingProof",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R245",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/publication.rs",
+        "symbol": "crate::application::scan_library::publication::drain_one_live_batch",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R246",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/publication.rs",
+        "symbol": "crate::application::scan_library::publication::publish_foreground_scan",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R247",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/publication.rs",
+        "symbol": "crate::application::scan_library::publication::settle_requested_control",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R248",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/resumption.rs",
+        "symbol": "crate::application::scan_library::resumption::load_resume_coverage",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R249",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/resumption.rs",
+        "symbol": "crate::application::scan_library::resumption::load_resume_coverage",
+        "target": "crate::adapters::windows_identity_journal::production_factory",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R250",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/root_consolidation.rs",
+        "symbol": "crate::application::scan_library::root_consolidation::PreparedRootConsolidation",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R251",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/root_consolidation.rs",
+        "symbol": "crate::application::scan_library::root_consolidation::PreparedRootConsolidation::capture",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R252",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/root_consolidation.rs",
+        "symbol": "crate::application::scan_library::root_consolidation::PreparedRootConsolidation::capture",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R253",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/root_selection.rs",
+        "symbol": "crate::application::scan_library::root_selection::ScanRootSelection::begin",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R254",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/root_selection.rs",
+        "symbol": "crate::application::scan_library::root_selection::ScanRootSelection::begin",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R255",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/root_selection.rs",
+        "symbol": "crate::application::scan_library::root_selection::ScanRootSelection::resolve",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R256",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/root_selection.rs",
+        "symbol": "crate::application::scan_library::root_selection::require_root",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R257",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/root_selection/coverage.rs",
+        "symbol": "crate::application::scan_library::root_selection::coverage::find",
+        "target": "crate::adapters::local_files::PublicationGuardedFileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R258",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/root_selection/coverage.rs",
+        "symbol": "crate::application::scan_library::root_selection::coverage::find",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R259",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/terminal_retirement.rs",
+        "symbol": "crate::application::scan_library::terminal_retirement::finish",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R260",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/traversal.rs",
+        "symbol": "crate::application::scan_library::traversal::ScanTraversalContext",
+        "target": "crate::adapters::local_files::FileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R261",
+      "owner": "scan-integration",
+      "dependency": {
+        "source": "rust/src/application/scan_library/traversal.rs",
+        "symbol": "crate::application::scan_library::traversal::traverse_scan",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R262",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/storage.rs",
+        "symbol": "crate::application::storage::default_storage",
+        "target": "crate::adapters::preview_cache::PREVIEW_CACHE_VERSION",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R263",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/storage.rs",
+        "symbol": "crate::application::storage::default_storage",
+        "target": "directories::ProjectDirs::from",
+        "rule": "external-engine"
+      }
+    },
+    {
+      "id": "R264",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/storage.rs",
+        "symbol": "crate::application::storage::directory_size",
+        "target": "crate::adapters::preview_cache::is_ame_preview_cache_entry",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R265",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/storage.rs",
+        "symbol": "crate::application::storage::load_or_initialize_configuration",
+        "target": "crate::adapters::storage_settings::SqliteStorageSettings",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R266",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/storage.rs",
+        "symbol": "crate::application::storage::storage_paths",
+        "target": "crate::adapters::preview_cache::PREVIEW_CACHE_VERSION",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R267",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/storage.rs",
+        "symbol": "crate::application::storage::storage_status",
+        "target": "crate::adapters::local_files::user_visible_path",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R268",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/storage.rs",
+        "symbol": "crate::application::storage::storage_status",
+        "target": "crate::adapters::storage_settings::SqliteStorageSettings",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R269",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/storage.rs",
+        "symbol": "crate::application::storage::validate_source_root_storage_paths",
+        "target": "crate::adapters::storage_settings::SqliteStorageSettings",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R270",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/storage/configuration_update.rs",
+        "symbol": "crate::application::storage::configuration_update::save_configuration",
+        "target": "crate::adapters::preview_cache::PREVIEW_CACHE_VERSION",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R271",
+      "owner": "storage-read-integration",
+      "dependency": {
+        "source": "rust/src/application/storage/configuration_update.rs",
+        "symbol": "crate::application::storage::configuration_update::save_configuration",
+        "target": "crate::adapters::storage_settings::SqliteStorageSettings",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R272",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/storage/preview_activation.rs",
+        "symbol": "crate::application::storage::preview_activation::activate_configured_preview_root",
+        "target": "crate::adapters::preview_cache::preparation::prepare_preview_root",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R273",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/storage/preview_activation.rs",
+        "symbol": "crate::application::storage::preview_activation::activate_configured_preview_root_with_preparation",
+        "target": "crate::adapters::preview_cache::preparation::PreviewRootPreparation",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R274",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/storage/preview_activation.rs",
+        "symbol": "crate::application::storage::preview_activation::activate_configured_preview_root_with_preparation",
+        "target": "crate::adapters::storage_settings::SqliteStorageSettings",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R275",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/storage/preview_activation.rs",
+        "symbol": "crate::application::storage::preview_activation::initialize_previous_preview_root",
+        "target": "crate::adapters::preview_cache::preparation::PreviewRootPreparation",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R276",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/viewer_source.rs",
+        "symbol": "crate::application::viewer_source::ViewerSourceLease",
+        "target": "crate::adapters::local_files::PreviewPublicationGuard",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R277",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/viewer_source.rs",
+        "symbol": "crate::application::viewer_source::acquire_guard",
+        "target": "crate::adapters::local_files::PreviewPublicationGuard",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R278",
+      "owner": "preview-integration",
+      "dependency": {
+        "source": "rust/src/application/viewer_source.rs",
+        "symbol": "crate::application::viewer_source::acquire_guard",
+        "target": "crate::adapters::local_files::viewer_source_guard::open_viewer_source_guard",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "R279",
+      "owner": "held-preview-source",
+      "dependency": {
+        "source": "rust/src/ports.rs",
+        "symbol": "crate::ports::PreviewStore::materialize",
+        "target": "std::fs::File",
+        "rule": "platform-io"
+      }
+    }
+  ]
+}

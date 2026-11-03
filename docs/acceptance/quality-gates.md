@@ -1419,6 +1419,10 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   after full compiled-inventory validation; it never starts parallel local workers.
   `quality_rust_test_partitions.ps1` owns partition membership and libtest arguments, and
   `quality_test_rust_partition_contract.ps1` covers complete, overlapping and missing membership.
+  The `other` partition includes `dependency_boundaries`: parsed domain/port/application/API
+  references, exact named composition entries, and new/stale dependency rejection against the
+  immutable native baseline. Its read-only inventory example shares the parser; neither path can
+  regenerate accepted exceptions.
 - `./tool/quality_verify_daily.ps1` is the daily gate. It runs the lint gate, Rust tests, Flutter tests, the
   controlled Windows scan integration, the native Windows accessibility integration, generated
   bridge compatibility, and whitespace validation for the complete tracked diff. With no arguments

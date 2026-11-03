@@ -322,7 +322,8 @@ the current execution queue above. R6 through R10 retain their order.
 Following R5's authorized merge, the
 [project-organization plan](plans/project-organization.md) defines the requested maintenance pass.
 Its position is before R6 implementation. The user authorized the `codex/project-organization`
-implementation branch on 2026-11-03; entry verification and independent O1 preparation are active.
+implementation branch on 2026-11-03. O1's Dart/Rust dependency inventories and checks are implemented;
+O2's platform and storage migration is next.
 Continue O1–O7 without waiting for hosted results, as explicitly directed by the user.
 Later product stages have not started.
 The separate rendering follow-up keeps its existing scope and disposition.

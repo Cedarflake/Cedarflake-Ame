@@ -1,4 +1,4 @@
-# Project organization: Dart baseline inventory
+# Project organization: dependency baseline inventory
 
 This inventory describes source revision
 [`f74146a4`](https://github.com/Cedarflake/Cedarflake-Ame/tree/f74146a4e88d72325c576504825399df109774aa).
@@ -6,6 +6,47 @@ The [execution plan](project-organization.md) owns the rollout and the
 [roadmap](../roadmap.md#project-organization-after-r5) owns its position and disposition.
 Target dependency rules remain in [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md).
 Source paths below describe that fixed baseline; target paths describe the corresponding migration.
+
+## Rust composition and boundary inventory
+
+The native inventory is fixed in
+[`legacy_rust_dependencies.json`](../../tool/dependency-boundaries/legacy_rust_dependencies.json).
+Every entry names its exact source, function/type, resolved dependency and rule, with a responsibility,
+reason, lifetime, regression owner and disposition. The mutable
+[`rust_boundary_policy.json`](../../tool/dependency-boundaries/rust_boundary_policy.json) selects
+active IDs; a resolved dependency retires its ID without rewriting the baseline.
+
+The initial inventory contains 279 edges: 26 retained composition edges, one borrowed preview-source
+capability and 252 application integration edges for O7 classification. The latter remain individual
+dependencies, not a construction exemption for their files. O7 preserves actual runtime hosts and
+extracts a port only where the named use case mixes policy with implementation. No native product
+code moves during O1.
+
+| Current named owner | Resource and lifetime | Target / review boundary |
+| --- | --- | --- |
+| `catalog_session::CatalogSessionState`, `CatalogValidationDecision`, `CatalogValidationFlight`; `CatalogValidationFlight::{wait,complete}` | Shared validated session and joined validation result per catalog path | Retain these resource hosts in `application/catalog_session.rs`; do not admit unrelated functions in that file. |
+| `catalog_session::{open_catalog,open_catalog_for_foreground_scan,open_catalog_reader}` | Lane-scoped catalog handles and a bounded read executor backed by the validated session | Retain the factory seam and foreground scan's current-session identity check. |
+| `catalog_session::{validated_catalog_session,validated_catalog_session_with,validated_catalog_session_with_exemption,refresh_stale_catalog_session,refresh_stale_catalog_session_for_scan,with_recovery_catalog_if_idle}` | Validation, stale-session replacement and idle recovery acquisition | Preserve shared waiters, scan exclusion, failure backoff and retirement. |
+| `classification_runtime::executor::{NativeEncoderResidency,FeatureResources,NativeExecutor}`; `NativeExecutor::{new,feature_resources,analyze}` | Encoder factory, residency and lazily acquired feature cache | Retain the native runtime host; analysis policy continues through its existing application collaborators and ports. |
+| `library_synchronization::production::ProductionSynchronization`, `ProductionSynchronization::validated_catalog_session`, `new_production_synchronization` | Catalog-session host, change-source factory and identity-journal factory | Preserve one production host and the existing joined shutdown. Scheduling/polling functions in the same file are individually inventoried, not covered by this admission. |
+| `ports::PreviewStore::materialize` → `std::fs::File` | Borrow of an already admitted source handle during encoding | Retain ADR 0025's held-source capability; this grants no path-opening or additional filesystem operation. |
+
+Legacy integration ownership is recorded as 53 scan, 49 preview/viewer, 89 continuity, 36
+classification, four exact-duplicate, two organization and 19 storage/read edges. Each has its exact
+source and symbol in the fixed inventory. Use those entries to choose an affected native seam during
+O7; do not turn a directory count into a bulk rewrite or a new product prerequisite.
+
+The parser checks `domain`, `ports`, `application` and `api`; adapter declarations and re-exports
+are loaded for name resolution. Test-only declarations are excluded, while all potentially enabled
+platform/feature branches remain visible. API use of the generated `StreamSink` is the existing thin
+bridge contract; domain/application use remains rejected. Generated FRB internals are not parsed.
+Imports, grouped/renamed imports, module globs, local aliases, public re-exports and explicit macro
+paths resolve to named dependencies. The Rust compiler and existing behavioral tests retain type
+inference, method dispatch and resource-lifetime verification.
+
+The gate is `rust/tests/dependency_boundaries.rs`, included by the existing Rust `other` partition.
+`cargo run --locked --manifest-path rust/Cargo.toml --example dependency_inventory` prints a read-only
+JSON report; it has no baseline update operation. Use the repository tool lock for local invocation.
 
 ## Contracts, adapters and composition
 
