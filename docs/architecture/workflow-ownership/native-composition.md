@@ -32,6 +32,18 @@ replacement stay with the resource host above, independently of worker cancellat
 retains the session and opens each bounded identity lookup in the Journal lane. Journal workers keep
 registration guards through capture; reader construction adds no validation flight or runtime owner.
 
+`library_synchronization/production/poll_catalog` owns the retained poll connection and
+`WorkerCatalogSession` binding. The latter retains the existing epoch/path check and shared proof;
+poll checkout binds that proof before worker scheduling. Its cleanup factory captures the current
+session before admission, then opens Recovery inside the worker after cancellation is checked.
+Stale proof refresh stays with the process-session owner and preserves foreground-scan protection.
+
+`PollCatalogOwner` admits one checkout, revalidates the native connection and compares proof identity
+before reuse. Its exact registered checkout, retained-resource and install/session edges own native
+resources only. Checkout drop returns the original connection after errors or unwind; explicit
+retirement closes it outside the transition lock before publishing `Retired`. Replacement must keep
+that ordering, path binding, WAL retention and worker-session lifetime.
+
 SQL, schema/row validation, database identity and connection preparation remain in the adapter.
 The host admission covers only the registered concrete session/catalog/executor references. Replacing
 persistence substitutes those proof and connection resources together, preserving shared waiters,
@@ -217,6 +229,13 @@ retains bounded acquisition, no-follow/no-recall opens and the complete namespac
 is rechecked after native acquisition; failure drops the unpublished guard. Replacement must preserve
 that ordering, source sharing restrictions and opaque bridge lifetime without exposing native handles
 or admitting an unchecked path fallback.
+
+## Synchronization source state
+
+`library_synchronization/production::new_production_source_state` selects `LocalSourceState` through
+`SourceStateProbe` at the existing root-observation point. It acquires no retained handle and performs
+metadata-only, no-recall inspection. Availability evidence and runtime projection remain Ame-owned;
+replacement changes this factory and port implementation without adding source reads or hydration.
 
 ## Indexed recovery resources
 

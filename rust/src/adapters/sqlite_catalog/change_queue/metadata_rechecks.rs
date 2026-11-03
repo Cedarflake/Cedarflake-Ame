@@ -180,18 +180,4 @@ impl SqliteCatalog {
         transaction.commit().map_err(database_error)?;
         Ok(admitted)
     }
-
-    pub(crate) fn roots_with_pending_metadata(&self) -> Result<Vec<String>, ScanError> {
-        let mut statement = self.connection.prepare_cached(
-            "SELECT library.id FROM library_roots AS library
-             JOIN library_change_root_state AS root ON root.root_id = library.id AND root.is_active = 1
-             WHERE EXISTS (SELECT 1 FROM asset_locations INDEXED BY asset_locations_pending_metadata
-                WHERE root_id = library.id AND scan_id = library.active_scan_id
-                  AND metadata_engine_id = 'ame-invalidated-media-metadata')",
-        ).map_err(database_error)?;
-        let rows = statement
-            .query_map([], |row| row.get(0))
-            .map_err(database_error)?;
-        rows.collect::<Result<Vec<_>, _>>().map_err(database_error)
-    }
 }

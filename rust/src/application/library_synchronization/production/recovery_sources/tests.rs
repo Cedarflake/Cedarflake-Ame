@@ -76,7 +76,7 @@ fn metadata_inventory_catalog_validation_failure_preserves_retained_change_owner
         crate::ports::erase_library_change_source_factory(HealthyFactory),
         test_live_only_connection(),
     );
-    production.catalog_session = Some(Arc::new(
+    production.catalog_session.bind(Arc::new(
         SqliteCatalogSession::validate(catalog_path.clone()).expect("validated catalog session"),
     ));
     let change_id = LibraryChangeId::new(41).expect("fixture change ID");

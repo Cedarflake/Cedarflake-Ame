@@ -32,7 +32,7 @@ fn newer_continuity_revision_cancels_an_older_automatic_worker() {
         runtime: LibrarySynchronizationRuntime::new_erased(
             crate::ports::erase_library_change_source_factory(HealthyFactory),
         ),
-        catalog_session: None,
+        catalog_session: WorkerCatalogSession::default(),
         poll_catalog: PollCatalogOwner::default(),
         persistent_change_journal_factory: None,
         _persistent_change_journal: test_live_only_connection(),
@@ -114,7 +114,7 @@ fn bounded_authoritative_success_clears_only_its_root_retry_history() {
     let factory = crate::adapters::production_library_change_source_factory();
     let mut production = ProductionSynchronization {
         runtime: LibrarySynchronizationRuntime::new_erased(factory),
-        catalog_session: None,
+        catalog_session: WorkerCatalogSession::default(),
         poll_catalog: PollCatalogOwner::default(),
         persistent_change_journal_factory: None,
         _persistent_change_journal: test_live_only_connection(),

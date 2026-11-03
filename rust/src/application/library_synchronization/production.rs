@@ -21,10 +21,9 @@ use std::time::{Duration, Instant};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[cfg(windows)]
-use crate::adapters::{
-    SqliteCatalog, SqliteCatalogSession, inspect_root_availability,
-    production_library_change_source_factory,
-};
+use crate::adapters::{SqliteCatalog, production_library_change_source_factory};
+#[cfg(all(test, windows))]
+use crate::adapters::{SqliteCatalogSession, inspect_root_availability};
 #[cfg(all(test, windows))]
 use crate::domain::{IncrementalLibraryChangeReport, LibraryChangeId, LibrarySynchronizationPhase};
 #[cfg(all(test, windows))]
@@ -71,6 +70,8 @@ use crate::ports::journal_baseline::JournalBaselineAdmission;
 use crate::ports::journal_recovery::JournalRecoveryRepository;
 #[cfg(windows)]
 use crate::ports::scan_admission::FirstImportReadiness;
+#[cfg(windows)]
+use crate::ports::source_state::SourceStateProbe;
 #[cfg(windows)]
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeReadiness,
@@ -150,7 +151,7 @@ use live_work::LiveTask;
 use live_work::LiveWorkOutcome;
 
 #[cfg(windows)]
-use poll_catalog::PollCatalogOwner;
+use poll_catalog::{PollCatalogOwner, WorkerCatalogSession};
 
 #[cfg(windows)]
 use inventory_cleanup::InventoryCleanupOwner;
@@ -275,7 +276,7 @@ struct ProductionSynchronization {
     runtime: LibrarySynchronizationRuntime<
         <SqliteCatalog as crate::ports::LibraryChangeIngress>::Reservation,
     >,
-    catalog_session: Option<Arc<SqliteCatalogSession>>,
+    catalog_session: WorkerCatalogSession,
     poll_catalog: PollCatalogOwner,
     persistent_change_journal_factory: Option<Arc<dyn PersistentChangeJournal>>,
     _persistent_change_journal: PersistentChangeJournalConnection,
@@ -481,7 +482,7 @@ fn poll_runtime_with_storage_inner(
     let catalog_timer = ElapsedStageTimer::new(&mut timings.catalog_ms);
     let mut poll_unix_ms = now_unix_ms()?;
     let mut checkout = runtime.poll_catalog.checkout(&storage.catalog_path)?;
-    runtime.catalog_session = Some(checkout.session());
+    runtime.catalog_session.bind(checkout.session());
     let catalog = &mut *checkout;
     catalog.enqueue_media_admission_rechecks(poll_unix_ms, runtime.runtime.queue_policy())?;
     catalog.enqueue_metadata_rechecks(poll_unix_ms, runtime.runtime.queue_policy())?;
@@ -503,7 +504,9 @@ fn poll_runtime_with_storage_inner(
             poll_unix_ms,
             |root_path| {
                 measure_observation("root_availability", || {
-                    inspect_root_availability(root_path).availability
+                    new_production_source_state()
+                        .inspect_root(root_path)
+                        .availability
                 })
             },
             false,
@@ -568,16 +571,7 @@ fn poll_runtime_with_storage_inner(
     admissions.append_dormant_statuses(&mut snapshot);
     drop(projection_timer);
     runtime.inventory_cleanup.poll(
-        runtime
-            .catalog_session
-            .as_ref()
-            .ok_or_else(|| {
-                ScanError::new(
-                    "metadata_inventory_cleanup_session_missing",
-                    "The runtime lost its validated catalog before scheduling cleanup",
-                )
-            })?
-            .clone(),
+        runtime.catalog_session.cleanup_connection()?,
         Arc::clone(&runtime.stop_requested),
     )?;
     runtime.root_location.poll(
@@ -596,6 +590,11 @@ fn poll_runtime_with_storage_inner(
 }
 
 #[cfg(windows)]
+fn new_production_source_state() -> impl crate::ports::source_state::SourceStateProbe {
+    crate::adapters::LocalSourceState
+}
+
+#[cfg(windows)]
 fn new_production_synchronization() -> ProductionSynchronization {
     let factory = crate::adapters::production_identity_journal_factory();
     new_production_synchronization_with_factory(production_library_change_source_factory(), factory)
@@ -608,7 +607,7 @@ fn new_production_synchronization_with_factory(
 ) -> ProductionSynchronization {
     ProductionSynchronization {
         runtime: LibrarySynchronizationRuntime::new_production(start_source),
-        catalog_session: None,
+        catalog_session: WorkerCatalogSession::default(),
         poll_catalog: PollCatalogOwner::default(),
         persistent_change_journal_factory: Some(factory),
         _persistent_change_journal: PersistentChangeJournalConnection::LiveOnly(
@@ -646,7 +645,7 @@ fn new_production_synchronization_with_connection(
 ) -> ProductionSynchronization {
     ProductionSynchronization {
         runtime: LibrarySynchronizationRuntime::new_production(start_source),
-        catalog_session: None,
+        catalog_session: WorkerCatalogSession::default(),
         poll_catalog: PollCatalogOwner::default(),
         persistent_change_journal_factory: None,
         _persistent_change_journal: persistent_change_journal,
@@ -677,24 +676,6 @@ fn new_production_synchronization_with_connection(
 
 #[cfg(windows)]
 impl ProductionSynchronization {
-    fn validated_catalog_session(
-        &mut self,
-        catalog_path: &std::path::Path,
-    ) -> Result<Arc<SqliteCatalogSession>, ScanError> {
-        if let Some(session) = &self.catalog_session {
-            if session.path() != catalog_path {
-                return Err(ScanError::new(
-                    "library_synchronization_catalog_changed",
-                    "The production runtime cannot switch catalogs within one epoch",
-                ));
-            }
-            return Ok(session.clone());
-        }
-        let session = crate::application::catalog_session::validated_catalog_session(catalog_path)?;
-        self.catalog_session = Some(Arc::clone(&session));
-        Ok(session)
-    }
-
     fn project_persistent_journal_continuity(
         &mut self,
         catalog: &(impl MetadataInventoryRepository + PersistentJournalRepository),
@@ -1040,7 +1021,7 @@ impl ProductionSynchronization {
                 "Another P0 live worker already owns the reserved slot",
             ));
         }
-        let catalog_session = self.validated_catalog_session(&catalog_path)?;
+        let catalog_session = self.catalog_session.validated(&catalog_path)?;
         self.live = Some(LiveTask::start(
             catalog_session,
             root_id,
@@ -1162,7 +1143,7 @@ impl ProductionSynchronization {
         else {
             return Ok(());
         };
-        let catalog_session = self.validated_catalog_session(&storage.catalog_path)?;
+        let catalog_session = self.catalog_session.validated(&storage.catalog_path)?;
         self.journal = Some(JournalTask::start(
             work,
             catalog_session,
@@ -1288,7 +1269,7 @@ impl ProductionSynchronization {
                 "Another authoritative recovery already owns the worker slot",
             ));
         }
-        let catalog_session = self.validated_catalog_session(&catalog_path)?;
+        let catalog_session = self.catalog_session.validated(&catalog_path)?;
         let prepared_lease = leased.clone();
         self.recovery = Some(recovery_work::start_automatic(
             root,
@@ -1322,7 +1303,7 @@ impl ProductionSynchronization {
                 "Another recovery page already owns the P2 worker slot",
             ));
         }
-        let catalog_session = self.validated_catalog_session(&catalog_path)?;
+        let catalog_session = self.catalog_session.validated(&catalog_path)?;
         self.recovery = Some(recovery_work::start_candidates(
             RecoveryWorkRoot {
                 root_id,
@@ -1350,7 +1331,7 @@ impl ProductionSynchronization {
                 "Another recovery page already owns the P2 worker slot",
             ));
         }
-        let catalog_session = self.validated_catalog_session(&catalog_path)?;
+        let catalog_session = self.catalog_session.validated(&catalog_path)?;
         self.recovery = Some(recovery_work::start_legacy_unowned(
             RecoveryWorkRoot {
                 root_id,

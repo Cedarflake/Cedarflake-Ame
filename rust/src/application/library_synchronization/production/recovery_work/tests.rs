@@ -18,7 +18,7 @@ fn stopping_bounded_recovery_signals_and_joins_the_background_worker() {
     });
     let mut production = ProductionSynchronization {
         runtime: LibrarySynchronizationRuntime::new_erased(factory),
-        catalog_session: None,
+        catalog_session: WorkerCatalogSession::default(),
         poll_catalog: PollCatalogOwner::default(),
         persistent_change_journal_factory: None,
         _persistent_change_journal: test_live_only_connection(),
@@ -77,7 +77,7 @@ fn recovery_stop_timeout_retains_worker_ownership_until_a_later_join() {
     });
     let mut production = ProductionSynchronization {
         runtime: LibrarySynchronizationRuntime::new_erased(factory),
-        catalog_session: None,
+        catalog_session: WorkerCatalogSession::default(),
         poll_catalog: PollCatalogOwner::default(),
         persistent_change_journal_factory: None,
         _persistent_change_journal: test_live_only_connection(),

@@ -1,18 +1,8 @@
 {
   "activeIds": [
     "R109",
-    "R110",
-    "R114",
     "R115",
     "R116",
-    "R117",
-    "R123",
-    "R144",
-    "R145",
-    "R146",
-    "R147",
-    "R148",
-    "R149",
     "R172",
     "R249"
   ],
@@ -241,6 +231,31 @@
         "rust/src/adapters/sqlite_catalog/root_location_recovery/tests.rs",
         "rust/src/application/library_synchronization/production/root_location/tests.rs",
         "rust/src/application/library_synchronization/production/tests/root_location_recovery.rs"
+      ]
+    },
+    "synchronization-catalog-resources": {
+      "responsibility": "Bind the validated worker session and own the retained poll connection and cleanup connection factory",
+      "reason": "The named resource owners acquire and retire native proof/connections; scheduling, cleanup and status projection consume persistence ports.",
+      "lifetime": "One path-bound poll connection is checked out at a time; worker factories retain the existing shared proof, refresh through the scan-protected owner and close outside transition locks.",
+      "replacement": "Replace these session and connection resources together while preserving epoch binding, proof identity, worker handoff, retained WAL and joined retirement.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#validated-catalog-session",
+      "coverage": [
+        "rust/src/application/library_synchronization/production/poll_catalog/tests.rs",
+        "rust/src/application/library_synchronization/production/runtime_lifecycle/tests/poll_catalog.rs",
+        "rust/src/application/library_synchronization/production/inventory_cleanup/tests.rs",
+        "rust/src/application/library_synchronization/production/inventory_cleanup/tests/production_debt.rs",
+        "rust/src/application/library_synchronization/production/recovery_sources/tests.rs"
+      ]
+    },
+    "synchronization-source-state-composition": {
+      "responsibility": "Select the metadata-only root-availability probe through SourceStateProbe",
+      "reason": "Only the named factory chooses LocalSourceState; the synchronization runtime consumes Ame availability evidence.",
+      "lifetime": "The stateless probe is selected at the existing root observation point and retains no source handle or content reader.",
+      "replacement": "Replace the probe through SourceStateProbe while preserving no-recall metadata inspection and existing availability projection.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#synchronization-source-state",
+      "coverage": [
+        "rust/src/application/library_synchronization/production/tests/root_availability.rs",
+        "rust/src/adapters/local_files.rs"
       ]
     }
   },
@@ -872,6 +887,106 @@
         "source": "rust/src/application/library_synchronization/production/root_location.rs",
         "symbol": "crate::application::library_synchronization::production::root_location::new_production_root_location_recovery",
         "target": "crate::adapters::local_files::root_location::locate_library_root",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "poll-catalog-checkout",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::PollCatalogCheckout",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "poll-catalog-install",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::PollCatalogCheckout::install",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "poll-catalog-session",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::PollCatalogCheckout::session",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "poll-retained-catalog",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::RetainedCatalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "poll-retained-proof",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::RetainedCatalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "sync-worker-catalog-proof",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::WorkerCatalogSession",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "sync-worker-catalog-binding",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::WorkerCatalogSession::bind",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "sync-worker-catalog-acquisition",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::WorkerCatalogSession::validated",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "sync-inventory-cleanup-factory",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::WorkerCatalogSession::cleanup_connection",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "synchronization-source-state-factory",
+      "owner": "synchronization-source-state-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::new_production_source_state",
+        "target": "crate::adapters::local_source_state::LocalSourceState",
         "rule": "concrete-adapter"
       }
     }

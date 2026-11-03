@@ -556,7 +556,7 @@ fn p2_page_completion_rotates_to_another_root_and_retains_each_frontier() {
         runtime: LibrarySynchronizationRuntime::new_erased(
             crate::ports::erase_library_change_source_factory(HealthyFactory),
         ),
-        catalog_session: None,
+        catalog_session: WorkerCatalogSession::default(),
         poll_catalog: PollCatalogOwner::default(),
         persistent_change_journal_factory: None,
         _persistent_change_journal: test_live_only_connection(),

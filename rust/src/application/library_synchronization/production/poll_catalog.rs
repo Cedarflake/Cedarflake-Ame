@@ -10,6 +10,61 @@ use crate::domain::{LibraryChangeLane, ScanError};
 
 use super::super::observation_diagnostics::measure_observation;
 
+#[derive(Default)]
+pub(super) struct WorkerCatalogSession {
+    retained: Option<Arc<SqliteCatalogSession>>,
+}
+
+impl WorkerCatalogSession {
+    pub(super) fn bind(&mut self, session: Arc<SqliteCatalogSession>) {
+        self.retained = Some(session);
+    }
+
+    pub(super) fn validated(
+        &mut self,
+        catalog_path: &Path,
+    ) -> Result<Arc<SqliteCatalogSession>, ScanError> {
+        if let Some(session) = &self.retained {
+            if session.path() != catalog_path {
+                return Err(ScanError::new(
+                    "library_synchronization_catalog_changed",
+                    "The production runtime cannot switch catalogs within one epoch",
+                ));
+            }
+            return Ok(session.clone());
+        }
+        let session = validated_catalog_session(catalog_path)?;
+        self.retained = Some(Arc::clone(&session));
+        Ok(session)
+    }
+
+    pub(super) fn cleanup_connection(
+        &self,
+    ) -> Result<impl Fn() -> Result<SqliteCatalog, ScanError> + Send + 'static + use<>, ScanError>
+    {
+        let session = self
+            .retained
+            .as_ref()
+            .ok_or_else(|| {
+                ScanError::new(
+                    "metadata_inventory_cleanup_session_missing",
+                    "The runtime lost its validated catalog before scheduling cleanup",
+                )
+            })?
+            .clone();
+        Ok(
+            move || match session.open_in_lane(LibraryChangeLane::Recovery) {
+                Ok(catalog) => Ok(catalog),
+                Err(error) if error.code == "catalog_validated_session_stale" => {
+                    refresh_stale_catalog_session(session.path(), &session)?
+                        .open_in_lane(LibraryChangeLane::Recovery)
+                }
+                Err(error) => Err(error),
+            },
+        )
+    }
+}
+
 #[derive(Clone, Default)]
 pub(super) struct PollCatalogOwner {
     slot: Arc<Mutex<PollCatalogState>>,

@@ -1,7 +1,9 @@
 use crate::domain::{LibraryChangeQueuePolicy, LibraryRootGeneration, ScanError};
 
-/// Read-only scheduling hints; lease admission revalidates authority in its own transaction.
+/// Read-only scheduling and status hints; lease admission revalidates authority in its transaction.
 pub(crate) trait LibraryChangeReadiness {
+    fn roots_with_pending_metadata(&self) -> Result<Vec<String>, ScanError>;
+
     fn journal_admission_has_headroom(
         &self,
         root_id: &str,

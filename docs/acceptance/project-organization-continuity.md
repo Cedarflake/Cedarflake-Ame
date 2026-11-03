@@ -204,3 +204,30 @@ Formatting reports 794 files unchanged; both scratch leases retire.
 The production coordinator has 1,677 source lines including conditional fixture helpers, no inline
 cases and 934 primary dedicated-fixture lines. Catalog scheduling has 120 source lines and automatic
 recovery has 264, including its existing conditional thread-start failure helper.
+
+## Poll resources and availability — 2026-11-04
+
+Against `6a6ee2f5`, `poll_catalog::WorkerCatalogSession` owns the cached worker proof, path validation
+and deferred cleanup connection factory. Cleanup consumes `MetadataInventoryRepository`; its factory
+remains alive through connection retirement to retain the original shared proof. Root observation
+uses `SourceStateProbe`, and pending-metadata projection uses `LibraryChangeReadiness`.
+
+Comparison preserves the pending query/projection, complete retained poll host, cached acquisition and
+six worker bodies apart from the declared binding/factory calls. Five coordinator/use-case edges migrate; five
+existing poll-resource edges receive exact technical registrations with their lifetime and replacement
+contract. The frozen inventory retains five migration entries, with 73 technical edges. Both original
+inventories remain unchanged. Existing fixtures change only their session binding; no tests or
+assertions are added or removed.
+
+All 48 existing checks pass: 24 connection reuse/replacement, close/deadline, cleanup, retained-source,
+metadata-status and root-availability cases, plus 24 dependency cases. Test and production builds
+emit no warnings. Formatting reports 794 files unchanged and the scratch lease retires.
+
+The coordinator has 1,658 source/934 primary dedicated-fixture lines; poll resources have 301 source/
+127 dedicated-test lines and cleanup has 189 source/207 primary dedicated-test lines. These source
+counts include conditional helpers and contain no inline test cases. The native readiness owner has
+631 source lines; metadata rechecks retain 183 after their unchanged projection query moves.
+
+Poll preflight still calls inherent `enqueue_media_admission_rechecks`, `enqueue_metadata_rechecks`
+and `retire_legacy_automatic_full_scans` through an inferred native handle. These calls need persistence
+contracts in the remaining O7 work; the explicit-type inventory does not cover that dependency path.

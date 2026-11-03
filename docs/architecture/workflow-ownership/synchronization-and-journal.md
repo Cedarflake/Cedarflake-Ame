@@ -105,8 +105,11 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   `write_admission.rs` retains ordering independently from an active permit. Production
   `catalog_scheduling.rs` consumes the readiness, admission and dispatch ports for synchronous
   follow-up writes and prevents same-poll self-waiting behind any retained ingress reservation.
-  Worker retirement and status projection remain outside
-  that write-admission boundary.
+  Worker retirement and status projection remain outside that write-admission boundary.
+  `poll_catalog::WorkerCatalogSession` owns the cached worker proof and deferred cleanup connection
+  factory under the [catalog resource contract](native-composition.md#validated-catalog-session).
+  `inventory_cleanup` consumes that factory and `MetadataInventoryRepository`, retaining its existing
+  pre/post-acquisition cancellation checks, idle delay, contention backoff and joined retirement.
 - `sqlite_catalog/persistent_journal.rs` remains the journal facade. Root-unregistration lineage and
   cleanup live in `persistent_journal/root_unregister.rs` so removal cannot accidentally discard a
   surviving root's cross-root rename evidence.
@@ -122,8 +125,8 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   transaction and `migrations/retired_root_authority.rs` share the same strict durable proof;
   compatibility repair preserves history, validates the complete catalog, and rolls back on failure.
 - `sqlite_catalog/change_queue/readiness.rs` implements `ports/LibraryChangeReadiness` for read-only
-  lane eligibility, recovery readiness and journal headroom. Its typed query context binds root,
-  generation, time and policy while preserving
+  lane eligibility, recovery readiness, pending-metadata status and journal headroom. Its typed query
+  context binds root, generation, time and policy while preserving
   the original input-validation requirements of each operation. Eligibility filters exclude
   terminal queue history before evaluating due work; retry, expired-lease, recovery-affinity and lineage checks remain part of
   their original query. Readiness is a scheduling hint, never a replacement for transactional
