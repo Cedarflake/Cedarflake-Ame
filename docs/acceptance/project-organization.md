@@ -530,3 +530,22 @@ Storage has 445 production lines plus six test-import/declaration lines, with 57
 dedicated fixture file. Configuration update remains 72 lines; factories have 44, the cache adapter
 49 and its port eight. Path display has 18 production and 20 inline-test lines. Other affected large
 workflow owners change only imports; source access, schema, bridge and cache formats are unchanged.
+
+## O7 Classification execution composition — 2026-11-03
+
+R026, R055, R061–R067 become nine exact source-entrypoint and runtime-resource registrations under
+the [native composition contract](../architecture/workflow-ownership/native-composition.md#classification-execution-resources).
+The native host owns its catalog, feature cache and encoder factory; application use cases retain
+publication and cancellation through existing ports. Shared admission, lazy initialization, source
+retirement and blocked replacement after unproven shutdown retain their original owners.
+
+Every registered dependency matches its original source/symbol/target. Implementation and regression
+files compare unchanged to `cc060176`. The roster now has 223 legacy entries and 35 exact
+technical edges; the fixed baseline is unchanged. Discovery, configuration and installation remain
+separate migration work, with no neighboring-file exemption.
+
+All 49 focused checks pass: seven runtime/ownership cases, nine encoder-residency cases, six analysis
+and six source-verification cases, one admission/retirement case and 20 dependency checks. They
+retain source-release ordering, cancelled/stale-result rejection, checkpoint rollback, cache reuse
+after failed publication and blocked replacement after incomplete shutdown. Both builds emit no
+warnings and leased scratch cleanup succeeds; no model download or user-library read is involved.

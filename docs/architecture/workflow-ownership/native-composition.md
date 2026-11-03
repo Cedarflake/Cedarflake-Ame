@@ -60,6 +60,26 @@ or acquiring a second process-wide configuration owner.
 scan events and diagnostics. It has no filesystem or platform dependency and grants no access
 authority; stored access paths remain intact. Its existing string contract needs no adapter port.
 
+## Classification execution resources
+
+`NativeClassificationRuntime` owns one dispatcher, its catalog connection, executor and process
+ownership token. `NativeExecutor` and its registered residency/resource types own the feature cache,
+prepared matcher and native encoder factory. Cache acquisition is lazy; constructing the runtime
+does not start an encoder. The existing [residency contract](../0034-versioned-classification-contracts.md#worker-ownership-and-protocol)
+owns demand loading, cancellation, idle retirement and replacement. Closing the host retires the
+executor before releasing process ownership; unproven retirement prevents another runtime.
+
+`analyze_classification_content` and `verify_classification_source` are source-resource entrypoints:
+they select the guarded image or exact reader and the existing catalog/background admission, then
+invoke use cases through Ame ports. The [dispatch contract](../0036-durable-classification-dispatch.md#durable-execution-and-compatibility)
+owns acquisition order and publication. Held source/namespace leases outlive publication or rollback;
+text work retains its separate per-request admission without double-admitting image execution.
+
+Replacing the native selections preserves those lifetimes and the existing use-case contracts.
+SQL, inference protocols and engine types remain outside domain/ports/bridge. Only the registered
+construction, host-state and borrowed-resource edges are admitted; configuration, discovery and
+installation receive no neighboring-file exemption.
+
 ## Catalog reclamation resources
 
 `catalog_reclamation/production.rs::{maintenance,capacity}` select the existing SQLite maintenance

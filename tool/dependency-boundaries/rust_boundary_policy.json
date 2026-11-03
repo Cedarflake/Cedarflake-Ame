@@ -3,7 +3,6 @@
     "R001",
     "R002",
     "R003",
-    "R026",
     "R027",
     "R028",
     "R029",
@@ -32,19 +31,11 @@
     "R052",
     "R053",
     "R054",
-    "R055",
     "R056",
     "R057",
     "R058",
     "R059",
     "R060",
-    "R061",
-    "R062",
-    "R063",
-    "R064",
-    "R065",
-    "R066",
-    "R067",
     "R072",
     "R073",
     "R074",
@@ -313,6 +304,30 @@
         "rust/src/application/storage/tests/activation_tests.rs",
         "rust/src/application/storage/catalog_admission/tests.rs"
       ]
+    },
+    "classification-execution-composition": {
+      "responsibility": "Own the native dispatcher, lazily acquired feature cache and encoder residency resources",
+      "reason": "These exact host types and acquisition methods connect the existing repository, encoder and execution ports without owning SQL or native inference protocols.",
+      "lifetime": "One process runtime retains its catalog and executor; feature/matcher acquisition is lazy, borrowed resources stay inside that host, and failed retirement prevents replacement.",
+      "replacement": "Replace the host concrete resource types and native factory together while retaining dispatcher, feature, encoder, source and retirement contracts.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#classification-execution-resources",
+      "coverage": [
+        "rust/src/application/classification_runtime/ownership.rs",
+        "rust/src/application/classification_runtime/tests.rs",
+        "rust/src/application/classification_residency/tests.rs"
+      ]
+    },
+    "classification-source-composition": {
+      "responsibility": "Select guarded image and exact-content readers under the shared background admission",
+      "reason": "These entrypoints acquire native resources and delegate analysis/verification to existing Ame repository and source-reader ports.",
+      "lifetime": "Content admission precedes catalog acquisition and outlives source retirement; exact-reader leases retain admission and namespace handles through publication or rollback.",
+      "replacement": "Replace the selected guarded readers through ClassificationImageReader and ExactContentReader while preserving claim revalidation, source retirement and shared admission.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#classification-execution-resources",
+      "coverage": [
+        "rust/src/adapters/sqlite_catalog/classification/tests/work/analysis.rs",
+        "rust/src/adapters/sqlite_catalog/classification/tests/work/verification.rs",
+        "rust/src/application/background_analysis/exact_reader/tests.rs"
+      ]
     }
   },
   "retained": [
@@ -574,6 +589,96 @@
         "symbol": "crate::application::storage::production::default_storage",
         "target": "directories::ProjectDirs::from",
         "rule": "external-engine"
+      }
+    },
+    {
+      "id": "classification-source-image",
+      "owner": "classification-source-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_analysis.rs",
+        "symbol": "crate::application::classification_analysis::analyze_classification_content",
+        "target": "crate::adapters::classification_image_input::GuardedClassificationImageReader",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-source-fingerprint",
+      "owner": "classification-source-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_verification.rs",
+        "symbol": "crate::application::classification_verification::verify_classification_source",
+        "target": "crate::adapters::exact_content_reader::GuardedExactContentReader",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-runtime-host",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime.rs",
+        "symbol": "crate::application::classification_runtime::NativeClassificationRuntime",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-feature-resources",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::FeatureResources",
+        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-encoder-residency",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeEncoderResidency",
+        "target": "crate::adapters::classification_runtime::factory::LocalClassificationEncoderFactory",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-executor-host",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor",
+        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-executor-analysis-acquisition",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::analyze",
+        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-feature-acquisition",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::feature_resources",
+        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-executor-construction",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::new",
+        "target": "crate::adapters::classification_runtime::factory::LocalClassificationEncoderFactory",
+        "rule": "concrete-adapter"
       }
     }
   ]
