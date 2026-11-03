@@ -6,8 +6,8 @@ Date: 2026-09-22. Baseline: `c3586612cf6bd0857bc393779a6801364935f762`.
 
 This record traces contract organization and its checks. The [roadmap](../roadmap.md) owns current
 delivery. The sections through Instruction discovery and verification describe the 2026-09-22
-checkpoint, including its then-active R2c scope and unresolved observations. Current routing and
-loading evidence are in the [2026-10-17 checkpoint](#2026-10-17-scoped-rule-routing).
+checkpoint, including its then-active R2c scope and unresolved observations. Subsequent sections
+record later routing and loading checks.
 
 ## Ownership and retained clauses
 
@@ -141,3 +141,12 @@ moved owner. Local document paths, fragments, UTF-8/LF and diff whitespace pass.
 routes cover ordinary delivery, local Flutter execution, UI feedback, native scan ownership and
 current maintenance. The largest new scoped file is 304 lines; no product build or acceptance replay
 is part of this document change. Historical test results retain their revision and scope.
+
+## Test-design standard routing — 2026-11-04
+
+The [test-design standard](../development/testing.md) owns additions, assertions, fixture fidelity
+and pruning. Root contract section 12, the documentation and quality indexes, and the verification
+workflow route to it; O7 references its pruning criteria instead of maintaining another rule list.
+The six affected contract/design/plan documents pass UTF-8/LF checks and 85 local link/anchor checks.
+This documentation-only change preserves required check categories and execution ownership; it adds
+no automatic suite, mutation-testing campaign or product-acceptance claim.

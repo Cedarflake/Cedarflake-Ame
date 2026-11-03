@@ -11,6 +11,7 @@ repository contract within their stated scope; moving them does not change requi
 | Task or section | Read |
 | --- | --- |
 | Gate selection and common admission | [Gate matrix and admission](quality/gate-selection.md) |
+| Test design, assertions and consolidation | [Test design and maintenance](../development/testing.md) |
 | <a id="delivery-and-verification"></a> <a id="verification-ownership"></a> <a id="required-engineering-workflow"></a> <a id="human-readable-implementation"></a> <a id="reviewability-and-behavior-preserving-changes"></a>Delivery, implementation and review | [Delivery, implementation and review](quality/verification-workflow.md) |
 | <a id="execution-scope-and-storage"></a> <a id="local-flutter-toolchain"></a>Execution scope, storage and local toolchain | [Execution scope, storage and local toolchain](quality/execution-safety.md) |
 | <a id="ui-workflow-verification"></a>UI workflow verification map | [UI workflow verification map](quality/ui-verification.md) |

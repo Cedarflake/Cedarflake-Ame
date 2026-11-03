@@ -10,6 +10,8 @@ execution safeguards; the roadmap owns current delivery order and acceptance sta
 These requirements continue the [repository contract](../../../AGENTS.md#12-testing-and-verification).
 Read the applicable workflow and command definitions before selecting or changing verification.
 Gate execution and client checks retain the ownership below.
+Test additions, replacements and removals follow the
+[test-design standard](../../development/testing.md); select evidence before expanding a suite.
 
 ### Verification ownership
 

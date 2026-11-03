@@ -272,6 +272,8 @@ For new/materially changed source, tests, SQL, workflows and diagnostics, follow
 
 Before selecting, changing or running checks, follow [delivery and verification](docs/acceptance/quality/verification-workflow.md#delivery-and-verification).
 It owns mandatory test categories, local/hosted execution, source-safe acceptance and reporting.
+Before adding, changing or removing tests, read the [test-design standard](docs/development/testing.md)
+for test value, assertion strength, fixtures and consolidation.
 
 ### 12.1 Repository quality commands
 

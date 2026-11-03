@@ -150,12 +150,8 @@ tests with their owners and update live documentation/tool links; historical evi
 revision and is not rewritten as a current path map. Check that new feature examples can follow the
 target without importing implementation details or reviving a retired entrypoint.
 
-Consolidate low-value tests before handover. Remove obsolete cases, assertions coupled only to
-implementation structure and duplicate coverage without a distinct behavior or failure boundary.
-Merge overlapping cases under their owning invariant. Identify the remaining coverage before each
-removal, retain independently meaningful source-safety, cancellation, concurrency, transaction and
-recovery cases, and verify the affected suite. Record the coverage rationale and actual reductions
-in acceptance evidence; a lower test count alone is not the exit condition.
+Complete the [test-value review](../development/testing.md#maintaining-and-pruning-tests) before
+handover. Record retained behavior coverage and actual reductions in the acceptance evidence.
 
 Exit: all target boundaries are covered, remaining exceptions are explicitly accepted technical
 exceptions rather than unfinished migration, and applicable submitted-commit CI and client checks
