@@ -71,10 +71,9 @@ use windows_sys::Win32::System::IO::IO_STATUS_BLOCK;
 use windows_sys::Win32::System::SystemServices::FILE_CS_FLAG_CASE_SENSITIVE_DIR;
 
 use crate::domain::{
-    DiscoveredFile, ExpectedFileState, FileIdentityEvidence, FileVisit, FileVisitOutcome,
-    LibraryRootAvailability, MediaInspection, MetadataInventoryEntry, MetadataInventoryEntryKind,
-    MetadataInventoryPlaceholderState, RootAvailabilityEvidence, ScanError, ScanIssue,
-    SourceRevisionEvidence,
+    ExpectedFileState, FileIdentityEvidence, FileVisit, FileVisitOutcome, LibraryRootAvailability,
+    MetadataInventoryEntry, MetadataInventoryEntryKind, MetadataInventoryPlaceholderState,
+    RootAvailabilityEvidence, ScanError, ScanIssue, SourceRevisionEvidence,
 };
 
 mod catalog_identity;
@@ -547,14 +546,6 @@ impl PublicationGuardedFileDiscovery {
 
     pub(crate) fn visit_relative_path(&self, relative_path: &str) -> FileVisit {
         self.discovery.visit_relative_path(relative_path)
-    }
-
-    pub(crate) fn inspect_media(
-        &self,
-        inspector: &super::media_inspector::LocalMediaInspector,
-        file: &DiscoveredFile,
-    ) -> Result<MediaInspection, crate::ports::MediaInspectionFailure> {
-        inspector.inspect_with_discovery(&self.discovery, file)
     }
 
     pub(crate) fn revalidate_relative_file_state(

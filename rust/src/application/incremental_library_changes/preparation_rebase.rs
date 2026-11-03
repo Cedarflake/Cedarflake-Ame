@@ -1,8 +1,9 @@
 use std::sync::atomic::AtomicBool;
 
-use crate::adapters::{LocalMediaInspector, PublicationGuardedFileDiscovery};
 use crate::domain::{IncrementalCatalogRoot, LeasedLibraryChange, LibraryChangeFailure};
 use crate::ports::IncrementalCatalogRepository;
+use crate::ports::media_inspection::GuardedMediaInspector;
+use crate::ports::source_publication::PublicationFileSource;
 
 use super::preparation_catalog::{PreparationCatalog, PreparationReadSet};
 use super::{
@@ -27,8 +28,8 @@ pub(super) enum RebasedPreparation {
 
 pub(super) fn refresh_preparation(
     repository: &impl IncrementalCatalogRepository,
-    discovery: &PublicationGuardedFileDiscovery,
-    inspector: &LocalMediaInspector,
+    discovery: &impl PublicationFileSource,
+    inspector: &impl GuardedMediaInspector,
     prepared: Vec<PreparedChange>,
     reads: PreparationReadSet,
     context: RebaseContext<'_>,
@@ -74,7 +75,7 @@ pub(super) fn refresh_preparation(
 
 pub(super) fn preparation_is_current(
     repository: &impl IncrementalCatalogRepository,
-    discovery: &PublicationGuardedFileDiscovery,
+    discovery: &impl PublicationFileSource,
     prepared: &[PreparedChange],
     reads: &PreparationReadSet,
     context: &RebaseContext<'_>,

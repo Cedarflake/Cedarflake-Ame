@@ -1,17 +1,17 @@
 use std::sync::atomic::AtomicBool;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::adapters::PublicationGuardedFileDiscovery;
 use crate::domain::{
     AssetLocationView, IncrementalLibraryChangeReport, LibraryChangeLane, LibraryChangeQueuePolicy,
     LibraryRootGeneration, PreviewRequest, ScanError, ScanIssue,
 };
+use crate::ports::source_publication::PublicationNamespaceFactory;
 use crate::ports::{
     IncrementalCatalogRepository, SourceReconciliationAdmission, SourceReconciliationRepository,
 };
 
 use super::super::incremental_library_changes::{
-    AuthoritativePathSetContext, process_authoritative_path_set,
+    AuthoritativePathSetContext, process_authoritative_path_set, production,
 };
 use super::super::{StoragePaths, catalog_session};
 mod path_plan;
@@ -108,10 +108,7 @@ fn reconcile_source(
     let Some(identity) = root.publication_root_identity.as_ref() else {
         return Ok(SourceReconciliationOutcome::Unresolved);
     };
-    let discovery = PublicationGuardedFileDiscovery::new_incremental_publication_guard(
-        &root.root_path,
-        identity,
-    )?;
+    let discovery = production::publication_namespaces().open(&root.root_path, Some(identity))?;
     let paths = ReconciliationPaths::discover(&root, location, issue)?;
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)

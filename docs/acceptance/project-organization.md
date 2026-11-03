@@ -4,6 +4,9 @@ The [roadmap](../roadmap.md#project-organization-after-r5) owns activation and e
 The [execution plan](../plans/project-organization.md) owns O1–O7 and
 [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md) owns the target rules.
 
+This record retains entry, O1–O6 and O7's catalog, scan and preview evidence. Subsequent incremental,
+journal and synchronization boundary work is recorded in [continuity evidence](project-organization-continuity.md).
+
 ## Entry verification — 2026-11-03
 
 The implementation branch is `codex/project-organization`, created from merged R5 baseline

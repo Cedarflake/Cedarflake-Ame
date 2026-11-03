@@ -24,6 +24,7 @@ pub(crate) mod classification_work;
 pub(crate) mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
 mod gallery_query;
+pub(crate) mod media_inspection;
 pub(crate) mod organization;
 pub(crate) mod organization_archive;
 pub(crate) mod organization_batch;

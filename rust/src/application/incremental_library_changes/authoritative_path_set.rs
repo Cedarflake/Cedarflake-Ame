@@ -1,11 +1,11 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::adapters::{LocalMediaInspector, PublicationGuardedFileDiscovery};
 use crate::domain::{
     CatalogDeltaBatch, CatalogDeltaPublicationStatus, FileIdentityEvidence,
     IncrementalLibraryChangeReport, LeasedLibraryChange, LibraryChangeCompletion,
     LibraryChangeLane, LibraryChangeQueuePolicy, LibraryRootGeneration, ScanError,
 };
+use crate::ports::source_publication::PublicationFileSource;
 use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue, SourceReconciliationScope};
 
 use super::preparation_catalog::PreparationCatalog;
@@ -31,7 +31,7 @@ pub(in crate::application) struct AuthoritativePathSetContext<'a> {
 pub(in crate::application) fn process_authoritative_path_set<Repository>(
     repository: &mut Repository,
     context: AuthoritativePathSetContext<'_>,
-    discovery: &PublicationGuardedFileDiscovery,
+    discovery: &impl PublicationFileSource,
 ) -> Result<IncrementalLibraryChangeReport, ScanError>
 where
     Repository: IncrementalCatalogRepository + LibraryChangeQueue,
@@ -53,12 +53,12 @@ where
     )
 }
 
-struct AuthoritativePathSetRequest<'a> {
+struct AuthoritativePathSetRequest<'a, Source> {
     root_id: &'a str,
     root_generation: LibraryRootGeneration,
     expected_catalog_revision: u64,
     expected_root_identity: &'a FileIdentityEvidence,
-    discovery: &'a PublicationGuardedFileDiscovery,
+    discovery: &'a Source,
     leased: &'a LeasedLibraryChange,
     relative_paths: &'a [String],
     now_unix_ms: i64,
@@ -68,7 +68,7 @@ struct AuthoritativePathSetRequest<'a> {
 
 fn process_authoritative_path_set_guarded<Repository>(
     repository: &mut Repository,
-    request: AuthoritativePathSetRequest<'_>,
+    request: AuthoritativePathSetRequest<'_, impl PublicationFileSource>,
 ) -> Result<IncrementalLibraryChangeReport, ScanError>
 where
     Repository: IncrementalCatalogRepository + LibraryChangeQueue,
@@ -115,7 +115,7 @@ where
         )?;
         return Ok(report);
     }
-    let inspector = LocalMediaInspector::new();
+    let inspector = super::production::media_inspector();
     let mut preparation = if is_source_reconciliation(&request) {
         PreparationCatalog::new(repository)
     } else {
@@ -304,14 +304,16 @@ where
     }
 }
 
-fn is_source_reconciliation(request: &AuthoritativePathSetRequest<'_>) -> bool {
+fn is_source_reconciliation(
+    request: &AuthoritativePathSetRequest<'_, impl PublicationFileSource>,
+) -> bool {
     SourceReconciliationScope::from_intent(&request.leased.change.intent)
         .is_some_and(|scope| scope.admits_paths(request.relative_paths))
 }
 
 fn defer_authoritative_path_set<Repository>(
     repository: &mut Repository,
-    request: &AuthoritativePathSetRequest<'_>,
+    request: &AuthoritativePathSetRequest<'_, impl PublicationFileSource>,
 ) -> Result<IncrementalLibraryChangeReport, ScanError>
 where
     Repository: LibraryChangeQueue,

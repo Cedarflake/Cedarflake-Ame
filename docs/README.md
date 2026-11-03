@@ -12,6 +12,7 @@ only the contracts, execution details, and evidence that own the task.
 | What are R5's metadata, smart-album, analysis, and recovery rules? | [R5 requirements](product/r5-classification.md), with the accepted [smart-album UI](product/gallery/smart-albums.md#smart-album-workflow) |
 | Where are the delivered R5 slices defined? | [R5 implementation plan](plans/r5-classification.md) and [roadmap disposition](roadmap.md#r5-implementation-sequence) |
 | How will project organization be refactored after R5? | [Organization execution plan](plans/project-organization.md), activated by the [roadmap](roadmap.md#project-organization-after-r5) |
+| Where are organization changes and their verification recorded? | [Initial, catalog, scan and preview evidence](acceptance/project-organization.md); [incremental and synchronization evidence](acceptance/project-organization-continuity.md) |
 | How should the accepted gallery and controls behave, and why? | [Gallery UI contract and rationale](product/gallery-ui.md#design-principles-and-rationale), under the accepted UI ADRs |
 | Which shared UI owner, regression and client path apply to a change? | [UI verification map](acceptance/quality/ui-verification.md#ui-workflow-verification) |
 | Where does current maintenance resume? | [Current queue](roadmap.md#current-execution-queue) and its linked active plan |

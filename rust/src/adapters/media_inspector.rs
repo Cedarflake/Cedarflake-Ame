@@ -4,6 +4,7 @@ use std::path::Path;
 use image::{ImageDecoder, ImageReader, Limits};
 
 use crate::domain::{DiscoveredFile, ImageOrientation, MediaInspection, ScanIssue};
+use crate::ports::media_inspection::{GuardedMediaInspector, MediaSource};
 use crate::ports::{
     MediaInspectionFailure, MediaInspectionFailureKind, MediaInspector, MetadataExtractor,
     PreviewSource, SourceMediaInspector,
@@ -13,7 +14,7 @@ use super::exif_metadata::KamadakExifExtractor;
 use super::image_orientation::from_image_orientation;
 #[cfg(test)]
 use super::local_files::canonical_source_root_path;
-use super::local_files::{FileDiscovery, open_source_file};
+use super::local_files::open_source_file;
 
 mod decoder_failure;
 mod jpeg_headers;
@@ -36,32 +37,6 @@ impl LocalMediaInspector {
     pub(crate) fn new() -> Self {
         Self {
             metadata: KamadakExifExtractor,
-        }
-    }
-
-    pub(crate) fn inspect_with_discovery(
-        &self,
-        discovery: &FileDiscovery,
-        file: &DiscoveredFile,
-    ) -> Result<MediaInspection, MediaInspectionFailure> {
-        #[cfg(windows)]
-        {
-            let source = discovery
-                .open_pinned_source_file(&file.relative_path)
-                .map_err(|error| {
-                    media_failure(
-                        file,
-                        MediaInspectionFailureKind::Retryable,
-                        "image_open_failed",
-                        error,
-                    )
-                })?;
-            self.inspect_source(file, source)
-        }
-        #[cfg(not(windows))]
-        {
-            let _ = discovery;
-            self.inspect(file)
         }
     }
 
@@ -152,6 +127,25 @@ impl LocalMediaInspector {
             height,
             metadata,
         })
+    }
+}
+
+impl GuardedMediaInspector for LocalMediaInspector {
+    #[flutter_rust_bridge::frb(ignore)]
+    fn inspect_with_source(
+        &self,
+        source: &impl MediaSource,
+        file: &DiscoveredFile,
+    ) -> Result<MediaInspection, MediaInspectionFailure> {
+        let source = source.open_media_reader(file).map_err(|error| {
+            media_failure(
+                file,
+                MediaInspectionFailureKind::Retryable,
+                "image_open_failed",
+                error,
+            )
+        })?;
+        self.inspect_source(file, source)
     }
 }
 

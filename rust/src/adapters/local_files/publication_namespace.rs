@@ -1,7 +1,17 @@
-use crate::domain::{ExpectedFileState, FileIdentityEvidence, ScanError, ScanIssue};
-use crate::ports::source_publication::{PublicationNamespace, PublicationNamespaceFactory};
+use std::fs::File;
+#[cfg(not(windows))]
+use std::path::Path;
 
-use super::PublicationGuardedFileDiscovery;
+use crate::domain::{
+    DiscoveredFile, ExpectedFileState, FileIdentityEvidence, FileVisit, MetadataInventoryEntry,
+    ScanError, ScanIssue,
+};
+use crate::ports::media_inspection::MediaSource;
+use crate::ports::source_publication::{
+    PublicationFileSource, PublicationNamespace, PublicationNamespaceFactory,
+};
+
+use super::{FileDiscovery, PublicationGuardedFileDiscovery};
 
 pub(crate) struct LocalPublicationNamespaces;
 
@@ -46,5 +56,44 @@ impl PublicationNamespace for PublicationGuardedFileDiscovery {
         expected: &ExpectedFileState,
     ) -> Result<(), ScanIssue> {
         self.revalidate_relative_file_state(relative_path, expected)
+    }
+}
+
+impl PublicationFileSource for PublicationGuardedFileDiscovery {
+    fn metadata_inventory_entry(
+        &self,
+        relative_path: &str,
+    ) -> Result<MetadataInventoryEntry, ScanIssue> {
+        self.metadata_inventory_entry(relative_path)
+    }
+
+    fn visit_relative_path(&self, relative_path: &str) -> FileVisit {
+        self.visit_relative_path(relative_path)
+    }
+}
+
+impl MediaSource for PublicationGuardedFileDiscovery {
+    type Reader = File;
+
+    fn open_media_reader(&self, file: &DiscoveredFile) -> std::io::Result<File> {
+        self.discovery.open_media_reader(file)
+    }
+}
+
+impl MediaSource for FileDiscovery {
+    type Reader = File;
+
+    fn open_media_reader(&self, file: &DiscoveredFile) -> std::io::Result<File> {
+        #[cfg(windows)]
+        {
+            self.open_pinned_source_file(&file.relative_path)
+        }
+        #[cfg(not(windows))]
+        {
+            super::open_source_file(
+                Path::new(&file.absolute_path),
+                Path::new(&file.source_root_path),
+            )
+        }
     }
 }

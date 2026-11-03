@@ -1,4 +1,9 @@
-use crate::domain::{ExpectedFileState, FileIdentityEvidence, ScanError, ScanIssue};
+use crate::domain::{
+    ExpectedFileState, FileIdentityEvidence, FileVisit, MetadataInventoryEntry, ScanError,
+    ScanIssue,
+};
+
+use super::media_inspection::MediaSource;
 
 pub(crate) trait PublicationNamespaceFactory {
     type Namespace: PublicationNamespace;
@@ -27,4 +32,12 @@ pub(crate) trait PublicationNamespace {
         relative_path: &str,
         expected: &ExpectedFileState,
     ) -> Result<(), ScanIssue>;
+}
+
+pub(crate) trait PublicationFileSource: PublicationNamespace + MediaSource {
+    fn metadata_inventory_entry(
+        &self,
+        relative_path: &str,
+    ) -> Result<MetadataInventoryEntry, ScanIssue>;
+    fn visit_relative_path(&self, relative_path: &str) -> FileVisit;
 }

@@ -143,6 +143,20 @@ Replacing these selections preserves root acquisition order, borrowed cursor lif
 identity evidence and source-safe inspection. Only the registered factories may select their
 concrete adapters; persistence, final validation and publication receive no neighboring exemption.
 
+## Incremental source resources
+
+`incremental_library_changes/production.rs::{publication_namespaces,media_inspector}` selects
+`PublicationFileSource` and `GuardedMediaInspector`. Incremental changes and preview reconciliation
+retain the admitted root/ancestor namespace through preparation, final source checks and catalog
+publication or rollback. `MediaSource` opens the same root-relative, no-recall reader; inspection
+consumes it without cloning a handle or reopening a mutable absolute path. Decoder limits, metadata
+engine identity and retryable/terminal failure classification remain adapter-owned.
+
+Replacing these selections preserves acquisition and retirement points, queue lease authority,
+revision-rebase limits and transaction order. Only the two factories select concrete resources;
+evidence policy, rename reconciliation and publication remain application responsibilities. Existing
+namespace-sharing, source-rewrite, cancelled-rebase and preview-recovery fixtures cover this boundary.
+
 ## Preview store resources
 
 `preview/store_admission.rs` owns native store and cache-namespace composition under the existing
