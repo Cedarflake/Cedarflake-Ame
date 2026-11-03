@@ -1,11 +1,5 @@
 {
   "activeIds": [
-    "R001",
-    "R003",
-    "R095",
-    "R096",
-    "R097",
-    "R098",
     "R099",
     "R100",
     "R101",
@@ -67,9 +61,6 @@
     "R157",
     "R158",
     "R159",
-    "R162",
-    "R163",
-    "R164",
     "R172",
     "R249"
   ],
@@ -260,12 +251,15 @@
     },
     "incremental-source-composition": {
       "responsibility": "Select publication-bound source access and guarded media inspection",
-      "reason": "Incremental and preview reconciliation consume source contracts while retaining their lease, evidence and catalog-publication policy.",
+      "reason": "Incremental changes, preview reconciliation, indexed startup and metadata recovery consume source contracts while retaining their lease, evidence and catalog-publication policy.",
       "lifetime": "The admitted root and ancestor namespace remains held through preparation, source revalidation and publication or rollback; media readers retain their original open and drop scopes.",
       "replacement": "Replace the source and inspector port implementations without reopening mutable absolute paths, changing no-recall admission or altering queue authority and transaction order.",
       "decision": "docs/architecture/workflow-ownership/native-composition.md#incremental-source-resources",
       "coverage": [
         "rust/src/application/incremental_library_changes/tests.rs",
+        "rust/src/application/authoritative_library_changes/tests.rs",
+        "rust/src/application/metadata_inventory/tests.rs",
+        "rust/src/application/metadata_inventory/tests/indexed_startup.rs",
         "rust/src/application/incremental_library_changes/tests/preparation_rebase.rs",
         "rust/src/application/incremental_library_changes/tests/authoritative_path_rebase.rs",
         "rust/src/application/preview/tests/source_reconciliation.rs",

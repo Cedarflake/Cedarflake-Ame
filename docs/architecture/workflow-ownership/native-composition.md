@@ -157,6 +157,13 @@ revision-rebase limits and transaction order. Only the two factories select conc
 evidence policy, rename reconciliation and publication remain application responsibilities. Existing
 namespace-sharing, source-rewrite, cancelled-rebase and preview-recovery fixtures cover this boundary.
 
+The same selectors serve authoritative scopes, indexed startup and metadata recovery.
+`PublicationDirectorySource` lends directory visits from the admitted namespace. Inventory opening
+and each absence/final-publication phase retain their separate guard scopes. `IndexedRecoveryRepository`
+owns connection-local hints, binding the existing recovery namespace and atomic candidate publication;
+its implementation delegates to the existing spool and queue transactions. Index observations grant
+no absence authority, and cancellation or a replaced lease cannot publish partial hints.
+
 ## Preview store resources
 
 `preview/store_admission.rs` owns native store and cache-namespace composition under the existing

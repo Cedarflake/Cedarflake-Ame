@@ -41,3 +41,14 @@ pub(crate) trait PublicationFileSource: PublicationNamespace + MediaSource {
     ) -> Result<MetadataInventoryEntry, ScanIssue>;
     fn visit_relative_path(&self, relative_path: &str) -> FileVisit;
 }
+
+pub(crate) trait PublicationDirectorySource: PublicationFileSource {
+    type Entries<'a>: Iterator<Item = Result<FileVisit, ScanIssue>>
+    where
+        Self: 'a;
+
+    fn file_visits_in_directory(
+        &self,
+        relative_directory: &str,
+    ) -> Result<Self::Entries<'_>, ScanIssue>;
+}

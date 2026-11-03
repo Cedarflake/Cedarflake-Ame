@@ -8,9 +8,11 @@ use crate::domain::{
 };
 use crate::ports::media_inspection::MediaSource;
 use crate::ports::source_publication::{
-    PublicationFileSource, PublicationNamespace, PublicationNamespaceFactory,
+    PublicationDirectorySource, PublicationFileSource, PublicationNamespace,
+    PublicationNamespaceFactory,
 };
 
+use super::directory_enumeration::PublicationGuardedFileVisits;
 use super::{FileDiscovery, PublicationGuardedFileDiscovery};
 
 pub(crate) struct LocalPublicationNamespaces;
@@ -69,6 +71,17 @@ impl PublicationFileSource for PublicationGuardedFileDiscovery {
 
     fn visit_relative_path(&self, relative_path: &str) -> FileVisit {
         self.visit_relative_path(relative_path)
+    }
+}
+
+impl PublicationDirectorySource for PublicationGuardedFileDiscovery {
+    type Entries<'a> = PublicationGuardedFileVisits<'a>;
+
+    fn file_visits_in_directory(
+        &self,
+        relative_directory: &str,
+    ) -> Result<Self::Entries<'_>, ScanIssue> {
+        self.file_visits_in_directory(relative_directory)
     }
 }
 

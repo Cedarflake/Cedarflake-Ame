@@ -516,13 +516,6 @@ impl PublicationGuardedFileDiscovery {
         Ok(Self { discovery })
     }
 
-    pub(crate) fn new_incremental_publication_guard(
-        root_path: &str,
-        expected_identity: &FileIdentityEvidence,
-    ) -> Result<PublicationGuardedFileDiscovery, ScanError> {
-        Self::new_metadata_inventory_publication_guard(root_path, expected_identity)
-    }
-
     pub(crate) fn metadata_inventory_root_identity(
         &self,
     ) -> Result<Option<FileIdentityEvidence>, ScanError> {

@@ -2,17 +2,19 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
-use crate::adapters::{PublicationGuardedFileDiscovery, SqliteCatalog};
 use crate::domain::{
     IncrementalCatalogRoot, LeasedLibraryChange, LibraryChangeIntent, LibraryChangeIntentKind,
     LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope,
     LibraryRecoveryAuthorityReason, MetadataInventoryScope, MetadataInventoryStartRequest,
     ScanError,
 };
-use crate::ports::{
-    IncrementalCatalogRepository, MetadataInventoryRepository, search_index::SearchIndex,
+use crate::ports::IncrementalCatalogRepository;
+use crate::ports::search_index::{IndexedRecoveryRepository, SearchIndex};
+use crate::ports::source_publication::{
+    PublicationFileSource, PublicationNamespace, PublicationNamespaceFactory,
 };
 
+use super::incremental_library_changes::production;
 use super::metadata_inventory::unchanged_windows_recovery_location;
 
 pub(crate) fn permits_indexed_startup(reason: LibraryRecoveryAuthorityReason) -> bool {
@@ -27,7 +29,7 @@ pub(crate) fn permits_indexed_startup(reason: LibraryRecoveryAuthorityReason) ->
 }
 
 pub(crate) fn prepare(
-    catalog: &mut SqliteCatalog,
+    catalog: &mut impl IndexedRecoveryRepository,
     index: &impl SearchIndex,
     root: &IncrementalCatalogRoot,
     lease: &LeasedLibraryChange,
@@ -78,10 +80,7 @@ pub(crate) fn prepare(
             "The configured root has no trustworthy persistent namespace identity",
         )
     })?;
-    let discovery = PublicationGuardedFileDiscovery::new_incremental_publication_guard(
-        &root.root_path,
-        identity,
-    )?;
+    let discovery = production::publication_namespaces().open(&root.root_path, Some(identity))?;
     let paths = changed_actual_paths(catalog, root, &discovery, paths, cancelled)?;
     if paths.is_empty() {
         eprintln!(
@@ -101,14 +100,7 @@ pub(crate) fn prepare(
         discovery.require_metadata_inventory_root_identity(&existing)?;
     } else {
         // Candidate publication needs a durable namespace proof, not a completed inventory.
-        catalog.initialize_metadata_inventory_spool(
-            &run,
-            lease,
-            identity,
-            None,
-            Some(""),
-            now_unix_ms,
-        )?;
+        catalog.bind_indexed_recovery_namespace(&run, lease, identity, now_unix_ms)?;
     }
     if cancelled.load(Ordering::Acquire) {
         return Ok(0);
@@ -145,9 +137,9 @@ pub(crate) fn prepare(
 }
 
 fn changed_actual_paths(
-    catalog: &SqliteCatalog,
+    catalog: &impl IncrementalCatalogRepository,
     root: &IncrementalCatalogRoot,
-    discovery: &PublicationGuardedFileDiscovery,
+    discovery: &impl PublicationFileSource,
     paths: Vec<String>,
     cancelled: &AtomicBool,
 ) -> Result<Vec<String>, ScanError> {

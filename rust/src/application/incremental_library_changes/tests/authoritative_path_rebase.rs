@@ -24,7 +24,7 @@ fn authoritative_path_rebases_an_unrelated_publication_without_retry_wait() {
         .publication_root_identity
         .as_ref()
         .expect("root identity");
-    let discovery = PublicationGuardedFileDiscovery::new_incremental_publication_guard(
+    let discovery = PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
         &root.root_path,
         identity,
     )
@@ -384,7 +384,7 @@ fn run_path_set(
         .publication_root_identity
         .as_ref()
         .expect("root identity");
-    let discovery = PublicationGuardedFileDiscovery::new_incremental_publication_guard(
+    let discovery = PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
         &root.root_path,
         identity,
     )

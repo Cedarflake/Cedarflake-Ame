@@ -1878,7 +1878,7 @@ fn metadata_engine_mismatch_invalidates_a_rename_mutation_contract() {
         .metadata_inventory_root_identity()
         .expect("root identity")
         .expect("stable root identity");
-    let discovery = PublicationGuardedFileDiscovery::new_incremental_publication_guard(
+    let discovery = PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
         &fixture.root_path,
         &expected_identity,
     )

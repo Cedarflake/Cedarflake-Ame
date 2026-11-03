@@ -1,11 +1,11 @@
 use crate::ports::media_inspection::GuardedMediaInspector;
-use crate::ports::source_publication::{PublicationFileSource, PublicationNamespaceFactory};
+use crate::ports::source_publication::{PublicationDirectorySource, PublicationNamespaceFactory};
 
 pub(in crate::application) fn publication_namespaces()
--> impl PublicationNamespaceFactory<Namespace: PublicationFileSource> {
+-> impl PublicationNamespaceFactory<Namespace: PublicationDirectorySource> {
     crate::adapters::LocalPublicationNamespaces
 }
 
-pub(super) fn media_inspector() -> impl GuardedMediaInspector {
+pub(in crate::application) fn media_inspector() -> impl GuardedMediaInspector {
     crate::adapters::LocalMediaInspector::new()
 }

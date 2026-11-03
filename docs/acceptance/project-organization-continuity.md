@@ -34,3 +34,28 @@ The authoritative-path owner has 328 source lines, with 408 dedicated rebase-tes
 rebase fixtures retain 504 lines. Preview reconciliation has 157 source lines and 726 dedicated-test
 lines. Media inspection has 227 source/134 inline-test lines. The local-files facade keeps 2,609
 source/3,460 inline-test lines; its affected dedicated admission fixture has 204 lines.
+
+## Recovery source and index contracts — 2026-11-04
+
+Against `edda4db9`, authoritative scopes, indexed startup and metadata recovery reuse the admitted
+source selectors. `PublicationDirectorySource` borrows its cursor from the held namespace, while
+inventory opening and absence/final-publication guards retain their original scopes.
+`IndexedRecoveryRepository` exposes connection-local hints, namespace binding and atomic candidate
+publication. The three original hint-query bodies and the existing spool/queue transactions are
+unchanged; their native execution token remains private to persistence.
+
+Nine legacy entries retire, leaving 63, with 61 retained technical edges and unchanged frozen
+inventories. Native enumeration still materializes a complete directory before the authoritative
+entry limit is checked; its bounded-reading repair is a separate correctness follow-up.
+
+All 51 distinct focused checks pass: seven index-publication, two runtime-selection, nine inventory,
+eight authoritative-scope, one canonical-constructor/rebase and 24 dependency cases. An obsolete
+constructor alias found by the production build was removed; five fixture calls now use its existing
+delegate. Final test/production builds emit no warnings, formatting reports 794 files unchanged and
+both leased scratch directories retire. Two changed documents have 13 resolving local links.
+
+The metadata-recovery facade has 1,422 lines including conditional hooks, and 3,884 primary
+dedicated-test lines. Authoritative
+changes have 559 source/1,408 dedicated-test lines; indexed startup has 169 source/385 dedicated-test
+lines. The hint repository implementation has 114 source lines. No tests or assertions are added or
+removed in this contract migration.
