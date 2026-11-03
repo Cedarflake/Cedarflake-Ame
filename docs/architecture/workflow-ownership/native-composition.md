@@ -204,8 +204,9 @@ preview workflow, cleanup/recovery policy or engine details in public ports.
 
 ## Preview source resources
 
-`preview/production.rs::{sources,media_inspector}` selects `PreviewSourceFactory` and
-`SourceMediaInspector`. Selection opens no source. Initial reading follows catalog/root admission;
+`preview/production.rs::{sources,media_inspector}` selects `PreviewSourceFactory`,
+`SourceIdentityLocator` and `SourceMediaInspector`. Selection opens no source. Initial reading follows
+catalog/root admission;
 metadata inspection runs only for invalidated metadata and uses the admitted source's byte-zero reader.
 The factory keeps initial reading separate from publication protection: the latter binds the source
 and ancestor namespace after decode revalidation and remains held through catalog publication or
@@ -215,6 +216,13 @@ Replacing these selections preserves the two acquisition points, held-handle rea
 revalidation and retirement order. Native files and namespace proofs remain adapter-owned; use cases
 receive only the reader, evidence and revalidation contracts. Only these factories select concrete
 implementations; mismatch reconciliation and publication policy receive no neighboring exemption.
+
+For a missing source, the identity locator returns current paths within the expected root using
+metadata only. The Windows binding in `windows_identity_journal/metadata_location` retains identity
+scheme, volume, root, file and non-directory validation without enumerating the source tree. Other
+platforms retain unavailable identity lookup. Application chooses the exact/relocated path work and
+keeps request-generation admission, namespace guards and catalog publication authority. Replacing
+the locator preserves those checks and cannot authorize media mutation or placeholder hydration.
 
 ## Viewer source resources
 

@@ -1,7 +1,5 @@
 {
-  "activeIds": [
-    "R172"
-  ],
+  "activeIds": [],
   "retainedOwners": {
     "duplicate-native-readers": {
       "responsibility": "Construct the admitted fingerprint reader and metadata-only source-state probe",
@@ -175,16 +173,17 @@
       ]
     },
     "preview-source-composition": {
-      "responsibility": "Select admitted preview-source capabilities and inspection of already-open media",
+      "responsibility": "Select admitted preview-source, metadata identity-location and open-media inspection capabilities",
       "reason": "The factories expose Ame contracts while initial read admission, source mismatch handling and publication policy keep their existing application owners.",
-      "lifetime": "Initial source reading follows catalog/root admission; fresh publication protection follows decode revalidation and retains source/ancestor guards through catalog publication or rollback.",
-      "replacement": "Replace source and media-inspection selections through their ports without reopening the decoder path or changing identity/revision checks, no-recall admission, acquisition points or drop order.",
+      "lifetime": "Initial source reading follows catalog/root admission; fresh publication protection follows decode revalidation and retains source/ancestor guards through catalog publication or rollback. Missing-source identity lookup retains its operation-scoped root and identity guards; guarded path reconciliation retains publication authority.",
+      "replacement": "Replace source, identity-location and media-inspection selections through their ports while preserving no-recall admission, root/file identity checks, bounded metadata lookup, acquisition points and drop order.",
       "decision": "docs/architecture/workflow-ownership/native-composition.md#preview-source-resources",
       "coverage": [
         "rust/src/application/preview.rs",
         "rust/src/application/preview/tests/source_reconciliation.rs",
         "rust/src/application/preview/tests/failure.rs",
-        "rust/src/adapters/local_files/file_revalidation/tests.rs"
+        "rust/src/adapters/local_files/file_revalidation/tests.rs",
+        "rust/src/application/preview/tests/source_reconciliation/relocated_source.rs"
       ]
     },
     "incremental-source-composition": {

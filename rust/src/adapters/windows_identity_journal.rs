@@ -24,7 +24,6 @@ mod io;
 mod metadata_location;
 mod native;
 mod page;
-pub(crate) use metadata_location::current_identity_paths;
 use native::NativeRoot;
 
 const READ_UNPRIVILEGED_USN_JOURNAL: u32 = 0x0009_03ab;

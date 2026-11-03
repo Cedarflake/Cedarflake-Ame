@@ -2,6 +2,7 @@ use crate::domain::{
     AssetLocationView, IncrementalCatalogRoot, LibraryChangeIntent, LibraryChangeIntentKind,
     LibraryChangeOrigin, LibraryChangeScope, ScanError, ScanIssue,
 };
+use crate::ports::source_identity::SourceIdentityLocator;
 
 pub(super) enum ReconciliationPaths {
     Exact(String),
@@ -10,21 +11,19 @@ pub(super) enum ReconciliationPaths {
 
 impl ReconciliationPaths {
     pub(super) fn discover(
+        locator: &impl SourceIdentityLocator,
         root: &IncrementalCatalogRoot,
         location: &AssetLocationView,
         issue: &ScanIssue,
     ) -> Result<Self, ScanError> {
-        #[cfg(windows)]
-        if let Some(relocated) = Self::discover_relocation(root, location, issue)? {
+        if let Some(relocated) = Self::discover_relocation(locator, root, location, issue)? {
             return Ok(relocated);
         }
-        #[cfg(not(windows))]
-        let _ = (root, issue);
         Ok(Self::Exact(location.relative_path.clone()))
     }
 
-    #[cfg(windows)]
     fn discover_relocation(
+        locator: &impl SourceIdentityLocator,
         root: &IncrementalCatalogRoot,
         location: &AssetLocationView,
         issue: &ScanIssue,
@@ -38,7 +37,7 @@ impl ReconciliationPaths {
         ) else {
             return Ok(None);
         };
-        let Some(paths) = crate::adapters::current_identity_paths(
+        let Some(paths) = locator.current_paths(
             &root.root_id,
             root.root_generation,
             &root.root_path,

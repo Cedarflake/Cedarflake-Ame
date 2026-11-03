@@ -109,7 +109,8 @@ fn reconcile_source(
         return Ok(SourceReconciliationOutcome::Unresolved);
     };
     let discovery = production::publication_namespaces().open(&root.root_path, Some(identity))?;
-    let paths = ReconciliationPaths::discover(&root, location, issue)?;
+    let paths =
+        ReconciliationPaths::discover(&super::production::sources(), &root, location, issue)?;
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .ok()

@@ -50,6 +50,7 @@ pub(crate) mod scan_publication;
 pub(crate) mod scan_staging;
 pub(crate) mod search_index;
 pub(crate) mod sidebar_order;
+pub(crate) mod source_identity;
 pub(crate) mod source_publication;
 pub(crate) mod source_state;
 pub use gallery_query::GalleryQueryRepository;

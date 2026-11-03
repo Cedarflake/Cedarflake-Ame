@@ -24,6 +24,20 @@ pub(crate) struct OpenedPreviewSource {
 
 pub(crate) struct LocalPreviewSources;
 
+#[cfg(not(windows))]
+impl crate::ports::source_identity::SourceIdentityLocator for LocalPreviewSources {
+    fn current_paths(
+        &self,
+        _root_id: &str,
+        _root_generation: crate::domain::LibraryRootGeneration,
+        _root_path: &str,
+        _expected_root_identity: &FileIdentityEvidence,
+        _file_identity: &FileIdentityEvidence,
+    ) -> Result<Option<Vec<String>>, crate::domain::ScanError> {
+        Ok(None)
+    }
+}
+
 impl PreviewSourceFactory for LocalPreviewSources {
     type Source = OpenedPreviewSource;
     type Publication = PreviewPublicationGuard;

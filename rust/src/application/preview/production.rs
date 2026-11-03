@@ -1,7 +1,8 @@
 use crate::ports::SourceMediaInspector;
 use crate::ports::preview_source::PreviewSourceFactory;
+use crate::ports::source_identity::SourceIdentityLocator;
 
-pub(super) fn sources() -> impl PreviewSourceFactory {
+pub(super) fn sources() -> impl PreviewSourceFactory + SourceIdentityLocator {
     crate::adapters::LocalPreviewSources
 }
 

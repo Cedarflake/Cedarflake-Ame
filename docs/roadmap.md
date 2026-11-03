@@ -52,16 +52,19 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-Continue [project organization](#project-organization-after-r5) with O7's synchronization, journal and
-broker boundaries.
+Continue [project organization](#project-organization-after-r5) with O7's complete Rust dependency
+audit, including root facades, aliases, re-exports and inferred native calls beyond the fixed
+inventory. Follow with test consolidation and real-library client verification.
 This maintenance runs on
 the authorized `codex/project-organization` branch before R6.
 PR metadata remains fixed by user direction.
 
 The [execution plan](plans/project-organization.md) owns implementation slices and rollback units;
 its [evidence](acceptance/project-organization.md) records completed checks and failures.
-O1–O6 are delivered; O7 is in progress. Remaining native groups follow the execution plan;
+O1–O6 are delivered; O7 is in progress. Remaining conformance and handover follow the execution plan;
 completed group evidence remains in the linked acceptance record.
+Final client verification must resolve the retained-import pause timeout recorded in the
+[organization evidence](acceptance/project-organization.md#o52-organization-records-and-ordering--2026-11-03).
 No model replacement, new product feature or broader performance campaign is part of this queue.
 
 ## Project organization after R5

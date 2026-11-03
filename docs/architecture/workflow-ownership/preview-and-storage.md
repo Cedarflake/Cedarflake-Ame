@@ -30,6 +30,9 @@ shared principles; the roadmap owns current delivery order and acceptance status
   root identity are revalidated before any catalog delta. After an admitted attempt, acknowledged
   durable retry or deferral retains completion ownership and retires the stale preview request.
   A failed persistence operation propagates its error and cannot claim that transfer.
+  Missing-source path planning consumes `SourceIdentityLocator` from the existing preview-source
+  binding. Native identity lookup retains root/volume/file validation and bounded metadata-only
+  resolution; application retains exact/relocated selection and the same guarded publication path.
 - `ports/preview_materialization.rs` exposes preview generation through Ame values and a read/seek
   source. `PreviewSource::reader_from_start` supplies byte-zero access to the already admitted source;
   native file duplication and cursor reset stay in `local_files/preview_source.rs`. Readers may share

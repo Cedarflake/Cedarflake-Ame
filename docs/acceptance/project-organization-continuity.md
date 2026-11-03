@@ -351,3 +351,29 @@ and regression owners. The repository inventory check passes with one migration 
 and frozen inventories are unchanged. The earlier ingress/scheduling evidence and `6ebae723` startup,
 shutdown and late-completion results retain their scope; no product workload is repeated for this
 classification. Full dependency conformance and real-library acceptance remain open under O7.
+
+## Preview identity relocation — 2026-11-04
+
+Against `1c0ad0fc`, missing-source path planning consumes `SourceIdentityLocator` from the existing
+preview-source factory. The Windows implementation retains its complete metadata lookup, identity
+validation and error bodies. Unsupported platforms retain unavailable lookup. Application keeps
+exact/relocated path selection, guarded reconciliation, request-generation admission and publication;
+the obsolete native function exports retire.
+
+All 17 selected existing checks pass: 16 preview source-reconciliation cases and the repository
+dependency inventory. The real directory-rename fixture preserves asset/file identity, reads zero
+directory entries and verifies unchanged source bytes after preview recovery. Other cases retain
+recreation, stale authority, rollback, peer publication and durable-retry assertions. Source comparison
+preserves the native query, source leases, path decisions and complete reconciliation workflow;
+fixtures and assertions are unchanged. Test/production builds emit no warnings, formatting reports
+794 unchanged files, and leased scratch retires.
+
+R172 retires: the fixed inventory now has zero unfinished migration entries and 78 accepted exact
+technical edges. Frozen inventories, schema and generated contracts are unchanged. The roadmap
+continues the broader dependency audit, test-value review and real-library verification; this count
+closes only the fixed migration roster.
+
+The reconciliation owner/path plan have 158/99 source lines and 1,004 dedicated-test lines, with no
+inline cases. Native identity lookup has 70 source lines; its 420-line journal facade removes only
+the old export and has no inline cases. Local preview sources have 173 source lines, retaining all
+existing source/publication bodies.
