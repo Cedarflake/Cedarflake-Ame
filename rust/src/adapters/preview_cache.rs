@@ -875,8 +875,11 @@ fn inspect_source_display_dimensions(
     file: &DiscoveredFile,
     source: &File,
 ) -> Result<(u32, u32), ScanIssue> {
-    let source = source
+    let mut source = source
         .try_clone()
+        .map_err(|error| preview_issue(file, "image_open_failed", error))?;
+    source
+        .seek(SeekFrom::Start(0))
         .map_err(|error| preview_issue(file, "image_open_failed", error))?;
     let mut reader = ImageReader::new(BufReader::new(source))
         .with_guessed_format()
@@ -1022,7 +1025,7 @@ mod tests {
     }
 
     #[test]
-    fn existing_artifact_recovers_oriented_source_dimensions_from_headers() {
+    fn existing_artifact_recovers_oriented_dimensions_after_source_reader_advances() {
         let storage = tempdir().expect("storage");
         let source_path = storage.path().join("oriented.jpg");
         let source_bytes = orientation_jpeg(6);
@@ -1049,7 +1052,14 @@ mod tests {
         drop(store);
         let store = LocalPreviewStore::new(preview_root, 1024).expect("reopen preview store");
 
-        let preview = materialize_and_commit(&store, &file, 256, 0, 0);
+        let mut source = File::open(&source_path).expect("open source");
+        source.seek(SeekFrom::End(0)).expect("previous source read");
+        let materialization = store
+            .materialize(&file, &source, 256, 0, 0, false)
+            .expect("recover source dimensions from its header");
+        let preview = store
+            .commit(materialization)
+            .expect("retain cached preview");
 
         assert_eq!(PathBuf::from(preview.path), artifact_path);
         assert_eq!((preview.width, preview.height), (60, 80));

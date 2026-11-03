@@ -665,3 +665,17 @@ The reconciliation facades change only imports: authoritative and incremental ow
 The new domain, port, adapter binding and factory files contain 22, 22, 30 and 11 lines respectively.
 No schema, source authority, engine version or client behavior changes; final real-library client
 verification remains scheduled after the remaining migration.
+
+## Cached preview dimension cursor repair — 2026-11-04
+
+At `d3bd7366`, a valid oriented JPEG with an existing preview and unknown catalog dimensions fails
+with `image_dimensions_failed` when its supplied file cursor has already reached EOF. The cloned
+handle retains that position. The existing orientation/header case reproduces this failure without
+changing the source bytes or cache fixture.
+
+`inspect_source_display_dimensions` now seeks to the header before format detection, retaining
+`image_open_failed` for seek errors. Both existing cache-hit cases pass: oriented dimensions recover
+to 60×80 with unchanged cache/source bytes, and known catalog dimensions bypass source decoding.
+No test is added; the original case now covers the previously missing cursor boundary. The owner
+has 911 source lines and 901 inline-test lines. Format checks report 794 files unchanged; scratch
+cleanup succeeds. Source admission, publication, schema and generated contracts remain unchanged.
