@@ -1,10 +1,14 @@
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_main_surface.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation_resize_handle.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/application/ports/ame_preference_store.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../../support/platform_test_bindings.dart";
 
 void main() {
   testWidgets("shows the unified empty library shell", (tester) async {
@@ -13,7 +17,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const ProviderScope(child: AmeApp()));
+    await tester.pumpWidget(
+      ProviderScope(overrides: platformTestOverrides(), child: const AmeApp()),
+    );
 
     for (final key in const [
       Key("library-function-rail"),
@@ -100,7 +106,9 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetPadding);
 
-    await tester.pumpWidget(const ProviderScope(child: AmeApp()));
+    await tester.pumpWidget(
+      ProviderScope(overrides: platformTestOverrides(), child: const AmeApp()),
+    );
 
     expect(
       tester.getTopLeft(find.byKey(const Key("library-global-bar"))).dy,
@@ -117,7 +125,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const ProviderScope(child: AmeApp()));
+    await tester.pumpWidget(
+      ProviderScope(overrides: platformTestOverrides(), child: const AmeApp()),
+    );
     await tester.pump();
 
     final context = tester.element(
@@ -189,10 +199,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           initialAmePreferencesProvider.overrideWithValue(preferences),
           amePreferenceStoreProvider.overrideWithValue(preferenceStore),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -274,7 +284,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const ProviderScope(child: AmeApp()));
+    await tester.pumpWidget(
+      ProviderScope(overrides: platformTestOverrides(), child: const AmeApp()),
+    );
     await tester.pump();
 
     expect(tester.takeException(), isNull);

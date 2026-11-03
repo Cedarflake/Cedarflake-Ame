@@ -9,6 +9,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   for (final findsSelection in [true, false]) {
     testWidgets(
@@ -21,12 +23,12 @@ void main() {
         addTearDown(selection.dispose);
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [
+            overrides: platformTestOverrides([
               libraryControllerProvider.overrideWith(() => controller),
               initialLibraryStateProvider.overrideWithValue(
                 LibraryState(assets: initial, windowStartItemOffset: 100),
               ),
-            ],
+            ]),
             child: MaterialApp(
               home: Scaffold(
                 body: Center(
@@ -83,12 +85,12 @@ void main() {
     addTearDown(selection.dispose);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryControllerProvider.overrideWith(() => controller),
           initialLibraryStateProvider.overrideWithValue(
             LibraryState(assets: assets),
           ),
-        ],
+        ]),
         child: MaterialApp(
           home: Scaffold(
             body: Center(
@@ -217,11 +219,11 @@ void main() {
       LibraryAsset? selected;
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState(assets: assets),
             ),
-          ],
+          ]),
           child: MaterialApp(
             home: Scaffold(
               body: Center(
@@ -272,11 +274,11 @@ void main() {
         LibraryAsset? selected;
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [
+            overrides: platformTestOverrides([
               initialLibraryStateProvider.overrideWithValue(
                 LibraryState(assets: assets),
               ),
-            ],
+            ]),
             child: MaterialApp(
               home: MediaQuery(
                 data: MediaQueryData(disableAnimations: reducedMotion),
@@ -332,7 +334,7 @@ void main() {
     var previousRequests = 0;
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryControllerProvider.overrideWith(() => controller),
           initialLibraryStateProvider.overrideWithValue(
             LibraryState(
@@ -350,7 +352,7 @@ void main() {
               ),
             ),
           ),
-        ],
+        ]),
         child: MaterialApp(
           home: Scaffold(
             body: Center(

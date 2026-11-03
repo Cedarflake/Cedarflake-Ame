@@ -107,3 +107,46 @@ The check is part of the existing Rust `other` partition; hosted execution conti
 under user direction.
 This slice changes verification infrastructure and its ownership inventory, with no product,
 schema, generated bridge or original-media changes.
+
+## O2 Platform and storage — 2026-11-03
+
+Directory selection, Explorer/Clipboard actions, storage settings, archive pickers and preference
+persistence now have separate ports, adapters and feature bootstrap modules. Preference values are
+pure domain models. Provider declarations retain their identities and require production bindings;
+the previous in-memory preference fallback is test-only. Storage mapping, native Explorer behavior
+and shared-preference implementation bodies are unchanged. Reclamation, snapshot scheduling and
+configuration projection move together into storage application without changing their bodies.
+
+One root Provider container is validated before publication. Its lifetime owner registers before
+background resources, so shutdown joins background retirement before disposing the container.
+Acquisition failure joins already registered resources; failed provider validation disposes its
+unpublished container. The failure surface retains its window controls, and failed acquisition
+does not start the abandoned background owners. Cleanup errors retain the original acquisition cause.
+
+All 37 O2 migration entries are retired, together with the shared-theme entry closed by placing
+preference-to-theme translation in Settings presentation. There are 86 active legacy Dart entries
+for subsequent slices and 28 exact public cross-feature contracts. The immutable baseline is unchanged.
+The dependency command passes for 435 Dart modules. Source, test and integration-import analysis passes.
+
+There are 121 passing focused Dart tests across ten files: six production-assembly/lifetime cases,
+56 library-controller cases, five preference-persistence cases, 15 Settings cases, one view-preference
+case, one Explorer boundary case, two storage-picker cases, 23 reclamation cases, seven snapshot
+coordination cases and five application-entry/theme cases. Production binding tests omit each required
+port in turn, verify one shared preference store, reject duplicate/closed assembly, and cover joined
+failure cleanup and background-before-container retirement. Existing test scopes and containers use
+the production platform binding functions with an explicit test-only preference store; scenario
+overrides retain their original precedence.
+
+The canonical Windows Scan workflow passes all four cases on local-primary. Run
+`4a4d9c788d434930bcca394f5b227f89` takes 96,504 ms including preparation and process retirement,
+reports exit code zero and no cleanup failures, and has empty stderr. It covers native cancellation,
+controlled selection, scan/catalog/preview/source handling and the retained organization interactions.
+The isolated native evidence is retained by its existing execution owner. No real-library source,
+user catalog, schema, generated bridge, package version or model changes are included.
+
+The affected large owners have these implementation / inline-test / dedicated-test line counts:
+shared preferences 243 / 0 / 193; reclamation controller 385 / 0 / 905; snapshot coordinator
+124 / 0 / 146. The storage bridge adapter has 296 implementation lines. Provider assembly has
+71 implementation lines and 237 dedicated regression lines; `main.dart` has 189 lines. Existing
+assertions and asynchronous authority remain with their original owners. Hosted checks continue
+independently; O3 does not wait for them.

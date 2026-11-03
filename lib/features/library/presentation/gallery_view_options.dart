@@ -1,6 +1,6 @@
-import "../application/library_view_preferences.dart";
+import "../domain/library_view_preferences.dart";
 
-export "../application/library_view_preferences.dart"
+export "../domain/library_view_preferences.dart"
     show GalleryLayoutShape, GalleryThumbnailSize;
 
 extension GalleryThumbnailSizeValue on GalleryThumbnailSize {

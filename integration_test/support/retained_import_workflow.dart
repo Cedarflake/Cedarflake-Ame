@@ -14,6 +14,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../test/support/platform_test_bindings.dart";
+
 void registerRetainedImportWorkflowTests(
   LibrarySynchronization Function() readSynchronization,
 ) {
@@ -85,14 +87,14 @@ void registerRetainedImportWorkflowTests(
         );
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [
+            overrides: platformTestOverrides([
               initialLibraryStateProvider.overrideWithValue(
                 LibraryState.fromSnapshot(snapshot),
               ),
               librarySynchronizationProvider.overrideWithValue(
                 readSynchronization(),
               ),
-            ],
+            ]),
             child: const AmeApp(),
           ),
         );

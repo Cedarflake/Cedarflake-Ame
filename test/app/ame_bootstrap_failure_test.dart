@@ -1,12 +1,14 @@
 import "package:cedarflake_ame/app/bootstrap/ame_bootstrap_failure.dart";
 import "package:cedarflake_ame/app/window/ame_window_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
-import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../support/platform_test_bindings.dart";
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -21,11 +23,11 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           ameWindowActionsProvider.overrideWithValue(
             const _TestWindowActions(),
           ),
-        ],
+        ]),
         child: const AmeBootstrapFailure(
           error: error,
           preferences: AmePreferences(theme: AmeThemePreference.dark),
@@ -68,11 +70,11 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           ameWindowActionsProvider.overrideWithValue(
             const _TestWindowActions(),
           ),
-        ],
+        ]),
         child: const AmeBootstrapFailure(
           error: FormatException(diagnostics),
           preferences: AmePreferences(),

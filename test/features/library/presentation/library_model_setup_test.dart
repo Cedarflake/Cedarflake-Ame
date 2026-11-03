@@ -16,6 +16,8 @@ import "package:flutter/rendering.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets(
     "recovery completed before mount still retains its notification",
@@ -264,7 +266,7 @@ class _Fixture {
   Future<void> open(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryClassificationLifecycleProvider.overrideWith(
             (ref) => lifecycle,
           ),
@@ -272,7 +274,7 @@ class _Fixture {
             configuration,
           ),
           libraryModelInstallationProvider.overrideWith((ref) => installation),
-        ],
+        ]),
         child: _NotificationOwner(
           child: MaterialApp(
             home: Scaffold(

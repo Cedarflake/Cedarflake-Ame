@@ -1,7 +1,7 @@
 import "dart:ui";
 
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_zoom_geometry.dart";
-import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {

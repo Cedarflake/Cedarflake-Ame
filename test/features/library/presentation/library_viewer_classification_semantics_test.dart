@@ -17,6 +17,8 @@ import "../../../support/duplicate_review_fixtures.dart";
 import "../support/library_classification_review_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   RetainedSemanticsUpdateBinding();
   setUp(RetainedSemanticsUpdateValidator.instance.reset);
@@ -28,7 +30,7 @@ void main() {
     final service = ClassificationReviewFixture();
     final target = organizationTarget("one");
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryClassificationReviewServiceProvider.overrideWithValue(service),
         libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
         libraryClassificationSettingsProvider.overrideWith(
@@ -47,7 +49,7 @@ void main() {
             installationSelected: true,
           ),
         ),
-      ],
+      ]),
     );
     final pointer = await tester.createGesture(kind: PointerDeviceKind.mouse);
     try {

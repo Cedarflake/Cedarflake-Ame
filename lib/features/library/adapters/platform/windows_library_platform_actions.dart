@@ -2,9 +2,8 @@ import "dart:io";
 
 import "package:flutter/foundation.dart";
 import "package:flutter/services.dart";
-import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../application/library_platform_actions.dart";
+import "../../application/ports/library_platform_actions.dart";
 import "windows_shell_reveal.dart";
 
 class WindowsLibraryPlatformActions implements LibraryPlatformActions {
@@ -57,7 +56,3 @@ String _explorerCompatiblePath(String path) {
   }
   return path;
 }
-
-final libraryPlatformActionsProvider = Provider<LibraryPlatformActions>((ref) {
-  return const WindowsLibraryPlatformActions();
-});

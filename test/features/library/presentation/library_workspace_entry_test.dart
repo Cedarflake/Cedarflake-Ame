@@ -16,6 +16,8 @@ import "../support/library_organization_fixture.dart";
 import "../support/library_review_fixture.dart";
 import "support/library_screen_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets(
     "first Albums visit during mode entry keeps collection actions usable",
@@ -38,13 +40,13 @@ void main() {
       final organization = OrganizationServiceFixture()
         ..albumItems = [const LibraryOrganizationAlbum("a", "Travel")];
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryOrganizationProvider.overrideWithValue(organization),
           libraryReviewProvider.overrideWithValue(review),
           libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       await tester.pumpWidget(

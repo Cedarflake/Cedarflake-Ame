@@ -15,6 +15,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_classification_review_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   Future<ProviderContainer> mount(
     WidgetTester tester,
@@ -22,7 +24,7 @@ void main() {
     LibraryClassificationMode mode,
   ) async {
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryClassificationReviewServiceProvider.overrideWithValue(review),
         libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
         libraryClassificationSettingsProvider.overrideWith(
@@ -41,7 +43,7 @@ void main() {
             installationSelected: true,
           ),
         ),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     await tester.pumpWidget(

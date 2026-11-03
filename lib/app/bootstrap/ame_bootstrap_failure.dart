@@ -3,7 +3,8 @@ import "package:flutter/services.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../features/library/application/library_catalog.dart";
-import "../../features/settings/application/ame_preferences.dart";
+import "../../features/settings/domain/ame_preferences.dart";
+import "../../features/settings/presentation/ame_theme_preference.dart";
 import "../presentation/ame_localizations.dart";
 import "../presentation/ame_system_theme.dart";
 import "../presentation/ame_theme.dart";

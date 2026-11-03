@@ -8,13 +8,17 @@ import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 import "package:window_manager/window_manager.dart";
 
+import "../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets("draws Ame chrome with Material caption actions", (tester) async {
     final actions = _FakeWindowActions();
     addTearDown(actions.dispose);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [ameWindowActionsProvider.overrideWithValue(actions)],
+        overrides: platformTestOverrides([
+          ameWindowActionsProvider.overrideWithValue(actions),
+        ]),
         child: const MaterialApp(home: AmeWindowFrame(child: Text("内容"))),
       ),
     );

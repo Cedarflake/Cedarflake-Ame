@@ -13,8 +13,11 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_analysis_activity.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/application/library_workbench_controller.dart";
-import "package:cedarflake_ame/features/library/adapters/windows_library_platform_actions.dart";
+import "package:cedarflake_ame/features/library/adapters/platform/windows_library_platform_actions.dart";
+import "package:cedarflake_ame/features/library/application/library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_workbench.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/application/ports/ame_preference_store.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/material.dart";
 import "package:flutter/gestures.dart";
@@ -24,6 +27,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "support/semantics/retained_semantics_update_harness.dart";
+
+import "support/platform_test_bindings.dart";
 
 const _group = LibraryDuplicateGroup(
   digest: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -111,7 +116,7 @@ void main() {
         final revealed = <String>[];
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [
+            overrides: platformTestOverrides([
               libraryControllerProvider.overrideWith(
                 () => ReviewFixtureLibrary(
                   duplicateMode: LibraryGalleryDuplicateMode.merged,
@@ -129,7 +134,7 @@ void main() {
                   (path) async => revealed.add(path),
                 ),
               ),
-            ],
+            ]),
             child: const MaterialApp(
               home: Scaffold(body: LibraryDuplicateBadge(locationId: "one")),
             ),
@@ -216,7 +221,7 @@ void main() {
         var outsideTaps = 0;
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [
+            overrides: platformTestOverrides([
               libraryControllerProvider.overrideWith(
                 () => ReviewFixtureLibrary(
                   duplicateMode: LibraryGalleryDuplicateMode.merged,
@@ -229,7 +234,7 @@ void main() {
               libraryDuplicateReviewProvider.overrideWithValue(
                 ReviewFixtureService(showResults: () => service.hasResults),
               ),
-            ],
+            ]),
             child: MaterialApp(
               builder: (context, child) => MediaQuery(
                 data: MediaQuery.of(context).copyWith(
@@ -317,7 +322,7 @@ void main() {
         final scheduler = LibraryExactAnalysisScheduler(analysis, paused: true);
         final store = _PauseStore(saveFails: saveFails);
         final container = ProviderContainer(
-          overrides: [
+          overrides: platformTestOverrides([
             libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
             libraryExactDuplicatesProvider.overrideWithValue(service),
             libraryDuplicateReviewProvider.overrideWithValue(
@@ -327,7 +332,7 @@ void main() {
             libraryExactAnalysisSchedulerProvider.overrideWithValue(scheduler),
             initialAmePreferencesProvider.overrideWithValue(store.saved),
             amePreferenceStoreProvider.overrideWithValue(store),
-          ],
+          ]),
         );
         addTearDown(() {
           container.dispose();
@@ -401,7 +406,7 @@ void main() {
       final service = _Service();
       final revealed = <String>[];
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
           libraryExactDuplicatesProvider.overrideWithValue(service),
           libraryDuplicateReviewProvider.overrideWithValue(
@@ -412,7 +417,7 @@ void main() {
               revealed.add(path);
             }),
           ),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       container

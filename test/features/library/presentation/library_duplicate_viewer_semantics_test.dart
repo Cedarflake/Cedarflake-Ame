@@ -22,6 +22,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../../../support/duplicate_review_fixtures.dart";
 import "../../../support/semantics/retained_semantics_update_harness.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   RetainedSemanticsUpdateBinding();
   setUp(RetainedSemanticsUpdateValidator.instance.reset);
@@ -38,7 +40,7 @@ void main() {
         try {
           await tester.pumpWidget(
             ProviderScope(
-              overrides: [
+              overrides: platformTestOverrides([
                 libraryControllerProvider.overrideWith(
                   () => ReviewFixtureLibrary(
                     duplicateMode: LibraryGalleryDuplicateMode.merged,
@@ -51,7 +53,7 @@ void main() {
                 libraryDuplicateReviewProvider.overrideWithValue(
                   ReviewFixtureService(),
                 ),
-              ],
+              ]),
               child: MaterialApp(
                 builder: (context, child) => MediaQuery(
                   data: MediaQuery.of(

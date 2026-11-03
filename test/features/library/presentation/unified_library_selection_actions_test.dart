@@ -14,6 +14,8 @@ import "../support/library_batch_fixture.dart";
 import "../support/library_organization_fixture.dart";
 import "support/library_screen_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets(
     "gallery select-all passes the complete query instead of its loaded card",
@@ -34,7 +36,7 @@ void main() {
       );
       final batches = OrganizationBatchesFixture();
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryOrganizationProvider.overrideWithValue(
@@ -42,7 +44,7 @@ void main() {
           ),
           libraryOrganizationBatchesProvider.overrideWithValue(batches),
           libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       await tester.pumpWidget(

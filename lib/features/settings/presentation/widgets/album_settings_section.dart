@@ -4,7 +4,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../library/application/library_album_pages.dart";
 import "../../../library/presentation/widgets/library_album_picker.dart";
-import "../../application/album_preferences.dart";
+import "../../domain/album_preferences.dart";
 import "../../application/ame_preferences.dart";
 import "settings_section.dart";
 

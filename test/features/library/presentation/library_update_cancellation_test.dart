@@ -9,6 +9,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/concurrent_library_scanner.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets(
     "cancelling queued C preserves both active roots through completion",
@@ -19,14 +21,14 @@ void main() {
       ];
       var refreshCount = 0;
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryUpdateConfiguredRootsProvider.overrideWithValue(roots),
           libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
           libraryUpdateCatalogRefreshProvider.overrideWithValue(() async {
             refreshCount++;
           }),
-        ],
+        ]),
       );
       addTearDown(scanner.dispose);
       addTearDown(container.dispose);

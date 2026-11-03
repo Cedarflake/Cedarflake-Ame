@@ -86,6 +86,15 @@ within that adapter area. Keep port failure/value types in their contract or dom
 Provider declarations beside the state owner and production implementations in bootstrap bindings.
 The contract and its platform implementation share a feature, not a source file or directory.
 
+The platform/storage pilot demonstrates this placement in
+[`library_platform_bindings.dart`](../../lib/app/bootstrap/library_platform_bindings.dart),
+[`settings_bindings.dart`](../../lib/app/bootstrap/settings_bindings.dart) and
+[`storage_bindings.dart`](../../lib/app/bootstrap/storage_bindings.dart). A new required external
+capability declares its port and Provider in the feature, adds its concrete selection and required
+Provider to that feature's binding module, and covers the actual production roster and omitted-binding
+failure. Test-only memory preferences live in `test/support`; application declarations do not select
+them as defaults. The same preference-store instance serves application, library and window contracts.
+
 Tests mirror their resulting source area. Keep an integration workflow at its canonical entrypoint
 while moving only owned private support. Temporary compatibility exports belong to the migrating
 slice and are removed before its closure; do not create a permanent parallel directory layout.

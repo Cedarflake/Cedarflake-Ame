@@ -9,6 +9,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/gallery_wall_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   for (final hasManifest in [false, true]) {
     for (final reducedMotion in [false, true]) {
@@ -36,6 +38,7 @@ void main() {
         await tester.binding.setSurfaceSize(const Size(1000, 700));
         await tester.pumpWidget(
           ProviderScope(
+            overrides: platformTestOverrides(),
             child: MaterialApp(
               home: Scaffold(
                 body: MediaQuery(

@@ -21,6 +21,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_query_snapshot_fixture.dart";
 import "../support/retained_scan_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets(
     "unrecognized gallery media explains failure and clears after repair",
@@ -224,7 +226,7 @@ class _GalleryFixture {
     addTearDown(fixture.synchronization.dispose);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(
               fixture.catalog.snapshot,
@@ -236,7 +238,7 @@ class _GalleryFixture {
           librarySynchronizationProvider.overrideWithValue(
             fixture.synchronization,
           ),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );

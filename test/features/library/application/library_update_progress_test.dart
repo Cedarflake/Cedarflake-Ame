@@ -6,6 +6,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/concurrent_library_scanner.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   for (final cancel in [false, true]) {
     test(
@@ -24,14 +26,14 @@ void main() {
         final scanner = ConcurrentLibraryScanner();
         var refreshes = 0;
         final container = ProviderContainer(
-          overrides: [
+          overrides: platformTestOverrides([
             libraryScannerProvider.overrideWithValue(scanner),
             libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
             libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
             libraryUpdateCatalogRefreshProvider.overrideWithValue(() async {
               refreshes += 1;
             }),
-          ],
+          ]),
         );
         addTearDown(container.dispose);
         addTearDown(scanner.dispose);

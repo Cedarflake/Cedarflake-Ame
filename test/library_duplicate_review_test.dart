@@ -17,6 +17,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
 
+import "support/platform_test_bindings.dart";
+
 void main() {
   test(
     "group viewport forwards a distant position to the review service",
@@ -199,11 +201,11 @@ void main() {
       final analysis = LibraryExactAnalysisController(_NoAnalysis());
       final library = ReviewFixtureLibrary();
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryControllerProvider.overrideWith(() => library),
           libraryDuplicateReviewProvider.overrideWithValue(service),
           libraryExactAnalysisControllerProvider.overrideWithValue(analysis),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       addTearDown(analysis.dispose);

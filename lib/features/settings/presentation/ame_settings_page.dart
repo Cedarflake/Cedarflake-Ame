@@ -7,6 +7,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../app/notifications/ame_notification_controller.dart";
 import "../../../app/notifications/ame_notification_strings.dart";
 import "../../../app/presentation/ame_scroll_motion.dart";
+import "../domain/ame_preferences.dart";
 import "../application/ame_preferences.dart";
 import "widgets/settings_section.dart";
 import "widgets/album_settings_section.dart";

@@ -1,6 +1,6 @@
 import "dart:async";
 
-import "package:cedarflake_ame/features/storage/presentation/storage_snapshot_coordinator.dart";
+import "package:cedarflake_ame/features/storage/application/storage_snapshot_coordinator.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {

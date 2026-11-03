@@ -16,6 +16,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/concurrent_library_scanner.dart";
 import "../support/library_query_snapshot_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 const _query = LibraryGalleryQuery(rootId: "peer");
 const _removedRoot = LibraryRoot(
   id: "removed",
@@ -74,7 +76,7 @@ void main() {
       final scanner = ConcurrentLibraryScanner();
       addTearDown(scanner.dispose);
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryScannerProvider.overrideWithValue(scanner),
           initialLibraryStateProvider.overrideWithValue(
@@ -83,7 +85,7 @@ void main() {
               query: _query,
             ).copyWith(timeline: catalog.timeline()),
           ),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       await tester.pumpWidget(

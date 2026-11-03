@@ -22,6 +22,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_query_snapshot_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   for (final sample in [
     (size: const Size(48, 240), textScale: 1.0),
@@ -45,7 +47,7 @@ void main() {
           var opens = 0;
           await tester.pumpWidget(
             ProviderScope(
-              overrides: [
+              overrides: platformTestOverrides([
                 initialLibraryStateProvider.overrideWithValue(
                   LibraryState.fromSnapshot(snapshot),
                 ),
@@ -54,7 +56,7 @@ void main() {
                 ),
                 libraryScannerProvider.overrideWithValue(const _FakeScanner()),
                 libraryPreviewerProvider.overrideWithValue(previewer),
-              ],
+              ]),
               child: MaterialApp(
                 builder: (context, child) => MediaQuery(
                   data: MediaQuery.of(
@@ -136,7 +138,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryOrganizationProvider.overrideWithValue(
             OrganizationServiceFixture(),
           ),
@@ -148,7 +150,7 @@ void main() {
           libraryPreviewerProvider.overrideWithValue(
             _RecordingPreviewer(asset),
           ),
-        ],
+        ]),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryPhotoTile(
@@ -211,14 +213,14 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(snapshot),
           ),
           libraryCatalogProvider.overrideWithValue(_FakeCatalog(snapshot)),
           libraryScannerProvider.overrideWithValue(const _FakeScanner()),
           libraryPreviewerProvider.overrideWithValue(previewer),
-        ],
+        ]),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryPhotoTile(
@@ -285,7 +287,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(snapshot),
           ),
@@ -294,7 +296,7 @@ void main() {
           libraryPreviewerProvider.overrideWithValue(
             const _UnprovenRootPreviewer(),
           ),
-        ],
+        ]),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryPhotoTile(
@@ -348,7 +350,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState.fromSnapshot(snapshot),
             ),
@@ -357,7 +359,7 @@ void main() {
             libraryPreviewerProvider.overrideWithValue(
               const _UnprovenRootPreviewer(),
             ),
-          ],
+          ]),
           child: MaterialApp(
             home: Scaffold(
               body: LibraryPhotoTile(
@@ -440,12 +442,12 @@ void main() {
       final previewer = _ControlledRetryPreviewer();
       Widget buildTile(LibraryAsset displayed) {
         return ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(const _FakeScanner()),
             libraryPreviewerProvider.overrideWithValue(previewer),
-          ],
+          ]),
           child: MaterialApp(
             home: Scaffold(
               body: LibraryPhotoTile(
@@ -549,14 +551,14 @@ void main() {
     );
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(snapshot),
           ),
           libraryCatalogProvider.overrideWithValue(_FakeCatalog(snapshot)),
           libraryScannerProvider.overrideWithValue(const _FakeScanner()),
           libraryPreviewerProvider.overrideWithValue(previewer),
-        ],
+        ]),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryPhotoTile(
@@ -622,14 +624,14 @@ void main() {
       var opens = 0;
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState.fromSnapshot(snapshot),
             ),
             libraryCatalogProvider.overrideWithValue(_FakeCatalog(snapshot)),
             libraryScannerProvider.overrideWithValue(const _FakeScanner()),
             libraryPreviewerProvider.overrideWithValue(previewer),
-          ],
+          ]),
           child: MaterialApp(
             home: Scaffold(
               body: LibraryPhotoTile(
@@ -735,14 +737,14 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(snapshot),
           ),
           libraryCatalogProvider.overrideWithValue(_FakeCatalog(snapshot)),
           libraryScannerProvider.overrideWithValue(const _FakeScanner()),
           libraryPreviewerProvider.overrideWithValue(previewer),
-        ],
+        ]),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryPhotoTile(

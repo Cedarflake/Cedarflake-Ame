@@ -1,6 +1,5 @@
 import "package:flutter/material.dart";
 
-import "../../features/settings/application/ame_preferences.dart";
 import "ame_menu.dart";
 import "ame_feedback_style.dart";
 import "ame_system_theme.dart";
@@ -9,12 +8,6 @@ import "ame_typography.dart";
 export "ame_typography.dart";
 export "ame_feedback_style.dart"
     show ameNotificationWidth, ameNotificationElevation, ameNotificationRadius;
-
-ThemeMode ameThemeMode(AmeThemePreference preference) => switch (preference) {
-  AmeThemePreference.system => ThemeMode.system,
-  AmeThemePreference.light => ThemeMode.light,
-  AmeThemePreference.dark => ThemeMode.dark,
-};
 
 ThemeData buildAmeTheme({
   Brightness brightness = Brightness.light,

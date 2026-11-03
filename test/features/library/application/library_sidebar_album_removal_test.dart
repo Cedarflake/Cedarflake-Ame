@@ -8,6 +8,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_organization_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   for (final stale in [false, true]) {
     test(
@@ -15,12 +17,12 @@ void main() {
       () async {
         final service = OrganizationServiceFixture();
         final container = ProviderContainer(
-          overrides: [
+          overrides: platformTestOverrides([
             libraryOrganizationProvider.overrideWithValue(service),
             libraryControllerProvider.overrideWith(
               OrganizationLibraryFixture.new,
             ),
-          ],
+          ]),
         );
         addTearDown(container.dispose);
         var fail = true;

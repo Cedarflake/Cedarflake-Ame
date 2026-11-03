@@ -8,6 +8,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/window/ame_window_fullscreen.dart";
 import "../../../../app/presentation/ame_transient_feedback.dart";
+import "../../../settings/domain/ame_preferences.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../domain/library_models.dart";
 import "../library_viewer_source_state.dart";

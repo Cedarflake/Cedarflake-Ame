@@ -5,6 +5,7 @@ import "package:cedarflake_ame/features/library/application/library_archive_stat
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_archive.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization_archive.dart";
+import "package:cedarflake_ame/features/settings/application/ports/organization_archive_picker.dart";
 import "package:cedarflake_ame/features/settings/application/organization_archive_picker.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/organization_archive_section.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/organization_record_feedback.dart";
@@ -15,6 +16,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../../library/support/library_archive_fixture.dart";
 import "../../library/support/library_organization_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   late ArchiveServiceFixture service;
   late _Picker picker;
@@ -23,11 +26,11 @@ void main() {
     service = ArchiveServiceFixture();
     picker = _Picker();
     container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryOrganizationArchivesProvider.overrideWithValue(service),
         organizationArchivePickerProvider.overrideWithValue(picker),
         libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
-      ],
+      ]),
     );
   });
   tearDown(() => container.dispose());

@@ -12,7 +12,8 @@ import "package:cedarflake_ame/features/library/domain/library_organization_batc
 import "package:cedarflake_ame/features/library/domain/library_review.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_selection_actions.dart";
-import "package:cedarflake_ame/features/settings/application/album_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/album_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -21,6 +22,8 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../support/library_batch_fixture.dart";
 import "../support/library_organization_fixture.dart";
+
+import "../../../support/platform_test_bindings.dart";
 
 void main() {
   late OrganizationBatchesFixture batches;
@@ -38,11 +41,11 @@ void main() {
     committed = 0;
     library = _RefreshingLibrary();
     container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryOrganizationBatchesProvider.overrideWithValue(batches),
         libraryOrganizationProvider.overrideWithValue(service),
         libraryControllerProvider.overrideWith(() => library),
-      ],
+      ]),
     );
   });
   tearDown(() {

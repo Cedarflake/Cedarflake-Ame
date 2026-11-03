@@ -14,16 +14,18 @@ import "package:flutter_test/flutter_test.dart";
 import "../../library/support/library_cleanup_fixture.dart";
 import "../../library/support/library_organization_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   late CleanupServiceFixture service;
   late ProviderContainer container;
   setUp(() {
     service = CleanupServiceFixture();
     container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryOrganizationCleanupProvider.overrideWithValue(service),
         libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
-      ],
+      ]),
     );
   });
   tearDown(() => container.dispose());

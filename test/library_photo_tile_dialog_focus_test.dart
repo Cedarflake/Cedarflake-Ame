@@ -16,6 +16,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
 
+import "support/platform_test_bindings.dart";
+
 void main() {
   for (final keyboard in [false, true]) {
     for (final information in [false, true]) {
@@ -24,11 +26,11 @@ void main() {
         (tester) async {
           await tester.pumpWidget(
             ProviderScope(
-              overrides: [
+              overrides: platformTestOverrides([
                 libraryControllerProvider.overrideWith(
                   ReviewFixtureLibrary.new,
                 ),
-              ],
+              ]),
               child: MaterialApp(
                 home: Scaffold(
                   body: Builder(
@@ -100,7 +102,7 @@ void main() {
       (tester) async {
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [
+            overrides: platformTestOverrides([
               libraryControllerProvider.overrideWith(
                 () => ReviewFixtureLibrary(
                   duplicateMode: LibraryGalleryDuplicateMode.merged,
@@ -110,7 +112,7 @@ void main() {
                 (_) async => {"one": reviewGroup},
               ),
               libraryExactDuplicatesProvider.overrideWithValue(_Duplicates()),
-            ],
+            ]),
             child: MaterialApp(
               home: Scaffold(
                 body: Align(

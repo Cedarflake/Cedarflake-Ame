@@ -1,7 +1,7 @@
 import "dart:math" as math;
 import "dart:ui";
 
-import "../../../settings/application/ame_preferences.dart";
+import "../../../settings/domain/ame_preferences.dart";
 
 class LibraryViewerZoomGeometry {
   const LibraryViewerZoomGeometry({

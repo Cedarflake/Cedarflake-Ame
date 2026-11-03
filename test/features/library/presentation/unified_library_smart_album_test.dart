@@ -18,6 +18,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_organization_fixture.dart";
 import "support/library_screen_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets(
     "smart categories use the shared gallery and retain headings during refresh",
@@ -43,7 +45,7 @@ void main() {
       );
       Future<LibraryClassificationSettings?> navigation = settings;
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryOrganizationProvider.overrideWithValue(albums),
@@ -52,7 +54,7 @@ void main() {
           libraryClassificationNavigationProvider.overrideWith(
             (ref) => navigation,
           ),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       await tester.pumpWidget(
@@ -203,7 +205,7 @@ void main() {
       );
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             initialLibraryStateProvider.overrideWithValue(state),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryOrganizationProvider.overrideWithValue(
@@ -218,7 +220,7 @@ void main() {
             libraryClassificationNavigationProvider.overrideWith(
               (ref) async => _settings("插画"),
             ),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -243,7 +245,7 @@ void main() {
       LibraryClassificationCategory? selected;
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             libraryClassificationNavigationProvider.overrideWith(
               (ref) async => LibraryClassificationSettings(
                 revision: BigInt.zero,
@@ -254,7 +256,7 @@ void main() {
                 installationSelected: false,
               ),
             ),
-          ],
+          ]),
           child: MaterialApp(
             home: Scaffold(
               body: SizedBox(

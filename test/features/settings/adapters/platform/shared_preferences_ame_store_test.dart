@@ -1,9 +1,9 @@
-import "package:cedarflake_ame/features/settings/adapters/shared_preferences_ame_store.dart";
+import "package:cedarflake_ame/features/settings/adapters/platform/shared_preferences_ame_store.dart";
 import "package:cedarflake_ame/app/window/ame_window_placement.dart";
-import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
+import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
-import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
-import "package:cedarflake_ame/features/settings/application/album_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/album_preferences.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart";

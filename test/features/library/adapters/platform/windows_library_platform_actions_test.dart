@@ -1,4 +1,4 @@
-import "package:cedarflake_ame/features/library/adapters/windows_library_platform_actions.dart";
+import "package:cedarflake_ame/features/library/adapters/platform/windows_library_platform_actions.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {

@@ -1,4 +1,4 @@
-import "../../settings/application/album_preferences.dart";
+import "../../settings/domain/album_preferences.dart";
 import "../domain/library_organization.dart";
 import "library_organization.dart";
 

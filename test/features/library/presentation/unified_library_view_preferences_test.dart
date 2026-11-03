@@ -2,6 +2,8 @@ import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_view_preference_store.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
@@ -12,6 +14,8 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "support/library_screen_fixture.dart";
 import "support/library_screen_menu_fixture.dart";
+
+import "../../../support/platform_test_bindings.dart";
 
 void main() {
   testWidgets("restores and saves stable gallery display preferences", (
@@ -39,14 +43,14 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           initialLibraryViewPreferencesProvider.overrideWithValue(
             initialPreferences,
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryViewPreferenceStoreProvider.overrideWithValue(preferenceStore),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );

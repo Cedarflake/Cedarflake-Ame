@@ -5,6 +5,10 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "app/ame_app.dart";
 import "app/bootstrap/ame_bootstrap_failure.dart";
+import "app/bootstrap/ame_provider_assembly.dart";
+import "app/bootstrap/library_platform_bindings.dart";
+import "app/bootstrap/settings_bindings.dart";
+import "app/bootstrap/storage_bindings.dart";
 import "app/bootstrap/ame_startup_orchestrator.dart";
 import "app/bootstrap/library_synchronization_lifecycle_owner.dart";
 import "app/bootstrap/rust_library_loader.dart";
@@ -30,120 +34,143 @@ import "features/library/application/library_model_installation.dart";
 import "features/library/application/library_model_activation.dart";
 import "features/library/application/library_scan_shutdown.dart";
 import "features/library/application/library_synchronization.dart";
-import "features/library/application/library_view_preferences.dart";
 import "features/library/domain/library_models.dart";
 import "features/library/domain/library_state.dart";
-import "features/settings/application/ame_preferences.dart";
-import "features/settings/adapters/shared_preferences_ame_store.dart";
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final preferenceStore = SharedPreferencesAmeStore();
+  final preferenceStores = AmePreferenceStores.production();
   final shutdownCoordinator = AmeShutdownCoordinator();
-  final amePreferences = await preferenceStore.loadAmePreferences();
-  final viewPreferences = await preferenceStore.loadLibraryViewPreferences();
+  final amePreferences = await preferenceStores.application
+      .loadAmePreferences();
+  final viewPreferences = await preferenceStores.library
+      .loadLibraryViewPreferences();
   final windowActions = await initializeAmeWindow(
-    preferenceStore,
+    preferenceStores.window,
     shutdownCoordinator,
   );
+  final providerAssembly = AmeProviderAssembly(shutdown: shutdownCoordinator);
 
   LibrarySynchronizationLifecycleOwner? synchronizationLifecycle;
   LibraryClassificationLifecycle? classificationLifecycle;
   Future<void> Function()? recoverModelInstallation;
   late final Widget application;
   try {
-    await initializeRustLibrary();
-    const catalog = RustLibraryCatalog();
-    final query = LibraryGalleryQuery(
-      sortKey: viewPreferences.sortKey,
-      sortDirection: viewPreferences.sortDirection,
-      duplicateMode: viewPreferences.duplicateMode,
-    );
-    final snapshot = await catalog.load(
-      maxItems: libraryCatalogWindow,
-      query: query,
-    );
-    final initialState = LibraryState.fromSnapshot(snapshot, query: query);
-    final synchronization = RustLibrarySynchronization.production();
-    synchronizationLifecycle = LibrarySynchronizationLifecycleOwner(
-      synchronization,
-    );
-    final scanShutdownCoordinator = LibraryScanShutdownCoordinator();
-    shutdownCoordinator.register(synchronizationLifecycle.close);
-    shutdownCoordinator.register(scanShutdownCoordinator.suspend);
-    final exactAnalysis = LibraryExactAnalysisController(
-      const RustLibraryExactDuplicates(),
-    );
-    final exactScheduler = LibraryExactAnalysisScheduler(
-      exactAnalysis,
-      paused: amePreferences.exactAnalysisPaused,
-      foregroundReads: libraryForegroundReads,
-    );
-    shutdownCoordinator.register(exactScheduler.close);
-    classificationLifecycle = LibraryClassificationLifecycle(
-      const LibraryAutomaticClassification(
-        RustLibraryClassification(),
-        RustLibraryClassificationConfiguration(),
-      ),
-      foregroundReads: libraryForegroundReads,
-    );
-    final classificationEnvironment = AmeAnalysisEnvironment(
-      onSuspendedChanged: classificationLifecycle.setSuspended,
-      onMemoryPressure: classificationLifecycle.memoryPressure,
-      onError: classificationLifecycle.reportEnvironmentError,
-    );
-    unawaited(classificationEnvironment.start());
-    shutdownCoordinator.register(() async {
-      classificationEnvironment.dispose();
-      await classificationLifecycle?.close();
-    });
-    final classificationConfiguration = LibraryClassificationConfiguration(
-      const RustLibraryClassificationConfiguration(),
-      classificationLifecycle,
-    );
-    final modelInstallation = LibraryModelInstallation(
-      const RustLibraryModelInstallation(),
-    );
-    shutdownCoordinator.register(modelInstallation.close);
-    recoverModelInstallation = () => modelInstallation.recover(
-      activateLibraryModel(classificationConfiguration),
-    );
-    application = ProviderScope(
-      overrides: [
-        libraryModelInstallationProvider.overrideWith(
-          (ref) => modelInstallation,
-        ),
-        libraryClassificationConfigurationProvider.overrideWithValue(
-          classificationConfiguration,
-        ),
-        libraryClassificationLifecycleProvider.overrideWith(
-          (ref) => classificationLifecycle,
-        ),
-        libraryOrganizationConflictsProvider.overrideWithValue(
-          const RustLibraryOrganizationConflicts(),
-        ),
-        libraryGalleryDuplicatesProvider.overrideWithValue(
-          const RustLibraryGalleryDuplicates(),
-        ),
-        libraryExactAnalysisControllerProvider.overrideWithValue(exactAnalysis),
-        libraryExactAnalysisSchedulerProvider.overrideWithValue(exactScheduler),
-        ameWindowActionsProvider.overrideWithValue(windowActions),
-        initialAmePreferencesProvider.overrideWithValue(amePreferences),
-        amePreferenceStoreProvider.overrideWithValue(preferenceStore),
-        initialLibraryViewPreferencesProvider.overrideWithValue(
-          viewPreferences,
-        ),
-        libraryCatalogProvider.overrideWithValue(catalog),
-        libraryScanShutdownCoordinatorProvider.overrideWithValue(
-          scanShutdownCoordinator,
-        ),
-        librarySynchronizationProvider.overrideWithValue(synchronization),
-        initialLibraryStateProvider.overrideWithValue(initialState),
-        libraryViewPreferenceStoreProvider.overrideWithValue(preferenceStore),
-      ],
-      child: const AmeApp(),
+    application = await acquireAmeApplication(
+      shutdown: shutdownCoordinator,
+      acquire: () async {
+        await initializeRustLibrary();
+        const catalog = RustLibraryCatalog();
+        final query = LibraryGalleryQuery(
+          sortKey: viewPreferences.sortKey,
+          sortDirection: viewPreferences.sortDirection,
+          duplicateMode: viewPreferences.duplicateMode,
+        );
+        final snapshot = await catalog.load(
+          maxItems: libraryCatalogWindow,
+          query: query,
+        );
+        final initialState = LibraryState.fromSnapshot(snapshot, query: query);
+        final synchronization = RustLibrarySynchronization.production();
+        final synchronizationOwner = LibrarySynchronizationLifecycleOwner(
+          synchronization,
+        );
+        synchronizationLifecycle = synchronizationOwner;
+        final scanShutdownCoordinator = LibraryScanShutdownCoordinator();
+        shutdownCoordinator.register(synchronizationOwner.close);
+        shutdownCoordinator.register(scanShutdownCoordinator.suspend);
+        final exactAnalysis = LibraryExactAnalysisController(
+          const RustLibraryExactDuplicates(),
+        );
+        final exactScheduler = LibraryExactAnalysisScheduler(
+          exactAnalysis,
+          paused: amePreferences.exactAnalysisPaused,
+          foregroundReads: libraryForegroundReads,
+        );
+        shutdownCoordinator.register(exactScheduler.close);
+        final classificationOwner = LibraryClassificationLifecycle(
+          const LibraryAutomaticClassification(
+            RustLibraryClassification(),
+            RustLibraryClassificationConfiguration(),
+          ),
+          foregroundReads: libraryForegroundReads,
+        );
+        classificationLifecycle = classificationOwner;
+        shutdownCoordinator.register(classificationOwner.close);
+        final classificationEnvironment = AmeAnalysisEnvironment(
+          onSuspendedChanged: classificationOwner.setSuspended,
+          onMemoryPressure: classificationOwner.memoryPressure,
+          onError: classificationOwner.reportEnvironmentError,
+        );
+        shutdownCoordinator.register(classificationEnvironment.dispose);
+        unawaited(classificationEnvironment.start());
+        final classificationConfiguration = LibraryClassificationConfiguration(
+          const RustLibraryClassificationConfiguration(),
+          classificationOwner,
+        );
+        final modelInstallation = LibraryModelInstallation(
+          const RustLibraryModelInstallation(),
+        );
+        shutdownCoordinator.register(modelInstallation.close);
+        recoverModelInstallation = () => modelInstallation.recover(
+          activateLibraryModel(classificationConfiguration),
+        );
+        final container = providerAssembly.assemble(
+          requirements: [
+            ...libraryPlatformRequirements,
+            ...settingsRequirements,
+            ...storageRequirements,
+          ],
+          overrides: [
+            ...libraryPlatformBindings(
+              preferenceStore: preferenceStores.library,
+              initialPreferences: viewPreferences,
+            ),
+            ...settingsBindings(
+              preferenceStore: preferenceStores.application,
+              initialPreferences: amePreferences,
+            ),
+            ...storageBindings(),
+            libraryModelInstallationProvider.overrideWith(
+              (ref) => modelInstallation,
+            ),
+            libraryClassificationConfigurationProvider.overrideWithValue(
+              classificationConfiguration,
+            ),
+            libraryClassificationLifecycleProvider.overrideWith(
+              (ref) => classificationOwner,
+            ),
+            libraryOrganizationConflictsProvider.overrideWithValue(
+              const RustLibraryOrganizationConflicts(),
+            ),
+            libraryGalleryDuplicatesProvider.overrideWithValue(
+              const RustLibraryGalleryDuplicates(),
+            ),
+            libraryExactAnalysisControllerProvider.overrideWithValue(
+              exactAnalysis,
+            ),
+            libraryExactAnalysisSchedulerProvider.overrideWithValue(
+              exactScheduler,
+            ),
+            ameWindowActionsProvider.overrideWithValue(windowActions),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            libraryScanShutdownCoordinatorProvider.overrideWithValue(
+              scanShutdownCoordinator,
+            ),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+            initialLibraryStateProvider.overrideWithValue(initialState),
+          ],
+        );
+        return UncontrolledProviderScope(
+          container: container,
+          child: const AmeApp(),
+        );
+      },
     );
   } on Object catch (error) {
+    synchronizationLifecycle = null;
+    classificationLifecycle = null;
+    recoverModelInstallation = null;
     application = ProviderScope(
       overrides: [ameWindowActionsProvider.overrideWithValue(windowActions)],
       child: AmeBootstrapFailure(error: error, preferences: amePreferences),

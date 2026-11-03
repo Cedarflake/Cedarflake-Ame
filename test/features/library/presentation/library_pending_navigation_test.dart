@@ -16,6 +16,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_query_snapshot_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets(
     "returning to the loaded top retires a pending distant date read",
@@ -235,7 +237,7 @@ String _description(WidgetTester tester, _Fixture fixture) {
 class _Fixture {
   _Fixture() {
     container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(
             catalog.page(0, 160),
@@ -244,7 +246,7 @@ class _Fixture {
         libraryCatalogProvider.overrideWithValue(catalog),
         libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(manifest),
         libraryPreviewerProvider.overrideWithValue(_PendingPreviewer()),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
   }

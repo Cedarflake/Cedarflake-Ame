@@ -1,6 +1,6 @@
 # Project organization after R5
 
-Status: O1 foundation implemented; O2 is next in the roadmap-owned delivery order.
+Status: O1–O2 implemented; O3 is next in the roadmap-owned delivery order.
 
 The [roadmap](../roadmap.md#project-organization-after-r5) selects this maintenance scope after R5.
 [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md) owns the target dependency
@@ -163,5 +163,11 @@ record hosted results separately without treating pending checks as a migration 
 
 The Dart and scoped Rust inventories and enforceable boundary checks are implemented with their
 parser, rule and exact-exception regressions. Named native composition owners retain their resource
-lifetimes; unclassified application references stay individually frozen for O7. Continue with O2's
-platform/storage migration. Evidence belongs to the linked acceptance record.
+lifetimes; unclassified application references stay individually frozen for O7.
+
+O2 separates platform/storage ports, concrete adapters, preference values and feature-specific
+production bindings. Required ports are validated in one root Provider container, with acquisition
+failure cleanup and background-before-container retirement. Storage snapshot/reclamation owners
+move intact into application; the theme-preference translation moves out of shared visual code as
+part of the preference split. The O2 migration exceptions are retired. Continue with O3's catalog
+reads and previews. Evidence belongs to the linked acceptance record.

@@ -1,27 +1,7 @@
 {
   "activeExceptions": [
-    "D001",
-    "D002",
-    "D003",
-    "D004",
     "D005",
-    "D006",
-    "D007",
     "D008",
-    "D009",
-    "D010",
-    "D011",
-    "D012",
-    "D013",
-    "D014",
-    "D015",
-    "D016",
-    "D017",
-    "D018",
-    "D019",
-    "D020",
-    "D021",
-    "D022",
     "D023",
     "D024",
     "D025",
@@ -43,22 +23,15 @@
     "D041",
     "D042",
     "D043",
-    "D044",
-    "D045",
-    "D046",
     "D047",
     "D048",
     "D049",
     "D050",
     "D051",
-    "D052",
-    "D053",
-    "D054",
     "D055",
     "D056",
     "D057",
     "D058",
-    "D059",
     "D060",
     "D061",
     "D062",
@@ -67,7 +40,6 @@
     "D065",
     "D066",
     "D067",
-    "D068",
     "D069",
     "D070",
     "D071",
@@ -98,7 +70,6 @@
     "D096",
     "D097",
     "D098",
-    "D099",
     "D100",
     "D101",
     "D102",
@@ -114,16 +85,148 @@
     "D112",
     "D113",
     "D114",
-    "D115",
-    "D116",
-    "D117",
-    "D118",
-    "D119",
-    "D120",
-    "D121",
-    "D122",
-    "D123",
-    "D124"
+    "D115"
   ],
-  "publicFeatureEdges": []
+  "publicFeatureEdges": [
+    {
+      "source": "lib/features/library/application/library_album_proposal.dart",
+      "target": "lib/features/settings/domain/album_preferences.dart",
+      "contract": "AlbumPreferences"
+    },
+    {
+      "source": "lib/features/library/application/library_controller.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/application/library_controller.dart",
+      "target": "lib/features/settings/domain/ame_preferences.dart",
+      "contract": "AmePreferences and presentation preference values"
+    },
+    {
+      "source": "lib/features/library/presentation/library_viewer_zoom.dart",
+      "target": "lib/features/settings/domain/ame_preferences.dart",
+      "contract": "AmePreferences and presentation preference values"
+    },
+    {
+      "source": "lib/features/library/presentation/unified_library_screen.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_album_viewer_action.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_analysis_activity.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_duplicate_review_viewer.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_exact_analysis_actions.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_image_viewer.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_image_viewer.dart",
+      "target": "lib/features/settings/domain/ame_preferences.dart",
+      "contract": "AmePreferences and presentation preference values"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_selection_actions.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_viewer_zoom_geometry.dart",
+      "target": "lib/features/settings/domain/ame_preferences.dart",
+      "contract": "AmePreferences and presentation preference values"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_workbench.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_workbench.dart",
+      "target": "lib/features/settings/domain/ame_preferences.dart",
+      "contract": "AmePreferences and presentation preference values"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/application/ports/library_view_preference_store.dart",
+      "contract": "LibraryViewPreferenceStore"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_asset.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_gallery_collection.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_metadata_filter.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_models.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_organization_queue.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_root_consolidation.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_scroll_section.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_view_preferences.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
+      "target": "lib/features/storage/application/catalog_reclamation_controller.dart",
+      "contract": "CatalogReclamationController and typed snapshot/save requests"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
+      "target": "lib/features/storage/application/ports/storage_settings_gateway.dart",
+      "contract": "StorageSettingsGateway"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
+      "target": "lib/features/storage/application/storage_settings.dart",
+      "contract": "storageSettingsGatewayProvider and storageDirectoryPickerProvider"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
+      "target": "lib/features/storage/domain/storage_models.dart",
+      "contract": "StorageStatusModel, cleanup and reclamation results"
+    }
+  ]
 }

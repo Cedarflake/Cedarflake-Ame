@@ -18,6 +18,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_query_snapshot_fixture.dart";
 import "../support/retained_scan_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets(
     "fullscreen round trip preserves hidden gallery geometry and return position",
@@ -41,12 +43,12 @@ void main() {
       addTearDown(fullscreen.dispose);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             initialLibraryStateProvider.overrideWithValue(_galleryState()),
             libraryScannerProvider.overrideWithValue(scanner),
             libraryPreviewerProvider.overrideWithValue(_PendingPreviewer()),
             ameWindowFullscreenProvider.overrideWithValue(fullscreen),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -122,11 +124,11 @@ void main() {
       addTearDown(scanner.dispose);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             initialLibraryStateProvider.overrideWithValue(_galleryState()),
             libraryScannerProvider.overrideWithValue(scanner),
             libraryPreviewerProvider.overrideWithValue(_PendingPreviewer()),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -239,12 +241,12 @@ void main() {
         addTearDown(scanner.dispose);
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [
+            overrides: platformTestOverrides([
               initialLibraryStateProvider.overrideWithValue(state),
               libraryCatalogProvider.overrideWithValue(catalog),
               libraryScannerProvider.overrideWithValue(scanner),
               libraryPreviewerProvider.overrideWithValue(_PendingPreviewer()),
-            ],
+            ]),
             child: const AmeApp(),
           ),
         );

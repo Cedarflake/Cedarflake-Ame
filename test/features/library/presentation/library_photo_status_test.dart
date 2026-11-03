@@ -8,6 +8,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/duplicate_review_fixtures.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets(
     "card preserves album conflicts without reading analysis failures",
@@ -15,7 +17,7 @@ void main() {
       var opened = 0;
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
             libraryClassificationReviewServiceProvider.overrideWith(
               (ref) => throw StateError("Card must not read analysis status"),
@@ -23,7 +25,7 @@ void main() {
             libraryConflictAnnotationsProvider.overrideWith(
               (ref) async => {"one"},
             ),
-          ],
+          ]),
           child: MaterialApp(
             home: Scaffold(
               body: Align(

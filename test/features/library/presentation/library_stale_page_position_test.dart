@@ -18,6 +18,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/concurrent_library_scanner.dart";
 import "../support/library_query_snapshot_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets("busy synchronization preserves a recovering middle window", (
     tester,
@@ -43,7 +45,7 @@ void main() {
     addTearDown(scanner.dispose);
     addTearDown(synchronization.dispose);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryCatalogProvider.overrideWithValue(catalog),
         libraryScannerProvider.overrideWithValue(scanner),
         librarySynchronizationProvider.overrideWithValue(synchronization),
@@ -53,7 +55,7 @@ void main() {
             windowStartItemOffset: 4000,
           ),
         ),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     await tester.pumpWidget(

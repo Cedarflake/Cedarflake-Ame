@@ -9,6 +9,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_cleanup_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   late CleanupServiceFixture service;
   late ProviderContainer container;
@@ -16,10 +18,10 @@ void main() {
   setUp(() {
     service = CleanupServiceFixture();
     container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryOrganizationCleanupProvider.overrideWithValue(service),
         libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
-      ],
+      ]),
     );
     controller = container.read(libraryCleanupControllerProvider.notifier);
   });

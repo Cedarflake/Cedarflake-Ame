@@ -85,6 +85,15 @@ bindings fail at assembly, before the affected workflow starts; they cannot sile
 an unguarded native path or a second runtime. Validate normal and failure bootstrap with the same
 production binding roster used by the application.
 
+`AmeProviderAssembly` owns the single root Riverpod container. Create its lifetime owner before
+acquiring background resources so the existing reverse-order shutdown joins those resources before
+disposing the container. Feature binding modules supply typed overrides and required-port rosters;
+assembly reads those required ports before publishing the container through `UncontrolledProviderScope`.
+Failed validation disposes the unpublished container. `acquireAmeApplication` retires already acquired
+resources through the existing shutdown coordinator and preserves both acquisition and cleanup
+failures. This owner contains container lifetime and validation only; feature modules retain concrete
+service selection and application owners retain workflow policy.
+
 ### Presentation ownership
 
 Pages compose surfaces and connect user intent to application entrypoints. Widgets render bounded

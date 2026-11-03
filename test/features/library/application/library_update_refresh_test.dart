@@ -12,6 +12,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/fixed_query_projection.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   for (final scenario in [
     (laterPosition: false, staleFailure: false),
@@ -247,7 +249,7 @@ class _Fixture {
   _Fixture() {
     final initial = catalog.snapshot(const LibraryGalleryQuery());
     container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryCatalogProvider.overrideWithValue(catalog),
         libraryScannerProvider.overrideWithValue(scanner),
         initialLibraryStateProvider.overrideWithValue(
@@ -255,7 +257,7 @@ class _Fixture {
             initial,
           ).copyWith(timeline: catalog.timeline(const LibraryGalleryQuery())),
         ),
-      ],
+      ]),
     );
     library = container.read(libraryControllerProvider.notifier);
     updates = container.read(libraryUpdateControllerProvider.notifier);

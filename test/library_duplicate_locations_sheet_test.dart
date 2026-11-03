@@ -13,6 +13,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
 
+import "support/platform_test_bindings.dart";
+
 void main() {
   testWidgets(
     "pending members retain rows until the current verification page is admitted",
@@ -151,7 +153,7 @@ Widget _host(
   LibraryExactAnalysisController? analysis,
   LibraryExactAnalysisScheduler? scheduler,
 }) => ProviderScope(
-  overrides: [
+  overrides: platformTestOverrides([
     libraryControllerProvider.overrideWith(
       () => library ?? ReviewFixtureLibrary(),
     ),
@@ -160,7 +162,7 @@ Widget _host(
       libraryExactAnalysisControllerProvider.overrideWithValue(analysis),
     if (scheduler != null)
       libraryExactAnalysisSchedulerProvider.overrideWithValue(scheduler),
-  ],
+  ]),
   child: MaterialApp(
     home: Scaffold(
       body: LibraryDuplicateLocationsSheet(

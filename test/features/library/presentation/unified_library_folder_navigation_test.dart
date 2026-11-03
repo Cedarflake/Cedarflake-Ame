@@ -1,9 +1,10 @@
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
-import "package:cedarflake_ame/features/library/adapters/windows_library_platform_actions.dart";
+import "package:cedarflake_ame/features/library/application/library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
-import "package:cedarflake_ame/features/library/application/library_platform_actions.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_platform_actions.dart";
+import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
@@ -16,6 +17,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "support/library_screen_fixture.dart";
+
+import "../../../support/platform_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -40,12 +43,12 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(queryCatalog),
             libraryFolderCatalogProvider.overrideWithValue(folderCatalog),
             libraryPlatformActionsProvider.overrideWithValue(platformActions),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -172,7 +175,7 @@ void main() {
       final catalog = AnchorResolvingQueryCatalog(initialSnapshot);
       final folderCatalog = _RecordingFolderCatalog();
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           initialLibraryViewPreferencesProvider.overrideWithValue(
             const LibraryViewPreferences(
@@ -182,7 +185,7 @@ void main() {
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryFolderCatalogProvider.overrideWithValue(folderCatalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
 

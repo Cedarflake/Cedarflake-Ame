@@ -10,12 +10,15 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_ass
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_toolbar.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../../support/platform_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -37,9 +40,9 @@ void main() {
       addTearDown(fullscreen.dispose);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             ameWindowFullscreenProvider.overrideWithValue(fullscreen),
-          ],
+          ]),
           child: MaterialApp(
             home: Scaffold(
               body: LibraryImageViewer(
@@ -137,6 +140,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: platformTestOverrides(),
         child: MaterialApp(
           home: StatefulBuilder(
             builder: (context, setState) {
@@ -182,6 +186,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: platformTestOverrides(),
         child: MaterialApp(
           theme: buildAmeTheme(),
           home: Scaffold(
@@ -316,6 +321,7 @@ void main() {
     var nextCount = 0;
     await tester.pumpWidget(
       ProviderScope(
+        overrides: platformTestOverrides(),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryImageViewer(
@@ -361,6 +367,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: platformTestOverrides(),
         child: MaterialApp(
           home: StatefulBuilder(
             builder: (context, setState) => Scaffold(
@@ -435,6 +442,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: platformTestOverrides(),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryImageViewer(
@@ -491,6 +499,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: platformTestOverrides(),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryImageViewer(
@@ -628,6 +637,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: platformTestOverrides(),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryImageViewer(
@@ -678,6 +688,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: platformTestOverrides(),
         child: MaterialApp(
           home: Scaffold(
             body: LibraryImageViewer(

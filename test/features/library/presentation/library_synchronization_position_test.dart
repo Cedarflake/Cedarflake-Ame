@@ -17,6 +17,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/concurrent_library_scanner.dart";
 import "../support/library_query_snapshot_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   for (final lateFailure in [false, true]) {
     testWidgets(
@@ -43,7 +45,7 @@ void main() {
         final scanner = ConcurrentLibraryScanner();
         addTearDown(scanner.dispose);
         final container = ProviderContainer(
-          overrides: [
+          overrides: platformTestOverrides([
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(
@@ -57,7 +59,7 @@ void main() {
                 windowStartItemOffset: 4000,
               ),
             ),
-          ],
+          ]),
         );
         addTearDown(container.dispose);
         await tester.pumpWidget(

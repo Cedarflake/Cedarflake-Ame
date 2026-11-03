@@ -12,6 +12,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/duplicate_review_fixtures.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   for (final update in ["catalog revision", "scroll window"]) {
     testWidgets("confirmed badge stays visible while $update reloads", (
@@ -96,10 +98,10 @@ void main() {
 Finder _badge(String id) => find.byKey(ValueKey("duplicate-badge-$id"));
 
 Widget _host(_Window library, _Annotations service) => ProviderScope(
-  overrides: [
+  overrides: platformTestOverrides([
     libraryControllerProvider.overrideWith(() => library),
     libraryGalleryDuplicatesProvider.overrideWithValue(service),
-  ],
+  ]),
   child: MaterialApp(
     home: Scaffold(
       body: Consumer(

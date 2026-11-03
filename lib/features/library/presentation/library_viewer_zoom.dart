@@ -2,7 +2,7 @@ import "dart:math" as math;
 
 import "package:flutter/material.dart";
 
-import "../../settings/application/ame_preferences.dart";
+import "../../settings/domain/ame_preferences.dart";
 import "widgets/library_viewer_zoom_geometry.dart";
 
 /// Owns zoom intent as well as its transform, so resizing preserves actual pixel scale.

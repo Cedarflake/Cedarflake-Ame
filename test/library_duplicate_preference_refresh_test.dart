@@ -11,6 +11,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
 
+import "support/platform_test_bindings.dart";
+
 void main() {
   testWidgets(
     "switching preferred copies preserves cards through catalog publication",
@@ -24,10 +26,10 @@ void main() {
         final library = _PublishingLibrary();
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [
+            overrides: platformTestOverrides([
               libraryControllerProvider.overrideWith(() => library),
               libraryDuplicateReviewProvider.overrideWithValue(service),
-            ],
+            ]),
             child: const MaterialApp(
               home: Scaffold(body: LibraryExactDuplicatesPage()),
             ),

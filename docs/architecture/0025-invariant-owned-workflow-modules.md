@@ -770,7 +770,7 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   separate background read. Later input retires old results and errors. Only a proven position
   supersession may repeat display publication; neither that continuation nor an explicit display
   retry repeats the unregister command. Capture failure still projects the committed removal.
-- `CatalogReclamationController` owns reclamation presentation state, polling, command epochs,
+- `CatalogReclamationController` owns application-facing reclamation state, polling, command epochs,
   ordered full-storage snapshots, and terminal usage refresh. A snapshot started before or during a
   newer command cannot replace that command's result. Settings persistence and preview cleanup
   remain separate workflows; neither keeps another copy of the reclamation state machine.
@@ -785,7 +785,9 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   requests share one in-flight read; epoch or configuration changes coalesce one latest follow-up.
   Commands suspend, rather than discard, required refreshes and wake them after settlement. Disposal
   settles waiting callers without waiting for a stale backend read. Snapshot acceptance and
-  configuration policy remain in the presentation controller, not the scheduling module.
+  configuration policy remain in the reclamation controller, not the scheduling module. The
+  controller, configuration projection and snapshot coordinator live together under storage
+  application; the Settings widget renders their state without owning a second read lifecycle.
 - `LibrarySourceImage` composes the installed Flutter SDK's immutable-buffer and image-decoder
   primitives through the application-owned source-reader port. The scheduler owns bounded latest
   intent and read completion; the image provider owns source-lease cache identity and the native

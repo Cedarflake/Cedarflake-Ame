@@ -19,6 +19,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/gallery_wall_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   test("cover demand includes the cropped extent and stays bounded", () {
     for (final density in [1.0, 1.5, 2.0]) {
@@ -141,6 +143,7 @@ void main() {
           final opened = <LibraryAsset>[];
           await tester.pumpWidget(
             ProviderScope(
+              overrides: platformTestOverrides(),
               child: MaterialApp(
                 home: RepaintBoundary(
                   key: boundary,

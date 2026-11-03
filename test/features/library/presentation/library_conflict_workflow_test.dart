@@ -11,13 +11,16 @@ import "package:cedarflake_ame/features/library/presentation/library_conflict_no
 import "package:cedarflake_ame/features/library/presentation/widgets/library_album_viewer_action.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_album_picker.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_conflict_label.dart";
-import "package:cedarflake_ame/features/settings/application/album_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/album_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_organization_fixture.dart";
+
+import "../../../support/platform_test_bindings.dart";
 
 LibraryConflictStatus status(int revision, int groups) =>
     LibraryConflictStatus(revision: BigInt.from(revision), groups: groups);
@@ -39,13 +42,13 @@ void main() {
           );
         final conflicts = _PagedConflicts();
         final container = ProviderContainer(
-          overrides: [
+          overrides: platformTestOverrides([
             libraryOrganizationProvider.overrideWithValue(service),
             libraryOrganizationConflictsProvider.overrideWithValue(conflicts),
             libraryControllerProvider.overrideWith(
               OrganizationLibraryFixture.new,
             ),
-          ],
+          ]),
         );
         addTearDown(container.dispose);
         await tester.pumpWidget(
@@ -102,7 +105,7 @@ void main() {
   test(
     "conflict notices coalesce and dismissal never resolves persisted work",
     () {
-      final container = ProviderContainer();
+      final container = ProviderContainer(overrides: platformTestOverrides());
       addTearDown(container.dispose);
       final notifications = container.read(
         ameNotificationControllerProvider.notifier,
@@ -193,9 +196,9 @@ void main() {
 
   testWidgets("conflict label survives notification dismissal", (tester) async {
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryConflictAnnotationsProvider.overrideWith((ref) async => {"one"}),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     final notifications = container.read(
@@ -246,13 +249,13 @@ void main() {
         ],
       );
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryOrganizationProvider.overrideWithValue(service),
           libraryOrganizationConflictsProvider.overrideWithValue(_Conflicts()),
           libraryControllerProvider.overrideWith(
             OrganizationLibraryFixture.new,
           ),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       await container

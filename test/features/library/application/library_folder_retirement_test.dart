@@ -7,6 +7,8 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   for (final removesParent in [false, true]) {
     test(
@@ -164,12 +166,12 @@ Future<void> _load(
 );
 
 ProviderContainer _container(_Catalog catalog) => ProviderContainer(
-  overrides: [
+  overrides: platformTestOverrides([
     libraryFolderCatalogProvider.overrideWithValue(catalog),
     libraryFolderConfiguredRootsProvider.overrideWith(
       (ref) => ref.watch(_rootsProvider),
     ),
-  ],
+  ]),
 );
 
 const _albumKey = LibraryFolderBranchKey(

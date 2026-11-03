@@ -11,6 +11,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_organization_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   late OrganizationServiceFixture service;
   late ProviderContainer container;
@@ -23,10 +25,10 @@ void main() {
   setUp(() {
     service = OrganizationServiceFixture()..albumItems = [album, destination];
     container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryOrganizationProvider.overrideWithValue(service),
         libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
-      ],
+      ]),
     );
     menu = LibraryPhotoContextMenu();
     target = organizationTarget("one");

@@ -2,11 +2,13 @@ import "package:cedarflake_ame/app/notifications/ame_notification_controller.dar
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../support/platform_test_bindings.dart";
+
 void main() {
   test(
     "resolved conditions retain history without timers or stale actions",
     () {
-      final container = ProviderContainer();
+      final container = ProviderContainer(overrides: platformTestOverrides());
       addTearDown(container.dispose);
       final controller = container.read(
         ameNotificationControllerProvider.notifier,
@@ -46,7 +48,7 @@ void main() {
   );
 
   test("a changed or retired notification cannot authorize an old action", () {
-    final container = ProviderContainer();
+    final container = ProviderContainer(overrides: platformTestOverrides());
     addTearDown(container.dispose);
     final controller = container.read(
       ameNotificationControllerProvider.notifier,
@@ -89,7 +91,7 @@ void main() {
   });
 
   test("active notifications deduplicate until their condition resolves", () {
-    final container = ProviderContainer();
+    final container = ProviderContainer(overrides: platformTestOverrides());
     addTearDown(container.dispose);
     final controller = container.read(
       ameNotificationControllerProvider.notifier,
@@ -137,7 +139,7 @@ void main() {
   });
 
   test("queue order, unread state, and history remain independent", () {
-    final container = ProviderContainer();
+    final container = ProviderContainer(overrides: platformTestOverrides());
     addTearDown(container.dispose);
     final controller = container.read(
       ameNotificationControllerProvider.notifier,
@@ -175,7 +177,7 @@ void main() {
   });
 
   test("notification history and pending presentation stay bounded", () {
-    final container = ProviderContainer();
+    final container = ProviderContainer(overrides: platformTestOverrides());
     addTearDown(container.dispose);
     final controller = container.read(
       ameNotificationControllerProvider.notifier,
@@ -200,7 +202,7 @@ void main() {
   });
 
   test("an evicted active condition can publish a fresh notification", () {
-    final container = ProviderContainer();
+    final container = ProviderContainer(overrides: platformTestOverrides());
     addTearDown(container.dispose);
     final controller = container.read(
       ameNotificationControllerProvider.notifier,

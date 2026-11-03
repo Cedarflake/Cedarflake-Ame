@@ -1,8 +1,8 @@
 import "dart:async";
 
-import "package:cedarflake_ame/features/storage/application/storage_settings.dart";
+import "package:cedarflake_ame/features/storage/application/ports/storage_settings_gateway.dart";
 import "package:cedarflake_ame/features/storage/domain/storage_models.dart";
-import "package:cedarflake_ame/features/storage/presentation/catalog_reclamation_controller.dart";
+import "package:cedarflake_ame/features/storage/application/catalog_reclamation_controller.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {

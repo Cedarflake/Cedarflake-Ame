@@ -1,6 +1,7 @@
 import "dart:async";
 
-import "package:cedarflake_ame/features/library/adapters/directory_picker.dart";
+import "package:cedarflake_ame/features/library/application/ports/directory_picker.dart";
+import "package:cedarflake_ame/features/library/application/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
@@ -11,6 +12,7 @@ import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.d
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_task_surface.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -18,6 +20,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/fixed_query_projection.dart";
 import "../support/library_query_snapshot_fixture.dart";
+
+import "../../../support/platform_test_bindings.dart";
 
 void main() {
   test(
@@ -30,12 +34,12 @@ void main() {
         revision: BigInt.two,
       );
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initial),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final controller = container.read(libraryControllerProvider.notifier);
@@ -92,13 +96,13 @@ void main() {
         timeline: _timeline(queryId: "query-new", totalItems: 20),
       );
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initial),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final controller = container.read(libraryControllerProvider.notifier);
@@ -149,12 +153,12 @@ void main() {
         timeline: _timeline(queryId: "query-latest", totalItems: 1),
       );
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initial),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final controller = container.read(libraryControllerProvider.notifier);
@@ -227,13 +231,13 @@ void main() {
       timeline: _timeline(queryId: "query-new", totalItems: 1),
     );
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initial),
         ),
         libraryCatalogProvider.overrideWithValue(catalog),
         libraryScannerProvider.overrideWithValue(scanner),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -279,12 +283,12 @@ void main() {
         timeline: _timeline(queryId: "query-replacement", totalItems: 1),
       );
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initial),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final controller = container.read(libraryControllerProvider.notifier);
@@ -350,7 +354,7 @@ void main() {
           _snapshot(assets: [_asset(suffix: "query-$index")]),
         ], initialRevision: initial.revision);
         final container = ProviderContainer(
-          overrides: [
+          overrides: platformTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState.fromSnapshot(initial).copyWith(
                 timeline: LibraryTimeline(
@@ -362,7 +366,7 @@ void main() {
               ),
             ),
             libraryCatalogProvider.overrideWithValue(catalog),
-          ],
+          ]),
         );
         addTearDown(container.dispose);
         final controller = container.read(libraryControllerProvider.notifier);
@@ -420,13 +424,13 @@ void main() {
       ),
     );
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         directoryPickerProvider.overrideWithValue(
           const _FakeDirectoryPicker(r"\\?\C:\Pictures"),
         ),
         libraryScannerProvider.overrideWithValue(scanner),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -535,12 +539,12 @@ void main() {
           ],
         );
         final container = ProviderContainer(
-          overrides: [
+          overrides: platformTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState.fromSnapshot(initialSnapshot),
             ),
             libraryScannerProvider.overrideWithValue(scanner),
-          ],
+          ]),
         );
         addTearDown(container.dispose);
         addTearDown(scanner.dispose);
@@ -560,7 +564,7 @@ void main() {
   test("forwards cancellation to the active Rust scan", () async {
     final scanner = _FakeLibraryScanner();
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         directoryPickerProvider.overrideWithValue(
           const _FakeDirectoryPicker("C:\\Pictures"),
         ),
@@ -568,7 +572,7 @@ void main() {
         libraryCatalogProvider.overrideWithValue(
           _FakeLibraryCatalog(_snapshot()),
         ),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -590,7 +594,7 @@ void main() {
       final scanner = _FakeLibraryScanner();
       final shutdownCoordinator = LibraryScanShutdownCoordinator();
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryScanShutdownCoordinatorProvider.overrideWithValue(
             shutdownCoordinator,
@@ -598,7 +602,7 @@ void main() {
           libraryCatalogProvider.overrideWithValue(
             _FakeLibraryCatalog(_snapshot()),
           ),
-        ],
+        ]),
       );
       addTearDown(scanner.dispose);
 
@@ -626,7 +630,7 @@ void main() {
   test("keeps source changes distinct from generic failures", () async {
     final scanner = _FakeLibraryScanner();
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         directoryPickerProvider.overrideWithValue(
           const _FakeDirectoryPicker("C:\\Pictures"),
         ),
@@ -634,7 +638,7 @@ void main() {
         libraryCatalogProvider.overrideWithValue(
           _FakeLibraryCatalog(_snapshot()),
         ),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -655,12 +659,12 @@ void main() {
     () async {
       final scanner = _FakeLibraryScanner();
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryCatalogProvider.overrideWithValue(
             _FakeLibraryCatalog(_snapshot()),
           ),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       addTearDown(scanner.dispose);
@@ -728,7 +732,7 @@ void main() {
         );
       });
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot).copyWith(
               timeline: LibraryTimeline(
@@ -741,7 +745,7 @@ void main() {
           ),
           libraryScannerProvider.overrideWithValue(scanner),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       addTearDown(scanner.dispose);
@@ -784,12 +788,12 @@ void main() {
   test("serializes overlapping scan starts", () async {
     final scanner = _FakeLibraryScanner();
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryCatalogProvider.overrideWithValue(
           _FakeLibraryCatalog(_snapshot()),
         ),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -807,7 +811,7 @@ void main() {
   test("releases scan ownership when stream creation throws", () async {
     final scanner = _FakeLibraryScanner(throwFirstScan: true);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         directoryPickerProvider.overrideWithValue(
           const _FakeDirectoryPicker("C:\\Pictures"),
         ),
@@ -815,7 +819,7 @@ void main() {
         libraryCatalogProvider.overrideWithValue(
           _FakeLibraryCatalog(_snapshot()),
         ),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -841,12 +845,12 @@ void main() {
     () async {
       final scanner = _DelayedDoneLibraryScanner();
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryCatalogProvider.overrideWithValue(
             _FakeLibraryCatalog(_snapshot()),
           ),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       addTearDown(scanner.dispose);
@@ -900,12 +904,12 @@ void main() {
         ),
       );
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryCatalogProvider.overrideWithValue(
             _FakeLibraryCatalog(_snapshot()),
           ),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       addTearDown(scanner.dispose);
@@ -977,12 +981,12 @@ void main() {
       ),
     );
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryCatalogProvider.overrideWithValue(
           _FakeLibraryCatalog(_snapshot()),
         ),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -1008,7 +1012,7 @@ void main() {
   test("forwards pause and keeps the staged scan private", () async {
     final scanner = _FakeLibraryScanner();
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         directoryPickerProvider.overrideWithValue(
           const _FakeDirectoryPicker("C:\\Pictures"),
         ),
@@ -1016,7 +1020,7 @@ void main() {
         libraryCatalogProvider.overrideWithValue(
           _FakeLibraryCatalog(_snapshot()),
         ),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -1075,12 +1079,12 @@ void main() {
       ),
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot),
         ),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
 
@@ -1110,12 +1114,12 @@ void main() {
         ),
       ], initialRevision: initialSnapshot.revision);
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
 
@@ -1173,10 +1177,10 @@ void main() {
         ),
       );
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final controller = container.read(libraryControllerProvider.notifier);
@@ -1249,10 +1253,10 @@ void main() {
       ),
     );
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(initialState),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
 
@@ -1319,10 +1323,10 @@ void main() {
         ),
       );
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
 
@@ -1374,10 +1378,10 @@ void main() {
         ),
       );
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
 
@@ -1426,10 +1430,10 @@ void main() {
       ),
     );
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(initialState),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
 
@@ -1462,7 +1466,7 @@ void main() {
         response.future,
       ], initialRevision: initialSnapshot.revision);
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot).copyWith(
               timeline: LibraryTimeline(
@@ -1474,7 +1478,7 @@ void main() {
             ),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
 
@@ -1517,7 +1521,7 @@ void main() {
         response.future,
       ], initialRevision: initialSnapshot.revision);
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot).copyWith(
               timeline: LibraryTimeline(
@@ -1529,7 +1533,7 @@ void main() {
             ),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
 
@@ -1572,7 +1576,7 @@ void main() {
         replacementResponse.future,
       ], initialRevision: initialSnapshot.revision);
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot).copyWith(
               timeline: LibraryTimeline(
@@ -1584,7 +1588,7 @@ void main() {
             ),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
 
@@ -1648,7 +1652,7 @@ void main() {
           response.future,
         ], initialRevision: initialSnapshot.revision);
         final container = ProviderContainer(
-          overrides: [
+          overrides: platformTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState.fromSnapshot(initialSnapshot).copyWith(
                 timeline: LibraryTimeline(
@@ -1660,7 +1664,7 @@ void main() {
               ),
             ),
             libraryCatalogProvider.overrideWithValue(catalog),
-          ],
+          ]),
         );
         final controller = container.read(libraryControllerProvider.notifier);
         controller.ensureVisibleRange(
@@ -1697,7 +1701,7 @@ void main() {
       latestResponse.future,
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot).copyWith(
             timeline: LibraryTimeline(
@@ -1709,7 +1713,7 @@ void main() {
           ),
         ),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
 
@@ -1774,7 +1778,7 @@ void main() {
       passiveSnapshot,
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot).copyWith(
             timeline: LibraryTimeline(
@@ -1786,7 +1790,7 @@ void main() {
           ),
         ),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
 
@@ -1819,7 +1823,7 @@ void main() {
         targetResponse.future,
       ], initialRevision: initialSnapshot.revision);
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot).copyWith(
               timeline: LibraryTimeline(
@@ -1831,7 +1835,7 @@ void main() {
             ),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
 
@@ -1882,7 +1886,7 @@ void main() {
       response.future,
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot).copyWith(
             timeline: LibraryTimeline(
@@ -1894,7 +1898,7 @@ void main() {
           ),
         ),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
 
@@ -1924,7 +1928,7 @@ void main() {
         disjointResponse.future,
       ], initialRevision: initialSnapshot.revision);
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot).copyWith(
               timeline: LibraryTimeline(
@@ -1936,7 +1940,7 @@ void main() {
             ),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
 
@@ -1980,7 +1984,7 @@ void main() {
       timeResponse.future,
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot).copyWith(
             timeline: LibraryTimeline(
@@ -1993,7 +1997,7 @@ void main() {
         ),
         libraryCatalogProvider.overrideWithValue(catalog),
         libraryScannerProvider.overrideWithValue(scanner),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -2029,7 +2033,7 @@ void main() {
       activeResponse.future,
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot).copyWith(
             timeline: LibraryTimeline(
@@ -2041,7 +2045,7 @@ void main() {
           ),
         ),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
 
     final controller = container.read(libraryControllerProvider.notifier);
@@ -2072,7 +2076,7 @@ void main() {
       _snapshot(assets: [_asset(suffix: "target")]),
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot).copyWith(
             timeline: LibraryTimeline(
@@ -2084,7 +2088,7 @@ void main() {
           ),
         ),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
 
@@ -2141,12 +2145,12 @@ void main() {
       refreshedSnapshot,
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot),
         ),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
 
@@ -2192,7 +2196,7 @@ void main() {
     );
     final catalog = _DeferredUnregisterLibraryCatalog(refreshedSnapshot);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(
@@ -2205,7 +2209,7 @@ void main() {
           ),
         ),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     final controller = container.read(libraryControllerProvider.notifier);
@@ -2266,10 +2270,10 @@ void main() {
           ),
         );
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(initialState),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
 
@@ -2331,7 +2335,7 @@ void main() {
       );
       final catalog = _DeferredUnregisterLibraryCatalog(refreshedSnapshot);
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot).copyWith(
               scanId: "stale-import-scan",
@@ -2348,7 +2352,7 @@ void main() {
             ),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
 
@@ -2422,12 +2426,12 @@ void main() {
     );
     final catalog = _FailThenSucceedUnregisterLibraryCatalog(refreshedSnapshot);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot),
         ),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     final controller = container.read(libraryControllerProvider.notifier);
@@ -2485,7 +2489,7 @@ void main() {
         refreshedSnapshot,
       ], initialRevision: initialSnapshot.revision);
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(
               initialSnapshot,
@@ -2504,7 +2508,7 @@ void main() {
             ),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final controller = container.read(libraryControllerProvider.notifier);
@@ -2566,13 +2570,13 @@ void main() {
     final execution = LibraryScanExecutionCoordinator();
     expect(execution.tryAcquireUpdate(root.id), isTrue);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot),
         ),
         libraryCatalogProvider.overrideWithValue(catalog),
         libraryScanExecutionCoordinatorProvider.overrideWithValue(execution),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(() => execution.releaseUpdate(root.id));
@@ -2590,10 +2594,10 @@ void main() {
     final execution = LibraryScanExecutionCoordinator();
     expect(execution.tryAcquireUpdate("root-update"), isTrue);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryScanExecutionCoordinatorProvider.overrideWithValue(execution),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -2654,12 +2658,12 @@ void main() {
       refreshedSnapshot,
     ], initialRevision: initialSnapshot.revision);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot),
         ),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
 
@@ -2679,7 +2683,7 @@ void main() {
       assets: [_pendingAsset("1"), _pendingAsset("2"), _pendingAsset("3")],
     );
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot),
         ),
@@ -2688,7 +2692,7 @@ void main() {
           _FakeLibraryCatalog(initialSnapshot),
         ),
         libraryPreviewerProvider.overrideWithValue(previewer),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -2727,7 +2731,7 @@ void main() {
         ],
       );
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot),
           ),
@@ -2736,7 +2740,7 @@ void main() {
             _FakeLibraryCatalog(initialSnapshot),
           ),
           libraryPreviewerProvider.overrideWithValue(previewer),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       addTearDown(scanner.dispose);
@@ -2789,7 +2793,7 @@ void main() {
     final pending = _pendingAsset("1");
     final initialSnapshot = _snapshot(assets: [pending]);
     final container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(initialSnapshot),
         ),
@@ -2798,7 +2802,7 @@ void main() {
           _FakeLibraryCatalog(initialSnapshot),
         ),
         libraryPreviewerProvider.overrideWithValue(previewer),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -2844,7 +2848,7 @@ void main() {
       ];
       final initialSnapshot = _snapshot(assets: assets);
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot),
           ),
@@ -2853,7 +2857,7 @@ void main() {
             _FakeLibraryCatalog(initialSnapshot),
           ),
           libraryPreviewerProvider.overrideWithValue(previewer),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       addTearDown(scanner.dispose);
@@ -2894,7 +2898,7 @@ void main() {
       final ready = _asset();
       final initialSnapshot = _snapshot(assets: [ready]);
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot),
           ),
@@ -2903,7 +2907,7 @@ void main() {
             _FakeLibraryCatalog(initialSnapshot),
           ),
           libraryPreviewerProvider.overrideWithValue(previewer),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       addTearDown(scanner.dispose);
@@ -2937,7 +2941,7 @@ void main() {
       final second = _pendingAsset("2");
       final initialSnapshot = _snapshot(assets: [first, second]);
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(initialSnapshot),
           ),
@@ -2946,7 +2950,7 @@ void main() {
             _FakeLibraryCatalog(initialSnapshot),
           ),
           libraryPreviewerProvider.overrideWithValue(previewer),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       addTearDown(scanner.dispose);
@@ -2996,7 +3000,7 @@ void main() {
       final known = _pendingAsset("2");
       final initialSnapshot = _snapshot(assets: [unknown, known]);
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(
               initialSnapshot,
@@ -3007,7 +3011,7 @@ void main() {
             _FakeLibraryCatalog(initialSnapshot),
           ),
           libraryPreviewerProvider.overrideWithValue(previewer),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       addTearDown(scanner.dispose);

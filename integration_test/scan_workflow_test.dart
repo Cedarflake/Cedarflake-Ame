@@ -4,7 +4,8 @@ import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/bootstrap/library_synchronization_lifecycle_owner.dart";
-import "package:cedarflake_ame/features/library/adapters/directory_picker.dart";
+import "package:cedarflake_ame/features/library/application/ports/directory_picker.dart";
+import "package:cedarflake_ame/features/library/application/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
@@ -12,7 +13,7 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/unified_library_screen.dart";
-import "package:cedarflake_ame/features/storage/application/storage_settings.dart";
+import "package:cedarflake_ame/features/storage/adapters/rust/rust_storage_settings_gateway.dart";
 import "package:cedarflake_ame/src/rust/frb_generated.dart";
 import "package:file_selector/file_selector.dart";
 import "package:flutter/material.dart";
@@ -29,6 +30,8 @@ import "support/organization_workflow.dart";
 import "support/parent_folder_workflow.dart";
 import "support/retained_import_workflow.dart";
 import "support/viewer_source_workflow.dart";
+
+import "../test/support/platform_test_bindings.dart";
 
 const _fixturePng =
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
@@ -91,9 +94,9 @@ void main() {
   ) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           librarySynchronizationProvider.overrideWithValue(synchronization),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -188,12 +191,12 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           directoryPickerProvider.overrideWithValue(
             _InitialDirectoryPicker(sourceDirectory.path),
           ),
           librarySynchronizationProvider.overrideWithValue(synchronization),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -337,14 +340,14 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           directoryPickerProvider.overrideWithValue(
             _InitialDirectoryPicker(secondSourceDirectory.path),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
           initialLibraryStateProvider.overrideWithValue(restoredState),
           librarySynchronizationProvider.overrideWithValue(synchronization),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -435,10 +438,10 @@ void main() {
     expect(secondRestoredState.assets, hasLength(2));
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(secondRestoredState),
           librarySynchronizationProvider.overrideWithValue(synchronization),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );

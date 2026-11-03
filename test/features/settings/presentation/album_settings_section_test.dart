@@ -1,5 +1,7 @@
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/application/ports/ame_preference_store.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/album_settings_section.dart";
 import "package:flutter/material.dart";
@@ -7,6 +9,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../library/support/library_organization_fixture.dart";
+
+import "../../../support/platform_test_bindings.dart";
 
 void main() {
   late _PreferenceStore store;
@@ -17,10 +21,10 @@ void main() {
     service = OrganizationServiceFixture()
       ..albumItems = [const LibraryOrganizationAlbum("a", "Landscape")];
     container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         amePreferenceStoreProvider.overrideWithValue(store),
         libraryOrganizationProvider.overrideWithValue(service),
-      ],
+      ]),
     );
   });
   tearDown(() => container.dispose());

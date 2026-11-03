@@ -1,9 +1,6 @@
 import "package:file_selector/file_selector.dart";
-import "package:flutter_riverpod/flutter_riverpod.dart";
 
-abstract interface class DirectoryPicker {
-  Future<String?> pickDirectory();
-}
+import "../../application/ports/directory_picker.dart";
 
 class FileSelectorDirectoryPicker implements DirectoryPicker {
   const FileSelectorDirectoryPicker();
@@ -13,7 +10,3 @@ class FileSelectorDirectoryPicker implements DirectoryPicker {
     return getDirectoryPath(confirmButtonText: "导入目录");
   }
 }
-
-final directoryPickerProvider = Provider<DirectoryPicker>((ref) {
-  return const FileSelectorDirectoryPicker();
-});

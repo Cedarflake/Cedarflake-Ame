@@ -5,11 +5,13 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets(
     "open details follow the current condition and retire its action",
     (tester) async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(overrides: platformTestOverrides());
       addTearDown(container.dispose);
       final controller = container.read(
         ameNotificationControllerProvider.notifier,
@@ -47,7 +49,7 @@ void main() {
   testWidgets("an action retired before the next frame cannot be invoked", (
     tester,
   ) async {
-    final container = ProviderContainer();
+    final container = ProviderContainer(overrides: platformTestOverrides());
     addTearDown(container.dispose);
     final controller = container.read(
       ameNotificationControllerProvider.notifier,
@@ -70,7 +72,7 @@ void main() {
   testWidgets("an evicted notification cannot borrow a later action", (
     tester,
   ) async {
-    final container = ProviderContainer();
+    final container = ProviderContainer(overrides: platformTestOverrides());
     addTearDown(container.dispose);
     final controller = container.read(
       ameNotificationControllerProvider.notifier,
@@ -104,7 +106,7 @@ void main() {
   testWidgets(
     "the current admitted action is delivered once and closes details",
     (tester) async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(overrides: platformTestOverrides());
       addTearDown(container.dispose);
       final controller = container.read(
         ameNotificationControllerProvider.notifier,

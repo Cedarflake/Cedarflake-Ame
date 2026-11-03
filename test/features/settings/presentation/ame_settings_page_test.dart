@@ -4,10 +4,13 @@ import "dart:ui" show CheckedState;
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/application/ports/ame_preference_store.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/presentation/ame_settings_page.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/settings_section.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/storage_settings_section.dart";
+import "package:cedarflake_ame/features/storage/application/ports/storage_settings_gateway.dart";
 import "package:cedarflake_ame/features/storage/application/storage_settings.dart";
 import "package:cedarflake_ame/features/storage/domain/storage_models.dart";
 import "package:flutter/material.dart";
@@ -15,6 +18,8 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
+
+import "../../../support/platform_test_bindings.dart";
 
 void main() {
   testWidgets("renders settings in the main canvas with plain-language rows", (
@@ -25,7 +30,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
+        overrides: platformTestOverrides([
+          storageSettingsGatewayProvider.overrideWithValue(gateway),
+        ]),
         child: MaterialApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
@@ -137,9 +144,9 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             storageSettingsGatewayProvider.overrideWithValue(gateway),
-          ],
+          ]),
           child: MaterialApp(
             theme: buildAmeTheme(),
             home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
@@ -200,7 +207,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
+        overrides: platformTestOverrides([
+          storageSettingsGatewayProvider.overrideWithValue(gateway),
+        ]),
         child: MaterialApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
@@ -238,9 +247,9 @@ void main() {
 
       Widget buildPage(Set<String> rootIds) {
         return ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             storageSettingsGatewayProvider.overrideWithValue(gateway),
-          ],
+          ]),
           child: MaterialApp(
             theme: buildAmeTheme(),
             home: Scaffold(
@@ -296,7 +305,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
+        overrides: platformTestOverrides([
+          storageSettingsGatewayProvider.overrideWithValue(gateway),
+        ]),
         child: MaterialApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
@@ -336,7 +347,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
+        overrides: platformTestOverrides([
+          storageSettingsGatewayProvider.overrideWithValue(gateway),
+        ]),
         child: MaterialApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
@@ -391,7 +404,9 @@ void main() {
     late StateSetter updateRoots;
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
+        overrides: platformTestOverrides([
+          storageSettingsGatewayProvider.overrideWithValue(gateway),
+        ]),
         child: MaterialApp(
           home: Scaffold(
             body: SingleChildScrollView(
@@ -458,7 +473,9 @@ void main() {
     late StateSetter updateRoots;
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
+        overrides: platformTestOverrides([
+          storageSettingsGatewayProvider.overrideWithValue(gateway),
+        ]),
         child: MaterialApp(
           home: Scaffold(
             body: SingleChildScrollView(
@@ -636,10 +653,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           amePreferenceStoreProvider.overrideWithValue(preferenceStore),
           storageSettingsGatewayProvider.overrideWithValue(gateway),
-        ],
+        ]),
         child: MaterialApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
@@ -700,12 +717,12 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           amePreferenceStoreProvider.overrideWithValue(
             const _FailingAmePreferenceStore(),
           ),
           storageSettingsGatewayProvider.overrideWithValue(gateway),
-        ],
+        ]),
         child: MaterialApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
@@ -740,7 +757,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
+        overrides: platformTestOverrides([
+          storageSettingsGatewayProvider.overrideWithValue(gateway),
+        ]),
         child: MaterialApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
@@ -785,7 +804,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
+        overrides: platformTestOverrides([
+          storageSettingsGatewayProvider.overrideWithValue(gateway),
+        ]),
         child: MaterialApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
@@ -874,7 +895,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
+        overrides: platformTestOverrides([
+          storageSettingsGatewayProvider.overrideWithValue(gateway),
+        ]),
         child: MaterialApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
@@ -935,7 +958,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [storageSettingsGatewayProvider.overrideWithValue(gateway)],
+        overrides: platformTestOverrides([
+          storageSettingsGatewayProvider.overrideWithValue(gateway),
+        ]),
         child: MaterialApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),

@@ -9,6 +9,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
 
+import "support/platform_test_bindings.dart";
+
 void main() {
   for (final reducedMotion in [false, true]) {
     testWidgets("sheet wheel motion honors reducedMotion=$reducedMotion", (
@@ -16,10 +18,10 @@ void main() {
     ) async {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
             libraryExactDuplicatesProvider.overrideWithValue(_Duplicates()),
-          ],
+          ]),
           child: MaterialApp(
             home: MediaQuery(
               data: MediaQueryData(

@@ -12,11 +12,13 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_ima
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_scope.dart";
-import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../../support/platform_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -29,6 +31,7 @@ void main() {
       final fixture = _Fixture();
       await tester.pumpWidget(
         ProviderScope(
+          overrides: platformTestOverrides(),
           child: MaterialApp(
             home: LibraryViewerSourceScope(
               scheduler: fixture.scheduler,
@@ -109,6 +112,7 @@ void main() {
         }
         await tester.pumpWidget(
           ProviderScope(
+            overrides: platformTestOverrides(),
             child: MaterialApp(
               home: LibraryViewerSourceScope(
                 scheduler: fixture.scheduler,

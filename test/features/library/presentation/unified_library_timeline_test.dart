@@ -16,6 +16,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/library_screen_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets("groups server-ordered assets under capture and fallback dates", (
     tester,
@@ -102,11 +104,11 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(snapshot),
           ),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -148,7 +150,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             populatedScreenState(totalItems: 3).copyWith(
               timeline: LibraryTimeline(
@@ -170,7 +172,7 @@ void main() {
               ),
             ),
           ),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -214,13 +216,13 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(
               manifestLoader,
             ),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -329,10 +331,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -456,10 +458,10 @@ void main() {
         previousSnapshot: previousSnapshot,
       );
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
 

@@ -1,6 +1,7 @@
 import "dart:async";
 
-import "package:cedarflake_ame/features/library/adapters/directory_picker.dart";
+import "package:cedarflake_ame/features/library/application/ports/directory_picker.dart";
+import "package:cedarflake_ame/features/library/application/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
@@ -10,6 +11,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../support/retained_scan_fixture.dart";
+
+import "../../../support/platform_test_bindings.dart";
 
 void main() {
   for (final didStart in [false, true]) {
@@ -337,7 +340,7 @@ class _Fixture {
         ..addAll(roots);
     }
     container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryCatalogProvider.overrideWithValue(catalog),
         directoryPickerProvider.overrideWithValue(picker),
@@ -346,7 +349,7 @@ class _Fixture {
             catalog.snapshot(const LibraryGalleryQuery()),
           ),
         ),
-      ],
+      ]),
     );
     addTearDown(dispose);
   }

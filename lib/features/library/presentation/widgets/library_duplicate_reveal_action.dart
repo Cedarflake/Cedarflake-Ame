@@ -2,7 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/presentation/ame_transient_feedback.dart";
-import "../../adapters/windows_library_platform_actions.dart";
+import "../../application/library_platform_actions.dart";
 import "../../domain/library_exact_duplicates.dart";
 import "../library_duplicate_strings.dart";
 

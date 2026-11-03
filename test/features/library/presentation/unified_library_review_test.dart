@@ -20,6 +20,8 @@ import "../support/library_organization_fixture.dart";
 import "../support/library_review_fixture.dart";
 import "support/library_screen_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets(
     "organization follows Library sources and is absent from collections",
@@ -42,13 +44,13 @@ void main() {
         ),
       );
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryOrganizationProvider.overrideWithValue(organization),
           libraryReviewProvider.overrideWithValue(review),
           libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       await tester.pumpWidget(
@@ -164,7 +166,7 @@ void main() {
         ),
       );
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryOrganizationProvider.overrideWithValue(
@@ -173,7 +175,7 @@ void main() {
           libraryOrganizationBatchesProvider.overrideWithValue(batches),
           libraryReviewProvider.overrideWithValue(review),
           libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       await tester.pumpWidget(

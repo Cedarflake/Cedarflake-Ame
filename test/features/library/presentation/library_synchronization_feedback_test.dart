@@ -16,6 +16,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/concurrent_library_scanner.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   test(
     "background verification keeps status without announcing synchronization",
@@ -471,7 +473,7 @@ void main() {
       addTearDown(scanner.dispose);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState(
                 status: LibraryStatus.completed,
@@ -491,7 +493,7 @@ void main() {
             ),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -542,7 +544,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: platformTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState(
                 status: LibraryStatus.completed,
@@ -562,7 +564,7 @@ void main() {
             ),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );

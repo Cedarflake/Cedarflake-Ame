@@ -1,0 +1,62 @@
+import "album_preferences.dart";
+
+enum AmeThemePreference { system, light, dark }
+
+enum ImageViewerWheelBehavior { zoom, previousOrNext }
+
+enum ImageViewerOpenBehavior { automatic, fitWindow, actualSize }
+
+enum PreviewLoadingSpeed { small, medium, large }
+
+const ameDefaultSidebarWidth = 260.0;
+const ameMinimumSidebarWidth = 220.0;
+const ameMaximumSidebarWidth = 420.0;
+
+class AmePreferences {
+  const AmePreferences({
+    this.theme = AmeThemePreference.system,
+    this.viewerWheelBehavior = ImageViewerWheelBehavior.zoom,
+    this.viewerOpenBehavior = ImageViewerOpenBehavior.automatic,
+    this.viewerFilmstripVisible = false,
+    this.previewLoadingSpeed = PreviewLoadingSpeed.medium,
+    this.sidebarWidth = ameDefaultSidebarWidth,
+    this.sidebarExpanded,
+    this.exactAnalysisPaused = false,
+    this.albums = const AlbumPreferences(),
+  });
+
+  final AmeThemePreference theme;
+  final ImageViewerWheelBehavior viewerWheelBehavior;
+  final ImageViewerOpenBehavior viewerOpenBehavior;
+  final bool viewerFilmstripVisible;
+  final PreviewLoadingSpeed previewLoadingSpeed;
+  final double sidebarWidth;
+  final bool? sidebarExpanded;
+  final bool exactAnalysisPaused;
+  final AlbumPreferences albums;
+
+  AmePreferences copyWith({
+    AmeThemePreference? theme,
+    ImageViewerWheelBehavior? viewerWheelBehavior,
+    ImageViewerOpenBehavior? viewerOpenBehavior,
+    bool? viewerFilmstripVisible,
+    PreviewLoadingSpeed? previewLoadingSpeed,
+    double? sidebarWidth,
+    bool? sidebarExpanded,
+    bool? exactAnalysisPaused,
+    AlbumPreferences? albums,
+  }) {
+    return AmePreferences(
+      theme: theme ?? this.theme,
+      viewerWheelBehavior: viewerWheelBehavior ?? this.viewerWheelBehavior,
+      viewerOpenBehavior: viewerOpenBehavior ?? this.viewerOpenBehavior,
+      viewerFilmstripVisible:
+          viewerFilmstripVisible ?? this.viewerFilmstripVisible,
+      previewLoadingSpeed: previewLoadingSpeed ?? this.previewLoadingSpeed,
+      sidebarWidth: sidebarWidth ?? this.sidebarWidth,
+      sidebarExpanded: sidebarExpanded ?? this.sidebarExpanded,
+      exactAnalysisPaused: exactAnalysisPaused ?? this.exactAnalysisPaused,
+      albums: albums ?? this.albums,
+    );
+  }
+}

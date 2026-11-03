@@ -1,6 +1,6 @@
 import "dart:async";
 
-import "../adapters/directory_picker.dart";
+import "ports/directory_picker.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";

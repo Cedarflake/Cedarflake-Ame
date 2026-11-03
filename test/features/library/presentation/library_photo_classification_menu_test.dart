@@ -15,6 +15,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_classification_review_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   late ClassificationReviewFixture service;
   late OrganizationServiceFixture organization;
@@ -28,11 +30,11 @@ void main() {
     organization = OrganizationServiceFixture();
     library = _Library();
     container = ProviderContainer(
-      overrides: [
+      overrides: platformTestOverrides([
         libraryClassificationReviewServiceProvider.overrideWithValue(service),
         libraryOrganizationProvider.overrideWithValue(organization),
         libraryControllerProvider.overrideWith(() => library),
-      ],
+      ]),
     );
     menu = LibraryPhotoContextMenu();
   });

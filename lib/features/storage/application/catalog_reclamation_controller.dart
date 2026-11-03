@@ -2,7 +2,7 @@ import "dart:async";
 
 import "package:flutter/foundation.dart";
 
-import "../application/storage_settings.dart";
+import "ports/storage_settings_gateway.dart";
 import "../domain/storage_models.dart";
 import "storage_configuration_projection.dart";
 import "storage_snapshot_coordinator.dart";

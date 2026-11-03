@@ -12,6 +12,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_organization_fixture.dart";
 
+import "../../../support/platform_test_bindings.dart";
+
 void main() {
   testWidgets(
     "a real lifecycle error reaches the bottom host and resolves after reopening",
@@ -23,14 +25,14 @@ void main() {
         foregroundReads: reads,
       );
       final container = ProviderContainer(
-        overrides: [
+        overrides: platformTestOverrides([
           libraryControllerProvider.overrideWith(
             OrganizationLibraryFixture.new,
           ),
           libraryClassificationLifecycleProvider.overrideWith(
             (ref) => lifecycle,
           ),
-        ],
+        ]),
       );
       addTearDown(() {
         container.dispose();
@@ -74,7 +76,7 @@ void main() {
   test(
     "runtime failure is persistent, deduplicated and resolved after recovery",
     () {
-      final container = ProviderContainer();
+      final container = ProviderContainer(overrides: platformTestOverrides());
       addTearDown(container.dispose);
       final owner = container.read(ameNotificationControllerProvider.notifier);
       final feedback = LibraryClassificationNotifications(owner);
