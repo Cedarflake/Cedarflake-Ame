@@ -5,7 +5,7 @@ use tempfile::tempdir;
 use crate::domain::{
     LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeScope,
 };
-use crate::ports::LibraryChangeQueue;
+use crate::ports::{LibraryChangeQueue, SynchronizationMaintenance};
 
 use crate::adapters::sqlite_catalog::*;
 

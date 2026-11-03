@@ -110,6 +110,11 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   factory under the [catalog resource contract](native-composition.md#validated-catalog-session).
   `inventory_cleanup` consumes that factory and `MetadataInventoryRepository`, retaining its existing
   pre/post-acquisition cancellation checks, idle delay, contention backoff and joined retirement.
+  Poll preflight consumes `SynchronizationMaintenance`. The SQLite binding in
+  `sqlite_catalog/synchronization_maintenance.rs` retains legacy automatic-scan retirement and calls
+  the adapter-private media/metadata recheck owners. Their bounded selection, cursor advancement,
+  nonblocking Recovery admission and transaction-local revalidation remain unchanged. Application
+  retains operation order, the once-per-runtime legacy-retirement flag and its timestamp refresh.
 - `sqlite_catalog/persistent_journal.rs` remains the journal facade. Root-unregistration lineage and
   cleanup live in `persistent_journal/root_unregister.rs` so removal cannot accidentally discard a
   surviving root's cross-root rename evidence.

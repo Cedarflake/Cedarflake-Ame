@@ -1,4 +1,5 @@
 use super::*;
+use crate::ports::SynchronizationMaintenance;
 
 fn pending_metadata(count: usize) -> CatalogFixture {
     let source = tempdir().unwrap();

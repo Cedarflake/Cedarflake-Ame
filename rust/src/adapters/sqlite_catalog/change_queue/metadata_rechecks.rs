@@ -86,7 +86,7 @@ impl Drop for RestoreBusyTimeout<'_> {
 }
 
 impl SqliteCatalog {
-    pub(crate) fn enqueue_metadata_rechecks(
+    pub(in crate::adapters::sqlite_catalog) fn admit_metadata_rechecks(
         &mut self,
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,

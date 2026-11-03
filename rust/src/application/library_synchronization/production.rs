@@ -76,6 +76,7 @@ use crate::ports::source_state::SourceStateProbe;
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeReadiness,
     LibraryChangeSourceStarter, MetadataInventoryRepository, PersistentJournalRepository,
+    SynchronizationMaintenance,
 };
 
 #[cfg(windows)]

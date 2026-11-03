@@ -228,6 +228,24 @@ The coordinator has 1,658 source/934 primary dedicated-fixture lines; poll resou
 counts include conditional helpers and contain no inline test cases. The native readiness owner has
 631 source lines; metadata rechecks retain 183 after their unchanged projection query moves.
 
-Poll preflight still calls inherent `enqueue_media_admission_rechecks`, `enqueue_metadata_rechecks`
-and `retire_legacy_automatic_full_scans` through an inferred native handle. These calls need persistence
-contracts in the remaining O7 work; the explicit-type inventory does not cover that dependency path.
+Review found three inherent maintenance calls through an inferred native handle, outside the
+explicit-type inventory. The [maintenance migration](#catalog-maintenance-contract--2026-11-04)
+records their resolution.
+
+## Catalog maintenance contract — 2026-11-04
+
+Against `2b4489c9`, poll preflight consumes `SynchronizationMaintenance` for media rechecks, metadata
+rechecks and legacy automatic-scan retirement. The native binding owns retirement and delegates to
+adapter-private recheck methods. Their original SQL, bounded admission, cursor and busy-timeout
+lifetimes remain in their existing owners; application retains preflight order and its once-only flag.
+
+Source comparison preserves both complete recheck owners, the retirement body and production
+preflight. Existing fixtures change imports only. All 17 selected checks pass: 14 recheck/retirement
+cases, two production-poll cases and the repository dependency inventory. Test and production builds
+emit no warnings; formatting reports 794 files unchanged, and the scratch lease retires. No tests,
+assertions, schema, frozen inventories or boundary-policy entries change.
+
+The SQLite facade has 3,239 source lines including conditional helpers, with no inline cases. Its new
+maintenance binding has 71 source lines and the port has 21; the retained retirement fixture has
+292 lines. The five explicit migration entries and 73 technical edges remain separate from this
+resolved inferred-call dependency path.

@@ -70,6 +70,8 @@ mod library_change_dispatch;
 pub(crate) use library_change_dispatch::LibraryChangeDispatch;
 mod library_change_ingress;
 pub(crate) use library_change_ingress::LibraryChangeIngress;
+mod synchronization_maintenance;
+pub(crate) use synchronization_maintenance::SynchronizationMaintenance;
 mod persistent_identity_journal;
 pub(crate) use persistent_identity_journal::{
     IdentityJournalLocation, IdentityJournalPage, IdentityJournalRead, IdentityJournalRecord,

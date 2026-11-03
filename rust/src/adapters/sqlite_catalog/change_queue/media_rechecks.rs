@@ -46,7 +46,7 @@ const CANDIDATES: &str = "SELECT recheck.root_id, recheck.root_generation,
     ORDER BY recheck.root_id, recheck.relative_path LIMIT 32";
 
 impl SqliteCatalog {
-    pub(crate) fn enqueue_media_admission_rechecks(
+    pub(in crate::adapters::sqlite_catalog) fn admit_media_rechecks(
         &mut self,
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,

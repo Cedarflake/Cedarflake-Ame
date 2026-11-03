@@ -1,4 +1,5 @@
 use super::*;
+use crate::ports::SynchronizationMaintenance;
 
 fn retained_failures(count: usize) -> CatalogFixture {
     let source = tempdir().unwrap();
