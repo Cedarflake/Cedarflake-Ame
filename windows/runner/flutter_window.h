@@ -8,6 +8,7 @@
 
 #include <memory>
 
+#include "flutter_power_channel.h"
 #include "win32_window.h"
 
 // A window that does nothing but host a Flutter view.
@@ -36,6 +37,7 @@ class FlutterWindow : public Win32Window {
 
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>>
       system_theme_channel_;
+  std::unique_ptr<FlutterPowerChannel> power_channel_;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

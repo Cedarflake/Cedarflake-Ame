@@ -721,44 +721,55 @@ void main() {
     expect(endScale, closeTo(expectedScale, 0.001));
   });
 
-  testWidgets("viewer information presents source and filesystem dates", (
-    tester,
-  ) async {
-    final asset = _asset(
-      sourcePath: r"\\?\G:\图片\本机照片\2026\08\sample.png",
-      displayPath: r"G:\图片\本机照片\2026\08\sample.png",
-      relativePath: r"本机照片\2026\08\sample.png",
-      captureTime: const LibraryCaptureTimeEvidence(
-        localTime: "2025-07-08T09:10:11",
-        source: LibraryCaptureTimeSource.exifDateTimeOriginal,
-        rawValue: "2025:07:08 09:10:11",
-      ),
-      createdUnixMs: DateTime(2025, 7, 9, 10, 11, 12).millisecondsSinceEpoch,
-      modifiedUnixMs: DateTime(2025, 7, 10, 11, 12, 13).millisecondsSinceEpoch,
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Builder(
-          builder: (context) => FilledButton(
-            onPressed: () => showLibraryAssetInformation(context, asset),
-            child: const Text("打开信息"),
+  testWidgets(
+    "viewer information presents source, camera and filesystem dates",
+    (tester) async {
+      final asset = _asset(
+        sourcePath: r"\\?\G:\图片\本机照片\2026\08\sample.png",
+        displayPath: r"G:\图片\本机照片\2026\08\sample.png",
+        relativePath: r"本机照片\2026\08\sample.png",
+        camera: const LibraryCameraMetadata(make: "制造商", model: "Camera 2"),
+        captureTime: const LibraryCaptureTimeEvidence(
+          localTime: "2025-07-08T09:10:11",
+          source: LibraryCaptureTimeSource.exifDateTimeOriginal,
+          rawValue: "2025:07:08 09:10:11",
+        ),
+        createdUnixMs: DateTime(2025, 7, 9, 10, 11, 12).millisecondsSinceEpoch,
+        modifiedUnixMs: DateTime(
+          2025,
+          7,
+          10,
+          11,
+          12,
+          13,
+        ).millisecondsSinceEpoch,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () => showLibraryAssetInformation(context, asset),
+              child: const Text("打开信息"),
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.tap(find.text("打开信息"));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text("打开信息"));
+      await tester.pumpAndSettle();
 
-    expect(find.text("sample.png"), findsOneWidget);
-    expect(find.text(r"G:\图片\本机照片\2026\08\sample.png"), findsOneWidget);
-    expect(find.textContaining(r"\\?\"), findsNothing);
-    expect(find.text("PNG"), findsOneWidget);
-    expect(find.text("2025-07-08 09:10:11"), findsOneWidget);
-    expect(find.text("相机原始拍摄时间"), findsOneWidget);
-    expect(find.text("2025-07-09 10:11:12"), findsOneWidget);
-    expect(find.text("2025-07-10 11:12:13"), findsOneWidget);
-  });
+      expect(find.text("sample.png"), findsOneWidget);
+      expect(find.text(r"G:\图片\本机照片\2026\08\sample.png"), findsOneWidget);
+      expect(find.textContaining(r"\\?\"), findsNothing);
+      expect(find.text("PNG"), findsOneWidget);
+      expect(find.text("制造商"), findsOneWidget);
+      expect(find.text("Camera 2"), findsOneWidget);
+      expect(find.text("2025-07-08 09:10:11"), findsOneWidget);
+      expect(find.text("相机原始拍摄时间"), findsOneWidget);
+      expect(find.text("2025-07-09 10:11:12"), findsOneWidget);
+      expect(find.text("2025-07-10 11:12:13"), findsOneWidget);
+    },
+  );
 }
 
 Future<void> _revealViewerFile(WidgetTester tester) async {
@@ -820,6 +831,7 @@ LibraryAsset _asset({
   int? createdUnixMs,
   int modifiedUnixMs = 1,
   LibraryCaptureTimeEvidence? captureTime,
+  LibraryCameraMetadata camera = const LibraryCameraMetadata(),
 }) {
   return LibraryAsset(
     assetId: "asset-1",
@@ -839,5 +851,6 @@ LibraryAsset _asset({
     height: height,
     previewStatus: LibraryPreviewStatus.failed,
     captureTime: captureTime,
+    camera: camera,
   );
 }

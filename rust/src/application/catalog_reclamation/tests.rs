@@ -8,6 +8,7 @@ use super::*;
 use crate::adapters::SqliteCatalog;
 
 mod scan_interleaving;
+mod small_catalog;
 mod validated_reclamation;
 
 fn usage(page_count: u64, freelist_count: u64) -> CatalogSpaceUsage {
@@ -17,13 +18,6 @@ fn usage(page_count: u64, freelist_count: u64) -> CatalogSpaceUsage {
         freelist_count,
         auto_vacuum: CatalogAutoVacuumMode::Incremental,
     }
-}
-
-#[test]
-fn reclamation_requires_both_absolute_and_ratio_thresholds() {
-    assert!(should_start_reclamation(usage(100_000, 25_000)));
-    assert!(!should_start_reclamation(usage(1_000_000, 20_000)));
-    assert!(!should_start_reclamation(usage(10_000, 5_000)));
 }
 
 #[test]

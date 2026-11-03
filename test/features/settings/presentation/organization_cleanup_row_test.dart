@@ -74,7 +74,7 @@ void main() {
         findsOneWidget,
       );
       service.tasks.single.events.add(
-        LibraryCleanupInspected(cleanupInspection()),
+        LibraryCleanupInspected(cleanupInspection(classificationGroups: 3)),
       );
       await tester.pumpAndSettle();
       expect(
@@ -83,6 +83,7 @@ void main() {
       );
       expect(find.text("相册归属 4 组"), findsOneWidget);
       expect(find.text("收藏 4 组"), findsOneWidget);
+      expect(find.text("分类记录 3 组"), findsOneWidget);
       expect(find.textContaining("原图片会保留"), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.tap(

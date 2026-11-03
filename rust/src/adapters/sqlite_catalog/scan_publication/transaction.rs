@@ -226,6 +226,7 @@ fn publish_transaction(
     )?;
     super::super::organization::admission::publish_root(&transaction, root_id)?;
     super::super::organization::publication::root(&transaction, root_id)?;
+    super::super::classification::work::root_published(&transaction, root_id)?;
     let consolidated_roots = match proof.and_then(|proof| proof.consolidation) {
         Some(plan) => super::root_consolidation::retire(&transaction, plan, interruption)?,
         None => Vec::new(),

@@ -143,6 +143,8 @@ class _OrganizationCleanupConfirmation extends ConsumerWidget {
         Text("相册归属 ${inspection.albumGroups} 组"),
         Text("收藏 ${inspection.favoriteGroups} 组"),
         Text("整理进度 ${inspection.progressGroups} 组"),
+        if (inspection.classificationGroups > 0)
+          Text("分类记录 ${inspection.classificationGroups} 组"),
         const SizedBox(height: 16),
         const Text("相册和原图片会保留。重新导入图片不会恢复这些记录。"),
         const SizedBox(height: 8),

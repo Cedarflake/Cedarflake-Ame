@@ -86,18 +86,41 @@ fn review_count_includes_prior_pages_and_tracks_ignore_and_current_evidence() {
 #[test]
 fn preferred_copy_survives_restart_and_respects_gallery_scope() {
     let (directory, mut catalog) = grouped_fixture();
+    catalog
+        .connection
+        .execute(
+            "UPDATE asset_locations SET camera_make = 'Fixture Camera', camera_model = 'Model 2'
+         WHERE location_id = 'c'",
+            [],
+        )
+        .unwrap();
     let preferred = preference(&catalog, "c");
     catalog
         .set_duplicate_preference(&key(), Some(&preferred))
         .unwrap();
     assert_eq!(gallery_ids(&mut catalog, None), ["c"]);
     assert_eq!(gallery_ids(&mut catalog, Some("root-a")), ["a"]);
+    let page = catalog.load_review_groups(None, false).unwrap();
+    let group = &page.groups[0];
+    assert_eq!(group.representative.location_id, "c");
     assert_eq!(
-        catalog.load_review_groups(None, false).unwrap().groups[0]
-            .representative
-            .location_id,
-        "c"
+        group.representative.camera.make.as_deref(),
+        Some("Fixture Camera")
     );
+    assert_eq!(
+        group.representative.camera.model.as_deref(),
+        Some("Model 2")
+    );
+    assert_eq!(group.group.digest, key().digest);
+    assert_eq!(group.group.byte_length, 20);
+    assert_eq!(group.group.location_count, 3);
+    assert_eq!(group.group.physical_file_count, 3);
+    assert_eq!(group.decision.preferred_location_id.as_deref(), Some("c"));
+    assert_eq!(
+        group.decision.preferred_asset_id.as_deref(),
+        Some(preferred.asset_id.as_str())
+    );
+    assert!(!group.decision.ignored);
     drop(catalog);
     let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     assert_eq!(gallery_ids(&mut catalog, None), ["c"]);

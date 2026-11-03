@@ -25,14 +25,17 @@ $builtLibrary = Join-Path $scratch 'library.dll'
 $builtBroker = Join-Path $scratch 'broker.exe'
 $nativeNames = @(
     'cedarflake_ame.exe', 'cedarflake_ame_journal_broker.exe',
+    'cedarflake_ame_classification_worker.exe',
     'rust_lib_cedarflake_ame.dll', 'flutter_windows.dll'
 )
 $ownedFiles = @(
     $source, $dependencies, $builtLibrary, $builtBroker,
     (Join-Path $bundle 'data\app.so'), (Join-Path $bundle 'data\icudtl.dat'),
     (Join-Path $assetRoot 'AssetManifest.bin')
-) + @($nativeNames | ForEach-Object { Join-Path $bundle $_ })
-$ownedDirectories = @($assetRoot, (Join-Path $bundle 'data'), $bundle, $sourceRoot, $scratch)
+) + @($nativeNames | ForEach-Object { Join-Path $bundle $_ }) +
+    @(Get-AmeClassificationRuntimePayloadNames | ForEach-Object { Join-Path $bundle $_ })
+$runtimeRoot = Join-Path $bundle (Get-AmeClassificationRuntimeManifest).bundleDirectory
+$ownedDirectories = @($runtimeRoot, $assetRoot, (Join-Path $bundle 'data'), $bundle, $sourceRoot, $scratch)
 $pe = [byte[]]::new(128)
 $pe[0] = 0x4D; $pe[1] = 0x5A; $pe[0x3C] = 64
 $pe[64] = 0x50; $pe[65] = 0x45
@@ -50,21 +53,31 @@ $broker = Join-Path $bundle 'cedarflake_ame_journal_broker.exe'
 $asset = Join-Path $assetRoot 'AssetManifest.bin'
 $dependencyRule = $builtLibrary.Replace(' ', '\ ') + ': ' + $source.Replace(' ', '\ ') + "`n"
 try {
-    New-Item -ItemType Directory -Path $assetRoot, $sourceRoot | Out-Null
+    New-Item -ItemType Directory -Path $assetRoot, $sourceRoot, $runtimeRoot | Out-Null
     foreach ($file in $ownedFiles) { [System.IO.File]::WriteAllBytes($file, $pe) }
     [System.IO.File]::WriteAllText($dependencies, $dependencyRule)
     [System.IO.File]::SetLastWriteTimeUtc($source, [DateTime]::UtcNow.AddMinutes(-1))
     $facts = Get-AmeUnsignedWindowsPayloadFacts @arguments
-    if ($facts.machine -cne 'windows-x64' -or $facts.fileCount -ne 7 -or $facts.rustDependencyCount -ne 1) {
+    if ($facts.machine -cne 'windows-x64' -or $facts.fileCount -ne 15 -or $facts.rustDependencyCount -ne 1) {
         throw "Valid unsigned Release fixture was not completely described"
     }
     if (@($facts.files | Where-Object { [System.IO.Path]::IsPathRooted($_.relativePath) }).Count -ne 0) {
         throw "Unsigned evidence must not contain machine-specific payload paths"
     }
+    foreach ($missing in (Get-AmeClassificationRuntimePayloadNames)) {
+        $file = Join-Path $bundle $missing
+        Remove-Item -LiteralPath $file
+        Assert-AmeUnsignedFixtureRejected { Get-AmeUnsignedWindowsPayloadFacts @arguments } 'missing required'
+        [IO.File]::WriteAllBytes($file, $pe)
+    }
 
     Remove-Item -LiteralPath $broker
     Assert-AmeUnsignedFixtureRejected { Get-AmeUnsignedWindowsPayloadFacts @arguments } 'missing required'
     [System.IO.File]::WriteAllBytes($broker, $pe)
+    $worker = Join-Path $bundle 'cedarflake_ame_classification_worker.exe'
+    Remove-Item -LiteralPath $worker
+    Assert-AmeUnsignedFixtureRejected { Get-AmeUnsignedWindowsPayloadFacts @arguments } 'missing required'
+    [System.IO.File]::WriteAllBytes($worker, $pe)
     Remove-Item -LiteralPath $asset
     Assert-AmeUnsignedFixtureRejected { Get-AmeUnsignedWindowsPayloadFacts @arguments } 'Flutter assets'
     [System.IO.File]::WriteAllBytes($asset, $pe)
@@ -106,7 +119,7 @@ try {
         [System.IO.Directory]::Delete($junction, $false)
     }
     Get-AmeUnsignedWindowsPayloadFacts @arguments | Out-Null
-    Write-Host 'Unsigned Windows payload guardrails passed: valid bundle and 11 distinct rejection cases'
+    Write-Host 'Unsigned Windows payload guardrails passed: valid bundle and 25 distinct rejection cases'
 } finally {
     foreach ($file in $ownedFiles) {
         if (Test-Path -LiteralPath $file) {

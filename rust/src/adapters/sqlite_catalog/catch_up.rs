@@ -151,7 +151,7 @@ impl LibraryChangeCatchUpRepository for SqliteCatalog {
                 .map_err(database_error)?;
             deleted = deleted.saturating_add(u32::try_from(changed).unwrap_or(u32::MAX));
         }
-        super::catalog_delta::cleanup_obsolete_catch_up_handoffs(
+        super::handoff_retirement::cleanup_obsolete_catch_up_handoffs(
             &transaction,
             updated_before_unix_ms,
             limit,

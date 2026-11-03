@@ -3,7 +3,8 @@ use super::{Cell, records};
 pub(super) fn fields(kind: &records::RecordKind, version: u32) -> &[records::Field] {
     let omitted = match (version, kind.name) {
         (1, "version_evidence") => 1,
-        (1 | 2, "review_scope") => 2,
+        (1 | 2, "review_scope") => 3,
+        (3, "review_scope") => 1,
         (1 | 2, "bookmark") => 3,
         _ => 0,
     };
@@ -27,5 +28,8 @@ pub(super) fn upgrade(kind: &str, values: &mut Vec<Cell>, version: u32) {
             }
         }
         _ => {}
+    }
+    if version < 4 && kind == "review_scope" {
+        values.push(Cell::Text(r#"{"extension":"","bytes":{"minimum":null,"maximum":null},"width":{"minimum":null,"maximum":null},"height":{"minimum":null,"maximum":null},"date":{"field":"Capture","start":null,"end":null},"camera_text":""}"#.into()));
     }
 }

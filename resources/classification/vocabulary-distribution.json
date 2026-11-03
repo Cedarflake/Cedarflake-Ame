@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "version": "omw-en-2.0-cow-1.1-contexts-v1",
+  "bundleDirectory": "data/classification-vocabulary",
+  "contexts": {
+    "length": 8414,
+    "sha256": "baa23594bed2a95b51c288f65ebb7d4f0b0e4b8957092c101ff78b9f22d23834"
+  },
+  "sources": [
+    {
+      "file": "omw-en-2.0.tar.xz",
+      "url": "https://github.com/omwn/omw-data/releases/download/v2.0/omw-en-2.0.tar.xz",
+      "length": 11288332,
+      "sha256": "0e09dfb7f096bc3f10b9de68ffecf13839fa22ae46fd9b227cec890d204ca1dc",
+      "members": [
+        {
+          "name": "omw-en/omw-en.xml",
+          "role": "xml",
+          "length": 115222150,
+          "sha256": "3ab4c3e4324a6d1676cf23ea3eafdd8f858f92969bf85108d049db6b7e4539bd"
+        },
+        {
+          "name": "omw-en/LICENSE",
+          "role": "license",
+          "length": 1625,
+          "sha256": "7731175a77952e259390b496fab905e57118b8d19ad3a8383c67eee724ff443f"
+        },
+        {
+          "name": "omw-en/citation.bib",
+          "role": "citation",
+          "length": 193,
+          "sha256": "75855a94ae09c9b719e814ee5b03fae1813368c5d7d276b5051eb2c88f60a200"
+        }
+      ]
+    },
+    {
+      "file": "cow-1.1.tar.xz",
+      "url": "https://github.com/bond-lab/cow/releases/download/v1.1/cow-1.1.tar.xz",
+      "length": 2902528,
+      "sha256": "93e9357dda50a38ce626904c2229479afa177df74d9c504aebfeba06ff2f241e",
+      "members": [
+        {
+          "name": "cow/cow-1.1.xml",
+          "role": "xml",
+          "length": 31024330,
+          "sha256": "c07e0c1e9870e344674df76d3dd50eb912c829301795c2141fa5d563d32ef13f"
+        },
+        {
+          "name": "cow/LICENSE",
+          "role": "license",
+          "length": 1614,
+          "sha256": "83057684550fb35f34125f49bc5027dd419b856b9347ed76fd53fdc632a33b2b"
+        },
+        {
+          "name": "cow/citation.bib",
+          "role": "citation",
+          "length": 3536,
+          "sha256": "84061cb131713a8fc60ec2ee831765f65bbbbe6c6f15159acc91a618a0695895"
+        }
+      ]
+    }
+  ],
+  "files": [
+    {
+      "name": "vocabulary.json",
+      "length": 23249187,
+      "sha256": "2cea3ceca629faac3d51271c2928871548ddc709cb769cc50f45a771ae68835c",
+      "blake3": "44b6a819869b913dd7ba8370b5f1d6ccbacb3e7f5b0c3e19bd68e73ef277c24e"
+    },
+    {
+      "name": "WORDNET-LICENSE",
+      "length": 1625,
+      "sha256": "7731175a77952e259390b496fab905e57118b8d19ad3a8383c67eee724ff443f"
+    },
+    {
+      "name": "WORDNET-citation.bib",
+      "length": 193,
+      "sha256": "75855a94ae09c9b719e814ee5b03fae1813368c5d7d276b5051eb2c88f60a200"
+    },
+    {
+      "name": "COW-LICENSE",
+      "length": 1614,
+      "sha256": "83057684550fb35f34125f49bc5027dd419b856b9347ed76fd53fdc632a33b2b"
+    },
+    {
+      "name": "COW-citation.bib",
+      "length": 3536,
+      "sha256": "84061cb131713a8fc60ec2ee831765f65bbbbe6c6f15159acc91a618a0695895"
+    },
+    {
+      "name": "NOTICE.txt",
+      "length": 804,
+      "sha256": "702e23a2b1aa47b9e2f1b477e9bffe05d2a4332c2fab7252b376943887d02833"
+    }
+  ]
+}

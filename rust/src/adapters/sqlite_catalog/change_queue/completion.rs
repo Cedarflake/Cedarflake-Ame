@@ -80,5 +80,8 @@ pub(in super::super) fn release_handoffs(
             .collect::<Result<Vec<_>, _>>()
             .map_err(database_error)?
     };
-    super::super::catalog_delta::cleanup_terminal_catch_up_handoffs_batch(transaction, &evidence)
+    super::super::handoff_retirement::cleanup_terminal_catch_up_handoffs_batch(
+        transaction,
+        &evidence,
+    )
 }

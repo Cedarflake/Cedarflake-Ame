@@ -18,6 +18,7 @@ mod conflicts;
 mod history;
 mod inspection;
 mod lifecycle;
+mod membership_cost;
 mod native_recovery;
 mod publication;
 mod queries;
@@ -28,7 +29,7 @@ mod review;
 mod transitions;
 mod undo;
 
-fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
+pub(in crate::adapters::sqlite_catalog) fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
     let directory = tempfile::tempdir().unwrap();
     let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     super::super::tests::publish_gallery_fixture(
@@ -63,7 +64,11 @@ fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
     (directory, catalog)
 }
 
-fn publish(catalog: &mut SqliteCatalog, id: &str, digest: char) {
+pub(in crate::adapters::sqlite_catalog) fn publish(
+    catalog: &mut SqliteCatalog,
+    id: &str,
+    digest: char,
+) {
     let location = catalog.load_active_location(id).unwrap().unwrap();
     let root = catalog
         .load_incremental_catalog_root(&location.root_id)
@@ -84,7 +89,10 @@ fn publish(catalog: &mut SqliteCatalog, id: &str, digest: char) {
     );
 }
 
-fn selected(catalog: &SqliteCatalog, id: &str) -> OrganizationSelection {
+pub(in crate::adapters::sqlite_catalog) fn selected(
+    catalog: &SqliteCatalog,
+    id: &str,
+) -> OrganizationSelection {
     let location = catalog.load_active_location(id).unwrap().unwrap();
     OrganizationSelection {
         asset_id: location.asset_id,

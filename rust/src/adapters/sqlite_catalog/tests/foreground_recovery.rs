@@ -213,6 +213,7 @@ fn abandoned_explicit_recovery_scan_restores_the_original_typed_claim() {
                 preview_issue_message: None,
                 metadata_engine_id: "fixture-metadata".to_owned(),
                 metadata_engine_version: "1".to_owned(),
+                camera: Default::default(),
                 capture_time: None,
             },
         )

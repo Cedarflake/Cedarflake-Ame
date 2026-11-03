@@ -239,7 +239,7 @@ class AmeNotificationController extends Notifier<AmeNotificationState> {
     return id;
   }
 
-  bool resolve(String dedupeKey) {
+  bool resolve(String dedupeKey, {bool dismiss = true}) {
     if (!_activeDedupeKeys.remove(dedupeKey)) {
       return false;
     }
@@ -265,9 +265,9 @@ class AmeNotificationController extends Notifier<AmeNotificationState> {
         .toSet();
     state = AmeNotificationState(
       history: history,
-      pendingIds: state.pendingIds
-          .where((id) => !resolvedIds.contains(id))
-          .toList(),
+      pendingIds: dismiss
+          ? state.pendingIds.where((id) => !resolvedIds.contains(id)).toList()
+          : state.pendingIds,
     );
     return true;
   }

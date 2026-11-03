@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Last updated: 2026-10-26
+- Last updated: 2026-10-30
 - Related: ADR 0006, ADR 0014
 
 ## Context
@@ -364,9 +364,13 @@ asset or preview ownership, removes queue or operation history, or touches sourc
 authority is to compact pages that SQLite already reports on the freelist.
 
 Fresh catalogs set `auto_vacuum=INCREMENTAL` before creating any table. Existing catalogs in
-`auto_vacuum=NONE` are not synchronously vacuumed by schema migration or startup. When reclaimable
-pages are at least 64 MiB and at least 25 percent of the main database, Ame schedules one serialized
-background operation. It first checks caller-available capacity using the conservative SQLite
+`auto_vacuum=NONE` are not synchronously vacuumed by schema migration or startup. The reclamation
+policy distinguishes bounded page release from a full legacy rewrite. Incremental catalogs start
+reclaiming when free pages occupy at least 16 MiB and 20 percent of the main database. This releases
+significant replacement-scan/index slack in smaller catalogs while retaining an 8-MiB low watermark
+and a separate ratio guard against repeated cleanup. Legacy `NONE` catalogs retain both higher
+conversion thresholds: at least 64 MiB and at least 25 percent. Their serialized background
+operation first checks caller-available capacity using the conservative SQLite
 upper bound of twice the current main-database bytes plus a 64 MiB explicit safety margin; every
 multiplication and addition is overflow checked. Insufficient capacity is a retryable structured
 failure and does not change the already committed removal.

@@ -21,6 +21,20 @@ class AmeAsyncBridgeContract {
 
 function Get-AmeAsyncBridgeContracts {
     $rows = @(
+        @("classification_settings", "load_classification_settings", "loadClassificationSettings", "crateApiClassificationSettingsLoadClassificationSettings", "ClassificationSettings", ""),
+        @("classification_settings", "initial_classification_categories", "initialClassificationCategories", "crateApiClassificationSettingsInitialClassificationCategories", "List<ClassificationCategoryInput>", ""),
+        @("classification_settings", "save_classification_settings", "saveClassificationSettings", "crateApiClassificationSettingsSaveClassificationSettings", "ClassificationSettings", ""),
+        @("classification_settings", "change_classification_control", "changeClassificationControl", "crateApiClassificationSettingsChangeClassificationControl", "ClassificationSettings", ""),
+        @("classification", "open_classification_session", "openClassificationSession", "crateApiClassificationOpenClassificationSession", "DesktopClassificationSession?", ""),
+        @("classification", "select_classification_installation", "selectClassificationInstallation", "crateApiClassificationSelectClassificationInstallation", "void", ""),
+        @("classification", "run", "run", "crateApiClassificationDesktopClassificationSessionRun", "PreparedClassificationMaintenance?", "DesktopClassificationSession"),
+        @("classification", "close", "close", "crateApiClassificationDesktopClassificationSessionClose", "void", "DesktopClassificationSession"),
+        @("classification_maintenance", "commit", "commit", "crateApiClassificationMaintenancePreparedClassificationMaintenanceCommit", "bool", "PreparedClassificationMaintenance"),
+        @("classification_installation", "prepare", "prepare", "crateApiClassificationInstallationDesktopModelInstallationPrepare", "void", "DesktopModelInstallation"),
+        @("classification_installation", "commit", "commit", "crateApiClassificationInstallationDesktopModelInstallationCommit", "void", "DesktopModelInstallation"),
+        @("classification_review", "load_classification_items", "loadClassificationItems", "crateApiClassificationReviewLoadClassificationItems", "List<ClassificationItemState>", ""),
+        @("classification_review", "load_classification_annotations", "loadClassificationAnnotations", "crateApiClassificationReviewLoadClassificationAnnotations", "List<ClassificationAnnotation>", ""),
+        @("classification_retry", "retry_failed_classification", "retryFailedClassification", "crateApiClassificationRetryRetryFailedClassification", "ClassificationRetryOutcome", ""),
         @("catalog", "load_library_query_snapshot", "loadLibraryQuerySnapshot", "crateApiCatalogLoadLibraryQuerySnapshot", "GalleryQuerySnapshot", ""),
         @("catalog", "load_library_time_snapshot", "loadLibraryTimeSnapshot", "crateApiCatalogLoadLibraryTimeSnapshot", "GalleryTimeSnapshot", ""),
         @("catalog", "load_library_folder_page", "loadLibraryFolderPage", "crateApiCatalogLoadLibraryFolderPage", "LibraryFolderPage", ""),
@@ -72,7 +86,8 @@ function Assert-AmeAsyncBridgeContract {
         [regex]::Escape($Contract.GeneratedName)
     if ($Contract.Owner) {
         $implementation = Get-AmeBridgeMethod $GeneratedDartCode $Contract.DartName DartApi "$($Contract.Owner)Impl"
-        $opaqueDelegatePattern = $delegatePattern + '\s*that\s*:\s*this\s*,?\s*\)\s*;$'
+        $opaqueDelegatePattern = $delegatePattern +
+            '\s*that\s*:\s*this(?:\s*,\s*(?!that\b)(?<argument>[A-Za-z_]\w*)\s*:\s*\k<argument>)*\s*,?\s*\)\s*;$'
         if ($implementation.Signature -notmatch $futurePattern -or
             $implementation.Body -notmatch $opaqueDelegatePattern) {
             throw "Opaque Dart implementation does not delegate its exact lease: $($Contract.Owner).$($Contract.DartName)"

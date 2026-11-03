@@ -10,13 +10,14 @@ use super::super::{database_error, unix_time_ms};
 use super::selection::member_query;
 use super::{native_recovery, reconciliation};
 
-pub(super) const CURRENT_RECORDS: &str = "SELECT DISTINCT related.record_id
+pub(in crate::adapters::sqlite_catalog) const CURRENT_RECORDS: &str =
+    "SELECT DISTINCT related.record_id
     FROM temp.organization_command_members AS member CROSS JOIN organization_bindings AS binding
       ON member.asset_id = binding.asset_id AND member.source_generation = binding.source_generation
     CROSS JOIN organization_record_groups AS own ON own.record_id = binding.record_id
     CROSS JOIN organization_record_groups AS related ON related.group_id = own.group_id";
 
-pub(super) fn materialize(
+pub(in crate::adapters::sqlite_catalog) fn materialize(
     connection: &Connection,
     key: &OrganizationGroupKey,
 ) -> Result<bool, ScanError> {

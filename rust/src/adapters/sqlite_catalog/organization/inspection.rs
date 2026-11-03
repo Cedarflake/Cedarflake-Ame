@@ -121,7 +121,7 @@ pub(super) fn inspect_group(
         .map_err(database_error)
 }
 
-fn record(
+pub(in crate::adapters::sqlite_catalog) fn record(
     connection: &Connection,
     key: &OrganizationGroupKey,
 ) -> Result<Option<String>, ScanError> {

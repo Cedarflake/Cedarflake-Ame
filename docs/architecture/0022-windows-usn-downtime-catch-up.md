@@ -218,6 +218,17 @@ tables, plus indexes, cascading foreign-key targets, relational ownership, rever
 and lineage bounds are validated on open. Existing evidence without a provable owner and malformed
 named objects fail closed.
 
+Ordered journal scope recovery releases its parent's handoff ownership in the same transaction as
+completion after both required metadata-inventory children finish. Retirement has one catalog owner
+shared by queue completion, scan publication, history retention, and compatibility recovery. It keeps
+evidence while any active queue, frozen scan, pending rename, or pending cross-root owner requires it.
+Catalog opening can recover a missed release only when retained ordered-child records prove that
+the parent completed. This recovery validates the schema and child provenance, processes at most
+128 evidence keys per batch, and validates the complete catalog before committing. An unknown owner,
+contradictory child, or another invalid relation rejects the open and rolls back the repair. The same
+proof applies before upgrades from schema 37 onward; it does not reset the catalog, alter durable
+organization decisions, or access source media.
+
 ### Unsafe boundary and invariants
 
 All new `unsafe` is confined to the Windows USN adapter and is reviewed as one handle-and-I/O

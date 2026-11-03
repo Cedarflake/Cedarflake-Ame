@@ -14,6 +14,7 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_process.ps1")
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_evidence.ps1")
+. (Join-Path $PSScriptRoot "integration_windows_accessibility_session.ps1")
 
 $expectedProbePhases = @(
     "native-semantics-ready"
@@ -117,6 +118,11 @@ function Remove-AmeWindowsAccessibilityScratch {
     $ownedNames.Add("flutter.log")
     $ownedNames.Add("preparation.json")
     $ownedNames.Add("preparation.tmp")
+    for ($sequence = 0; $sequence -le $expectedProbePhases.Count; $sequence += 1) {
+        $suffix = $sequence.ToString("00")
+        $ownedNames.Add("uia-command-$suffix.json")
+        $ownedNames.Add("uia-command-$suffix.tmp")
+    }
     for ($sequence = 1; $sequence -le $expectedProbePhases.Count; $sequence += 1) {
         $suffix = $sequence.ToString("00")
         $ownedNames.Add("request-$suffix.tmp")
@@ -249,15 +255,16 @@ try {
         $cmdArguments = "/d /s /c `"$flutterInvocation`""
         $processJob = $null
         $process = $null
+        $probeSession = $null
         $testStartedAt = Get-Date
         $validatedPhases = [System.Collections.Generic.List[string]]::new()
         $probeResultTranscript = [System.Collections.Generic.List[string]]::new()
         $runClock = [System.Diagnostics.Stopwatch]::StartNew()
         try {
-            $preparation = Invoke-AmeWindowsAccessibilityProbe `
-                -ProbeScriptPath (Join-Path $PSScriptRoot "integration_windows_accessibility_preparation_probe.ps1") `
+            $probeSession = Start-AmeWindowsUiaSession -ScratchRoot $scratchRoot -Token $probeToken
+            $preparation = Invoke-AmeWindowsUiaSessionPhase -Session $probeSession `
                 -TargetProcessId $PID -Phase "runtime-preparation" `
-                -ResultPath (Join-Path $scratchRoot "preparation.json") -Token $probeToken `
+                -ResultPath (Join-Path $scratchRoot "preparation.json") `
                 -Timeout ([TimeSpan]::FromSeconds([Math]::Min(8, $TimeoutSeconds)))
             $probeResultTranscript.Add((Format-AmeWindowsUiaProbeTranscript -Record $preparation))
             [System.Environment]::SetEnvironmentVariable(
@@ -304,12 +311,10 @@ try {
                         $probeTimeout = [TimeSpan]::FromSeconds(
                             [Math]::Min(8, [Math]::Max(0, $remainingSeconds))
                         )
-                        $probeResult = Invoke-AmeWindowsAccessibilityProbe `
-                            -ProbeScriptPath (Join-Path $PSScriptRoot "integration_windows_accessibility_probe.ps1") `
+                        $probeResult = Invoke-AmeWindowsUiaSessionPhase -Session $probeSession `
                             -TargetProcessId $runnerProcessId `
                             -Phase $phase `
                             -ResultPath (Join-Path $scratchRoot "probe-$sequence.json") `
-                            -Token $probeToken `
                             -Timeout $probeTimeout
                         $probeResultTranscript.Add((Format-AmeWindowsUiaProbeTranscript -Record $probeResult))
                         $acknowledgementPath = Join-Path `
@@ -336,6 +341,9 @@ try {
         } catch {
             $runFailure = $_.Exception
         } finally {
+            Invoke-AmeWindowsAccessibilityCleanupStep $cleanup "close-probe-session" {
+                Complete-AmeWindowsUiaSession -Session $probeSession
+            }
             Complete-AmeWindowsAccessibilityCleanup `
                 -Cleanup $cleanup -Job $processJob -Process $process `
                 -EnvironmentValues ([ordered]@{
@@ -343,9 +351,8 @@ try {
                     $probeTokenEnvironment = $previousProbeToken
                 }) `
                 -CaptureOutput {
-                    if (Test-Path -LiteralPath $processLogPath -PathType Leaf) {
-                        [System.IO.File]::ReadAllText($processLogPath)
-                    } else { "" }
+                    param([TimeSpan]$Remaining)
+                    Read-AmeWindowsAccessibilityOutput -Path $processLogPath -Timeout $Remaining
                 } `
                 -CaptureTranscript {
                     @(
@@ -356,6 +363,10 @@ try {
                     ) -join [Environment]::NewLine
                 } `
                 -RemoveScratch {
+                    if ($null -ne $probeSession -and (
+                        $probeSession.Cleanup.ProcessExited -ne $true -or
+                        $probeSession.Cleanup.JobClosed -ne $true
+                    )) { return $false }
                     Remove-AmeWindowsAccessibilityScratch `
                         -ScratchRoot $scratchRoot -BuildRoot $buildRoot
                 }

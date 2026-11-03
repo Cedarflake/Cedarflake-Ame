@@ -117,6 +117,8 @@ fn same_identity_at_another_path_reuses_metadata_and_source_generation() {
     assert_eq!(asset.asset_id, prior.asset_id);
     assert_ne!(asset.location_id, prior.location_id);
     assert_eq!(asset.relative_path, "renamed.png");
+    assert_eq!(asset.camera, prior.camera);
+    assert_eq!(asset.camera.model.as_deref(), Some("Camera 2"));
     assert_eq!(asset.source_generation, prior.source_generation);
     assert!(asset.source_generation > 0);
 }
@@ -285,6 +287,10 @@ impl RecordingInspector {
                 metadata: MetadataInspection {
                     engine_id: "fixture-metadata".to_owned(),
                     engine_version: "1".to_owned(),
+                    camera: crate::domain::CameraMetadata {
+                        make: Some("Fixture".into()),
+                        model: Some("Camera 2".into()),
+                    },
                     capture_time: None,
                     issues,
                 },

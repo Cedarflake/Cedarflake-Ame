@@ -48,7 +48,7 @@ pub(super) fn associate(connection: &Connection, root_id: &str) -> Result<(), Sc
             "UPDATE {table} SET root_id = ?1 WHERE root_id IN (SELECT root_id FROM temp.organization_recovery_root_matches)"
         ), [root_id]).map_err(database_error)?;
     }
-    Ok(())
+    super::super::super::classification::review::lifecycle::associate_roots(connection, root_id)
 }
 
 pub(in super::super) fn forget_source(

@@ -184,6 +184,14 @@ class NoGalleryResults extends StatelessWidget {
     final isSearch = query.searchText.isNotEmpty;
     final wholeCollection =
         !isSearch && query.rootId == null && query.organizationQueue == null;
+    if (query.collection is LibrarySmartAlbumCollection && wholeCollection) {
+      return LibraryGalleryMessage(
+        key: const Key("library-no-results"),
+        icon: Symbols.auto_awesome_rounded,
+        title: "还没有这个分类的图片",
+        detail: "可以切换分类或返回图库。",
+      );
+    }
     if (wholeCollection && query.collection is LibraryAlbumCollection) {
       return const LibraryGalleryMessage(
         key: Key("library-no-results"),

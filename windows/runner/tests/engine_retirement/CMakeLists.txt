@@ -25,6 +25,7 @@ add_executable(ame_window_engine_lifecycle_test
   "flutter_window_engine_lifecycle_test.cpp"
   "flutter_io_thread_priority_test.cpp"
   "../../flutter_io_thread_priority.cpp"
+  "../../flutter_power_channel.cpp"
   "../../flutter_window.cpp"
   "../../win32_window.cpp"
   "${WRAPPER_ROOT}/core_implementations.cc"

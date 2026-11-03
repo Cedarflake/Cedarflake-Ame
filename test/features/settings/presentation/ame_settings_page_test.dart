@@ -34,8 +34,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final heading = find.descendant(
+      of: find.ancestor(
+        of: find.byIcon(Symbols.settings_rounded),
+        matching: find.byType(Row),
+      ),
+      matching: find.text("设置"),
+    );
+    expect(heading, findsOneWidget);
     expect(
-      tester.widget<Text>(find.text("设置")).style?.fontWeight,
+      tester.widget<Text>(heading).style?.fontWeight,
       ameFontWeightSemibold,
     );
     expect(
@@ -57,6 +65,9 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.text("个性化"), findsOneWidget);
     expect(find.text("浏览"), findsOneWidget);
+    expect(find.text("智能相册"), findsNothing);
+    expect(find.text("本地分析"), findsNothing);
+    expect(find.text("在本机分析图片，自动生成分类"), findsNothing);
     expect(find.text("缩略图加载速度"), findsOneWidget);
     expect(find.text("存储"), findsOneWidget);
     expect(find.text("关于"), findsOneWidget);

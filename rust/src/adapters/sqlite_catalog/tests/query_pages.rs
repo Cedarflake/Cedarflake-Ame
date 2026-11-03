@@ -54,6 +54,7 @@ fn capture_time_evidence_round_trips_with_engine_identity() {
                 preview_issue_message: None,
                 metadata_engine_id: "kamadak-exif".to_owned(),
                 metadata_engine_version: "0.6.1".to_owned(),
+                camera: Default::default(),
                 capture_time: Some(CaptureTimeEvidence {
                     local_time: "2025-07-08T09:10:11.123000000".to_owned(),
                     offset_minutes: Some(480),

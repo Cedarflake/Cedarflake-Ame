@@ -34,6 +34,7 @@ impl<'a> PreviewLocationPublication<'a> {
         request: Option<&'a PreviewRequest>,
         publication_authority: Option<&'a crate::ports::PreviewPublicationAuthority>,
     ) -> Result<Self, ScanError> {
+        location.camera.validate()?;
         if let Some(request) = request
             && (request.location_id != location.location_id
                 || request.expected_root_id != location.root_id
@@ -174,7 +175,8 @@ impl<'a> PreviewLocationPublication<'a> {
                       preview_issue_message = ?7, source_revision_token = ?14,
                       metadata_engine_id = ?21, metadata_engine_version = ?22,
                       capture_local_time = ?23, capture_offset_minutes = ?24,
-                      capture_time_source = ?25, capture_raw_value = ?26
+                      capture_time_source = ?25, capture_raw_value = ?26,
+                      camera_make = ?27, camera_model = ?28
                  WHERE location_id = ?1 AND file_size = ?8 AND modified_unix_ms = ?9
                     AND root_id = ?10 AND absolute_path = ?11
                     AND file_identity_scheme IS ?12 AND file_identity_value IS ?13
@@ -275,6 +277,8 @@ impl<'a> PreviewLocationPublication<'a> {
                         .capture_time
                         .as_ref()
                         .map(|evidence| &evidence.raw_value),
+                    location.camera.make,
+                    location.camera.model,
                 ],
             )
             .map_err(database_error)?;

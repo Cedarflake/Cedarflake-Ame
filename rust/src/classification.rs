@@ -1,0 +1,110 @@
+pub use crate::adapters::{
+    CuratedClassificationVocabulary, LocalClassificationVocabulary,
+    SqliteClassificationFeatureCache,
+};
+#[cfg(all(windows, feature = "classification-worker"))]
+pub use crate::application::classification_analysis::analyze_classification_content;
+pub use crate::application::classification_decisions::plan_classification_change;
+pub use crate::application::classification_discovery::{
+    CategoryAdmission, CategoryAdmissionCandidate, CategoryAdmissionCriteria,
+    CategoryAdmissionDisposition, CategoryAdmissionPolicy, CategoryExpansionAssessment,
+    CategoryExpansionBudget, CategoryExpansionRequest, CategoryMemberEvidence,
+    CategorySchemeAssessment, CategorySchemeCandidate, CategorySchemeDisposition,
+    CategorySchemeMember, CategoryWithdrawalAssessment, CategoryWithdrawalImpact,
+    CategoryWithdrawalMember, ConceptAlternative, ConceptConsolidation, ConceptConsolidationLimits,
+    ConceptConsolidationRequest, ConceptMatch, ConceptNomination, ConceptNominationRequest,
+    ConceptSearchBound, ConceptSearchLimits, ConsolidatedConcept, ContextComparison,
+    ContextComparisonPolicy, ContextMemberAlternative, ContextualVocabulary,
+    DeferredDiscoveryCohort, DiscoveryCandidates, DiscoveryCohortBatch, DiscoveryCohortDeferral,
+    DiscoveryCohortPolicy, DiscoveryPreparationPolicy, DiscoveryPreparationRequest,
+    DiscoverySampleCursor, DiscoverySampleWindow, MemberAdmission, NamingContext,
+    NamingContextCatalog, PreparedDiscoveryWindow, assess_category_candidates,
+    assess_category_scheme, assess_category_withdrawals, consolidate_classification_concepts,
+    form_discovery_cohorts, nominate_classification_contexts, prepare_category_expansion,
+    prepare_category_merge, prepare_category_reduction, prepare_discovery_window,
+    prepare_equivalent_category_retirement, prepare_purpose_category_merge, read_discovery_samples,
+    retrieve_classification_concepts, survey_category_coverage,
+};
+pub use crate::application::classification_dispatch::{
+    ClassificationDispatchClock, ClassificationDispatchSignals, ClassificationDispatchStep,
+    ClassificationDispatcher, ClassificationForegroundState, MonotonicDispatchClock,
+};
+pub use crate::application::classification_features::prepare_classification_matcher;
+pub use crate::application::classification_matching::{
+    CategoryMatcher, CategoryScore, RankedPrediction,
+};
+#[cfg(all(windows, feature = "classification-worker"))]
+pub use crate::application::classification_model_installation::{
+    PreparedModelInstallation, prepare_managed_classification_installation,
+};
+pub use crate::application::classification_residency::{
+    ClassificationEncoderResidency, MonotonicResidencyClock, ResidencyClock,
+};
+#[cfg(all(windows, feature = "classification-worker"))]
+pub use crate::application::classification_runtime::{
+    ClassificationRuntimeControl, ClassificationRuntimePaths, NativeClassificationRuntime,
+    PreparedCategoryMaintenance, commit_category_maintenance,
+};
+pub use crate::application::classification_screening::{
+    ReviewRecommendation, ScreeningClassifier, ScreeningResult,
+};
+pub use crate::application::classification_verification::verify_classification_source;
+pub use crate::domain::ScanError;
+pub use crate::domain::classification::discovery::{
+    CategoryNaming, CategoryNamingPurpose, ConceptId, ConceptMemberSimilarity, ConceptNamingScope,
+    ConceptSimilarity, DiscoveryCohort, DiscoveryError, DiscoverySample, VocabularyConcept,
+};
+pub use crate::domain::classification::installation::{
+    ModelInstallationPhase, ModelInstallationProgress,
+};
+pub use crate::domain::classification::maintenance::{
+    CategoryExpansionPlan, CategoryExpansionSnapshot, CategoryMaintenancePlan, CategoryMergePlan,
+    CategoryRetirementPlan, CategoryRetirementSnapshot, EquivalentCategoryRetirement,
+    ManagedCategoryOrigin,
+};
+pub use crate::domain::classification::work::{
+    ClassificationAnalysisResult, ClassificationBacklogPage, ClassificationDispatchCommand,
+    ClassificationDispatchMode, ClassificationDispatchState, ClassificationRecoveryCursor,
+    ClassificationRecoveryPage, ClassificationRecoveryRoot, ClassificationVerificationResult,
+    ClassificationWorkFailure, ClassificationWorkIssue, ClassificationWorkLease,
+    ClassificationWorkPriority, ClassificationWorkTarget,
+};
+pub use crate::domain::classification::{
+    CategoryDefinition, CategoryId, CategoryScreeningThresholds, ClassificationAction,
+    ClassificationAnalysisSetup, ClassificationChange, ClassificationContent, ClassificationError,
+    ClassificationFieldAuthority, ClassificationObservation, ClassificationProposal,
+    ClassificationRecordId, ClassificationReview, ClassificationRevision, ClassificationRun,
+    ClassificationSetupActivation, ClassificationSubject, ClassificationTarget,
+    EffectiveClassification, Embedding, FeatureIdentity, HumanCategoryChoice, HumanClassification,
+    HumanClassificationConsensus, HumanDecisionOrigin, ImageFeature, ModelCompatibility,
+    PredictionEvidence, PredictionReference, ProvisionalClassificationContent, RefinementIdentity,
+    ScreeningIdentity, ScreeningPolicy, ScreeningProfile, ScreeningThresholds, Taxonomy,
+    TextFeature,
+};
+pub use crate::domain::classification_catalog::{
+    ClassificationCatalogState, ClassificationWriteReceipt, PreparedClassificationSelection,
+};
+pub use crate::domain::classification_review::{
+    ClassificationReviewBookmark, ClassificationReviewFilter, ClassificationReviewPosition,
+    ClassificationReviewReceipt, ClassificationReviewScope, ClassificationReviewSession,
+};
+pub use crate::ports::classification::ClassificationRepository;
+pub use crate::ports::classification_availability::ClassificationAvailabilityRepository;
+pub use crate::ports::classification_configuration::{
+    CategoryExpansionRepository, CategoryRetirementRepository,
+};
+pub use crate::ports::classification_encoder::{
+    ClassificationEncoder, ClassificationEncoderFactory, ClassificationEncoderKind,
+};
+pub use crate::ports::classification_execution::{
+    ClassificationExecutionError, ClassificationExecutionOutcome, ClassificationWorkExecutor,
+};
+pub use crate::ports::classification_features::{
+    ClassificationFeatureCacheStats, ClassificationFeatureRepository,
+};
+pub use crate::ports::classification_review::ClassificationReviewRepository;
+pub use crate::ports::classification_setup::ClassificationSetupRepository;
+pub use crate::ports::classification_vocabulary::{
+    ClassificationVocabulary, ConceptNeighborhood, ConceptPage,
+};
+pub use crate::ports::classification_work::ClassificationWorkRepository;

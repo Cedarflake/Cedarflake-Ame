@@ -3,32 +3,9 @@ use rusqlite::{Connection, params};
 use crate::domain::ScanError;
 use crate::domain::exact_duplicates::{EXACT_FINGERPRINT_SCHEME, EXACT_PUBLICATION_BATCH_SIZE};
 
+use super::super::database_error;
 use super::super::exact_duplicates::queries::{COMPATIBLE_FINGERPRINT, CURRENT_LOCATIONS};
-use super::super::{database_error, sqlite_integer};
 use super::records;
-
-pub(in crate::adapters::sqlite_catalog) fn batch(
-    connection: &Connection,
-    run_id: &str,
-    generations: &[u64],
-) -> Result<(), ScanError> {
-    let mut published = Vec::with_capacity(generations.len());
-    for generation in generations {
-        let generation = sqlite_integer(*generation, "source generation")?;
-        let accepted: bool = connection
-            .query_row(
-                "SELECT EXISTS(SELECT 1 FROM content_fingerprints
-             WHERE source_generation = ?1 AND scheme = ?2 AND run_id = ?3)",
-                params![generation, EXACT_FINGERPRINT_SCHEME, run_id],
-                |row| row.get(0),
-            )
-            .map_err(database_error)?;
-        if accepted {
-            published.push(generation);
-        }
-    }
-    published_generations(connection, &published)
-}
 
 pub(in crate::adapters::sqlite_catalog) fn published_generations(
     connection: &Connection,

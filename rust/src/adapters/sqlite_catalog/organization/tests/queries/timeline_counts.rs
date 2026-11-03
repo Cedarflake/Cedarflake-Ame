@@ -12,21 +12,35 @@ fn repeated_representative_ids_do_not_multiply_rows_across_roots() {
             [],
         )
         .unwrap();
-    let query = GalleryQuery {
-        sort_key: GallerySortKey::CaptureTime,
-        ..album_query(&album_id)
-    };
-    let snapshot = catalog
-        .load_query_snapshot(10, &query, "overlap", None)
-        .unwrap();
-    assert_eq!(snapshot.snapshot.assets.len(), 3);
-    assert_eq!(snapshot.timeline.total_items, 3);
-    assert_eq!(snapshot.timeline.total_source_items, 3);
-    assert_eq!(snapshot.timeline.buckets[0].item_count, 3);
+    for sort_key in [GallerySortKey::CaptureTime, GallerySortKey::FileName] {
+        let query = GalleryQuery {
+            sort_key,
+            ..album_query(&album_id)
+        };
+        let snapshot = catalog
+            .load_query_snapshot(10, &query, "overlap", None)
+            .unwrap();
+        assert_eq!(snapshot.snapshot.assets.len(), 3);
+        assert_eq!(snapshot.timeline.total_items, 3);
+        assert_eq!(snapshot.timeline.total_source_items, 3);
+        if query.sort_key == GallerySortKey::CaptureTime {
+            assert_eq!(snapshot.timeline.buckets[0].item_count, 3);
+        } else {
+            assert_eq!(
+                snapshot
+                    .timeline
+                    .scroll_sections
+                    .iter()
+                    .map(|section| section.item_count)
+                    .sum::<u64>(),
+                3
+            );
+        }
+    }
 }
 
 #[test]
-fn collection_date_buckets_keep_scoped_physical_counts_and_preferred_dates() {
+fn collection_sections_keep_scoped_physical_counts_and_preferred_representatives() {
     let (_directory, mut catalog) = fixture();
     catalog
         .connection
@@ -70,6 +84,7 @@ fn collection_date_buckets_keep_scoped_physical_counts_and_preferred_dates() {
             GallerySortKey::CaptureTime,
             GallerySortKey::CreatedTime,
             GallerySortKey::ModifiedTime,
+            GallerySortKey::FileName,
         ] {
             for sort_direction in [
                 GallerySortDirection::Ascending,
@@ -96,6 +111,7 @@ fn collection_date_buckets_keep_scoped_physical_counts_and_preferred_dates() {
                             .load_query_snapshot(1, &query, "collection", None)
                             .unwrap();
                         assert_eq!(actual.timeline.buckets, expected.buckets);
+                        assert_eq!(actual.timeline.scroll_sections, expected.scroll_sections);
                         assert_eq!(actual.timeline.total_items, expected.total_items);
                         assert_eq!(
                             actual.timeline.total_source_items,

@@ -52,6 +52,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const Key("workbench-albums")));
         await tester.pumpAndSettle();
+        expect(find.text("还没有创建相册"), findsOneWidget);
         await tester.tap(find.byKey(const Key("library-sidebar-create-album")));
         await tester.pumpAndSettle();
         await tester.enterText(
@@ -61,6 +62,7 @@ void main() {
         await tester.tap(find.byKey(const Key("library-album-save")));
         await tester.pumpAndSettle();
         final album = service.albumItems.single;
+        expect(find.text("还没有创建相册"), findsNothing);
         final albumTile = find.byKey(
           ValueKey("library-sidebar-album-${album.id}"),
         );
@@ -90,6 +92,7 @@ void main() {
         }
         expect(service.undos.single.originalId, service.albumWrites.single.id);
         expect(albumTile, findsNothing);
+        expect(find.text("还没有创建相册"), findsOneWidget);
         expect(find.text("选择相册"), findsOneWidget);
         expect(catalog.loadQueries, isNotEmpty);
         expect(

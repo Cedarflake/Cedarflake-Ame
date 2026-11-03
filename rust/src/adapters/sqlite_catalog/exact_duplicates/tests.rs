@@ -117,7 +117,10 @@ fn stale_generation_revision_path_and_cancelled_work_cannot_publish() {
                 "UPDATE asset_locations SET {change} WHERE location_id = 'a'"
             ))
             .unwrap();
-        assert!(!publication::publish(&transaction, "run", &original, &fingerprint).unwrap());
+        assert_eq!(
+            publication::publish(&transaction, "run", &original, &fingerprint).unwrap(),
+            publication::FingerprintPublication::Superseded
+        );
         transaction.rollback().unwrap();
     }
     assert!(publish(&mut catalog, "a", &"a".repeat(64)));

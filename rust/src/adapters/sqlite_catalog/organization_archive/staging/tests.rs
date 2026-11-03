@@ -34,8 +34,16 @@ fn entries(path: &Path) -> Vec<Value> {
 
 fn write_archive(path: &Path, entries: &[Value]) {
     let mut bytes = Vec::new();
-    let mut counts = vec![0_u64; records::KINDS.len()];
+    let version = entries[0]["header"]["version"].as_u64().unwrap() as u32;
+    let mut counts = vec![0_u64; records::kind_count(version)];
     for entry in entries.iter().filter(|entry| entry["type"] != "footer") {
+        if version < 5
+            && entry["kind"]
+                .as_str()
+                .is_some_and(|kind| kind.starts_with("classification_"))
+        {
+            continue;
+        }
         serde_json::to_writer(&mut bytes, entry).unwrap();
         bytes.push(b'\n');
         if entry["type"] == "row" {
@@ -54,6 +62,64 @@ fn write_archive(path: &Path, entries: &[Value]) {
     .unwrap();
     bytes.push(b'\n');
     fs::write(path, bytes).unwrap();
+}
+
+#[test]
+fn organization_archive_inspection_accepts_version_five_without_managed_origins() {
+    use crate::domain::classification::{
+        CategoryDefinition, CategoryId, ClassificationRecordId, Taxonomy,
+    };
+    use crate::ports::classification::ClassificationRepository;
+
+    let (directory, mut catalog) = fixture();
+    let rules = Taxonomy::new(vec![
+        CategoryDefinition::new(
+            CategoryId::new("drawing".into()).unwrap(),
+            "Drawing".into(),
+            vec!["an illustration".into()],
+        )
+        .unwrap(),
+    ])
+    .unwrap();
+    let before = catalog.load_classification_state().unwrap();
+    catalog
+        .configure_classification(
+            &ClassificationRecordId::new("configure".into()).unwrap(),
+            before.revision,
+            &rules,
+        )
+        .unwrap();
+    let archive = directory.path().join("version-five.ame-backup");
+    catalog
+        .export_organization_archive(&archive, &mut |_| true)
+        .unwrap();
+    let mut rows = entries(&archive);
+    rows[0]["header"]["version"] = json!(5);
+    rows[0]["header"]["source_schema"] = json!(70);
+    write_archive(&archive, &rows);
+    let before = fs::read(&archive).unwrap();
+    let staged = read(&archive, directory.path(), &mut |_| true).unwrap();
+    let label: String = staged
+        .connection
+        .query_row(
+            "SELECT label FROM archive_classification_category WHERE category_id = 'drawing'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(label, "Drawing");
+    let origins: i64 = staged
+        .connection
+        .query_row(
+            "SELECT COUNT(*) FROM archive_classification_origin",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(origins, 0);
+    assert_eq!(fs::read(&archive).unwrap(), before);
+    drop(staged);
+    assert_no_scratch(directory.path());
 }
 
 #[test]
@@ -105,12 +171,14 @@ fn organization_archive_inspection_upgrades_v1_native_copy_evidence_without_chan
 #[test]
 fn organization_archive_inspection_rejects_unproven_native_copy_counts() {
     let (directory, catalog) = fixture();
-    let archive = directory.path().join("version-two.ame-backup");
+    let archive = directory
+        .path()
+        .join("invalid-native-copy-counts.ame-backup");
     catalog
         .export_organization_archive(&archive, &mut |_| true)
         .unwrap();
     let original = entries(&archive);
-    assert_eq!(original[0]["header"]["version"], 3);
+    assert_eq!(original[0]["header"]["version"], codec::VERSION);
     for copies in [json!(0), json!(-1), Value::Null] {
         let mut rows = original.clone();
         rows.iter_mut()
@@ -156,6 +224,57 @@ fn organization_archive_inspection_upgrades_v2_ordering_without_rewriting_input(
         ("library_admission".into(), "descending".into(), true)
     );
     assert_eq!(fs::read(&archive).unwrap(), before);
+}
+
+#[test]
+fn organization_archive_inspection_upgrades_v3_filters_and_rejects_invalid_v4_payloads() {
+    use crate::domain::gallery_metadata_filter::GalleryMetadataFilter;
+    let (directory, catalog) = fixture();
+    let archive = directory.path().join("metadata.ame-backup");
+    catalog
+        .export_organization_archive(&archive, &mut |_| true)
+        .unwrap();
+    let original = entries(&archive);
+    let mut old = original.clone();
+    old[0]["header"]["version"] = json!(3);
+    old.iter_mut()
+        .find(|row| row["kind"] == "review_scope")
+        .unwrap()["values"]
+        .as_array_mut()
+        .unwrap()
+        .truncate(9);
+    write_archive(&archive, &old);
+    let before = fs::read(&archive).unwrap();
+    let staged = read(&archive, directory.path(), &mut |_| true).unwrap();
+    let payload: String = staged
+        .connection
+        .query_row(
+            "SELECT metadata_filter FROM archive_review_scope",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        serde_json::from_str::<GalleryMetadataFilter>(&payload).unwrap(),
+        GalleryMetadataFilter::default()
+    );
+    assert_eq!(fs::read(&archive).unwrap(), before);
+    drop(staged);
+    for payload in ["{}".to_owned(), "x".repeat(4097)] {
+        let mut invalid = original.clone();
+        invalid
+            .iter_mut()
+            .find(|row| row["kind"] == "review_scope")
+            .unwrap()["values"][9] = json!(payload);
+        write_archive(&archive, &invalid);
+        assert_eq!(
+            read(&archive, directory.path(), &mut |_| true)
+                .err()
+                .unwrap()
+                .code,
+            "organization_archive_records_invalid"
+        );
+    }
 }
 
 #[test]
@@ -352,7 +471,8 @@ fn organization_archive_inspection_handles_empty_and_sql_like_names_as_data() {
         .inspect_organization_archive(&archive, &mut |_| true)
         .unwrap();
     assert_eq!(empty.groups, 0);
-    assert_eq!(empty.record_count, 0);
+    assert_eq!(empty.record_count, 1);
+    assert_eq!(empty.active_albums, 0);
     assert!(!empty.has_continuation);
     let mut altered = entries(&archive);
     altered[0]["header"]["organization_revision"] = json!(1);
@@ -379,16 +499,43 @@ fn organization_archive_inspection_cancels_while_staging_without_touching_input_
         .unwrap();
     let mut altered = entries(&archive);
     altered[0]["header"]["organization_revision"] = json!(1);
-    for number in 0..512 {
-        altered.insert(altered.len() - 1, json!({"type":"row", "kind":"album", "values":[format!("album-{number}"), "测试", 1, 0, 0]}));
-    }
+    altered.splice(
+        1..1,
+        (0..512).map(|number| {
+            json!({"type":"row", "kind":"album", "values":[format!("album-{number}"), "测试", 1, 0, 0]})
+        }),
+    );
     write_archive(&archive, &altered);
     let before = fs::read(&archive).unwrap();
-    let failure = catalog
-        .inspect_organization_archive(&archive, &mut |progress| progress.completed_units < 256)
-        .unwrap_err();
-    assert_eq!(failure.code, "organization_archive_cancelled");
-    assert_eq!(before, fs::read(archive).unwrap());
+    let record_count = altered
+        .iter()
+        .filter(|entry| entry["type"] == "row")
+        .count() as u64;
+    for cancel_at in [256, record_count] {
+        let failure = catalog
+            .inspect_organization_archive(&archive, &mut |progress| {
+                progress.completed_units < cancel_at
+            })
+            .unwrap_err();
+        assert_eq!(failure.code, "organization_archive_cancelled");
+        assert_eq!(before, fs::read(&archive).unwrap());
+        assert_no_scratch(directory.path());
+    }
+    assert_eq!(
+        catalog
+            .inspect_organization_archive(&archive, &mut |_| true)
+            .unwrap()
+            .active_albums,
+        512
+    );
+    assert_eq!(
+        catalog
+            .connection
+            .query_row("SELECT COUNT(*) FROM organization_albums", [], |row| row
+                .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
     assert_no_scratch(directory.path());
 }
 

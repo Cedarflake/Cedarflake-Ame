@@ -3,8 +3,10 @@ use exif::{DateTime, Exif, In, Reader, Tag, Value};
 use crate::domain::{CaptureTimeEvidence, CaptureTimeSource, MetadataInspection, ScanIssue};
 use crate::ports::MetadataExtractor;
 
+mod camera;
+
 pub(crate) const METADATA_ENGINE_ID: &str = "kamadak-exif";
-pub(crate) const METADATA_ENGINE_VERSION: &str = "0.6.1+ame-orientation-1";
+pub(crate) const METADATA_ENGINE_VERSION: &str = "0.6.1+ame-camera-1";
 const MAX_EXIF_BYTES: usize = 4 * 1024 * 1024;
 const MAX_CAPTURE_FIELD_BYTES: usize = 64;
 
@@ -27,6 +29,7 @@ impl MetadataExtractor for KamadakExifExtractor {
         let mut inspection = MetadataInspection {
             engine_id: self.engine_id().to_owned(),
             engine_version: self.engine_version().to_owned(),
+            camera: Default::default(),
             capture_time: None,
             issues: Vec::new(),
         };
@@ -51,6 +54,7 @@ impl MetadataExtractor for KamadakExifExtractor {
             }
         };
 
+        inspection.camera = camera::extract(&exif, source_path, &mut inspection.issues);
         let candidates = [
             CaptureCandidate {
                 date_tag: Tag::DateTimeOriginal,

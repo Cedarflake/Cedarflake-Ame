@@ -10,6 +10,7 @@ use crate::ports::organization_cleanup::OrganizationCleanupRepository;
 use super::super::{SqliteCatalog, database_error, load_catalog_revision};
 use super::operations::{self, Admission};
 
+mod classification;
 mod inspection;
 mod retirement;
 

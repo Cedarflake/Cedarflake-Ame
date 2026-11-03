@@ -160,8 +160,13 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
                       fit: StackFit.expand,
                       children: [
                         _buildPreview(context),
-                        LibraryConflictLabel(
-                          locationId: widget.asset.locationId,
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: LibraryConflictLabel(
+                            locationId: widget.asset.locationId,
+                          ),
                         ),
                         Positioned(
                           top: 0,

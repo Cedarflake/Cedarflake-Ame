@@ -12,14 +12,12 @@ use crate::domain::{
 use crate::ports::{CatalogMaintenanceAttempt, CatalogMaintenanceControl, CatalogSpaceRepository};
 
 mod operation_registry;
+mod policy;
 mod scan_staging;
 
 use operation_registry::{CatalogReclamationOperation, ReclamationCompletion, registry};
+use policy::{reclamation_target_reached, should_start_reclamation};
 
-const RECLAMATION_START_BYTES: u64 = 64 * 1024 * 1024;
-const RECLAMATION_START_PERCENT: u64 = 25;
-const RECLAMATION_TARGET_BYTES: u64 = 8 * 1024 * 1024;
-const RECLAMATION_TARGET_PERCENT: u64 = 5;
 const INCREMENTAL_BATCH_PAGES: u32 = 256;
 const VACUUM_CAPACITY_MARGIN_BYTES: u64 = 64 * 1024 * 1024;
 const BUSY_RETRY_INITIAL_DELAY: Duration = Duration::from_millis(25);
@@ -348,33 +346,6 @@ fn snapshot_for_usage(usage: CatalogSpaceUsage) -> CatalogReclamationSnapshot {
     let mut snapshot = CatalogReclamationSnapshot::idle();
     apply_usage(&mut snapshot, usage);
     snapshot
-}
-
-fn should_start_reclamation(usage: CatalogSpaceUsage) -> bool {
-    usage.reclaimable_bytes() >= RECLAMATION_START_BYTES
-        && percentage_at_least(
-            usage.freelist_count,
-            usage.page_count,
-            RECLAMATION_START_PERCENT,
-        )
-}
-
-fn reclamation_target_reached(usage: CatalogSpaceUsage) -> bool {
-    usage.freelist_count == 0
-        || usage.reclaimable_bytes() <= RECLAMATION_TARGET_BYTES
-        || percentage_at_most(
-            usage.freelist_count,
-            usage.page_count,
-            RECLAMATION_TARGET_PERCENT,
-        )
-}
-
-fn percentage_at_least(part: u64, total: u64, percent: u64) -> bool {
-    total != 0 && u128::from(part) * 100 >= u128::from(total) * u128::from(percent)
-}
-
-fn percentage_at_most(part: u64, total: u64, percent: u64) -> bool {
-    total != 0 && u128::from(part) * 100 <= u128::from(total) * u128::from(percent)
 }
 
 fn required_vacuum_capacity(catalog_file_bytes: u64) -> Result<u64, ScanError> {

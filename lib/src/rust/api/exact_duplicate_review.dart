@@ -6,6 +6,7 @@
 import '../domain.dart';
 import '../domain/exact_duplicate_review.dart';
 import '../domain/exact_duplicates.dart';
+import '../domain/media_metadata.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 

@@ -46,6 +46,8 @@ Future<void> showLibraryAssetInformation(
                 label: "大小",
                 value: libraryFileSize(asset.fileSize),
               ),
+              _InformationRow(label: "相机品牌", value: asset.camera.make ?? "未知"),
+              _InformationRow(label: "相机型号", value: asset.camera.model ?? "未知"),
               _InformationRow(
                 label: "拍摄时间",
                 value: _formatCaptureTime(asset.captureTime),

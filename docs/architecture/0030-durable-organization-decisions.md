@@ -293,6 +293,12 @@ the client refreshes its proposal. A pending retained display relationship is no
 singleton and cannot admit a group write. Resolution and virtual mutations perform no filesystem
 reads, scans, decoding or hydration.
 
+Confirmed-group commands enumerate the requested content fingerprint's generations before joining
+current locations. Membership authority, decision inspection and binding materialization share this
+lookup; unrelated files with the same byte length cannot expand their work. Provisional singletons
+retain their asset/generation lookup. Both paths preserve current root, file identity and revision
+compatibility, and retained-evidence rejection remains part of command admission.
+
 Related album, progress, conflict, receipt and optional continuation changes commit together. Only
 the committed outcome can publish counts or advance the viewer. Favoriting has its own revision
 and cannot change album/progress. Undo checks the affected field revisions and compatible current

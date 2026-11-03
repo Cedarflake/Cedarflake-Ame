@@ -1,3 +1,5 @@
+. (Join-Path $PSScriptRoot "integration_windows_accessibility_output.ps1")
+
 function New-AmeWindowsAccessibilityCleanup {
     [pscustomobject]@{
         Failures = [Collections.Generic.List[object]]::new()
@@ -96,6 +98,7 @@ function Complete-AmeWindowsAccessibilityCleanup {
         [scriptblock]$RemoveScratch
     )
 
+    $cleanupClock = [Diagnostics.Stopwatch]::StartNew()
     Close-AmeWindowsAccessibilityProcess $Cleanup $Job $Process
     foreach ($name in $EnvironmentValues.Keys) {
         Invoke-AmeWindowsAccessibilityCleanupStep $Cleanup "restore-environment:$name" {
@@ -103,7 +106,8 @@ function Complete-AmeWindowsAccessibilityCleanup {
         }
     }
     Invoke-AmeWindowsAccessibilityCleanupStep $Cleanup "read-current-output" {
-        $Cleanup.CapturedOutput = & $CaptureOutput
+        $remaining = [TimeSpan]::FromSeconds(5) - $cleanupClock.Elapsed
+        $Cleanup.CapturedOutput = & $CaptureOutput $remaining
         $Cleanup.OutputCaptured = $true
     }
     Invoke-AmeWindowsAccessibilityCleanupStep $Cleanup "capture-probe-transcript" {

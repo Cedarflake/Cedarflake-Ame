@@ -23,7 +23,7 @@ mod conflicts;
 mod favorites;
 pub(super) mod history;
 mod history_receipt;
-mod inspection;
+pub(super) mod inspection;
 pub(super) mod lifecycle;
 mod native_recovery;
 mod operations;
@@ -33,7 +33,7 @@ pub(super) mod records;
 pub(super) mod recovery;
 mod restoration_schema;
 pub(super) mod review;
-mod selection;
+pub(super) mod selection;
 mod undo;
 
 impl OrganizationRepository for SqliteCatalog {
@@ -209,4 +209,4 @@ impl OrganizationRepository for SqliteCatalog {
 }
 
 #[cfg(test)]
-mod tests;
+pub(super) mod tests;

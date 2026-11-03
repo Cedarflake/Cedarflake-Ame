@@ -17,6 +17,7 @@ pub(super) fn prepare(connection: &Connection, archive_id: &str) -> Result<(), S
          UNION SELECT 'asset', asset_id FROM recovery.archive_version_evidence
          UNION SELECT 'location', location_id FROM recovery.archive_version_evidence
          UNION SELECT 'location', location_id FROM recovery.archive_bookmark
+         UNION SELECT 'location', location_id FROM recovery.archive_classification_bookmark
          UNION SELECT 'location', preferred_location_id FROM recovery.archive_duplicate_decision WHERE preferred_location_id IS NOT NULL
          UNION SELECT 'asset', preferred_asset_id FROM recovery.archive_duplicate_decision WHERE preferred_asset_id IS NOT NULL;",
         )

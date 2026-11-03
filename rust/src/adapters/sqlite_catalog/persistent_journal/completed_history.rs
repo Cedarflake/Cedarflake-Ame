@@ -360,7 +360,7 @@ fn cleanup_completed_persistent_journal_lineage_clusters(
             [],
         )
         .map_err(database_error)?;
-    super::super::catalog_delta::cleanup_terminal_catch_up_handoffs_batch(
+    super::super::handoff_retirement::cleanup_terminal_catch_up_handoffs_batch(
         transaction,
         &queue_evidence,
     )?;

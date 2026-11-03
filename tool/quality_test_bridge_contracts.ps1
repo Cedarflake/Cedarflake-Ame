@@ -94,6 +94,19 @@ Assert-Rejected "opaque implementation method is duplicated" DartGenerated ($opa
 Assert-Rejected "opaque implementation forwards another lease" DartGenerated ($opaque.DartGenerated.Replace("that: this", "that: other"))
 Assert-Rejected "opaque implementation is not Future" DartGenerated ($opaque.DartGenerated.Replace("Future<void> close()", "void close()"))
 
+$parameterized = $opaque.Clone()
+$parameterized.DartGenerated = $opaque.DartGenerated.Replace(
+    "that: this);", "that: this, operationId: operationId, categoryId: categoryId);"
+)
+Assert-Fixture $parameterized
+$fixture = $parameterized
+Assert-Rejected "opaque implementation changes an argument" DartGenerated (
+    $parameterized.DartGenerated.Replace("categoryId: categoryId", "categoryId: other")
+)
+Assert-Rejected "opaque implementation replaces the lease after an argument" DartGenerated (
+    $parameterized.DartGenerated.Replace("categoryId: categoryId", "categoryId: categoryId, that: other")
+)
+
 $rustLiteral = @'
 pub fn test<'a>(value: &'a str) { let brace = '}'; let text = r##" } /* literal */ "##; /* outer /* nested */ comment */ }
 '@
@@ -103,8 +116,38 @@ if ($masked.Length -ne $rustLiteral.Length -or $masked -match 'literal|comment')
 }
 Get-AmeBridgeClosingDelimiter $masked ($masked.IndexOf('{')) '{' '}' | Out-Null
 $contracts = @(Get-AmeAsyncBridgeContracts)
-if ($contracts.Count -ne 17 -or @($contracts | Where-Object Module -eq "viewer_source").Count -ne 3) {
+if ($contracts.Count -ne 31 -or
+    @($contracts | Where-Object Module -eq "viewer_source").Count -ne 3 -or
+    @($contracts | Where-Object Module -eq "classification").Count -ne 4 -or
+    @($contracts | Where-Object Module -eq "classification_settings").Count -ne 4 -or
+    @($contracts | Where-Object Module -eq "classification_installation").Count -ne 2 -or
+    @($contracts | Where-Object Module -eq "classification_maintenance").Count -ne 1 -or
+    @($contracts | Where-Object Module -eq "classification_review").Count -ne 2 -or
+    @($contracts | Where-Object Module -eq "classification_progress").Count -ne 0 -or
+    @($contracts | Where-Object Module -eq "classification_retry").Count -ne 1) {
     throw "The complete asynchronous bridge contract roster changed unexpectedly"
+}
+$handoffContracts = @($contracts | Where-Object {
+    $_.Module -eq "classification" -and $_.RustName -eq "run" -and
+    $_.Owner -eq "DesktopClassificationSession" -and
+    $_.ReturnType -eq "PreparedClassificationMaintenance?"
+})
+$maintenanceContracts = @($contracts | Where-Object {
+    $_.Module -eq "classification_maintenance" -and $_.RustName -eq "commit" -and
+    $_.Owner -eq "PreparedClassificationMaintenance" -and $_.ReturnType -eq "bool"
+})
+if ($handoffContracts.Count -ne 1 -or $maintenanceContracts.Count -ne 1) {
+    throw "Classification maintenance must retain its asynchronous handoff and publication contracts"
+}
+foreach ($installationMethod in @("prepare", "commit")) {
+    $installationContracts = @($contracts | Where-Object {
+        $_.Module -eq "classification_installation" -and
+        $_.RustName -eq $installationMethod -and
+        $_.Owner -eq "DesktopModelInstallation" -and $_.ReturnType -eq "void"
+    })
+    if ($installationContracts.Count -ne 1) {
+        throw "Model installation must retain its asynchronous $installationMethod contract"
+    }
 }
 $queryContracts = @($contracts | Where-Object {
     $_.Module -eq "catalog" -and $_.RustName -eq "load_library_query_snapshot" -and

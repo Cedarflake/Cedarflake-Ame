@@ -46,6 +46,11 @@ pub(super) fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
          INSERT INTO organization_review_operations VALUES ('operation-a', 'old-session', 1, 2);
          INSERT INTO exact_duplicate_decisions VALUES ('blake3-256-full-v1', printf('%064d', 0), 20, 'a', 'asset-a', 1, 3);"
     ).unwrap();
+    let empty_filter = serde_json::to_string(
+        &crate::domain::gallery_metadata_filter::GalleryMetadataFilter::default(),
+    )
+    .unwrap();
+    catalog.connection.execute("INSERT INTO organization_review_filters SELECT slot, 1, ?1 FROM organization_review_scopes", [empty_filter]).unwrap();
     (directory, catalog)
 }
 
@@ -78,6 +83,9 @@ fn organization_archive_exports_durable_families_without_original_reads() {
         .unwrap();
     let records = entries(&destination);
     for kind in records::KINDS {
+        if kind.name.starts_with("classification_") && kind.name != "classification_context" {
+            continue;
+        }
         assert!(
             records.iter().any(|record| record["kind"] == kind.name),
             "missing {}",
@@ -194,7 +202,10 @@ fn organization_archive_empty_catalog_is_complete() {
     let receipt = catalog
         .export_organization_archive(&destination, &mut |_| true)
         .unwrap();
-    assert_eq!(receipt.record_count, 0);
-    assert_eq!(entries(&destination).len(), 2);
+    assert_eq!(receipt.record_count, 1);
+    let exported = entries(&destination);
+    assert_eq!(exported.len(), 3);
+    assert_eq!(exported[1]["kind"], "classification_context");
+    assert_eq!(exported[1]["values"], serde_json::json!([0, null]));
     assert_no_scratch(directory.path());
 }

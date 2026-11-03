@@ -10,6 +10,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
+. (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
 
 & (Join-Path $PSScriptRoot "release_validate_version.ps1") `
     -Tag $Tag `
@@ -66,11 +67,12 @@ try {
     $requiredEntries = @(
         "Cedarflake-Ame/cedarflake_ame.exe",
         "Cedarflake-Ame/cedarflake_ame_journal_broker.exe",
+        "Cedarflake-Ame/cedarflake_ame_classification_worker.exe",
         "Cedarflake-Ame/rust_lib_cedarflake_ame.dll",
         "Cedarflake-Ame/flutter_windows.dll",
         "Cedarflake-Ame/data/app.so",
         "Cedarflake-Ame/data/icudtl.dat"
-    )
+    ) + @(Get-AmeClassificationRuntimePayloadNames | ForEach-Object { "Cedarflake-Ame/$_" })
     foreach ($requiredEntry in $requiredEntries) {
         if (-not $entryNames.Contains($requiredEntry)) {
             throw "Portable archive is missing required entry: $requiredEntry"

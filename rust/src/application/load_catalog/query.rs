@@ -3,6 +3,7 @@ use crate::domain::{GalleryCollection, GalleryQuery, GallerySortDirection, Galle
 
 pub(super) fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {
     query.search_text = query.search_text.trim().to_owned();
+    query.metadata_filter.normalize();
     if query.organization_queue.is_none() {
         query.new_since_admission = None;
     }
@@ -12,9 +13,7 @@ pub(super) fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {
     if query.sort_key == GallerySortKey::LibraryAdmission {
         query.sort_direction = GallerySortDirection::Descending;
     }
-    if query.organization_queue.is_some()
-        || matches!(query.collection, GalleryCollection::Album { .. })
-    {
+    if query.folds_duplicates() {
         query.duplicate_mode = crate::domain::GalleryDuplicateMode::Merged;
     }
     query
@@ -26,7 +25,7 @@ pub(super) fn normalize_relative_folder(folder: &str) -> String {
 
 pub(super) fn gallery_query_identity(query: &GalleryQuery) -> String {
     let mut hasher = blake3::Hasher::new();
-    hasher.update(b"ame-gallery-query-v4\0");
+    hasher.update(b"ame-gallery-query-v5\0");
     if let Some(boundary) = query.new_since_admission {
         hasher.update(b"arrivals\0");
         hasher.update(&boundary.to_le_bytes());
@@ -48,6 +47,19 @@ pub(super) fn gallery_query_identity(query: &GalleryQuery) -> String {
             hasher.update(&[2]);
             update_query_identity(&mut hasher, album_id);
         }
+        GalleryCollection::SmartAlbum {
+            category_id,
+            review,
+        } => {
+            use crate::domain::classification_review::ClassificationReviewFilter;
+            hasher.update(&[3]);
+            update_query_identity(&mut hasher, category_id.as_deref().unwrap_or_default());
+            hasher.update(&[match review {
+                ClassificationReviewFilter::All => 0,
+                ClassificationReviewFilter::Pending => 1,
+                ClassificationReviewFilter::Confirmed => 2,
+            }]);
+        }
     }
     update_query_identity(&mut hasher, query.root_id.as_deref().unwrap_or_default());
     update_query_identity(
@@ -56,6 +68,7 @@ pub(super) fn gallery_query_identity(query: &GalleryQuery) -> String {
     );
     hasher.update(&[u8::from(query.include_descendants)]);
     update_query_identity(&mut hasher, &query.search_text);
+    update_metadata_identity(&mut hasher, &query.metadata_filter);
     hasher.update(&[match query.sort_key {
         GallerySortKey::CaptureTime => 0,
         GallerySortKey::CreatedTime => 1,
@@ -79,9 +92,130 @@ fn update_query_identity(hasher: &mut blake3::Hasher, value: &str) {
     hasher.update(value.as_bytes());
 }
 
+fn update_metadata_identity(
+    hasher: &mut blake3::Hasher,
+    filter: &crate::domain::gallery_metadata_filter::GalleryMetadataFilter,
+) {
+    use crate::domain::gallery_metadata_filter::GalleryDateField;
+    update_query_identity(hasher, &filter.extension);
+    update_query_identity(hasher, &filter.camera_text);
+    for range in [&filter.bytes, &filter.width, &filter.height] {
+        for value in [range.minimum, range.maximum] {
+            hasher.update(&[u8::from(value.is_some())]);
+            if let Some(value) = value {
+                hasher.update(&value.to_le_bytes());
+            }
+        }
+    }
+    hasher.update(&[match filter.date.field {
+        GalleryDateField::Capture => 0,
+        GalleryDateField::Created => 1,
+        GalleryDateField::Modified => 2,
+    }]);
+    update_query_identity(hasher, filter.date.start.as_deref().unwrap_or_default());
+    update_query_identity(hasher, filter.date.end.as_deref().unwrap_or_default());
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn smart_album_identity_separates_categories_and_review_filters() {
+        use crate::domain::classification_review::ClassificationReviewFilter;
+        let mut identities = std::collections::HashSet::new();
+        for category_id in [None, Some("drawing"), Some("photo")] {
+            for review in [
+                ClassificationReviewFilter::All,
+                ClassificationReviewFilter::Pending,
+                ClassificationReviewFilter::Confirmed,
+            ] {
+                let query = normalize_gallery_query(GalleryQuery {
+                    collection: GalleryCollection::SmartAlbum {
+                        category_id: category_id.map(str::to_owned),
+                        review,
+                    },
+                    ..Default::default()
+                });
+                assert!(query.folds_duplicates());
+                assert!(identities.insert(gallery_query_identity(&query)));
+            }
+        }
+        assert!(!identities.contains(&gallery_query_identity(&GalleryQuery::default())));
+    }
+
+    #[test]
+    fn metadata_identity_separates_each_predicate_and_normalizes_empty_dates() {
+        use crate::domain::gallery_metadata_filter::*;
+        let base = GalleryQuery::default();
+        let mut filters = vec![GalleryMetadataFilter::default()];
+        filters.push(GalleryMetadataFilter {
+            extension: "jpg".into(),
+            ..Default::default()
+        });
+        filters.push(GalleryMetadataFilter {
+            camera_text: "Camera".into(),
+            ..Default::default()
+        });
+        for bound in [Some(0), Some(10)] {
+            filters.push(GalleryMetadataFilter {
+                bytes: GalleryNumberRange {
+                    minimum: bound,
+                    maximum: None,
+                },
+                ..Default::default()
+            });
+            filters.push(GalleryMetadataFilter {
+                width: GalleryNumberRange {
+                    minimum: None,
+                    maximum: bound,
+                },
+                ..Default::default()
+            });
+            filters.push(GalleryMetadataFilter {
+                height: GalleryNumberRange {
+                    minimum: bound,
+                    maximum: None,
+                },
+                ..Default::default()
+            });
+        }
+        for field in [
+            GalleryDateField::Capture,
+            GalleryDateField::Created,
+            GalleryDateField::Modified,
+        ] {
+            filters.push(GalleryMetadataFilter {
+                date: GalleryDateRange {
+                    field,
+                    start: Some("2026-10-30".into()),
+                    end: None,
+                },
+                ..Default::default()
+            });
+            filters.push(GalleryMetadataFilter {
+                date: GalleryDateRange {
+                    field,
+                    start: None,
+                    end: Some("2026-10-30".into()),
+                },
+                ..Default::default()
+            });
+        }
+        let identities = filters
+            .iter()
+            .map(|filter| {
+                gallery_query_identity(&GalleryQuery {
+                    metadata_filter: filter.clone(),
+                    ..base.clone()
+                })
+            })
+            .collect::<std::collections::HashSet<_>>();
+        assert_eq!(identities.len(), filters.len());
+        let mut empty = base.clone();
+        empty.metadata_filter.date.field = GalleryDateField::Modified;
+        assert_eq!(normalize_gallery_query(empty), base);
+    }
 
     #[test]
     fn queue_identity_preserves_sort_choices_and_separates_progress_scopes() {

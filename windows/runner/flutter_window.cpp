@@ -65,6 +65,8 @@ bool FlutterWindow::OnCreate() {
                  static_cast<int>(priority_result.status), priority_result.error);
   }
   RegisterPlugins(flutter_controller_->engine());
+  power_channel_ = std::make_unique<FlutterPowerChannel>(
+      GetHandle(), flutter_controller_->engine()->messenger());
   InitializeSystemThemeChannel();
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
@@ -81,6 +83,7 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  power_channel_.reset();
   if (system_theme_channel_) {
     system_theme_channel_->SetMethodCallHandler(nullptr);
     system_theme_channel_.reset();
@@ -99,6 +102,9 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   if (message == WM_DWMCOLORIZATIONCOLORCHANGED) {
     NotifySystemAccentColor();
   }
+  const bool handled_power =
+      message == WM_POWERBROADCAST && power_channel_ &&
+      power_channel_->HandlePowerBroadcast(wparam);
 
   // Give Flutter, including plugins, an opportunity to handle window messages.
   if (flutter_controller_) {
@@ -108,6 +114,10 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
     if (result) {
       return *result;
     }
+  }
+
+  if (handled_power) {
+    return TRUE;
   }
 
   switch (message) {

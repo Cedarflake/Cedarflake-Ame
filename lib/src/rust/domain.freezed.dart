@@ -55,13 +55,14 @@ extension GalleryCollectionPatterns on GalleryCollection {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( GalleryCollection_Library value)?  library_,TResult Function( GalleryCollection_Favorites value)?  favorites,TResult Function( GalleryCollection_Album value)?  album,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( GalleryCollection_Library value)?  library_,TResult Function( GalleryCollection_Favorites value)?  favorites,TResult Function( GalleryCollection_Album value)?  album,TResult Function( GalleryCollection_SmartAlbum value)?  smartAlbum,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case GalleryCollection_Library() when library_ != null:
 return library_(_that);case GalleryCollection_Favorites() when favorites != null:
 return favorites(_that);case GalleryCollection_Album() when album != null:
-return album(_that);case _:
+return album(_that);case GalleryCollection_SmartAlbum() when smartAlbum != null:
+return smartAlbum(_that);case _:
   return orElse();
 
 }
@@ -79,13 +80,14 @@ return album(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( GalleryCollection_Library value)  library_,required TResult Function( GalleryCollection_Favorites value)  favorites,required TResult Function( GalleryCollection_Album value)  album,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( GalleryCollection_Library value)  library_,required TResult Function( GalleryCollection_Favorites value)  favorites,required TResult Function( GalleryCollection_Album value)  album,required TResult Function( GalleryCollection_SmartAlbum value)  smartAlbum,}){
 final _that = this;
 switch (_that) {
 case GalleryCollection_Library():
 return library_(_that);case GalleryCollection_Favorites():
 return favorites(_that);case GalleryCollection_Album():
-return album(_that);}
+return album(_that);case GalleryCollection_SmartAlbum():
+return smartAlbum(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -99,13 +101,14 @@ return album(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( GalleryCollection_Library value)?  library_,TResult? Function( GalleryCollection_Favorites value)?  favorites,TResult? Function( GalleryCollection_Album value)?  album,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( GalleryCollection_Library value)?  library_,TResult? Function( GalleryCollection_Favorites value)?  favorites,TResult? Function( GalleryCollection_Album value)?  album,TResult? Function( GalleryCollection_SmartAlbum value)?  smartAlbum,}){
 final _that = this;
 switch (_that) {
 case GalleryCollection_Library() when library_ != null:
 return library_(_that);case GalleryCollection_Favorites() when favorites != null:
 return favorites(_that);case GalleryCollection_Album() when album != null:
-return album(_that);case _:
+return album(_that);case GalleryCollection_SmartAlbum() when smartAlbum != null:
+return smartAlbum(_that);case _:
   return null;
 
 }
@@ -122,12 +125,13 @@ return album(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  library_,TResult Function()?  favorites,TResult Function( String albumId)?  album,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  library_,TResult Function()?  favorites,TResult Function( String albumId)?  album,TResult Function( String? categoryId,  ClassificationReviewFilter review)?  smartAlbum,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case GalleryCollection_Library() when library_ != null:
 return library_();case GalleryCollection_Favorites() when favorites != null:
 return favorites();case GalleryCollection_Album() when album != null:
-return album(_that.albumId);case _:
+return album(_that.albumId);case GalleryCollection_SmartAlbum() when smartAlbum != null:
+return smartAlbum(_that.categoryId,_that.review);case _:
   return orElse();
 
 }
@@ -145,12 +149,13 @@ return album(_that.albumId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  library_,required TResult Function()  favorites,required TResult Function( String albumId)  album,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  library_,required TResult Function()  favorites,required TResult Function( String albumId)  album,required TResult Function( String? categoryId,  ClassificationReviewFilter review)  smartAlbum,}) {final _that = this;
 switch (_that) {
 case GalleryCollection_Library():
 return library_();case GalleryCollection_Favorites():
 return favorites();case GalleryCollection_Album():
-return album(_that.albumId);}
+return album(_that.albumId);case GalleryCollection_SmartAlbum():
+return smartAlbum(_that.categoryId,_that.review);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -164,12 +169,13 @@ return album(_that.albumId);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  library_,TResult? Function()?  favorites,TResult? Function( String albumId)?  album,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  library_,TResult? Function()?  favorites,TResult? Function( String albumId)?  album,TResult? Function( String? categoryId,  ClassificationReviewFilter review)?  smartAlbum,}) {final _that = this;
 switch (_that) {
 case GalleryCollection_Library() when library_ != null:
 return library_();case GalleryCollection_Favorites() when favorites != null:
 return favorites();case GalleryCollection_Album() when album != null:
-return album(_that.albumId);case _:
+return album(_that.albumId);case GalleryCollection_SmartAlbum() when smartAlbum != null:
+return smartAlbum(_that.categoryId,_that.review);case _:
   return null;
 
 }
@@ -301,6 +307,74 @@ class _$GalleryCollection_AlbumCopyWithImpl<$Res>
   return _then(GalleryCollection_Album(
 albumId: null == albumId ? _self.albumId : albumId // ignore: cast_nullable_to_non_nullable
 as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class GalleryCollection_SmartAlbum extends GalleryCollection {
+  const GalleryCollection_SmartAlbum({this.categoryId, required this.review}): super._();
+
+
+ final  String? categoryId;
+ final  ClassificationReviewFilter review;
+
+/// Create a copy of GalleryCollection
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$GalleryCollection_SmartAlbumCopyWith<GalleryCollection_SmartAlbum> get copyWith => _$GalleryCollection_SmartAlbumCopyWithImpl<GalleryCollection_SmartAlbum>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection_SmartAlbum&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.review, review) || other.review == review));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,categoryId,review);
+
+@override
+String toString() {
+  return 'GalleryCollection.smartAlbum(categoryId: $categoryId, review: $review)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $GalleryCollection_SmartAlbumCopyWith<$Res> implements $GalleryCollectionCopyWith<$Res> {
+  factory $GalleryCollection_SmartAlbumCopyWith(GalleryCollection_SmartAlbum value, $Res Function(GalleryCollection_SmartAlbum) _then) = _$GalleryCollection_SmartAlbumCopyWithImpl;
+@useResult
+$Res call({
+ String? categoryId, ClassificationReviewFilter review
+});
+
+
+
+
+}
+/// @nodoc
+class _$GalleryCollection_SmartAlbumCopyWithImpl<$Res>
+    implements $GalleryCollection_SmartAlbumCopyWith<$Res> {
+  _$GalleryCollection_SmartAlbumCopyWithImpl(this._self, this._then);
+
+  final GalleryCollection_SmartAlbum _self;
+  final $Res Function(GalleryCollection_SmartAlbum) _then;
+
+/// Create a copy of GalleryCollection
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? categoryId = freezed,Object? review = null,}) {
+  return _then(GalleryCollection_SmartAlbum(
+categoryId: freezed == categoryId ? _self.categoryId : categoryId // ignore: cast_nullable_to_non_nullable
+as String?,review: null == review ? _self.review : review // ignore: cast_nullable_to_non_nullable
+as ClassificationReviewFilter,
   ));
 }
 

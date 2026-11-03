@@ -13,7 +13,7 @@ use crate::adapters::{
     FileDiscovery, FileVisitOutcome, LocalMediaInspector, PublicationGuardedFileDiscovery,
     SqliteCatalog, configured_root_open_count, remove_persistent_journal_v22_contract_for_test,
     reset_configured_root_open_instrumentation, reset_source_enumeration_instrumentation,
-    source_directory_open_count, source_entry_read_count,
+    source_directory_open_count, source_entry_read_count, user_visible_path,
 };
 #[cfg(windows)]
 use crate::adapters::{reset_source_content_open_instrumentation, source_content_open_count};
@@ -486,7 +486,6 @@ fn replacement_root_uses_only_the_proof_guard_and_enumerates_nothing() {
 use super::{
     PreparationCatalog, prepare_change, process_ready_library_changes,
     process_ready_library_changes_in_lane_cancellable, stable_id, stable_location_id,
-    user_visible_path,
 };
 
 #[cfg(windows)]
@@ -510,10 +509,28 @@ fn startup_catch_up_equal_length_rewrite_with_restored_mtime_supersedes_the_read
 #[cfg(windows)]
 #[test]
 fn metadata_inventory_equal_evidence_invalidates_preview_without_opening_content() {
+    use rusqlite::OptionalExtension;
+
     let source = tempdir().expect("source directory");
     write_png(&source.path().join("dirty.png"), 4, 3, [10, 20, 30]);
     let mut fixture = seed_catalog(source, &["dirty.png"]);
     let ready = publish_ready_preview(&mut fixture, "dirty.png", "metadata-dirty-ready-preview");
+    Connection::open(fixture.catalog.catalog_path())
+        .unwrap()
+        .execute(
+            "UPDATE asset_locations SET camera_make = 'Old camera', camera_model = 'Old model'",
+            [],
+        )
+        .unwrap();
+    assert_eq!(
+        fixture
+            .location("dirty.png")
+            .unwrap()
+            .camera
+            .model
+            .as_deref(),
+        Some("Old model")
+    );
     let revision = fixture.revision();
     reset_source_content_open_instrumentation(&fixture.root_path);
     let mut change = intent(&fixture.root_id, "dirty.png", None, 1);
@@ -522,7 +539,18 @@ fn metadata_inventory_equal_evidence_invalidates_preview_without_opening_content
 
     let report = fixture.process();
 
-    assert_eq!(report.completed_count, 1, "{report:?}");
+    let failure: Option<(String, String)> = Connection::open(fixture.catalog.catalog_path())
+        .unwrap()
+        .query_row(
+            "SELECT last_failure_code, last_failure_message
+             FROM library_change_queue
+             WHERE last_failure_code IS NOT NULL LIMIT 1",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()
+        .unwrap();
+    assert_eq!(report.completed_count, 1, "{report:?}; {failure:?}");
     assert_eq!(report.applied_mutation_count, 1);
     assert_eq!(report.catalog_revision, revision + 1);
     assert_eq!(source_content_open_count(&fixture.root_path), 0);
@@ -546,6 +574,7 @@ fn metadata_inventory_equal_evidence_invalidates_preview_without_opening_content
         super::super::INVALIDATED_MEDIA_METADATA_ENGINE_VERSION
     );
     assert!(after.capture_time.is_none());
+    assert_eq!(after.camera, Default::default());
     assert!(matches!(after.preview_status, PreviewStatus::Pending));
     assert!(after.preview_path.is_empty());
     assert!(after.preview_issue_code.is_none());
@@ -3604,6 +3633,7 @@ fn seed_root(
             preview_issue_message: None,
             metadata_engine_id: inspection.metadata.engine_id,
             metadata_engine_version: inspection.metadata.engine_version,
+            camera: inspection.metadata.camera,
             capture_time: inspection.metadata.capture_time,
         };
         catalog
@@ -3712,6 +3742,7 @@ fn seed_catalog_with_options(
             preview_issue_message: None,
             metadata_engine_id,
             metadata_engine_version,
+            camera: inspection.metadata.camera,
             capture_time: inspection.metadata.capture_time,
         };
         catalog

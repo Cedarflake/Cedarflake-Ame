@@ -13,7 +13,10 @@ use crate::domain::organization_archive::{
 
 use super::{codec, database_error, error, io_error, records, report};
 
+mod classification;
+mod classification_schema;
 mod input;
+mod metadata_filter;
 mod schema;
 mod validation;
 
@@ -47,13 +50,19 @@ pub(super) fn read(
     connection
         .execute_batch(schema::SQL)
         .map_err(database_error)?;
+    connection
+        .execute_batch(classification_schema::SQL)
+        .map_err(database_error)?;
+    // Batch only the disposable staging writes; validation and cancellation still precede
+    // any live-catalog transaction, and an incomplete staging file is always discarded.
+    let transaction = connection.unchecked_transaction().map_err(database_error)?;
     let verified = codec::read_records(
         BufReader::new(input),
-        &mut |index, values| insert(&connection, index, values),
+        &mut |index, values| insert(&transaction, index, values),
         &mut |count| report(progress, OrganizationArchivePhase::Verifying, count),
     )?;
     if verified.header.version == 1 {
-        connection
+        transaction
             .execute_batch(
                 "WITH counts AS MATERIALIZED (
                SELECT file_identity_scheme, file_identity_value, COUNT(*) AS copies
@@ -68,7 +77,7 @@ pub(super) fn read(
             .map_err(database_error)?;
     }
     validation::validate(
-        &connection,
+        &transaction,
         verified.header.organization_revision,
         &mut || {
             report(
@@ -78,6 +87,14 @@ pub(super) fn read(
             )
         },
     )?;
+    classification::validate(&transaction, &mut || {
+        report(
+            progress,
+            OrganizationArchivePhase::Verifying,
+            verified.record_count,
+        )
+    })?;
+    transaction.commit().map_err(database_error)?;
     Ok(StagedArchive {
         connection,
         _file: file,

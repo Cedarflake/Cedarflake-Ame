@@ -39,6 +39,8 @@ const PAYLOAD_COLUMNS: &[&str] = &[
     "file_identity_value",
     "source_revision_token",
     "source_generation",
+    "camera_make",
+    "camera_model",
 ];
 
 const DERIVED_COLUMNS: &[&str] = &[
@@ -54,6 +56,8 @@ const DERIVED_COLUMNS: &[&str] = &[
     "capture_offset_minutes",
     "capture_time_source",
     "capture_raw_value",
+    "camera_make",
+    "camera_model",
 ];
 
 pub(crate) struct StagedValidationRoster {
@@ -379,7 +383,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn validation_payload_covers_every_published_location_column() {
+    fn validation_payload_covers_every_published_media_column() {
         let directory = tempfile::tempdir().expect("catalog");
         let catalog =
             SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
@@ -392,7 +396,8 @@ mod tests {
             .expect("column names")
             .collect::<Result<Vec<_>, _>>()
             .expect("columns");
-        actual.retain(|name| name != "scan_id");
+        // Scan-local search identities do not describe media or authorize its publication.
+        actual.retain(|name| !matches!(name.as_str(), "scan_id" | "gallery_search_id"));
         actual.sort();
         let mut expected = PAYLOAD_COLUMNS
             .iter()

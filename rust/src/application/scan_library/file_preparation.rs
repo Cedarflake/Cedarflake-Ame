@@ -125,6 +125,7 @@ impl<'a> PreparedScanFile<'a> {
                 metadata: MetadataInspection {
                     engine_id: prior.metadata_engine_id.clone(),
                     engine_version: prior.metadata_engine_version.clone(),
+                    camera: prior.camera.clone(),
                     capture_time: prior.capture_time.clone(),
                     issues: Vec::new(),
                 },
@@ -173,6 +174,7 @@ impl<'a> PreparedScanFile<'a> {
             preview_issue_message: None,
             metadata_engine_id: inspection.metadata.engine_id,
             metadata_engine_version: inspection.metadata.engine_version,
+            camera: inspection.metadata.camera,
             capture_time: inspection.metadata.capture_time,
         }
     }

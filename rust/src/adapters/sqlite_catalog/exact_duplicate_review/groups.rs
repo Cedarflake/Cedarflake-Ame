@@ -62,8 +62,11 @@ fn load_page(
         GROUP BY f.digest, f.byte_length HAVING COUNT(*) > 1
         ORDER BY f.digest, f.byte_length LIMIT ?5 OFFSET ?6
     )
-    SELECT {CANDIDATE_COLUMNS}, g.digest, g.byte_length, g.locations, g.physical_files,
-           decision.preferred_location_id, decision.preferred_asset_id, COALESCE(decision.ignored, 0)
+    SELECT {CANDIDATE_COLUMNS}, g.digest AS review_digest, g.byte_length AS review_byte_length,
+           g.locations AS review_locations, g.physical_files AS review_physical_files,
+           decision.preferred_location_id AS review_preferred_location_id,
+           decision.preferred_asset_id AS review_preferred_asset_id,
+           COALESCE(decision.ignored, 0) AS review_ignored
     FROM {CURRENT_LOCATIONS} JOIN grouped AS g ON l.location_id = g.representative
     LEFT JOIN exact_duplicate_decisions AS decision
       ON decision.scheme = ?1 AND decision.digest = g.digest AND decision.byte_length = g.byte_length
@@ -84,14 +87,17 @@ fn load_page(
             ],
             |row| {
                 let candidate = read_candidate(row)?;
-                let digest = row.get(29)?;
-                let byte_length = read_unsigned(row, 30)?;
-                let location_count = read_unsigned(row, 31)?;
-                let physical_file_count = read_unsigned(row, 32)?;
+                let digest = row.get("review_digest")?;
+                let byte_length =
+                    read_unsigned(row, row.as_ref().column_index("review_byte_length")?)?;
+                let location_count =
+                    read_unsigned(row, row.as_ref().column_index("review_locations")?)?;
+                let physical_file_count =
+                    read_unsigned(row, row.as_ref().column_index("review_physical_files")?)?;
                 let decision = ExactDuplicateDecision {
-                    preferred_location_id: row.get(33)?,
-                    preferred_asset_id: row.get(34)?,
-                    ignored: row.get(35)?,
+                    preferred_location_id: row.get("review_preferred_location_id")?,
+                    preferred_asset_id: row.get("review_preferred_asset_id")?,
+                    ignored: row.get("review_ignored")?,
                 };
                 Ok(candidate.map(|candidate| ExactDuplicateReviewGroup {
                     group: ExactDuplicateGroup {

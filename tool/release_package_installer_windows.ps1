@@ -11,7 +11,8 @@ param(
     [Parameter(Mandatory = $true)][string]$WixBootstrapperDirectory,
     [Parameter(Mandatory = $true)][string]$CMakePath,
     [Parameter(Mandatory = $true)][string]$OutputDirectory,
-    [switch]$AcceptWixBinaryEula
+    [switch]$AcceptWixBinaryEula,
+    [string]$ModelSourceDirectory
 )
 
 $ErrorActionPreference = "Stop"
@@ -49,7 +50,7 @@ if ($evidence.format -cne "cedarflake-ame-unsigned-quality-v1" -or $evidence.sta
     @($evidence.payload.files).Count -ne $evidence.payload.fileCount) {
     throw "Installer requires complete unsigned Release payload verification"
 }
-Assert-AmeInstallerPayloadNames $evidence.payload.files
+Assert-AmeInstallerPayloadNames $evidence.payload.files -RequireModels $false
 $toolLock = Enter-AmeRepositoryToolLock
 $leases = [Collections.Generic.List[IDisposable]]::new()
 try {
@@ -68,6 +69,18 @@ try {
             throw "Installer payload differs from its verified Release manifest"
         }
     }
+    $modelManifest = Get-AmeClassificationModelsManifest
+    $modelDirectory = Join-Path $buildRoot "classification-models/$($modelManifest.package)"
+    & (Join-Path $PSScriptRoot 'release_prepare_classification_models.ps1') `
+        -OutputDirectory $modelDirectory -SourceDirectory $ModelSourceDirectory
+    $modelFiles = @(Get-AmeClassificationModelsPayload $modelDirectory)
+    foreach ($entry in $modelFiles) {
+        $path = Join-Path $modelDirectory ([IO.Path]::GetFileName($entry.relativePath))
+        $leases.Add([IO.FileStream]::new($path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read))
+        Assert-AmeClassificationRuntimeArtifact $path $entry
+    }
+    $installerFiles = @($evidence.payload.files) + $modelFiles
+    Assert-AmeInstallerPayloadNames $installerFiles
     $nativeBuild = Join-Path $output "native"
     Invoke-AmeChecked $CMakePath @("-S", (Join-Path $repository "windows/installer"), "-B", $nativeBuild,
         "-G", "Visual Studio 17 2022", "-A", "x64")
@@ -78,7 +91,7 @@ try {
     Assert-AmeUnsignedX64Image $admission
     $leases.Add([IO.FileStream]::new($admission, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read))
     $generated = Join-Path $output "application_files.wxs"
-    New-AmeInstallerApplicationSource -Files $evidence.payload.files -BundlePath $bundle -OutputPath $generated
+    New-AmeInstallerApplicationSource -Files $installerFiles -BundlePath $bundle -OutputPath $generated -ModelDirectory $modelDirectory
     $broker = @($evidence.payload.files | Where-Object { $_.relativePath -ceq "cedarflake_ame_journal_broker.exe" })[0]
     $identity = "AMEJBID3|protocol=5|max_frame=1048576|sha256=" + ([string]$broker.sha256).ToUpperInvariant()
     $productCode = Get-AmeInstallerGuid "product/$version"
@@ -109,7 +122,7 @@ try {
         packageSha256 = (Get-FileHash -LiteralPath $msi -Algorithm SHA256).Hash
         admissionSha256 = (Get-FileHash -LiteralPath $admission -Algorithm SHA256).Hash
         brokerIdentity = $identity
-        payload = $evidence.payload
+        payload = [ordered]@{ machine = $evidence.payload.machine; configuration = $evidence.payload.configuration; fileCount = $installerFiles.Count; files = $installerFiles }
         createdUtc = [DateTime]::UtcNow.ToString("o")
     }
     $model = Read-AmeInstallerDatabase -PackagePath $msi `

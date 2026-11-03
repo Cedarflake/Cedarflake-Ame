@@ -3,7 +3,10 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import 'domain/classification_review.dart';
+import 'domain/gallery_metadata_filter.dart';
 import 'domain/gallery_scroll_section.dart';
+import 'domain/media_metadata.dart';
 import 'domain/organization_queue.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
@@ -32,6 +35,7 @@ class AssetLocationView {
   final String? previewIssueMessage;
   final String metadataEngineId;
   final String metadataEngineVersion;
+  final CameraMetadata camera;
   final CaptureTimeEvidence? captureTime;
 
   const AssetLocationView({
@@ -56,6 +60,7 @@ class AssetLocationView {
     this.previewIssueMessage,
     required this.metadataEngineId,
     required this.metadataEngineVersion,
+    required this.camera,
     this.captureTime,
   });
 
@@ -82,6 +87,7 @@ class AssetLocationView {
       previewIssueMessage.hashCode ^
       metadataEngineId.hashCode ^
       metadataEngineVersion.hashCode ^
+      camera.hashCode ^
       captureTime.hashCode;
 
   @override
@@ -110,6 +116,7 @@ class AssetLocationView {
           previewIssueMessage == other.previewIssueMessage &&
           metadataEngineId == other.metadataEngineId &&
           metadataEngineVersion == other.metadataEngineVersion &&
+          camera == other.camera &&
           captureTime == other.captureTime;
 }
 
@@ -400,6 +407,10 @@ sealed class GalleryCollection with _$GalleryCollection {
   const factory GalleryCollection.favorites() = GalleryCollection_Favorites;
   const factory GalleryCollection.album({required String albumId}) =
       GalleryCollection_Album;
+  const factory GalleryCollection.smartAlbum({
+    String? categoryId,
+    required ClassificationReviewFilter review,
+  }) = GalleryCollection_SmartAlbum;
 }
 
 enum GalleryDuplicateMode { all, merged }
@@ -549,6 +560,7 @@ class GalleryQuery {
   final String? folderRelativePath;
   final bool includeDescendants;
   final String searchText;
+  final GalleryMetadataFilter metadataFilter;
   final GallerySortKey sortKey;
   final GallerySortDirection sortDirection;
   final GalleryDuplicateMode duplicateMode;
@@ -561,6 +573,7 @@ class GalleryQuery {
     this.folderRelativePath,
     required this.includeDescendants,
     required this.searchText,
+    required this.metadataFilter,
     required this.sortKey,
     required this.sortDirection,
     required this.duplicateMode,
@@ -575,6 +588,7 @@ class GalleryQuery {
       folderRelativePath.hashCode ^
       includeDescendants.hashCode ^
       searchText.hashCode ^
+      metadataFilter.hashCode ^
       sortKey.hashCode ^
       sortDirection.hashCode ^
       duplicateMode.hashCode;
@@ -591,6 +605,7 @@ class GalleryQuery {
           folderRelativePath == other.folderRelativePath &&
           includeDescendants == other.includeDescendants &&
           searchText == other.searchText &&
+          metadataFilter == other.metadataFilter &&
           sortKey == other.sortKey &&
           sortDirection == other.sortDirection &&
           duplicateMode == other.duplicateMode;

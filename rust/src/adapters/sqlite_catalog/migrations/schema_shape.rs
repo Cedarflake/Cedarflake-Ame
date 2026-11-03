@@ -34,15 +34,7 @@ pub(super) fn table_columns_match(
         .collect::<Result<Vec<_>, _>>()
         .map_err(database_error)?;
     let mut expected = expected.to_vec();
-    if schema_version(connection)? >= 31
-        && !expected
-            .iter()
-            .any(|column| column.0 == "source_revision_token")
-        && table == "library_change_scan_handoff_items"
-    {
-        expected.push(("source_revision_token", "TEXT", false, 0));
-        expected.push(("source_generation", "INTEGER", false, 0));
-    }
+    super::location_columns::extend_expected(table, schema_version(connection)?, &mut expected);
     Ok(actual.len() == expected.len()
         && actual.iter().zip(&expected).all(|(actual, expected)| {
             actual.0 == expected.0

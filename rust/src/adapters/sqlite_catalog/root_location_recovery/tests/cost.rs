@@ -151,6 +151,7 @@ fn seed_aliases(catalog: &SqliteCatalog, fixture: &Fixture) {
     let expressions = columns
         .iter()
         .map(|column| match column.as_str() {
+            "gallery_search_id" => "NULL".to_owned(),
             "location_id" => "'alias-' || printf('%06d', n)".to_owned(),
             "relative_path" => "'generated/' || printf('%06d', n) || '.png'".to_owned(),
             "absolute_path" => {

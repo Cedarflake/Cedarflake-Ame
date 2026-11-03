@@ -1,0 +1,14 @@
+{
+  "package": "siglip2-b16-224-ba1f3b0843f2",
+  "bundleDirectory": "data/classification-models/siglip2-b16-224-ba1f3b0843f2",
+  "baseUrl": "https://huggingface.co/onnx-community/siglip2-base-patch16-224-ONNX/resolve/ba1f3b0843f24bc5417d38e19c37b287d719b2f4",
+  "files": [
+    { "name": "vision_model_fp16.onnx", "remote": "onnx/vision_model_fp16.onnx", "length": 186039516, "sha256": "a1959f7bd3993a607e48839f6d01e25b876fe76afda301b028b78eef68aabd95" },
+    { "name": "text_model_quantized.onnx", "remote": "onnx/text_model_quantized.onnx", "length": 283438275, "sha256": "3a0603d3a00c05a80a6ded4743c16aaac7b1e62cdcc7e362e7ce418659b96400" },
+    { "name": "tokenizer.json", "remote": "tokenizer.json", "length": 34363039, "sha256": "cb9140fae3ac5122c972d37adf83e1248471a38147ad76f8215c8872c6fd8322" }
+  ],
+  "notices": [
+    { "name": "LICENSE-2.0.txt", "length": 11358, "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30" },
+    { "name": "NOTICE.txt", "length": 754, "sha256": "7ac467f751ce418f5635b94f9c27c0de385588ddad664038b1b2d363abc441aa" }
+  ]
+}

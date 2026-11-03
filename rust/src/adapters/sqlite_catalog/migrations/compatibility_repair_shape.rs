@@ -8,7 +8,7 @@ use super::{
     LIVE_GAP_RECOVERY_CLAIM_TABLE_DDL, LIVE_GAP_RECOVERY_CONTRACT_TABLE_DDL,
     LIVE_GAP_RECOVERY_IDENTITY_UPDATE_GUARD_DDL, LIVE_GAP_RECOVERY_INSERT_GUARD_DDL,
     LIVE_GAP_RECOVERY_ROOT_INDEX_DDL, METADATA_INVENTORY_RUN_TABLE_DDL,
-    RECOVERY_AUTHORITY_TABLE_DDL, database_error,
+    RECOVERY_AUTHORITY_TABLE_DDL, SCHEMA_VERSION, database_error,
 };
 
 pub(super) fn inventory_shape_matches(
@@ -20,7 +20,7 @@ pub(super) fn inventory_shape_matches(
         27 => Some(1),
         28..=30 => Some(2),
         31 => Some(3),
-        32..=60 => Some(4),
+        32..=SCHEMA_VERSION => Some(4),
         _ => return Ok(false),
     };
     let core_matches = schema_object_sql_matches(
@@ -60,7 +60,7 @@ pub(super) fn live_gap_shape_matches(
     connection: &Connection,
     schema_version: i64,
 ) -> Result<bool, ScanError> {
-    if !matches!(schema_version, 30..=60) {
+    if !matches!(schema_version, 30..=SCHEMA_VERSION) {
         return Ok(false);
     }
     let schema_matches = schema_object_sql_matches(

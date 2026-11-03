@@ -180,6 +180,7 @@ pub(super) fn advance(
         parent.intent.root_generation,
         now_unix_ms,
     )?;
+    super::completion::release_handoffs(&transaction, change_id)?;
     transaction.commit().map_err(database_error)?;
     Ok(Some(JournalScopeRecoveryOutcome::Completed))
 }

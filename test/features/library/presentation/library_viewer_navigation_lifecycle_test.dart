@@ -21,12 +21,18 @@ void main() {
     (const LibraryGalleryCollection.library(), true, true),
     (const LibraryGalleryCollection.album("album"), true, false),
     (const LibraryGalleryCollection.favorites(), false, false),
+    (
+      const LibraryGalleryCollection.smartAlbum(categoryId: "drawing"),
+      true,
+      false,
+    ),
   ]) {
     final viewerQuery = _baseViewerQuery.copyWith(collection: collection);
     final scope = switch (collection) {
       LibraryAllCollection() => "library",
       LibraryFavoritesCollection() => "favorites",
       LibraryAlbumCollection() => "album",
+      LibrarySmartAlbumCollection() => "smart album",
     };
     testWidgets(
       clickAgain

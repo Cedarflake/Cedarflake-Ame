@@ -1,5 +1,7 @@
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
+. (Join-Path $PSScriptRoot "release_classification_models.ps1")
 
 $script:AmeInstallerUpgradeCode = "C284E6B0-1484-4926-A94B-C3EC3840DBBD"
 $script:AmeInstallerNamespace = "http://wixtoolset.org/schemas/v4/wxs"
@@ -42,7 +44,7 @@ function Get-AmeInstallerGuid {
 }
 
 function Assert-AmeInstallerPayloadNames {
-    param([Parameter(Mandatory = $true)][object[]]$Files)
+    param([Parameter(Mandatory = $true)][object[]]$Files, [bool]$RequireModels = $true)
 
     if ($Files.Count -eq 0 -or $Files.Count -gt 4096) {
         throw "Installer payload must contain between 1 and 4096 files"
@@ -63,10 +65,13 @@ function Assert-AmeInstallerPayloadNames {
         $total += [long]$file.length
         if ($total -gt 2GB) { throw "Installer payload exceeds 2 GiB" }
     }
-    foreach ($required in @(
-            "cedarflake_ame.exe", "cedarflake_ame_journal_broker.exe",
-            "rust_lib_cedarflake_ame.dll", "flutter_windows.dll", "data/app.so", "data/icudtl.dat"
-        )) {
+    $requiredFiles = @(
+        "cedarflake_ame.exe", "cedarflake_ame_journal_broker.exe",
+        "cedarflake_ame_classification_worker.exe",
+        "rust_lib_cedarflake_ame.dll", "flutter_windows.dll", "data/app.so", "data/icudtl.dat"
+    ) + @(Get-AmeClassificationRuntimePayloadNames)
+    if ($RequireModels) { $requiredFiles += @(Get-AmeClassificationModelsPayloadNames) }
+    foreach ($required in $requiredFiles) {
         if (-not $names.Contains($required)) { throw "Installer payload is missing $required" }
     }
     if (@($Files | Where-Object { ([string]$_.relativePath).StartsWith("data/flutter_assets/") }).Count -eq 0) {
@@ -93,7 +98,8 @@ function New-AmeInstallerApplicationSource {
     param(
         [Parameter(Mandatory = $true)][object[]]$Files,
         [Parameter(Mandatory = $true)][string]$BundlePath,
-        [Parameter(Mandatory = $true)][string]$OutputPath
+        [Parameter(Mandatory = $true)][string]$OutputPath,
+        [string]$ModelDirectory
     )
 
     Assert-AmeInstallerPayloadNames -Files $Files
@@ -141,8 +147,12 @@ function New-AmeInstallerApplicationSource {
         }
         $fileId = $id
         if ($relative -ceq "cedarflake_ame.exe") { $fileId = "AmeApplicationExecutable" }
+        $sourcePath = Join-Path $BundlePath $relative
+        if ($ModelDirectory -and $relative -cin @(Get-AmeClassificationModelsPayloadNames)) {
+            $sourcePath = Join-Path $ModelDirectory ([IO.Path]::GetFileName($relative))
+        }
         $entry = Add-AmeInstallerXmlElement $component "File" @{
-            Id = $fileId; Source = Join-Path $BundlePath $relative; KeyPath = "yes"
+            Id = $fileId; Source = $sourcePath; KeyPath = "yes"
         }
         [void](Add-AmeInstallerXmlElement $entry "PermissionEx" @{ Sddl = $script:AmeInstallerFileSddl })
         [void](Add-AmeInstallerXmlElement $group "ComponentRef" @{ Id = "component_$id" })

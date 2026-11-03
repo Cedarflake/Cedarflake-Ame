@@ -214,6 +214,7 @@ fn location(index: u64, root_path: &str) -> AssetLocationView {
         preview_issue_message: None,
         metadata_engine_id: "synthetic-publication-metadata".to_owned(),
         metadata_engine_version: "1".to_owned(),
+        camera: Default::default(),
         capture_time: None,
     }
 }

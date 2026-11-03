@@ -14,6 +14,7 @@ import "../../settings/presentation/ame_settings_page.dart";
 import "../application/library_browse_admission.dart";
 import "../application/library_album_pages.dart";
 import "../application/library_catalog.dart";
+import "../application/library_classification_settings.dart";
 import "../application/library_controller.dart";
 import "../application/library_folder_controller.dart";
 import "../application/library_layout_manifest_catalog.dart";
@@ -39,8 +40,10 @@ import "library_browse_workspaces.dart";
 import "library_gallery_dimension_publication.dart";
 import "library_gallery_layout_continuity.dart";
 import "library_gallery_query_transition.dart";
+import "library_gallery_title.dart";
 import "library_organization_mode.dart";
 import "library_conflict_notifications.dart";
+import "library_model_installation_notifications.dart";
 import "library_pending_source.dart";
 import "library_review_query_transition.dart";
 import "library_strings.dart";
@@ -52,6 +55,7 @@ import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_album_navigation.dart";
 import "widgets/library_albums_sidebar.dart";
 import "widgets/library_collection_navigation.dart";
+import "widgets/library_smart_album_navigation.dart";
 import "widgets/library_review_toolbar.dart";
 import "widgets/library_review_mode_notice.dart";
 import "widgets/library_viewer_organization_controls.dart";
@@ -106,6 +110,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   late final LibraryOrganizationMode _review;
   late final LibraryBrowseWorkspaces _browseWorkspaces;
   final _albumHeading = LibraryAlbumHeading();
+  final _smartAlbumHeading = LibrarySmartAlbumHeading();
   late final LibraryOrganizationPublication _organizationPublication;
   late final LibraryOrganizationProjectionRegistration _organizationProjection;
   late final LibraryConflictNotifications _conflictNotifications;
@@ -284,6 +289,13 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   }
 
   void _handleNotificationAction(AmeNotificationEntry notification) {
+    if (handleLibraryModelInstallationNotification(
+      context,
+      ref,
+      notification,
+    )) {
+      return;
+    }
     if (_conflictNotifications.admit(notification)) {
       unawaited(_showOrganizationConflicts());
       return;
@@ -526,6 +538,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                             asset: viewerAsset,
                             organizationActions:
                                 LibraryViewerOrganizationControls(
+                                  query: state.query,
                                   target: LibraryOrganizationTarget.fromAsset(
                                     viewerAsset,
                                   ),
@@ -677,6 +690,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             ref.watch(libraryAlbumProvider(collection.albumId)),
           )
         : null;
+    final categoryName = collection is LibrarySmartAlbumCollection
+        ? _smartAlbumHeading.resolve(
+            collection.categoryId,
+            ref.watch(libraryClassificationCategoriesProvider),
+          )
+        : null;
     return LibraryWorkbench(
       onWorkspaceSelected: (workspace) {
         _searchDebounce?.cancel();
@@ -690,6 +709,25 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         child: LibraryAlbumNavigation(
           isActive: workspace == LibraryWorkspace.albums,
           header: favorites,
+          footer: LibrarySmartAlbumNavigation(
+            collection: collection,
+            enabled: LibraryBrowseAdmission(state).canBrowse,
+            onSelect: (category) {
+              _smartAlbumHeading.select(category);
+              unawaited(
+                _applyQuery(
+                  state.query.copyWith(
+                    collection: LibraryGalleryCollection.smartAlbum(
+                      categoryId: category.id,
+                    ),
+                    rootId: null,
+                    folderRelativePath: null,
+                  ),
+                  preserveGalleryPosition: false,
+                ),
+              );
+            },
+          ),
           collection: collection,
           enabled: LibraryBrowseAdmission(state).canBrowse,
           onSelect: (album) {
@@ -816,10 +854,18 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                 unawaited(_persistViewPreferences(query: query));
               },
             ),
-            galleryTitle: _galleryTitle(state, albumName: albumName),
-            totalItems: state.timeline?.totalSourceItems ?? _totalItems(state),
+            galleryTitle: libraryGalleryTitle(
+              state,
+              albumName: albumName,
+              categoryName: categoryName,
+            ),
+            totalItems: collection is LibrarySmartAlbumCollection
+                ? _totalItems(state)
+                : state.timeline?.totalSourceItems ?? _totalItems(state),
             mergedItems:
-                state.query.duplicateMode == LibraryGalleryDuplicateMode.merged
+                collection is! LibrarySmartAlbumCollection &&
+                    state.query.duplicateMode ==
+                        LibraryGalleryDuplicateMode.merged
                 ? state.timeline?.totalItems
                 : null,
             selectedCount: _selection.selectedCount(_totalItems(state)),
@@ -1792,30 +1838,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   static int _totalItems(LibraryState state) {
     return state.timeline?.totalItems ??
         state.roots.fold(0, (sum, root) => sum + root.assetCount);
-  }
-
-  static String _galleryTitle(LibraryState state, {String? albumName}) {
-    final collectionName = switch (state.query.collection) {
-      LibraryFavoritesCollection() => "收藏夹",
-      LibraryAlbumCollection() => albumName ?? "相册",
-      LibraryAllCollection() => null,
-    };
-    final folder = state.query.folderRelativePath;
-    if (folder != null) {
-      final name = folder.split("/").last;
-      return collectionName == null ? name : "$collectionName · $name";
-    }
-    final rootId = state.query.rootId;
-    if (rootId == null) {
-      return collectionName ?? LibraryStrings.library;
-    }
-    for (final root in state.roots) {
-      if (root.id == rootId) {
-        final name = librarySourceName(root.displayPath);
-        return collectionName == null ? name : "$collectionName · $name";
-      }
-    }
-    return LibraryStrings.library;
   }
 
   static LibraryAsset? _assetByLocation(

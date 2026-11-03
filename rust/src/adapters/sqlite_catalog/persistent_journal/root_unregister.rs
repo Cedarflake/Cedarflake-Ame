@@ -611,7 +611,7 @@ fn release_handoffs_and_ranges(
         if evidence.is_empty() {
             break;
         }
-        super::super::catalog_delta::release_terminal_catch_up_handoffs_batch(
+        super::super::handoff_retirement::release_terminal_catch_up_handoffs_batch(
             transaction,
             &evidence,
         )?;

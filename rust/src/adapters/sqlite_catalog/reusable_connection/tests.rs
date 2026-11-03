@@ -219,6 +219,7 @@ fn reusable_connection_rejects_each_pending_publication_buffer_without_clearing_
             preview_issue_message: None,
             metadata_engine_id: String::new(),
             metadata_engine_version: String::new(),
+            camera: Default::default(),
             capture_time: None,
         },
         identity_group_baseline: None,

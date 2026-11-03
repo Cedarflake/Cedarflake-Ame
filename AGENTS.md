@@ -110,6 +110,13 @@ materially different decision; do not invent it.
 
 ## 5. Architecture principles
 
+The future module dependency and composition target is owned by
+[ADR 0037](docs/architecture/0037-feature-module-dependency-boundaries.md); the
+[repository layout](docs/development/repository-layout.md) owns directory placement. Read both
+before adding or relocating modules during and after the
+[post-R5 rollout](docs/roadmap.md#project-organization-after-r5). Existing rules remain binding
+before that rollout; its target does not claim that current code has already migrated.
+
 ### 5.1 Layer ownership
 
 - **Domain** owns stable entities, invariants, value objects and errors.

@@ -12,6 +12,7 @@ pub struct OrganizationCleanupInspection {
     pub album_groups: u64,
     pub favorite_groups: u64,
     pub progress_groups: u64,
+    pub classification_groups: u64,
     pub duplicate_choices: u64,
     pub oldest_unassociated_unix_ms: Option<i64>,
     pub newest_unassociated_unix_ms: Option<i64>,

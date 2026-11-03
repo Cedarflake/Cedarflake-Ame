@@ -83,9 +83,26 @@ fn organization_archive_restores_selected_sort_and_missing_anchor_boundary() {
         "UPDATE organization_review_sort SET sort_key = 'file_name', sort_direction = 'ascending';
          UPDATE organization_review_cursor SET primary_text = 'retained-name', primary_number = 0;",
     ).unwrap();
+    let filter = crate::domain::gallery_metadata_filter::GalleryMetadataFilter {
+        extension: "jpg".into(),
+        camera_text: "Camera".into(),
+        ..Default::default()
+    };
+    source
+        .connection
+        .execute(
+            "UPDATE organization_review_filters SET payload = ?1",
+            [serde_json::to_string(&filter).unwrap()],
+        )
+        .unwrap();
     let target = SqliteCatalog::open(directory.path().join("target.sqlite3")).unwrap();
     let (archive, staged) = attach_archive(&target, &source, directory.path());
     apply(&target, &archive).unwrap();
+    let restored_filter = organization::review::scope::load(&target.connection, "bookmark")
+        .unwrap()
+        .unwrap()
+        .metadata_filter;
+    assert_eq!(restored_filter, filter);
     let restored: (String, String, String, i64) = target
         .connection
         .query_row(

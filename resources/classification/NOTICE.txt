@@ -1,0 +1,16 @@
+Cedarflake Ame classification vocabulary
+
+English nouns, definitions and relations are derived from Princeton WordNet 3.0
+through the OMW English WordNet 2.0 WN-LMF conversion.
+https://github.com/omwn/omw-data/releases/tag/v2.0
+
+Chinese noun labels are derived from Chinese Open WordNet 1.1.
+https://github.com/bond-lab/cow/releases/tag/v1.1
+
+The accompanying WORDNET-LICENSE and COW-LICENSE retain the copyright notices,
+license terms and disclaimers. Source citations accompany both resources.
+
+Ame selects noun concepts, joins available Chinese labels, builds bounded graph
+entry points and relates lexical cues to separately authored image contexts.
+This transformation does not imply endorsement by the original authors.
+Lexical cues do not themselves authorize a category name or a classification.

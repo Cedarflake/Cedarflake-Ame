@@ -5,6 +5,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_album_requests.dart";
+import "../../application/library_controller.dart";
 import "../../application/library_organization.dart";
 import "../../application/library_organization_actions.dart";
 import "../../domain/library_organization.dart";
@@ -34,7 +35,12 @@ class LibraryPhotoContextMenu {
   }) async {
     if (_disposed || _isOpen) return;
     _isOpen = true;
-    bool owns() => !_disposed && context.mounted && isCurrent();
+    final query = ref.read(libraryControllerProvider).query;
+    bool owns() =>
+        !_disposed &&
+        context.mounted &&
+        isCurrent() &&
+        ref.read(libraryControllerProvider).query == query;
     try {
       LibraryOrganizationDecision? decision;
       try {

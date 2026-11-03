@@ -1,0 +1,472 @@
+[
+  {
+    "id": "cats",
+    "label": "猫咪",
+    "subject": "cats",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "猫咪"
+      },
+      {
+        "id": "meme",
+        "label": "猫咪表情"
+      }
+    ]
+  },
+  {
+    "id": "dogs",
+    "label": "狗狗",
+    "subject": "dogs",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "狗狗"
+      },
+      {
+        "id": "meme",
+        "label": "狗狗表情"
+      }
+    ]
+  },
+  {
+    "id": "rabbits",
+    "label": "兔子",
+    "subject": "rabbits",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "兔子"
+      }
+    ]
+  },
+  {
+    "id": "birds",
+    "label": "鸟类",
+    "subject": "birds",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "鸟类"
+      }
+    ]
+  },
+  {
+    "id": "wildlife",
+    "label": "野生动物",
+    "subject": "wild animals in their natural habitat",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "野生动物"
+      }
+    ]
+  },
+  {
+    "id": "animal_characters",
+    "label": "动物角色",
+    "subject": "cartoon animal characters",
+    "purposes": [
+      {
+        "id": "illustration",
+        "label": "动物角色插画"
+      },
+      {
+        "id": "meme",
+        "label": "动物角色表情"
+      }
+    ]
+  },
+  {
+    "id": "animal_eared_characters",
+    "label": "兽耳角色",
+    "subject": "characters with animal ears and tails",
+    "purposes": [
+      {
+        "id": "illustration",
+        "label": "兽耳角色插画"
+      },
+      {
+        "id": "meme",
+        "label": "兽耳角色表情"
+      }
+    ]
+  },
+  {
+    "id": "portraits",
+    "label": "人物肖像",
+    "subject": "a close-up portrait of a person",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "人物肖像"
+      }
+    ]
+  },
+  {
+    "id": "groups",
+    "label": "多人合影",
+    "subject": "a group of people posing together",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "多人合影"
+      }
+    ]
+  },
+  {
+    "id": "costumes",
+    "label": "角色扮演",
+    "subject": "people dressed in character costumes",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "角色扮演"
+      }
+    ]
+  },
+  {
+    "id": "performances",
+    "label": "舞台表演",
+    "subject": "a live performance on stage",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "舞台表演"
+      }
+    ]
+  },
+  {
+    "id": "sports",
+    "label": "体育运动",
+    "subject": "people playing sports or exercising",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "体育运动"
+      }
+    ]
+  },
+  {
+    "id": "children_playing",
+    "label": "儿童游玩",
+    "subject": "children playing games together",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "儿童游玩"
+      }
+    ]
+  },
+  {
+    "id": "toys",
+    "label": "玩具",
+    "subject": "toys, dolls and figurines",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "玩具手办"
+      },
+      {
+        "id": "meme",
+        "label": "玩偶表情"
+      }
+    ]
+  },
+  {
+    "id": "food",
+    "label": "餐饮美食",
+    "subject": "prepared food and meals",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "餐饮美食"
+      }
+    ]
+  },
+  {
+    "id": "mountains",
+    "label": "山野风光",
+    "subject": "mountains and open natural landscapes",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "山野风光"
+      },
+      {
+        "id": "illustration",
+        "label": "山野插画"
+      }
+    ]
+  },
+  {
+    "id": "coast",
+    "label": "海滨风光",
+    "subject": "a beach and the sea",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "海滨风光"
+      },
+      {
+        "id": "illustration",
+        "label": "海滨插画"
+      }
+    ]
+  },
+  {
+    "id": "forests",
+    "label": "树林",
+    "subject": "trees in a forest or woodland",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "树林"
+      },
+      {
+        "id": "illustration",
+        "label": "森林插画"
+      }
+    ]
+  },
+  {
+    "id": "flowers",
+    "label": "花草",
+    "subject": "flowers and plants",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "花草"
+      }
+    ]
+  },
+  {
+    "id": "city_architecture",
+    "label": "城市与建筑",
+    "subject": "city streets and building architecture",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "城市与建筑"
+      },
+      {
+        "id": "illustration",
+        "label": "建筑插画"
+      }
+    ]
+  },
+  {
+    "id": "interiors",
+    "label": "室内空间",
+    "subject": "rooms and indoor living spaces",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "室内空间"
+      }
+    ]
+  },
+  {
+    "id": "construction",
+    "label": "建筑施工",
+    "subject": "construction work on buildings",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "建筑施工"
+      }
+    ]
+  },
+  {
+    "id": "vehicles",
+    "label": "车辆",
+    "subject": "cars and other road vehicles",
+    "purposes": [
+      {
+        "id": "photo",
+        "label": "车辆"
+      }
+    ]
+  },
+  {
+    "id": "programming",
+    "label": "代码",
+    "subject": "programming code in an editor or terminal",
+    "purposes": [
+      {
+        "id": "screenshot",
+        "label": "代码截图"
+      }
+    ]
+  },
+  {
+    "id": "messaging",
+    "label": "聊天",
+    "subject": "a conversation in a messaging app",
+    "purposes": [
+      {
+        "id": "screenshot",
+        "label": "聊天记录"
+      }
+    ]
+  },
+  {
+    "id": "gaming",
+    "label": "游戏",
+    "subject": "video game gameplay and game interfaces",
+    "purposes": [
+      {
+        "id": "screenshot",
+        "label": "游戏截图"
+      }
+    ]
+  },
+  {
+    "id": "document_reading",
+    "label": "文档阅读",
+    "subject": "documents, written articles and reading passages",
+    "purposes": [
+      {
+        "id": "screenshot",
+        "label": "文档阅读截图"
+      },
+      {
+        "id": "other",
+        "label": "文档资料"
+      }
+    ]
+  },
+  {
+    "id": "application_interfaces",
+    "label": "应用界面",
+    "subject": "application screens, websites and device settings with interface controls",
+    "purposes": [
+      {
+        "id": "screenshot",
+        "label": "应用界面"
+      }
+    ]
+  },
+  {
+    "id": "maps",
+    "label": "地图导航",
+    "subject": "maps and navigation directions",
+    "purposes": [
+      {
+        "id": "screenshot",
+        "label": "地图导航截图"
+      },
+      {
+        "id": "other",
+        "label": "地图资料"
+      }
+    ]
+  },
+  {
+    "id": "tables_charts",
+    "label": "图表",
+    "subject": "tables, charts and data visualizations",
+    "purposes": [
+      {
+        "id": "screenshot",
+        "label": "图表截图"
+      },
+      {
+        "id": "other",
+        "label": "图表资料"
+      }
+    ]
+  },
+  {
+    "id": "notes",
+    "label": "手写笔记",
+    "subject": "handwritten notes on paper or a whiteboard",
+    "purposes": [
+      {
+        "id": "other",
+        "label": "手写笔记"
+      }
+    ]
+  },
+  {
+    "id": "mathematics",
+    "label": "数学",
+    "subject": "mathematical formulas and worked exercises",
+    "purposes": [
+      {
+        "id": "other",
+        "label": "数学资料"
+      }
+    ]
+  },
+  {
+    "id": "music",
+    "label": "乐谱",
+    "subject": "written sheet music and musical notation",
+    "purposes": [
+      {
+        "id": "other",
+        "label": "乐谱"
+      }
+    ]
+  },
+  {
+    "id": "shopping",
+    "label": "购物",
+    "subject": "product listings and online shopping pages",
+    "purposes": [
+      {
+        "id": "screenshot",
+        "label": "购物页面"
+      }
+    ]
+  },
+  {
+    "id": "receipts",
+    "label": "票据",
+    "subject": "receipts, tickets and invoices",
+    "purposes": [
+      {
+        "id": "other",
+        "label": "票据"
+      }
+    ]
+  },
+  {
+    "id": "interface_design",
+    "label": "界面设计",
+    "subject": "user interface designs and layouts",
+    "purposes": [
+      {
+        "id": "other",
+        "label": "界面设计"
+      }
+    ]
+  },
+  {
+    "id": "logos",
+    "label": "标志设计",
+    "subject": "logos, icons and graphic symbols",
+    "purposes": [
+      {
+        "id": "other",
+        "label": "标志与图标"
+      }
+    ]
+  },
+  {
+    "id": "film",
+    "label": "影视画面",
+    "subject": "scenes from films and television shows",
+    "purposes": [
+      {
+        "id": "screenshot",
+        "label": "影视画面"
+      },
+      {
+        "id": "meme",
+        "label": "影视表情"
+      }
+    ]
+  }
+]

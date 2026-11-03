@@ -73,12 +73,13 @@ pub(super) fn stage(
         album_groups: 0,
         favorite_groups: 0,
         progress_groups: 0,
+        classification_groups: 0,
         duplicate_choices: 0,
         oldest_unassociated_unix_ms: None,
         newest_unassociated_unix_ms: None,
     };
     let mut digest = blake3::Hasher::new();
-    authority::field(&mut digest, b"ame-organization-cleanup-v1");
+    authority::field(&mut digest, b"ame-organization-cleanup-v2");
     let mut statement = connection.prepare(
         "SELECT record.record_id, record.album_id, record.disposition, record.favorite,
            record.organization_revision, record.favorite_revision, record.unassociated_since_unix_ms,
@@ -127,6 +128,10 @@ pub(super) fn stage(
             )?;
         }
     }
+    inspection.classification_groups =
+        super::classification::inspect(connection, &mut digest, &mut || {
+            super::report(progress, OrganizationCleanupPhase::Inspecting, examined)
+        })?;
     inspection.selection_digest = digest.finalize().to_hex().to_string();
     Ok(inspection)
 }
@@ -204,7 +209,7 @@ fn include_age(inspection: &mut OrganizationCleanupInspection, since: i64) {
     );
 }
 
-fn hash_row(
+pub(super) fn hash_row(
     digest: &mut blake3::Hasher,
     row: &rusqlite::Row<'_>,
     columns: usize,

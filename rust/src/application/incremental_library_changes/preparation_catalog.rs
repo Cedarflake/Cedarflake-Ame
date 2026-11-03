@@ -207,6 +207,7 @@ fn location_bytes(location: &AssetLocationView) -> usize {
         preview_issue_message,
         metadata_engine_id,
         metadata_engine_version,
+        camera,
         capture_time,
     } = location;
     let strings = [
@@ -222,6 +223,8 @@ fn location_bytes(location: &AssetLocationView) -> usize {
         preview_issue_message.as_deref().unwrap_or_default(),
         metadata_engine_id,
         metadata_engine_version,
+        camera.make.as_deref().unwrap_or_default(),
+        camera.model.as_deref().unwrap_or_default(),
     ];
     let mut bytes = strings
         .iter()

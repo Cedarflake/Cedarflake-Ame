@@ -129,6 +129,7 @@ fn matching_observation() -> (MetadataInventoryEntry, AssetLocationView) {
         preview_issue_message: None,
         metadata_engine_id: "fixture".into(),
         metadata_engine_version: "1".into(),
+        camera: Default::default(),
         capture_time: None,
     };
     (entry, prior)

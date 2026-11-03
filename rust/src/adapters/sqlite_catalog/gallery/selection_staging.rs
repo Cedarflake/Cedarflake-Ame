@@ -1,22 +1,22 @@
 use rusqlite::{Connection, params, params_from_iter};
 
-use super::super::super::exact_duplicates::read_unsigned;
-use super::super::super::{database_error, gallery, sqlite_integer};
-use super::super::selection;
+use super::super::exact_duplicates::read_unsigned;
+use super::super::organization::selection;
+use super::super::{database_error, gallery, sqlite_integer};
 use crate::domain::organization::{
     OrganizationGroupKey, OrganizationGroupTarget, OrganizationSelection, stale_selection,
 };
 use crate::domain::{GalleryQuery, ScanError};
 
-pub(super) const GROUP_WINDOW: usize = 64;
+pub(in super::super) const GROUP_WINDOW: usize = 64;
 
-pub(super) struct StagedGroup {
+pub(in super::super) struct StagedGroup {
     pub sequence: i64,
     pub key: OrganizationGroupKey,
     pub target: Option<OrganizationGroupTarget>,
 }
 
-pub(super) fn initialize(connection: &Connection) -> Result<(), ScanError> {
+pub(in super::super) fn initialize(connection: &Connection) -> Result<(), ScanError> {
     connection
         .execute_batch(
             "PRAGMA temp_store = FILE;
@@ -37,7 +37,7 @@ pub(super) fn initialize(connection: &Connection) -> Result<(), ScanError> {
         .map_err(database_error)
 }
 
-pub(super) fn materialize(
+pub(in super::super) fn materialize(
     connection: &Connection,
     query: &GalleryQuery,
     all_matching: bool,
@@ -128,7 +128,10 @@ pub(super) fn materialize(
     Ok(())
 }
 
-pub(super) fn groups(connection: &Connection, after: i64) -> Result<Vec<StagedGroup>, ScanError> {
+pub(in super::super) fn groups(
+    connection: &Connection,
+    after: i64,
+) -> Result<Vec<StagedGroup>, ScanError> {
     let mut statement = connection
         .prepare_cached(
             "SELECT sequence, digest, byte_length, asset_id, source_generation,
@@ -175,7 +178,7 @@ pub(super) fn groups(connection: &Connection, after: i64) -> Result<Vec<StagedGr
         .map_err(database_error)
 }
 
-pub(super) fn retain_target(
+pub(in super::super) fn retain_target(
     connection: &Connection,
     sequence: i64,
     target: &OrganizationGroupTarget,

@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
@@ -7,9 +9,16 @@ import "app/bootstrap/ame_startup_orchestrator.dart";
 import "app/bootstrap/library_synchronization_lifecycle_owner.dart";
 import "app/bootstrap/rust_library_loader.dart";
 import "app/window/ame_window_actions.dart";
+import "app/window/ame_analysis_environment.dart";
 import "app/window/ame_shutdown_coordinator.dart";
 import "app/window/window_manager_actions.dart";
 import "features/library/application/library_catalog.dart";
+import "features/library/adapters/rust_library_classification.dart";
+import "features/library/adapters/rust_library_classification_configuration.dart";
+import "features/library/adapters/rust_library_model_installation.dart";
+import "features/library/application/library_classification_configuration.dart";
+import "features/library/application/library_automatic_classification.dart";
+import "features/library/application/library_classification_lifecycle.dart";
 import "features/library/application/library_controller.dart";
 import "features/library/application/library_exact_analysis_controller.dart";
 import "features/library/application/library_exact_analysis_scheduler.dart";
@@ -17,6 +26,8 @@ import "features/library/application/library_gallery_duplicates.dart";
 import "features/library/application/library_organization_conflicts.dart";
 import "features/library/application/library_exact_duplicates.dart";
 import "features/library/application/library_foreground_reads.dart";
+import "features/library/application/library_model_installation.dart";
+import "features/library/application/library_model_activation.dart";
 import "features/library/application/library_scan_shutdown.dart";
 import "features/library/application/library_synchronization.dart";
 import "features/library/application/library_view_preferences.dart";
@@ -37,6 +48,8 @@ Future<void> main() async {
   );
 
   LibrarySynchronizationLifecycleOwner? synchronizationLifecycle;
+  LibraryClassificationLifecycle? classificationLifecycle;
+  Future<void> Function()? recoverModelInstallation;
   late final Widget application;
   try {
     await initializeRustLibrary();
@@ -67,8 +80,45 @@ Future<void> main() async {
       foregroundReads: libraryForegroundReads,
     );
     shutdownCoordinator.register(exactScheduler.close);
+    classificationLifecycle = LibraryClassificationLifecycle(
+      const LibraryAutomaticClassification(
+        RustLibraryClassification(),
+        RustLibraryClassificationConfiguration(),
+      ),
+      foregroundReads: libraryForegroundReads,
+    );
+    final classificationEnvironment = AmeAnalysisEnvironment(
+      onSuspendedChanged: classificationLifecycle.setSuspended,
+      onMemoryPressure: classificationLifecycle.memoryPressure,
+      onError: classificationLifecycle.reportEnvironmentError,
+    );
+    unawaited(classificationEnvironment.start());
+    shutdownCoordinator.register(() async {
+      classificationEnvironment.dispose();
+      await classificationLifecycle?.close();
+    });
+    final classificationConfiguration = LibraryClassificationConfiguration(
+      const RustLibraryClassificationConfiguration(),
+      classificationLifecycle,
+    );
+    final modelInstallation = LibraryModelInstallation(
+      const RustLibraryModelInstallation(),
+    );
+    shutdownCoordinator.register(modelInstallation.close);
+    recoverModelInstallation = () => modelInstallation.recover(
+      activateLibraryModel(classificationConfiguration),
+    );
     application = ProviderScope(
       overrides: [
+        libraryModelInstallationProvider.overrideWith(
+          (ref) => modelInstallation,
+        ),
+        libraryClassificationConfigurationProvider.overrideWithValue(
+          classificationConfiguration,
+        ),
+        libraryClassificationLifecycleProvider.overrideWith(
+          (ref) => classificationLifecycle,
+        ),
         libraryOrganizationConflictsProvider.overrideWithValue(
           const RustLibraryOrganizationConflicts(),
         ),
@@ -103,6 +153,9 @@ Future<void> main() async {
     mountApplication: () => runApp(application),
     startInBackground: () {
       synchronizationLifecycle?.startInBackground();
+      classificationLifecycle?.startInBackground();
+      final recover = recoverModelInstallation;
+      if (recover != null) unawaited(recover());
     },
     revealWindowAfterFirstFrame: showAmeWindowAfterFirstFrame,
   );

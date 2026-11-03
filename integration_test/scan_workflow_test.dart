@@ -270,7 +270,7 @@ void main() {
     final catalogPath = state.catalogPath;
     expect(catalogPath, isNotNull);
     expect(asset.metadataEngineId, "kamadak-exif");
-    expect(asset.metadataEngineVersion, "0.6.1+ame-orientation-1");
+    expect(asset.metadataEngineVersion, "0.6.1+ame-camera-1");
     expect(asset.captureTime, isNull);
     expect(asset.fileIdentity?.scheme, "windows-file-id-128-v1");
     expect(await File(asset.previewPath).exists(), isTrue);

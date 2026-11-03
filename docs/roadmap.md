@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-30
+Last planning update: 2026-11-03
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage may be active. Detailed product contracts, execution procedures, architecture,
@@ -34,7 +34,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
 | R4 | Independent Favorites, flat group-based albums, and durable organization progress | Completed and merged into main on 2026-10-30 |
-| R5 | Metadata, smart albums, calibrated classification, and human review | Requirements and implementation plan defined; implementation not started |
+| R5 | Metadata, smart albums, and calibrated initial screening | Curated-category integration verified; submitted-head gate and review remain in PR #45 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run with conflicts and no execution | Planned after R7 |
@@ -59,7 +59,12 @@ functional, recovery, source-preservation, retained-scale and complete hosted ev
 The implementation is verified through `17c16c7d`, with subsequent changes limited to delivery
 records. The R4 branch through `53bbb5bc` is integrated without conflict or history rewriting.
 R5's [requirements](product/r5-classification.md) and [implementation plan](plans/r5-classification.md)
-are defined; product implementation has not started.
+have connected workflows on `codex/r5-smart-albums` through `0ef6af57`. On 2026-11-03, open-ended
+category naming was withdrawn in favor of an application-maintained finite catalog. R5-02 now owns
+consolidated topics, explicit purpose restrictions and their actual quality assessment. The
+[integrated evidence map](acceptance/r5-closeout.md) covers R5-01 through R5-07, including the current
+automatic-analysis and browsing controls. Stage delivery uses PR #45, its submitted-head hosted gate,
+and a separately authorized merge. No later product stage is active.
 
 On 2026-10-30, the remaining cloud-primary first-viewer and mode-entry frame peaks are explicitly
 deferred to a [separate performance follow-up](#deferred-constrained-device-rendering).
@@ -87,10 +92,55 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
-R4 is integrated into `main`. Preserve the verified album, Favorite, organization, sidebar-management
-and recovery behavior. R5 is the next planned stage, following its
-[implementation sequence](#r5-implementation-sequence). Its requirements include the `智能相册`
-section, independent classification review, and the approved shared gallery/viewer interaction.
+R4 is integrated into `main`. R5 continues on `codex/r5-smart-albums`. Complete the R5-02 curated
+category transition in this order: the consolidated catalog, explicit purposes and direct matching
+have their [native comparison](acceptance/r5-category-discovery.md#curated-catalog-and-direct-matching--2026-11-03).
+Existing generated definitions have guarded catalog-reconciliation coverage. The
+[nonempty-navigation check](acceptance/r5-smart-albums.md#nonempty-category-navigation--2026-11-03)
+completes affected native membership, Windows navigation, retained-scale reads and record preservation.
+The remaining step is the submitted-head hosted gate and stage PR review. Preserve stable identities,
+legacy choices, the selected SigLIP runtime and source safeguards; no additional naming model is
+included. Keep PR #45 in draft until its submitted-head checks pass. The previous
+[naming boundary record](acceptance/r5-category-discovery.md#open-category-naming-boundary--2026-11-02)
+remains evidence of the superseded open-ended design, not an outstanding expansion requirement.
+
+The 2026-11-02 model-delivery
+follow-up has its scoped local evidence: compact download entry, existing-notification-center
+progress, installer-bundled models and authorized download recovery across restart. The
+[delivery checks](acceptance/r5-desktop-classification.md#model-restart-recovery-and-installer-payload--2026-11-02)
+retain the exact desktop and packaging coverage. R5-07 delivery uses the submitted-head hosted gate
+and PR review; the PR's live checks and review state own that publication status. Preserve the
+completed actual-media and base-gallery checks without another replay.
+[PR #45](https://github.com/Cedarflake/Cedarflake-Ame/pull/45) covers the complete stage rather than
+an individual slice. The [integrated evidence map](acceptance/r5-closeout.md) links each slice to its
+native, desktop, recovery, quality and resource checks. No later product stage is active.
+
+The delivered desktop retains the existing four-choice Filter menu, passive smart-album heading,
+category rows and ordinary gallery/preview actions. Installer models activate after verification;
+missing-model downloads require explicit authorization and preserve an unfinished task across restart.
+Installed analysis runs automatically, including recovery from legacy modes, with cause-aware silent per-image
+recovery. Manual classification, category authoring, analysis controls and Settings prompts were
+withdrawn. Preserve legacy records, archive compatibility, R4 organization and source-safety guards.
+
+The integrated screening assessment retains provisional reference authority, small-category coverage
+and unsupported confidence bands. It admits initial screening with bounded automatic refinement,
+without a manual-review or correction-time requirement. Reuse the completed comparisons and source-safe
+first-use, restart, archive, large-library and paired local/cloud checks when their inputs are unchanged.
+
+On 2026-11-02, current performance was accepted for this round. Complete-query, first-admission,
+bulk-action latency and constrained-device frame peaks retain their measured limits as follow-up work.
+The [retained query measurements](acceptance/r5-smart-albums.md) and
+[paired foreground comparison](acceptance/r5-incremental-analysis.md#connected-localcloud-foreground-comparison--2026-11-01)
+own those observations. No additional unchanged performance cycle is required for R5 closure.
+
+R5's exit condition includes the connected curated catalog, enforced purpose boundaries, useful
+per-topic results and coherent nonempty sidebar categories, together with the applicable hosted gate
+for the submitted PR head and the linked functional, quality, resource and preservation evidence.
+After those conditions pass, make PR #45 reviewable.
+Merging into `main` remains separately authorized; preserve the branch until that decision. Further
+behavior changes require their affected checks and submitted-head result. R6 and the deferred rendering
+follow-up retain their existing order and scope.
+
 The separate deferred rendering follow-up retains its bounded scope and does not reopen R4 verification.
 
 The requested notification maintenance standardizes bottom feedback and image-preview top notices
@@ -243,24 +293,45 @@ interaction and complete hosted verification cover the integrated result.
 ## R5 implementation sequence
 
 The [R5 requirements](product/r5-classification.md) define metadata, classification authority,
-`智能相册`, human review, recovery, and the two-core/8-GiB baseline. The
-[execution plan](plans/r5-classification.md) expands these ordered slices without changing stage
-status. This planning update does not select a model/runtime, change the schema, or begin product edits.
+`智能相册`, automatic analysis, legacy recovery, and the two-core/8-GiB baseline. The
+[execution plan](plans/r5-classification.md) expands these ordered slices. The selected initial
+candidate is SigLIP 2 Base/16-224 with FP16 image and INT8 text encoders. Its exploratory evidence
+informs R5-02 admission; functional, license, runtime, and resource gates remain in their owning slices.
 
 | Order | Slice | Required result |
 | --- | --- | --- |
 | R5-01 | [Metadata and structured search](plans/r5-classification.md#r5-01-metadata-and-bounded-structured-search) | Admitted metadata and coherent bounded search through the existing gallery, usable without a model |
 | R5-02 | [Taxonomy, model, and runtime admission](plans/r5-classification.md#r5-02-taxonomy-model-and-runtime-admission) | Labeling rubric, quality/calibration evidence, licenses, runtime boundary, and measured resource budgets |
-| R5-03 | [Durable classification and recovery](plans/r5-classification.md#r5-03-durable-classification-decisions-and-recovery) | Whole-group human decisions, independent review/continuation, conflicts, migrations, and portable recovery |
-| R5-04 | [Incremental local analysis](plans/r5-classification.md#r5-04-incremental-local-analysis) | Compatible model publication with bounded resources, pause/retry/restart, and foreground priority |
-| R5-05 | [Smart-album projections](plans/r5-classification.md#r5-05-smart-album-projections-and-coherent-queries) | Coherent derived categories, review filters, counts, pages, selection, and viewer scope |
-| R5-06 | [Desktop classification review](plans/r5-classification.md#r5-06-desktop-classification-review) | Approved sidebar/photo-wall/viewer controls, batch review, continuation, and shared feedback |
-| R5-07 | [Integrated verification](plans/r5-classification.md#r5-07-integrated-quality-scale-and-closure) | Measured human-work reduction, source-safe recovery, usable low-resource browsing, and applicable hosted gates |
+| R5-03 | [Durable classification and recovery](plans/r5-classification.md#r5-03-durable-classification-decisions-and-recovery) | Immutable classification evidence, preserved legacy decisions, migrations, and portable recovery |
+| R5-04 | [Incremental local analysis](plans/r5-classification.md#r5-04-incremental-local-analysis) | Compatible model publication with bounded resources, automatic yielding/recovery/restart, and foreground priority |
+| R5-05 | [Smart-album projections](plans/r5-classification.md#r5-05-smart-album-projections-and-coherent-queries) | Coherent derived categories, metadata filters, counts, pages, selection, and viewer scope |
+| R5-06 | [Desktop smart albums](plans/r5-classification.md#r5-06-desktop-smart-albums) | Approved browsing controls, read-only categories, automatic recovery, and shared feedback |
+| R5-07 | [Integrated verification](plans/r5-classification.md#r5-07-integrated-quality-scale-and-closure) | Measured screening quality, source-safe recovery, usable low-resource browsing, and applicable hosted gates |
 
-R5-01 is the first implementation slice when development is authorized. R4 classification-independent
-decisions remain the baseline. Model quality and dependency admission are resolved before dependent
-inference work; unknown thresholds and resource limits are measured outputs, not invented acceptance.
-R6 through R10 retain their order. The separate rendering follow-up below remains independent.
+The [integrated evidence map](acceptance/r5-closeout.md) records the delivered result of each slice.
+ADR 0032 owns indexed search, ADR 0033 retains typed query/archive compatibility, and ADRs 0034–0036
+own the admitted model/runtime, durable evidence and dispatch boundaries. The selected SigLIP 2
+configuration remains an initial-screening candidate with the measured quality limits in that record.
+
+The desktop metadata form, manual classification workflow, category editor and analysis controls are
+withdrawn. The current product contracts own their replacements and retained compatibility rules;
+historical interaction checks do not reinstate removed UI. Final hosted verification and review follow
+the current execution queue above. R6 through R10 retain their order.
+
+## Project organization after R5
+
+After R5 closure and its separately authorized merge, the
+[project-organization plan](plans/project-organization.md) defines the requested maintenance pass.
+Its planned position is before R6 implementation; R5 remains the active stage and the later product
+stages retain their order. The separate rendering follow-up keeps its existing scope and disposition.
+
+[ADR 0037](architecture/0037-feature-module-dependency-boundaries.md) owns the future dependency and
+composition target, and the [repository layout](development/repository-layout.md) owns placement.
+Apply the target to new and materially changed modules when this rollout starts. Inventory legacy
+edges once, reject new violations from O1, and remove exceptions with each migrated boundary.
+The execution plan owns the ordered slices, behavior-preservation checks and rollback units.
+Closure requires repository conformance and applicable hosted/client evidence; publishing the
+documents does not establish migration, activate implementation or reopen completed stage acceptance.
 
 ## Deferred constrained-device rendering
 
