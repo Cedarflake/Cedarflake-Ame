@@ -7,7 +7,9 @@ use crate::domain::{
     LibraryChangeLeaseUpdateOutcome, LibraryChangeOrigin, LibraryChangeQueuePolicy,
     LibraryChangeScope, LibraryRootGeneration, ScanError, ScanIssue,
 };
-use crate::ports::source_publication::{PublicationDirectorySource, PublicationNamespaceFactory};
+use crate::ports::source_publication::{
+    PublicationDirectorySource, PublicationDirectoryVisits, PublicationNamespaceFactory,
+};
 use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue};
 
 use super::incremental_library_changes::{
@@ -384,10 +386,10 @@ fn enumerate_scopes(
         if cancellation.load(Ordering::Relaxed) {
             return Err(EnumerationFailure::Cancelled);
         }
-        let entries = discovery
+        let mut entries = discovery
             .file_visits_in_directory(&directory)
             .map_err(|issue| EnumerationFailure::Issue(scan_issue_failure(issue)))?;
-        for visit in entries {
+        for visit in entries.by_ref() {
             if cancellation.load(Ordering::Relaxed) {
                 return Err(EnumerationFailure::Cancelled);
             }
@@ -423,6 +425,9 @@ fn enumerate_scopes(
                 }
             }
         }
+        entries
+            .finish()
+            .map_err(|issue| EnumerationFailure::Issue(scan_issue_failure(issue)))?;
     }
     Ok(paths)
 }

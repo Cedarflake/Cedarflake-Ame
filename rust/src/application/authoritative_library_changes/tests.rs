@@ -7,7 +7,7 @@ use tempfile::{TempDir, tempdir};
 
 use crate::adapters::{
     FileDiscovery, PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION, PREVIEW_ORIENTATION_CONTRACT,
-    SqliteCatalog,
+    SqliteCatalog, reset_source_enumeration_instrumentation, source_entry_read_count,
 };
 #[cfg(windows)]
 use crate::adapters::{reset_source_content_open_instrumentation, source_content_open_count};
@@ -846,6 +846,13 @@ fn oversized_subtree_continues_with_pageable_inventory_without_starting_a_scan()
         3_000,
     );
 
+    let extra_paths: Vec<_> = (0..16)
+        .map(|index| album.join(format!("unused-{index}.txt")))
+        .collect();
+    for path in &extra_paths {
+        fs::write(path, b"unrelated fixture").expect("extra directory entry");
+    }
+    reset_source_enumeration_instrumentation(&root.root_path);
     let bounded = process_ready_authoritative_library_change(
         &mut catalog,
         &root.root_id,
@@ -858,6 +865,14 @@ fn oversized_subtree_continues_with_pageable_inventory_without_starting_a_scan()
         },
     )
     .expect("bounded scope requests pageable inventory");
+    let entries_read = source_entry_read_count(&root.root_path);
+    assert!(
+        entries_read <= 2,
+        "one admitted entry and one overflow observation must not read the whole directory: {entries_read}"
+    );
+    for path in extra_paths {
+        fs::remove_file(path).expect("remove bounded-read-only fixture");
+    }
     let leased = catalog
         .lease_authoritative_library_change(
             &root.root_id,

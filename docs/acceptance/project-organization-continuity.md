@@ -45,8 +45,9 @@ publication. The three original hint-query bodies and the existing spool/queue t
 unchanged; their native execution token remains private to persistence.
 
 Nine legacy entries retire, leaving 63, with 61 retained technical edges and unchanged frozen
-inventories. Native enumeration still materializes a complete directory before the authoritative
-entry limit is checked; its bounded-reading repair is a separate correctness follow-up.
+inventories. This migration exposed complete-directory materialization before the authoritative
+entry limit; the [bounded-enumeration repair](#bounded-authoritative-enumeration--2026-11-04) records
+its separate correctness change.
 
 All 51 distinct focused checks pass: seven index-publication, two runtime-selection, nine inventory,
 eight authoritative-scope, one canonical-constructor/rebase and 24 dependency cases. An obsolete
@@ -59,3 +60,29 @@ dedicated-test lines. Authoritative
 changes have 559 source/1,408 dedicated-test lines; indexed startup has 169 source/385 dedicated-test
 lines. The hint repository implementation has 114 source lines. No tests or assertions are added or
 removed in this contract migration.
+
+## Bounded authoritative enumeration — 2026-11-04
+
+Against `9af3e7c7`, the existing oversized-subtree fixture observed all 18 directory entries with an
+entry limit of one. The repaired cursor reuses the pinned streaming reader and its fixed 64-KiB
+Windows buffer, allowing the application to stop after one admitted entry and one overflow
+observation. It preserves pageable recovery, sorted application paths and final file revalidation;
+the eager sorted reader remains only in the existing test inventory adapter.
+
+`PublicationDirectoryVisits::finish` requires complete enumeration and revalidates the current
+relative directory through an attribute-only pinned-root open. The added native regression moves
+an exhausted cursor's directory and replaces its path before completion. Without the binding check,
+completion incorrectly succeeded; the repaired check rejects the replacement. Production source
+access remains read-only and no-recall; schema and transactions are unchanged.
+
+All 37 focused checks pass: eight authoritative-scope/terminal-media cases, five native streaming
+cases and 24 dependency cases. The bounded fixture observes at most two entries and retains its
+original pageable-recovery, catalog and asset-identity assertions. Test and production builds emit
+no warnings. Formatting reports 794 files unchanged; both changed documents have six resolving local
+links and anchors, and the reproduction/final scratch directories retire. The dependency inventory
+remains at 63 migration entries and 61 retained technical edges, with neither frozen baseline changed.
+
+The authoritative facade has 564 source lines and its dedicated fixture has 1,423 lines. The
+local-files facade has 2,603 source/3,460 inline-test lines; the directory cursor module has 284 lines
+including retained test-only helpers, with 144 lines in its dedicated native fixture. One existing
+application test gains a bounded-read assertion and one native regression is added.

@@ -2,7 +2,33 @@ use std::fs;
 
 use tempfile::tempdir;
 
+use crate::ports::source_publication::PublicationDirectoryVisits;
+
 use super::*;
+
+#[test]
+fn publication_visits_reject_rebound_directory_at_completion() {
+    use super::super::super::PublicationGuardedFileDiscovery;
+
+    let directory = tempdir().expect("owned source root");
+    let album = directory.path().join("album");
+    fs::create_dir(&album).expect("original directory");
+    let guard = PublicationGuardedFileDiscovery::new_metadata_inventory_source_guard(
+        &directory.path().to_string_lossy(),
+        None,
+    )
+    .expect("publication namespace");
+    let mut entries = guard
+        .file_visits_in_directory("album")
+        .expect("admitted original directory");
+    assert!(entries.next().is_none());
+    fs::rename(&album, directory.path().join("moved")).expect("relocate original directory");
+    fs::create_dir(&album).expect("replacement directory");
+    let error = entries
+        .finish()
+        .expect_err("the configured path no longer names the observed directory");
+    assert_eq!(error.code, "directory_identity_changed");
+}
 
 #[test]
 fn partial_stream_cannot_finish_or_retain_its_publication_namespace_after_drop() {

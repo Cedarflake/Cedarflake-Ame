@@ -122,15 +122,19 @@ shared principles; the roadmap owns current delivery order and acceptance status
   for identity, revision and final metadata, retaining placeholder admission and the existing
   identity-versus-revision failure classification. Size/time, identity and revision mismatches keep
   their ordered outcomes; the shared comparator does not acquire namespace or publication authority.
-- `local_files/directory_enumeration.rs` owns stable entry ordering and publication-guarded cursors.
+- `local_files/directory_enumeration.rs` owns publication-guarded directory cursors.
   Its `streaming.rs` owner retains the root-bound directory handle, fixed native buffer, duplicate
   detection and terminal/failed enumeration state; completion revalidates identity on that handle.
-  The cursor owns its cloned publication capability until completion or drop. `records.rs` decodes
+  Metadata-inventory cursors own a cloned publication capability until completion or drop;
+  authoritative file visits borrow the namespace and revalidate the current relative directory
+  binding after exhausting the stream. Capacity, cancellation and failure retire the cursor without
+  claiming complete coverage. The application owns the bounded, sorted authoritative path set.
+  `records.rs` decodes
   checked Windows directory records into Ame metadata, including UTF-16/component bounds, attributes,
   placeholders and identity/revision admission, without opening source content. The facade retains
-  the existing iterator contracts, and `scan_enumeration.rs` shares the anchored directory open.
-  Enumeration instrumentation and its gates are test-only. Raw record parsing, native page lifetime
-  and stable frontier ordering remain distinct responsibilities; none changes recovery batching.
+  the metadata-inventory iterator contract, and `scan_enumeration.rs` shares the anchored directory
+  open. Eager sorted-frontier helpers and enumeration instrumentation remain test-only. Raw record
+  parsing, native page lifetime and application ordering remain separate from recovery batching.
 - `incremental_library_changes/evidence_policy.rs` owns precedence between dirty source events,
   conservative inventory renames, metadata-engine replacement and rebuilding invalidated metadata.
   An unchanged metadata recheck retains the already advanced source generation; dirty or changed

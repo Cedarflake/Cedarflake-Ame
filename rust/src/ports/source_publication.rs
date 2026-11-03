@@ -43,7 +43,7 @@ pub(crate) trait PublicationFileSource: PublicationNamespace + MediaSource {
 }
 
 pub(crate) trait PublicationDirectorySource: PublicationFileSource {
-    type Entries<'a>: Iterator<Item = Result<FileVisit, ScanIssue>>
+    type Entries<'a>: PublicationDirectoryVisits
     where
         Self: 'a;
 
@@ -51,4 +51,11 @@ pub(crate) trait PublicationDirectorySource: PublicationFileSource {
         &self,
         relative_directory: &str,
     ) -> Result<Self::Entries<'_>, ScanIssue>;
+}
+
+/// Complete coverage requires exhausting the cursor and revalidating its directory binding.
+pub(crate) trait PublicationDirectoryVisits:
+    Iterator<Item = Result<FileVisit, ScanIssue>>
+{
+    fn finish(self) -> Result<(), ScanIssue>;
 }

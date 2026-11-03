@@ -1,13 +1,17 @@
+#[cfg(test)]
 use std::fs::{self, ReadDir};
+#[cfg(test)]
 use std::path::{Path, PathBuf};
 
 use crate::domain::{FileIdentityEvidence, FileVisit, MetadataInventoryEntry, ScanIssue};
+use crate::ports::source_publication::PublicationDirectoryVisits;
 
+#[cfg(test)]
 use super::{
-    CheckedDirectoryEntry, FileDiscovery, PublicationGuardedFileDiscovery,
-    checked_directory_entry_from_metadata, file_identity, is_link_or_reparse_point,
-    path_containment_issue, path_text, relative_path_text, validated_relative_path,
+    CheckedDirectoryEntry, FileDiscovery, checked_directory_entry_from_metadata, file_identity,
+    is_link_or_reparse_point, path_containment_issue, relative_path_text, validated_relative_path,
 };
+use super::{PublicationGuardedFileDiscovery, path_text};
 #[cfg(test)]
 use instrumentation::SOURCE_ENUMERATION_COUNTS;
 use streaming::StreamingCheckedDirectoryEntryPaths;
@@ -18,6 +22,7 @@ pub(super) mod instrumentation;
 mod records;
 mod streaming;
 
+#[cfg(test)]
 pub(crate) struct CheckedDirectoryEntryPaths {
     entries: Vec<CheckedDirectoryEntryPath>,
     next_index: usize,
@@ -25,14 +30,16 @@ pub(crate) struct CheckedDirectoryEntryPaths {
     directory_identity: Option<FileIdentityEvidence>,
 }
 
+#[cfg(test)]
 struct CheckedDirectoryEntryPath {
     relative_path: String,
     path: PathBuf,
 }
 
 pub(crate) struct PublicationGuardedFileVisits<'guard> {
-    discovery: &'guard FileDiscovery,
-    entries: CheckedDirectoryEntryPaths,
+    discovery: &'guard PublicationGuardedFileDiscovery,
+    relative_directory: String,
+    entries: StreamingCheckedDirectoryEntryPaths,
 }
 
 pub(crate) struct PublicationGuardedMetadataInventoryEntries {
@@ -40,6 +47,7 @@ pub(crate) struct PublicationGuardedMetadataInventoryEntries {
     _guard: PublicationGuardedFileDiscovery,
 }
 
+#[cfg(test)]
 impl Iterator for CheckedDirectoryEntryPaths {
     type Item = Result<CheckedDirectoryEntry, ScanIssue>;
 
@@ -68,9 +76,28 @@ impl Iterator for PublicationGuardedFileVisits<'_> {
     type Item = Result<FileVisit, ScanIssue>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.entries
-            .next()
-            .map(|entry| entry.map(|entry| self.discovery.visit_directory_entry(entry)))
+        self.entries.next().map(|entry| {
+            entry.map(|entry| self.discovery.visit_relative_path(&entry.relative_path))
+        })
+    }
+}
+
+impl PublicationDirectoryVisits for PublicationGuardedFileVisits<'_> {
+    fn finish(self) -> Result<(), ScanIssue> {
+        let identity = self.entries.finish()?;
+        if let Some(identity) = identity
+            && !self
+                .discovery
+                .contains_directory_identity(&self.relative_directory, &identity)?
+        {
+            return Err(ScanIssue {
+                path: Some(self.relative_directory),
+                code: "directory_identity_changed".to_owned(),
+                message: "The directory binding changed while its entries were enumerated"
+                    .to_owned(),
+            });
+        }
+        Ok(())
     }
 }
 
@@ -92,6 +119,7 @@ impl PublicationGuardedMetadataInventoryEntries {
     }
 }
 
+#[cfg(test)]
 impl CheckedDirectoryEntryPaths {
     #[cfg(test)]
     pub(crate) fn directory_identity(&self) -> Option<&FileIdentityEvidence> {
@@ -106,6 +134,7 @@ impl CheckedDirectoryEntryPaths {
     }
 }
 
+#[cfg(test)]
 fn stable_checked_directory_entries(
     root: &Path,
     directory_path: &Path,
@@ -149,10 +178,11 @@ impl PublicationGuardedFileDiscovery {
         relative_directory: &str,
     ) -> Result<PublicationGuardedFileVisits<'_>, ScanIssue> {
         Ok(PublicationGuardedFileVisits {
-            discovery: &self.discovery,
+            discovery: self,
+            relative_directory: relative_directory.to_owned(),
             entries: self
                 .discovery
-                .checked_entry_paths_in_directory(relative_directory)?,
+                .streaming_checked_entry_paths_in_directory(relative_directory)?,
         })
     }
 
@@ -175,6 +205,7 @@ impl PublicationGuardedFileDiscovery {
     }
 }
 
+#[cfg(test)]
 impl FileDiscovery {
     pub(crate) fn checked_entry_paths_in_directory(
         &self,

@@ -650,7 +650,8 @@ impl FileDiscovery {
         }
     }
 
-    pub(crate) fn visit_directory_entry(&self, entry: CheckedDirectoryEntry) -> FileVisit {
+    #[cfg(not(windows))]
+    fn visit_directory_entry(&self, entry: CheckedDirectoryEntry) -> FileVisit {
         let relative_path = entry.relative_path;
         let path = self.root.join(Path::new(&relative_path));
         self.visit_relative_path_with_metadata(
