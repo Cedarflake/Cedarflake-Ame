@@ -1,6 +1,6 @@
 # Project organization after R5
 
-Status: queued execution plan; activation and delivery order belong to the roadmap.
+Status: entry verification and O1 preparation; activation and delivery order belong to the roadmap.
 
 The [roadmap](../roadmap.md#project-organization-after-r5) selects this maintenance scope after R5.
 [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md) owns the target dependency
@@ -147,3 +147,11 @@ Revert an owned failing slice with an ordinary commit if required. Revert its bi
 tests and live documentation together; preserve unrelated work, catalogs, user decisions and media.
 Retain the useful evidence and continue only from a coherent baseline. No destructive Git operation,
 source mutation, schema reset or release publication is part of this plan.
+
+## Execution record
+
+On 2026-11-03, the user authorized implementation on a new branch. `codex/project-organization`
+starts from merged R5 baseline `f74146a4`. Entry verification found a failed final R5 Windows Scan
+job; its scoped diagnosis and verification-boundary repair are recorded in
+[project organization verification](../acceptance/project-organization.md). Product migration
+retains the roadmap's entry conditions while independent O1 preparation proceeds.

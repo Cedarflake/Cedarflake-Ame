@@ -34,7 +34,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
 | R4 | Independent Favorites, flat group-based albums, and durable organization progress | Completed and merged into main on 2026-10-30 |
-| R5 | Metadata, smart albums, and calibrated initial screening | Merged into main on 2026-11-03; final submitted-head CI remains pending |
+| R5 | Metadata, smart albums, and calibrated initial screening | Merged into main on 2026-11-03; final Windows Scan failure under investigation |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run with conflicts and no execution | Planned after R7 |
@@ -94,8 +94,10 @@ R3's selected workflow are handled at their owning layer under the repository co
 ## Current execution queue
 
 R4 and R5 are integrated into `main`; the R5 development branch has been deleted locally and remotely.
-The pending final hosted result is tracked in the [merge record](acceptance/r5-closeout.md#r5-merge--2026-11-03).
-Inspect that result and address any relevant failure without replaying unchanged R5 acceptance.
+The final hosted result is tracked in the [merge record](acceptance/r5-closeout.md#r5-merge--2026-11-03).
+Windows Scan failed; [entry verification](acceptance/project-organization.md#entry-verification--2026-11-03)
+owns its scoped diagnosis and repair. Preserve the remaining pending checks without replaying
+unchanged R5 acceptance.
 The next planned maintenance is [project organization](#project-organization-after-r5), before R6.
 Preserve stable identities, legacy choices, the selected SigLIP runtime and source safeguards;
 no additional naming model is included. The previous
@@ -318,8 +320,10 @@ the current execution queue above. R6 through R10 retain their order.
 
 Following R5's authorized merge, the
 [project-organization plan](plans/project-organization.md) defines the requested maintenance pass.
-Its planned position is before R6 implementation; implementation of this maintenance pass and later
-product stages has not started. The separate rendering follow-up keeps its existing scope and disposition.
+Its position is before R6 implementation. The user authorized the `codex/project-organization`
+implementation branch on 2026-11-03; entry verification and independent O1 preparation are active.
+Product migration awaits the final R5 verification repair. Later product stages have not started.
+The separate rendering follow-up keeps its existing scope and disposition.
 
 [ADR 0037](architecture/0037-feature-module-dependency-boundaries.md) owns the future dependency and
 composition target, and the [repository layout](development/repository-layout.md) owns placement.

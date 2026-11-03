@@ -9,6 +9,7 @@ recorded local checkpoint does not establish that the current product source pas
 | Record | Responsibility |
 | --- | --- |
 | [Quality gates](quality-gates.md) | Canonical commands, workload admission, hosted/client boundaries, and authorization requirements |
+| [Project organization](project-organization.md) | Refactor baseline, boundary regressions and migrated-slice evidence |
 | [R4 organization verification](r4-organization.md) | Durable organization, migration recovery and connected desktop workflow evidence |
 | [R5 integrated delivery](r5-closeout.md) | Ordered slice coverage, current desktop boundaries, retained limits and submitted CI provenance |
 | [R5 exploratory model comparison](r5-model-evaluation.md) | Provisional local candidate comparison, source/provenance boundaries and remaining admission evidence |

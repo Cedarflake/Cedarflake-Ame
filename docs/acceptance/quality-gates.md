@@ -1427,6 +1427,10 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   fixture storage is retained rather than recursively deleted without cleanup authority.
   `./tool/integration_test_windows_scan_guardrails.ps1` verifies its compiler-free lifecycle protocol
   in lint, including original-failure precedence and independent environment restoration.
+- `./tool/integration_test_native_directory_picker.ps1` verifies the native picker action lifetime
+  used by the Windows scan integration: ready-button admission, observed dialog closure, bounded
+  delivery and cancellation, and original-failure retention. Static runs these controlled protocol
+  cases; Windows Scan retains the real picker and complete import assertions.
 - `./tool/integration_test_classification.ps1 -ModelDirectory <verified-models>
   -RuntimeDirectory <verified-runtime> -PythonPath <uv-python>` runs the explicit local Windows
   classification client workflow with existing admitted artifacts and an existing three-file,

@@ -21,6 +21,8 @@ Future<NativeDirectoryPickerAutomation> startNativeDirectoryPickerAutomation(
     "-NoLogo",
     "-NoProfile",
     "-NonInteractive",
+    "-ExecutionPolicy",
+    "Bypass",
     "-File",
     scriptPath,
     "-TargetProcessId",
