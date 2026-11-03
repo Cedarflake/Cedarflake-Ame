@@ -28,6 +28,21 @@ persistence substitutes those proof and connection resources together, preservin
 foreground protection, lane selection and invalidation. It grants no business-use-case exemption and
 does not expose SQLite or engine types through domain, ports or bridge contracts.
 
+## Catalog read capabilities
+
+`catalog_session::open_catalog_reader` exposes `CatalogReader`, retaining the same validated-session
+factory and recovery lane. The owned reader outlives its input path and exposes only typed read
+operations. Each operation returns Ame values after retiring its read connection; no caller-supplied
+callback, SQL, connection or transaction crosses the port. SQLite protocol retry, deadlines and
+session proof remain in `sqlite_catalog/read_retry.rs`. Replacing persistence implements this port
+and changes the existing session factory together.
+
+`load_catalog/production::source_state` selects the stateless `SourceStateProbe` after preview
+reconciliation and recovery scheduling. `load_catalog/root_availability.rs` projects fresh root
+evidence and messages without probing media content or changing catalog identity/counts. An
+unavailable root does not prevent later roots from being inspected. Replacing this probe does not
+move preview recovery, catalog publication or source-read authority.
+
 ## Catalog reclamation resources
 
 `catalog_reclamation/production.rs::{maintenance,capacity}` select the existing SQLite maintenance

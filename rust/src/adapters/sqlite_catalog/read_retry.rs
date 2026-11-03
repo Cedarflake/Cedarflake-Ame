@@ -7,6 +7,7 @@ use crate::domain::{
     GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
     IncrementalCatalogRoot, LibraryFolderCursor, LibraryFolderPage, ScanError,
 };
+use crate::ports::catalog_reader::CatalogReader;
 use crate::ports::{CatalogRepository, GalleryQueryRepository, IncrementalCatalogRepository};
 
 #[cfg(test)]
@@ -283,8 +284,10 @@ impl SqliteCatalogReadExecutor {
         self.record_attempts(outcome.attempts);
         Ok(outcome.value)
     }
+}
 
-    pub(crate) fn load_snapshot(
+impl CatalogReader for SqliteCatalogReadExecutor {
+    fn load_snapshot(
         &self,
         max_items: u32,
         query: &GalleryQuery,
@@ -298,7 +301,7 @@ impl SqliteCatalogReadExecutor {
         })
     }
 
-    pub(crate) fn load_query_snapshot(
+    fn load_query_snapshot(
         &self,
         max_items: u32,
         query: &GalleryQuery,
@@ -310,7 +313,7 @@ impl SqliteCatalogReadExecutor {
         })
     }
 
-    pub(crate) fn load_time_snapshot(
+    fn load_time_snapshot(
         &self,
         max_items: u32,
         query: &GalleryQuery,
@@ -322,7 +325,7 @@ impl SqliteCatalogReadExecutor {
         })
     }
 
-    pub(crate) fn load_snapshot_around_location(
+    fn load_snapshot_around_location(
         &self,
         max_items: u32,
         query: &GalleryQuery,
@@ -342,7 +345,7 @@ impl SqliteCatalogReadExecutor {
         )
     }
 
-    pub(crate) fn load_snapshot_around_asset(
+    fn load_snapshot_around_asset(
         &self,
         max_items: u32,
         query: &GalleryQuery,
@@ -366,7 +369,7 @@ impl SqliteCatalogReadExecutor {
         )
     }
 
-    pub(crate) fn load_gallery_timeline(
+    fn load_gallery_timeline(
         &self,
         query: &GalleryQuery,
         query_id: &str,
@@ -376,7 +379,7 @@ impl SqliteCatalogReadExecutor {
         })
     }
 
-    pub(crate) fn load_gallery_layout_manifest_chunk(
+    fn load_gallery_layout_manifest_chunk(
         &self,
         max_items: u32,
         query: &GalleryQuery,
@@ -389,7 +392,7 @@ impl SqliteCatalogReadExecutor {
         )
     }
 
-    pub(crate) fn load_folder_page(
+    fn load_folder_page(
         &self,
         root_id: &str,
         parent_relative_path: &str,
@@ -401,7 +404,7 @@ impl SqliteCatalogReadExecutor {
         })
     }
 
-    pub(crate) fn load_active_location_by_asset_id(
+    fn load_active_location_by_asset_id(
         &self,
         asset_id: &str,
         preferred_location_id: Option<&str>,
@@ -411,7 +414,7 @@ impl SqliteCatalogReadExecutor {
         })
     }
 
-    pub(crate) fn load_preview_context(
+    fn load_preview_context(
         &self,
         location_id: &str,
     ) -> Result<(Option<AssetLocationView>, Option<IncrementalCatalogRoot>), ScanError> {
@@ -424,7 +427,9 @@ impl SqliteCatalogReadExecutor {
             Ok((location, root))
         })
     }
+}
 
+impl SqliteCatalogReadExecutor {
     #[cfg(test)]
     pub(crate) fn load_watcher_recovery_observation_for_test(
         &self,
@@ -935,7 +940,7 @@ mod tests {
                 let syn::ImplItem::Fn(method) = item else {
                     continue;
                 };
-                if matches!(method.vis, syn::Visibility::Inherited) {
+                if item_impl.trait_.is_none() && matches!(method.vis, syn::Visibility::Inherited) {
                     continue;
                 }
                 inspected_methods = inspected_methods.saturating_add(1);

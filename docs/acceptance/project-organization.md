@@ -478,3 +478,29 @@ The facade has 312 production lines and no inline tests; execution has 88, facto
 capacity port seven. Dedicated entry and execution tests contain 348 and 183 lines. The native
 capacity adapter has 62 implementation lines and 20 inline fixture lines. No catalog schema, runtime policy,
 source authority, dependency version or public bridge change is included.
+
+## O7 Bounded catalog reads — 2026-11-03
+
+The validated-session factory returns `CatalogReader`, with the same owned lifetime and ten named
+read operations. Their bodies, generic retry loop and factory acquisition compare identically;
+the redundant loading facade is removed. Root availability consumes `SourceStateProbe` through one
+exact native factory after the unchanged preview reconciliation/recovery sequence. Preview and
+viewer callers gain only the port import; their lifetimes and source guards are unchanged.
+
+The reader regression run passes 32 cases. Its remaining terminal-reparse case fails at fixture
+`symlink_file` with Windows error 1314 before the reader executes. This local privilege limitation
+remains open; the assertion and hosted workload are unchanged. Successful cases retain structured
+errors, bounded retries, read-only connections, identity guards, retirement before backoff and bridge
+serialization. The failed run's leased scratch is retired.
+
+All 14 catalog-load cases and 20 dependency checks pass. The load suite executes its otherwise
+ignored child for 256 public reads during real WAL writes; retained-library acceptance remains
+unrequested. The native root fixture distinguishes available and missing directories without
+creating the missing path or changing source bytes. The subsequent test builds emit no warnings,
+and scratch cleanup succeeds. R160–R161 are retired; 249 legacy entries and 23 exact technical edges
+remain. The immutable baseline is unchanged, and hosted checks continue independently.
+
+Production / inline-test-support lines are 230 / 524 for catalog loading, 405 / 1,368 for the existing
+retry owner and 346 / 26 for the session host. The read port has 86 lines; root projection has 11
+plus two test-module declaration lines and 94 dedicated test lines, and its factory has five. No schema, dependency, generated bridge, source
+authority or product-policy change is included.

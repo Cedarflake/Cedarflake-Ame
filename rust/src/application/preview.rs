@@ -15,6 +15,7 @@ use crate::domain::{
     AssetLocationView, DiscoveredFile, ExpectedFileState, LibraryChangeLane, PreviewRequest,
     PreviewStatus, ScanError, ScanIssue,
 };
+use crate::ports::catalog_reader::CatalogReader;
 use crate::ports::{CatalogRepository, PreviewStore};
 
 use super::{StoragePaths, storage_paths};

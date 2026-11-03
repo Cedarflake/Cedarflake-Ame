@@ -133,8 +133,6 @@
     "R157",
     "R158",
     "R159",
-    "R160",
-    "R161",
     "R162",
     "R163",
     "R164",
@@ -308,6 +306,17 @@
         "rust/src/application/catalog_reclamation/execution/tests.rs",
         "rust/src/application/catalog_reclamation/tests.rs",
         "rust/src/adapters/catalog_capacity.rs"
+      ]
+    },
+    "catalog-read-source-composition": {
+      "responsibility": "Select the metadata-only source-state probe for catalog root availability",
+      "reason": "The factory selects the native implementation through SourceStateProbe; root projection consumes Ame availability evidence.",
+      "lifetime": "A stateless probe is selected after preview reconciliation and recovery scheduling; it reads root metadata only and retains no source handle.",
+      "replacement": "Replace the source-state factory through its port without moving snapshot projection, read retry or preview recovery ownership.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#catalog-read-capabilities",
+      "coverage": [
+        "rust/src/application/load_catalog/root_availability/tests.rs",
+        "rust/src/application/load_catalog.rs"
       ]
     }
   },
@@ -529,6 +538,16 @@
         "source": "rust/src/application/catalog_reclamation/production.rs",
         "symbol": "crate::application::catalog_reclamation::production::capacity",
         "target": "crate::adapters::catalog_capacity::LocalCatalogCapacity",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-read-source-state",
+      "owner": "catalog-read-source-composition",
+      "dependency": {
+        "source": "rust/src/application/load_catalog/production.rs",
+        "symbol": "crate::application::load_catalog::production::source_state",
+        "target": "crate::adapters::local_source_state::LocalSourceState",
         "rule": "concrete-adapter"
       }
     }
