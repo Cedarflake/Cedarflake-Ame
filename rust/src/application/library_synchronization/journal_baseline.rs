@@ -113,7 +113,9 @@ pub(in crate::application) struct SupportedJournalBoundary {
 }
 
 pub(super) fn select_closing_work(
-    catalog: &SqliteCatalog,
+    catalog: &(
+         impl IncrementalCatalogRepository + PersistentJournalRepository + MetadataInventoryRepository
+     ),
     snapshot: &LibrarySynchronizationSnapshot,
     root_cursor: Option<&str>,
 ) -> Result<Option<JournalBaselineClosingWork>, ScanError> {

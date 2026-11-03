@@ -1,3 +1,5 @@
+use crate::ports::LibraryChangeReadiness;
+
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::adapters::SqliteCatalog;

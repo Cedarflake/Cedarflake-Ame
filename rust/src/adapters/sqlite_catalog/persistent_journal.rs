@@ -1346,7 +1346,7 @@ mod tests {
         persistent_journal_pending_rename_id,
     };
     use crate::ports::{
-        CatalogRepository, LibraryChangeQueue, MetadataInventoryRepository,
+        CatalogRepository, LibraryChangeQueue, LibraryChangeReadiness, MetadataInventoryRepository,
         PersistentJournalRepository,
     };
 

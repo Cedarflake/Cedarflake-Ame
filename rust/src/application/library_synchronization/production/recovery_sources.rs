@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
-use crate::adapters::SqliteCatalog;
 use crate::application::RetainedMetadataInventorySource;
 use crate::domain::{LibraryChangeId, ScanError};
 use crate::ports::MetadataInventoryRepository;
@@ -39,7 +38,10 @@ impl RecoverySourceTransfer {
 }
 
 impl RecoverySources {
-    pub(super) fn prune(&mut self, catalog: &SqliteCatalog) -> Result<(), ScanError> {
+    pub(super) fn prune(
+        &mut self,
+        catalog: &impl MetadataInventoryRepository,
+    ) -> Result<(), ScanError> {
         let mut stale_change_ids = Vec::new();
         for (change_id, source) in &self.retained {
             let is_current = catalog

@@ -41,6 +41,8 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   owns worker creation, cancellation, result retirement and the shared shutdown deadline; its page
   owner retains registration guards through the existing bounded capture operation. Status projection
   and cross-lane priority remain in their existing owners.
+  Readiness probes, volume/recovery selection, retained-source pruning and journal status projection
+  consume persistence ports; application owners retain priority, rotation and retry decisions.
   `journal_work/fallback` owns the failed-read budget and root-boundary isolation across workers;
   successful reads and superseding checkpoints retire that evidence. `persistent_journal/recovery_failure`
   owns atomic failure admission. `persistent_journal/metadata_fallback` owns the independent receipt
@@ -107,8 +109,9 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   replacement cannot acquire removal authority while a root or run remains. The removal
   transaction and `migrations/retired_root_authority.rs` share the same strict durable proof;
   compatibility repair preserves history, validates the complete catalog, and rolls back on failure.
-- `sqlite_catalog/change_queue/readiness.rs` owns read-only lane eligibility and recovery
-  readiness. Its typed query context binds root, generation, time and policy while preserving
+- `sqlite_catalog/change_queue/readiness.rs` implements `ports/LibraryChangeReadiness` for read-only
+  lane eligibility, recovery readiness and journal headroom. Its typed query context binds root,
+  generation, time and policy while preserving
   the original input-validation requirements of each operation. Eligibility filters exclude
   terminal queue history before evaluating due work; retry, expired-lease, recovery-affinity and lineage checks remain part of
   their original query. Readiness is a scheduling hint, never a replacement for transactional

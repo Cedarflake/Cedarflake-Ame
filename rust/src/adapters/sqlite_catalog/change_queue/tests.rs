@@ -22,7 +22,10 @@ use crate::domain::{
     PersistentJournalRangeState, PersistentJournalSourceRange, PersistentJournalVolumeIdentity,
     ScanRequest, persistent_journal_batch_id,
 };
-use crate::ports::{CatalogRepository, MetadataInventoryRepository, PersistentJournalRepository};
+use crate::ports::{
+    CatalogRepository, LibraryChangeReadiness, MetadataInventoryRepository,
+    PersistentJournalRepository,
+};
 
 use super::*;
 

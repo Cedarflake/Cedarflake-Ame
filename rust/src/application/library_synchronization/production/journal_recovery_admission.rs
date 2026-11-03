@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use crate::adapters::SqliteCatalog;
 use crate::application::persistent_journal_continuity::can_reprobe_journal_failure;
 use crate::domain::{
     LibraryChangeSourceHealth, LibraryRootAvailability, LibrarySynchronizationPhase,
@@ -12,7 +11,7 @@ use crate::ports::{IncrementalCatalogRepository, PersistentJournalRepository};
 use super::journal_volume::{JournalRootWork, JournalVolumeWork};
 
 pub(super) fn select(
-    catalog: &SqliteCatalog,
+    catalog: &(impl IncrementalCatalogRepository + PersistentJournalRepository),
     snapshot: &LibrarySynchronizationSnapshot,
 ) -> Result<Option<JournalVolumeWork>, ScanError> {
     for capability in catalog.load_persistent_journal_capabilities()? {

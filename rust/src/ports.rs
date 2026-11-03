@@ -59,6 +59,8 @@ pub(crate) use root_consolidation::{
 };
 mod inventory_cleanup_control;
 pub use inventory_cleanup_control::InventoryCleanupControl;
+mod library_change_readiness;
+pub(crate) use library_change_readiness::LibraryChangeReadiness;
 mod library_change_ingress;
 pub(crate) use library_change_ingress::LibraryChangeIngress;
 mod persistent_identity_journal;

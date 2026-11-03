@@ -52,7 +52,8 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-Continue [project organization](#project-organization-after-r5) with O7's scan and preview boundaries.
+Continue [project organization](#project-organization-after-r5) with O7's synchronization, journal and
+broker boundaries.
 This maintenance runs on
 the authorized `codex/project-organization` branch before R6.
 PR metadata remains fixed by user direction.

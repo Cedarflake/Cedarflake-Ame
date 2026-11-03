@@ -5,6 +5,9 @@ use crate::domain::{
     LibraryChangeQueuePolicy, LibraryRootGeneration, LibrarySynchronizationSnapshot, ScanError,
 };
 use crate::journal_broker::{CallerClaim, PersistentChangeJournalConnection};
+use crate::ports::{
+    IncrementalCatalogRepository, LibraryChangeReadiness, PersistentJournalRepository,
+};
 
 use super::super::journal_baseline;
 use super::journal_volume::JournalVolumeWork;
@@ -149,7 +152,9 @@ impl JournalLane {
 
     pub(super) fn capacity_debt_roots(
         &self,
-        catalog: &SqliteCatalog,
+        catalog: &(
+             impl LibraryChangeReadiness + IncrementalCatalogRepository + PersistentJournalRepository
+         ),
         snapshot: &LibrarySynchronizationSnapshot,
         connection: &PersistentChangeJournalConnection,
         caller: Option<&CallerClaim>,
@@ -180,7 +185,7 @@ impl JournalLane {
 
     fn next_volume(
         &self,
-        catalog: &SqliteCatalog,
+        catalog: &(impl IncrementalCatalogRepository + PersistentJournalRepository),
         snapshot: &LibrarySynchronizationSnapshot,
     ) -> Result<Option<JournalVolumeWork>, ScanError> {
         journal_volume::select(catalog, snapshot, self.volume_cursor.as_deref())
@@ -188,7 +193,7 @@ impl JournalLane {
 
     fn next_root(
         &self,
-        catalog: &SqliteCatalog,
+        catalog: &impl LibraryChangeReadiness,
         snapshot: &LibrarySynchronizationSnapshot,
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,

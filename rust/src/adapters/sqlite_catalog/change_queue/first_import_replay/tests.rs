@@ -8,7 +8,9 @@ use crate::domain::{
     PersistentJournalBaselineClosingBoundary, PersistentJournalBaselineStartRequest,
     PersistentJournalVolumeIdentity, ScanRequest,
 };
-use crate::ports::{CatalogRepository, LibraryChangeQueue, PersistentJournalRepository};
+use crate::ports::{
+    CatalogRepository, LibraryChangeQueue, LibraryChangeReadiness, PersistentJournalRepository,
+};
 
 use super::*;
 

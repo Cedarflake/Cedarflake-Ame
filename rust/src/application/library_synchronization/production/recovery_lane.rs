@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::adapters::SqliteCatalog;
 use crate::domain::{
     LibraryChangeQueuePolicy, LibraryRootGeneration, LibrarySynchronizationSnapshot, ScanError,
 };
+use crate::ports::LibraryChangeReadiness;
 
 const RECOVERY_RETRY_INITIAL_MILLIS: i64 = 1_000;
 const RECOVERY_RETRY_MAXIMUM_MILLIS: i64 = 5 * 60 * 1_000;
@@ -62,7 +62,7 @@ impl ReadyRecoveryWork {
 impl RecoveryLane {
     pub(super) fn select(
         &mut self,
-        catalog: &SqliteCatalog,
+        catalog: &impl LibraryChangeReadiness,
         snapshot: &LibrarySynchronizationSnapshot,
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,

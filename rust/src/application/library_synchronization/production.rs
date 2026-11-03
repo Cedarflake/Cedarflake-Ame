@@ -65,12 +65,10 @@ use crate::journal_broker::{
     PersistentChangeJournal, PersistentChangeJournalConnection,
     PersistentChangeJournalLiveOnlyReason, production_persistent_journal_caller_claim,
 };
-#[cfg(all(test, windows))]
-use crate::ports::MetadataInventoryRepository;
 #[cfg(windows)]
 use crate::ports::{
-    IncrementalCatalogRepository, LibraryChangeQueue, LibraryChangeSourceStarter,
-    PersistentJournalRepository,
+    IncrementalCatalogRepository, LibraryChangeQueue, LibraryChangeReadiness,
+    LibraryChangeSourceStarter, MetadataInventoryRepository, PersistentJournalRepository,
 };
 
 #[cfg(windows)]
@@ -693,7 +691,7 @@ impl ProductionSynchronization {
 
     fn project_persistent_journal_continuity(
         &mut self,
-        catalog: &SqliteCatalog,
+        catalog: &(impl MetadataInventoryRepository + PersistentJournalRepository),
         snapshot: &mut LibrarySynchronizationSnapshot,
     ) -> Result<(), ScanError> {
         self.journal_status
@@ -835,7 +833,7 @@ fn project_active_recovery_as_updating(
 #[cfg(windows)]
 fn ready_recovery_work(
     runtime: &mut ProductionSynchronization,
-    catalog: &SqliteCatalog,
+    catalog: &(impl LibraryChangeReadiness + IncrementalCatalogRepository + PersistentJournalRepository),
     snapshot: &LibrarySynchronizationSnapshot,
     now_unix_ms: i64,
 ) -> Result<Option<ReadyRecoveryWork>, ScanError> {
@@ -876,7 +874,7 @@ fn ready_recovery_work(
 #[cfg(windows)]
 fn ready_live_root(
     runtime: &mut ProductionSynchronization,
-    catalog: &SqliteCatalog,
+    catalog: &(impl LibraryChangeReadiness + IncrementalCatalogRepository),
     snapshot: &LibrarySynchronizationSnapshot,
     now_unix_ms: i64,
 ) -> Result<Option<(String, LibraryRootGeneration)>, ScanError> {
@@ -931,7 +929,7 @@ fn ready_live_root(
 
 #[cfg(windows)]
 fn snapshot_has_ready_live_work(
-    catalog: &SqliteCatalog,
+    catalog: &(impl LibraryChangeReadiness + IncrementalCatalogRepository),
     snapshot: &LibrarySynchronizationSnapshot,
     now_unix_ms: i64,
     policy: crate::domain::LibraryChangeQueuePolicy,
@@ -965,7 +963,7 @@ fn snapshot_has_ready_live_work(
 
 #[cfg(windows)]
 fn snapshot_has_ready_journal_work(
-    catalog: &SqliteCatalog,
+    catalog: &impl LibraryChangeReadiness,
     snapshot: &LibrarySynchronizationSnapshot,
     now_unix_ms: i64,
     policy: crate::domain::LibraryChangeQueuePolicy,

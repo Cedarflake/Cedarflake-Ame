@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 
-use crate::adapters::SqliteCatalog;
 use crate::application::JournalCaptureWindowReport;
 use crate::application::persistent_journal_continuity::can_reprobe_failure;
 use crate::domain::{
@@ -30,7 +29,7 @@ impl JournalStatusOwner {
     pub(super) fn project(
         &mut self,
         connection: &PersistentChangeJournalConnection,
-        catalog: &SqliteCatalog,
+        catalog: &(impl MetadataInventoryRepository + PersistentJournalRepository),
         snapshot: &mut LibrarySynchronizationSnapshot,
     ) -> Result<(), ScanError> {
         self.checked_roots.retain(|root_id, generation| {

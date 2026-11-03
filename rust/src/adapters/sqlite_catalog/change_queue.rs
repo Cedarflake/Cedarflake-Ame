@@ -1521,131 +1521,6 @@ impl SqliteCatalog {
         Ok(superseded)
     }
 
-    pub(crate) fn journal_admission_has_headroom(
-        &self,
-        root_id: &str,
-        root_generation: LibraryRootGeneration,
-        policy: LibraryChangeQueuePolicy,
-    ) -> Result<bool, ScanError> {
-        validate_policy(policy)?;
-        validate_root_id(root_id)?;
-        let (total, lower): (i64, i64) = self
-            .connection
-            .query_row(
-                "SELECT COUNT(*),
-                        COALESCE(SUM(CASE WHEN lane.lane <> 'p0_live' THEN 1 ELSE 0 END), 0)
-                 FROM library_change_queue AS queue
-                 JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
-                 WHERE queue.root_id = ?1 AND queue.root_generation = ?2
-                   AND queue.status IN ('pending', 'leased', 'retry_wait')",
-                params![
-                    root_id,
-                    sqlite_integer(root_generation.value(), "root generation")?,
-                ],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .map_err(database_error)?;
-        Ok(total < i64::from(policy.max_unresolved_changes)
-            && lower < i64::from(policy.lane_capacity(LibraryChangeLane::Journal)))
-    }
-
-    pub(crate) fn has_ready_live_path_library_change(
-        &self,
-        root_id: &str,
-        root_generation: LibraryRootGeneration,
-        now_unix_ms: i64,
-        policy: LibraryChangeQueuePolicy,
-    ) -> Result<bool, ScanError> {
-        readiness::ReadinessQuery::new(
-            &self.connection,
-            root_id,
-            root_generation,
-            now_unix_ms,
-            policy,
-        )?
-        .has_ready_live_path_library_change()
-    }
-
-    pub(crate) fn has_ready_journal_path_library_change(
-        &self,
-        root_id: &str,
-        root_generation: LibraryRootGeneration,
-        now_unix_ms: i64,
-        policy: LibraryChangeQueuePolicy,
-    ) -> Result<bool, ScanError> {
-        readiness::ReadinessQuery::new(
-            &self.connection,
-            root_id,
-            root_generation,
-            now_unix_ms,
-            policy,
-        )?
-        .has_ready_journal_path_library_change()
-    }
-
-    pub(crate) fn has_ready_metadata_inventory_recovery_candidates(
-        &self,
-        root_id: &str,
-        root_generation: LibraryRootGeneration,
-        now_unix_ms: i64,
-        policy: LibraryChangeQueuePolicy,
-    ) -> Result<bool, ScanError> {
-        readiness::ReadinessQuery::new(
-            &self.connection,
-            root_id,
-            root_generation,
-            now_unix_ms,
-            policy,
-        )?
-        .has_ready_metadata_inventory_recovery_candidates()
-    }
-
-    pub(crate) fn has_ready_legacy_unowned_recovery_debt(
-        &self,
-        root_id: &str,
-        root_generation: LibraryRootGeneration,
-        now_unix_ms: i64,
-        policy: LibraryChangeQueuePolicy,
-    ) -> Result<bool, ScanError> {
-        readiness::ReadinessQuery::new(
-            &self.connection,
-            root_id,
-            root_generation,
-            now_unix_ms,
-            policy,
-        )?
-        .has_ready_legacy_unowned_recovery_debt()
-    }
-
-    pub(crate) fn has_unresolved_metadata_inventory_recovery_candidates(
-        &self,
-        root_id: &str,
-        root_generation: LibraryRootGeneration,
-    ) -> Result<bool, ScanError> {
-        readiness::has_unresolved_metadata_inventory_recovery_candidates(
-            &self.connection,
-            root_id,
-            root_generation,
-        )
-    }
-
-    pub(crate) fn has_ready_metadata_inventory_recovery(
-        &self,
-        root_id: &str,
-        root_generation: LibraryRootGeneration,
-        now_unix_ms: i64,
-        policy: LibraryChangeQueuePolicy,
-    ) -> Result<bool, ScanError> {
-        readiness::ReadinessQuery::new(
-            &self.connection,
-            root_id,
-            root_generation,
-            now_unix_ms,
-            policy,
-        )?
-        .has_ready_metadata_inventory_recovery()
-    }
-
     pub(crate) fn lease_metadata_inventory_recovery(
         &mut self,
         root_id: &str,
@@ -1661,23 +1536,6 @@ impl SqliteCatalog {
             LeaseSelection::RecoveryAuthoritative,
         )?;
         Ok(leased.pop())
-    }
-
-    pub(crate) fn has_ready_live_authoritative_library_change(
-        &self,
-        root_id: &str,
-        root_generation: LibraryRootGeneration,
-        now_unix_ms: i64,
-        policy: LibraryChangeQueuePolicy,
-    ) -> Result<bool, ScanError> {
-        readiness::ReadinessQuery::new(
-            &self.connection,
-            root_id,
-            root_generation,
-            now_unix_ms,
-            policy,
-        )?
-        .has_ready_live_authoritative_library_change()
     }
 
     #[cfg(test)]
@@ -1750,23 +1608,6 @@ impl SqliteCatalog {
             LeaseSelection::JournalAuthoritative,
         )
         .map(|mut changes| changes.pop())
-    }
-
-    pub(crate) fn has_ready_journal_authoritative_library_change(
-        &self,
-        root_id: &str,
-        root_generation: LibraryRootGeneration,
-        now_unix_ms: i64,
-        policy: LibraryChangeQueuePolicy,
-    ) -> Result<bool, ScanError> {
-        readiness::ReadinessQuery::new(
-            &self.connection,
-            root_id,
-            root_generation,
-            now_unix_ms,
-            policy,
-        )?
-        .has_ready_journal_authoritative_library_change()
     }
 }
 

@@ -86,3 +86,28 @@ The authoritative facade has 564 source lines and its dedicated fixture has 1,42
 local-files facade has 2,603 source/3,460 inline-test lines; the directory cursor module has 284 lines
 including retained test-only helpers, with 144 lines in its dedicated native fixture. One existing
 application test gains a bounded-read assertion and one native regression is added.
+
+## Synchronization readiness and projections — 2026-11-04
+
+Against `f6189e8a`, `LibraryChangeReadiness` exposes nine read-only queue and capacity queries.
+Their SQLite implementations live with the existing readiness owner. Application lane selection,
+journal closing selection, status projection and retained-source pruning consume the corresponding
+persistence ports. Source comparison confirms the nine native query bodies and 14 application
+policy bodies are unchanged. Priority, fairness, retry timing, transaction-local lease admission and
+worker/resource lifetimes retain their existing behavior.
+
+Fourteen migration entries retire, leaving 49; the 61 retained technical edges and both frozen
+inventories are unchanged. Existing fixtures import the same native implementation through its
+contract. No tests or assertions are added or removed.
+
+All 57 existing checks pass: four readiness, six recovery ownership/rotation, nine volume selection,
+six status projection, eight production baseline/fairness/capacity and 24 dependency cases. Initial
+fixture compilation needed the trait import in its inline test scope; final test and production
+builds emit no warnings. Formatting reports 794 files unchanged, the scratch lease retires, and three
+changed documents have 32 resolving local links and anchors.
+
+The coordinator facade has 1,660 source lines including conditional fixture helpers, no inline test
+cases and 934 primary dedicated-fixture lines. Journal baseline has 443 source/326 inline-test lines.
+The queue facade has 1,613 source lines and its primary dedicated fixture has 6,185 lines. The
+readiness owner has 617 source lines with 386 dedicated readiness-test lines; these queue owners have
+no inline tests.
