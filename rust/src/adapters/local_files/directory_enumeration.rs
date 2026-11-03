@@ -1,10 +1,10 @@
 use std::fs::{self, ReadDir};
 use std::path::{Path, PathBuf};
 
-use crate::domain::{FileIdentityEvidence, MetadataInventoryEntry, ScanIssue};
+use crate::domain::{FileIdentityEvidence, FileVisit, MetadataInventoryEntry, ScanIssue};
 
 use super::{
-    CheckedDirectoryEntry, FileDiscovery, FileVisit, PublicationGuardedFileDiscovery,
+    CheckedDirectoryEntry, FileDiscovery, PublicationGuardedFileDiscovery,
     checked_directory_entry_from_metadata, file_identity, is_link_or_reparse_point,
     path_containment_issue, path_text, relative_path_text, validated_relative_path,
 };

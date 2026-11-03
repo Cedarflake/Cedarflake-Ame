@@ -1,5 +1,5 @@
-use crate::adapters::{FileVisitOutcome, SqliteCatalog};
-use crate::domain::{ScanCheckpoint, ScanError, ScanEvent};
+use crate::adapters::SqliteCatalog;
+use crate::domain::{FileVisitOutcome, ScanCheckpoint, ScanError, ScanEvent};
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository, MediaInspector};
 
 use super::file_preparation::PreparedScanFile;

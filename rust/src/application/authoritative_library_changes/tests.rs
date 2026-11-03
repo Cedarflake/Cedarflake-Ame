@@ -6,8 +6,8 @@ use rusqlite::Connection;
 use tempfile::{TempDir, tempdir};
 
 use crate::adapters::{
-    FileDiscovery, FileVisitOutcome, PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION,
-    PREVIEW_ORIENTATION_CONTRACT, SqliteCatalog,
+    FileDiscovery, PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION, PREVIEW_ORIENTATION_CONTRACT,
+    SqliteCatalog,
 };
 #[cfg(windows)]
 use crate::adapters::{reset_source_content_open_instrumentation, source_content_open_count};
@@ -18,7 +18,7 @@ use crate::application::metadata_inventory::{
 };
 use crate::application::scan_library::run_scan_with_storage;
 use crate::domain::{
-    IncrementalCatalogRoot, JournalFileReference, JournalIdentifier, JournalUsn,
+    FileVisitOutcome, IncrementalCatalogRoot, JournalFileReference, JournalIdentifier, JournalUsn,
     LibraryChangeIntent, LibraryChangeOrigin, LibraryChangeQueuePolicy,
     PersistentJournalBaselineClosingBoundary, PersistentJournalCapability,
     PersistentJournalCapabilityState, PersistentJournalCheckpoint,

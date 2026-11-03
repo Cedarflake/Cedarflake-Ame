@@ -45,8 +45,10 @@ pub use media_admission_recheck::MediaAdmissionRecheck;
 pub(crate) mod library_synchronization;
 pub(crate) mod persistent_journal;
 mod scan_resume_coverage;
+mod source_discovery;
 
 pub(crate) use scan_resume_coverage::ScanResumeCoverage;
+pub use source_discovery::{FileVisit, FileVisitOutcome};
 
 pub use library_catalog_delta::{
     CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublication,

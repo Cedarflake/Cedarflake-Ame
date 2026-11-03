@@ -16,7 +16,7 @@ use tempfile::tempdir;
 
 #[cfg(windows)]
 use crate::adapters::force_publication_namespace_guard_failure_for_test;
-use crate::adapters::{FileVisitOutcome, remove_persistent_journal_v22_contract_for_test};
+use crate::adapters::{FileDiscovery, remove_persistent_journal_v22_contract_for_test};
 use crate::domain::{
     GalleryQuery, LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch,
     LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
@@ -1132,23 +1132,6 @@ fn scan_issue_presentation_path_hides_windows_device_prefixes() {
     });
 
     assert_eq!(issue.path.as_deref(), Some(r"C:\Pictures\broken.png"));
-}
-
-#[test]
-fn discovery_accepts_png_magic_with_wrong_extension() {
-    let directory = tempdir().expect("temporary directory");
-    let file_path = directory.path().join("image.data");
-    fs::write(&file_path, b"\x89PNG\r\n\x1a\nrest").expect("fixture write");
-    let discovery =
-        FileDiscovery::new(&directory.path().to_string_lossy()).expect("valid discovery root");
-
-    let accepted = discovery
-        .entry_paths_in_directory("")
-        .expect("directory entries")
-        .map(|relative_path| discovery.visit_relative_path(&relative_path))
-        .any(|visit| matches!(visit.outcome, FileVisitOutcome::File(_)));
-
-    assert!(accepted);
 }
 
 #[test]

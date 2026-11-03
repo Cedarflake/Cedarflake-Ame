@@ -8,7 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use blake3::Hasher;
 
-use crate::adapters::{FileDiscovery, LocalMediaInspector, SqliteCatalog};
+use crate::adapters::SqliteCatalog;
 use crate::domain::user_visible_path;
 #[cfg(test)]
 use crate::domain::{AssetLocationView, PreviewStatus};
@@ -23,6 +23,7 @@ use crate::domain::{
 };
 #[cfg(test)]
 use crate::ports::PersistentJournalRepository;
+use crate::ports::scan_discovery::ScanFileDiscovery;
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 
 use super::storage::catalog_admission::with_scan_start;
@@ -49,6 +50,7 @@ mod inspection_failure;
 mod media_input_tests;
 #[cfg(test)]
 mod operation_cost;
+mod production;
 mod publication;
 #[cfg(all(test, windows))]
 mod relocation_tests;
@@ -224,8 +226,8 @@ fn run_scan_with_storage_selection(
     };
     let storage = resolve_storage()?;
     bind_scan_catalog(&request.scan_id, &storage.catalog_path)?;
-    let media_inspector = LocalMediaInspector::new();
-    let discovery = FileDiscovery::new(&request.root_path)?;
+    let media_inspector = production::media_inspector();
+    let discovery = production::file_discovery(&request.root_path)?;
     let canonical_root = discovery.canonical_root()?;
     let publication_root_identity =
         discovery

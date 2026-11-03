@@ -1,7 +1,8 @@
 use std::cell::RefCell;
 use std::sync::Arc;
 
-use crate::adapters::local_files::{FileDiscovery, FileVisitOutcome};
+use crate::adapters::local_files::FileDiscovery;
+use crate::domain::FileVisitOutcome;
 use crate::media_fixtures::{MediaFixtureFormat, encode_rgb_quadrants};
 
 use super::*;

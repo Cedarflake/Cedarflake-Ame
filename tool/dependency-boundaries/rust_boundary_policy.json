@@ -1,10 +1,8 @@
 {
   "activeIds": [
     "R001",
-    "R002",
     "R003",
     "R072",
-    "R073",
     "R074",
     "R075",
     "R076",
@@ -122,10 +120,6 @@
     "R207",
     "R208",
     "R209",
-    "R210",
-    "R212",
-    "R214",
-    "R215",
     "R216",
     "R218",
     "R219",
@@ -169,7 +163,6 @@
     "R257",
     "R258",
     "R259",
-    "R260",
     "R261",
     "R272",
     "R273",
@@ -328,6 +321,18 @@
       "coverage": [
         "rust/src/application/viewer_source/tests.rs",
         "rust/src/adapters/local_files/viewer_source_guard/tests.rs"
+      ]
+    },
+    "scan-source-composition": {
+      "responsibility": "Select pinned source discovery and media inspection for a foreground scan",
+      "reason": "Only the two resource factories choose concrete adapters; traversal and entry processing consume Ame ports and domain outcomes.",
+      "lifetime": "The configured-root proof outlives borrowed directory cursors; cursor completion revalidates identity after exhaustion, while final publication keeps its separate namespace guard.",
+      "replacement": "Replace both native selections through their ports while preserving root acquisition order, no-follow/no-recall admission, held-handle evidence, cancellation and bounded traversal.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#scan-source-resources",
+      "coverage": [
+        "rust/src/application/scan_library/tests.rs",
+        "rust/src/adapters/local_files/scan_enumeration/tests.rs",
+        "rust/src/adapters/local_files/file_admission/tests.rs"
       ]
     }
   },
@@ -869,6 +874,26 @@
         "source": "rust/src/application/viewer_source.rs",
         "symbol": "crate::application::viewer_source::acquire_guard",
         "target": "crate::adapters::local_files::viewer_source_guard::open_viewer_source_guard",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "scan-file-discovery-factory",
+      "owner": "scan-source-composition",
+      "dependency": {
+        "source": "rust/src/application/scan_library/production.rs",
+        "symbol": "crate::application::scan_library::production::file_discovery",
+        "target": "crate::adapters::local_files::FileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "scan-media-inspector-factory",
+      "owner": "scan-source-composition",
+      "dependency": {
+        "source": "rust/src/application/scan_library/production.rs",
+        "symbol": "crate::application::scan_library::production::media_inspector",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
         "rule": "concrete-adapter"
       }
     }

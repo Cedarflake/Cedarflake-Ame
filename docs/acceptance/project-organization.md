@@ -633,3 +633,35 @@ Decision and merge-rule owners have 104 and 210 production lines plus three test
 their dedicated tests have 514 and 169 lines, with one 130-line shared fixture. Dependency collection
 has 250 lines, the extracted rule owner 68 and parser tests 325. The final client/real-library check
 remains required after the complete migration under the execution plan.
+
+## O7 Scan discovery boundary — 2026-11-04
+
+`ScanFileDiscovery` and its borrowed `ScanDirectoryEntries` expose source discovery without native
+handles. The two factories select the original discovery and inspector; file-visit values move into
+domain and their adapter exports are removed. Relative admission, cursor completion/iteration,
+entry processing and traversal bodies compare unchanged to `43a1beb6`; the scan facade differs only
+by the two factory substitutions. Final publication retains its separate namespace capability.
+R002, R073, R210, R212, R214, R215 and R260 retire, leaving 168 legacy entries and 56 exact retained
+edges. Both frozen inventories and generated bridges are unchanged.
+
+All 48 focused checks pass: three directory-cursor, four file-admission, 12 entry-processing/resumption,
+five full scan workflows and 24 dependency cases. They cover complete/partial/replaced directories,
+held-source evidence, no placeholder reads, metadata/preview publication, cancellation, pause/resume,
+deep-directory recovery and 1,025-entry bounded traversal. Existing cursor cases now exercise the port.
+One duplicate magic-header-only test is removed; the retained real-PNG admission matrix and complete
+scan/preview case cover wrong extensions with stronger result and source-preservation assertions.
+
+The first build found a missing moved-type test import, corrected before these results. The sandboxed
+full scan rejected an unpinnable parent namespace; the same controlled fixture passes outside the
+sandbox with unchanged safety checks. Dependency checks use their integration target. Final builds
+emit no warnings, the format check reports 794 files unchanged, and leased scratch directories retire.
+
+The scan facade has 752 source lines, no inline test block and 5,511 lines in its main test file;
+traversal has 357 source lines. The native file facade retains 2,614 lines before its 3,460-line inline
+test block, including existing conditional instrumentation. File admission has 245 source/203 dedicated
+test lines; enumeration has 132/63; entry processing has 211/327, with separate resumption fixtures.
+The reconciliation facades change only imports: authoritative and incremental owners have 560 and
+1,342 source lines, no inline test blocks, and 1,408 and 3,839 lines in their main test files.
+The new domain, port, adapter binding and factory files contain 22, 22, 30 and 11 lines respectively.
+No schema, source authority, engine version or client behavior changes; final real-library client
+verification remains scheduled after the remaining migration.

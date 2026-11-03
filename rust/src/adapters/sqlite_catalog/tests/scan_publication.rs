@@ -17,7 +17,7 @@ fn staged_source_change_never_mutates_the_active_projection_before_publication()
     let root_path = source.path().to_string_lossy().into_owned();
     let discovery = crate::adapters::FileDiscovery::new(&root_path).expect("source discovery");
     let first_file = match discovery.visit_relative_path("same.jpg").outcome {
-        crate::adapters::FileVisitOutcome::File(file) => file,
+        crate::domain::FileVisitOutcome::File(file) => file,
         _ => panic!("initial source file"),
     };
     let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("catalog");
@@ -80,7 +80,7 @@ fn staged_source_change_never_mutates_the_active_projection_before_publication()
 
     fs::write(&source_path, b"source-version-two").expect("change source before staging");
     let second_file = match discovery.visit_relative_path("same.jpg").outcome {
-        crate::adapters::FileVisitOutcome::File(file) => file,
+        crate::domain::FileVisitOutcome::File(file) => file,
         _ => panic!("changed source file"),
     };
     assert_eq!(second_file.file_identity, first_file.file_identity);

@@ -1,16 +1,16 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::adapters::{FileVisitOutcome, LocalMediaInspector, PublicationGuardedFileDiscovery};
+use crate::adapters::{LocalMediaInspector, PublicationGuardedFileDiscovery};
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublicationStatus,
-    DerivedEvidenceDisposition, DiscoveredFile, ExpectedFileState, IncrementalLibraryChangeReport,
-    IncrementalReconciliationOutcome, LeasedLibraryChange, LibraryChangeCatchUpEvidence,
-    LibraryChangeCompletion, LibraryChangeFailure, LibraryChangeIntentKind, LibraryChangeLane,
-    LibraryChangeLeaseUpdateOutcome, LibraryChangeQueuePolicy, LibraryChangeScope,
-    LibraryRootGeneration, MetadataInventoryEntry, MetadataInventoryEntryKind,
-    MetadataInventoryPlaceholderState, PreviewStatus, ReconciliationFileEvidence,
-    ReconciliationObservedState, RetainedPreviewExpectation, ScanError, ScanIssue,
-    TerminalMediaEvidenceUpdate,
+    DerivedEvidenceDisposition, DiscoveredFile, ExpectedFileState, FileVisitOutcome,
+    IncrementalLibraryChangeReport, IncrementalReconciliationOutcome, LeasedLibraryChange,
+    LibraryChangeCatchUpEvidence, LibraryChangeCompletion, LibraryChangeFailure,
+    LibraryChangeIntentKind, LibraryChangeLane, LibraryChangeLeaseUpdateOutcome,
+    LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration, MetadataInventoryEntry,
+    MetadataInventoryEntryKind, MetadataInventoryPlaceholderState, PreviewStatus,
+    ReconciliationFileEvidence, ReconciliationObservedState, RetainedPreviewExpectation, ScanError,
+    ScanIssue, TerminalMediaEvidenceUpdate,
 };
 use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue};
 

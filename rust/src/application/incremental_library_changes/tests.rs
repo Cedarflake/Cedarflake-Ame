@@ -10,8 +10,8 @@ use rusqlite::Connection;
 use tempfile::{TempDir, tempdir, tempdir_in};
 
 use crate::adapters::{
-    FileDiscovery, FileVisitOutcome, LocalMediaInspector, PublicationGuardedFileDiscovery,
-    SqliteCatalog, configured_root_open_count, remove_persistent_journal_v22_contract_for_test,
+    FileDiscovery, LocalMediaInspector, PublicationGuardedFileDiscovery, SqliteCatalog,
+    configured_root_open_count, remove_persistent_journal_v22_contract_for_test,
     reset_configured_root_open_instrumentation, reset_source_enumeration_instrumentation,
     source_directory_open_count, source_entry_read_count,
 };
@@ -35,7 +35,7 @@ use crate::domain::PreviewRequest;
 use crate::domain::user_visible_path;
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaPublication, DerivedEvidenceDisposition,
-    FileIdentityEvidence, JournalFileReference, JournalIdentifier, JournalUsn,
+    FileIdentityEvidence, FileVisitOutcome, JournalFileReference, JournalIdentifier, JournalUsn,
     LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch, LibraryChangeEnqueueReport,
     LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent, LibraryChangeIntentKind,
     LibraryChangeLane, LibraryChangeLeaseUpdateOutcome, LibraryChangeOrigin,

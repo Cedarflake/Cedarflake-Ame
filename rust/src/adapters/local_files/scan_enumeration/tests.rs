@@ -4,6 +4,7 @@ use super::*;
 use crate::adapters::local_files::{
     file_identity_evidence, reset_source_content_open_instrumentation, source_content_open_count,
 };
+use crate::ports::scan_discovery::ScanFileDiscovery;
 
 #[test]
 fn complete_enumeration_retains_root_and_empty_directory_identities_without_media_reads() {
@@ -14,9 +15,9 @@ fn complete_enumeration_retains_root_and_empty_directory_identities_without_medi
     let discovery = FileDiscovery::new(&root_path).expect("discovery");
     reset_source_content_open_instrumentation(&root_path);
     for relative_directory in ["", "empty"] {
-        let mut entries = discovery
-            .entry_paths_in_directory(relative_directory)
-            .expect("directory enumeration");
+        let mut entries =
+            ScanFileDiscovery::entry_paths_in_directory(&discovery, relative_directory)
+                .expect("directory enumeration");
         let paths = entries.by_ref().collect::<Vec<_>>();
         assert_eq!(
             paths.len(),
@@ -37,7 +38,8 @@ fn partial_enumeration_cannot_be_retained_as_directory_coverage() {
     let root = tempdir().expect("owned source");
     fs::write(root.path().join("image.png"), b"fixture").expect("owned image");
     let discovery = FileDiscovery::new(&root.path().to_string_lossy()).expect("discovery");
-    let mut entries = discovery.entry_paths_in_directory("").expect("enumeration");
+    let mut entries =
+        ScanFileDiscovery::entry_paths_in_directory(&discovery, "").expect("enumeration");
     assert!(entries.next().is_some());
     let error = entries
         .finish()
@@ -51,9 +53,8 @@ fn replaced_directory_does_not_publish_the_previous_owners_identity() {
     let original = root.path().join("album");
     fs::create_dir(&original).expect("owned directory");
     let discovery = FileDiscovery::new(&root.path().to_string_lossy()).expect("discovery");
-    let mut entries = discovery
-        .entry_paths_in_directory("album")
-        .expect("enumeration");
+    let mut entries =
+        ScanFileDiscovery::entry_paths_in_directory(&discovery, "album").expect("enumeration");
     assert!(entries.next().is_none());
     fs::rename(&original, root.path().join("moved")).expect("move the owned directory");
     fs::create_dir(&original).expect("different owner at the same path");

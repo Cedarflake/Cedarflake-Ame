@@ -1,9 +1,9 @@
 use std::collections::{BTreeSet, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::adapters::{FileVisitOutcome, PublicationGuardedFileDiscovery};
+use crate::adapters::PublicationGuardedFileDiscovery;
 use crate::domain::{
-    IncrementalCatalogRoot, IncrementalLibraryChangeReport, LeasedLibraryChange,
+    FileVisitOutcome, IncrementalCatalogRoot, IncrementalLibraryChangeReport, LeasedLibraryChange,
     LibraryChangeCapacityDeferral, LibraryChangeFailure, LibraryChangeIntentKind,
     LibraryChangeLeaseUpdateOutcome, LibraryChangeOrigin, LibraryChangeQueuePolicy,
     LibraryChangeScope, LibraryRootGeneration, ScanError, ScanIssue,

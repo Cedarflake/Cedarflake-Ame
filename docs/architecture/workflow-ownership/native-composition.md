@@ -115,6 +115,24 @@ including digest/length admission, guarded source/storage identities, bounded tr
 intent recovery. The prepared contract exposes selection paths without transferring or releasing its
 guards; publication cannot detach those resources or extend their authority to another request.
 
+## Scan source resources
+
+`scan_library/production.rs::{file_discovery,media_inspector}` select native implementations through
+`ScanFileDiscovery` and `MediaInspector`. The discovery owns the pinned configured root and lends
+each directory cursor for traversal. `ScanDirectoryEntries::finish` consumes an exhausted cursor
+only after rejecting read failures and revalidating the directory identity. The same native cursor
+retains its directory handle through completion or drop; cancellation cannot turn partial coverage
+into a completed binding.
+
+`domain/source_discovery.rs` owns file-visit outcomes shared by scan and change reconciliation.
+Native admission retains no-follow/no-recall access and held-handle metadata. Application traversal
+retains checkpoint, window, cancellation and progress order. The independent final publication guard
+retains its stronger namespace authority; the discovery port cannot replace or manufacture it.
+
+Replacing these selections preserves root acquisition order, borrowed cursor lifetime, completed
+identity evidence and source-safe inspection. Only the two registered factories may select their
+concrete adapters; persistence, final validation and publication receive no neighboring exemption.
+
 ## Preview store resources
 
 `preview/store_admission.rs` owns native store and cache-namespace composition under the existing

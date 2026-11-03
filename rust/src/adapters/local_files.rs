@@ -71,8 +71,8 @@ use windows_sys::Win32::System::IO::IO_STATUS_BLOCK;
 use windows_sys::Win32::System::SystemServices::FILE_CS_FLAG_CASE_SENSITIVE_DIR;
 
 use crate::domain::{
-    DiscoveredFile, ExpectedFileState, FileIdentityEvidence, LibraryRootAvailability,
-    MediaInspection, MetadataInventoryEntry, MetadataInventoryEntryKind,
+    DiscoveredFile, ExpectedFileState, FileIdentityEvidence, FileVisit, FileVisitOutcome,
+    LibraryRootAvailability, MediaInspection, MetadataInventoryEntry, MetadataInventoryEntryKind,
     MetadataInventoryPlaceholderState, RootAvailabilityEvidence, ScanError, ScanIssue,
     SourceRevisionEvidence,
 };
@@ -88,6 +88,7 @@ mod preview_cache_namespace;
 mod preview_source;
 #[cfg(windows)]
 mod root_location;
+mod scan_discovery;
 mod scan_enumeration;
 #[cfg(all(windows, test))]
 mod source_content_observation;
@@ -113,7 +114,6 @@ pub(crate) use directory_enumeration::instrumentation::{
     reset_source_enumeration_instrumentation, source_directory_open_count, source_entry_read_count,
     source_peak_staged_window,
 };
-pub use file_admission::{FileVisit, FileVisitOutcome};
 pub use file_revalidation::revalidate_file_state;
 #[cfg(windows)]
 use file_revalidation::revalidate_file_state_values;
