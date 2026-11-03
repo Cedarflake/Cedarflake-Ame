@@ -5,6 +5,14 @@ use super::{CatalogRepository, IncrementalCatalogRepository};
 pub(crate) trait ScanStagingRepository:
     CatalogRepository + IncrementalCatalogRepository
 {
+    fn with_initial_import_writes<T>(
+        &mut self,
+        scan_id: &str,
+        operation: impl FnOnce(&mut Self) -> Result<T, ScanError>,
+    ) -> Result<T, ScanError>
+    where
+        Self: Sized;
+
     fn load_retained_import_location(
         &self,
         scan_id: &str,

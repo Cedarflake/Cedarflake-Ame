@@ -12,19 +12,23 @@ use blake3::Hasher;
 use crate::adapters::SqliteCatalog;
 use crate::domain::user_visible_path;
 #[cfg(test)]
-use crate::domain::{AssetLocationView, PreviewStatus};
-use crate::domain::{
-    LibraryChangeLane, RecoverableScan, ScanCheckpoint, ScanError, ScanEvent, ScanIssue,
-    ScanRequest,
-};
+use crate::domain::{AssetLocationView, LibraryChangeLane, PreviewStatus};
 #[cfg(test)]
 use crate::domain::{
     PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalCapability,
     PersistentJournalCapabilityState, PersistentJournalContinuityState, PersistentJournalFailure,
 };
+use crate::domain::{
+    RecoverableScan, ScanCheckpoint, ScanError, ScanEvent, ScanIssue, ScanRequest,
+};
 #[cfg(test)]
 use crate::ports::PersistentJournalRepository;
+#[cfg(test)]
+use crate::ports::scan_admission::ScanAdmissionRepository;
 use crate::ports::scan_discovery::ScanFileDiscovery;
+use crate::ports::scan_publication::ScanPublicationRepository;
+use crate::ports::scan_staging::ScanStagingRepository;
+use crate::ports::source_publication::PublicationNamespace;
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 
 use super::storage::catalog_admission::with_scan_start;
@@ -228,6 +232,8 @@ fn run_scan_with_storage_selection(
     let storage = resolve_storage()?;
     bind_scan_catalog(&request.scan_id, &storage.catalog_path)?;
     let media_inspector = production::media_inspector();
+    let namespace_factory = production::publication_namespaces();
+    let source_state = production::source_state();
     let discovery = production::file_discovery(&request.root_path)?;
     let canonical_root = discovery.canonical_root()?;
     let publication_root_identity =
@@ -245,13 +251,10 @@ fn run_scan_with_storage_selection(
     #[cfg(not(test))]
     let is_authoritative_recovery = false;
     let (mut catalog, admission) = with_scan_start(&storage, &canonical_root, || {
-        let mut catalog = super::catalog_session::open_catalog_for_foreground_scan(
-            &storage.catalog_path,
-            LibraryChangeLane::Recovery,
-            &request.scan_id,
-        )?;
+        let mut catalog = production::catalog(&storage.catalog_path, &request.scan_id)?;
         let admission = root_selection.begin(
             &mut catalog,
+            &namespace_factory,
             &request,
             &root_path,
             &publication_root_identity,
@@ -491,6 +494,8 @@ fn run_scan_with_storage_selection(
 
         let Some(validated) = finalization::validate_staged_locations(
             catalog,
+            &namespace_factory,
+            &source_state,
             &mut finalization,
             FinalizationContext {
                 control: &control,
@@ -554,6 +559,7 @@ fn run_scan_with_storage_selection(
                 .require_metadata_inventory_root_identity(&publication_root_identity)?;
             let consolidation = root_consolidation::PreparedRootConsolidation::capture(
                 catalog,
+                &namespace_factory,
                 &request.scan_id,
                 &root_id,
                 &validated.publication_guard,

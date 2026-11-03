@@ -120,22 +120,7 @@
     "R207",
     "R208",
     "R218",
-    "R224",
-    "R226",
-    "R227",
-    "R236",
-    "R248",
     "R249",
-    "R250",
-    "R251",
-    "R252",
-    "R253",
-    "R254",
-    "R255",
-    "R256",
-    "R257",
-    "R258",
-    "R259",
     "R272",
     "R273",
     "R275"
@@ -295,15 +280,18 @@
       ]
     },
     "scan-source-composition": {
-      "responsibility": "Select pinned source discovery and media inspection for a foreground scan",
-      "reason": "Only the two resource factories choose concrete adapters; traversal and entry processing consume Ame ports and domain outcomes.",
-      "lifetime": "The configured-root proof outlives borrowed directory cursors; cursor completion revalidates identity after exhaustion, while final publication keeps its separate namespace guard.",
-      "replacement": "Replace both native selections through their ports while preserving root acquisition order, no-follow/no-recall admission, held-handle evidence, cancellation and bounded traversal.",
+      "responsibility": "Select pinned source discovery, publication namespaces, metadata-only revalidation and media inspection for a foreground scan",
+      "reason": "Only named resource factories choose concrete adapters; scan admission, traversal, validation and publication consume Ame ports and domain values.",
+      "lifetime": "The configured-root proof outlives borrowed directory cursors; publication namespaces retain root and ancestor bindings through admission or publication, while the stateless probe grants no namespace authority.",
+      "replacement": "Replace native selections through their ports while preserving root acquisition order, no-follow/no-recall admission, held-handle evidence, cancellation and bounded traversal.",
       "decision": "docs/architecture/workflow-ownership/native-composition.md#scan-source-resources",
       "coverage": [
         "rust/src/application/scan_library/tests.rs",
         "rust/src/adapters/local_files/scan_enumeration/tests.rs",
-        "rust/src/adapters/local_files/file_admission/tests.rs"
+        "rust/src/adapters/local_files/file_admission/tests.rs",
+        "rust/src/application/scan_library/root_coverage_tests.rs",
+        "rust/src/application/scan_library/root_consolidation/tests.rs",
+        "rust/src/application/scan_library/relocation_tests.rs"
       ]
     }
   },
@@ -865,6 +853,26 @@
         "source": "rust/src/application/scan_library/production.rs",
         "symbol": "crate::application::scan_library::production::media_inspector",
         "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "scan-publication-namespace-factory",
+      "owner": "scan-source-composition",
+      "dependency": {
+        "source": "rust/src/application/scan_library/production.rs",
+        "symbol": "crate::application::scan_library::production::publication_namespaces",
+        "target": "crate::adapters::local_files::publication_namespace::LocalPublicationNamespaces",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "scan-source-state-factory",
+      "owner": "scan-source-composition",
+      "dependency": {
+        "source": "rust/src/application/scan_library/production.rs",
+        "symbol": "crate::application::scan_library::production::source_state",
+        "target": "crate::adapters::local_source_state::LocalSourceState",
         "rule": "concrete-adapter"
       }
     }

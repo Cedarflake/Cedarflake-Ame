@@ -98,6 +98,10 @@ shared principles; the roadmap owns current delivery order and acceptance status
   finalization owns validation order, cancellation and live-change handoff; `sqlite_catalog/scan_repository.rs`
   binds these contracts to the existing catalog session. Temporary tables, payload revalidation,
   writer admission and transaction rollback remain in the SQLite owners below that binding.
+- `ports/scan_admission.rs` exposes registered-root selection, namespace-bound scan admission, resume
+  coverage and consolidation candidates. `sqlite_catalog/scan_root_repository.rs` binds these operations
+  without splitting their transactions. `ports/source_publication.rs` exposes the separately held root
+  and ancestor capability; application admission and publication retain it for their original scopes.
 - `scan_publication/live_change_admission.rs` owns the distinction between unfinished and exhausted
   uncovered P0 debt. It shares retained-subtree eligibility and current capacity with the queue
   owner. Foreground publication cannot wait for a full P2 lane to drain while that foreground

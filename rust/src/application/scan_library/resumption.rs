@@ -1,9 +1,9 @@
-use crate::adapters::SqliteCatalog;
 use crate::domain::{ScanError, ScanResumeCoverage};
+use crate::ports::scan_admission::ScanAdmissionRepository;
 
 #[cfg(windows)]
 pub(super) fn load_resume_coverage(
-    catalog: &SqliteCatalog,
+    catalog: &impl ScanAdmissionRepository,
     scan_id: &str,
     root_id: &str,
     root_path: &str,
@@ -60,7 +60,7 @@ fn probe_error(error: crate::journal_broker::PersistentChangeJournalOperationErr
 
 #[cfg(not(windows))]
 pub(super) fn load_resume_coverage(
-    _catalog: &SqliteCatalog,
+    _catalog: &impl ScanAdmissionRepository,
     _scan_id: &str,
     _root_id: &str,
     _root_path: &str,

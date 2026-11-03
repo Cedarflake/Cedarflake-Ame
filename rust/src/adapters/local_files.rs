@@ -86,9 +86,11 @@ mod media_signature;
 mod metadata_inventory_evidence;
 mod preview_cache_namespace;
 mod preview_source;
+mod publication_namespace;
 #[cfg(windows)]
 mod root_location;
 mod scan_discovery;
+pub(crate) use publication_namespace::LocalPublicationNamespaces;
 mod scan_enumeration;
 #[cfg(all(windows, test))]
 mod source_content_observation;

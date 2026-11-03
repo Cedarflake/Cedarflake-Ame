@@ -410,7 +410,12 @@ pub(crate) fn poll_production_first_import_change_capture(
             catalog_path,
             LibraryChangeLane::Journal,
         )?;
-        catalog.first_import_change_capture_is_ready(scan_id, root_id, root_generation)
+        crate::ports::scan_admission::ScanAdmissionRepository::first_import_change_capture_is_ready(
+            &catalog,
+            scan_id,
+            root_id,
+            root_generation,
+        )
     }
     #[cfg(not(windows))]
     {

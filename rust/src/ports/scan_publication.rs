@@ -84,6 +84,20 @@ pub(crate) trait ScanPublicationRepository:
         failure: &ScanError,
         issue_count: u64,
     ) -> Result<(), ScanError>;
+    fn preserve_authoritative_retry_evidence(
+        &mut self,
+        scan_id: &str,
+        root_id: &str,
+        retry_relative_paths: &[String],
+    ) -> Result<u64, ScanError>;
+    fn publish_authoritative_scan(
+        &mut self,
+        scan_id: &str,
+        root_id: &str,
+        asset_count: u64,
+        issue_count: u64,
+        retry_relative_paths: &[String],
+    ) -> Result<(), ScanError>;
     fn completed_write_epoch(&self) -> u64;
     fn wait_for_completed_write_after(&self, observed_epoch: u64, timeout: Duration) -> u64;
 }

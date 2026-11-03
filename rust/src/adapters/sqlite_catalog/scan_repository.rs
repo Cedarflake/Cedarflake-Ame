@@ -15,6 +15,14 @@ use super::scan_publication::{
 };
 
 impl ScanStagingRepository for SqliteCatalog {
+    fn with_initial_import_writes<T>(
+        &mut self,
+        scan_id: &str,
+        operation: impl FnOnce(&mut Self) -> Result<T, ScanError>,
+    ) -> Result<T, ScanError> {
+        self.with_initial_import_writes(scan_id, operation)
+    }
+
     fn load_retained_import_location(
         &self,
         scan_id: &str,
@@ -154,6 +162,32 @@ impl ScanPublicationRepository for SqliteCatalog {
         issue_count: u64,
     ) -> Result<(), ScanError> {
         self.fail_scan_publication_namespace(scan_id, root_id, failure, issue_count)
+    }
+
+    fn preserve_authoritative_retry_evidence(
+        &mut self,
+        scan_id: &str,
+        root_id: &str,
+        retry_relative_paths: &[String],
+    ) -> Result<u64, ScanError> {
+        self.preserve_authoritative_retry_evidence(scan_id, root_id, retry_relative_paths)
+    }
+
+    fn publish_authoritative_scan(
+        &mut self,
+        scan_id: &str,
+        root_id: &str,
+        asset_count: u64,
+        issue_count: u64,
+        retry_relative_paths: &[String],
+    ) -> Result<(), ScanError> {
+        self.publish_authoritative_scan(
+            scan_id,
+            root_id,
+            asset_count,
+            issue_count,
+            retry_relative_paths,
+        )
     }
 
     fn completed_write_epoch(&self) -> u64 {

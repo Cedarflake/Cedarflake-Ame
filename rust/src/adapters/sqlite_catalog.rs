@@ -85,6 +85,7 @@ mod scan_publication;
 mod scan_repository;
 mod scan_resume_inventory;
 mod scan_resumption;
+mod scan_root_repository;
 mod scan_staging;
 #[cfg(test)]
 mod session_open_diagnostics;

@@ -2,13 +2,14 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::atomic::{AtomicU8, Ordering};
 
-use crate::adapters::{PublicationGuardedFileDiscovery, revalidate_file_state};
 use crate::domain::{
     FileIdentityEvidence, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin,
     LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration, ScanCheckpoint, ScanError,
     ScanEvent, ScanIssue, ScanRequest, StagedValidationOutcome,
 };
 use crate::ports::scan_publication::ScanPublicationRepository;
+use crate::ports::source_publication::{PublicationNamespace, PublicationNamespaceFactory};
+use crate::ports::source_state::SourceStateProbe;
 use crate::ports::{CatalogRepository, LibraryChangeQueue};
 
 const FINALIZATION_WINDOW: u32 = 256;
@@ -208,20 +209,25 @@ pub(super) struct FinalizationContext<'a> {
     pub(super) accepted_items: u64,
 }
 
-pub(super) struct ValidatedScan<Proof> {
-    pub(super) publication_guard: PublicationGuardedFileDiscovery,
+pub(super) struct ValidatedScan<Proof, Namespace> {
+    pub(super) publication_guard: Namespace,
     pub(super) validated_items: u64,
     pub(super) total_items: u64,
     pub(super) foreground_proof: Option<Proof>,
 }
 
-pub(super) fn validate_staged_locations<Repository: ScanPublicationRepository>(
+pub(super) fn validate_staged_locations<
+    Repository: ScanPublicationRepository,
+    Namespaces: PublicationNamespaceFactory,
+>(
     catalog: &mut Repository,
+    namespace_factory: &Namespaces,
+    source_state: &impl SourceStateProbe,
     plan: &mut FinalizationPlan<Repository::RejectedRoster>,
     context: FinalizationContext<'_>,
     issue_count: &mut u64,
     publish: &mut impl FnMut(ScanEvent) -> bool,
-) -> Result<Option<ValidatedScan<Repository::StagingProof>>, ScanError> {
+) -> Result<Option<ValidatedScan<Repository::StagingProof, Namespaces::Namespace>>, ScanError> {
     let roster = if plan.mode == FinalizationMode::Foreground {
         Some(catalog.capture_staging_validation(&context.request.scan_id)?)
     } else {
@@ -231,23 +237,21 @@ pub(super) fn validate_staged_locations<Repository: ScanPublicationRepository>(
         Some(roster) => catalog.staging_validation_total_items(roster),
         None => catalog.count_staged_file_states(&context.request.scan_id)?,
     };
-    let publication_guard = match PublicationGuardedFileDiscovery::new_incremental_publication_guard(
-        context.root_path,
-        context.publication_root_identity,
-    ) {
-        Ok(guard) => guard,
-        Err(failure) => {
-            if let Err(cleanup) = catalog.fail_scan_publication_namespace(
-                &context.request.scan_id,
-                context.root_id,
-                &failure,
-                *issue_count,
-            ) {
-                return Err(super::scan_cleanup_failure(&failure, &cleanup));
+    let publication_guard =
+        match namespace_factory.open(context.root_path, Some(context.publication_root_identity)) {
+            Ok(guard) => guard,
+            Err(failure) => {
+                if let Err(cleanup) = catalog.fail_scan_publication_namespace(
+                    &context.request.scan_id,
+                    context.root_id,
+                    &failure,
+                    *issue_count,
+                ) {
+                    return Err(super::scan_cleanup_failure(&failure, &cleanup));
+                }
+                return Err(failure);
             }
-            return Err(failure);
-        }
-    };
+        };
     if !publish(finalizing_event(&context, 0, total_items, *issue_count)) {
         super::retain_detached_scan(
             catalog,
@@ -304,7 +308,7 @@ pub(super) fn validate_staged_locations<Repository: ScanPublicationRepository>(
             let mut outcome = StagedValidationOutcome::FilesystemVerified;
             let issue = if plan.preserves_authoritative_retry_evidence(&relative_path) {
                 None
-            } else if let Err(issue) = revalidate_file_state(&expected) {
+            } else if let Err(issue) = source_state.revalidate_file(&expected) {
                 if let Some(roster) = &roster
                     && catalog.staging_superseded_by_live(roster, context.root_id, &location_id)?
                 {

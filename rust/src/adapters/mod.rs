@@ -14,6 +14,7 @@ mod exif_metadata;
 mod image_orientation;
 mod jpeg_preview;
 mod local_files;
+pub(crate) use local_files::LocalPublicationNamespaces;
 mod local_source_state;
 pub(crate) use local_source_state::LocalSourceState;
 #[cfg(test)]

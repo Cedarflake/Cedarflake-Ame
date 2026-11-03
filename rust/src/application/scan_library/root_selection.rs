@@ -1,10 +1,9 @@
-use crate::adapters::{PublicationGuardedFileDiscovery, SqliteCatalog};
 use crate::domain::{
     FileIdentityEvidence, IncrementalCatalogRoot, ScanCheckpoint, ScanError, ScanRequest,
 };
-#[cfg(test)]
-use crate::ports::CatalogRepository;
 use crate::ports::IncrementalCatalogRepository;
+use crate::ports::scan_admission::ScanAdmissionRepository;
+use crate::ports::source_publication::PublicationNamespaceFactory;
 
 use super::{FullScanReason, stable_id};
 
@@ -46,13 +45,21 @@ pub(super) enum ScanRootAdmission {
 impl ScanRootSelection {
     pub fn begin(
         self,
-        catalog: &mut SqliteCatalog,
+        catalog: &mut impl ScanAdmissionRepository,
+        namespace_factory: &impl PublicationNamespaceFactory,
         request: &ScanRequest,
         root_path: &str,
         identity: &FileIdentityEvidence,
         reason: FullScanReason,
     ) -> Result<ScanRootAdmission, ScanError> {
-        let target = match self.resolve(catalog, request, root_path, identity, reason)? {
+        let target = match self.resolve(
+            catalog,
+            namespace_factory,
+            request,
+            root_path,
+            identity,
+            reason,
+        )? {
             ResolvedSelection::Scan(target) => target,
             ResolvedSelection::AlreadyCovered(covered) => {
                 return Ok(ScanRootAdmission::AlreadyCovered(covered));
@@ -74,11 +81,7 @@ impl ScanRootSelection {
         let _namespace_guard = match &target {
             ResolvedScanRoot::Registered(_) => None,
             ResolvedScanRoot::ExplicitReplacement(_) | ResolvedScanRoot::IdentityRecovered(_) => {
-                Some(
-                    PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
-                        root_path, identity,
-                    )?,
-                )
+                Some(namespace_factory.open(root_path, Some(identity))?)
             }
         };
         let checkpoint = match target {
@@ -123,7 +126,8 @@ impl ScanRootSelection {
 
     fn resolve(
         self,
-        catalog: &SqliteCatalog,
+        catalog: &impl ScanAdmissionRepository,
+        namespace_factory: &impl PublicationNamespaceFactory,
         request: &ScanRequest,
         root_path: &str,
         identity: &FileIdentityEvidence,
@@ -159,7 +163,8 @@ impl ScanRootSelection {
                     ));
                 }
                 if reason == FullScanReason::ExplicitUserRequest
-                    && let Some(covered) = coverage::find(catalog, root_path, identity)?
+                    && let Some(covered) =
+                        coverage::find(catalog, namespace_factory, root_path, identity)?
                 {
                     return Ok(ResolvedSelection::AlreadyCovered(covered));
                 }
@@ -179,7 +184,7 @@ impl ScanRootSelection {
 }
 
 fn require_root(
-    catalog: &SqliteCatalog,
+    catalog: &impl IncrementalCatalogRepository,
     root_id: &str,
 ) -> Result<IncrementalCatalogRoot, ScanError> {
     catalog

@@ -1,14 +1,15 @@
 use std::path::Path;
 
-use crate::adapters::{PublicationGuardedFileDiscovery, SqliteCatalog};
 use crate::domain::{FileIdentityEvidence, ScanError, ScanEvent, ScanRequest};
 use crate::ports::IncrementalCatalogRepository;
+use crate::ports::source_publication::{PublicationNamespace, PublicationNamespaceFactory};
 
 use super::super::{CONTROL_CANCEL, CONTROL_SUSPEND};
 use super::CoveredRoot;
 
 pub(super) fn find(
-    catalog: &SqliteCatalog,
+    catalog: &impl IncrementalCatalogRepository,
+    namespace_factory: &impl PublicationNamespaceFactory,
     root_path: &str,
     identity: &FileIdentityEvidence,
 ) -> Result<Option<CoveredRoot>, ScanError> {
@@ -29,10 +30,8 @@ pub(super) fn find(
     };
     let relative_path = relative.to_string_lossy().replace('\\', "/");
     // Coverage selects a configured scope; it never publishes an unfinished import.
-    let namespace = PublicationGuardedFileDiscovery::new_metadata_inventory_source_guard(
-        &root.root_path,
-        root.publication_root_identity.as_ref(),
-    )?;
+    let namespace =
+        namespace_factory.open(&root.root_path, root.publication_root_identity.as_ref())?;
     if !namespace
         .contains_directory_identity(&relative_path, identity)
         .map_err(|issue| ScanError::new(issue.code, issue.message))?

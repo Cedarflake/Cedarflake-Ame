@@ -117,8 +117,9 @@ guards; publication cannot detach those resources or extend their authority to a
 
 ## Scan source resources
 
-`scan_library/production.rs::{file_discovery,media_inspector}` select native implementations through
-`ScanFileDiscovery` and `MediaInspector`. The discovery owns the pinned configured root and lends
+`scan_library/production.rs` selects discovery, media inspection, publication namespaces and source
+state through `ScanFileDiscovery`, `MediaInspector`, `PublicationNamespaceFactory` and `SourceStateProbe`.
+The discovery owns the pinned configured root and lends
 each directory cursor for traversal. `ScanDirectoryEntries::finish` consumes an exhausted cursor
 only after rejecting read failures and revalidating the directory identity. The same native cursor
 retains its directory handle through completion or drop; cancellation cannot turn partial coverage
@@ -126,11 +127,18 @@ into a completed binding.
 
 `domain/source_discovery.rs` owns file-visit outcomes shared by scan and change reconciliation.
 Native admission retains no-follow/no-recall access and held-handle metadata. Application traversal
-retains checkpoint, window, cancellation and progress order. The independent final publication guard
-retains its stronger namespace authority; the discovery port cannot replace or manufacture it.
+retains checkpoint, window, cancellation and progress order. `PublicationNamespace` owns the stronger
+root/ancestor capability through admission, child consolidation or final publication. Its factory
+preserves expected-identity admission; its owner retains and drops the original native guard.
+The stateless source probe revalidates file evidence without acquiring that namespace authority.
+
+The scan catalog factory delegates to the validated session's foreground-scan acquisition and Recovery
+lane, exposing scan repository ports and the existing journal capability contract. The retained initial-import
+write scope restores its connection settings before terminal retirement; scheduling reclamation still
+follows catalog drop. Root binding, resume admission and child retirement remain adapter transactions.
 
 Replacing these selections preserves root acquisition order, borrowed cursor lifetime, completed
-identity evidence and source-safe inspection. Only the two registered factories may select their
+identity evidence and source-safe inspection. Only the registered factories may select their
 concrete adapters; persistence, final validation and publication receive no neighboring exemption.
 
 ## Preview store resources

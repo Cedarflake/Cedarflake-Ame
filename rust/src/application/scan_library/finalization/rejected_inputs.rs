@@ -43,7 +43,7 @@ pub(super) fn validate_rejected_inputs<Repository: ScanPublicationRepository>(
     catalog: &mut Repository,
     plan: &mut FinalizationPlan<Repository::RejectedRoster>,
     context: &FinalizationContext<'_>,
-    guard: &PublicationGuardedFileDiscovery,
+    guard: &impl PublicationNamespace,
     total_items: u64,
     issue_count: &mut u64,
     publish: &mut impl FnMut(ScanEvent) -> bool,

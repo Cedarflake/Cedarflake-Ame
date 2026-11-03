@@ -728,3 +728,32 @@ composition registration changes. Finalization has 435 source/33 inline-test lin
 instrumentation. Native validation has 375/64 and its transaction owner 247 source lines. The new
 binding, ports and domain values have 166, 89/20 and 19 lines respectively. The final client/real-library
 check remains in O7.
+
+## O7 Scan root admission and publication namespaces — 2026-11-04
+
+The scan catalog factory exposes Ame repository ports. Root selection, resume coverage, consolidation
+and terminal retirement no longer name SQLite; the initial-import write scope and authoritative
+publication use the same adapter operations. `PublicationNamespaceFactory` returns the held native
+root/ancestor capability through `PublicationNamespace`; source-state checks reuse `SourceStateProbe`.
+Acquisition order, expected identities and guard/drop scopes remain unchanged. The first port-only
+build exposed missing first-import readiness and recovery-publication members; those operations now
+have typed contracts, including the production synchronization readiness call.
+
+All 71 focused checks pass: eight directory-coverage, 12 consolidation, 23 relocation, one finalization
+control, three namespace-failure/recovery/first-import cases and 24 dependency cases. They retain
+identity ambiguity/replacement rejection, rollback, cancellation, pause/reopen, source bytes and
+album/favorite ownership. The existing real-source identity audit remains ignored by normal test mode;
+the final client/real-library check remains required. No test or assertion changes. Final test and
+production builds emit no warnings, formatting reports 794 files unchanged and both leased scratch
+directories retire.
+
+Against `e9b0936f`, 33 application function bodies compare unchanged after explicit port substitutions.
+The native identity, root-admission, resumption, consolidation and write-scope implementations are
+unchanged. Fifteen legacy IDs retire, leaving 124; two exact namespace/probe factory registrations
+bring retained edges to 58. Both frozen inventories and generated contracts remain unchanged.
+
+The scan facade has 759 source lines and finalization 439 source/33 inline-test lines. Root selection
+and consolidation have 198 and 109 source lines. Their dedicated coverage, consolidation and relocation
+files remain 372, 491 and 347 lines. The synchronization facade has 1,664 source lines, including
+conditional instrumentation, with its affected first-import fixtures unchanged at 356 lines.
+The new namespace port/binding have 30/50 lines and root-admission port/binding 60/90 lines.
