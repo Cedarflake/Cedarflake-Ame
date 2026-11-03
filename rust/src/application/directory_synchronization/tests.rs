@@ -11,7 +11,7 @@ use super::{plan_library_changes, reconcile_path_evidence};
 
 #[test]
 fn create_modify_duplicates_and_reordering_coalesce_to_one_final_reconciliation() {
-    let result = plan_library_changes(
+    let result = crate::synchronization::plan_library_changes(
         &available_context(),
         [
             observation(3, LibraryChangeObservationKind::Modified, "album/image.jpg"),

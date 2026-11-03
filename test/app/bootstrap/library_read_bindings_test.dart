@@ -1,13 +1,11 @@
 import "dart:io";
 
 import "package:cedarflake_ame/app/bootstrap/ame_provider_assembly.dart";
-import "package:cedarflake_ame/app/bootstrap/library_duplicate_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/library_organization_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/library_read_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/library_scan_bindings.dart";
 import "package:cedarflake_ame/app/window/ame_shutdown_coordinator.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_catalog.dart";
-import "package:cedarflake_ame/features/library/adapters/rust/rust_library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization_archive.dart";
@@ -20,7 +18,6 @@ import "package:cedarflake_ame/features/library/adapters/rust/rust_library_scann
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_sidebar_order.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_source_reader.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
-import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/application/library_foreground_reads.dart";
 import "package:cedarflake_ame/features/library/application/library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
@@ -41,7 +38,6 @@ void main() {
   final requirements = [
     ...libraryReadRequirements,
     ...libraryScanRequirements,
-    ...libraryDuplicateRequirements,
     ...libraryOrganizationRequirements,
   ];
 
@@ -57,7 +53,6 @@ void main() {
         overrides: [
           ...reads.overrides,
           ...libraryScanBindings(),
-          ...LibraryDuplicateBindings.production().overrides,
           ...libraryOrganizationBindings(),
         ],
       );
@@ -69,10 +64,6 @@ void main() {
       const previewPath = "test-cache/preview.jpg";
       final expectedImage = FileImage(File(previewPath));
       expect(previewImages(previewPath), expectedImage);
-      expect(
-        ResizeImage.resizeIfNeeded(128, null, previewImages(previewPath)),
-        ResizeImage.resizeIfNeeded(128, null, expectedImage),
-      );
       expect(
         container.read(libraryGalleryLayoutManifestCatalogProvider),
         isA<RustLibraryGalleryLayoutManifestCatalog>(),
@@ -94,10 +85,6 @@ void main() {
         ),
       );
       expect(container.read(libraryScannerProvider), isA<RustLibraryScanner>());
-      expect(
-        container.read(libraryDuplicateReviewProvider),
-        isA<RustLibraryDuplicateReview>(),
-      );
       expect(
         container.read(libraryOrganizationProvider),
         isA<RustLibraryOrganization>(),
@@ -132,7 +119,6 @@ void main() {
       final overrides = [
         ...LibraryReadBindings.production().overrides,
         ...libraryScanBindings(),
-        ...LibraryDuplicateBindings.production().overrides,
         ...libraryOrganizationBindings(),
       ];
       for (final omitted in requirements) {

@@ -821,3 +821,24 @@ The preview facade has 614 source/1,055 inline-test lines, with unchanged 726/31
 reconciliation/failure fixtures. Media inspection has 233 source/134 inline-test lines and its retained
 301-line header fixtures. Native source opening has 159 lines, its port 36 and the factory 10.
 The imports-only local-files facade has 2,618 source/3,460 inline-test lines; `ports.rs` has 1,185 lines.
+
+## O7 Test consolidation — 2026-11-04
+
+Against `698af0f9`, the synchronization facade's duplicate planning case retires. Its existing
+coalescing case now calls the public facade and retains freshness, intent, ordering and sequence
+assertions; the existing Chinese/long-path case retains lossless normalization. The production
+facade is unchanged. The read-binding fixture drops three repeated missing-duplicate-port cases
+and an adapter-type assertion already owned by `library_duplicate_bindings_test.dart`. Its redundant
+SDK resize comparison also retires; the actual preview-factory result assertion remains.
+
+The retained duplicate binding cases still cover the production selections, shared runtime and
+foreground identity, every omitted binding, joined retirement and cleanup after startup failure.
+Distinct native identity, cancellation, persistence and recovery scenarios retain their owners;
+the [test standard](../development/testing.md) governs later additions and pruning.
+
+This consolidation removes 58 net lines, one Rust test and the overlapping checks above. The
+Windows library test roster falls from 2,984 to 2,983; no replacement test is added. Both selected
+Rust planning cases and all six read/duplicate Flutter binding cases pass. Rust compilation emits
+no warnings, leased scratch retires, and the serial format check reports 794 unchanged files.
+The earlier duplicate wrong-extension fixture removal remains in the scoped scan-discovery evidence.
+Final desktop/real-library verification and the retained-import timeout remain in the roadmap queue.
