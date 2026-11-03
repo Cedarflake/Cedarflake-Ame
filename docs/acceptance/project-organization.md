@@ -781,3 +781,24 @@ Cleanup has 605 source/459 inline-test/471 dedicated-test lines; recovery has 31
 200 dedicated capacity-handoff test lines. The native cache has 932 source/901 inline-test lines;
 its capability binding has 100. Activation has 167 source lines and 252/215 dedicated activation and
 capability-test lines. The cache and materialization ports have 46 and 28 lines respectively.
+
+## O7 Preview read and publication leases — 2026-11-04
+
+`PreviewSourceFactory` exposes separate initial-read and publication leases. Metadata inspection uses
+`SourceMediaInspector` and the existing byte-zero reader contract. Against `413a0c94`, all 45 preview
+application function bodies match after explicit port substitutions; native opening, admission and
+revalidation logic retains its original bodies. Acquisition points, structured failures and guard
+retirement remain unchanged, with no new source open during metadata inspection.
+
+All 42 focused cases pass: nine source/publication, four mismatch/recreation, three failure-retention,
+two metadata/orientation and 24 dependency cases. They cover single root binding, metadata refresh,
+changed source rejection, held publication exclusion, missing/recreated files and stale corruption.
+Tests and assertions are unchanged. An unused legacy export was removed; final test/production builds
+emit no warnings. Formatting reports 794 files unchanged, and the leased scratch directory retires.
+Four legacy entries retire and two exact production factories are registered: 93 legacy and 59
+retained technical edges remain. Both frozen inventories and generated contracts are unchanged.
+
+The preview facade has 614 source/1,055 inline-test lines, with unchanged 726/311-line dedicated
+reconciliation/failure fixtures. Media inspection has 233 source/134 inline-test lines and its retained
+301-line header fixtures. Native source opening has 159 lines, its port 36 and the factory 10.
+The imports-only local-files facade has 2,618 source/3,460 inline-test lines; `ports.rs` has 1,185 lines.

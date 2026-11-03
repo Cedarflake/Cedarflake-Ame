@@ -18,7 +18,10 @@ shared principles; the roadmap owns current delivery order and acceptance status
   reclamation access and owns both for the admitted lifetime. The preview facade carries storage
   configuration, not a previously selected store, across a capacity-reclamation gap.
 - `local_files/preview_source.rs` owns initial root-bound source opening and classifies a missing
-  child separately from root unavailability and other I/O failures. This observation retires stale
+  child separately from root unavailability and other I/O failures. `PreviewSourceFactory` exposes
+  separate read and publication leases; `SourceMediaInspector` inspects the admitted reader without
+  reopening a path. Native identity/revision checks and lease retirement stay in their original owners.
+  The initial observation retires stale
   preview work, never grants catalog-removal authority. `preview/source_reconciliation.rs` uses the
   existing exact-source admission and guarded path-set reconciliation; an existing path owner keeps
   its lease and work. The admission port distinguishes a superseded request, existing path work,

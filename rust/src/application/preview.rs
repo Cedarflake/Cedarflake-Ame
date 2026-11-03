@@ -5,23 +5,23 @@ use std::time::{Duration, Instant};
 #[cfg(test)]
 use std::collections::HashMap;
 
-use crate::adapters::{
-    LocalMediaInspector, open_preview_publication_guard, open_preview_source,
-    revalidate_open_preview_source,
-};
 #[cfg(test)]
-use crate::adapters::{LocalPreviewStore, canonical_source_root_path};
+use crate::adapters::{LocalPreviewStore, canonical_source_root_path, open_preview_source};
 use crate::domain::{
     AssetLocationView, DiscoveredFile, ExpectedFileState, LibraryChangeLane, PreviewRequest,
     PreviewStatus, ScanError, ScanIssue,
 };
 use crate::ports::catalog_reader::CatalogReader;
-use crate::ports::{CatalogRepository, PreviewStore};
+use crate::ports::preview_source::{
+    PreviewPublicationLease, PreviewSourceFactory, PreviewSourceLease,
+};
+use crate::ports::{CatalogRepository, PreviewStore, SourceMediaInspector};
 
 use super::{StoragePaths, storage_paths};
 
 mod failure;
 use failure::{FailureDisposition, apply_failure};
+mod production;
 mod source_reconciliation;
 pub(super) mod store_admission;
 #[cfg(test)]
@@ -190,8 +190,9 @@ fn materialize_preview_attempt(
         file_identity: location.file_identity.clone(),
         source_revision: location.source_revision.clone(),
     };
+    let sources = production::sources();
     let source_started = Instant::now();
-    let opened_source = open_preview_source(
+    let opened_source = sources.open(
         &expected,
         std::path::Path::new(&stored_source_root_path),
         expected_root_identity.as_ref(),
@@ -209,13 +210,10 @@ fn materialize_preview_attempt(
             issue,
         )
     })?;
-    let source_root_path = opened_source
-        .source_root_path
-        .to_string_lossy()
-        .into_owned();
+    let source_root_path = opened_source.source_root().to_string_lossy().into_owned();
     if expected.source_revision.is_none() {
-        expected.source_revision = opened_source.source_revision.clone();
-        location.source_revision = opened_source.source_revision.clone();
+        expected.source_revision = opened_source.source_revision().cloned();
+        location.source_revision = opened_source.source_revision().cloned();
     }
     if expected.source_revision.is_none() {
         return Err(ScanError::new(
@@ -237,7 +235,7 @@ fn materialize_preview_attempt(
     };
     if super::media_metadata_is_invalidated(&location)
         && let Ok(inspection) =
-            LocalMediaInspector::new().inspect_open_source(&file, &opened_source.file)
+            production::media_inspector().inspect_open_source(&file, &opened_source)
     {
         location.width = inspection.width;
         location.height = inspection.height;
@@ -249,7 +247,7 @@ fn materialize_preview_attempt(
     let materialize_started = Instant::now();
     let materialization = preview_store.materialize(
         &file,
-        &opened_source.file,
+        &opened_source,
         request.preview_edge,
         location.width,
         location.height,
@@ -270,14 +268,14 @@ fn materialize_preview_attempt(
             #[cfg(test)]
             run_preview_test_hook(&BEFORE_PREVIEW_COMMIT_HOOKS, &request.location_id);
             let commit_started = Instant::now();
-            if let Err(issue) = revalidate_open_preview_source(&opened_source.file, &expected) {
+            if let Err(issue) = opened_source.revalidate(&expected) {
                 let _ = preview_store.discard_staged(&materialization);
                 return Err(source_superseded(issue));
             }
             #[cfg(test)]
             run_preview_test_hook(&AFTER_PREVIEW_REVALIDATION_HOOKS, &request.location_id);
             publication_guard = Some(
-                match open_preview_publication_guard(
+                match sources.protect_publication(
                     &expected,
                     std::path::Path::new(&source_root_path),
                     expected_root_identity.as_ref(),
@@ -346,17 +344,19 @@ fn materialize_preview_attempt(
         }
         Err(issue) => {
             timings.materialization = "failed";
-            revalidate_open_preview_source(&opened_source.file, &expected)
+            opened_source
+                .revalidate(&expected)
                 .map_err(source_superseded)?;
             #[cfg(test)]
             run_preview_test_hook(&AFTER_PREVIEW_REVALIDATION_HOOKS, &request.location_id);
             publication_guard = Some(
-                open_preview_publication_guard(
-                    &expected,
-                    std::path::Path::new(&source_root_path),
-                    expected_root_identity.as_ref(),
-                )
-                .map_err(source_superseded)?,
+                sources
+                    .protect_publication(
+                        &expected,
+                        std::path::Path::new(&source_root_path),
+                        expected_root_identity.as_ref(),
+                    )
+                    .map_err(source_superseded)?,
             );
             if failure::disposition(&issue, request.retry_failed, had_ready_preview)
                 == FailureDisposition::RetainReady
@@ -371,7 +371,8 @@ fn materialize_preview_attempt(
         }
     };
     if let Some(publication_guard) = publication_guard.as_ref() {
-        revalidate_open_preview_source(publication_guard.source_file(), &expected)
+        publication_guard
+            .revalidate(&expected)
             .map_err(source_superseded)?;
     }
     if let Some(issue) = retained_preview_failure {

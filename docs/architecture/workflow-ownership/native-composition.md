@@ -159,6 +159,20 @@ retained store reference cannot preserve a retired selection's authority. Replac
 namespace and store construction together, preserving those lifetimes. This admission does not cover
 preview workflow, cleanup/recovery policy or engine details in public ports.
 
+## Preview source resources
+
+`preview/production.rs::{sources,media_inspector}` selects `PreviewSourceFactory` and
+`SourceMediaInspector`. Selection opens no source. Initial reading follows catalog/root admission;
+metadata inspection runs only for invalidated metadata and uses the admitted source's byte-zero reader.
+The factory keeps initial reading separate from publication protection: the latter binds the source
+and ancestor namespace after decode revalidation and remains held through catalog publication or
+rollback. Both phases retain their original identity, revision, no-follow/no-recall checks and errors.
+
+Replacing these selections preserves the two acquisition points, held-handle reading, final
+revalidation and retirement order. Native files and namespace proofs remain adapter-owned; use cases
+receive only the reader, evidence and revalidation contracts. Only these factories select concrete
+implementations; mismatch reconciliation and publication policy receive no neighboring exemption.
+
 ## Viewer source resources
 
 `viewer_source::acquire_guard` constructs the native source/ancestor guard for a current catalog

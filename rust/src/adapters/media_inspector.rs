@@ -6,6 +6,7 @@ use image::{ImageDecoder, ImageReader, Limits};
 use crate::domain::{DiscoveredFile, ImageOrientation, MediaInspection, ScanIssue};
 use crate::ports::{
     MediaInspectionFailure, MediaInspectionFailureKind, MediaInspector, MetadataExtractor,
+    PreviewSource, SourceMediaInspector,
 };
 
 use super::exif_metadata::KamadakExifExtractor;
@@ -64,34 +65,10 @@ impl LocalMediaInspector {
         }
     }
 
-    pub(crate) fn inspect_open_source(
-        &self,
-        file: &DiscoveredFile,
-        source: &std::fs::File,
-    ) -> Result<MediaInspection, MediaInspectionFailure> {
-        let mut source = source.try_clone().map_err(|error| {
-            media_failure(
-                file,
-                MediaInspectionFailureKind::Retryable,
-                "image_open_failed",
-                error,
-            )
-        })?;
-        source.seek(SeekFrom::Start(0)).map_err(|error| {
-            media_failure(
-                file,
-                MediaInspectionFailureKind::Retryable,
-                "image_open_failed",
-                error,
-            )
-        })?;
-        self.inspect_source(file, source)
-    }
-
     fn inspect_source(
         &self,
         file: &DiscoveredFile,
-        source: std::fs::File,
+        source: impl Read + Seek,
     ) -> Result<MediaInspection, MediaInspectionFailure> {
         let reader = ImageReader::new(BufReader::new(source))
             .with_guessed_format()
@@ -175,6 +152,25 @@ impl LocalMediaInspector {
             height,
             metadata,
         })
+    }
+}
+
+impl SourceMediaInspector for LocalMediaInspector {
+    #[flutter_rust_bridge::frb(ignore)]
+    fn inspect_open_source(
+        &self,
+        file: &DiscoveredFile,
+        source: &impl PreviewSource,
+    ) -> Result<MediaInspection, MediaInspectionFailure> {
+        let source = source.reader_from_start().map_err(|error| {
+            media_failure(
+                file,
+                MediaInspectionFailureKind::Retryable,
+                "image_open_failed",
+                error,
+            )
+        })?;
+        self.inspect_source(file, source)
     }
 }
 

@@ -90,10 +90,6 @@
     "R162",
     "R163",
     "R164",
-    "R167",
-    "R168",
-    "R169",
-    "R170",
     "R171",
     "R172",
     "R249"
@@ -268,6 +264,19 @@
         "rust/src/application/scan_library/root_coverage_tests.rs",
         "rust/src/application/scan_library/root_consolidation/tests.rs",
         "rust/src/application/scan_library/relocation_tests.rs"
+      ]
+    },
+    "preview-source-composition": {
+      "responsibility": "Select admitted preview-source capabilities and inspection of already-open media",
+      "reason": "The factories expose Ame contracts while initial read admission, source mismatch handling and publication policy keep their existing application owners.",
+      "lifetime": "Initial source reading follows catalog/root admission; fresh publication protection follows decode revalidation and retains source/ancestor guards through catalog publication or rollback.",
+      "replacement": "Replace source and media-inspection selections through their ports without reopening the decoder path or changing identity/revision checks, no-recall admission, acquisition points or drop order.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#preview-source-resources",
+      "coverage": [
+        "rust/src/application/preview.rs",
+        "rust/src/application/preview/tests/source_reconciliation.rs",
+        "rust/src/application/preview/tests/failure.rs",
+        "rust/src/adapters/local_files/file_revalidation/tests.rs"
       ]
     }
   },
@@ -839,6 +848,26 @@
         "source": "rust/src/application/scan_library/production.rs",
         "symbol": "crate::application::scan_library::production::source_state",
         "target": "crate::adapters::local_source_state::LocalSourceState",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-source-factory",
+      "owner": "preview-source-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/production.rs",
+        "symbol": "crate::application::preview::production::sources",
+        "target": "crate::adapters::local_files::preview_source::LocalPreviewSources",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-source-media-inspector-factory",
+      "owner": "preview-source-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/production.rs",
+        "symbol": "crate::application::preview::production::media_inspector",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
         "rule": "concrete-adapter"
       }
     }

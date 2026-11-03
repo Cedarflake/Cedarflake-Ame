@@ -31,6 +31,7 @@ pub(crate) mod organization_cleanup;
 pub(crate) mod organization_conflicts;
 pub(crate) mod organization_review;
 pub(crate) mod preview_cache_storage;
+pub(crate) mod preview_source;
 pub(crate) mod scan_admission;
 pub(crate) mod scan_discovery;
 pub(crate) mod scan_publication;
@@ -1155,6 +1156,14 @@ pub(crate) trait MediaInspector {
     fn inspection_engine_id(&self) -> &'static str;
     fn inspection_engine_version(&self) -> u32;
     fn inspect(&self, file: &DiscoveredFile) -> Result<MediaInspection, MediaInspectionFailure>;
+}
+
+pub(crate) trait SourceMediaInspector {
+    fn inspect_open_source(
+        &self,
+        file: &DiscoveredFile,
+        source: &impl PreviewSource,
+    ) -> Result<MediaInspection, MediaInspectionFailure>;
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]

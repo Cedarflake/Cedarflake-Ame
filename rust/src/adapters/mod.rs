@@ -46,17 +46,19 @@ pub use classification_vocabulary::{
 pub(crate) use durable_local_metadata_inventory::DurableLocalMetadataInventory;
 #[cfg(all(windows, test))]
 pub(crate) use local_files::force_publication_namespace_guard_failure_for_test;
+#[cfg(test)]
+pub(crate) use local_files::open_preview_source;
 #[cfg(windows)]
 pub(crate) use local_files::open_viewer_source_guard;
 #[cfg(test)]
 pub(crate) use local_files::read_catalog_identity;
 pub use local_files::{FileDiscovery, inspect_root_availability, revalidate_file_state};
+pub(crate) use local_files::{
+    LocalPreviewSources, PreviewCacheNamespace, PreviewPublicationGuard,
+    PublicationGuardedFileDiscovery, revalidate_open_preview_source,
+};
 #[cfg(windows)]
 pub(crate) use local_files::{LocatedLibraryRoot, locate_library_root};
-pub(crate) use local_files::{
-    PreviewCacheNamespace, PreviewPublicationGuard, PublicationGuardedFileDiscovery,
-    open_preview_publication_guard, open_preview_source, revalidate_open_preview_source,
-};
 #[cfg(test)]
 pub(crate) use local_files::{
     canonical_source_root_path, configured_root_open_count, file_identity_evidence,

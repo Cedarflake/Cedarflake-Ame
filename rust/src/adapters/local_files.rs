@@ -124,6 +124,8 @@ use file_revalidation::revalidate_file_state_with_metadata;
 pub(crate) use file_revalidation::revalidate_open_preview_source;
 use metadata_inventory_evidence::metadata_inventory_entry_from_checked_directory_entry;
 pub(crate) use preview_cache_namespace::PreviewCacheNamespace;
+pub(crate) use preview_source::LocalPreviewSources;
+#[cfg(any(not(windows), test))]
 pub(crate) use preview_source::open_preview_source;
 #[cfg(windows)]
 pub(crate) use root_location::{LocatedLibraryRoot, locate_library_root};
