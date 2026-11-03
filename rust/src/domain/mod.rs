@@ -47,6 +47,8 @@ pub(crate) mod persistent_journal;
 mod scan_publication;
 mod scan_resume_coverage;
 mod source_discovery;
+mod stable_identity;
+pub(crate) use stable_identity::stable_id;
 
 pub(crate) use scan_publication::{
     RetainedScanIssue, ScanPublicationReceipt, StagedValidationOutcome,

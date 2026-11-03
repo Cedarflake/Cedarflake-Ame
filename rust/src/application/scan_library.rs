@@ -6,7 +6,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use blake3::Hasher;
+use crate::domain::stable_id;
 
 #[cfg(test)]
 use crate::adapters::SqliteCatalog;
@@ -741,14 +741,6 @@ fn validate_request(request: &ScanRequest) -> Result<(), ScanError> {
         ));
     }
     Ok(())
-}
-
-pub(super) fn stable_id(namespace: &str, value: &str) -> String {
-    let mut hasher = Hasher::new();
-    hasher.update(namespace.as_bytes());
-    hasher.update(&[0]);
-    hasher.update(value.as_bytes());
-    hasher.finalize().to_hex().to_string()
 }
 
 pub(super) fn stable_location_id(root_id: &str, relative_path: &str) -> String {

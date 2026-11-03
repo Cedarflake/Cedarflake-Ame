@@ -18,7 +18,7 @@ fn p0_root_and_subtree_use_the_reserved_worker_while_p2_is_full_active_and_retry
         .metadata_inventory_root_identity()
         .expect("priority fixture root identity query")
         .expect("priority fixture stable root identity");
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),
@@ -321,7 +321,7 @@ fn higher_lane_ready_or_active_blocks_the_next_lower_page_then_p2_resumes() {
     let source = directory.path().join("source");
     std::fs::create_dir_all(&source).expect("source root");
     let root_path = source.to_string_lossy().into_owned();
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),

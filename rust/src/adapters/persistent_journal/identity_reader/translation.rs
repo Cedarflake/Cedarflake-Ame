@@ -279,7 +279,7 @@ pub(super) fn attach_handoffs(
             outcomes[*new_index].root_id.clone(),
             outcomes[*new_index].root_generation,
         );
-        let id = crate::application::scan_library::stable_id(
+        let id = crate::domain::stable_id(
             "identity-journal-handoff-v1",
             &format!(
                 "{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}",

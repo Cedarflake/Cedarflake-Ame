@@ -118,8 +118,8 @@ fn run_priority_workload(
         .expect("canonical P2 root")
         .to_string_lossy()
         .into_owned();
-    let p1_root_id = crate::application::scan_library::stable_id("library-root-v1", &p1_root_path);
-    let p2_root_id = crate::application::scan_library::stable_id("library-root-v1", &p2_root_path);
+    let p1_root_id = crate::domain::stable_id("library-root-v1", &p1_root_path);
+    let p2_root_id = crate::domain::stable_id("library-root-v1", &p2_root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),

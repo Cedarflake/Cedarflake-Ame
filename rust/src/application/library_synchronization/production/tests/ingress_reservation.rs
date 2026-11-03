@@ -201,7 +201,7 @@ fn publish_other_root(fixture: &ProductionGapFixture, catalog: &mut SqliteCatalo
         .unwrap()
         .to_string_lossy()
         .into_owned();
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let identity = discovery
         .metadata_inventory_root_identity()
         .unwrap()

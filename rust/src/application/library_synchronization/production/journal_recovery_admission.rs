@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::application::persistent_journal_continuity::can_reprobe_journal_failure;
+use crate::domain::persistent_journal::can_reprobe_journal_failure;
 use crate::domain::{
     LibraryChangeSourceHealth, LibraryRootAvailability, LibrarySynchronizationPhase,
     LibrarySynchronizationSnapshot, PersistentJournalCapabilityState,

@@ -255,6 +255,23 @@ root identity, bounded query timeout, no-recall opens, cancellation/publication 
 authority. Baseline admission and scan-coverage decisions remain in application and persistence;
 this admission covers neither neighboring policy nor remaining journal-volume protocol dependencies.
 
+## Journal volume resources
+
+`production/journal_work::new_production_volume_source` selects the retained session and caller
+through `PersistentJournalVolumeSource`. Selection performs no I/O. The page worker retains each
+opaque root registration through capture and catalog publication; the adapter creates the same
+named or identity-based reader from those registrations and the catalog namespace port.
+
+`adapters/persistent_journal` owns broker requests, native evidence conversion, bounded reads,
+operation-error translation and trim diagnostics. Domain owns journal read-window/recovery rules
+and shared deterministic identity generation. Application owns capture validation, failed-read
+budgets, cancellation, transactions and publication. Moving the reader does not move those authorities.
+
+Replacement changes this factory and the port implementation without exposing authorization DTOs
+or raw handles to the page worker. Preserve per-root failure isolation, captured window limits,
+rename/lineage identity, namespace lookup, pending-read cancellation and borrowed-session lifetime.
+Root handles retire at the original post-publication point, before the reader releases its session.
+
 ## Indexed recovery resources
 
 `library_synchronization/production/recovery_work/automatic::new_production_search_index` selects

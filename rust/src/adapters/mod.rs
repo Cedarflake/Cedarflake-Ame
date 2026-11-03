@@ -24,6 +24,13 @@ pub(crate) use local_source_state::LocalSourceState;
 #[cfg(test)]
 mod local_metadata_inventory;
 mod media_inspector;
+mod persistent_journal;
+#[cfg(windows)]
+pub(crate) use persistent_journal::volume_source as persistent_journal_volume_source;
+#[cfg(test)]
+pub(crate) use persistent_journal::{
+    PersistentJournalBrokerRoot, SessionBackedPersistentJournalVolumeReader,
+};
 #[cfg(windows)]
 pub(crate) mod windows_search_index;
 pub(crate) use exact_content_reader::GuardedExactContentReader;

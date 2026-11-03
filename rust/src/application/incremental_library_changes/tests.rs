@@ -17,16 +17,14 @@ use crate::adapters::{
     reset_configured_root_open_instrumentation, reset_source_enumeration_instrumentation,
     source_directory_open_count, source_entry_read_count,
 };
+use crate::adapters::{PersistentJournalBrokerRoot, SessionBackedPersistentJournalVolumeReader};
 #[cfg(windows)]
 use crate::adapters::{reset_source_content_open_instrumentation, source_content_open_count};
 use crate::application::metadata_inventory::{
     MetadataInventoryRecoveryExecution, process_leased_metadata_inventory_change,
     process_leased_metadata_inventory_change_with_retained_source,
 };
-use crate::application::persistent_journal_continuity::{
-    PersistentJournalBrokerRoot, SessionBackedPersistentJournalVolumeReader,
-    catch_up_persistent_journal_volume,
-};
+use crate::application::persistent_journal_continuity::catch_up_persistent_journal_volume;
 use crate::application::{
     AuthoritativeRecoveryPolicy, process_ready_authoritative_library_change_cancellable,
     process_ready_library_changes_in_lane,

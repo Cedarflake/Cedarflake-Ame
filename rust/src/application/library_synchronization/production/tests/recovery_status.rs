@@ -7,7 +7,7 @@ fn production_snapshot_projects_an_explicit_v30_claim_as_manual_recovery() {
     let source_root = directory.path().join("source");
     std::fs::create_dir_all(&source_root).expect("source root");
     let root_path = source_root.to_string_lossy().into_owned();
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),

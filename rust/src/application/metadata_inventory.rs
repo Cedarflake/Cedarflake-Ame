@@ -576,7 +576,7 @@ fn metadata_inventory_recovery_reason(
 #[cfg(test)]
 fn metadata_inventory_run_id(leased: &LeasedLibraryChange) -> String {
     let intent = &leased.change.intent;
-    super::scan_library::stable_id(
+    crate::domain::stable_id(
         "metadata-inventory-run-v2",
         &format!(
             "{}:{}:{}:{}:{}:{}:{}",

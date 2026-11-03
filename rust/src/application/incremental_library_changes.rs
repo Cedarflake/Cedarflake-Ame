@@ -19,7 +19,8 @@ use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue};
 
 use super::directory_synchronization::reconcile_path_evidence;
 use super::metadata_inventory::inventory_matches_location;
-use super::scan_library::{stable_id, stable_location_id};
+use super::scan_library::stable_location_id;
+use crate::domain::stable_id;
 
 const MAX_CATALOG_REVISION_REBASE_ATTEMPTS: usize = 2;
 

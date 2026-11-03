@@ -277,3 +277,30 @@ with their existing acceptance owners.
 The baseline owner has 350 source/215 inline-test lines; opening has 182 source/471 dedicated-test
 lines. The worker has 381 source lines and no inline cases. The new protocol adapter has 147 source/
 122 dedicated-test lines, and independently owned resume resources have 72 source lines.
+
+## Journal volume readers — 2026-11-04
+
+Against `eff3fb1c`, named/identity readers and their protocol translation move to
+`adapters/persistent_journal`. Domain owns read-window/recovery rules and the shared deterministic
+ID function; trim diagnostics remain in the adapter. `PersistentJournalVolumeSource` hides native
+registrations and reader selection from the page worker, which retains root handles through its
+unchanged capture/publication boundary. The [named factory](../architecture/workflow-ownership/native-composition.md#journal-volume-resources)
+brings technical edges to 76; the four remaining fixed migration entries and both inventories are
+unchanged. This protocol boundary was outside the fixed explicit-adapter roster.
+
+Source comparison preserves all eight relocated reader/translation/test files apart from imports
+and owner paths, the domain rules, ID bytes, trim diagnostic, complete capture owner, page worker,
+root failure publication and 21 shared-ID consumers. Reader assertions and test counts are unchanged;
+the page fixture supplies the same classified failure through its new port. Initial compilation found
+two old ID imports in test support; both now use domain directly, without a compatibility export.
+
+All 64 selected existing checks pass: 31 reader cases, shared-ID and root-failure cases, five
+cross-root/retry cases, two ordinary native cross-process cases and 24 dependency cases. The native
+restart and paused-import fixtures pass in 3.99 and 3.81 seconds, retaining identity, checkpoint,
+source-byte and retirement assertions. Final test/production builds emit no warnings; formatting
+reports 794 files unchanged and the scratch lease retires.
+
+Source/primary dedicated-test counts are 1,151/1,112 for the named reader, 436/753 for the identity
+reader, 586/668 for application capture and 111/124 for the page worker, with no inline cases. The
+shared-ID move leaves the scan facade at 751/5,505 and incremental changes at 1,346/3,839; their
+workflow bodies remain unchanged, and the existing namespace-ID case moves to domain.

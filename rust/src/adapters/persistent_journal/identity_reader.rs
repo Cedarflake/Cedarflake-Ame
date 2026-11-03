@@ -1,3 +1,5 @@
+use crate::domain::persistent_journal::{JournalReadWindows, reprobed_failure};
+
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -29,7 +31,7 @@ pub(crate) struct IdentityPersistentJournalVolumeReader {
     pub(crate) roots: Vec<PersistentJournalBrokerRoot>,
     pub(crate) source: Arc<dyn PersistentIdentityJournalSource>,
     pub(crate) namespace: Arc<dyn PersistentJournalNamespaceReader>,
-    pub(super) read_windows: super::read_boundary::JournalReadWindows,
+    pub(super) read_windows: JournalReadWindows,
 }
 
 struct PreparedRoot<'a> {
@@ -149,7 +151,7 @@ impl IdentityPersistentJournalVolumeReader {
             ));
         }
         if first > checkpoint.next_unread_usn.value() {
-            return Err(super::read_boundary::trimmed_failure(
+            return Err(super::read_failure::trimmed_failure(
                 "identity_journal_trim",
                 checkpoint,
                 first,
@@ -163,7 +165,7 @@ impl IdentityPersistentJournalVolumeReader {
                 Some(&opening),
             ));
         }
-        if let Some(failure) = super::recovery_probe::reprobed_failure(checkpoint, &opening) {
+        if let Some(failure) = reprobed_failure(checkpoint, &opening) {
             return Err(failure);
         }
         if !self

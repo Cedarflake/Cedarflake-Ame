@@ -297,10 +297,10 @@ impl JournalTask {
         let worker = thread::Builder::new()
             .name("ame-p1-journal-page".to_owned())
             .spawn(move || {
+                let source = new_production_volume_source(session, caller);
                 let result = page::run(
                     work,
-                    session,
-                    caller,
+                    source,
                     observed_unix_ms,
                     catalog_session,
                     policy,
@@ -378,4 +378,11 @@ fn new_production_boundary_source<'a>(
     caller: &'a CallerClaim,
 ) -> impl crate::ports::journal_boundary::JournalBoundarySource + 'a {
     crate::adapters::session_boundary_source(session, caller)
+}
+
+fn new_production_volume_source(
+    session: Arc<dyn PersistentChangeJournalSession>,
+    caller: CallerClaim,
+) -> impl crate::ports::journal_volume::PersistentJournalVolumeSource {
+    crate::adapters::persistent_journal_volume_source(session, caller)
 }

@@ -14,8 +14,9 @@ use super::{
     start_production_library_synchronization, stop_production_library_synchronization,
 };
 use crate::adapters::{FileDiscovery, SqliteCatalog};
-use crate::application::scan_library::{run_scan_with_storage, stable_id};
+use crate::application::scan_library::run_scan_with_storage;
 use crate::application::storage::{StoragePaths, storage_paths};
+use crate::domain::stable_id;
 use crate::domain::{LibraryRootGeneration, ScanEvent, ScanRequest};
 
 const WORKER: &str =

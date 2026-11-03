@@ -1118,14 +1118,6 @@ fn validates_scan_limits() {
 }
 
 #[test]
-fn stable_ids_change_with_namespace() {
-    assert_ne!(
-        stable_id("library-root-v1", "C:\\pictures"),
-        stable_id("asset-location-v1", "C:\\pictures"),
-    );
-}
-
-#[test]
 fn scan_issue_presentation_path_hides_windows_device_prefixes() {
     let issue = user_visible_issue(ScanIssue {
         path: Some(r"\\?\C:\Pictures\broken.png".to_owned()),

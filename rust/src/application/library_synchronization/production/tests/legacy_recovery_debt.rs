@@ -10,7 +10,7 @@ fn legacy_p2_capacity_debt_allows_only_one_bounded_drain_before_p1_admission() {
     let source = directory.path().join("source");
     std::fs::create_dir_all(&source).expect("source root");
     let root_path = source.to_string_lossy().into_owned();
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),
@@ -362,7 +362,7 @@ fn exactly_3584_legacy_unowned_p2_rows_release_p1_then_continue_without_loss() {
         .metadata_inventory_root_identity()
         .expect("capacity root identity query")
         .expect("capacity root stable identity");
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),
@@ -644,7 +644,7 @@ fn exactly_one_legacy_unowned_nonpath_row_runs_once_blocks_durably_and_refresh_s
         .metadata_inventory_root_identity()
         .expect("legacy root identity query")
         .expect("legacy root stable identity");
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),

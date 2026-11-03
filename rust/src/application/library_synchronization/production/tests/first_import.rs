@@ -9,7 +9,7 @@ fn stale_live_only_first_import_capability_is_refreshed_once() {
     let source_root = directory.path().join("source");
     std::fs::create_dir_all(&source_root).expect("source root");
     let root_path = source_root.to_string_lossy().into_owned();
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),
@@ -134,7 +134,7 @@ fn failed_first_import_retries_with_fresh_generation_and_capture_owner() {
     let source_root = directory.path().join("source");
     std::fs::create_dir_all(&source_root).expect("source root");
     let root_path = source_root.to_string_lossy().into_owned();
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),
@@ -227,7 +227,7 @@ fn startup_retires_legacy_full_scan_into_bounded_inventory_without_new_scan() {
     let source_root = directory.path().join("source");
     std::fs::create_dir_all(&source_root).expect("source root");
     let root_path = source_root.to_string_lossy().into_owned();
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),

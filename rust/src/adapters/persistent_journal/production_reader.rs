@@ -1,3 +1,5 @@
+use crate::domain::persistent_journal::JournalReadWindows;
+
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
@@ -9,7 +11,9 @@ use crate::journal_broker::{CallerClaim, PersistentChangeJournalSession};
 use crate::ports::{PersistentJournalNamespaceReader, PersistentJournalVolumeReader};
 
 use super::identity_reader::IdentityPersistentJournalVolumeReader;
-use super::{PersistentJournalBrokerRoot, SessionBackedPersistentJournalVolumeReader};
+use super::session_reader::{
+    PersistentJournalBrokerRoot, SessionBackedPersistentJournalVolumeReader,
+};
 
 pub(crate) enum ProductionPersistentJournalVolumeReader {
     Named(SessionBackedPersistentJournalVolumeReader),
@@ -29,7 +33,7 @@ impl ProductionPersistentJournalVolumeReader {
             caller.clone(),
             roots.clone(),
         )?;
-        let read_windows = super::read_boundary::JournalReadWindows::new(baselines)?;
+        let read_windows = JournalReadWindows::new(baselines)?;
         if let Some(source) = session.identity_source() {
             Ok(Self::Identity(IdentityPersistentJournalVolumeReader {
                 session,

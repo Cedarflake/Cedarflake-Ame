@@ -31,7 +31,7 @@ fn production_coordinator_completes_4096_real_files_across_the_default_page() {
         .metadata_inventory_root_identity()
         .expect("controlled root identity query")
         .expect("controlled stable root identity");
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),

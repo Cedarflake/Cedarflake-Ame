@@ -1,19 +1,17 @@
 use std::collections::HashMap;
 
 use crate::domain::{
-    LibraryRecoveryOpeningBoundary, LibraryRootGeneration, PersistentJournalBaseline,
-    PersistentJournalBaselinePhase, PersistentJournalCheckpoint, PersistentJournalContinuityState,
-    PersistentJournalFailure, PersistentJournalReadFailure, PersistentJournalRootFailureKind,
-    ScanError,
+    LibraryRootGeneration, PersistentJournalBaseline, PersistentJournalBaselinePhase,
+    PersistentJournalCheckpoint, PersistentJournalContinuityState, ScanError,
 };
 
 #[derive(Default)]
-pub(super) struct JournalReadWindows {
+pub(crate) struct JournalReadWindows {
     baselines: HashMap<(String, LibraryRootGeneration), PersistentJournalBaseline>,
 }
 
 impl JournalReadWindows {
-    pub(super) fn new(baselines: Vec<PersistentJournalBaseline>) -> Result<Self, ScanError> {
+    pub(crate) fn new(baselines: Vec<PersistentJournalBaseline>) -> Result<Self, ScanError> {
         let mut windows = Self::default();
         for baseline in baselines {
             baseline.validate()?;
@@ -30,7 +28,7 @@ impl JournalReadWindows {
         Ok(windows)
     }
 
-    pub(super) fn end(
+    pub(crate) fn end(
         &self,
         checkpoint: &PersistentJournalCheckpoint,
         observed_end: i64,
@@ -58,7 +56,7 @@ impl JournalReadWindows {
         Ok(closing.value())
     }
 
-    pub(super) fn admits_shared_end(
+    pub(crate) fn admits_shared_end(
         &self,
         checkpoint: &PersistentJournalCheckpoint,
         end: i64,
@@ -72,7 +70,7 @@ impl JournalReadWindows {
         !is_partial_catchup(checkpoint) || checkpoint.captured_exclusive_end.value() == end
     }
 
-    pub(super) fn blocks_next_window(&self, checkpoint: &PersistentJournalCheckpoint) -> bool {
+    pub(crate) fn blocks_next_window(&self, checkpoint: &PersistentJournalCheckpoint) -> bool {
         let key = (checkpoint.root_id.clone(), checkpoint.root_generation);
         self.baselines.get(&key).is_some_and(|baseline| {
             baseline.closing_next_usn == Some(checkpoint.next_unread_usn)
@@ -80,7 +78,7 @@ impl JournalReadWindows {
         })
     }
 
-    pub(super) fn requires_empty_replay(&self, checkpoint: &PersistentJournalCheckpoint) -> bool {
+    pub(crate) fn requires_empty_replay(&self, checkpoint: &PersistentJournalCheckpoint) -> bool {
         let key = (checkpoint.root_id.clone(), checkpoint.root_generation);
         self.baselines.get(&key).is_some_and(|baseline| {
             baseline.phase == PersistentJournalBaselinePhase::Replay
@@ -100,31 +98,4 @@ fn invalid() -> ScanError {
         "persistent_journal_baseline_read_window_invalid",
         "The journal read cannot extend an unfinished baseline window",
     )
-}
-
-pub(super) fn trimmed_failure(
-    code: &str,
-    checkpoint: &PersistentJournalCheckpoint,
-    first_usn: i64,
-    opening: LibraryRecoveryOpeningBoundary,
-) -> PersistentJournalReadFailure {
-    let message = format!(
-        "The retained journal begins after the saved unread position: \
-         checkpoint_usn={}, first_usn={}, next_usn={}, checkpoint_updated_unix_ms={}",
-        checkpoint.next_unread_usn.value(),
-        first_usn,
-        opening.next_usn.value(),
-        checkpoint.updated_unix_ms,
-    );
-    // A recovered checkpoint later clears its failure. Retain the observed numeric
-    // bounds in the diagnostic log without exposing source paths or volume identity.
-    eprintln!("[Ame journal] continuity lost code={code}: {message}");
-    PersistentJournalReadFailure {
-        kind: PersistentJournalRootFailureKind::JournalTrim,
-        failure: PersistentJournalFailure {
-            code: code.to_owned(),
-            message,
-        },
-        opening_boundary: Some(Box::new(opening)),
-    }
 }

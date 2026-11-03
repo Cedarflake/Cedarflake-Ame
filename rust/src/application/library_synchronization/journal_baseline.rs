@@ -477,7 +477,7 @@ mod tests {
             PathBuf::from("unused"),
         );
         let request = opening_request(&work, supported_opening_boundary(), 100);
-        let expected_run_id = crate::application::scan_library::stable_id(
+        let expected_run_id = crate::domain::stable_id(
             "persistent-journal-baseline-v1",
             &format!("{}\0{}\0{}\0{}\0{}\0{}", "root-a", 1, "volume-a", 7, 44, 20),
         );

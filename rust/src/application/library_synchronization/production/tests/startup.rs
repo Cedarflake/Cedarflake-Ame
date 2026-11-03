@@ -29,7 +29,7 @@ fn production_poll_starts_the_watcher_before_opening_the_journal_boundary() {
     let source_root = directory.path().join("source");
     std::fs::create_dir_all(&source_root).expect("source root");
     let root_path = source_root.to_string_lossy().into_owned();
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),
@@ -126,7 +126,7 @@ fn one_hundred_no_change_startups_complete_the_production_observer_path_without_
     std::fs::write(source_root.join("sentinel.txt"), b"must not be enumerated")
         .expect("source-root enumeration sentinel");
     let root_path = source_root.to_string_lossy().into_owned();
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),
@@ -415,7 +415,7 @@ fn broker_absence_and_mismatch_remain_live_only_without_inventory() {
         let source_root = directory.path().join("source");
         std::fs::create_dir_all(&source_root).expect("source root");
         let root_path = source_root.to_string_lossy().into_owned();
-        let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+        let root_id = crate::domain::stable_id("library-root-v1", &root_path);
         let storage = crate::application::storage::StoragePaths {
             catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
             preview_root: directory.path().join("previews"),

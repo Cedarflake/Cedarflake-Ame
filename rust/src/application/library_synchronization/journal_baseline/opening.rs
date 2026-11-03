@@ -147,7 +147,7 @@ pub(super) fn opening_request(
     let authorized_unix_ms = work.authorized_unix_ms(observed_unix_ms);
     let (run_id, authority_reason) = match &work.authority {
         JournalBaselineOpeningAuthority::ExistingRoot => (
-            crate::application::scan_library::stable_id(
+            crate::domain::stable_id(
                 "persistent-journal-baseline-v1",
                 &format!(
                     "{}\0{}\0{}\0{}\0{}\0{}",

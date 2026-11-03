@@ -271,6 +271,20 @@
         "rust/src/application/library_synchronization/production/ordinary_journal/import_resumption.rs",
         "rust/src/application/scan_library/resumption_tests.rs"
       ]
+    },
+    "journal-volume-composition": {
+      "responsibility": "Select a retained-session volume source behind opaque registrations and PersistentJournalVolumeReader",
+      "reason": "Only the named factory selects native journal readers; the page worker owns publication and per-root failure admission through Ame contracts.",
+      "lifetime": "Selection performs no I/O. The worker retains registrations through bounded capture and publication, dropping root handles before the borrowed-session reader retires.",
+      "replacement": "Replace the source and readers through their ports while retaining root identity, fixed read windows, namespace evidence, rename lineage, cancellation and borrowed-session ownership.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#journal-volume-resources",
+      "coverage": [
+        "rust/src/adapters/persistent_journal/session_reader/tests.rs",
+        "rust/src/adapters/persistent_journal/identity_reader/tests.rs",
+        "rust/src/application/library_synchronization/production/journal_work/page/tests.rs",
+        "rust/src/application/library_synchronization/production/ordinary_journal.rs",
+        "rust/src/application/library_synchronization/production/ordinary_journal/import_resumption.rs"
+      ]
     }
   },
   "retained": [
@@ -1021,6 +1035,16 @@
         "source": "rust/src/application/scan_library/resumption.rs",
         "symbol": "crate::application::scan_library::resumption::new_production_resume_boundary_source",
         "target": "crate::adapters::journal_boundary::resume::resume_boundary_source",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "journal-volume-source-factory",
+      "owner": "journal-volume-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_work.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_work::new_production_volume_source",
+        "target": "crate::adapters::persistent_journal::production::volume_source",
         "rule": "concrete-adapter"
       }
     }

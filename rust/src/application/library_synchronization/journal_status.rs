@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::application::JournalCaptureWindowReport;
-use crate::application::persistent_journal_continuity::can_reprobe_failure;
+use crate::domain::persistent_journal::can_reprobe_failure;
 use crate::domain::{
     CatalogFreshnessCause, CatalogFreshnessState, LibraryChangeSourceHealth,
     LibraryRootAvailability, LibraryRootGeneration, LibraryRootSynchronizationStatus,

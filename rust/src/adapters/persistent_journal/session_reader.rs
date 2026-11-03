@@ -1,3 +1,5 @@
+use crate::domain::persistent_journal::{JournalReadWindows, reprobed_failure};
+
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -46,7 +48,7 @@ pub(crate) struct SessionBackedPersistentJournalVolumeReader {
     connection: SessionConnection,
     caller: CallerClaim,
     roots: HashMap<(String, LibraryRootGeneration), PersistentJournalBrokerRoot>,
-    pub(super) read_windows: super::read_boundary::JournalReadWindows,
+    pub(super) read_windows: JournalReadWindows,
 }
 
 enum SessionConnection {
@@ -60,7 +62,7 @@ impl SessionBackedPersistentJournalVolumeReader {
         mut self,
         baselines: Vec<crate::domain::PersistentJournalBaseline>,
     ) -> Result<Self, ScanError> {
-        self.read_windows = super::read_boundary::JournalReadWindows::new(baselines)?;
+        self.read_windows = JournalReadWindows::new(baselines)?;
         Ok(self)
     }
 
@@ -89,7 +91,7 @@ impl SessionBackedPersistentJournalVolumeReader {
             connection: SessionConnection::Factory(journal),
             caller,
             roots: indexed,
-            read_windows: super::read_boundary::JournalReadWindows::default(),
+            read_windows: JournalReadWindows::default(),
         })
     }
 
@@ -270,7 +272,7 @@ impl SessionBackedPersistentJournalVolumeReader {
                     } else if first_usn > checkpoint.next_unread_usn.value() {
                         outcomes.push((
                             key,
-                            Err(super::read_boundary::trimmed_failure(
+                            Err(super::read_failure::trimmed_failure(
                                 "persistent_journal_trimmed",
                                 checkpoint,
                                 first_usn,
@@ -288,9 +290,7 @@ impl SessionBackedPersistentJournalVolumeReader {
                             )),
                         ));
                     } else {
-                        if let Some(failure) =
-                            super::recovery_probe::reprobed_failure(checkpoint, &opening)
-                        {
+                        if let Some(failure) = reprobed_failure(checkpoint, &opening) {
                             outcomes.push((key, Err(failure)));
                             continue;
                         }
@@ -678,7 +678,7 @@ fn attach_cross_root_lineage(
             .ok_or_else(|| invalid("broker handoff previous range proof disappeared"))?;
         let current_range = range_identity(current_index)
             .ok_or_else(|| invalid("broker handoff current range proof disappeared"))?;
-        let lineage_id = super::super::scan_library::stable_id(
+        let lineage_id = crate::domain::stable_id(
             "persistent-journal-handoff-v4",
             &format!(
                 "{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}",
@@ -810,7 +810,7 @@ fn attach_carried_cross_root_lineage(
         ));
     }
     let file_reference = JournalFileReference::from_bytes(&handoff.file_reference)?;
-    let lineage_id = super::super::scan_library::stable_id(
+    let lineage_id = crate::domain::stable_id(
         "persistent-journal-carried-handoff-v1",
         &[
             volume.volume_guid.clone(),

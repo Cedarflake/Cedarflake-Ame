@@ -13,8 +13,8 @@ page failure remain one boundary, with no second decoded page or per-record clon
 
 The superseded direct-desktop USN adapter and its all-roots catch-up orchestrator are retired.
 Shared parsing and historical-parent reconstruction remain broker dependencies with their own
-regressions. The active identity reader and persistent-journal application own case-sensitive
-candidates, per-root failure isolation and cancellation/publication authority. Historical catalog
+regressions. The native identity reader owns case-sensitive candidate translation; the persistent-
+journal application retains failure admission and cancellation/publication authority. Historical catalog
 checkpoint, lineage and migration contracts remain intact; removing an execution path grants no
 schema or retained-data cleanup authority. The R2c-M entrypoint owns the retained metadata-only
 acceptance wrapper and its process/path guardrails; R2c-H is historical evidence only.
@@ -39,7 +39,8 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   recovery admission, closing boundary, opening boundary, then a capacity-admitted volume page.
   Cursor updates retain their original admission point even when worker startup fails. `journal_work`
   owns worker creation, cancellation, result retirement and the shared shutdown deadline; its page
-  owner retains registration guards through the existing bounded capture operation. Status projection
+  owner retains opaque registrations through the existing bounded capture operation under the
+  [volume resource contract](native-composition.md#journal-volume-resources). Status projection
   and cross-lane priority remain in their existing owners.
   Readiness probes, volume/recovery selection, retained-source pruning and journal status projection
   consume persistence ports; application owners retain priority, rotation and retry decisions.

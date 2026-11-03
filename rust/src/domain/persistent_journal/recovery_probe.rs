@@ -17,7 +17,7 @@ pub(crate) fn can_reprobe_failure(failure: &PersistentJournalFailure) -> bool {
     )
 }
 
-pub(super) fn reprobed_failure(
+pub(crate) fn reprobed_failure(
     checkpoint: &PersistentJournalCheckpoint,
     opening: &LibraryRecoveryOpeningBoundary,
 ) -> Option<PersistentJournalReadFailure> {
