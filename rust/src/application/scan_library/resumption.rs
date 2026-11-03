@@ -10,52 +10,40 @@ pub(super) fn load_resume_coverage(
 ) -> Result<Option<ScanResumeCoverage>, ScanError> {
     use std::path::Path;
 
-    use crate::application::library_synchronization::{
-        JournalBoundaryProbe, probe_journal_boundary,
-    };
-    use crate::journal_broker::{
-        PersistentChangeJournalConnection, describe_production_persistent_journal_root,
-        production_persistent_journal_caller_claim,
+    use crate::ports::journal_boundary::{
+        JournalBoundaryProbe, JournalBoundaryReader, JournalBoundarySession, JournalBoundarySource,
     };
 
     let Some(baseline) = catalog.load_first_import_resume_baseline(scan_id, root_id)? else {
         return Ok(None);
     };
-    let registration = describe_production_persistent_journal_root(
+    let session = new_production_resume_boundary_source().open_root(
         root_id,
-        baseline.root_generation.value(),
+        baseline.root_generation,
         Path::new(root_path),
-    )
-    .map_err(probe_error)?;
-    let caller = production_persistent_journal_caller_claim().map_err(probe_error)?;
-    let connection = crate::adapters::production_identity_journal_factory().connect();
-    let result = match &connection {
-        PersistentChangeJournalConnection::Connected(session) => {
-            match probe_journal_boundary(session.as_ref(), &caller, &registration) {
-                Ok(JournalBoundaryProbe::Supported(boundary)) => ScanResumeCoverage::verify(
-                    baseline,
-                    &boundary.volume,
-                    &boundary.root_file_reference,
-                    boundary.journal_id,
-                    boundary.first_usn,
-                    boundary.next_usn,
-                ),
-                Ok(JournalBoundaryProbe::LiveOnly) => Ok(None),
-                Err(error) => Err(error),
-            }
-        }
-        PersistentChangeJournalConnection::LiveOnly(_) => Ok(None),
+    )?;
+    let result = match session.read_boundary() {
+        Ok(JournalBoundaryProbe::Supported(boundary)) => ScanResumeCoverage::verify(
+            baseline,
+            &boundary.volume,
+            &boundary.root_file_reference,
+            boundary.journal_id,
+            boundary.first_usn,
+            boundary.next_usn,
+        ),
+        Ok(JournalBoundaryProbe::LiveOnly) => Ok(None),
+        Err(error) => Err(error),
     };
-    connection.close().map_err(probe_error)?;
+    session.close()?;
     result
 }
 
 #[cfg(windows)]
-fn probe_error(error: crate::journal_broker::PersistentChangeJournalOperationError) -> ScanError {
-    ScanError::new(
-        "scan_resume_journal_unavailable",
-        format!("The paused import's change coverage could not be checked: {error}"),
-    )
+fn new_production_resume_boundary_source()
+-> impl crate::ports::journal_boundary::JournalBoundarySource<
+    Root: crate::ports::journal_boundary::JournalBoundarySession,
+> {
+    crate::adapters::resume_boundary_source()
 }
 
 #[cfg(not(windows))]

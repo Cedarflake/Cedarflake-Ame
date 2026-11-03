@@ -81,6 +81,8 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   `journal_baseline/opening.rs` owns opening probe admission, capability/baseline publication and
   its typed recorded/retired outcome. A revoked first-import lease retires only its own work;
   database and broker failures remain errors, and a committed receipt survives later control.
+  Opening and closing capture consume `JournalBoundarySource`; the native root lease and protocol
+  conversion follow the [boundary resource contract](native-composition.md#journal-boundary-resources).
   `FirstImportReadiness` supplies pristine-scan and inactive-root reads from `scan_lifecycle`.
   `JournalBaselineAdmission` acquires the first-import publication permit inside the existing write
   transaction and retains it through commit. `JournalRecoveryRepository` checks retained inventory

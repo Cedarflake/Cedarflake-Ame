@@ -200,10 +200,10 @@ impl JournalTask {
         let worker = thread::Builder::new()
             .name("ame-p1-baseline-opening".to_owned())
             .spawn(move || {
+                let boundary_source = new_production_boundary_source(session.as_ref(), &caller);
                 let result = journal_baseline::capture_opening_boundary(
                     work,
-                    session.as_ref(),
-                    &caller,
+                    &boundary_source,
                     observed_unix_ms,
                     catalog_session.as_ref(),
                     queue_policy,
@@ -244,10 +244,10 @@ impl JournalTask {
             .name("ame-p1-baseline-closing".to_owned())
             .spawn(move || {
                 let root = (work.root_id().to_owned(), work.root_generation());
+                let boundary_source = new_production_boundary_source(session.as_ref(), &caller);
                 let result = journal_baseline::capture_closing_boundary(
                     work,
-                    session.as_ref(),
-                    &caller,
+                    &boundary_source,
                     observed_unix_ms,
                     catalog_session.as_ref(),
                     worker_cancelled.as_ref(),
@@ -371,4 +371,11 @@ impl JournalTask {
             worker: Some(worker),
         })
     }
+}
+
+fn new_production_boundary_source<'a>(
+    session: &'a dyn PersistentChangeJournalSession,
+    caller: &'a CallerClaim,
+) -> impl crate::ports::journal_boundary::JournalBoundarySource + 'a {
+    crate::adapters::session_boundary_source(session, caller)
 }

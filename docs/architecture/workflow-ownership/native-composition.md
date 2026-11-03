@@ -237,6 +237,24 @@ or admitting an unchecked path fallback.
 metadata-only, no-recall inspection. Availability evidence and runtime projection remain Ame-owned;
 replacement changes this factory and port implementation without adding source reads or hydration.
 
+## Journal boundary resources
+
+`production/journal_work::new_production_boundary_source` borrows the retained journal session and
+caller. `scan_library/resumption::new_production_resume_boundary_source` selects an independently
+owned connection. Both return `ports/journal_boundary` contracts; selection acquires no resources.
+The adapter owns root registration, request/response conversion and operation-error translation.
+
+`JournalBoundarySource::Root` retains the native root identity handle through baseline publication or
+resume verification. Opening and closing captures release that root without closing their borrowed
+session. Resume acquisition preserves root description, caller admission and connection order;
+`JournalBoundarySession::close` runs after verification, including a failed probe or verification,
+and its error retains precedence. Connection retirement precedes the root guard's drop.
+
+Replacement changes these two factories and their port implementations together. Preserve the same
+root identity, bounded query timeout, no-recall opens, cancellation/publication checks and close
+authority. Baseline admission and scan-coverage decisions remain in application and persistence;
+this admission covers neither neighboring policy nor remaining journal-volume protocol dependencies.
+
 ## Indexed recovery resources
 
 `library_synchronization/production/recovery_work/automatic::new_production_search_index` selects

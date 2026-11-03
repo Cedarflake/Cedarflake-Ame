@@ -5,16 +5,13 @@ use crate::domain::{
     LibraryChangeLane, LibraryChangeQueuePolicy, LibraryRecoveryAuthorityReason,
     PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalBaselineStartRequest, ScanError,
 };
-use crate::journal_broker::{
-    CallerClaim, PersistentChangeJournalSession, describe_production_persistent_journal_root,
-};
 use crate::ports::catalog_session::CatalogLaneSession;
 use crate::ports::journal_baseline::JournalBaselineAdmission;
+use crate::ports::journal_boundary::{JournalBoundaryReader, JournalBoundarySource};
 
 use super::{
     JournalBaselineOpeningAuthority, JournalBaselineOpeningWork, JournalBoundaryProbe,
     SupportedJournalBoundary, ensure_boundary_not_cancelled, live_only_capability,
-    map_journal_operation_error, probe_journal_boundary,
 };
 
 #[cfg(test)]
@@ -53,8 +50,7 @@ pub(in crate::application::library_synchronization) fn persist_unavailable_sessi
 
 pub(in crate::application::library_synchronization) fn capture_opening_boundary<Session>(
     work: JournalBaselineOpeningWork,
-    session: &dyn PersistentChangeJournalSession,
-    caller: &CallerClaim,
+    boundary_source: &impl JournalBoundarySource,
     observed_unix_ms: i64,
     catalog_session: &Session,
     queue_policy: LibraryChangeQueuePolicy,
@@ -68,13 +64,9 @@ where
     if !work.is_current() {
         return Ok(OpeningCaptureOutcome::Retired);
     }
-    let registration = describe_production_persistent_journal_root(
-        &work.root_id,
-        work.root_generation.value(),
-        &work.root_path,
-    )
-    .map_err(map_journal_operation_error)?;
-    let boundary = probe_journal_boundary(session, caller, &registration)?;
+    let registration =
+        boundary_source.open_root(&work.root_id, work.root_generation, &work.root_path)?;
+    let boundary = registration.read_boundary()?;
     ensure_boundary_not_cancelled(cancelled, "opening")?;
     if !work.is_current() {
         return Ok(OpeningCaptureOutcome::Retired);

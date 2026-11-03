@@ -12,7 +12,11 @@ mod durable_local_metadata_inventory;
 mod exact_content_reader;
 mod exif_metadata;
 mod image_orientation;
+#[cfg(windows)]
+mod journal_boundary;
 mod jpeg_preview;
+#[cfg(windows)]
+pub(crate) use journal_boundary::{resume_boundary_source, session_boundary_source};
 mod local_files;
 pub(crate) use local_files::LocalPublicationNamespaces;
 mod local_source_state;

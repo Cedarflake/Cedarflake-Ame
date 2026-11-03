@@ -9,9 +9,10 @@ use crate::domain::{
     LibraryRootGeneration, PersistentJournalCapabilityState, ScanCheckpoint, ScanRequest,
 };
 use crate::journal_broker::{
-    BrokerResponse, JournalCapability, PersistentChangeJournalOperationError,
-    PersistentChangeJournalRead, QueryJournalRequest, ReadJournalRangeRequest,
-    ReadJournalVolumeRequest, RegisterRootRequest, ResponseBinding, RootCapability,
+    BrokerResponse, CallerClaim, JournalCapability, PersistentChangeJournalOperationError,
+    PersistentChangeJournalRead, PersistentChangeJournalSession, QueryJournalRequest,
+    ReadJournalRangeRequest, ReadJournalVolumeRequest, RegisterRootRequest, ResponseBinding,
+    RootCapability,
 };
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository, PersistentJournalRepository};
 
@@ -304,12 +305,14 @@ fn capture_with_session(
         .expect("validated catalog session");
     capture_opening_boundary(
         work,
-        session,
-        &CallerClaim {
-            process_id: std::process::id(),
-            session_id: 1,
-            client_instance: [8; 16],
-        },
+        &crate::adapters::session_boundary_source(
+            session,
+            &CallerClaim {
+                process_id: std::process::id(),
+                session_id: 1,
+                client_instance: [8; 16],
+            },
+        ),
         2,
         &catalog_session,
         LibraryChangeQueuePolicy::default(),

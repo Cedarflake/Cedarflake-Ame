@@ -3,8 +3,7 @@
     "R109",
     "R115",
     "R116",
-    "R172",
-    "R249"
+    "R172"
   ],
   "retainedOwners": {
     "duplicate-native-readers": {
@@ -256,6 +255,21 @@
       "coverage": [
         "rust/src/application/library_synchronization/production/tests/root_availability.rs",
         "rust/src/adapters/local_files.rs"
+      ]
+    },
+    "journal-boundary-composition": {
+      "responsibility": "Select retained-session and independently owned journal boundary sources through Ame contracts",
+      "reason": "Only the two named factories select the protocol adapter; baseline publication and resume verification consume typed boundaries and root leases.",
+      "lifetime": "Selection acquires no resources. Root leases survive publication or verification; borrowed sessions remain active, while independent connections close after verification and retire before the root guard.",
+      "replacement": "Replace both boundary sources through their ports while preserving root identity, timeout and error precedence, cancellation/publication authority and independently owned connection close.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#journal-boundary-resources",
+      "coverage": [
+        "rust/src/adapters/journal_boundary/tests.rs",
+        "rust/src/application/library_synchronization/journal_baseline.rs",
+        "rust/src/application/library_synchronization/journal_baseline/opening/tests.rs",
+        "rust/src/application/library_synchronization/production/tests/first_import.rs",
+        "rust/src/application/library_synchronization/production/ordinary_journal/import_resumption.rs",
+        "rust/src/application/scan_library/resumption_tests.rs"
       ]
     }
   },
@@ -987,6 +1001,26 @@
         "source": "rust/src/application/library_synchronization/production.rs",
         "symbol": "crate::application::library_synchronization::production::new_production_source_state",
         "target": "crate::adapters::local_source_state::LocalSourceState",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "journal-retained-boundary-factory",
+      "owner": "journal-boundary-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/journal_work.rs",
+        "symbol": "crate::application::library_synchronization::production::journal_work::new_production_boundary_source",
+        "target": "crate::adapters::journal_boundary::session_boundary_source",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "scan-resume-boundary-factory",
+      "owner": "journal-boundary-composition",
+      "dependency": {
+        "source": "rust/src/application/scan_library/resumption.rs",
+        "symbol": "crate::application::scan_library::resumption::new_production_resume_boundary_source",
+        "target": "crate::adapters::journal_boundary::resume::resume_boundary_source",
         "rule": "concrete-adapter"
       }
     }

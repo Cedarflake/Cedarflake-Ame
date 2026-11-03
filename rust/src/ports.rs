@@ -26,6 +26,8 @@ pub(crate) mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
 mod gallery_query;
 pub(crate) mod journal_baseline;
+#[cfg(windows)]
+pub(crate) mod journal_boundary;
 pub(crate) mod journal_recovery;
 pub(crate) mod media_inspection;
 pub(crate) mod organization;

@@ -249,3 +249,31 @@ The SQLite facade has 3,239 source lines including conditional helpers, with no 
 maintenance binding has 71 source lines and the port has 21; the retained retirement fixture has
 292 lines. The five explicit migration entries and 73 technical edges remain separate from this
 resolved inferred-call dependency path.
+
+## Journal boundary probing — 2026-11-04
+
+Against `54285cb2`, baseline opening/closing and scan resume consume `JournalBoundarySource` and its
+held root reader. The adapter owns registration, protocol response conversion and error mapping;
+application retains cancellation, publication and `ScanResumeCoverage` decisions. Borrowed sessions
+remain active, while the resume session closes after verification and retires before its root handle.
+The [composition contract](../architecture/workflow-ownership/native-composition.md#journal-boundary-resources)
+admits only the two stateless selection functions. R249 retires, leaving four migration entries and
+75 exact technical edges; both frozen inventories and generated contracts are unchanged.
+
+Source comparison preserves the query/conversion and both error mappers, baseline policy and
+publication bodies, worker cancellation/retirement and resume verification. Acquisition order,
+close-error precedence and connection-before-root drop order are retained. Two protocol tests move
+to the adapter; the cancelled-opening fixture now rejects root acquisition directly through the port.
+The test count is unchanged.
+
+All 49 selected existing checks pass: 25 behavior cases and 24 dependency cases. These include the
+ordinary native journal's cross-process paused-import resume, which passes in 3.35 seconds against
+generated files. It retains the checkpoint, avoids revisiting completed directories, converges the
+changed membership and preserves source bytes. Test and production builds emit no warnings; final
+inventory verification passes, formatting reports 794 files unchanged, and both scratch leases retire.
+This bounded fixture leaves the retained-library pause timeout and final real-library client checks
+with their existing acceptance owners.
+
+The baseline owner has 350 source/215 inline-test lines; opening has 182 source/471 dedicated-test
+lines. The worker has 381 source lines and no inline cases. The new protocol adapter has 147 source/
+122 dedicated-test lines, and independently owned resume resources have 72 source lines.
