@@ -549,3 +549,20 @@ and six source-verification cases, one admission/retirement case and 20 dependen
 retain source-release ordering, cancelled/stale-result rejection, checkpoint rollback, cache reuse
 after failed publication and blocked replacement after incomplete shutdown. Both builds emit no
 warnings and leased scratch cleanup succeeds; no model download or user-library read is involved.
+
+## O7 Classification discovery contracts — 2026-11-03
+
+Discovery consumes the expansion, merge and retirement repository ports and a managed-vocabulary
+contract. One exact factory selects the bundled implementation. The notification-scoped pass keeps
+its original reconciliation, sampling, reduction and completion order; six complete state/resource
+and metadata bodies compare identically after the factory substitution against `7bf11299`.
+
+All 40 focused checks pass: five curated-vocabulary, six discovery-preparation, three discovery-policy,
+six dispatcher-maintenance and 20 dependency cases. They cover malformed/cancelled loading, bounded
+cached preparation, stale publication, pause/cancellation and executor retirement before handoff.
+Builds emit no warnings and leased scratch cleanup succeeds. R056–R060 retire; 218 legacy entries
+and 36 exact technical edges remain, with both frozen inventories unchanged.
+
+The discovery owner has 219 production lines; its runtime host has 101 plus three test declarations,
+the vocabulary port 34, its factory ten, and the curated adapter 152 plus three test declarations.
+No lifecycle policy, model data, schema, source authority or bridge change is included.

@@ -31,11 +31,6 @@
     "R052",
     "R053",
     "R054",
-    "R056",
-    "R057",
-    "R058",
-    "R059",
-    "R060",
     "R072",
     "R073",
     "R074",
@@ -327,6 +322,18 @@
         "rust/src/adapters/sqlite_catalog/classification/tests/work/analysis.rs",
         "rust/src/adapters/sqlite_catalog/classification/tests/work/verification.rs",
         "rust/src/application/background_analysis/exact_reader/tests.rs"
+      ]
+    },
+    "classification-vocabulary-composition": {
+      "responsibility": "Select the bundled managed classification vocabulary through its Ame contract",
+      "reason": "The factory owns the concrete vocabulary selection; discovery consumes repository ports and the vocabulary metadata/read contract.",
+      "lifetime": "The stateless factory runs only when the current pass needs vocabulary; the pass retains its vocabulary and naming contexts until invalidation, completion or release.",
+      "replacement": "Replace this factory and managed vocabulary implementation while preserving catalog revisions, naming contexts, cancellation and the notification-scoped pass lifecycle.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#classification-discovery-resources",
+      "coverage": [
+        "rust/src/adapters/classification_vocabulary/curated/tests.rs",
+        "rust/src/application/classification_discovery/tests/preparation.rs",
+        "rust/src/adapters/sqlite_catalog/classification/tests/work/dispatch/maintenance.rs"
       ]
     }
   },
@@ -678,6 +685,16 @@
         "source": "rust/src/application/classification_runtime/executor.rs",
         "symbol": "crate::application::classification_runtime::executor::NativeExecutor::new",
         "target": "crate::adapters::classification_runtime::factory::LocalClassificationEncoderFactory",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-vocabulary",
+      "owner": "classification-vocabulary-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/production.rs",
+        "symbol": "crate::application::classification_runtime::production::vocabulary",
+        "target": "crate::adapters::classification_vocabulary::curated::CuratedClassificationVocabulary",
         "rule": "concrete-adapter"
       }
     }

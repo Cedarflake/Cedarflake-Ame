@@ -80,6 +80,20 @@ SQL, inference protocols and engine types remain outside domain/ports/bridge. On
 construction, host-state and borrowed-resource edges are admitted; configuration, discovery and
 installation receive no neighboring-file exemption.
 
+## Classification discovery resources
+
+`classification_runtime/production::vocabulary` selects the bundled managed vocabulary through
+`ManagedClassificationVocabulary`. Its metadata remains Ame-owned catalog and naming-context values;
+bounded concept reads retain the existing vocabulary contract. `CategoryDiscovery` accepts this
+typed constructor and the expansion, merge and retirement repository ports. Its notification-scoped
+reconciliation, sampling, reduction and completion state stays together in the existing owner.
+
+Vocabulary/context loading remains lazy within the admitted pass. Changed-authority handling,
+completion and explicit release retire those resources without admitting a new pass for the same
+notification. The dispatcher releases maintenance resources and retires its executor before returning
+a plan. Replacing the vocabulary selection or repository implementations preserves that lifecycle,
+catalog revision, cancellation, bounded sampling and the existing prepared-plan publication rules.
+
 ## Catalog reclamation resources
 
 `catalog_reclamation/production.rs::{maintenance,capacity}` select the existing SQLite maintenance
