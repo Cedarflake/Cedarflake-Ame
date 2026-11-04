@@ -157,12 +157,17 @@ factory neither replaces that path nor grants source-read authority.
   `LibraryImageComparison` owns one latest-intent scheduler per pane and disposes both on exit.
   The panes share the source-reader port and its native two-lease limit, not a superseding selection
   queue. Each image retains its guard until its buffer copy finishes; retired panes cannot publish
-  decoded frames. Preview demand and linked transforms belong to the comparison surface.
+  decoded frames. Preview demand belongs to the comparison surface; `LibraryComparisonView` owns
+  active-pane selection and linking between two existing `LibraryViewerZoom` instances.
   `LibraryViewerImage` composes its current source frame with an image-only transformation builder;
   pending-load feedback and failure/retry controls stay outside that transformed child without
   another loading-state owner. A fallback preview retains the image transform independently.
   `library_viewer_zoom_geometry.dart` owns fitted versus actual-pixel scale, bounded zoom, slider
-  mapping and source-pixel percentage. The viewer retains input, animation and navigation.
+  mapping and source-pixel percentage. `LibraryViewerZoom` owns zoom intent, constraints and animation;
+  `LibraryViewerImageInteraction` shares framework gestures, smooth wheel zoom and keyboard bindings
+  between normal viewing and comparison. `LibraryViewerFrame` owns their shared title bar, caption
+  controls, full-screen lifetime and return behavior. `LibraryViewerToolbar` composes the common bottom
+  zoom controls with each surface's leading actions. These presentation owners grant no source authority.
   `local_files/viewer_source_guard.rs` owns the held Windows namespace. Opaque bridge methods
   only translate acquisition and idempotent close. A same-path edit with unchanged size and restored
   modification time must resolve a different stream when its source generation changes.

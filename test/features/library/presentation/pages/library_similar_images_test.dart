@@ -1,4 +1,5 @@
 import "dart:convert";
+import "dart:math" as math;
 import "dart:ui" as ui;
 
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
@@ -18,6 +19,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_sim
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_scope.dart";
 import "package:flutter/material.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -139,12 +141,42 @@ void main() {
         hasLength(2),
       );
       expect(find.byKey(const Key("viewer-image-loading")), findsNothing);
-      expect(source.opened, ["one", "two"]);
-      expect(source.closed, ["one", "two"]);
+      expect(source.opened, unorderedEquals(["one", "two"]));
+      expect(source.closed, unorderedEquals(["one", "two"]));
       await tester.pumpAndSettle();
       expect(find.byType(LibraryImageComparison), findsOneWidget);
       expect(find.byType(LibraryViewerImage), findsNWidgets(2));
-      await tester.tap(find.byKey(const ValueKey("comparison-zoom-left")));
+      for (final key in [
+        "window-minimize",
+        "window-maximize",
+        "window-close",
+        "viewer-window-drag-region",
+      ]) {
+        expect(find.byKey(Key(key)), findsOneWidget);
+      }
+      expect(find.text("100%"), findsOneWidget);
+      final toolbar = tester.getRect(
+        find.byKey(const Key("viewer-zoom-controls")),
+      );
+      for (final action in [
+        find.byTooltip("同步缩放和移动"),
+        find.byTooltip("重置对比视图"),
+        find.byKey(const Key("viewer-zoom-in")),
+      ]) {
+        expect(tester.getRect(action).top, greaterThanOrEqualTo(toolbar.top));
+      }
+      await tester.tap(find.byTooltip("重置对比视图"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("viewer-zoom-in")));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 90));
+      final intermediate = tester
+          .widgetList<LibraryViewerImage>(find.byType(LibraryViewerImage))
+          .map((value) => value.zoomScale)
+          .toList();
+      expect(intermediate.first, greaterThan(1));
+      expect(intermediate.first, lessThan(1.25));
+      expect(intermediate.last, closeTo(intermediate.first, 0.001));
       await tester.pumpAndSettle();
       expect(
         tester
@@ -153,7 +185,7 @@ void main() {
         [1.25, 1.25],
       );
       await tester.tap(find.byTooltip("同步缩放和移动"));
-      await tester.tap(find.byKey(const ValueKey("comparison-zoom-left")));
+      await tester.tap(find.byKey(const Key("viewer-zoom-in")));
       await tester.pumpAndSettle();
       expect(
         tester
@@ -161,6 +193,36 @@ void main() {
             .map((value) => value.zoomScale),
         [1.5625, 1.25],
       );
+      final rightPane = find.byKey(const ValueKey("comparison-image-right"));
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          position: tester.getCenter(rightPane),
+          scrollDelta: const Offset(0, -24),
+          kind: PointerDeviceKind.mouse,
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 90));
+      final wheelMiddle = tester
+          .widgetList<LibraryViewerImage>(find.byType(LibraryViewerImage))
+          .last
+          .zoomScale;
+      final wheelTarget = 1.25 * math.exp(24 / 180);
+      expect(wheelMiddle, greaterThan(1.25));
+      expect(wheelMiddle, lessThan(wheelTarget));
+      await tester.pumpAndSettle();
+      final settled = tester
+          .widgetList<LibraryViewerImage>(find.byType(LibraryViewerImage))
+          .toList();
+      expect(settled.first.zoomScale, closeTo(1.5625, 0.001));
+      expect(settled.last.zoomScale, closeTo(wheelTarget, 0.001));
+      for (final width in [400.0, 1100.0]) {
+        await tester.binding.setSurfaceSize(Size(width, 850));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key("window-close")), findsOneWidget);
+        expect(find.byTooltip("同步缩放和移动"), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
       expect(find.byType(LibrarySimilarMemberCard), findsNWidgets(2));

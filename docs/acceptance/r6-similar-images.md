@@ -161,13 +161,30 @@ consumer registrations; new and changed dependencies remain checked.
 
 Existing `AmePopupMenuButton`/`ameMenuChoice` retain framework popup and focus ownership. The installed
 Flutter SDK supports `MenuAnchor`, `MenuItemButton` and `RadioMenuButton`; a second menu composition
-is unnecessary for these short choices. Comparison uses the SDK's `InteractiveViewer` and
-`TransformationController` for pan/zoom instead of implementing gestures. Its frame transformation
-preserves shared viewer loading/failure controls outside the image. The page, workspace coordinator
-and comparison surface have 394, 216 and 217 production lines respectively, with no inline tests;
-the new workflow fixture/case has 243 dedicated test lines.
+is unnecessary for these short choices. Initial comparison reused SDK gestures but omitted the normal
+viewer window frame and bypassed its smooth zoom/input owner. Both surfaces now share
+`LibraryViewerFrame`, `LibraryViewerImageInteraction`, `LibraryViewerZoom` and the bottom
+`LibraryViewerToolbar`; comparison adds only pane selection/linking and its guarded image pair.
+Image transformations keep loading/failure controls stationary. The retained 11 viewer cases passed,
+including full-screen return, actual-size preservation, wheel/navigation preference, pan bounds and
+intermediate animation frames. The comparison workflow additionally passed caption presence,
+bottom-action placement, intermediate linked/button and independent/wheel zoom, and 400-pixel resizing.
+The comparison, single viewer and toolbar have 294, 301 and 272 production lines; the extracted frame,
+image interaction and comparison coordinator have 150, 99 and 77. There are no inline tests; the
+extended workflow case/support has 305 dedicated test lines. Scoped analysis passed without warnings,
+and dependency verification passed for 516 modules.
+
+The first isolated Windows client imported 51 existing fixture files and automatically found one
+exact group and five standard-degree similar groups. Exact ignore stayed in its member page;
+similar preference, two-copy location inspection, original pair loading and linked zoom/pan worked.
+This run exposed the missing caption and divergent viewer controls. It reached the harness's
+1,200-second time limit during inspection, at a 225-MiB peak working set; it did not complete normal
+close or the final source-hash check. These observations do not qualify the revised controls.
 
 The [699c5faf CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41836616389) passed its
 Flutter, Windows scan/accessibility and unsigned build jobs; Static rejected two missing brace blocks
-in the preceding review slice. Both are corrected. Current-head hosted checks, actual Windows
-interaction and R6-04 acceptance remain outstanding for this UI increment.
+in the preceding review slice. Both are corrected. The
+[5de7d7c2 run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41842227960) passed Static,
+Flutter, Windows scan/accessibility, unsigned packaging and all five synthetic workloads; Rust Catalog
+was still running at observation. Revised-control Windows interaction, current-head checks and R6-04
+acceptance remain outstanding.

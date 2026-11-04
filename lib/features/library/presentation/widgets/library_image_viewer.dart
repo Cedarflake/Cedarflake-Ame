@@ -1,13 +1,11 @@
 import "dart:async";
 import "dart:math" as math;
 
-import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/presentation/ame_transient_feedback.dart";
-import "../../../../app/window/ame_window_fullscreen.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../../settings/domain/ame_preferences.dart";
 import "../../application/library_source_read_scheduler.dart";
@@ -17,11 +15,13 @@ import "../coordination/library_viewer_source_state.dart";
 import "../coordination/library_viewer_zoom.dart";
 import "library_viewer_controls.dart";
 import "library_viewer_filmstrip_slot.dart";
+import "library_viewer_frame.dart";
 import "library_viewer_image.dart";
+import "library_viewer_image_interaction.dart";
+import "library_path_text.dart";
 import "library_viewer_source_notice.dart";
 import "library_viewer_source_scope.dart";
 import "library_viewer_toolbar.dart";
-import "library_viewer_transition.dart";
 
 class LibraryImageViewer extends ConsumerStatefulWidget {
   const LibraryImageViewer({
@@ -68,12 +68,7 @@ class LibraryImageViewer extends ConsumerStatefulWidget {
 class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
     with SingleTickerProviderStateMixin {
   final _viewerFocusNode = FocusNode(debugLabel: "library-image-viewer");
-  final _organizationActionsKey = GlobalKey(
-    debugLabel: "viewer-organization-actions",
-  );
   late final LibraryViewerZoom _zoom;
-  DateTime? _lastWheelNavigationAt;
-  AmeWindowFullscreen? _fullscreen;
 
   @override
   void initState() {
@@ -81,14 +76,6 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
     _zoom = LibraryViewerZoom(vsync: this)
       ..addListener(_handlePresentationChanged);
     _requestViewerFocus();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!LibraryViewerActivity.isActiveOf(context)) {
-      unawaited(_setFullscreen(false));
-    }
   }
 
   void _handlePresentationChanged() {
@@ -105,8 +92,6 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
 
   @override
   void dispose() {
-    _fullscreen?.removeListener(_handlePresentationChanged);
-    unawaited(_setFullscreen(false));
     _viewerFocusNode.dispose();
     _zoom.dispose();
     super.dispose();
@@ -114,63 +99,44 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
 
   @override
   Widget build(BuildContext context) {
-    final fullscreen = ref.watch(ameWindowFullscreenProvider);
-    if (_fullscreen != fullscreen) {
-      _fullscreen?.removeListener(_handlePresentationChanged);
-      _fullscreen = fullscreen;
-      _fullscreen?.addListener(_handlePresentationChanged);
-    }
-    return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.escape): _escape,
-        const SingleActivator(LogicalKeyboardKey.backspace): _back,
-        const SingleActivator(LogicalKeyboardKey.browserBack): _back,
-        const SingleActivator(LogicalKeyboardKey.f11): _toggleFullscreen,
-        const SingleActivator(LogicalKeyboardKey.arrowLeft):
-            _showPreviousFromKeyboard,
-        const SingleActivator(LogicalKeyboardKey.arrowRight):
-            _showNextFromKeyboard,
-        const SingleActivator(LogicalKeyboardKey.add): _zoomIn,
-        const SingleActivator(LogicalKeyboardKey.equal, shift: true): _zoomIn,
-        const SingleActivator(LogicalKeyboardKey.minus): _zoomOut,
-        const SingleActivator(LogicalKeyboardKey.numpadAdd): _zoomIn,
-        const SingleActivator(LogicalKeyboardKey.numpadSubtract): _zoomOut,
-        const SingleActivator(LogicalKeyboardKey.equal, control: true): _zoomIn,
-        const SingleActivator(
-          LogicalKeyboardKey.equal,
-          control: true,
-          shift: true,
-        ): _zoomIn,
-        const SingleActivator(LogicalKeyboardKey.minus, control: true):
-            _zoomOut,
-        const SingleActivator(LogicalKeyboardKey.digit0): _fitToWindow,
-        const SingleActivator(LogicalKeyboardKey.digit0, control: true):
-            _fitToWindow,
-        const SingleActivator(LogicalKeyboardKey.digit1): _showActualSize,
-        const SingleActivator(LogicalKeyboardKey.digit1, control: true):
-            _showActualSize,
-      },
-      child: Focus(
-        focusNode: _viewerFocusNode,
-        autofocus: true,
-        child: Column(
-          children: [
-            if (!(_fullscreen?.isFullscreen ?? false)) ...[
-              LibraryViewerTopBar(
-                displayPath: widget.asset.displayPath,
-                onBack: _back,
-                organizationActions: _organizationActions,
-              ),
-              const Divider(height: 1),
-            ],
-            Expanded(child: _buildCanvas(context)),
-          ],
-        ),
+    return LibraryViewerFrame(
+      title: LibraryPathText(
+        text: displayLibraryFileName(widget.asset.displayPath),
+        path: widget.asset.displayPath,
+        alwaysShowPathTooltip: true,
+        textKey: const Key("viewer-source-path"),
       ),
+      onBack: widget.onBack,
+      actions: widget.organizationActions,
+      builder: (context, isFullscreen, toggleFullscreen, goBack) =>
+          CallbackShortcuts(
+            bindings: {
+              const SingleActivator(LogicalKeyboardKey.arrowLeft):
+                  _showPreviousFromKeyboard,
+              const SingleActivator(LogicalKeyboardKey.arrowRight):
+                  _showNextFromKeyboard,
+              ...libraryViewerZoomShortcuts(_zoom),
+            },
+            child: Focus(
+              focusNode: _viewerFocusNode,
+              autofocus: true,
+              child: _buildCanvas(
+                context,
+                isFullscreen,
+                toggleFullscreen,
+                goBack,
+              ),
+            ),
+          ),
     );
   }
 
-  Widget _buildCanvas(BuildContext context) {
+  Widget _buildCanvas(
+    BuildContext context,
+    bool isFullscreen,
+    VoidCallback? toggleFullscreen,
+    VoidCallback goBack,
+  ) {
     final showFilmstrip =
         ref.watch(amePreferencesControllerProvider).viewerFilmstripVisible &&
         widget.filmstrip != null;
@@ -197,7 +163,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
           );
           return Column(
             children: [
-              Expanded(child: _buildImageViewport()),
+              Expanded(child: _buildImageViewport(goBack)),
               if (widget.filmstrip case final filmstrip?)
                 LibraryViewerFilmstripSlot(
                   visible: showFilmstrip,
@@ -223,11 +189,8 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
                 sliderSemanticFormatter: _zoom.sliderLabel,
                 onZoomOut: _zoom.canZoomOut ? _zoomOut : null,
                 onZoomIn: _zoom.canZoomIn ? _zoomIn : null,
-                isFullscreen: _fullscreen?.isFullscreen ?? false,
-                onToggleFullscreen:
-                    _fullscreen == null || _fullscreen!.isChanging
-                    ? null
-                    : _toggleFullscreen,
+                isFullscreen: isFullscreen,
+                onToggleFullscreen: toggleFullscreen,
               ),
             ],
           );
@@ -236,7 +199,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
     );
   }
 
-  Widget _buildImageViewport() {
+  Widget _buildImageViewport(VoidCallback goBack) {
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -254,7 +217,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
             final notice => LibraryViewerSourceNoticeBanner(
               notice: notice,
               onReload: widget.onReloadSource,
-              onBack: _back,
+              onBack: goBack,
             ),
           },
         ),
@@ -266,52 +229,17 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
         LibraryViewerNavigationButton.next(
           onPressed: widget.onNext == null ? null : _showNextFromKeyboard,
         ),
-        if ((_fullscreen?.isFullscreen ?? false) &&
-            widget.organizationActions != null)
-          Positioned(
-            top: 12,
-            right: 20,
-            child: Material(
-              color: Theme.of(context).colorScheme.surfaceContainerLow,
-              shape: const StadiumBorder(),
-              child: _organizationActions,
-            ),
-          ),
       ],
     );
   }
 
-  Widget? get _organizationActions {
-    final actions = widget.organizationActions;
-    if (actions == null) return null;
-    // Fullscreen changes placement without retiring an in-flight organization action.
-    return KeyedSubtree(key: _organizationActionsKey, child: actions);
-  }
-
   Widget _buildTransformedImage(BuildContext context, Widget image) {
-    return Listener(
-      onPointerSignal: _handlePointerSignal,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onDoubleTap: _toggleActualSize,
-        child: InteractiveViewer(
-          key: const Key("library-image-interactive-viewer"),
-          transformationController: _zoom.transform,
-          alignment: Alignment.topLeft,
-          boundaryMargin: const EdgeInsets.all(double.infinity),
-          minScale: _zoom.minimumScale,
-          maxScale: _zoom.maximumScale,
-          scaleFactor: 180,
-          scaleEnabled: widget.wheelBehavior == ImageViewerWheelBehavior.zoom,
-          trackpadScrollCausesScale: true,
-          onInteractionStart: _zoom.interactionStarted,
-          child: SizedBox(
-            width: _zoom.viewport.width,
-            height: _zoom.viewport.height,
-            child: image,
-          ),
-        ),
-      ),
+    return LibraryViewerImageInteraction(
+      zoom: _zoom,
+      wheelBehavior: widget.wheelBehavior,
+      onPrevious: widget.onPrevious,
+      onNext: widget.onNext,
+      child: image,
     );
   }
 
@@ -319,36 +247,6 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _viewerFocusNode.requestFocus();
     });
-  }
-
-  void _handlePointerSignal(PointerSignalEvent event) {
-    if (event is! PointerScrollEvent || event.scrollDelta.dy == 0) {
-      return;
-    }
-    if (widget.wheelBehavior == ImageViewerWheelBehavior.zoom) {
-      _zoom.animatePointerZoom();
-      return;
-    }
-    final now = DateTime.now();
-    final lastNavigation = _lastWheelNavigationAt;
-    if (lastNavigation != null &&
-        now.difference(lastNavigation) < const Duration(milliseconds: 240)) {
-      return;
-    }
-    _lastWheelNavigationAt = now;
-    if (event.scrollDelta.dy < 0) {
-      _showPreviousFromKeyboard();
-    } else {
-      _showNextFromKeyboard();
-    }
-  }
-
-  void _fitToWindow() {
-    _zoom.fit();
-  }
-
-  void _showActualSize() {
-    _zoom.actualSize();
   }
 
   void _toggleActualSize() {
@@ -369,36 +267,6 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
 
   void _showNextFromKeyboard() {
     widget.onNext?.call();
-  }
-
-  void _escape() {
-    if (_fullscreen?.isFullscreen ?? false) {
-      unawaited(_setFullscreen(false));
-    } else {
-      _back();
-    }
-  }
-
-  Future<void> _back() async {
-    await _setFullscreen(false);
-    if (mounted) widget.onBack();
-  }
-
-  void _toggleFullscreen() =>
-      unawaited(_setFullscreen(!(_fullscreen?.isFullscreen ?? false)));
-
-  Future<void> _setFullscreen(bool enabled) async {
-    try {
-      await _fullscreen?.setEnabled(enabled);
-    } on Object {
-      if (mounted) {
-        showAmeTransientFeedback(
-          context,
-          message: "无法切换全屏，请重试",
-          severity: AmeNotificationSeverity.error,
-        );
-      }
-    }
   }
 
   Future<void> _toggleFilmstrip() async {

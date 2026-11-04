@@ -1,17 +1,24 @@
+import "dart:math" as math;
+
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
-import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
-import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_source_read_scheduler.dart";
 import "../../application/library_source_reader.dart";
 import "../../domain/library_models.dart";
+import "../coordination/library_comparison_view.dart";
+import "../coordination/library_viewer_zoom.dart";
 import "../library_duplicate_strings.dart";
 import "../library_preview_images.dart";
 import "library_path_text.dart";
+import "library_viewer_frame.dart";
 import "library_viewer_image.dart";
+import "library_viewer_image_interaction.dart";
+import "library_viewer_toolbar.dart";
 import "library_viewer_transition.dart";
 
 class LibraryImageComparison extends ConsumerStatefulWidget {
@@ -30,10 +37,11 @@ class LibraryImageComparison extends ConsumerStatefulWidget {
       _LibraryImageComparisonState();
 }
 
-class _LibraryImageComparisonState
-    extends ConsumerState<LibraryImageComparison> {
-  final _left = TransformationController();
-  final _right = TransformationController();
+class _LibraryImageComparisonState extends ConsumerState<LibraryImageComparison>
+    with TickerProviderStateMixin {
+  static const _paneInset = 2.0;
+  static const _headingHeight = 48.0;
+  late final _view = LibraryComparisonView(vsync: this);
   final _previewOwner = Object();
   late final _library = ref.read(libraryControllerProvider.notifier);
   late final _leftReads = LibrarySourceReadScheduler(
@@ -42,8 +50,6 @@ class _LibraryImageComparisonState
   late final _rightReads = LibrarySourceReadScheduler(
     reader: ref.read(librarySourceReaderProvider),
   );
-  bool _linked = true;
-  bool _synchronizing = false;
   bool _closing = false;
 
   void _back() {
@@ -55,36 +61,10 @@ class _LibraryImageComparisonState
   @override
   void initState() {
     super.initState();
-    _left.addListener(_leftChanged);
-    _right.addListener(_rightChanged);
     _library.updateFilmstripPreviewDemand(_previewOwner, [
       widget.left,
       widget.right,
     ], 512);
-  }
-
-  void _leftChanged() => _synchronize(_left, _right);
-  void _rightChanged() => _synchronize(_right, _left);
-  void _synchronize(
-    TransformationController source,
-    TransformationController target,
-  ) {
-    if (_synchronizing || !_linked) return;
-    _synchronizing = true;
-    target.value = source.value.clone();
-    _synchronizing = false;
-  }
-
-  void _reset() {
-    _left.value = Matrix4.identity();
-    _right.value = Matrix4.identity();
-  }
-
-  void _scale(TransformationController controller, double factor) {
-    final scale = controller.value.getMaxScaleOnAxis();
-    final target = (scale * factor).clamp(1.0, 32.0);
-    controller.value = controller.value.clone()
-      ..scaleByDouble(target / scale, target / scale, 1, 1);
   }
 
   @override
@@ -92,126 +72,223 @@ class _LibraryImageComparisonState
     _library.releaseFilmstripPreviewDemand(_previewOwner);
     _leftReads.dispose();
     _rightReads.dispose();
-    _left.dispose();
-    _right.dispose();
+    _view.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => LibraryViewerActivity(
     isActive: !_closing,
-    child: CallbackShortcuts(
-      bindings: {const SingleActivator(LogicalKeyboardKey.escape): _back},
-      child: Focus(
-        autofocus: true,
-        child: Scaffold(
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            leading: IconButton(
-              tooltip: LibraryDuplicateStrings.back,
-              onPressed: _back,
-              icon: const Icon(Symbols.arrow_back_rounded),
-            ),
-            title: const Text(LibraryDuplicateStrings.compare),
-            actions: [
-              IconButton(
-                tooltip: LibraryDuplicateStrings.syncComparison,
-                isSelected: _linked,
-                onPressed: () {
-                  setState(() => _linked = !_linked);
-                  if (_linked) _synchronize(_left, _right);
+    child: Scaffold(
+      body: ListenableBuilder(
+        listenable: _view,
+        builder: (context, child) => LibraryViewerFrame(
+          title: const Text(
+            LibraryDuplicateStrings.compare,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          backLabel: LibraryDuplicateStrings.back,
+          onBack: _back,
+          builder: (context, isFullscreen, toggleFullscreen, _) =>
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final vertical = constraints.maxWidth < 600;
+                  final toolbarHeight =
+                      LibraryViewerToolbar.height *
+                      (constraints.maxWidth < 900 ? 2 : 1);
+                  final height = math.max(
+                    0.0,
+                    constraints.maxHeight - toolbarHeight,
+                  );
+                  final viewport = Size(
+                    math.max(
+                      0.0,
+                      (vertical
+                              ? constraints.maxWidth
+                              : (constraints.maxWidth - 1) / 2) -
+                          _paneInset * 2,
+                    ),
+                    math.max(
+                      0.0,
+                      (vertical ? (height - 1) / 2 : height) -
+                          _headingHeight -
+                          _paneInset * 2,
+                    ),
+                  );
+                  final opening = ref
+                      .watch(amePreferencesControllerProvider)
+                      .viewerOpenBehavior;
+                  for (final pane in [
+                    (widget.left, _view.left),
+                    (widget.right, _view.right),
+                  ]) {
+                    pane.$2.layout(
+                      image: pane.$1.locationId,
+                      imageSize: Size(
+                        pane.$1.width.toDouble(),
+                        pane.$1.height.toDouble(),
+                      ),
+                      viewport: viewport,
+                      opening: opening,
+                    );
+                  }
+                  return CallbackShortcuts(
+                    bindings: libraryViewerZoomShortcuts(_view.activeZoom),
+                    child: Focus(
+                      autofocus: true,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final vertical = constraints.maxWidth < 600;
+                                return Flex(
+                                  direction: vertical
+                                      ? Axis.vertical
+                                      : Axis.horizontal,
+                                  children: [
+                                    Expanded(
+                                      child: _pane(
+                                        widget.left,
+                                        _view.left,
+                                        _leftReads,
+                                        LibraryComparisonSide.left,
+                                      ),
+                                    ),
+                                    if (vertical)
+                                      const Divider(height: 1)
+                                    else
+                                      const VerticalDivider(width: 1),
+                                    Expanded(
+                                      child: _pane(
+                                        widget.right,
+                                        _view.right,
+                                        _rightReads,
+                                        LibraryComparisonSide.right,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                          LibraryViewerToolbar(
+                            asset: _view.active == LibraryComparisonSide.left
+                                ? widget.left
+                                : widget.right,
+                            leading: _comparisonActions(),
+                            isActualSize: _view.activeZoom.isActualSize,
+                            onToggleZoomMode: _view.activeZoom.toggleMode,
+                            sliderValue: _view.activeZoom.sliderValue,
+                            zoomPercent: _view.activeZoom.percent,
+                            onSliderChanged: _view.activeZoom.sliderChanged,
+                            sliderSemanticFormatter:
+                                _view.activeZoom.sliderLabel,
+                            onZoomOut: _view.activeZoom.canZoomOut
+                                ? _view.activeZoom.zoomOut
+                                : null,
+                            onZoomIn: _view.activeZoom.canZoomIn
+                                ? _view.activeZoom.zoomIn
+                                : null,
+                            isFullscreen: isFullscreen,
+                            onToggleFullscreen: toggleFullscreen,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 },
-                icon: const Icon(Symbols.link_off_rounded),
-                selectedIcon: const Icon(Symbols.link_rounded),
               ),
-              IconButton(
-                tooltip: LibraryDuplicateStrings.resetComparison,
-                onPressed: _reset,
-                icon: const Icon(Symbols.fit_screen_rounded),
-              ),
-            ],
-          ),
-          body: LayoutBuilder(
-            builder: (context, constraints) {
-              final vertical = constraints.maxWidth < 600;
-              return Flex(
-                direction: vertical ? Axis.vertical : Axis.horizontal,
-                children: [
-                  Expanded(
-                    child: _pane(widget.left, _left, _leftReads, "left"),
-                  ),
-                  if (vertical)
-                    const Divider(height: 1)
-                  else
-                    const VerticalDivider(width: 1),
-                  Expanded(
-                    child: _pane(widget.right, _right, _rightReads, "right"),
-                  ),
-                ],
-              );
-            },
-          ),
         ),
       ),
     ),
   );
 
+  Widget _comparisonActions() => Row(
+    children: [
+      SegmentedButton<LibraryComparisonSide>(
+        showSelectedIcon: false,
+        segments: const [
+          ButtonSegment(value: LibraryComparisonSide.left, label: Text("左图")),
+          ButtonSegment(value: LibraryComparisonSide.right, label: Text("右图")),
+        ],
+        selected: {_view.active},
+        onSelectionChanged: (selection) => _view.select(selection.single),
+      ),
+      const Spacer(),
+      IconButton(
+        tooltip: LibraryDuplicateStrings.syncComparison,
+        isSelected: _view.linked,
+        onPressed: _view.toggleLinked,
+        icon: const Icon(Symbols.link_off_rounded, size: 20),
+        selectedIcon: const Icon(Symbols.link_rounded, size: 20),
+      ),
+      IconButton(
+        tooltip: LibraryDuplicateStrings.resetComparison,
+        onPressed: _view.fitBoth,
+        icon: const Icon(Symbols.fit_screen_rounded, size: 20),
+      ),
+    ],
+  );
+
   Widget _pane(
     LibraryAsset asset,
-    TransformationController transform,
+    LibraryViewerZoom zoom,
     LibrarySourceReadScheduler sourceReads,
-    String side,
-  ) => Column(
-    children: [
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
+    LibraryComparisonSide side,
+  ) => Listener(
+    onPointerDown: (_) => _view.select(side),
+    onPointerSignal: (event) {
+      if (event is PointerScrollEvent) _view.select(side);
+    },
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: _view.active == side
+              ? Theme.of(context).colorScheme.primary
+              : Colors.transparent,
+          width: _paneInset,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(_paneInset),
+        child: Column(
           children: [
+            SizedBox(
+              height: _headingHeight,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Center(
+                  child: LibraryPathText(
+                    text: displayLibraryFileName(asset.displayPath),
+                    path: asset.displayPath,
+                  ),
+                ),
+              ),
+            ),
             Expanded(
-              child: LibraryPathText(
-                text: displayLibraryFileName(asset.displayPath),
-                path: asset.displayPath,
-              ),
-            ),
-            AmeTooltip(
-              message: LibraryDuplicateStrings.zoomOut,
-              child: IconButton(
-                onPressed: () => _scale(transform, 1 / 1.25),
-                icon: const Icon(Symbols.remove_rounded),
-              ),
-            ),
-            AmeTooltip(
-              message: LibraryDuplicateStrings.zoomIn,
-              child: IconButton(
-                key: ValueKey("comparison-zoom-$side"),
-                onPressed: () => _scale(transform, 1.25),
-                icon: const Icon(Symbols.add_rounded),
+              child: StreamBuilder<void>(
+                stream: _library.watchPreview(asset.locationId),
+                builder: (context, snapshot) => LibraryViewerImage(
+                  asset: _library.resolvePreview(asset),
+                  previewImages: ref.read(libraryPreviewImagesProvider),
+                  sourceReadScheduler: sourceReads,
+                  zoomScale: zoom.transform.value.getMaxScaleOnAxis(),
+                  imageBuilder: (context, image) =>
+                      LibraryViewerImageInteraction(
+                        zoom: zoom,
+                        interactiveKey: ValueKey(
+                          "comparison-image-${side.name}",
+                        ),
+                        child: image,
+                      ),
+                ),
               ),
             ),
           ],
         ),
       ),
-      Expanded(
-        child: StreamBuilder<void>(
-          stream: _library.watchPreview(asset.locationId),
-          builder: (context, snapshot) => AnimatedBuilder(
-            animation: transform,
-            builder: (context, child) => LibraryViewerImage(
-              asset: _library.resolvePreview(asset),
-              previewImages: ref.read(libraryPreviewImagesProvider),
-              sourceReadScheduler: sourceReads,
-              zoomScale: transform.value.getMaxScaleOnAxis(),
-              imageBuilder: (context, image) => InteractiveViewer(
-                key: ValueKey("comparison-image-$side"),
-                transformationController: transform,
-                minScale: 1,
-                maxScale: 32,
-                child: SizedBox.expand(child: image),
-              ),
-            ),
-          ),
-        ),
-      ),
-    ],
+    ),
   );
 }

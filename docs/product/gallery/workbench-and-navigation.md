@@ -103,6 +103,11 @@ Initial/continuation reads use the two-pixel loading overlay. Saving choices ret
 position; catalog/analysis publication revalidates the visible range without clearing retained cards.
 The full-window viewer navigates across member batches. Comparison shows two independently guarded
 original images, supports linked or independent zoom/pan and reset, and returns to the member view.
+Its top bar contains back, title, window dragging and the standard minimize/maximize/close controls.
+Reuse the viewer's bottom toolbar for zoom mode, percentage, slider, zoom buttons and full screen;
+place pane selection, linking and reset there too. Pointer interaction selects its pane. Both panes
+reuse normal viewing's smooth wheel/button zoom, double-click mode switch, bounds and drag inertia.
+Narrow layouts stack the images and wrap the bottom controls into two rows.
 
 An exact preference selects the scoped merged-gallery representative with a deterministic fallback.
 A similarity preference selects one content representative only within that group. Exact copies of

@@ -31,6 +31,7 @@ class LibraryViewerZoom extends ChangeNotifier {
   LibraryViewerZoomGeometry get _geometry =>
       LibraryViewerZoomGeometry(imageSize: _imageSize, viewportSize: _viewport);
   Size get viewport => _viewport;
+  bool get isUpdatingLayout => _isUpdatingLayout;
   double get minimumScale => _geometry.minimumScale;
   double get maximumScale => _geometry.maximumScale;
   bool get hasDimensions => _geometry.hasImageDimensions;
@@ -118,6 +119,28 @@ class LibraryViewerZoom extends ChangeNotifier {
     final end = transform.value.clone();
     transform.value = start;
     _setTransform(end, animate: true);
+  }
+
+  void follow(LibraryViewerZoom source) {
+    if (_viewport.isEmpty || source.viewport.isEmpty) return;
+    _animation.stop();
+    _behavior = source._behavior;
+    final sourceCenter = source.viewport.center(Offset.zero);
+    final scene = source.transform.toScene(sourceCenter);
+    final center = _viewport.center(Offset.zero);
+    final scale = source.transform.value.getMaxScaleOnAxis().clamp(
+      minimumScale,
+      maximumScale,
+    );
+    transform.value = Matrix4.identity()
+      ..translateByDouble(center.dx, center.dy, 0, 1)
+      ..scaleByDouble(scale, scale, scale, 1)
+      ..translateByDouble(
+        -scene.dx / source.viewport.width * _viewport.width,
+        -scene.dy / source.viewport.height * _viewport.height,
+        0,
+        1,
+      );
   }
 
   void _setScale(double value, {bool animate = true, bool center = false}) {
