@@ -11,6 +11,7 @@ only the contracts, execution details, and evidence that own the task.
 | Where are the delivered R4 slices defined? | [R4 implementation plan](plans/r4-organization.md) and [roadmap disposition](roadmap.md#r4-implementation-sequence) |
 | What are R5's metadata, smart-album, analysis, and recovery rules? | [R5 requirements](product/r5-classification.md), with the accepted [smart-album UI](product/gallery/smart-albums.md#smart-album-workflow) |
 | Where are the delivered R5 slices defined? | [R5 implementation plan](plans/r5-classification.md) and [roadmap disposition](roadmap.md#r5-implementation-sequence) |
+| How will similar images fit the existing Duplicates workspace? | [R6 interface](product/gallery/similar-images.md) and [execution plan](plans/r6-similar-images.md); the roadmap owns activation. |
 | How will project organization be refactored after R5? | [Organization execution plan](plans/project-organization.md), activated by the [roadmap](roadmap.md#project-organization-after-r5) |
 | Where are organization changes and their verification recorded? | [Initial, catalog, scan and preview evidence](acceptance/project-organization.md); [incremental and synchronization evidence](acceptance/project-organization-continuity.md) |
 | How should the accepted gallery and controls behave, and why? | [Gallery UI contract and rationale](product/gallery-ui.md#design-principles-and-rationale), under the accepted UI ADRs |
