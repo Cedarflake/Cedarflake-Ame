@@ -1,6 +1,6 @@
 import "../domain/library_exact_duplicates.dart";
 
-// Duplicates workspace: exact analysis, result groups and physical-location inspection.
+// Duplicates workspace: analysis, result groups and physical-location inspection.
 abstract final class LibraryDuplicateStrings {
   static const title = "重复图片";
   static const workspaceTitle = "重复图片查找";
@@ -32,13 +32,35 @@ abstract final class LibraryDuplicateStrings {
   // Duplicates workspace: group review, reversible choices and the ignored list.
   static const pendingGroups = "重复组";
   static const ignoredGroups = "已忽略";
-  static const noIgnoredGroups = "没有已忽略的重复组";
+  static const noIgnoredGroups = "没有已忽略的组";
+  static const similarGroups = "相似组";
+  static const groupView = "分组";
+  static const similarityDegree = "相似程度";
+  static const strict = "严格";
+  static const standard = "标准";
+  static const broad = "宽松";
+  static const viewSimilar = "查看相似图片";
+  static const emptySimilar = "已检查的图片中没有发现相似组";
+  static const waitingForSimilar = "找到的相似图片会显示在这里";
+  static const compare = "对比图片";
+  static const selectComparison = "选择图片进行对比";
+  static const exclude = "移出此组";
+  static const excluded = "已从此组移出图片";
+  static const undo = "撤销";
+  static const undoUnavailable = "这次移出操作已被后续选择替代";
+  static const undone = "已恢复到此组";
+  static const undoFailed = "未能恢复图片";
+  static const syncComparison = "同步缩放和移动";
+  static const resetComparison = "重置对比视图";
+  static const zoomIn = "放大";
+  static const zoomOut = "缩小";
   static const prefer = "设为首选";
   static const clearPreferred = "取消首选";
   static const ignore = "忽略此组";
   static const restoreGroup = "恢复此组";
   static const saveFailed = "未能保存选择，请重试";
-  static String groups(int count) => "$count 个重复图像组";
+  static String groups(int count) => "$count 个组";
+  static String similarImages(int count) => "$count 张图片";
 
   // Gallery header filter and the local location list opened from a photo badge.
   static const filter = "筛选";

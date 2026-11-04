@@ -6,7 +6,7 @@ import "package:cedarflake_ame/features/library/application/library_duplicate_re
 import "package:cedarflake_ame/features/library/domain/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
-import "package:cedarflake_ame/features/library/presentation/pages/library_exact_duplicates_page.dart";
+import "package:cedarflake_ame/features/library/presentation/pages/library_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_review_viewer.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
 import "package:flutter/material.dart";
@@ -29,9 +29,7 @@ void main() {
           libraryControllerProvider.overrideWith(() => library),
           libraryDuplicateReviewProvider.overrideWithValue(service),
         ]),
-        child: const MaterialApp(
-          home: Scaffold(body: LibraryExactDuplicatesPage()),
-        ),
+        child: const MaterialApp(home: Scaffold(body: LibraryDuplicatesPage())),
       ),
     );
     await tester.pumpAndSettle();

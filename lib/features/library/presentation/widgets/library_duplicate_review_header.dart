@@ -9,8 +9,6 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
   const LibraryDuplicateReviewHeader({
     required this.title,
     required this.totalGroups,
-    required this.ignored,
-    required this.onCategoryChanged,
     required this.actions,
     this.onBack,
     super.key,
@@ -19,8 +17,6 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
   static const backInset = 48.0;
   final String title;
   final int? totalGroups;
-  final bool ignored;
-  final ValueChanged<bool> onCategoryChanged;
   final VoidCallback? onBack;
   final Widget actions;
 
@@ -53,22 +49,6 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
         ),
       ],
     );
-    final category = SegmentedButton<bool>(
-      key: const Key("duplicate-review-category"),
-      selectedIcon: const Icon(Symbols.check_rounded),
-      segments: const [
-        ButtonSegment(
-          value: false,
-          label: Text(LibraryDuplicateStrings.pendingGroups),
-        ),
-        ButtonSegment(
-          value: true,
-          label: Text(LibraryDuplicateStrings.ignoredGroups),
-        ),
-      ],
-      selected: {ignored},
-      onSelectionChanged: (value) => onCategoryChanged(value.single),
-    );
     return LayoutBuilder(
       builder: (context, constraints) {
         final textScale = MediaQuery.textScalerOf(context).scale(24) / 24;
@@ -79,8 +59,6 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
             children: [
               summary,
               const SizedBox(height: 12),
-              Align(child: category),
-              const SizedBox(height: 4),
               Align(alignment: Alignment.centerRight, child: actions),
             ],
           );
@@ -89,11 +67,7 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
           children: [
             Expanded(child: summary),
             const SizedBox(width: 24),
-            category,
-            const SizedBox(width: 24),
-            Expanded(
-              child: Align(alignment: Alignment.centerRight, child: actions),
-            ),
+            actions,
           ],
         );
       },

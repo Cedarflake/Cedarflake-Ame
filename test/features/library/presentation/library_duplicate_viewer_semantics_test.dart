@@ -8,7 +8,7 @@ import "package:cedarflake_ame/features/library/application/ports/library_exact_
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
-import "package:cedarflake_ame/features/library/presentation/pages/library_exact_duplicates_page.dart";
+import "package:cedarflake_ame/features/library/presentation/pages/library_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_asset_information_sheet.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
@@ -105,8 +105,7 @@ void main() {
                         ),
                       ],
                     ),
-                    duplicatesBuilder: (_) =>
-                        const LibraryExactDuplicatesPage(),
+                    duplicatesBuilder: (_) => const LibraryDuplicatesPage(),
                     settingsBuilder: (_) => const Text("Settings"),
                     onSidebarResizeChanged: (_) {},
                     onPreferenceError: (_, error) => fail("$error"),
@@ -121,12 +120,9 @@ void main() {
           for (var cycle = 0; cycle < 3; cycle += 1) {
             await tester.tap(find.byKey(const Key("workbench-duplicates")));
             await tester.pumpAndSettle();
-            if (cycle == 0) {
-              await tester.tap(
-                find.byKey(const ValueKey("duplicate-card-one")),
-              );
-              await tester.pumpAndSettle();
-            }
+            expect(find.text("查看重复图片"), findsOneWidget);
+            await tester.tap(find.text("查看重复图片"));
+            await tester.pumpAndSettle();
             await tester.tap(find.byKey(const ValueKey("duplicate-card-one")));
             await tester.pumpAndSettle();
             expect(find.byType(LibraryImageViewer), findsOneWidget);

@@ -31,7 +31,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R3 | Exact duplicates and physical-location inspection | Completed on 2026-10-17 |
 | R4 | Favorites, albums and durable organization progress | Merged into `main` on 2026-10-30 |
 | R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
-| R6 | Perceptual similarity review | In progress; R6-02 evidence and bounded analysis |
+| R6 | Perceptual similarity review | In progress; R6-03 browsing and comparison |
 | R7 | Structured and semantic discovery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run | Planned after R7 |
 | R9 | Freshly authorized physical operations and recovery | Planned after R8 |
@@ -59,11 +59,12 @@ Project organization O1–O7 was merged into `main` on 2026-11-04 through
 delivered scope to evidence.
 
 The [R6 plan](plans/r6-similar-images.md) owns the implementation sequence and planned interactions.
-R6-02 is active: connect admitted evidence, source leases, persistent candidate windows, durable
-choices and automatic analysis. The [engine evaluation](acceptance/r6-engine-evaluation.md) retains
-R6-01's selection evidence and the remaining production integration and acceptance boundaries.
-Sketch iteration has ended; notifications and styling will be refined in the actual application
-during R6-03.
+R6-02's production evidence, bounded analysis and durable choices are connected; the
+[integration record](acceptance/r6-similar-images.md) owns their checks and limits. R6-03 is active:
+connect and verify the browsing/comparison interface in the Windows application. R6-04 retains
+real-library and constrained-client acceptance. The [engine evaluation](acceptance/r6-engine-evaluation.md)
+owns R6-01's selection evidence. Sketch iteration has ended; notifications and styling are refined
+in the actual application.
 
 The historical pause timeout remains an accepted observation with a
 [recurrence-based follow-up](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04).

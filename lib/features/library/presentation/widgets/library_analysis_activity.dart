@@ -5,7 +5,6 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/notifications/ame_notification_controller.dart";
-import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_classification_lifecycle.dart";
 import "../../application/library_exact_analysis_controller.dart";
@@ -74,13 +73,6 @@ class _LibraryAnalysisActivityState
     ref.listenManual(
       libraryUpdateControllerProvider,
       (_, _) => _updateCatalog(),
-    );
-    ref.listenManual(
-      amePreferencesControllerProvider.select(
-        (value) => value.exactAnalysisPaused,
-      ),
-      (_, paused) => _scheduler?.setPaused(paused),
-      fireImmediately: true,
     );
     HardwareKeyboard.instance.addHandler(_onKey);
   }

@@ -154,6 +154,10 @@ factory neither replaces that path nor grants source-read authority.
   buffer-copy lifetime. `application/viewer_source.rs` owns catalog admission and lease capacity,
   while `library_source_image_stream.dart` owns retired stream errors and late codec/frame resource
   release without replacing Flutter's decoding or animation scheduler.
+  `LibraryImageComparison` owns one latest-intent scheduler per pane and disposes both on exit.
+  The panes share the source-reader port and its native two-lease limit, not a superseding selection
+  queue. Each image retains its guard until its buffer copy finishes; retired panes cannot publish
+  decoded frames. Preview demand and linked transforms belong to the comparison surface.
   `LibraryViewerImage` composes its current source frame with an image-only transformation builder;
   pending-load feedback and failure/retry controls stay outside that transformed child without
   another loading-state owner. A fallback preview retains the image transform independently.

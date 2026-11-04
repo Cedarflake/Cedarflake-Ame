@@ -86,11 +86,12 @@ class SimilarReviewFixture implements LibrarySimilarReview {
   void _write(LibrarySimilarContext context) {
     lastContext = context;
     writes++;
-    if (failWrite)
+    if (failWrite) {
       throw const LibraryDuplicateFailure(
         code: "similarity_review_stale",
         message: "Fixture revision changed",
       );
+    }
   }
 
   @override

@@ -86,7 +86,7 @@ import "../widgets/library_viewer_organization_controls.dart";
 import "../widgets/library_viewer_transition.dart";
 import "../widgets/library_virtual_gallery_geometry.dart";
 import "../widgets/library_workbench.dart";
-import "library_exact_duplicates_page.dart";
+import "library_duplicates_page.dart";
 
 class UnifiedLibraryScreen extends ConsumerStatefulWidget {
   const UnifiedLibraryScreen({super.key});
@@ -911,7 +911,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           body: _buildGalleryBody(state, controller, layoutManifest),
         ),
       ),
-      duplicatesBuilder: (_) => const LibraryExactDuplicatesPage(),
+      duplicatesBuilder: (_) => const LibraryDuplicatesPage(),
       settingsBuilder: (context) =>
           ref.read(librarySettingsDestinationProvider)(
             context,

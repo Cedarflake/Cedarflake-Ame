@@ -32,17 +32,7 @@
       "contract": "amePreferencesControllerProvider and declared preference state"
     },
     {
-      "source": "lib/features/library/presentation/widgets/library_analysis_activity.dart",
-      "target": "lib/features/settings/application/ame_preferences.dart",
-      "contract": "amePreferencesControllerProvider and declared preference state"
-    },
-    {
       "source": "lib/features/library/presentation/widgets/library_duplicate_review_viewer.dart",
-      "target": "lib/features/settings/application/ame_preferences.dart",
-      "contract": "amePreferencesControllerProvider and declared preference state"
-    },
-    {
-      "source": "lib/features/library/presentation/widgets/library_exact_analysis_actions.dart",
       "target": "lib/features/settings/application/ame_preferences.dart",
       "contract": "amePreferencesControllerProvider and declared preference state"
     },

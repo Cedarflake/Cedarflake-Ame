@@ -78,7 +78,7 @@ Future<void> main() async {
         final duplicates = LibraryDuplicateBindings.production();
         final exactAnalysisBindings = LibraryExactAnalysisBindings(
           service: duplicates.exactDuplicates,
-          paused: amePreferences.exactAnalysisPaused,
+          paused: false,
           foregroundReads: libraryForegroundReads,
         );
         shutdownCoordinator.register(exactAnalysisBindings.close);

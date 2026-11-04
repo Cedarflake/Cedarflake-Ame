@@ -7,7 +7,7 @@ import "package:cedarflake_ame/features/library/application/library_exact_analys
 import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
-import "package:cedarflake_ame/features/library/presentation/pages/library_exact_duplicates_page.dart";
+import "package:cedarflake_ame/features/library/presentation/pages/library_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_fade.dart";
 import "package:flutter/material.dart";
@@ -17,6 +17,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/application_test_bindings.dart";
 import "support/duplicate_review_fixtures.dart";
+import "support/similar_review_fixtures.dart";
+import "package:cedarflake_ame/features/library/application/library_similar_review_controller.dart";
 
 void main() {
   test(
@@ -203,6 +205,9 @@ void main() {
         overrides: applicationTestOverrides([
           libraryControllerProvider.overrideWith(() => library),
           libraryDuplicateReviewProvider.overrideWithValue(service),
+          librarySimilarReviewProvider.overrideWithValue(
+            SimilarReviewFixture(),
+          ),
           libraryExactAnalysisControllerProvider.overrideWithValue(analysis),
         ]),
       );
@@ -212,7 +217,7 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: const MaterialApp(
-            home: Scaffold(body: LibraryExactDuplicatesPage()),
+            home: Scaffold(body: LibraryDuplicatesPage()),
           ),
         ),
       );
@@ -247,7 +252,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.byType(LibraryExactDuplicatesPage), findsNothing);
+      expect(find.byType(LibraryDuplicatesPage), findsNothing);
       expect(library.demands, isEmpty);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await tester.pumpAndSettle();
@@ -260,7 +265,7 @@ void main() {
       );
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
-      expect(find.byType(LibraryExactDuplicatesPage), findsOneWidget);
+      expect(find.byType(LibraryDuplicatesPage), findsOneWidget);
       expect(
         tester
             .widget<IconButton>(find.byKey(const ValueKey("prefer-one")))
@@ -271,6 +276,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(service.decision.ignored, isTrue);
       expect(find.text("查看重复图片"), findsNothing);
+      expect(find.text("恢复此组"), findsOneWidget);
+      await tester.tap(find.byKey(const Key("duplicate-review-back")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("duplicate-group-menu")));
+      await tester.pumpAndSettle();
       await tester.tap(find.text("已忽略"));
       await tester.pumpAndSettle();
       await tester.tap(find.text("查看重复图片"));

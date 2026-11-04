@@ -34,7 +34,9 @@ slots to their owning Settings surfaces, and connects the Settings default-album
 picker. Features declare typed presentation callbacks and required Providers; they do not import one
 another's pages or private widgets. The choice result distinguishes cancellation from clearing an
 album. Feedback watches the existing calling `WidgetRef`, preserving precedence, confirmation,
-retry and dismissal authority. The workbench retains visited pages, scroll position and focus.
+retry and dismissal authority. The workbench retains visited page owners. Duplicates resets nested
+navigation and temporary comparison selection when leaving its primary destination; ordinary viewer
+or comparison return retains the parent group and scroll position.
 
 ## Presentation and application owners
 

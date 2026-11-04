@@ -132,3 +132,42 @@ cases/support have 274 lines with no inline tests. Dependency verification passe
 
 Actual desktop interaction, real-library accuracy, constrained-client resource measurements and the
 complete R6 user workflow retain their acceptance scope in the roadmap.
+
+## Browsing and comparison integration — 2026-11-04
+
+The Duplicates page now composes separate exact/similar query owners through a bounded mixed-group
+workspace. Its right-side menus, nested navigation reset, member selection, in-place ignore/restore,
+representative choice, exact-copy locations and exclusion/undo follow the implemented
+[workbench contract](../product/gallery/workbench-and-navigation.md#workbench-blueprint).
+The shared transient-feedback component owns the optional undo/retry action.
+
+The comparison workflow initially stalled because both panes used one latest-selection source
+scheduler: the second request retired the first. Each pane now owns its scheduler while both retain
+the native two-lease cap and source guards through buffer copy. The workflow case decodes both
+images and verifies both lease closures, linked/independent zoom, return context, selected-member
+exclusion, a disappearing group, list-level undo and primary-navigation reset. It also checks mixed
+ignored groups and restoration in place. This is a controlled port fixture, not native source evidence.
+
+Nine layout/preview-demand cases passed at 400, 800, 1200 and 1280 logical pixels with normal and
+doubled text. The narrow row-height expectation now allows the intentional action footer while
+retaining bounded height, alignment and overflow checks. Six automatic-analysis/location cases,
+eight retained exact-review cases, one preference-publication case, three paged-viewer cases and
+two retained Windows semantics cases passed. The semantics entry now opens a group on every primary
+return, matching the accepted reset behavior. Two obsolete manual-pause UI cases are replaced by
+one case proving a saved legacy pause does not prevent automatic discovery; scheduler lifecycle
+coverage remains. Scoped presentation analysis passed without warnings.
+Dependency verification passed for 513 modules after retiring the two unused pause-setting
+consumer registrations; new and changed dependencies remain checked.
+
+Existing `AmePopupMenuButton`/`ameMenuChoice` retain framework popup and focus ownership. The installed
+Flutter SDK supports `MenuAnchor`, `MenuItemButton` and `RadioMenuButton`; a second menu composition
+is unnecessary for these short choices. Comparison uses the SDK's `InteractiveViewer` and
+`TransformationController` for pan/zoom instead of implementing gestures. Its frame transformation
+preserves shared viewer loading/failure controls outside the image. The page, workspace coordinator
+and comparison surface have 394, 216 and 217 production lines respectively, with no inline tests;
+the new workflow fixture/case has 243 dedicated test lines.
+
+The [699c5faf CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41836616389) passed its
+Flutter, Windows scan/accessibility and unsigned build jobs; Static rejected two missing brace blocks
+in the preceding review slice. Both are corrected. Current-head hosted checks, actual Windows
+interaction and R6-04 acceptance remain outstanding for this UI increment.

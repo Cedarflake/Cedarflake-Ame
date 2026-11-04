@@ -111,8 +111,9 @@ class LibrarySimilarReviewController extends ChangeNotifier {
     choices.clearError();
     final nextIgnored = ignoredGroups ?? _ignored;
     final nextDegree = degree ?? _degree;
-    if (nextIgnored != _ignored || nextDegree != _degree)
+    if (nextIgnored != _ignored || nextDegree != _degree) {
       groupWindow.invalidate(clear: true);
+    }
     _ignored = nextIgnored;
     _degree = nextDegree;
     notifyListeners();

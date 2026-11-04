@@ -160,7 +160,7 @@ states without becoming production data paths:
 Until each owning stage connects its complete workflow, the production UI does not show:
 
 - classification, category filters, category pages, classification review, or model status;
-- perceptual or semantic similarity;
+- semantic similarity;
 - people, faces, or identity features;
 - editing tools;
 - delete, move, copy, rename, recycle-bin, quarantine, or dry-run execution controls;
@@ -171,3 +171,7 @@ effective-category query. Category predicates compose with existing search and m
 the visible collection entry remains in Albums. Category membership and definitions are application-
 managed, with no manual classification controls. The [R5 requirements](r5-classification.md) own
 that behavior and legacy-record compatibility.
+
+Perceptual similarity is scoped to Duplicates under the
+[workbench contract](gallery/workbench-and-navigation.md#workbench-blueprint); it does not add a
+Library filter or similarity-driven folding.
