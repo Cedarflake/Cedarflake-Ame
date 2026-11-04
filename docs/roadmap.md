@@ -31,7 +31,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R3 | Exact duplicates and physical-location inspection | Completed on 2026-10-17 |
 | R4 | Favorites, albums and durable organization progress | Merged into `main` on 2026-10-30 |
 | R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
-| R6 | Perceptual similarity review | Planned after post-R5 organization |
+| R6 | Perceptual similarity review | Planned next; not started |
 | R7 | Structured and semantic discovery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run | Planned after R7 |
 | R9 | Freshly authorized physical operations and recovery | Planned after R8 |
@@ -42,8 +42,6 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 R4 and R5 are integrated; no later product stage is active. Their
 [R4 merge evidence](acceptance/r4-organization.md#r4-merge-verification---2026-10-30) and
 [R5 integrated evidence](acceptance/r5-closeout.md) retain coverage, accepted limits and merge authority.
-GitHub continues hosted checks independently, as the user directed; pending checks do not block the
-next organization slice or require local substitutes for unchanged CI workloads.
 
 Preserve the delivered R5 curated catalog, purpose restrictions, automatic analysis, legacy decisions,
 archive compatibility and authorized model-installation recovery. The
@@ -52,15 +50,15 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-Project organization O1–O7 is complete on `codex/project-organization`; the
+Project organization O1–O7 was merged into `main` on 2026-11-04 through
+[PR 46](https://github.com/Cedarflake/Cedarflake-Ame/pull/46). The
 [handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04) maps the
-delivered scope to evidence. [PR 46](https://github.com/Cedarflake/Cedarflake-Ame/pull/46) remains a
-draft; merging requires separate authorization. No later product stage is active.
+delivered scope to evidence. No later product stage is active.
 
 The historical pause timeout remains an accepted observation with a
 [recurrence-based follow-up](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04).
 It did not recur in current Windows or bounded timing verification. It no longer
-blocks this rollout; its cause is not recorded as fixed. R6 remains planned after this maintenance.
+blocks this rollout; its cause is not recorded as fixed. R6 remains planned and has not started.
 
 ## Project organization after R5
 
@@ -70,7 +68,7 @@ the [repository layout](development/repository-layout.md) owns placement. The
 
 | Scope | Disposition |
 | --- | --- |
-| O1–O7 | Completed on the organization branch; [handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04) |
+| O1–O7 | Merged into `main` on 2026-11-04; [handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04) |
 
 New and materially changed modules follow the accepted dependency and layout contracts. Keep the
 fixed legacy inventory as provenance and retain only the exact admitted technical boundaries.

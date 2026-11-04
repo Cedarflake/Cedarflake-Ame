@@ -552,8 +552,9 @@ from the passing runs. Further unchanged replay is not a prerequisite for this h
 
 ## Organization handover — 2026-11-04
 
-O1–O7 is delivered on `codex/project-organization`. The following evidence maps to the execution
-plan's complete scope; no later product stage or merge is included.
+O1–O7 was merged into `main` through [PR 46](https://github.com/Cedarflake/Cedarflake-Ame/pull/46)
+as `6e91c41f` on 2026-11-04. The following evidence maps to the execution plan's complete scope;
+no later product stage is active.
 
 | Slice | Delivered ownership and evidence |
 | --- | --- |
@@ -574,8 +575,12 @@ remain valid, and hosted CI continues independently under the standing execution
 
 ADR 0037 owns ongoing dependency/composition rules, the repository layout owns placement, and the
 documentation and test-design standards remain separate linked contracts outside `AGENTS.md`.
-Original media and catalogs remain preserved. The PR stays a draft for separate review and merge
-authorization; its final description maps the complete rollout without maintaining acceptance status.
+Original media and catalogs remain preserved. Before the authorized merge, final branch head
+`48162f15` passed [Quality / CI](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41756495939):
+15 jobs succeeded, including the aggregate Windows Gate, and three conditional release/signing jobs
+were skipped. No unresolved GitHub review threads remained. Both local and remote
+`codex/project-organization` branches were deleted; the checkout returned to `main` with the two
+pre-existing working-tree changes preserved byte-for-byte.
 
 ## CI case mapping — 2026-11-04
 
