@@ -1,11 +1,10 @@
 # R6 - Similar image browsing and comparison
 
-Status: scoped execution plan; activation and acceptance belong to the roadmap.
+Status: working implementation plan, not a binding product specification.
 
-The [roadmap](../roadmap.md#current-execution-queue) owns the current execution boundary.
-The [R6 scope](../product/organization-workflows.md#r6---perceptual-similarity-review)
-owns the product outcome; the [similar-image interface](../product/gallery/similar-images.md)
-owns the confirmed interaction requirements.
+This file holds R6's agreed planning direction, proposed implementation and unresolved details.
+The [roadmap](../roadmap.md#current-execution-queue) owns activation and acceptance. These planning
+choices do not change current product contracts; update those alongside reviewed implementation.
 
 ## Delivery boundary
 
@@ -13,25 +12,32 @@ Add similar-image browsing inside the existing Duplicates workspace. Preserve th
 group list, member view, image viewer, source safety and ordinary Library browsing. Similarity
 degree is selectable. User choices are saved in place; there is no group-completion workflow.
 
-Planning introduces no runtime dependency, schema change or automatic similarity scanning. The
-sketch is frozen; later work follows confirmed behavior and the existing design/feedback system,
-with layout refinements for real workflows. Sketch matches and metadata are illustrative.
+Planning introduces no runtime dependency, schema change or automatic similarity scanning. Sketch
+iteration has ended. Its navigation examples inform this plan, while production layout and especially
+notifications will be refined in the actual application using the existing
+[feedback templates](../product/gallery/feedback.md#feedback-templates). Sketch matches, metadata,
+notification styling and timers are illustrative.
 
-## R6-00: Confirm the interface
+## R6-00: Interaction planning
 
-1. Review the right-hand group-view menu and adjacent similarity-degree icon menu on the top-level
-   list, group opening, comparison, preference, member exclusion and ignore/restore. Nested pages
-   omit both menus.
-   Primary-destination switches reset nested pages; ordinary viewer return keeps its parent group.
-2. Check Library separately: its current duplicate-display choices remain, with no similarity
-   filter or folding caused by similarity.
-3. Apply the confirmed degree labels/default and representative rules. Keep comparison and ignore
-   actions together; omit top tabs, selection instructions and manual refresh/stop-search controls.
-4. Retain the decisions in the interface contract; review production feedback against its shared
-   templates without another sketch iteration.
+The planning choices below guide implementation; detailed styling and notifications remain adjustable.
 
-Exit: the interaction choices are explicit, including anything deferred. A clickable sketch is
-not implementation or acceptance evidence.
+| Area | Planned direction |
+| --- | --- |
+| Entry | Keep `去重`; omit top tabs. A right-hand `分组` menu with a layers icon switches between `重复组`, `已忽略` and `相似组`. |
+| Similarity degree | Offer `严格 / 标准 / 宽松`, initially `标准`, through a sliders-icon menu beside `分组` in the same action row. Show it only in the similar-group list, with the current degree in its tooltip and accessible name. |
+| Nested pages | Member, viewer and comparison pages omit both menus. Primary-destination switches reset nested navigation and temporary selection; ordinary return from viewing/comparison preserves its parent group. |
+| Browsing | Reuse group cards, member rows and image viewing. Browse freely, without group completion, a next-group step or review-progress tracking. |
+| Comparison | Select two members; put `对比图片` beside `忽略此组` / `恢复此组`. Omit the separate selection toolbar and its left-hand instruction/count. Plan side-by-side viewing with optional synchronized zoom/pan. |
+| Exact copies | Show one representative for byte-identical copies within a similar group and retain access to all locations. Reuse existing representative rules without merging asset/location identities. |
+| Unrelated members | Add a member-row action to exclude that image from the current similar group; proposed label: `移出此组`. This does not change the original file, Library visibility or other groups. |
+| Saved choices | Preserve preferences, ignored groups and member exclusions across degree changes and compatible reanalysis. A similarity preference does not fold or hide images in Library. |
+| Ignored groups | List ignored exact and similar groups together, identify the kind on each card, and support restoration. Ignore/restore saves in place without automatically leaving the open group. |
+| Automatic work | Discovery and result updates run automatically; remove manual refresh and pause/stop-search controls from this workspace. Navigation does not cancel analysis. |
+| Library | Add no similarity filter or similarity-driven folding to Library, Favorites or albums; existing exact-duplicate display remains separate. |
+
+Exit: planning choices and deferred details are recorded here. The sketch is not implementation or
+product acceptance evidence, and no further sketch iteration is planned.
 
 ## R6-01: Admit an engine and comparison boundary
 
@@ -75,9 +81,9 @@ the workspace does not require a manual start, refresh or stop-search action.
 Exit: analysis and durable choices work through production contracts, including stale and cancelled
 completion. Scheduling behavior is explicit rather than inferred from the sketch.
 
-## R6-03: Connect the accepted browsing interface
+## R6-03: Implement the planned browsing interface
 
-Depends on R6-02 and the confirmed R6-00 layout.
+Depends on R6-02 and the R6-00 planning direction.
 
 Reuse existing workspace, group/member, preview, viewer, loading and feedback owners. Extract a
 shared responsibility where needed instead of adding similarity flags throughout the exact-duplicate
@@ -88,8 +94,8 @@ member exclusion/undo and comparison. View or primary-destination switches reset
 and temporary selection; durable decisions remain. Returning from comparison restores its member view.
 Keyboard navigation, enlarged text and narrow windows retain the same available actions.
 
-Exit: the real desktop path matches the accepted interface; no completion queue, next-group action,
-similarity filter in Library or filesystem operation is introduced.
+Review the real desktop path against the plan, then document the implemented behavior in its product
+owner. Introduce no completion queue, next-group action, Library similarity filter or filesystem operation.
 
 ## R6-04: Verify the delivered result
 
@@ -110,5 +116,10 @@ Add only meaningful missing coverage under the [test-design standard](../develop
 ## Remaining engineering decisions
 
 R6-01 owns engine admission, measured transformation coverage and degree thresholds. R6-02 owns
-stable group/member identity, exclusion matching and bounded automatic scheduling. Production layout
-and notification details follow the interface and shared feedback contracts; none requires another sketch.
+stable group/member identity, exclusion matching and bounded automatic scheduling.
+
+Resolve member-exclusion details during implementation: scope when one row represents exact copies,
+undo through shared feedback, selected/preferred-member removal, and groups with fewer than two
+members. Preserve original files and durable intent while keeping ordinary return navigation available.
+Production styling and notification behavior will be reviewed in the real application, without
+treating the sketch as a final specification.
