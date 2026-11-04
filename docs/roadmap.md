@@ -70,7 +70,10 @@ in the actual application.
 
 The observed unrelated matches are resolved by
 [paired detail confirmation](acceptance/r6-engine-evaluation.md#paired-engine-native-verification---2026-11-05).
-R6-04 retains broader-library coverage and constrained-client measurements.
+The [expanded retained-library check](acceptance/r6-engine-evaluation.md#retained-library-growth-and-sampled-matches---2026-11-05)
+records persistent-query growth and the remaining visual-layout matching limits. Constrained-client
+measurement awaits transfer of the current guarded measurement package; current-commit hosted checks
+remain pending.
 
 The historical pause timeout remains an accepted observation with a
 [recurrence-based follow-up](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04).

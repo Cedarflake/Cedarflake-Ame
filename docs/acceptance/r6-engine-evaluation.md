@@ -203,6 +203,31 @@ This resolves the observed standard-degree false-positive blocker. Full-library 
 retained-scale work growth and constrained-client measurements remain outside this partial run.
 Heavy crops, layout changes and semantic resemblance retain the stated quality limits.
 
+## Retained-library growth and sampled matches - 2026-11-05
+
+The same guarded `3c59c25b` library subsequently checked 10,006 sources against a fresh isolated
+copy of the 63,077-location baseline. It published 9,974 content records in 596.026 seconds, with
+a 402-MiB sampled peak working set and 216-ms cancellation retirement. After the initial 1,000
+sources, successive 1,000-source samples took 51-62 seconds; the sampled memory peak did not grow.
+Strict / standard / broad returned 8 / 11 / 13 groups, taking 610 / 524 / 522 ms respectively.
+These measurements cover actual persistent matching and group queries at this retained scale,
+alongside the unchanged coarse-index growth and bounded-posting evidence above.
+
+The derived catalog retained 13 groups and 66 memberships, including reference members. Sampling
+up to three reference/member pairs per observed distance produced 28 pairs. Guarded reads verified
+each source SHA-256 before bounded decoding; temporary review sheets were removed after inspection.
+Eleven pairs shared meme artwork with different inset images, fifteen shared screenshot layouts
+with different text, and two broad-only pairs depicted the same character with different props or
+poses. No wholly unrelated scene pair was observed in this selected sample. This is visual-layout
+similarity, including changed text and small inserts, not evidence of identical image content or a
+whole-library precision estimate. The earlier same-image resize checks remain separate evidence.
+
+There were 26 revision-change skips and two source-guard failures. The retained baseline SHA-256
+and all 17 source-sample hashes were unchanged. SQLite quick-check passed with zero foreign-key
+issues; the child exited with code 0 and the scratch catalog was retired. Constrained-client
+measurement remains pending; the existing 2-core, 8-GiB host and retained catalog were read-only
+preflighted without changing its checkout, installed SDK or source media.
+
 ## Provenance and remaining integration
 
 The shared `adapters/analysis_source.rs` boundary was extracted from production classification input
