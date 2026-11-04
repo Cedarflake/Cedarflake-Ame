@@ -1,4 +1,6 @@
 use std::collections::BTreeMap;
+use std::io::Cursor;
+use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 
 use image::DynamicImage;
@@ -32,7 +34,16 @@ fn hashes(image: &DynamicImage, hasher: &Hasher) -> Vec<Vec<u8>> {
 }
 
 pub(crate) fn compare_hashes() {
-    let originals: Vec<_> = (1..=24).map(scene).collect();
+    let originals: Vec<_> = (1..=24)
+        .map(|seed| {
+            let mut encoded = Cursor::new(Vec::new());
+            scene(seed)
+                .write_to(&mut encoded, image::ImageFormat::Png)
+                .expect("generated scene encodes");
+            super::input::decode(&mut encoded, &AtomicBool::new(false))
+                .expect("bounded borrowed input decodes")
+        })
+        .collect();
     for (label, algorithm, edge, dct) in [
         ("gradient8", HashAlg::Gradient, 8, false),
         ("gradient16", HashAlg::Gradient, 16, false),

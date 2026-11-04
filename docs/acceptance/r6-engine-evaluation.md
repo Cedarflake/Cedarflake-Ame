@@ -45,7 +45,7 @@ serially under the repository tooling lock. Neither command scans directories or
 
 The retained Release probe produced these Hamming-distance ranges for the 256-bit Gradient hash.
 It also reports accepted counts at radii 8/16/24. Its candidate-completeness case passed for all
-25 admitted radii; this is the probe's one focused regression case.
+25 admitted radii.
 
 | Transformation | Cases | Minimum / median / maximum distance |
 | --- | --- | --- |
@@ -72,10 +72,23 @@ most 24 of the 25 bands. More generally, a radius-r candidate retains at least 2
 Every retained candidate still needs its full distance. This supports evaluating a persistent band
 index instead of retaining a library-sized BK-tree in memory.
 
+## Borrowed input boundary
+
+The probe's decoder accepts only a borrowed `Read + Seek` source. It rewinds that reader, identifies
+the format from encoded bytes and applies EXIF orientation. Its limits match the existing background
+image boundary: 256 MiB encoded input, 16,384 per dimension, 16 Mi pixels and 128 MiB decoder allocation.
+Cancellation is checked before source access, on reads/seeks and between decode phases.
+
+Two additional focused cases passed: a borrowed source remains intact, cancellation during I/O or
+before entry returns no pixels, and malformed/empty/oversized input is rejected. Together with the
+candidate-completeness case, the Release example has three passing cases. This establishes the
+path-free engine-input seam; the production Windows lease, stale-publication checks and actual
+cancellation latency still require their integration evidence.
+
 ## Remaining admission evidence
 
-R6-01 still needs bounded decoding and cancellation through the admitted-source boundary, a fixed
-normalization/parameter identity, and the final engine ADR. R6-02 will connect persistent evidence,
+R6-01 still needs a fixed normalization/parameter identity, bounded-work timing and the final engine
+ADR. R6-02 will connect the Windows source lease, persistent evidence,
 bounded candidate windows and stale-source publication rejection. Dense or low-information hashes,
 source changes and real-image false positives require explicit handling; radius alone is insufficient.
 The desktop, real-library and constrained-client checks remain in R6-04. This probe changes no product
