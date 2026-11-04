@@ -216,6 +216,9 @@ pub(super) struct ValidatedScan<Proof, Namespace> {
     pub(super) foreground_proof: Option<Proof>,
 }
 
+type ScanValidationResult<Proof, Namespace> =
+    Result<Option<ValidatedScan<Proof, Namespace>>, ScanError>;
+
 pub(super) fn validate_staged_locations<
     Repository: ScanPublicationRepository,
     Namespaces: PublicationNamespaceFactory,
@@ -227,7 +230,7 @@ pub(super) fn validate_staged_locations<
     context: FinalizationContext<'_>,
     issue_count: &mut u64,
     publish: &mut impl FnMut(ScanEvent) -> bool,
-) -> Result<Option<ValidatedScan<Repository::StagingProof, Namespaces::Namespace>>, ScanError> {
+) -> ScanValidationResult<Repository::StagingProof, Namespaces::Namespace> {
     let roster = if plan.mode == FinalizationMode::Foreground {
         Some(catalog.capture_staging_validation(&context.request.scan_id)?)
     } else {

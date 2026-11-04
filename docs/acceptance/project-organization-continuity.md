@@ -597,6 +597,9 @@ enclosing symbol for block-local imports. Other imports keep their existing use-
 The focused dependency target passes all 26 cases, including six rejecting import forms, allowed
 port access, test-only exclusion, exact composition policy and the unchanged repository inventory.
 Owned rustfmt and whitespace checks pass. Clippy exposed a separate existing `type_complexity`
-failure in `application/scan_library/finalization.rs`; it is not a parser-test failure.
+failure in `application/scan_library/finalization.rs`. A transparent `ScanValidationResult` alias
+names its unchanged result type; the library and dependency-check target now pass Clippy with
+`-D warnings`. Scan transitions and assertions are unchanged. The finalizer contains 442 production,
+33 inline-test and 96 dedicated control-test lines.
 Affected gate implementation is 325 lines in `names.rs` and 277 in `references.rs`, with no inline
 tests; the dedicated parser fixture file is 516 lines. No dependency policy or baseline is widened.
