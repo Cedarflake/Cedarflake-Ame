@@ -199,6 +199,14 @@ SHA-256 and all 17 retained source-sample hashes were unchanged. The derived cat
 quick-check and foreign-key checks, the child exited with code 0, and scratch retirement completed.
 The prior small reports and private pair manifest are retained in ignored diagnostic storage.
 
+A connected fixture check used the same guarded library to scan and analyze two existing synthetic
+scenes and their JPEG-65, half-size, quarter-turn, mirror, watermark, 5%-crop and 20%-crop variants.
+All 16 sources produced evidence in 806 ms; their persisted paired signatures matched the evaluation
+probe. Standard and broad retained the twelve admitted variants in two separate scene groups;
+both heavy crops remained outside those groups. Strict omitted one light crop. Source SHA-256
+values were unchanged, SQLite quick-check and foreign-key checks passed, and the leased images and
+catalog were removed. This closes the production-entry transformation check without a new test suite.
+
 This resolves the observed standard-degree false-positive blocker. Full-library precision/recall,
 retained-scale work growth and constrained-client measurements remain outside this partial run.
 Heavy crops, layout changes and semantic resemblance retain the stated quality limits.

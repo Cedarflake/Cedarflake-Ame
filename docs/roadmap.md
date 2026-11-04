@@ -72,8 +72,9 @@ The observed unrelated matches are resolved by
 [paired detail confirmation](acceptance/r6-engine-evaluation.md#paired-engine-native-verification---2026-11-05).
 The [expanded retained-library check](acceptance/r6-engine-evaluation.md#retained-library-growth-and-sampled-matches---2026-11-05)
 records persistent-query growth and the remaining visual-layout matching limits. Constrained-client
-measurement awaits transfer of the current guarded measurement package; current-commit hosted checks
-remain pending.
+measurement awaits transfer authorization for the current guarded measurement package. Implementation
+checks passed at `8ca02227`; the [integration record](acceptance/r6-similar-images.md) retains the
+exact hosted run and remaining verification limits.
 
 The historical pause timeout remains an accepted observation with a
 [recurrence-based follow-up](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04).
