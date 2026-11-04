@@ -102,6 +102,20 @@ deadline inside every codec. Production Windows leases and stale-publication che
 
 ## Provenance and remaining integration
 
+The shared `adapters/analysis_source.rs` boundary was extracted from production classification input
+after `14e9ee00`. Classification consumes the same held file and namespace guard through this owner;
+its error codes, uncertain-revision fingerprint check, pixel normalization and publication revalidation
+are preserved. The source owner has 101 production lines; the classification facade has 71 and its
+pixel owner 103. The two retained dedicated test files have 327 lines; no cases were added.
+
+Seven existing decoder cases passed in the first Release run. The two Windows source cases first
+failed at default temporary-directory admission: the sandbox token failed namespace ACL protection,
+and ordinary execution could not create the default temporary fixture. The unchanged binary and two
+cases then passed with `TEMP`/`TMP` redirected through `Invoke-AmeAcceptanceScratch`. They prove held
+source/ancestor protection, byte preservation after release, uncertain-revision content matching and
+wrong-root rejection. The scratch scope retired successfully. These are shared-reader checks, not
+production similarity scheduling or persistent-result acceptance.
+
 The initial [256-bit probe](https://github.com/Cedarflake/Cedarflake-Ame/commit/926f71d67ac08493cacf87abe4c3f72997f9bbfc)
 showed BK-tree's broad-search cost and weak crop recall. The
 [borrowed-input extension](https://github.com/Cedarflake/Cedarflake-Ame/commit/4883cf4dd2c3e25bbabe8b3d9b828ed66f85c42b)

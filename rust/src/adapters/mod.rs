@@ -1,3 +1,5 @@
+#[cfg(all(windows, any(feature = "classification-worker", test)))]
+mod analysis_source;
 mod catalog_capacity;
 pub(crate) use catalog_capacity::LocalCatalogCapacity;
 mod classification_feature_cache;

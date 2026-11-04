@@ -39,6 +39,12 @@ shared principles; the roadmap owns current delivery order and acceptance status
   a cursor and are consumed sequentially. The port grants no path reopen, source mutation or new
   publication authority. The native store retains its existing decode limits, JPEG fallback, cache
   admission and staged publication; application source revalidation and held guards remain unchanged.
+- `adapters/analysis_source.rs` owns the retained source and namespace lease for pixel analysis.
+  It validates bounded exact-content evidence, opens through the existing root-bound source guard,
+  and rechecks the fingerprint when identity or revision is unavailable. It lends the held file and
+  retains publication revalidation until drop. Classification translates typed admission failures
+  into its existing errors and keeps its own pixel normalization; neither decoder nor caller gains
+  path-reopen, hydration or source-write authority.
 - `ports/preview_cache_storage.rs` exposes cache identity, recognition, preparation and held-directory
   capabilities. Cleanup/recovery consume these contracts and the catalog port; format details and
   native namespace proofs remain adapter-owned. Store borrowing exposes materialization and atomic
