@@ -210,4 +210,7 @@ fn changed() -> ScanError {
 }
 
 #[cfg(test)]
+#[path = "../../../../test_support/classification_merge_fixture.rs"]
+pub(crate) mod test_support;
+#[cfg(test)]
 mod tests;

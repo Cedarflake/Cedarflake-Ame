@@ -1,11 +1,8 @@
 use crate::domain::classification::ClassificationRevision;
 use crate::domain::classification::discovery::CategoryNamingPurpose;
 
+use super::test_support::fixture;
 use super::*;
-
-#[path = "../../../../../test_support/classification_merge_fixture.rs"]
-mod support;
-use support::fixture;
 
 #[test]
 fn merge_requires_lost_recurrence_and_the_original_purpose_for_every_content() {

@@ -603,3 +603,11 @@ names its unchanged result type; the library and dependency-check target now pas
 33 inline-test and 96 dedicated control-test lines.
 Affected gate implementation is 325 lines in `names.rs` and 277 in `references.rs`, with no inline
 tests; the dedicated parser fixture file is 516 lines. No dependency policy or baseline is widened.
+
+## Shared classification fixture — 2026-11-04
+
+At `32f21bc5`, [hosted Static](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41752279456/job/126320554558)
+rejected two module declarations loading `classification_merge_fixture.rs`. The merge-rule owner
+now loads it once under `cfg(test)`; domain and application tests import that shared module.
+Fixture data, assertions and production behavior are unchanged. The exact hosted Clippy command
+(`--all-targets --all-features -- -D warnings`), owned formatting and all eight affected tests pass.
