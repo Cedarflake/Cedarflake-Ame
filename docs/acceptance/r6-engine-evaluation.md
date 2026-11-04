@@ -45,7 +45,7 @@ Run the example with `cargo run --locked --manifest-path rust/Cargo.toml --relea
 --manifest-path rust/Cargo.toml --release --example similarity_engine_probe -j 1 -- --test-threads=1`,
 serially under the repository tooling lock. Neither command scans directories or reads original media.
 
-## Selected scheme observations
+## Initial 64-bit scheme observations
 
 The final Release probe produced these results for 64-bit Gradient at strict / standard / broad
 maximum distances 2 / 6 / 10. The four focused cases passed: candidate completeness, borrowed-input
@@ -226,7 +226,7 @@ established the path-free input seam. The current probe replaces those provision
 the admitted normalization, symmetric comparison and 64-bit index. An unused-import warning in the
 first normalization build was removed; the final build and execution were warning-free.
 
-R6-02 connects the source lease, persistent evidence, bounded candidate windows, durable choices and
-stale-source publication rejection. Desktop and constrained-client checks remain in R6-04; the
-real-library counterexamples above require a quality repair. This probe changes no product interaction, catalog schema, model,
-source file or analysis scheduling. Hosted CI covers its actual source commit separately.
+The [integration evidence](r6-similar-images.md) owns production source admission, persistence,
+bounded matching, durable choices and desktop interaction. The paired-engine verification above
+supersedes the initial 64-bit quality choice; broader-library and constrained-client measurements
+remain in R6-04. Hosted CI covers each actual source commit separately.

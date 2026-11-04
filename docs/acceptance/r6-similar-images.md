@@ -221,8 +221,15 @@ saved preference. Strict, standard and broad degrees showed six, seven and seven
 switching back preserved that preference. Nested pages omitted both menus and the withdrawn member
 action. Normal caption close returned code 0 after 864.734 seconds, at a 219-MiB peak working set;
 all 51 source hashes were unchanged and the scratch profile was retired. The automated title-bar
-drag still produced no observed movement; its cause remains unverified. Source-driven removal of a
-selected/preferred member and a group falling below two members retain their actual-client check.
+drag still produced no observed movement; its cause remains unverified.
+
+A second isolated profile admitted only disposable copies of the same two members. Moving the
+selected, preferred copy outside its watched directory caused the open page to remove that member,
+clear temporary selection and disable comparison without manual refresh. Returning showed no group
+with the one remaining member. Restoring the unchanged copy automatically republished the group;
+its saved preference remained selected and temporary checks stayed clear. Normal close returned
+code 0 after 164.949 seconds, at a 191-MiB peak working set. All 51 reusable fixture hashes remained
+unchanged, both moved-copy hashes matched their source, and scratch retirement completed.
 
 The [699c5faf CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41836616389) passed its
 Flutter, Windows scan/accessibility and unsigned build jobs; Static rejected two missing brace blocks
