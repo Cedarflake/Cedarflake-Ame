@@ -52,20 +52,22 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-Continue [project organization](#project-organization-after-r5) with O7's real-library client
-verification and retained-import timeout investigation. The
+Continue [project organization](#project-organization-after-r5) with O7's retained-import timeout
+investigation and final handover. The
 [Rust dependency audit](acceptance/project-organization-continuity.md#final-rust-dependency-audit--2026-11-04)
 and [test consolidation](acceptance/project-organization.md#o7-test-consolidation--2026-11-04) are delivered.
-This maintenance runs on
-the authorized `codex/project-organization` branch before R6.
+The [current desktop verification](acceptance/project-organization-continuity.md#current-desktop-verification--2026-11-04)
+covers the real-library interactions and a passing uninstrumented Windows workflow run.
+This maintenance runs on the authorized `codex/project-organization` branch before R6.
 PR metadata remains fixed by user direction.
 
 The [execution plan](plans/project-organization.md) owns implementation slices and rollback units;
 its [evidence](acceptance/project-organization.md) records completed checks and failures.
 O1–O6 are delivered; O7 is in progress. Remaining conformance and handover follow the execution plan;
 completed group evidence remains in the linked acceptance record.
-Final client verification must resolve the retained-import pause timeout recorded in the
-[organization evidence](acceptance/project-organization.md#o52-organization-records-and-ordering--2026-11-03).
+The retained-import pause timeout recorded in the
+[organization evidence](acceptance/project-organization.md#o52-organization-records-and-ordering--2026-11-03)
+did not recur in current verification; its cause remains unresolved.
 No model replacement, new product feature or broader performance campaign is part of this queue.
 
 ## Project organization after R5
@@ -76,7 +78,7 @@ the [repository layout](development/repository-layout.md) owns placement. The
 
 | Order | Remaining outcome |
 | --- | --- |
-| O7 | Real-library client verification and retained-import timeout resolution |
+| O7 | Retained-import timeout resolution and final handover |
 
 New and materially changed modules follow the target. Do not replace the fixed legacy inventory
 with a fresh baseline; retire each exception with its owning migration. Preserve established scan,

@@ -493,3 +493,35 @@ The resulting layer graph orders API, application, adapters, ports and domain wi
 cycle. No production outward-layer edge remains in the combined source/type review. Same-layer
 collaboration and generated bridge implementation are outside that layer-cycle claim. Test-value
 review and real-library client acceptance remain required before O7 closes.
+
+## Current desktop verification — 2026-11-04
+
+Revision `a0b988bf` passes all four controlled Windows workflow cases in run
+`183ec6aca2064a3ea4556c7dc5ff78dc`: retained-import pause/navigation/cancellation, parent import,
+picker cancellation, and selected-folder import with the existing embedded workflows. The fresh,
+uninstrumented build completes in 120,563 ms including preparation, exits zero and records no
+runner cleanup failures. The earlier retained-import timeout does not recur; its cause remains
+unresolved. This result does not establish a causal repair of that historical failure.
+
+The production desktop then opens an online backup of the configured `local-primary` catalog:
+63,092 images, displayed as 47,848 after duplicate merging. A diagnostic entrypoint redirects only
+the production Windows preference backend's storage directory before calling production `main`.
+The native library uses release optimization with Rust debug assertions enabled; its checked build
+receipt binds the DLL hash, source revision and isolated-storage override. Catalog, settings,
+preferences and previews stay in leased acceptance scratch; installed model resources are reused.
+Eleven existing previews are copied, and 181 legacy preview references become missing paths inside
+the isolated cache so on-demand repair cannot reach their original cache locations. Exact analysis
+is paused through the existing preference for this bounded browsing session.
+
+Actual window interactions cover startup, continuous scrolling, a timeline jump, two original-image
+views, next-image navigation, zoom and return to the gallery. Searching for `a` returns 48,056 images;
+clearing it restores 63,092 and the previous browsing position. The four smart-album entries load,
+the screenshot category returns three retained items, and Favorites displays its empty state.
+Settings opens and reports the isolated catalog. Production synchronization reaches current/healthy
+state and records 86 synchronized polls; neither runtime log contains an exception or failure result.
+The window closes normally with process exit zero, and the leased scratch is removed. The original
+catalog's SHA-256 is identical before backup and after exit. No reimport or model download is requested.
+
+Initial window activation failed in the control tool; user foreground activation restored input.
+This tooling interruption is separate from the application results. Desktop interaction coverage
+is complete for this slice; O7 retains the historical pause-timeout investigation and final handover.
