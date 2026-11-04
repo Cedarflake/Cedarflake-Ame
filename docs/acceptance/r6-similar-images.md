@@ -190,13 +190,18 @@ The guarded `da1630d8` client passed linked wheel zoom/pan, independent right-pa
 maximize/restore, title-bar double-click, minimize/reactivation and Escape return with both member
 selections retained. Its second inspection reached the 1,200-second harness limit before the close
 check; all 51 source hashes remained unchanged, and peak working set was 190 MiB. Automated title-bar
-drag attempts did not produce observed movement; the cause remains unverified. The latest selector
-removal and spacing adjustment retain their subsequent client check.
+drag attempts did not produce observed movement; the cause remains unverified.
+
+The guarded `a8b1bd36` client confirmed the selector removal and equally spaced link/reset/zoom-mode
+buttons in the actual 1,269-by-714 window. Changing link state preserved their placement; right-arrow
+selection followed by independent zoom changed only the right image. Closing from the comparison
+caption exited normally with code 0. This 213-second inspection peaked at 188 MiB and preserved all
+51 fixture source hashes.
 
 The [699c5faf CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41836616389) passed its
 Flutter, Windows scan/accessibility and unsigned build jobs; Static rejected two missing brace blocks
 in the preceding review slice. Both are corrected. The
 [5de7d7c2 run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41842227960) passed Static,
 Flutter, Windows scan/accessibility, unsigned packaging and all five synthetic workloads; Rust Catalog
-was still running at observation. Revised-control Windows interaction, current-head checks and R6-04
-acceptance remain outstanding.
+was still running at observation. Title-bar dragging, current-head checks and R6-04 acceptance remain
+outstanding.
