@@ -137,15 +137,15 @@ complete R6 user workflow retain their acceptance scope in the roadmap.
 
 The Duplicates page now composes separate exact/similar query owners through a bounded mixed-group
 workspace. Its right-side menus, nested navigation reset, member selection, in-place ignore/restore,
-representative choice, exact-copy locations and exclusion/undo follow the implemented
+representative choice and exact-copy locations follow the implemented
 [workbench contract](../product/gallery/workbench-and-navigation.md#workbench-blueprint).
 The shared transient-feedback component owns the optional undo/retry action.
 
 The comparison workflow initially stalled because both panes used one latest-selection source
 scheduler: the second request retired the first. Each pane now owns its scheduler while both retain
 the native two-lease cap and source guards through buffer copy. The workflow case decodes both
-images and verifies both lease closures, linked/independent zoom, return context, selected-member
-exclusion, a disappearing group, list-level undo and primary-navigation reset. It also checks mixed
+images and verifies both lease closures, linked/independent zoom, return context and
+primary-navigation reset. It also checks mixed
 ignored groups and restoration in place. This is a controlled port fixture, not native source evidence.
 
 Nine layout/preview-demand cases passed at 400, 800, 1200 and 1280 logical pixels with normal and
@@ -201,6 +201,14 @@ caption exited normally with code 0. This 213-second inspection peaked at 188 Mi
 The guarded `be4b0cad` client displayed both dropdown arrows and the group menu in the requested
 `重复组` / `相似组` / `已忽略` order. Selecting the second item opened the similar-group list with its
 degree menu. These menu checks reuse the existing popup and selection owners without new tests.
+
+At `dc7ff409`, member rows expose preference, exact-copy locations and Explorer actions; the
+member-exclusion button, its feedback/undo handlers and unused copy are removed. The retained
+workflow case passed after retiring its withdrawn exclusion steps; native decision compatibility
+coverage remains. The actual Windows row had three aligned actions, and the two-copy locations
+sheet opened and dismissed correctly. Normal close returned code 0 after 121 seconds, at a 221-MiB
+peak working set, with all 51 fixture source hashes unchanged. The page, results and similar-card
+owners have 351, 135 and 117 production lines, no inline tests; the retained workflow has 298 lines.
 
 The [699c5faf CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41836616389) passed its
 Flutter, Windows scan/accessibility and unsigned build jobs; Static rejected two missing brace blocks
