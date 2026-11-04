@@ -62,14 +62,18 @@ impl Collector<'_> {
                 .resolve(&self.module.namespace, path, &self.locals)
         };
         for target in targets {
-            if let Some(rule) = forbidden_rule(&self.module.namespace, &target, is_export) {
-                self.dependencies.insert(Dependency {
-                    source: self.module.source.clone(),
-                    symbol: self.symbol.clone(),
-                    target: self.names.dependency_owner(&target),
-                    rule: rule.to_owned(),
-                });
-            }
+            self.record_target(&target, is_export);
+        }
+    }
+
+    fn record_target(&mut self, target: &str, is_module_reference: bool) {
+        if let Some(rule) = forbidden_rule(&self.module.namespace, target, is_module_reference) {
+            self.dependencies.insert(Dependency {
+                source: self.module.source.clone(),
+                symbol: self.symbol.clone(),
+                target: self.names.dependency_owner(target),
+                rule: rule.to_owned(),
+            });
         }
     }
 
@@ -136,14 +140,26 @@ impl<'ast> Visit<'ast> for Collector<'_> {
                 if is_test_only(&value.attrs) {
                     return;
                 }
-                if !matches!(value.vis, Visibility::Inherited) {
-                    let previous = self.symbol.clone();
-                    for (alias, target) in import_bindings(&self.module.namespace, &value.tree) {
+                let previous = self.symbol.clone();
+                for (alias, target) in import_bindings(&self.module.namespace, &value.tree) {
+                    if !matches!(value.vis, Visibility::Inherited) {
                         self.symbol = format!("{}::export::{alias}", self.module.namespace);
                         self.record(&target, true);
+                    } else {
+                        if previous == self.module.namespace {
+                            self.symbol = format!("{}::import::{alias}", self.module.namespace);
+                        }
+                        for dependency in self.names.imported_traits(
+                            &self.module.namespace,
+                            &target,
+                            alias == "*",
+                            &self.locals,
+                        ) {
+                            self.record_target(&dependency, true);
+                        }
                     }
-                    self.symbol = previous;
                 }
+                self.symbol = previous;
                 return;
             }
             Item::Mod(_) => return,

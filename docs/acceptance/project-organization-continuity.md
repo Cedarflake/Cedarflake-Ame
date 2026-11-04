@@ -587,3 +587,16 @@ compiled selectors validate, and the exact journal reset/trim test passes (one c
 PowerShell syntax and owned whitespace checks pass. The full local guardrail stopped earlier at
 native directory case-sensitivity setup (`Win32=203`); the hosted run had passed that stage. The
 unchanged native setup remains outside this mapping repair, with full verification owned by CI.
+
+## Private trait import enforcement — 2026-11-04
+
+The `9a80d859` parser reproduced the reported gap: a private adapter-trait import used only through
+a method call produced zero dependencies. The name index now identifies parsed repository traits
+through aliases and glob re-exports; the collector records their private imports, retaining the
+enclosing symbol for block-local imports. Other imports keep their existing use-site ownership.
+The focused dependency target passes all 26 cases, including six rejecting import forms, allowed
+port access, test-only exclusion, exact composition policy and the unchanged repository inventory.
+Owned rustfmt and whitespace checks pass. Clippy exposed a separate existing `type_complexity`
+failure in `application/scan_library/finalization.rs`; it is not a parser-test failure.
+Affected gate implementation is 325 lines in `names.rs` and 277 in `references.rs`, with no inline
+tests; the dedicated parser fixture file is 516 lines. No dependency policy or baseline is widened.

@@ -9,6 +9,7 @@ pub struct Names {
     aliases: BTreeMap<String, BTreeSet<String>>,
     globs: BTreeMap<String, BTreeSet<String>>,
     declarations: BTreeSet<String>,
+    traits: BTreeSet<String>,
     modules: BTreeSet<String>,
 }
 
@@ -141,6 +142,11 @@ impl Names {
                     names
                         .declarations
                         .insert(format!("{}::{ident}", module.namespace));
+                    if matches!(item, Item::Trait(_)) {
+                        names
+                            .traits
+                            .insert(format!("{}::{ident}", module.namespace));
+                    }
                 }
             }
         }
@@ -158,6 +164,43 @@ impl Names {
 
     pub fn resolve_export(&self, namespace: &str, target: &str) -> BTreeSet<String> {
         self.resolve_anchored(namespace, target, &BTreeMap::new())
+    }
+
+    pub fn imported_traits(
+        &self,
+        namespace: &str,
+        target: &str,
+        glob: bool,
+        locals: &BTreeMap<String, String>,
+    ) -> BTreeSet<String> {
+        let mut targets = self.resolve_anchored(namespace, target, locals);
+        if glob {
+            let mut pending = std::mem::take(&mut targets);
+            let mut visited = BTreeSet::new();
+            while let Some(module) = pending.pop_first() {
+                if !visited.insert(module.clone()) {
+                    continue;
+                }
+                if !self.modules.contains(&module) {
+                    continue;
+                }
+                for name in self.declarations.iter().chain(self.aliases.keys()) {
+                    if name
+                        .rsplit_once("::")
+                        .is_some_and(|(parent, _)| parent == module)
+                    {
+                        targets.extend(self.resolve_export(&module, name));
+                    }
+                }
+                for glob in self.globs.get(&module).into_iter().flatten() {
+                    pending.extend(self.resolve_export(&module, glob));
+                }
+            }
+        }
+        // Trait method calls need no path. Other imports remain owned by their explicit uses,
+        // preserving symbol-scoped factory admission instead of granting a module exception.
+        targets.retain(|target| self.traits.contains(target));
+        targets
     }
 
     fn resolve_anchored(

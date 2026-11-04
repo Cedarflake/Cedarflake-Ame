@@ -55,6 +55,78 @@ fn a_module_and_its_reexported_function_can_share_a_name() {
 }
 
 #[test]
+fn private_trait_imports_cannot_hide_method_dependencies() {
+    let source = r#"
+        mod adapters {
+            pub trait NativeRead { fn read_native(&self); }
+            impl NativeRead for str { fn read_native(&self) {} }
+            pub mod exports { pub use super::NativeRead as Read; }
+            pub mod prelude { pub use super::exports::*; }
+        }
+        mod domain {
+            MODULE_IMPORT
+            pub fn inspect(value: &str) { LOCAL_IMPORT value.read_native(); }
+        }
+    "#;
+    for (module_import, local_import, symbol) in [
+        ("use crate::adapters::NativeRead;", "", "import::NativeRead"),
+        (
+            "use crate::adapters::NativeRead as Read;",
+            "",
+            "import::Read",
+        ),
+        ("use crate::adapters::NativeRead as _;", "", "import::_"),
+        ("use crate::adapters::exports::Read;", "", "import::Read"),
+        ("use crate::adapters::prelude::*;", "", "import::*"),
+        ("", "use crate::adapters::NativeRead as _;", "inspect"),
+    ] {
+        let modules = fixture(
+            &source
+                .replace("MODULE_IMPORT", module_import)
+                .replace("LOCAL_IMPORT", local_import),
+        );
+        let dependencies = collect_dependencies(&modules);
+        assert_eq!(dependencies.len(), 1, "{module_import} {local_import}");
+        let dependency = dependencies.first().unwrap();
+        assert_eq!(dependency.source, "crate/domain.rs");
+        assert_eq!(dependency.symbol, format!("crate::domain::{symbol}"));
+        assert_eq!(dependency.target, "crate::adapters::NativeRead");
+        assert_eq!(dependency.rule, "outward-layer");
+    }
+}
+
+#[test]
+fn trait_imports_preserve_port_access_and_local_composition_ownership() {
+    let modules = fixture(
+        r#"
+        mod ports {
+            pub trait Read { fn read(&self); }
+            impl Read for str { fn read(&self) {} }
+        }
+        mod adapters {
+            pub trait NativeRead { fn read_native(&self); }
+            impl NativeRead for str { fn read_native(&self) {} }
+        }
+        mod application {
+            use crate::ports::Read;
+            #[cfg(test)] use crate::adapters::NativeRead;
+            fn inspect(value: &str) { value.read(); }
+            fn factory(value: &str) {
+                use crate::adapters::NativeRead as _;
+                value.read_native();
+            }
+        }
+    "#,
+    );
+    let dependencies = collect_dependencies(&modules);
+    assert_eq!(dependencies.len(), 1);
+    let dependency = dependencies.first().unwrap();
+    assert_eq!(dependency.symbol, "crate::application::factory");
+    assert_eq!(dependency.target, "crate::adapters::NativeRead");
+    assert_eq!(dependency.rule, "concrete-adapter");
+}
+
+#[test]
 fn grouped_aliases_and_transitive_exports_resolve_to_the_adapter() {
     let modules = fixture(
         r#"
