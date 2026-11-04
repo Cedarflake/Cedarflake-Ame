@@ -31,7 +31,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R3 | Exact duplicates and physical-location inspection | Completed on 2026-10-17 |
 | R4 | Favorites, albums and durable organization progress | Merged into `main` on 2026-10-30 |
 | R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
-| R6 | Perceptual similarity review | Interaction planning; implementation not started |
+| R6 | Perceptual similarity review | Interaction direction confirmed; implementation not started |
 | R7 | Structured and semantic discovery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run | Planned after R7 |
 | R9 | Freshly authorized physical operations and recovery | Planned after R8 |
@@ -43,7 +43,7 @@ R4 and R5 are integrated. Their
 [R4 merge evidence](acceptance/r4-organization.md#r4-merge-verification---2026-10-30) and
 [R5 integrated evidence](acceptance/r5-closeout.md) retain coverage, accepted limits and merge authority.
 
-R6 is limited to interaction planning; implementation has not started.
+R6's interaction direction is confirmed; implementation has not started.
 
 Preserve the delivered R5 curated catalog, purpose restrictions, automatic analysis, legacy decisions,
 archive compatibility and authorized model-installation recovery. The
@@ -57,9 +57,10 @@ Project organization O1–O7 was merged into `main` on 2026-11-04 through
 [handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04) maps the
 delivered scope to evidence.
 
-The [R6 execution plan](plans/r6-similar-images.md) currently selects R6-00: document the interaction
-direction and review a clickable sketch under the [interface contract](product/gallery/similar-images.md).
-Confirm the proposed control details before product implementation; no similarity engine is admitted yet.
+R6-00 interaction planning is concluded under the [interface contract](product/gallery/similar-images.md).
+The sketch is frozen; production feedback and styling follow the owning contracts. The
+[R6 execution plan](plans/r6-similar-images.md) identifies R6-01 engine evaluation as the next planned
+slice. It has not been activated, and no similarity engine is admitted yet.
 
 The historical pause timeout remains an accepted observation with a
 [recurrence-based follow-up](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04).

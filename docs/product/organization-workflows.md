@@ -98,14 +98,14 @@ Scope:
   or other admitted transformations;
 - candidate groups, side-by-side comparison, dimensions and file-size evidence, with selectable
   similarity degree inside the Duplicates workspace and automatic discovery/result updates;
-- immutable analysis runs plus durable preferred-image and ignore/restore decisions, saved in place
-  during free browsing without group completion, next-group steps or review-progress tracking;
+- immutable analysis runs plus durable preferred-image, member-exclusion and ignore/restore decisions,
+  saved in place during free browsing without group completion, next-group steps or review progress;
 - bounded candidate generation, cancellation, retry, stale-result rejection, and reanalysis without
   erasing historical evidence;
 - no automatic deletion, exact-duplicate label, or implicit physical-location choice.
 
-The [similar-image interface](gallery/similar-images.md) owns mode navigation, Library isolation and
-the proposed comparison controls; the [execution plan](../plans/r6-similar-images.md) owns delivery slices.
+The [similar-image interface](gallery/similar-images.md) owns navigation, representative display,
+member actions and Library isolation; the [execution plan](../plans/r6-similar-images.md) owns delivery slices.
 
 ## R7 - Semantic discovery and advanced search
 
