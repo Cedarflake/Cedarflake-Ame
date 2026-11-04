@@ -73,10 +73,36 @@ cancellable batches. A work ceiling returns continuation or an explicit incomple
 never silently claims an exhausted search. The probe's in-memory index measures the algorithm;
 it is not the production storage layout or a bound on total catalog size.
 
-Grouping must preserve direct match evidence to a reference content. Do not combine transitive
-chains whose endpoints have no qualifying comparison. Stable group identity, exact-copy projection,
-decision compatibility and transactions belong to the consuming domain/application and persistence
-owners; hashes alone confer no preference, ignore, exclusion, deletion or Library-folding authority.
+## Group and decision identity
+
+A group has one fixed reference content and scheme. Its Ame identity derives from that scheme and
+the reference's exact fingerprint scheme, digest and byte length; it never depends on location,
+member order, degree or the currently displayed representative. Persist reference admission rather
+than selecting a new seed on every run. Compatible reanalysis reuses existing references first.
+
+Every member must match that fixed reference directly. Do not infer membership through another
+member. Match new contents against existing references first; a content outside those groups can
+establish a new reference when it has a qualifying peer. Only reference formation searches the full
+content index. This avoids recording every pair inside a dense group. Groups may overlap; excluding
+one member is scoped to that group.
+
+An immutable reference can outlive its visible source location. Removed sources never appear or
+count as current members. Show a group only when at least two distinct, currently published contents
+remain eligible at the selected degree. Exact copies share one member key but retain their separate
+assets and locations. The representative follows a valid saved preference, then a deterministic
+current member; it does not replace the comparison reference.
+
+Ignore, preference and exclusion records are durable data independent of hashes and group
+projections. Bind them to the group key and, where applicable, the complete member content key.
+Retain an unavailable preference without applying it to replacement bytes. Exclusion applies to all
+exact copies of that member within the group. Its undo must identify the specific saved exclusion
+so a stale undo cannot reverse a newer choice. Degree changes and compatible reanalysis keep these
+identities. An incompatible scheme keeps prior decisions without silently transferring them to a
+different group. Clearing derived data cannot delete choices; an unavailable reference may prevent
+its group from being reconstructed until that content becomes available again.
+
+Application and persistence own current-source checks and decision transactions. Hashes confer no
+preference, ignore, exclusion, deletion or Library-folding authority.
 
 ## Validation and replacement
 
