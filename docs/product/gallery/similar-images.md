@@ -9,8 +9,9 @@ the production application until their use cases are connected.
 
 ## Confirmed navigation and behavior
 
-- Keep the existing `去重` primary destination, without top-level tabs. Put a `筛选` menu in the
-  right-hand action area with mutually exclusive `重复组`, `已忽略` and `相似组` choices.
+- Keep the existing `去重` primary destination, without top-level tabs. Put a `分组` view menu with
+  a layers icon in the right-hand action area. Its mutually exclusive choices are `重复组`, `已忽略`
+  and `相似组`; this changes the group view and is not labeled or depicted as a result filter.
 - `已忽略` collects both kinds of ignored group; identify the kind on each card. Keep exact and
   similarity evidence and saved decisions distinct. Reuse the group-card, member-list and viewer.
 - Similarity degree is selectable inside the similar-image mode. A changed degree updates candidate
@@ -24,29 +25,32 @@ the production application until their use cases are connected.
 - Library, Favorites and albums gain no similarity filter or similarity-driven folding. Existing
   exact-duplicate display behavior remains owned by the
   [current filter contract](header-and-controls.md#filter-and-exact-duplicate-behavior).
-- Changing the result filter from a member page returns to the selected result list, clears temporary
-  member selection and resets browsing position. Switching primary destinations also leaves the
+- View and similarity-degree menus belong only to the top-level list. Changing the view starts there
+  with no retained member selection or nested page. Switching primary destinations also leaves the
   nested page; switching back opens the list. Saved preferences and ignored decisions remain intact.
 - Discovery and result updates run automatically under bounded scheduling. Remove the workspace's
-  refresh and pause/stop-search controls. Navigation and filtering do not cancel analysis or require
+  refresh and pause/stop-search controls. Navigation and degree changes do not cancel analysis or require
   a manual scan; source-read and placeholder protections still apply.
 
 ## Proposed arrangement for review
 
-Keep the title/group count on the left and the filter menu on the right, with no centered category
-switch or extra navigation row. The filter remains available on member pages. Similarity degree
-appears only in the similar-group list. Narrow widths retain every action without horizontal clipping.
+Keep the title/group count on the left and the group-view menu on the right, with no centered category
+switch or extra navigation row. In the similar-group list, place an icon-only similarity-degree
+menu with a sliders icon beside the group-view menu in the same action row. Its tooltip and accessible
+name include the current degree; the menu identifies the selected option. Remove the left-hand degree
+control and description. Member, viewer and comparison pages contain neither menu. Narrow widths
+retain every action without horizontal clipping.
 
 The sketch uses `严格 / 标准 / 宽松`, initially `标准`. These names and the default remain proposals;
 sample membership changes illustrate the interaction and do not prescribe numerical thresholds.
-Prefer a labeled degree selector over exposing hash sizes or algorithm parameters.
+Use these product labels rather than hash sizes or algorithm parameters.
 
 Group cards open full-width member rows. Each member exposes its preview, filename, dimensions,
 file size and inspectable location. Put `对比图片` beside `忽略此组` / `恢复此组` in the same right-hand
-action row, followed by the filter menu. Remove the separate selection toolbar and its left-hand
+action row. Remove the separate selection toolbar and its left-hand
 instruction/count text. Comparison enables when two members are selected and opens a side-by-side
 view with optional synchronized zoom/pan. Ordinary return from comparison preserves that member
-view; changing the result filter instead resets it. No comparison action advances to another group.
+view; changing primary destinations instead resets it. No comparison action advances to another group.
 
 Exact-copy representation within a similar group and additional decision actions remain open in the
 execution plan. A populated sketch is not a claim that automatic analysis ran.
