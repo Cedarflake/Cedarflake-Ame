@@ -158,14 +158,23 @@ void main() {
       final toolbar = tester.getRect(
         find.byKey(const Key("viewer-zoom-controls")),
       );
+      final linked = tester.getRect(find.byKey(const Key("comparison-link")));
+      final reset = tester.getRect(find.byKey(const Key("comparison-reset")));
+      final mode = tester.getRect(find.byKey(const Key("viewer-zoom-mode")));
+      expect(linked.size, reset.size);
+      expect(reset.size, mode.size);
+      expect(
+        reset.center.dx - linked.center.dx,
+        mode.center.dx - reset.center.dx,
+      );
       for (final action in [
-        find.byTooltip("同步缩放和移动"),
-        find.byTooltip("重置对比视图"),
+        find.byKey(const Key("comparison-link")),
+        find.byKey(const Key("comparison-reset")),
         find.byKey(const Key("viewer-zoom-in")),
       ]) {
         expect(tester.getRect(action).top, greaterThanOrEqualTo(toolbar.top));
       }
-      await tester.tap(find.byTooltip("重置对比视图"));
+      await tester.tap(find.byKey(const Key("comparison-reset")));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key("viewer-zoom-in")));
       await tester.pump();
@@ -184,7 +193,7 @@ void main() {
             .map((value) => value.zoomScale),
         [1.25, 1.25],
       );
-      await tester.tap(find.byTooltip("同步缩放和移动"));
+      await tester.tap(find.byKey(const Key("comparison-link")));
       await tester.tap(find.byKey(const Key("viewer-zoom-in")));
       await tester.pumpAndSettle();
       expect(
@@ -216,13 +225,15 @@ void main() {
           .toList();
       expect(settled.first.zoomScale, closeTo(1.5625, 0.001));
       expect(settled.last.zoomScale, closeTo(wheelTarget, 0.001));
-      for (final width in [400.0, 1100.0]) {
-        await tester.binding.setSurfaceSize(Size(width, 850));
-        await tester.pumpAndSettle();
-        expect(find.byKey(const Key("window-close")), findsOneWidget);
-        expect(find.byTooltip("同步缩放和移动"), findsOneWidget);
-        expect(tester.takeException(), isNull);
-      }
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.pump();
+      await tester.tap(find.byKey(const Key("viewer-zoom-in")));
+      await tester.pumpAndSettle();
+      final keyboardSelected = tester
+          .widgetList<LibraryViewerImage>(find.byType(LibraryViewerImage))
+          .toList();
+      expect(keyboardSelected.first.zoomScale, closeTo(1.5625 * 1.25, 0.001));
+      expect(keyboardSelected.last.zoomScale, closeTo(wheelTarget, 0.001));
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
       expect(find.byType(LibrarySimilarMemberCard), findsNWidgets(2));

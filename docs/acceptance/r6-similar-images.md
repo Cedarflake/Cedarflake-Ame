@@ -168,11 +168,16 @@ viewer window frame and bypassed its smooth zoom/input owner. Both surfaces now 
 Image transformations keep loading/failure controls stationary. The retained 11 viewer cases passed,
 including full-screen return, actual-size preservation, wheel/navigation preference, pan bounds and
 intermediate animation frames. The comparison workflow additionally passed caption presence,
-bottom-action placement, intermediate linked/button and independent/wheel zoom, and 400-pixel resizing.
-The comparison, single viewer and toolbar have 294, 301 and 272 production lines; the extracted frame,
+bottom-action placement and intermediate linked/button and independent/wheel zoom.
+The comparison, single viewer and toolbar have 272, 301 and 268 production lines; the extracted frame,
 image interaction and comparison coordinator have 150, 99 and 77. There are no inline tests; the
-extended workflow case/support has 305 dedicated test lines. Scoped analysis passed without warnings,
+extended workflow case/support has 316 dedicated test lines. Scoped analysis passed without warnings,
 and dependency verification passed for 516 modules.
+The desktop refinement removes speculative mobile stacking and its 400-pixel case, keeps one bottom
+row, and uses the same toolbar button component and adjacent spacing for linking, reset and zoom.
+Pane selection follows pointer input or arrow keys without an additional selector. The 11 retained
+viewer cases and the extended comparison workflow passed, including equal button geometry/gaps and
+keyboard-selected independent zoom.
 
 The first isolated Windows client imported 51 existing fixture files and automatically found one
 exact group and five standard-degree similar groups. Exact ignore stayed in its member page;
@@ -180,6 +185,13 @@ similar preference, two-copy location inspection, original pair loading and link
 This run exposed the missing caption and divergent viewer controls. It reached the harness's
 1,200-second time limit during inspection, at a 225-MiB peak working set; it did not complete normal
 close or the final source-hash check. These observations do not qualify the revised controls.
+
+The guarded `da1630d8` client passed linked wheel zoom/pan, independent right-pane zoom, bottom reset,
+maximize/restore, title-bar double-click, minimize/reactivation and Escape return with both member
+selections retained. Its second inspection reached the 1,200-second harness limit before the close
+check; all 51 source hashes remained unchanged, and peak working set was 190 MiB. Automated title-bar
+drag attempts did not produce observed movement; the cause remains unverified. The latest selector
+removal and spacing adjustment retain their subsequent client check.
 
 The [699c5faf CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41836616389) passed its
 Flutter, Windows scan/accessibility and unsigned build jobs; Static rejected two missing brace blocks

@@ -2,6 +2,7 @@ import "dart:math" as math;
 
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
@@ -93,28 +94,16 @@ class _LibraryImageComparisonState extends ConsumerState<LibraryImageComparison>
           builder: (context, isFullscreen, toggleFullscreen, _) =>
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final vertical = constraints.maxWidth < 600;
-                  final toolbarHeight =
-                      LibraryViewerToolbar.height *
-                      (constraints.maxWidth < 900 ? 2 : 1);
                   final height = math.max(
                     0.0,
-                    constraints.maxHeight - toolbarHeight,
+                    constraints.maxHeight - LibraryViewerToolbar.height,
                   );
                   final viewport = Size(
                     math.max(
                       0.0,
-                      (vertical
-                              ? constraints.maxWidth
-                              : (constraints.maxWidth - 1) / 2) -
-                          _paneInset * 2,
+                      (constraints.maxWidth - 1) / 2 - _paneInset * 2,
                     ),
-                    math.max(
-                      0.0,
-                      (vertical ? (height - 1) / 2 : height) -
-                          _headingHeight -
-                          _paneInset * 2,
-                    ),
+                    math.max(0.0, height - _headingHeight - _paneInset * 2),
                   );
                   final opening = ref
                       .watch(amePreferencesControllerProvider)
@@ -134,43 +123,40 @@ class _LibraryImageComparisonState extends ConsumerState<LibraryImageComparison>
                     );
                   }
                   return CallbackShortcuts(
-                    bindings: libraryViewerZoomShortcuts(_view.activeZoom),
+                    bindings: {
+                      ...libraryViewerZoomShortcuts(_view.activeZoom),
+                      const SingleActivator(LogicalKeyboardKey.arrowLeft): () =>
+                          _view.select(LibraryComparisonSide.left),
+                      const SingleActivator(
+                        LogicalKeyboardKey.arrowRight,
+                      ): () =>
+                          _view.select(LibraryComparisonSide.right),
+                    },
                     child: Focus(
                       autofocus: true,
                       child: Column(
                         children: [
                           Expanded(
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                final vertical = constraints.maxWidth < 600;
-                                return Flex(
-                                  direction: vertical
-                                      ? Axis.vertical
-                                      : Axis.horizontal,
-                                  children: [
-                                    Expanded(
-                                      child: _pane(
-                                        widget.left,
-                                        _view.left,
-                                        _leftReads,
-                                        LibraryComparisonSide.left,
-                                      ),
-                                    ),
-                                    if (vertical)
-                                      const Divider(height: 1)
-                                    else
-                                      const VerticalDivider(width: 1),
-                                    Expanded(
-                                      child: _pane(
-                                        widget.right,
-                                        _view.right,
-                                        _rightReads,
-                                        LibraryComparisonSide.right,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: _pane(
+                                    widget.left,
+                                    _view.left,
+                                    _leftReads,
+                                    LibraryComparisonSide.left,
+                                  ),
+                                ),
+                                const VerticalDivider(width: 1),
+                                Expanded(
+                                  child: _pane(
+                                    widget.right,
+                                    _view.right,
+                                    _rightReads,
+                                    LibraryComparisonSide.right,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           LibraryViewerToolbar(
@@ -207,27 +193,19 @@ class _LibraryImageComparisonState extends ConsumerState<LibraryImageComparison>
 
   Widget _comparisonActions() => Row(
     children: [
-      SegmentedButton<LibraryComparisonSide>(
-        showSelectedIcon: false,
-        segments: const [
-          ButtonSegment(value: LibraryComparisonSide.left, label: Text("左图")),
-          ButtonSegment(value: LibraryComparisonSide.right, label: Text("右图")),
-        ],
-        selected: {_view.active},
-        onSelectionChanged: (selection) => _view.select(selection.single),
-      ),
       const Spacer(),
-      IconButton(
-        tooltip: LibraryDuplicateStrings.syncComparison,
-        isSelected: _view.linked,
+      LibraryViewerToolbarButton(
+        id: "comparison-link",
+        label: LibraryDuplicateStrings.syncComparison,
+        selected: _view.linked,
         onPressed: _view.toggleLinked,
-        icon: const Icon(Symbols.link_off_rounded, size: 20),
-        selectedIcon: const Icon(Symbols.link_rounded, size: 20),
+        icon: _view.linked ? Symbols.link_rounded : Symbols.link_off_rounded,
       ),
-      IconButton(
-        tooltip: LibraryDuplicateStrings.resetComparison,
+      LibraryViewerToolbarButton(
+        id: "comparison-reset",
+        label: LibraryDuplicateStrings.resetComparison,
         onPressed: _view.fitBoth,
-        icon: const Icon(Symbols.fit_screen_rounded, size: 20),
+        icon: Symbols.fit_screen_rounded,
       ),
     ],
   );

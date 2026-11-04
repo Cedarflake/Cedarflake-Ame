@@ -105,9 +105,10 @@ The full-window viewer navigates across member batches. Comparison shows two ind
 original images, supports linked or independent zoom/pan and reset, and returns to the member view.
 Its top bar contains back, title, window dragging and the standard minimize/maximize/close controls.
 Reuse the viewer's bottom toolbar for zoom mode, percentage, slider, zoom buttons and full screen;
-place pane selection, linking and reset there too. Pointer interaction selects its pane. Both panes
+place linking and reset there too, with the same button geometry and spacing. Pointer interaction
+or the left/right arrow keys select the active pane; omit a duplicate pane-selection control. Both panes
 reuse normal viewing's smooth wheel/button zoom, double-click mode switch, bounds and drag inertia.
-Narrow layouts stack the images and wrap the bottom controls into two rows.
+Keep the images side by side and the bottom controls in one row within the supported desktop window.
 
 An exact preference selects the scoped merged-gallery representative with a deterministic fallback.
 A similarity preference selects one content representative only within that group. Exact copies of

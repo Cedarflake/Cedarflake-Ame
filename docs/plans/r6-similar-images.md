@@ -92,7 +92,7 @@ controller. Keep analysis, query state and user choices separately owned for eac
 Connect the group-view menu, degree changes, representative/location inspection, in-place decisions,
 member exclusion/undo and comparison. View or primary-destination switches reset nested navigation
 and temporary selection; durable decisions remain. Returning from comparison restores its member view.
-Keyboard navigation, enlarged text and narrow windows retain the same available actions.
+Keyboard navigation, enlarged text and supported desktop window sizes retain the same available actions.
 
 Review the real desktop path against the plan, then document the implemented behavior in its product
 owner. Introduce no completion queue, next-group action, Library similarity filter or filesystem operation.

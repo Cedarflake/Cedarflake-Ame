@@ -65,13 +65,12 @@ class LibraryViewerToolbar extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxWidth < 900;
-          final stacked = leading != null && compact;
           final details =
               leading ??
               Row(
                 children: [
-                  _button(
-                    key: "viewer-filmstrip-toggle",
+                  LibraryViewerToolbarButton(
+                    id: "viewer-filmstrip-toggle",
                     label: isFilmstripVisible
                         ? LibraryStrings.hideFilmstrip
                         : LibraryStrings.showFilmstrip,
@@ -79,8 +78,8 @@ class LibraryViewerToolbar extends StatelessWidget {
                     selected: isFilmstripVisible,
                     onPressed: onToggleFilmstrip,
                   ),
-                  _button(
-                    key: "viewer-information",
+                  LibraryViewerToolbarButton(
+                    id: "viewer-information",
                     label: LibraryStrings.viewInformation,
                     icon: Symbols.info_rounded,
                     onPressed: onInformation,
@@ -115,8 +114,8 @@ class LibraryViewerToolbar extends StatelessWidget {
                           onRevealFile?.call();
                       }
                     },
-                    builder: (context, openMenu) => _button(
-                      key: "viewer-more-menu",
+                    builder: (context, openMenu) => LibraryViewerToolbarButton(
+                      id: "viewer-more-menu",
                       label: LibraryStrings.more,
                       icon: Symbols.more_horiz_rounded,
                       onPressed: openMenu,
@@ -153,8 +152,8 @@ class LibraryViewerToolbar extends StatelessWidget {
           final zoomControls = Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _button(
-                key: "viewer-zoom-mode",
+              LibraryViewerToolbarButton(
+                id: "viewer-zoom-mode",
                 label: isActualSize
                     ? LibraryStrings.fitImageToWindow
                     : LibraryStrings.showImageActualSize,
@@ -172,38 +171,37 @@ class LibraryViewerToolbar extends StatelessWidget {
                   style: textStyle,
                 ),
               ),
-              _button(
-                key: "viewer-zoom-out",
+              LibraryViewerToolbarButton(
+                id: "viewer-zoom-out",
                 label: "缩小（- / Ctrl+-）",
                 icon: Symbols.remove_rounded,
                 onPressed: onZoomOut,
               ),
-              if (constraints.maxWidth >= 480)
-                SizedBox(
-                  width: compact ? 72 : 132,
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      thumbShape: const RoundSliderThumbShape(
-                        enabledThumbRadius: 7,
-                      ),
-                    ),
-                    child: Slider(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      value: sliderValue,
-                      onChanged: onSliderChanged,
-                      semanticFormatterCallback: sliderSemanticFormatter,
+              SizedBox(
+                width: compact ? 72 : 132,
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 7,
                     ),
                   ),
+                  child: Slider(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    value: sliderValue,
+                    onChanged: onSliderChanged,
+                    semanticFormatterCallback: sliderSemanticFormatter,
+                  ),
                 ),
-              _button(
-                key: "viewer-zoom-in",
+              ),
+              LibraryViewerToolbarButton(
+                id: "viewer-zoom-in",
                 label: "放大（+ / Ctrl++）",
                 icon: Symbols.add_rounded,
                 onPressed: onZoomIn,
               ),
               const SizedBox(width: 8),
-              _button(
-                key: "viewer-fullscreen",
+              LibraryViewerToolbarButton(
+                id: "viewer-fullscreen",
                 label: isFullscreen
                     ? LibraryStrings.exitViewerFullscreen
                     : LibraryStrings.enterViewerFullscreen,
@@ -216,46 +214,44 @@ class LibraryViewerToolbar extends StatelessWidget {
           );
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: stacked
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(height: height, child: details),
-                      SizedBox(
-                        height: height,
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: zoomControls,
-                        ),
-                      ),
-                    ],
-                  )
-                : SizedBox(
-                    height: height,
-                    child: Row(
-                      children: [
-                        Expanded(child: details),
-                        const SizedBox(width: 16),
-                        zoomControls,
-                      ],
-                    ),
-                  ),
+            child: SizedBox(
+              height: height,
+              child: Row(
+                children: [
+                  Expanded(child: details),
+                  if (leading == null) const SizedBox(width: 16),
+                  zoomControls,
+                ],
+              ),
+            ),
           );
         },
       ),
     );
   }
+}
 
-  Widget _button({
-    required String key,
-    required String label,
-    required IconData icon,
-    required VoidCallback? onPressed,
-    bool? selected,
-  }) => AmeTooltip(
+class LibraryViewerToolbarButton extends StatelessWidget {
+  const LibraryViewerToolbarButton({
+    required this.id,
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    this.selected,
+    super.key,
+  });
+
+  final String id;
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final bool? selected;
+
+  @override
+  Widget build(BuildContext context) => AmeTooltip(
     message: label,
     child: IconButton(
-      key: Key(key),
+      key: Key(id),
       isSelected: selected,
       onPressed: onPressed,
       icon: Icon(

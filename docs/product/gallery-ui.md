@@ -61,6 +61,18 @@ Keep the reason and applicable exception with a changed decision. New capabiliti
 accepted navigation require a product decision; routine spacing, component composition and responsive
 adjustments follow the established design without another approval step.
 
+### Design as a desktop application
+
+Ame is a desktop workbench. Start from desktop interaction conventions and its existing application
+surfaces, not from webpage design habits. Window management, navigation, action placement, mouse and
+keyboard input, scrolling and image manipulation must form one consistent desktop experience.
+Reuse established window chrome, toolbars and interaction owners before introducing another pattern.
+Do not import website navigation, mobile-style stacking or viewport breakpoints merely because they
+are customary in web development. An alternate layout needs an actual desktop use case within the
+[supported window constraints](../../lib/app/window/ame_window_placement.dart), not a hypothetical
+phone-sized viewport or a test created to justify it. Preserve desktop DPI scaling, enlarged text,
+keyboard accessibility and normal/maximized window behavior within those constraints.
+
 | Principle | Reason and application | Adaptation boundary |
 | --- | --- | --- |
 | Give each visible element a useful role | Photos, names and paths are the work. A title identifies context, supporting text adds needed information, and controls offer distinct actions. Omit duplicated explanations, decorative icons beside sufficient previews, and buttons that repeat the same row action. | Preserve actionable errors, exceptional availability, accessible names and discoverability. A familiar auxiliary icon can save space; an unfamiliar action may need visible wording. |
