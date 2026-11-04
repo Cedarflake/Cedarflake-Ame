@@ -129,6 +129,11 @@ shared principles; the roadmap owns current delivery order and acceptance status
 - `migrations/similar_images` owns the atomic similarity upgrade, structural checks and row proof.
   Its schema separates durable group choices from rebuildable evidence and matching projections;
   current-schema admission calls its validation without duplicating the contract.
+- `sqlite_catalog/similar_images/review` owns current-member projection, bounded group/member pages
+  and transactional choices. Exact-copy representatives reuse exact-review policy. Preferences and
+  exclusions validate current content and source generation; decision revisions reject stale writes,
+  while exclusion-specific undo preserves newer choices. Queries retain a consistent read snapshot;
+  filesystem availability inspection follows snapshot retirement in application.
 - `sqlite_catalog/migrations.rs` remains the ordered migration coordinator while historical steps
   are stable. `migrations/schema_shape.rs` owns shared column, index, foreign-key and normalized SQL
   comparisons, including version-dependent handoff columns. Contract and repair owners use it

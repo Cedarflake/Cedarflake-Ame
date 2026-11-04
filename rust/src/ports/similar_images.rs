@@ -6,6 +6,8 @@ use crate::domain::similar_images::{
     SimilarAnalysisProgress, SimilarAnalysisRun, SimilarContentKey, SimilarEvidence, SimilarSource,
 };
 
+pub(crate) mod review;
+
 pub(crate) trait SimilarImageLease {
     fn evidence(&self) -> &SimilarEvidence;
     fn revalidate(&self) -> Result<(), ScanError>;

@@ -9,6 +9,7 @@ use crate::domain::similar_images::{
 
 mod execution;
 mod production;
+pub(crate) mod review;
 
 static ACTIVE: Mutex<Option<String>> = Mutex::new(None);
 

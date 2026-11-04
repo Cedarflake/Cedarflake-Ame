@@ -31,7 +31,8 @@ no inline cases. The retained dedicated catalog suite is unchanged.
 
 ## Native analysis integration — 2026-11-04
 
-The production reader uses the shared held source and the admitted normalization/hash pipeline.
+At `b452ceee`, the production reader uses the shared held source and the admitted normalization/hash
+pipeline.
 The evaluation probe now imports those helpers instead of retaining a second implementation.
 Source discovery covers unequal encoded lengths independently of classification/model state and
 reuses verified content evidence. Publication retains current-source, cancellation and run-lease
@@ -70,6 +71,28 @@ All ten focused availability checks, including rejecting mutations, and the sche
 case passed locally. These changes add no test cases or broad exclusions. The availability facade
 has 2,603 pre-test lines and 3,550 inline-test/support lines; the migration case file has 382 lines.
 
-Automatic desktop scheduling, group/representative queries, decision commands and the actual desktop
-interaction remain unverified and not connected. Real-library accuracy, constrained-client resource
-measurements and the complete R6 user workflow retain their acceptance scope in the roadmap.
+## Group queries and durable operations — 2026-11-04
+
+The native review contract now provides bounded group/member pages, seek, preference, ignore/restore,
+member exclusion and exclusion-specific undo. Current fingerprint compatibility owns membership;
+exact-copy representative selection reuses exact-review policy. Groups below two visible contents
+are omitted. Degree changes query the existing evidence. Decision revisions reject stale writes,
+and unavailable preferences remain saved without selecting replacement content.
+
+Two SQLite fixtures passed, covering exact-copy projection, degree boundaries, preference and ignored state,
+member removal, stale writes/undo, reopen, current-source replacement and group-scoped exclusions.
+The 70-group fixture returns 64 then six groups and clamps seeking to the last page. The retained
+choice case also passed after adding derived-evidence removal and reconstruction of the same group
+through production matching, with its preference, ignore and exclusion still effective.
+The review persistence family has 570 source lines, no inline cases and 353 dedicated test lines;
+the application review boundary has 129 source lines.
+
+Canonical bridge generation preserves all 118 prior API entries and adds seven review operations.
+The optimized native build, bridge guardrail fixtures and all 39 asynchronous contracts passed.
+The [native-analysis CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41828314572)
+exposed the guardrail fixture's pre-R6 roster count of 31; the count and scoped module checks now
+include the analysis session and review operations without weakening synchronous-call rejection.
+
+Automatic desktop scheduling and actual desktop interaction remain unconnected and unverified.
+Real-library accuracy, constrained-client resource measurements and the complete R6 user workflow
+retain their acceptance scope in the roadmap.

@@ -13,6 +13,7 @@ use super::{SqliteCatalog, database_error};
 
 mod evidence;
 mod matching;
+mod review;
 mod runs;
 mod sources;
 

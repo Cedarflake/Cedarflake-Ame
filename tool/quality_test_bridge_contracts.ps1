@@ -116,7 +116,9 @@ if ($masked.Length -ne $rustLiteral.Length -or $masked -match 'literal|comment')
 }
 Get-AmeBridgeClosingDelimiter $masked ($masked.IndexOf('{')) '{' '}' | Out-Null
 $contracts = @(Get-AmeAsyncBridgeContracts)
-if ($contracts.Count -ne 31 -or
+if ($contracts.Count -ne 39 -or
+    @($contracts | Where-Object Module -eq "similar_images").Count -ne 1 -or
+    @($contracts | Where-Object Module -eq "similar_image_review").Count -ne 7 -or
     @($contracts | Where-Object Module -eq "viewer_source").Count -ne 3 -or
     @($contracts | Where-Object Module -eq "classification").Count -ne 4 -or
     @($contracts | Where-Object Module -eq "classification_settings").Count -ne 4 -or
