@@ -4,6 +4,7 @@ import "package:cedarflake_ame/app/bootstrap/library_organization_bindings.dart"
 import "package:cedarflake_ame/app/bootstrap/library_platform_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/library_read_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/library_scan_bindings.dart";
+import "package:cedarflake_ame/app/bootstrap/library_similarity_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/library_synchronization_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/settings_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/storage_bindings.dart";
@@ -16,6 +17,8 @@ import "package:cedarflake_ame/features/library/application/library_exact_duplic
 import "package:cedarflake_ame/features/library/application/library_gallery_duplicates.dart";
 import "package:cedarflake_ame/features/library/application/library_model_installation.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_conflicts.dart";
+import "package:cedarflake_ame/features/library/application/library_similar_analysis_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_similar_analysis_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_view_preference_store.dart";
 import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/ports/ame_preference_store.dart";
@@ -49,6 +52,17 @@ List<Override> applicationTestOverrides([List<Override> overrides = const []]) {
       return analysis;
     }),
     libraryExactAnalysisSchedulerProvider.overrideWithValue(null),
+    librarySimilarAnalysisProvider.overrideWithValue(
+      LibrarySimilarAnalysisBindings.productionService,
+    ),
+    librarySimilarAnalysisControllerProvider.overrideWith((ref) {
+      final analysis = LibrarySimilarAnalysisController(
+        ref.watch(librarySimilarAnalysisProvider),
+      );
+      ref.onDispose(analysis.dispose);
+      return analysis;
+    }),
+    librarySimilarAnalysisSchedulerProvider.overrideWithValue(null),
     libraryGalleryDuplicatesProvider.overrideWithValue(null),
     ...const LibraryClassificationServices.production().overrides,
     libraryClassificationConfigurationProvider.overrideWithValue(null),

@@ -93,6 +93,26 @@ The [native-analysis CI run](https://github.com/Cedarflake/Cedarflake-Ame/action
 exposed the guardrail fixture's pre-R6 roster count of 31; the count and scoped module checks now
 include the analysis session and review operations without weakening synchronous-call rejection.
 
-Automatic desktop scheduling and actual desktop interaction remain unconnected and unverified.
-Real-library accuracy, constrained-client resource measurements and the complete R6 user workflow
-retain their acceptance scope in the roadmap.
+## Automatic analysis lifetime — 2026-11-04
+
+The desktop assembly now supplies one cold native session service and an explicitly owned
+controller/scheduler pair. Catalog revisions and availability changes coalesce behind three seconds
+of idle admission. Foreground reads and catalog updates suspend active work; navigation leaves it
+running. Failures and memory pressure retain a one-minute cooldown. Environment suspension cancels
+the current run; resume admits pending work. Shutdown joins completion before releasing its handle.
+
+Three focused composition/lifecycle checks passed, including missing production bindings, close
+while opening, foreground yielding, newer-publication coalescing and cooldown admission. The initial
+two failures came from a guarded Flutter assertion inside the fake's disposal callback; a synchronous
+assertion retains the joined-disposal requirement without conflicting with `pump`. Two existing
+source-status cases also passed through the shared activity widget after its similarity connection.
+The controller/scheduler pair has 370 production lines, no inline tests and 233 dedicated test lines;
+the binding has 51 lines and the shared activity widget has 158.
+
+The [review-contract CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41831699680)
+reported five generated FRB files absent from the dependency check's exact roster. Those specific
+generated paths are registered; handwritten files and missing generation markers remain rejected.
+The dependency check passed for 504 modules, and all 18 retained boundary cases passed.
+
+Actual desktop interaction, real-library accuracy, constrained-client resource measurements and the
+complete R6 user workflow retain their acceptance scope in the roadmap.

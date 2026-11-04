@@ -17,6 +17,16 @@ classification before the root Provider container disposes its notifiers. Sessio
 installation handles retain their application lifetimes; native adapters translate failures into
 Ame values. Missing bindings fail during acquisition and release acquired lifetimes.
 
+## Similarity analysis composition
+
+`LibrarySimilarAnalysisBindings` selects the native session port and owns one controller/scheduler
+pair. Construction remains cold; required Provider identities are validated by the root assembly.
+The controller joins native completion before disposing the handle, including cancellation while
+opening. The scheduler owns coalesced catalog generations, idle admission, foreground yielding and
+failure cooldown. The existing analysis environment supplies power, suspension and memory events;
+no second observer or native runtime is created. Window shutdown joins the pair before notifier and
+root-container disposal. Navigation and similarity-degree changes do not cancel analysis.
+
 ## Workbench destinations
 
 `workbench_presentation_bindings.dart` connects the library's Settings destination and record-feedback

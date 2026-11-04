@@ -106,7 +106,7 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   informational lints treated as failures.
 - `./tool/quality_verify_dependencies.ps1` parses handwritten Dart imports, exports, conditional
   branches and parts, checks resolved layer/cross-feature edges and cycles, and rejects changed,
-  unknown or stale legacy exceptions. Its fixed 55-file bridge roster excludes reviewed generated
+  unknown or stale legacy exceptions. Its exact bridge roster excludes reviewed generated
   output only; new handwritten files cannot gain an exemption by entering that directory. Static
   runs this command after formatting. Flutter owns its positive/negative boundary regressions.
   The existing locked `analyzer` package is a direct development dependency for this parser;
