@@ -2,6 +2,8 @@
 
 Date: 2026-11-04. Scope: R6-01 candidate evaluation on local-primary, based on `6958dea6`.
 The [roadmap](../roadmap.md#current-execution-queue) owns activation and engine-admission status.
+The selected boundary and immutable parameters are owned by
+[ADR 0038](../architecture/0038-bounded-perceptual-similarity.md).
 
 ## Integration candidates
 
@@ -21,7 +23,7 @@ the existing `image` 0.25.10 dependency and introduces no runtime decoder or pro
 | --- | --- | --- |
 | [image_hasher 3.1.1](https://docs.rs/crate/image_hasher/3.1.1/source/Cargo.toml) | MIT OR Apache-2.0 | Gradient hashes at 8 and 16 pixels per edge; Mean with DCT at 16 |
 | [bk-tree 0.5.0](https://github.com/eugene-bulkin/rust-bk-tree) | MIT | Hamming-distance candidate retrieval; no filename or cache ownership |
-| Ame partitioned lookup | Ordinary indexed lookup | 25 disjoint bands over 256 bits; full distance confirms candidates |
+| Ame partitioned lookup | Ordinary indexed lookup | Four disjoint 16-bit bands; nearby band keys nominate full-distance candidates |
 
 ## Reproduction and fixture scope
 
@@ -29,48 +31,57 @@ the existing `image` 0.25.10 dependency and introduces no runtime decoder or pro
 non-uniform 320-by-240 scenes with different geometry, gradients and colors. It checks JPEG quality 65,
 half-size resampling, quarter-turn rotation, horizontal mirror, centered crops retaining 95% and 80%
 of each dimension, and a localized 80-by-25 watermark. The 276 different-scene pairs are negatives.
-Each comparison checks all eight rotation/reflection variants against the reference orientation.
+The final comparison takes the minimum across both images' eight rotation/reflection variants.
+It uses the alpha-on-white, grayscale, 256-edge sample defined in ADR 0038.
 
-The index probe compares identical 10,000/70,000-entry hash populations and 100 queries. Random hash
+The index probe compares identical 10,000/70,000/560,000-entry hash populations and 100 variant
+queries. The last size represents the maximum hash count for 70,000 contents with eight variants;
+it is not a real-photo dataset. Comparing one content may require eight such queries. Random hash
 populations test index growth rather than photographic quality. The candidate-completeness case
-compares band retrieval against exhaustive distances over a small fixture with known bit changes
-at every radius from 0 through 24.
+compares retrieval against exhaustive distances with known bit changes at every radius from 0 to 10.
 
 Run the example with `cargo run --locked --manifest-path rust/Cargo.toml --release
 --example similarity_engine_probe -j 1`, and its focused case with `cargo test --locked
 --manifest-path rust/Cargo.toml --release --example similarity_engine_probe -j 1 -- --test-threads=1`,
 serially under the repository tooling lock. Neither command scans directories or reads original media.
 
-## Fixture observations
+## Selected scheme observations
 
-The retained Release probe produced these Hamming-distance ranges for the 256-bit Gradient hash.
-It also reports accepted counts at radii 8/16/24. Its candidate-completeness case passed for all
-25 admitted radii.
+The final Release probe produced these results for 64-bit Gradient at strict / standard / broad
+maximum distances 2 / 6 / 10. The four focused cases passed: candidate completeness, borrowed-input
+cancellation, malformed/oversized input, and bounded normalization with flat-input rejection.
 
-| Transformation | Cases | Minimum / median / maximum distance |
-| --- | --- | --- |
-| JPEG quality 65 | 24 | 0 / 2 / 10 |
-| Half-size resampling | 24 | 0 / 2 / 6 |
-| Quarter-turn rotation | 24 | 0 / 0 / 0 |
-| Horizontal mirror | 24 | 0 / 0 / 0 |
-| Localized watermark | 24 | 3 / 8 / 14 |
-| 95% centered crop | 24 | 23 / 36 / 50 |
-| 80% centered crop | 24 | 92 / 106 / 114 |
-| Different scenes | 276 | 94 / 113 / 128 |
+| Transformation | Cases | Minimum / median / maximum | Accepted strict / standard / broad |
+| --- | --- | --- | --- |
+| JPEG quality 65 | 24 | 0 / 0 / 2 | 24 / 24 / 24 |
+| Half-size resampling | 24 | 0 / 0 / 0 | 24 / 24 / 24 |
+| Quarter-turn rotation | 24 | 0 / 0 / 0 | 24 / 24 / 24 |
+| Horizontal mirror | 24 | 0 / 0 / 0 | 24 / 24 / 24 |
+| Localized watermark | 24 | 0 / 1 / 4 | 19 / 24 / 24 |
+| 95% centered crop | 24 | 0 / 4 / 6 | 8 / 24 / 24 |
+| 80% centered crop | 24 | 9 / 15 / 22 | 0 / 0 / 2 |
+| Different scenes | 276 | 13 / 24 / 29 | 0 / 0 / 0 |
 
-Radius 16 admitted all 120 recompression/resize/rotation/mirror/watermark cases and none of the
-different-scene pairs. Crop recall is limited. These constructed images establish the comparison's
-behavior, not a real-library accuracy percentage or a final numerical threshold.
+Standard admitted all 144 recompression/resize/rotation/mirror/watermark/light-crop cases and none
+of the 276 different-scene pairs. The same normalized fixture with 256-bit Gradient admitted no light
+crops at radius 16; Mean/DCT admitted four, and only eight watermarks. This supports the 64-bit choice.
+The constructed images establish reproducible behavior, not real-library accuracy. Heavy cropping
+remains weak. Flat hashes are ineligible; low-detail and color-only differences can still collide.
 
-For 70,000 entries and 100 identical radius-24 queries, BK-tree performed 6,114,188 full distances
-in 310.597 ms. The partitioned candidate lookup performed 202,861 full distances in 13.267 ms after
-206,081 posting visits. Its allocated posting capacity was 22,321,664 bytes, plus 2,240,000 hash bytes;
-these are measured containers, not total process memory. Both runs returned zero random matches.
+## Candidate cost and memory
 
-The partition bound follows directly from disjoint bands: at most 24 changed bits can affect at
-most 24 of the 25 bands. More generally, a radius-r candidate retains at least 25-r equal bands.
-Every retained candidate still needs its full distance. This supports evaluating a persistent band
-index instead of retaining a library-sized BK-tree in memory.
+For 100 identical broad queries, the final Release run measured:
+
+| Hash entries | BK-tree comparisons / time | Band comparisons / time | Posting visits | Matches, both |
+| --- | --- | --- | --- | --- |
+| 70,000 | 4,833,764 / 78.200 ms | 80,567 / 5.510 ms | 81,044 | 1 |
+| 560,000 | 35,919,181 / 1,686.503 ms | 645,576 / 19.379 ms | 649,249 | 2 |
+
+The 560,000-entry index held 25,774,048 bytes of posting capacity and 4,480,000 bytes of hashes;
+map, candidate and allocator costs are additional. A Windows child-process observation across the
+same index and large-image workloads recorded a 156,659,712-byte peak working set. This is the
+standalone probe's peak, not a production application ceiling. Dense postings still need bounded
+persistent paging. ADR 0038 gives the completeness argument and limits indexed keys to 548 per variant.
 
 ## Borrowed input boundary
 
@@ -79,17 +90,26 @@ the format from encoded bytes and applies EXIF orientation. Its limits match the
 image boundary: 256 MiB encoded input, 16,384 per dimension, 16 Mi pixels and 128 MiB decoder allocation.
 Cancellation is checked before source access, on reads/seeks and between decode phases.
 
-Two additional focused cases passed: a borrowed source remains intact, cancellation during I/O or
-before entry returns no pixels, and malformed/empty/oversized input is rejected. Together with the
-candidate-completeness case, the Release example has three passing cases. This establishes the
-path-free engine-input seam; the production Windows lease, stale-publication checks and actual
-cancellation latency still require their integration evidence.
+The borrowed source remains intact; cancellation during I/O or before entry returns no pixels.
+Malformed/empty/oversized input is rejected. Transparent colors are composited before grayscale;
+quarter-turns preserve the variant set, and flat samples supply no useful match structure.
 
-## Remaining admission evidence
+The final 4096-by-4096 RGBA fixture encoded to 19,692,145 PNG bytes. Decode took 123.897 ms,
+normalization 72.116 ms, and eight bounded hashes 3.113 ms. The final grayscale sample occupied
+65,536 bytes. Cancellation requested after 1 and 50 ms retired normalization after another 1.710
+and 19.120 ms respectively. These timings include ordinary host variation and do not promise a
+deadline inside every codec. Production Windows leases and stale-publication checks need integration.
 
-R6-01 still needs a fixed normalization/parameter identity, bounded-work timing and the final engine
-ADR. R6-02 will connect the Windows source lease, persistent evidence,
-bounded candidate windows and stale-source publication rejection. Dense or low-information hashes,
-source changes and real-image false positives require explicit handling; radius alone is insufficient.
-The desktop, real-library and constrained-client checks remain in R6-04. This probe changes no product
-interaction, catalog schema, model, source file or analysis scheduling.
+## Provenance and remaining integration
+
+The initial [256-bit probe](https://github.com/Cedarflake/Cedarflake-Ame/commit/926f71d67ac08493cacf87abe4c3f72997f9bbfc)
+showed BK-tree's broad-search cost and weak crop recall. The
+[borrowed-input extension](https://github.com/Cedarflake/Cedarflake-Ame/commit/4883cf4dd2c3e25bbabe8b3d9b828ed66f85c42b)
+established the path-free input seam. The current probe replaces those provisional parameters with
+the admitted normalization, symmetric comparison and 64-bit index. An unused-import warning in the
+first normalization build was removed; the final build and execution were warning-free.
+
+R6-02 connects the source lease, persistent evidence, bounded candidate windows, durable choices and
+stale-source publication rejection. The desktop, real-library false-positive review and constrained-
+client checks remain in R6-04. This probe changes no product interaction, catalog schema, model,
+source file or analysis scheduling. Hosted CI covers its actual source commit separately.

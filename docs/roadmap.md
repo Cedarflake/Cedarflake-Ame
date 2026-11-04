@@ -31,7 +31,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R3 | Exact duplicates and physical-location inspection | Completed on 2026-10-17 |
 | R4 | Favorites, albums and durable organization progress | Merged into `main` on 2026-10-30 |
 | R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
-| R6 | Perceptual similarity review | In progress; R6-01 engine evaluation |
+| R6 | Perceptual similarity review | In progress; R6-02 evidence and bounded analysis |
 | R7 | Structured and semantic discovery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run | Planned after R7 |
 | R9 | Freshly authorized physical operations and recovery | Planned after R8 |
@@ -43,7 +43,8 @@ R4 and R5 are integrated. Their
 [R4 merge evidence](acceptance/r4-organization.md#r4-merge-verification---2026-10-30) and
 [R5 integrated evidence](acceptance/r5-closeout.md) retain coverage, accepted limits and merge authority.
 
-R6 implementation is active on `codex/r6-similar-images`, beginning with R6-01 engine evaluation.
+R6 implementation is active on `codex/r6-similar-images`. R6-01 selected the bounded perceptual
+comparison boundary in [ADR 0038](architecture/0038-bounded-perceptual-similarity.md).
 
 Preserve the delivered R5 curated catalog, purpose restrictions, automatic analysis, legacy decisions,
 archive compatibility and authorized model-installation recovery. The
@@ -58,9 +59,9 @@ Project organization O1–O7 was merged into `main` on 2026-11-04 through
 delivered scope to evidence.
 
 The [R6 plan](plans/r6-similar-images.md) owns the implementation sequence and planned interactions.
-R6-01 is active: evaluate source admission, engine quality and bounded integration before selecting
-the persistence and automatic-analysis contract in R6-02. The
-[engine evaluation](acceptance/r6-engine-evaluation.md) retains its bounded probes and admission gaps.
+R6-02 is active: connect admitted evidence, source leases, persistent candidate windows, durable
+choices and automatic analysis. The [engine evaluation](acceptance/r6-engine-evaluation.md) retains
+R6-01's selection evidence and the remaining production integration and acceptance boundaries.
 Sketch iteration has ended; notifications and styling will be refined in the actual application
 during R6-03.
 

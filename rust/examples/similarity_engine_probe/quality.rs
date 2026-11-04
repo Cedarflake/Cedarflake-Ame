@@ -3,9 +3,8 @@ use std::io::Cursor;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 
-use image::DynamicImage;
 use image::imageops::FilterType;
-use image_hasher::{HashAlg, Hasher, HasherConfig};
+use image_hasher::{HashAlg, HasherConfig};
 
 use super::fixtures::{scene, transformed};
 
@@ -14,23 +13,6 @@ pub(super) fn distance(left: &[u8], right: &[u8]) -> u32 {
         .zip(right)
         .map(|(left, right)| (left ^ right).count_ones())
         .sum()
-}
-
-fn hashes(image: &DynamicImage, hasher: &Hasher) -> Vec<Vec<u8>> {
-    let mirrored = image.fliph();
-    [
-        image.clone(),
-        image.rotate90(),
-        image.rotate180(),
-        image.rotate270(),
-        mirrored.clone(),
-        mirrored.rotate90(),
-        mirrored.rotate180(),
-        mirrored.rotate270(),
-    ]
-    .iter()
-    .map(|image| hasher.hash_image(image).as_bytes().to_vec())
-    .collect()
 }
 
 pub(crate) fn compare_hashes() {
@@ -44,10 +26,15 @@ pub(crate) fn compare_hashes() {
                 .expect("bounded borrowed input decodes")
         })
         .collect();
-    for (label, algorithm, edge, dct) in [
-        ("gradient8", HashAlg::Gradient, 8, false),
-        ("gradient16", HashAlg::Gradient, 16, false),
-        ("mean_dct16", HashAlg::Mean, 16, true),
+    let cancelled = AtomicBool::new(false);
+    let samples: Vec<_> = originals
+        .iter()
+        .map(|image| super::normalization::prepare(image.clone(), &cancelled).unwrap())
+        .collect();
+    for (label, algorithm, edge, dct, thresholds) in [
+        ("gradient8", HashAlg::Gradient, 8, false, [2, 6, 10]),
+        ("gradient16", HashAlg::Gradient, 16, false, [8, 16, 24]),
+        ("mean_dct16", HashAlg::Mean, 16, true, [8, 16, 24]),
     ] {
         let config = HasherConfig::new()
             .hash_size(edge, edge)
@@ -55,37 +42,42 @@ pub(crate) fn compare_hashes() {
             .resize_filter(FilterType::Lanczos3);
         let hasher = if dct { config.preproc_dct() } else { config }.to_hasher();
         let start = Instant::now();
-        let base: Vec<_> = originals
+        let base: Vec<_> = samples
             .iter()
-            .map(|image| hasher.hash_image(image).as_bytes().to_vec())
+            .map(|image| super::normalization::hashes(image, &hasher, &cancelled).unwrap())
             .collect();
         let mut distances = BTreeMap::<&str, Vec<u32>>::new();
         for (index, original) in originals.iter().enumerate() {
             for (kind, changed) in transformed(original) {
-                let value = hashes(&changed, &hasher)
+                let changed = super::normalization::prepare(changed, &cancelled).unwrap();
+                let value = super::normalization::hashes(&changed, &hasher, &cancelled)
+                    .unwrap()
                     .iter()
-                    .map(|hash| distance(hash, &base[index]))
+                    .flat_map(|hash| base[index].iter().map(move |other| distance(hash, other)))
                     .min()
                     .expect("eight transforms");
                 distances.entry(kind).or_default().push(value);
             }
-            for other in originals.iter().skip(index + 1) {
-                let value = hashes(other, &hasher)
+            for other in base.iter().skip(index + 1) {
+                let value = other
                     .iter()
-                    .map(|hash| distance(hash, &base[index]))
+                    .flat_map(|hash| base[index].iter().map(move |other| distance(hash, other)))
                     .min()
                     .expect("eight transforms");
                 distances.entry("unrelated").or_default().push(value);
             }
         }
-        println!("quality {label} elapsed_ms={}", start.elapsed().as_millis());
+        println!(
+            "quality {label} thresholds={thresholds:?} elapsed_ms={}",
+            start.elapsed().as_millis()
+        );
         for (kind, values) in &mut distances {
             values.sort();
-            let admitted: Vec<_> = [8, 16, 24]
+            let admitted: Vec<_> = thresholds
                 .map(|threshold| values.iter().filter(|&&value| value <= threshold).count())
                 .into();
             println!(
-                "  {kind} n={} min={} median={} max={} accepted_at_8_16_24={admitted:?}",
+                "  {kind} n={} min={} median={} max={} accepted={admitted:?}",
                 values.len(),
                 values[0],
                 values[values.len() / 2],
