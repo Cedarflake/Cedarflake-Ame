@@ -80,6 +80,8 @@ windows-sys = { version = "0.61.2", features = [
 notify = { path = "vendor/notify" }
 
 [dev-dependencies]
+bk-tree = { version = "=0.5.0", default-features = false }
+image_hasher = { version = "=3.1.1", default-features = false }
 quote = "=1.0.47"
 rusqlite = { version = "0.40.1", features = ["backup", "bundled"] }
 syn = { version = "=2.0.119", features = ["full", "visit"] }
