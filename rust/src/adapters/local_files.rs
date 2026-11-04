@@ -4500,7 +4500,7 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
         AvailabilityModuleContract {
             name: "adapters",
             visibility: "",
-            attributes: &[],
+            attributes: &["doc=\"flutter_rust_bridge:ignore\""],
             is_inline: false,
         },
         AvailabilityModuleContract {
@@ -4560,6 +4560,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const ADAPTERS_PARENT_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "analysis_source",
+            visibility: "",
+            attributes: &["cfg(windows)"],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "catalog_capacity",
             visibility: "",
@@ -4693,6 +4699,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "similar_image_reader",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "storage_settings",
             visibility: "",
             attributes: &[],
@@ -4713,6 +4725,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const DOMAIN_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "similar_images",
+            visibility: "pub(crate)",
+            attributes: &[],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "path_display",
             visibility: "",

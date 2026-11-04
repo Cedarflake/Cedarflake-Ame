@@ -1,5 +1,9 @@
 use super::{ScanError, stable_id};
 
+pub(crate) mod analysis;
+pub(crate) use analysis::*;
+pub(crate) mod matching;
+
 pub(crate) const SIMILARITY_SCHEME: &str = "ame-perceptual-gradient64-v1";
 pub(crate) const SIMILARITY_MAX_DISTANCE: u8 = 10;
 pub(crate) const SIMILARITY_PARAMETERS: &str = "normalization=ame-visual-sample-v1;gradient=8x8;resample=lanczos3;transforms=d4;decoder=image-0.25.10";

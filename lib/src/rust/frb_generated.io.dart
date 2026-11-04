@@ -20,6 +20,7 @@ import 'api/organization_conflicts.dart';
 import 'api/organization_review.dart';
 import 'api/preview.dart';
 import 'api/sidebar_order.dart';
+import 'api/similar_images.dart';
 import 'api/storage.dart';
 import 'api/synchronization.dart';
 import 'api/viewer_source.dart';
@@ -52,6 +53,7 @@ import 'domain/organization_queue.dart';
 import 'domain/organization_review.dart';
 import 'domain/persistent_journal.dart';
 import 'domain/sidebar_order.dart';
+import 'domain/similar_images/analysis.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
@@ -86,6 +88,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_PreparedClassificationMaintenancePtr => wire
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenancePtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_SimilarImageAnalysisPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysisPtr;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_ViewerSourceReadLeasePtr => wire
@@ -127,6 +133,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   PreparedClassificationMaintenance
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    dynamic raw,
+  );
+
+  @protected
+  SimilarImageAnalysis
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
     dynamic raw,
   );
 
@@ -173,6 +185,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  SimilarImageAnalysis
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    dynamic raw,
+  );
+
+  @protected
   ViewerSourceReadLease
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     dynamic raw,
@@ -211,6 +229,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   PreparedClassificationMaintenance
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    dynamic raw,
+  );
+
+  @protected
+  SimilarImageAnalysis
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
     dynamic raw,
   );
 
@@ -1161,6 +1185,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SidebarOrderPlacement dco_decode_sidebar_order_placement(dynamic raw);
 
   @protected
+  SimilarAnalysisPhase dco_decode_similar_analysis_phase(dynamic raw);
+
+  @protected
+  SimilarAnalysisProgress dco_decode_similar_analysis_progress(dynamic raw);
+
+  @protected
   SourceRevisionEvidence dco_decode_source_revision_evidence(dynamic raw);
 
   @protected
@@ -1230,6 +1260,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  SimilarImageAnalysis
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ViewerSourceReadLease
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     SseDeserializer deserializer,
@@ -1272,6 +1308,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  SimilarImageAnalysis
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ViewerSourceReadLease
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     SseDeserializer deserializer,
@@ -1310,6 +1352,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   PreparedClassificationMaintenance
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarImageAnalysis
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
     SseDeserializer deserializer,
   );
 
@@ -2504,6 +2552,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  SimilarAnalysisPhase sse_decode_similar_analysis_phase(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarAnalysisProgress sse_decode_similar_analysis_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   SourceRevisionEvidence sse_decode_source_revision_evidence(
     SseDeserializer deserializer,
   );
@@ -2589,6 +2647,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SimilarImageAnalysis self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     ViewerSourceReadLease self,
     SseSerializer serializer,
@@ -2638,6 +2703,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SimilarImageAnalysis self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     ViewerSourceReadLease self,
     SseSerializer serializer,
@@ -2682,6 +2754,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
     PreparedClassificationMaintenance self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SimilarImageAnalysis self,
     SseSerializer serializer,
   );
 
@@ -4127,6 +4206,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_similar_analysis_phase(
+    SimilarAnalysisPhase self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similar_analysis_progress(
+    SimilarAnalysisProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_source_revision_evidence(
     SourceRevisionEvidence self,
     SseSerializer serializer,
@@ -4382,6 +4473,40 @@ class RustLibWire implements BaseWire {
       );
   late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance =
       _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenancePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysisPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_cedarflake_ame_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysisPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysisPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_cedarflake_ame_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysisPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void

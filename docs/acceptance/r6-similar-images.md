@@ -8,7 +8,7 @@ group identities. This record covers their production integration.
 
 ## Persistent identities and choices — 2026-11-04
 
-Schema 74 separates immutable analysis runs, content evidence, bounded candidate indexes and
+At `b178fd87`, schema 74 separates immutable analysis runs, content evidence, bounded candidate indexes and
 resumable matching from durable group references, representative choices, ignores and exclusions.
 The migration runs atomically after schema 73 and preserves existing catalog and exact-group choices.
 
@@ -29,5 +29,47 @@ fixture helpers and 2,290 inline-test lines; current-schema routing has 416 sour
 test lines. The SQLite facade changes only the schema constant and retains 3,167 source lines with
 no inline cases. The retained dedicated catalog suite is unchanged.
 
-This checkpoint covers persistence admission. Automatic analysis, query/decision commands and the
-desktop interaction are not connected yet; their acceptance remains outstanding.
+## Native analysis integration — 2026-11-04
+
+The production reader uses the shared held source and the admitted normalization/hash pipeline.
+The evaluation probe now imports those helpers instead of retaining a second implementation.
+Source discovery covers unequal encoded lengths independently of classification/model state and
+reuses verified content evidence. Publication retains current-source, cancellation and run-lease
+checks in the same transaction as evidence admission. Candidate matching persists a continuation
+after at most 128 postings; group references and direct members survive interruption.
+
+Eight R6 cases passed: the two migration cases above, two decoder contracts, three persistence and
+matching cases, and pre-dispatch cancellation. The 140-content dense fixture stops within one posting
+window, reopens the actual SQLite catalog, and completes with two groups and 141 direct memberships.
+A shared middle member appears in both groups; endpoints 20 bits apart never become members of the
+same reference through that middle member. Other cases cover unequal-size discovery, cached evidence,
+changed sources, cancellation and expired-owner rejection. The shared source guard keeps its retained
+[Windows lease evidence](r6-engine-evaluation.md); these new fixtures do not use real library roots.
+
+The generated opaque session exists before dispatch, retains cancellation and foreground suspension,
+and exposes bounded progress snapshots. FRB 2.12.0 initially failed while discovering the internal
+`LocalPreviewSources` adapter. Excluding the adapter module from bridge discovery preserves all 113
+existing API entry names and adds only the five similarity-session entries. Rust and Dart generated
+hashes agree; the repository bridge command completed an optimized native build. The new run method
+is registered with the existing asynchronous-contract gate; all 32 entries passed.
+
+`image_hasher =3.1.1` is now a runtime dependency and `image` is pinned to `=0.25.10`. MIT notices for
+the selected engine/decoder and relevant dependencies are included as an asset and registered with
+the existing license page. No model, native runtime or original-media changes are included.
+
+Source / inline-test / dedicated-test line counts are 344 / 0 / 102 for the image-reader family,
+842 / 0 / 284 for similarity persistence, and 381 / 0 / 18 for the session/execution family. Source
+counts include module declarations. Existing SQLite coordination adds only the feature module.
+
+The [schema-74 CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41820364101)
+reported two availability checks with outdated module inventories and one schema-33 preservation
+check that treated newly created similarity tables as retained rows. The inventories now admit only
+the exact added module declarations and bridge-discovery annotation. The migration case explicitly
+asserts empty similarity tables and the initial dispatch row before comparing every retained row.
+All ten focused availability checks, including rejecting mutations, and the schema-33 migration/reopen
+case passed locally. These changes add no test cases or broad exclusions. The availability facade
+has 2,603 pre-test lines and 3,550 inline-test/support lines; the migration case file has 382 lines.
+
+Automatic desktop scheduling, group/representative queries, decision commands and the actual desktop
+interaction remain unverified and not connected. Real-library accuracy, constrained-client resource
+measurements and the complete R6 user workflow retain their acceptance scope in the roadmap.

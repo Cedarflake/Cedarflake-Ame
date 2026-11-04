@@ -40,6 +40,7 @@ mod identity_group_state;
 mod journal_namespace;
 mod location_row_read;
 mod location_row_write;
+mod similar_images;
 use location_row_read::{read_stored_asset, stored_asset_view};
 mod classification;
 mod media_admission_rechecks;

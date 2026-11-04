@@ -52,6 +52,7 @@ mod preview_reclamation;
 mod preview_recovery;
 mod scan_library;
 pub(crate) mod sidebar_order;
+pub(crate) mod similar_images;
 mod storage;
 pub(crate) mod viewer_source;
 

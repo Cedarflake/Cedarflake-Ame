@@ -309,6 +309,18 @@
         "rust/src/application/library_synchronization/production/tests/startup.rs",
         "rust/src/application/library_synchronization/production/runtime_lifecycle/tests/shutdown.rs"
       ]
+    },
+    "similarity-native-readers": {
+      "responsibility": "Construct guarded source fingerprint and perceptual evidence readers behind Ame ports",
+      "reason": "Only the named factories select native implementations; the session owns cancellation and background admission, and persistence owns publication and matching continuations.",
+      "lifetime": "One bounded source lease at a time retains file and namespace handles until publication; the source retires before shared background admission.",
+      "replacement": "Replace ExactContentReader or SimilarImageReader at these factories without changing source verification, algorithm identity or session ownership.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#similarity-analysis-composition",
+      "coverage": [
+        "rust/src/adapters/similar_image_reader/tests.rs",
+        "rust/src/application/similar_images/tests.rs",
+        "rust/src/adapters/sqlite_catalog/similar_images/tests.rs"
+      ]
     }
   },
   "retained": [
@@ -1109,6 +1121,26 @@
         "source": "rust/src/application/library_synchronization/production.rs",
         "symbol": "crate::application::library_synchronization::production::new_production_synchronization",
         "target": "crate::adapters::production_library_change_source_factory",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "similarity-fingerprint-reader",
+      "owner": "similarity-native-readers",
+      "dependency": {
+        "source": "rust/src/application/similar_images/production.rs",
+        "symbol": "crate::application::similar_images::production::fingerprint_reader",
+        "target": "crate::adapters::exact_content_reader::GuardedExactContentReader",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "similarity-image-reader",
+      "owner": "similarity-native-readers",
+      "dependency": {
+        "source": "rust/src/application/similar_images/production.rs",
+        "symbol": "crate::application::similar_images::production::image_reader",
+        "target": "crate::adapters::similar_image_reader::GuardedSimilarImageReader",
         "rule": "concrete-adapter"
       }
     }

@@ -391,6 +391,18 @@ The operation registry and catalog-session maintenance owner retain cancellation
 retention and terminal publication. Replacement changes the two factory selections and port
 implementations without moving those authorities or admitting SQL into application code.
 
+## Similarity analysis composition
+
+`similar_images/production.rs::{fingerprint_reader,image_reader}` select `ExactContentReader` and
+`SimilarImageReader`. The application source executor acquires shared background admission before
+either reader, retains the source lease through publication, then retires it before admission.
+`SimilarImageAnalysis` owns a single pending run, cancellation, foreground suspension and progress;
+its bridge object exists before asynchronous dispatch so cancellation can precede execution.
+The repository factory selects the validated Recovery-lane catalog. SQLite owns atomic publication,
+run leases and bounded matching continuations; neither factory owns those policies or SQL.
+Bridge discovery excludes the internal adapter module; clients use the API session wrapper and
+domain progress values.
+
 ## Duplicate and organization composition
 
 `exact_duplicates/production.rs::{content_reader,source_state}` select native implementations through
