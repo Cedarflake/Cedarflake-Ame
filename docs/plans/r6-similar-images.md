@@ -19,12 +19,13 @@ Sketch matches and image metadata are illustrative, not algorithm-quality eviden
 
 ## R6-00: Confirm the interface
 
-1. Preview the two workspace modes, similarity-degree selector, group opening, image comparison,
-   preferred-image choice, ignore/restore and return navigation.
+1. Preview the right-hand result filter, similarity-degree selector, group opening, image comparison,
+   preferred-image choice and ignore/restore. Switching filters or primary destinations from a
+   nested page resets it to the appropriate list; ordinary viewer return keeps its parent group.
 2. Check Library separately: its current duplicate-display choices remain, with no similarity
    filter or folding caused by similarity.
-3. Confirm the proposed degree labels/default, comparison entry and layout. Keep analysis-start
-   policy separate; the sketch's pause control demonstrates presentation state only.
+3. Confirm the proposed degree labels/default and comparison layout. Keep comparison and ignore
+   actions together; omit top tabs, selection instructions and manual refresh/stop-search controls.
 4. Incorporate review into the owning interface contract before product implementation.
 
 Exit: the interaction choices are explicit, including anything deferred. A clickable sketch is
@@ -53,7 +54,8 @@ Exit: one admitted approach, meaningful quality evidence and bounded integration
 
 ## R6-02: Persist evidence and connect bounded analysis
 
-Depends on the admitted R6-01 contract and a confirmed analysis-start policy.
+Depends on the admitted R6-01 contract. Initial discovery and incremental updates are automatic;
+the workspace does not require a manual start, refresh or stop-search action.
 
 - Use Ame-owned domain values and ports under ADR 0037. Keep engine types and decoding/index
   implementation in adapters; application owns scheduling, source admission and result publication.
@@ -63,8 +65,9 @@ Depends on the admitted R6-01 contract and a confirmed analysis-start policy.
   decisions independent of derived hashes and compatible reanalysis.
 - Specify stable group/member identity and exact-duplicate representation before schema changes;
   use forward migrations if persistence changes. Similarity preference has no Library folding effect.
-- Bound worker lifetime, memory and read concurrency. Connect progress, pause/cancel, restart and
-  retry to the existing task surfaces, retaining available results during refresh.
+- Bound automatic scheduling, worker lifetime, memory and read concurrency. Retain cancellation,
+  restart/retry and source-state revalidation at the application boundary; keep available results
+  during updates. Result filtering must not restart a full analysis or bypass source admission.
 
 Exit: analysis and durable choices work through production contracts, including stale and cancelled
 completion. Scheduling behavior is explicit rather than inferred from the sketch.
@@ -77,9 +80,10 @@ Reuse existing workspace, group/member, preview, viewer, loading and feedback ow
 shared responsibility where needed instead of adding similarity flags throughout the exact-duplicate
 controller. Keep analysis, query state and user choices separately owned for each mode.
 
-Connect degree changes, bounded group queries, in-place preference/ignore/restore and comparison.
-Preserve each mode's selected group and browsing position. Returning from comparison restores its
-member view. Keyboard navigation, enlarged text and narrow windows retain the same available actions.
+Connect the three-choice result menu, degree changes, bounded group queries, in-place decisions and
+comparison. Filter or primary-destination switches reset nested navigation and temporary selection;
+saved preferences and ignored records remain. Returning from comparison restores its member view.
+Keyboard navigation, enlarged text and narrow windows retain the same available actions.
 
 Exit: the real desktop path matches the accepted interface; no completion queue, next-group action,
 similarity filter in Library or filesystem operation is introduced.
@@ -92,8 +96,9 @@ Add only meaningful missing coverage under the [test-design standard](../develop
 - Exercise admitted transformations and representative false positives through the production engine.
 - Verify source changes, unavailable files, placeholders, restart, cancellation and retained choices.
 - Check large-library candidate bounds and responsiveness on the established constrained client.
-- Browse groups, change degree, compare images, set a preference, ignore/restore and return in the
-  actual Windows application. Confirm ordinary Library behavior and original media are preserved.
+- Browse groups, switch filters from member pages, change degree, compare images, set a preference
+  and ignore/restore in the actual Windows application. Verify automatic updates and navigation
+  resets while ordinary Library behavior, durable decisions and original media are preserved.
 - Record results and remaining limits in acceptance; use normal hosted gates under the existing
   verification workflow. The roadmap owns the final exit decision.
 
@@ -103,6 +108,5 @@ Add only meaningful missing coverage under the [test-design standard](../develop
 | --- | --- |
 | Degree labels and initial value | Sketch uses `严格 / 标准 / 宽松`, initially `标准`; confirm wording/default, then calibrate thresholds in R6-01. |
 | Comparison interaction | Select two members, open side-by-side comparison, optionally synchronize zoom/pan, and return to the same group. |
-| Initial and incremental analysis | Choose automatic idle scheduling or an explicit first start; retain pause/resume and bounded incremental updates. |
 | Exact copies within similar groups | Evaluate one logical representative with inspectable locations; do not decide this from mock data. |
 | Additional decisions | Pair/member exclusion and other actions require a distinct user need; they are absent from the initial sketch. |

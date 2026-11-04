@@ -70,7 +70,8 @@ overlap.
 The Duplicates workspace owns duplicate-only results, analysis controls, group inspection and
 preferred-copy/ignore decisions. It reuses gallery preview and viewing capabilities. Exact duplicates
 are byte-identical. R6's [similar-image mode](similar-images.md) shares this workspace and browsing
-pattern; its controls remain absent until connected.
+pattern; its controls remain absent until connected. The exact-only production layout below remains
+in place until R6 replaces its category switch and manual analysis controls under that contract.
 No analysis or display choice authorizes source mutation.
 
 Use `重复图片查找` as the workspace heading and show the current category's total number of
