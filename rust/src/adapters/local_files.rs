@@ -4561,6 +4561,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
 
     const ADAPTERS_PARENT_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
         AvailabilityModuleContract {
+            name: "catalog_capacity",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "classification_feature_cache",
             visibility: "",
             attributes: &[],
@@ -4627,6 +4633,18 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "journal_boundary",
+            visibility: "",
+            attributes: &["cfg(windows)"],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "journal_runtime",
+            visibility: "",
+            attributes: &["cfg(windows)"],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "local_files",
             visibility: "",
             attributes: &[],
@@ -4639,13 +4657,31 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "local_source_state",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "media_inspector",
             visibility: "",
             attributes: &[],
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "persistent_journal",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "preview_cache",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "preview_cache_storage",
             visibility: "",
             attributes: &[],
             is_inline: false,
@@ -4677,6 +4713,30 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const DOMAIN_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "path_display",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "scan_publication",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "source_discovery",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "stable_identity",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "classification",
             visibility: "pub",
@@ -4860,6 +4920,18 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const LOCAL_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "publication_namespace",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "scan_discovery",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "directory_enumeration",
             visibility: "",
@@ -5188,7 +5260,7 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             locator: AvailabilitySupportLocator::UseContaining(
                 "crate::domain::RootAvailabilityEvidence",
             ),
-            digest: "fbe8afb4ad396f7dcce39c217abd1742da311b35225fb6bf9225f38ffaadee8b",
+            digest: "085102b6d400384b15de72c1d074e5dde22bb8d9383c2e19f90fc2f447cb2573",
             summary: "shared Ame-owned availability and source-revision evidence types",
         },
         AvailabilitySupportContract {

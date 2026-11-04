@@ -611,3 +611,17 @@ rejected two module declarations loading `classification_merge_fixture.rs`. The 
 now loads it once under `cfg(test)`; domain and application tests import that shared module.
 Fixture data, assertions and production behavior are unchanged. The exact hosted Clippy command
 (`--all-targets --all-features -- -D warnings`), owned formatting and all eight affected tests pass.
+
+## Root availability source contract — 2026-11-04
+
+At `32f21bc5`, [hosted Rust Remaining](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41752279456/job/126320554923)
+rejected 12 module declarations introduced during O7 and the changed domain import. The exact roster
+now includes those reviewed declarations, preserving private visibility, outline loading and the
+Windows condition on both journal modules. The import digest reflects `FileVisit` and
+`FileVisitOutcome` moving into domain and removal of `DiscoveredFile` and `MediaInspection` from
+this import. Availability function digests and all rejection checks remain unchanged.
+All ten existing root-availability tests pass, including the two failing CI cases and rejection of
+enumeration, macro-resolution changes and alternate module loading. Owned rustfmt and whitespace
+checks pass. Production source is unchanged; full verification remains owned by the hosted workflow.
+The affected owner has 2,603 production lines, 3,532 inline-test lines and 614 dedicated-test lines;
+this update adds only exact contract entries and changes one import digest, with no new test cases.
