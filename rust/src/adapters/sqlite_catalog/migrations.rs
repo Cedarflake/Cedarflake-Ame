@@ -47,6 +47,7 @@ mod retired_live_gap_repair;
 mod root_namespace_contract;
 mod scan_handoff_contract;
 mod scan_owner_contract;
+mod similar_images;
 mod terminal_inventory_repair;
 mod terminal_journal_handoff;
 #[cfg(test)]
@@ -184,6 +185,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         classification_maintenance::migrate_transaction(&transaction)?;
         classification_retirement::migrate_transaction(&transaction)?;
         classification_merge::migrate_transaction(&transaction)?;
+        similar_images::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -297,6 +299,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             70 => classification_maintenance::migrate(connection)?,
             71 => classification_retirement::migrate(connection)?,
             72 => classification_merge::migrate(connection)?,
+            73 => similar_images::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

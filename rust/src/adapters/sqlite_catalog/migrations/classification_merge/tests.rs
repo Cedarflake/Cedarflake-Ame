@@ -61,7 +61,7 @@ fn purpose_merge_upgrade_preserves_both_prior_evidence_formats_and_configuration
     let catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     assert_eq!(
         super::super::schema_shape::schema_version(&catalog.connection).unwrap(),
-        73
+        super::super::super::SCHEMA_VERSION
     );
     assert_eq!(catalog.load_classification_state().unwrap(), before);
     for (operation, payload) in ["save", "retirement"].iter().zip(expected) {

@@ -126,6 +126,9 @@ shared principles; the roadmap owns current delivery order and acceptance status
   UNC, ambiguous and differently spelled paths reopen the configured namespace. Ancestor movement
   must either be prevented by the open objects or change the observed final path and reject reuse.
   The guard retires after its SQLite connection. Non-Windows paths retain fresh path observation.
+- `migrations/similar_images` owns the atomic similarity upgrade, structural checks and row proof.
+  Its schema separates durable group choices from rebuildable evidence and matching projections;
+  current-schema admission calls its validation without duplicating the contract.
 - `sqlite_catalog/migrations.rs` remains the ordered migration coordinator while historical steps
   are stable. `migrations/schema_shape.rs` owns shared column, index, foreign-key and normalized SQL
   comparisons, including version-dependent handoff columns. Contract and repair owners use it
