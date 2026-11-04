@@ -576,3 +576,14 @@ ADR 0037 owns ongoing dependency/composition rules, the repository layout owns p
 documentation and test-design standards remain separate linked contracts outside `AGENTS.md`.
 Original media and catalogs remain preserved. The PR stays a draft for separate review and merge
 authorization; its final description maps the complete rollout without maintaining acceptance status.
+
+## CI case mapping — 2026-11-04
+
+At `b8286984`, [hosted Static](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41747726921/job/126305439435)
+failed because the R2c-R `journal-reset-trim` entry retained the pre-migration application path and
+test selector. Both now target `adapters::persistent_journal::session_reader`; the existing 19-case
+matrix, ignored-case policy and behavioral assertions are unchanged. All 19 source mappings and
+compiled selectors validate, and the exact journal reset/trim test passes (one case, zero failures).
+PowerShell syntax and owned whitespace checks pass. The full local guardrail stopped earlier at
+native directory case-sensitivity setup (`Win32=203`); the hosted run had passed that stage. The
+unchanged native setup remains outside this mapping repair, with full verification owned by CI.
