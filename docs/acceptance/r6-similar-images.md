@@ -198,6 +198,10 @@ selection followed by independent zoom changed only the right image. Closing fro
 caption exited normally with code 0. This 213-second inspection peaked at 188 MiB and preserved all
 51 fixture source hashes.
 
+The guarded `be4b0cad` client displayed both dropdown arrows and the group menu in the requested
+`重复组` / `相似组` / `已忽略` order. Selecting the second item opened the similar-group list with its
+degree menu. These menu checks reuse the existing popup and selection owners without new tests.
+
 The [699c5faf CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41836616389) passed its
 Flutter, Windows scan/accessibility and unsigned build jobs; Static rejected two missing brace blocks
 in the preceding review slice. Both are corrected. The
