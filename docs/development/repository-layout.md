@@ -33,9 +33,9 @@ of copying its complete implementation history into the roadmap.
 
 ## Dart ownership
 
-The tree below is the target for the [post-R5 organization rollout](../roadmap.md#project-organization-after-r5).
-Current files move through its execution slices. Dependency direction, public contracts,
-composition and exceptions belong to
+The tree below defines Dart directory ownership. The
+[post-R5 rollout](../roadmap.md#project-organization-after-r5) retains delivery disposition and evidence.
+Dependency direction, public contracts, composition and exceptions belong to
 [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md), not a second rule list here.
 
 ```text

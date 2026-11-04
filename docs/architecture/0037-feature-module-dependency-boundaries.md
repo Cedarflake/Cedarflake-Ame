@@ -1,14 +1,15 @@
 # ADR 0037: Feature module dependencies and production composition
 
-- Status: Accepted for validation
+- Status: Accepted
 - Date: 2026-11-02
+- Last amended: 2026-11-04
 
 ## Context
 
-Ame already separates product features and exposes application interfaces. Some Dart files also
-contain native implementations, bridge mappings and default Provider bindings. Other interfaces
-live in adapter files, so their consumers import an implementation directory to obtain a contract.
-These arrangements make dependency ownership inconsistent even when callers use interface types.
+Before this rollout, Ame separated product features and exposed application interfaces, but some
+Dart files also contained native implementations, bridge mappings and default Provider bindings.
+Other interfaces lived in adapter files, so consumers imported an implementation directory to obtain
+a contract. These arrangements made dependency ownership inconsistent even with interface-based calls.
 
 The target must preserve Flutter/Riverpod and Rust conventions, existing resource lifetimes and
 the invariant owners established by [ADR 0025](0025-invariant-owned-workflow-modules.md). Directory
@@ -23,8 +24,8 @@ layers, a directory per class, or a generic `services`, `helpers` or `utils` buc
 
 The [repository layout](../development/repository-layout.md#dart-ownership) owns physical locations.
 This decision owns dependency direction, public contracts, composition and exceptions. The
-[roadmap](../roadmap.md#project-organization-after-r5) owns activation; validation of a migrated
-boundary does not establish conformance for the rest of the repository.
+[roadmap](../roadmap.md#project-organization-after-r5) owns delivery disposition, with structural and
+behavior evidence in the [handover](../acceptance/project-organization-continuity.md#organization-handover--2026-11-04).
 
 ### Dart dependency rules
 
@@ -199,9 +200,10 @@ and a removal condition tied to an execution slice. No directory-wide exemptions
 acceptance of new violations are allowed. Remove an exception in the same change that closes it.
 Permanent exceptions require an accepted amendment explaining their invariant and replacement path.
 
-Existing violations are migration work, not templates for new code. The execution plan inventories
-them against a fixed baseline; each migrated slice prevents their return. The roadmap determines
-when this target applies to new work and when repository-wide enforcement becomes active.
+The fixed rollout inventory retains migration provenance. Retired violations are not templates for
+new code; dependency checks reject their return. Current composition admissions remain the exact
+technical exceptions documented above. Later migrations require their own scoped plan and preserve
+the existing baseline rather than accepting a new inventory of arbitrary violations.
 
 ## Alternatives
 
@@ -237,8 +239,8 @@ the scoped Rust boundaries while excluding only genuinely generated or admitted 
 For each migrated boundary, prove production/test assembly, adapter substitution and the affected
 success, failure, cancellation, disposal and stale-completion paths. Follow
 [quality-gate ownership](../acceptance/quality/verification-workflow.md#delivery-and-verification) for automated and
-client verification. Change this decision to Accepted only after its structural and behavior gates
-have evidence for the delivered scope; code organization alone does not establish product acceptance.
+client verification. The owning acceptance records retain structural and behavior evidence for the
+delivered scope; subsequent changes require their affected verification rather than relying on this status.
 
 Each delivery slice includes moves, imports, bindings, tests and documentation in one reversible
 unit. Revert the owned slice through an ordinary follow-up commit if its behavior cannot be retained;

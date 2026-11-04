@@ -1,6 +1,6 @@
 # Project organization after R5
 
-Status: active execution specification; the roadmap owns current slice disposition.
+Status: execution specification; the roadmap owns slice disposition.
 
 The [roadmap](../roadmap.md#project-organization-after-r5) selects this maintenance scope after R5.
 [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md) owns the target dependency
@@ -188,10 +188,12 @@ source mutation, schema reset or release publication is part of this plan.
 ## Execution baseline and evidence
 
 The authorized branch is `codex/project-organization`, based on merged R5 revision `f74146a4`.
-The user directed that GitHub run CI without waiting or blocking subsequent slices, and that PR
-metadata remain fixed. Normal hosted checks continue independently of scoped local preparation.
+GitHub runs CI without waiting or blocking subsequent slices. PR metadata describes the complete
+rollout scope and remains stable between explicitly requested updates. Normal hosted checks continue
+independently of scoped local preparation.
 
 The [acceptance record](../acceptance/project-organization.md) owns delivered slices, exact checks,
-failures and limitations, including the native-picker verification repair and the unresolved
-retained-import timeout. The [roadmap queue](../roadmap.md#current-execution-queue) selects the next
-slice. Completed implementation details belong in those records rather than accumulating here.
+failures and limitations. The [handover](../acceptance/project-organization-continuity.md#organization-handover--2026-11-04)
+maps every slice to evidence and retains the pause-timeout observation's disposition. The
+[roadmap queue](../roadmap.md#current-execution-queue) owns remaining work. Completed implementation
+details belong in those records rather than accumulating here.

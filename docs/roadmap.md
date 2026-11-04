@@ -52,23 +52,15 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-Continue [project organization](#project-organization-after-r5) with O7's retained-import timeout
-investigation and final handover. The
-[Rust dependency audit](acceptance/project-organization-continuity.md#final-rust-dependency-audit--2026-11-04)
-and [test consolidation](acceptance/project-organization.md#o7-test-consolidation--2026-11-04) are delivered.
-The [current desktop verification](acceptance/project-organization-continuity.md#current-desktop-verification--2026-11-04)
-covers the real-library interactions and a passing uninstrumented Windows workflow run.
-This maintenance runs on the authorized `codex/project-organization` branch before R6.
-PR metadata remains fixed by user direction.
+Project organization O1–O7 is complete on `codex/project-organization`; the
+[handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04) maps the
+delivered scope to evidence. [PR 46](https://github.com/Cedarflake/Cedarflake-Ame/pull/46) remains a
+draft; merging requires separate authorization. No later product stage is active.
 
-The [execution plan](plans/project-organization.md) owns implementation slices and rollback units;
-its [evidence](acceptance/project-organization.md) records completed checks and failures.
-O1–O6 are delivered; O7 is in progress. Remaining conformance and handover follow the execution plan;
-completed group evidence remains in the linked acceptance record.
-The retained-import pause timeout recorded in the
-[organization evidence](acceptance/project-organization.md#o52-organization-records-and-ordering--2026-11-03)
-did not recur in current verification; its cause remains unresolved.
-No model replacement, new product feature or broader performance campaign is part of this queue.
+The historical pause timeout remains an accepted observation with a
+[recurrence-based follow-up](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04).
+It did not recur in current Windows or bounded timing verification. It no longer
+blocks this rollout; its cause is not recorded as fixed. R6 remains planned after this maintenance.
 
 ## Project organization after R5
 
@@ -76,14 +68,13 @@ No model replacement, new product feature or broader performance campaign is par
 the [repository layout](development/repository-layout.md) owns placement. The
 [execution plan](plans/project-organization.md) defines O1–O7 and each slice's exit conditions.
 
-| Order | Remaining outcome |
+| Scope | Disposition |
 | --- | --- |
-| O7 | Retained-import timeout resolution and final handover |
+| O1–O7 | Completed on the organization branch; [handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04) |
 
-New and materially changed modules follow the target. Do not replace the fixed legacy inventory
-with a fresh baseline; retire each exception with its owning migration. Preserve established scan,
-synchronization, analysis, query and source-read lifetimes. Closure requires target conformance and
-applicable verification through its execution owners; directory moves alone do not establish it.
+New and materially changed modules follow the accepted dependency and layout contracts. Keep the
+fixed legacy inventory as provenance and retain only the exact admitted technical boundaries.
+Preserve established scan, synchronization, analysis, query and source-read lifetimes.
 
 ## Deferred constrained-device rendering
 

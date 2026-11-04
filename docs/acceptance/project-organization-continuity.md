@@ -544,6 +544,35 @@ so a slow in-flight poll is a plausible delay boundary, but the retained failure
 which native operation waited. No specific cause or causal repair is established for the earlier
 30-second timeout. The original failure and the uninstrumented current pass remain separate evidence.
 
-All implementation and client-verification slices now have evidence. Final disposition of that
-unreproduced observation remains the O7 exit question; the roadmap and ADR status stay unchanged
-until that question is resolved.
+Disposition accepted on 2026-11-04: retain the original timeout as an observation and close the
+organization rollout. Its cause remains unknown. Reopen the investigation if the same pause delay
+recurs; retain the exact source/build identity, pause-request and terminal timestamps, synchronization
+stage timings and cleanup outcome. Do not extend timeouts, remove assertions or claim a causal fix
+from the passing runs. Further unchanged replay is not a prerequisite for this handover.
+
+## Organization handover — 2026-11-04
+
+O1–O7 is delivered on `codex/project-organization`. The following evidence maps to the execution
+plan's complete scope; no later product stage or merge is included.
+
+| Slice | Delivered ownership and evidence |
+| --- | --- |
+| O1 | Fixed inventories and parsed dependency enforcement: [Dart](project-organization.md#o1-dart-dependency-foundation--2026-11-03), [Rust](project-organization.md#o1-rust-dependency-foundation--2026-11-03), [root/binary coverage](#root-facades-and-native-entrypoints--2026-11-04) and [final semantic audit](#final-rust-dependency-audit--2026-11-04) |
+| O2 | [Platform and storage](project-organization.md#o2-platform-and-storage--2026-11-03) ports, adapters and production assembly |
+| O3 | [Catalog and image reads](project-organization.md#o3-catalog-and-image-reads--2026-11-03), including preview/source lifetimes and shared native mappings |
+| O4 | [Scan and synchronization](project-organization.md#o4-scanning-and-synchronization--2026-11-03) contracts, bindings and retained lifecycle owners |
+| O5 | [Exact duplicates](project-organization.md#o51-exact-analysis-and-duplicates--2026-11-03), [organization](project-organization.md#o52-organization-records-and-ordering--2026-11-03) and [classification](project-organization.md#o53-classification-and-model-installation--2026-11-03) service boundaries |
+| O6 | [Presentation organization](project-organization.md#o6-presentation-organization--2026-11-03) with pages, widgets and view coordinators in their owners |
+| O7 | Native ports and pure rules, zero remaining migration exceptions, [test consolidation](project-organization.md#o7-test-consolidation--2026-11-04), [real-library interaction](#current-desktop-verification--2026-11-04) and the [accepted timeout observation](#pause-timing-diagnosis--2026-11-04) |
+
+Both frozen inventory hashes remain unchanged. Current policies contain zero Rust/Dart migration
+exceptions, 80 exact native technical edges and 48 declared Dart cross-feature contracts. Generated
+bridge output and the Rust lockfile match the R5 baseline. The sole Dart dependency change promotes
+the already locked analyzer 10.2.0 to direct development use without changing its version or hash.
+Production source is unchanged by the final evidence and handover commits; applicable prior checks
+remain valid, and hosted CI continues independently under the standing execution direction.
+
+ADR 0037 owns ongoing dependency/composition rules, the repository layout owns placement, and the
+documentation and test-design standards remain separate linked contracts outside `AGENTS.md`.
+Original media and catalogs remain preserved. The PR stays a draft for separate review and merge
+authorization; its final description maps the complete rollout without maintaining acceptance status.
