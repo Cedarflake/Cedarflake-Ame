@@ -43,10 +43,8 @@ fn similarity_contract_keeps_transform_variants_bounded_and_flat_images_terminal
         panic!("rotation retains structure")
     };
     assert!((1..=8).contains(&normal.len()));
-    assert_eq!(
-        normal.iter().collect::<std::collections::BTreeSet<_>>(),
-        turned.iter().collect()
-    );
+    assert_eq!(normal.len(), turned.len());
+    assert!(normal.iter().all(|variant| turned.contains(variant)));
     assert_eq!(original.into_inner(), bytes);
     assert_eq!(
         analyze_reader(

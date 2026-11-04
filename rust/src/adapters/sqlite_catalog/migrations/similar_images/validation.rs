@@ -8,12 +8,19 @@ use crate::domain::similar_images::{
 
 use super::super::database_error;
 use super::super::schema_shape::schema_object_sql_matches;
+use super::confirmation::{LEGACY_PARAMETERS, LEGACY_SCHEME};
 
 pub(in crate::adapters::sqlite_catalog::migrations) fn validate(
     connection: &Connection,
 ) -> Result<(), ScanError> {
+    let version = super::super::schema_shape::schema_version(connection)?;
     for (kind, name, ddl) in super::schema::OBJECTS {
-        if !schema_object_sql_matches(connection, kind, name, ddl)? {
+        let expected = if version >= 75 {
+            super::confirmation::current_ddl(name, ddl)
+        } else {
+            (*ddl).to_owned()
+        };
+        if !schema_object_sql_matches(connection, kind, name, &expected)? {
             return Err(invalid());
         }
     }
@@ -23,19 +30,20 @@ pub(in crate::adapters::sqlite_catalog::migrations) fn validate(
 pub(in crate::adapters::sqlite_catalog::migrations) fn validate_rows(
     connection: &Connection,
 ) -> Result<(), ScanError> {
+    let confirmed = super::super::schema_shape::schema_version(connection)? >= 75;
     let incompatible: bool = connection
         .query_row(
             "SELECT EXISTS(SELECT 1 FROM similarity_runs
-             WHERE scheme <> ?1 OR engine_id <> 'image_hasher' OR engine_version <> '3.1.1'
-               OR parameters <> ?2)
+             WHERE engine_id <> 'image_hasher' OR engine_version <> '3.1.1'
+               OR NOT ((scheme = ?3 AND parameters = ?4) OR (?5 AND scheme = ?1 AND parameters = ?2)))
          OR EXISTS(SELECT 1 FROM similarity_evidence AS e
              JOIN similarity_runs AS r USING(run_id) WHERE e.scheme <> r.scheme)
-         OR EXISTS(SELECT 1 FROM similarity_groups WHERE scheme <> ?1)
+         OR EXISTS(SELECT 1 FROM similarity_groups WHERE NOT (scheme = ?3 OR (?5 AND scheme = ?1)))
          OR (SELECT COUNT(*) FROM similarity_dispatch) <> 1
          OR EXISTS(SELECT 1 FROM similarity_dispatch AS active
              JOIN similarity_outcomes AS outcome ON outcome.run_id = active.active_run_id)
          OR EXISTS(SELECT 1 FROM pragma_foreign_key_check WHERE [table] LIKE 'similarity_%')",
-            params![SIMILARITY_SCHEME, SIMILARITY_PARAMETERS],
+            params![SIMILARITY_SCHEME, SIMILARITY_PARAMETERS, LEGACY_SCHEME, LEGACY_PARAMETERS, confirmed],
             |row| row.get(0),
         )
         .map_err(database_error)?;
@@ -44,6 +52,9 @@ pub(in crate::adapters::sqlite_catalog::migrations) fn validate_rows(
     }
     validate_content(connection)?;
     validate_groups(connection)?;
+    if confirmed {
+        super::confirmation::validate_rows(connection)?;
+    }
     let inconsistent: bool = connection
         .query_row(
             "SELECT EXISTS(
@@ -154,7 +165,7 @@ fn validate_groups(connection: &Connection) -> Result<(), ScanError> {
     Ok(())
 }
 
-fn invalid() -> ScanError {
+pub(super) fn invalid() -> ScanError {
     ScanError::new(
         "catalog_similarity_contract_invalid",
         "Similarity evidence and durable choices require consistent versioned identities",

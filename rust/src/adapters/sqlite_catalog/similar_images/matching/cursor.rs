@@ -49,10 +49,13 @@ pub(super) fn load(transaction: &Transaction<'_>) -> Result<Option<MatchWork>, S
                 after_evidence_id, after_group_id, after_variant, found_reference
          FROM similarity_match_work WHERE evidence_id = (
            SELECT MIN(id) FROM (
-             SELECT MIN(evidence_id) AS id FROM similarity_match_work WHERE phase = 'references'
-             UNION ALL SELECT MIN(evidence_id) FROM similarity_match_work WHERE phase = 'peer'
-             UNION ALL SELECT MIN(evidence_id) FROM similarity_match_work WHERE phase = 'members'))",
-        [],
+             SELECT MIN(evidence_id) AS id FROM similarity_match_work JOIN similarity_evidence USING(evidence_id)
+                 WHERE phase = 'references' AND scheme = ?1
+             UNION ALL SELECT MIN(evidence_id) FROM similarity_match_work JOIN similarity_evidence USING(evidence_id)
+                 WHERE phase = 'peer' AND scheme = ?1
+             UNION ALL SELECT MIN(evidence_id) FROM similarity_match_work JOIN similarity_evidence USING(evidence_id)
+                 WHERE phase = 'members' AND scheme = ?1))",
+        [SIMILARITY_SCHEME],
         |row| {
             Ok((row.get::<_, String>(1)?, MatchWork {
                 evidence_id: row.get(0)?,

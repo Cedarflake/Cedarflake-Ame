@@ -50,11 +50,20 @@ pub(super) fn publish(
     }
     let id = transaction.last_insert_rowid();
     if let SimilarEvidence::Ready { variants } = evidence {
-        for (variant, words) in variants.iter().enumerate() {
+        for (index, variant) in variants.iter().enumerate() {
+            let words = &variant.candidate;
             transaction
                 .execute(
-                    "INSERT INTO similarity_variants VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                    params![id, variant as i64, words[0], words[1], words[2], words[3]],
+                    "INSERT INTO similarity_variants VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    params![
+                        id,
+                        index as i64,
+                        words[0],
+                        words[1],
+                        words[2],
+                        words[3],
+                        variant.confirmation.as_slice()
+                    ],
                 )
                 .map_err(database_error)?;
         }
@@ -93,7 +102,7 @@ pub(super) fn admit_reference(
         .map_err(database_error)?;
     transaction.execute(
         "INSERT INTO similarity_reference_variants
-         SELECT ?1, variant, word0, word1, word2, word3 FROM similarity_variants WHERE evidence_id = ?2",
+         SELECT ?1, variant, word0, word1, word2, word3, confirmation FROM similarity_variants WHERE evidence_id = ?2",
         params![group, evidence_id],
     ).map_err(database_error)?;
     transaction.execute("UPDATE similarity_dispatch SET reference_revision = reference_revision + 1 WHERE singleton = 1", []).map_err(database_error)?;

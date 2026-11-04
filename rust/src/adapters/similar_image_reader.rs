@@ -12,6 +12,8 @@ use super::analysis_source::{AnalysisContent, AnalysisSourceFailure, GuardedAnal
 mod input;
 #[cfg(any(windows, test))]
 mod pixels;
+#[cfg(any(windows, test))]
+mod signature;
 
 pub(crate) struct GuardedSimilarImageReader;
 
@@ -94,27 +96,7 @@ fn analyze_reader(
     let result = (|| {
         let image = input::decode(source, cancelled)?;
         let sample = pixels::prepare(image, cancelled)?;
-        let hasher = image_hasher::HasherConfig::new()
-            .hash_alg(image_hasher::HashAlg::Gradient)
-            .hash_size(8, 8)
-            .resize_filter(image::imageops::FilterType::Lanczos3)
-            .to_hasher();
-        let hashes = pixels::hashes(&sample, &hasher, cancelled)?;
-        if !pixels::has_structure(&hashes) {
-            return Ok(SimilarEvidence::InsufficientStructure);
-        }
-        let mut variants = Vec::with_capacity(8);
-        for hash in hashes {
-            let bytes: [u8; 8] = hash.try_into().map_err(|_| input::InputFailure::Decode)?;
-            let words = std::array::from_fn(|index| {
-                u16::from_le_bytes([bytes[index * 2], bytes[index * 2 + 1]])
-            });
-            if !variants.contains(&words) {
-                variants.push(words);
-            }
-        }
-        input::check_cancelled(cancelled)?;
-        Ok(SimilarEvidence::Ready { variants })
+        signature::analyze(&sample, cancelled)
     })();
     match result {
         Ok(evidence) => {

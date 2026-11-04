@@ -3,9 +3,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use rusqlite::{OptionalExtension, Transaction, params};
 
 use crate::domain::ScanError;
-use crate::domain::similar_images::matching::{MatchPhase, band_neighbors, distance};
+use crate::domain::similar_images::matching::{MatchPhase, band_neighbors, confirmed_distance};
 use crate::domain::similar_images::{
-    SIMILARITY_MAX_DISTANCE, SIMILARITY_SCHEME, SimilarAnalysisRun, SimilarContentKey, group_id,
+    SIMILARITY_SCHEME, SimilarAnalysisRun, SimilarContentKey, SimilarVariant, group_id,
 };
 
 use super::super::{database_error, exact_duplicates::read_unsigned};
@@ -36,7 +36,7 @@ pub(super) fn advance(
     }
     let variants = postings::variants(transaction, work.evidence_id)?;
     let query = variants.get(work.query_variant).ok_or_else(invalid)?;
-    let neighbors = band_neighbors(query[work.band]);
+    let neighbors = band_neighbors(query.candidate[work.band]);
     let rows = postings::load(transaction, &work, &neighbors)?;
     let reference = if work.phase == MatchPhase::Members {
         Some(
@@ -55,8 +55,7 @@ pub(super) fn advance(
         if cancelled.load(Ordering::Acquire) {
             return Ok(false);
         }
-        let separation = distance(query, &row.words);
-        if separation <= SIMILARITY_MAX_DISTANCE {
+        if let Some(separation) = confirmed_distance(query, &row.hash) {
             match work.phase {
                 MatchPhase::References => {
                     publish_member(
@@ -88,7 +87,7 @@ pub(super) fn advance(
             }
         }
         work.neighbor = neighbors
-            .binary_search(&row.words[work.band])
+            .binary_search(&row.hash.candidate[work.band])
             .map_err(|_| invalid())?;
         work.after_evidence_id = row.evidence_id;
         work.after_group_id.clone_from(&row.group_id);

@@ -19,30 +19,38 @@ pub(super) fn begin(
     run: &SimilarAnalysisRun,
 ) -> Result<(), ScanError> {
     let now = unix_time_ms();
-    let active: Option<(String, String, i64)> = transaction
+    let active: Option<(String, String, i64, String)> = transaction
         .query_row(
-            "SELECT active_run_id, source_run_id, lease_until_unix_ms
+            "SELECT active_run_id, source_run_id, lease_until_unix_ms, scheme
          FROM similarity_dispatch JOIN similarity_runs ON run_id = active_run_id",
             [],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
         )
         .optional()
         .map_err(database_error)?;
-    if let Some((id, source_run_id, until)) = active {
-        if until > now {
+    if let Some((id, source_run_id, until, scheme)) = active {
+        let reason = if scheme != SIMILARITY_SCHEME {
+            "similarity_scheme_retired"
+        } else if until > now {
             return Err(ScanError::new(
                 "similarity_analysis_busy",
                 "A similarity analysis already owns the catalog",
             ));
-        }
-        transaction.execute(
-            "INSERT INTO similarity_outcomes VALUES (?1, 'failed', 0, 0, 0, 'similarity_lease_expired', ?2)",
-            params![id, now],
-        ).map_err(database_error)?;
-        transaction.execute(
-            "INSERT INTO exact_analysis_outcomes VALUES (?1, 'failed', 0, 0, 0, 0, 'similarity_lease_expired', ?2)",
-            params![source_run_id, now],
-        ).map_err(database_error)?;
+        } else {
+            "similarity_lease_expired"
+        };
+        transaction
+            .execute(
+                "INSERT INTO similarity_outcomes VALUES (?1, 'failed', 0, 0, 0, ?2, ?3)",
+                params![id, reason, now],
+            )
+            .map_err(database_error)?;
+        transaction
+            .execute(
+                "INSERT INTO exact_analysis_outcomes VALUES (?1, 'failed', 0, 0, 0, 0, ?2, ?3)",
+                params![source_run_id, reason, now],
+            )
+            .map_err(database_error)?;
     }
     transaction.execute(
         "INSERT INTO exact_analysis_runs(run_id, scheme, engine_id, engine_version, parameters, started_unix_ms)
@@ -82,8 +90,9 @@ pub(super) fn require_owner(
     let active: bool = transaction.query_row(
         "SELECT EXISTS(SELECT 1 FROM similarity_dispatch AS active
          JOIN similarity_runs AS run ON run.run_id = active.active_run_id
-         WHERE active.active_run_id = ?1 AND run.source_run_id = ?2 AND active.lease_until_unix_ms > ?3)",
-        params![run.run_id, run.source_run_id, unix_time_ms()], |row| row.get(0),
+         WHERE active.active_run_id = ?1 AND run.source_run_id = ?2 AND active.lease_until_unix_ms > ?3
+           AND run.scheme = ?4)",
+        params![run.run_id, run.source_run_id, unix_time_ms(), SIMILARITY_SCHEME], |row| row.get(0),
     ).map_err(database_error)?;
     if active {
         Ok(())

@@ -6,7 +6,7 @@ use crate::domain::exact_duplicate_review::{ExactDuplicatePreference, ExactDupli
 use crate::domain::exact_duplicates::EXACT_FINGERPRINT_SCHEME;
 use crate::domain::similar_images::{
     SIMILARITY_SCHEME, SimilarAnalysisPhase, SimilarAnalysisProgress, SimilarAnalysisRun,
-    SimilarEvidence, group_id,
+    SimilarEvidence, SimilarVariant, group_id,
 };
 use crate::ports::exact_duplicate_review::ExactDuplicateReviewRepository;
 use crate::ports::similar_images::SimilarAnalysisRepository;
@@ -51,7 +51,10 @@ fn publish_current_evidence(catalog: &mut SqliteCatalog, run: &SimilarAnalysisRu
                 &source.candidate,
                 &content,
                 &SimilarEvidence::Ready {
-                    variants: vec![words],
+                    variants: vec![SimilarVariant {
+                        candidate: words,
+                        confirmation: [0x55; 32],
+                    }],
                 },
                 &AtomicBool::new(false),
             )
@@ -287,7 +290,10 @@ fn group_pages_and_seeks_are_bounded_and_exclusions_remain_group_scoped() {
             &run,
             &reference,
             &SimilarEvidence::Ready {
-                variants: vec![[255, 0, 0, 0]],
+                variants: vec![SimilarVariant {
+                    candidate: [255, 0, 0, 0],
+                    confirmation: [0x55; 32],
+                }],
             },
         )
         .unwrap();

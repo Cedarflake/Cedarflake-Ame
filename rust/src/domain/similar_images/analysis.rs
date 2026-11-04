@@ -49,8 +49,14 @@ pub(crate) struct SimilarSource {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SimilarVariant {
+    pub candidate: [u16; 4],
+    pub confirmation: [u8; 32],
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum SimilarEvidence {
-    Ready { variants: Vec<[u16; 4]> },
+    Ready { variants: Vec<SimilarVariant> },
     InsufficientStructure,
     DecodeFailed { issue_code: String },
 }
@@ -62,7 +68,7 @@ impl SimilarEvidence {
                 (1..=8).contains(&variants.len())
                     && variants
                         .iter()
-                        .any(|value| *value != [0; 4] && *value != [u16::MAX; 4])
+                        .any(|value| value.candidate != [0; 4] && value.candidate != [u16::MAX; 4])
                     && variants
                         .iter()
                         .enumerate()

@@ -1,5 +1,5 @@
 use crate::domain::exact_duplicates::EXACT_FINGERPRINT_SCHEME;
-use crate::domain::similar_images::SimilarAnalysisPhase;
+use crate::domain::similar_images::{SimilarAnalysisPhase, SimilarVariant};
 use crate::ports::exact_duplicates::ExactDuplicateRepository;
 
 use super::super::organization::tests::fixture;
@@ -71,16 +71,35 @@ fn unequal_file_sizes_are_analyzed_without_a_model_and_cached_by_verified_conten
                 )
                 .unwrap()
         );
-        let words = [[255, 0, 0, 0], [511, 0, 0, 0], [65535, 65535, 65535, 65534]][index];
+        // The third content collides with the reference's coarse hash but only matches
+        // the fine hash of a different orientation, whose coarse hash is incompatible.
+        let variants = match index {
+            0 => vec![
+                SimilarVariant {
+                    candidate: [255, 0, 0, 0],
+                    confirmation: [0x55; 32],
+                },
+                SimilarVariant {
+                    candidate: [65535, 65535, 65535, 65534],
+                    confirmation: [0xaa; 32],
+                },
+            ],
+            1 => vec![SimilarVariant {
+                candidate: [511, 0, 0, 0],
+                confirmation: [0x55; 32],
+            }],
+            _ => vec![SimilarVariant {
+                candidate: [255, 0, 0, 0],
+                confirmation: [0xaa; 32],
+            }],
+        };
         assert!(
             catalog
                 .publish_similarity(
                     &run,
                     &source.candidate,
                     &content,
-                    &SimilarEvidence::Ready {
-                        variants: vec![words]
-                    },
+                    &SimilarEvidence::Ready { variants },
                     &AtomicBool::new(false)
                 )
                 .unwrap()
@@ -139,7 +158,10 @@ fn dense_postings_resume_after_reopen_and_never_create_transitive_membership() {
             &run,
             &content(number, 20),
             &SimilarEvidence::Ready {
-                variants: vec![words],
+                variants: vec![SimilarVariant {
+                    candidate: words,
+                    confirmation: [0x55; 32],
+                }],
             },
         )
         .unwrap();

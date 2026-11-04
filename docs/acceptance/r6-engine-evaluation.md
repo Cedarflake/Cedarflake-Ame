@@ -118,9 +118,60 @@ false positives; the synthetic fixture did not establish adequate production qua
 pairs are counterexamples, not an estimate of whole-library precision or recall.
 
 Algorithm/parameter selection must address these counterexamples while retaining transformation
-coverage before R6 acceptance. The current scheme and thresholds remain unchanged pending that
-comparison. Private source references and hashes remain only in ignored local diagnostic storage;
+coverage before R6 acceptance. The comparison below selects a replacement; production and broader
+real-library verification remain separate. Private source references and hashes remain only in ignored local diagnostic storage;
 no source image or catalog is committed.
+
+## Detail-hash comparison - 2026-11-05
+
+A bounded offline diagnostic reused production normalization and the pinned `image_hasher` 3.1.1
+and `image` 0.25.10. It re-read only the 22 distinct local-primary sources from the reviewed pairs,
+held no-write/no-delete file and ancestor guards, rejected placeholders/reparse traversal, and
+verified each SHA-256 before decoding. The 16 recomputed Gradient-64 distances exactly matched the
+prior native run, locating the counterexamples in hash discrimination rather than stored-distance
+mapping. All transformed images remained in memory; only metrics were written.
+
+| Candidate | Twelve unrelated pairs | Same-image resize pairs | Real watermark variants |
+| --- | --- | --- | --- |
+| Gradient 64, standard radius 6 | Two admitted | 2/2 | 22/22 |
+| Median/DCT 64, radius 8 | None admitted | 2/2 | 14/22 |
+| Gradient 256, radius 44 | None admitted | 2/2 | 22/22 |
+| Gradient 64 with paired 256-bit confirmation at 44 | None admitted | 2/2 | 22/22 |
+
+Mean/DCT retained obvious false matches; Gradient/DCT and Median/DCT lost more real watermarks.
+The 256-bit Gradient distances for the known unrelated pairs ranged from 50 to 101; same-image
+resize pairs remained zero. Radius 44 covers this fixture's light-crop maximum. It is an empirical
+choice on a small selected sample, not an independently established whole-library accuracy bound.
+
+The selected paired comparison requires both distances from the same pair of transforms. Standard
+retained all 132 real-source JPEG-65, half-size, quarter-turn, mirror, watermark and 95%-crop
+variants. Of 144 analogous synthetic variants, standard retained 143 and broad retained 144;
+one light crop needed broad after requiring consistent orientation. None of 276 different-scene
+pairs matched. Only 2/22 real and 0/24 synthetic 80%-crop variants matched at broad. Distinct related
+expressions were rejected. Heavy crops and semantic similarity remain outside reliable coverage.
+
+The final diagnostic completed in 23.907 s with a 197,640,192-byte peak working set. It included all
+seven single-hash comparisons and the paired scheme, not just production hash cost. The paired
+scheme keeps 548 candidate keys per variant; a direct 16-band detail index would need 2,192.
+The production integration follows ADR 0038. Ten existing focused Rust cases passed after extending
+the matching fixture with a coarse collision whose detail match belongs to an incompatible
+orientation. The migration fixture covers atomic 74-to-75 rollback/retry, unchanged legacy hashes
+and choices, retired legacy continuations/leases, and rejection of incompatible confirmation rows.
+Dense posting continuation, restart, fixed-reference membership, source/cancellation admission and
+review decisions retained their existing coverage. No new test case or suite was added.
+
+The first upgrade check rejected SQLite's quoted table name after rename; the migration's canonical
+DDL now matches that exact shape. The final ten-case run passed in 21.59 s without build warnings.
+Source leases and normalization are unchanged. Fresh native candidate-group review remains required.
+
+Hash construction has a 43-line adapter owner; the reader facade has 151 lines and 100 dedicated test
+lines. Confirmation migration/validation has 121 production/shared lines and 40 inline test-support
+lines; the extended migration cases have 225 dedicated lines. Matching, posting and cursor owners
+have 151, 93 and 114 production lines, with 306 dedicated analysis-test and 359 review-test lines.
+The existing catalog/migration facades receive only the schema version and ordered migration hooks:
+2,991/177 and 4,124/2,349 production/shared versus inline test/support lines respectively.
+The catalog facade's unchanged dedicated test tree contains 11,606 lines; the migration coordinator's
+own cases remain inline. No broader facade decomposition or test expansion is included.
 
 ## Provenance and remaining integration
 
