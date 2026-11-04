@@ -45,7 +45,13 @@ class LibraryDuplicateGroupMenus extends StatelessWidget {
             child: IconButton(
               key: const Key("duplicate-similarity-degree"),
               onPressed: open,
-              icon: const Icon(Symbols.tune_rounded),
+              icon: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Symbols.tune_rounded),
+                  Icon(Symbols.arrow_drop_down_rounded, size: 18),
+                ],
+              ),
             ),
           ),
         ),
@@ -67,7 +73,13 @@ class LibraryDuplicateGroupMenus extends StatelessWidget {
           child: IconButton(
             key: const Key("duplicate-group-menu"),
             onPressed: open,
-            icon: const Icon(Symbols.layers_rounded),
+            icon: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Symbols.layers_rounded),
+                Icon(Symbols.arrow_drop_down_rounded, size: 18),
+              ],
+            ),
           ),
         ),
       ),

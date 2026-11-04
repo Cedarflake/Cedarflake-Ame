@@ -106,6 +106,8 @@ Add only meaningful missing coverage under the [test-design standard](../develop
 - Verify source changes, unavailable files, placeholders, restart, cancellation and retained choices,
   including exclusions after compatible reanalysis and changes of similarity degree.
 - Check large-library candidate bounds and responsiveness on the established constrained client.
+  Constrained-client optimization is deferred; retain measurements and limitations without reopening
+  the separately deferred rendering work.
 - Browse groups, inspect exact-copy locations, switch views, change degree, compare images, set a
   preference, exclude/undo a member and ignore/restore in the actual Windows application. Cover
   removal of a selected/preferred member and a group falling below two members. Verify automatic
