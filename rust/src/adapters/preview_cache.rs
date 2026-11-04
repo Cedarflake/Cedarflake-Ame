@@ -1,5 +1,7 @@
 use std::collections::HashSet;
-use std::fs::{self, File};
+use std::fs;
+#[cfg(test)]
+use std::fs::File;
 use std::io::{BufReader, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 #[cfg(test)]
@@ -14,7 +16,8 @@ use crate::domain::{
     DiscoveredFile, FileIdentityEvidence, ImageOrientation, PreviewArtifact,
     PreviewMaterialization, ScanIssue,
 };
-use crate::ports::PreviewStore;
+use crate::ports::preview_cache_storage::PreviewCacheAccounting;
+use crate::ports::{PreviewSource, PreviewStore};
 
 use super::PreviewCacheNamespace;
 use super::image_orientation::{apply_image_orientation, from_image_orientation};
@@ -25,9 +28,7 @@ mod installation;
 mod preparation;
 #[cfg(test)]
 pub(crate) use preparation::prepare_preview_root_with_namespace_probe;
-pub(crate) use preparation::{
-    PreviewRootPreparation, open_preview_cache_operation_namespace, prepare_preview_root,
-};
+pub(crate) use preparation::{open_preview_cache_operation_namespace, prepare_preview_root};
 #[cfg(test)]
 mod media_format_tests;
 mod staging_encoding;
@@ -412,10 +413,29 @@ fn preview_cache_key(algorithm: &str, file: &DiscoveredFile, preview_edge: u32) 
 }
 
 impl PreviewStore for LocalPreviewStore {
+    fn commit(
+        &self,
+        materialization: PreviewMaterialization,
+    ) -> Result<PreviewArtifact, ScanIssue> {
+        Self::commit(self, materialization)
+    }
+
+    fn discard_staged(&self, materialization: &PreviewMaterialization) -> Result<(), ScanIssue> {
+        Self::discard_staged(self, materialization)
+    }
+
+    fn has_usable_artifact(&self, artifact_path: &str) -> bool {
+        Self::has_usable_artifact(self, artifact_path)
+    }
+
+    fn take_rejected_reservation_bytes(&self) -> u64 {
+        Self::take_rejected_reservation_bytes(self)
+    }
+
     fn materialize(
         &self,
         file: &DiscoveredFile,
-        source: &File,
+        source: &impl PreviewSource,
         preview_edge: u32,
         source_width: u32,
         source_height: u32,
@@ -447,21 +467,15 @@ impl PreviewStore for LocalPreviewStore {
             )
             .map(existing_materialization);
         }
-        let mut decode_source = source
-            .try_clone()
-            .map_err(|error| preview_issue(file, "image_open_failed", error))?;
-        decode_source
-            .seek(SeekFrom::Start(0))
+        let decode_source = source
+            .reader_from_start()
             .map_err(|error| preview_issue(file, "image_open_failed", error))?;
         let mut reader = ImageReader::new(BufReader::new(decode_source))
             .with_guessed_format()
             .map_err(|error| preview_issue(file, "image_open_failed", error))?;
         if reader.format() == Some(ImageFormat::Jpeg) {
-            let mut jpeg_source = source
-                .try_clone()
-                .map_err(|error| preview_issue(file, "image_open_failed", error))?;
-            jpeg_source
-                .seek(SeekFrom::Start(0))
+            let jpeg_source = source
+                .reader_from_start()
                 .map_err(|error| preview_issue(file, "image_open_failed", error))?;
             if let JpegPreviewDecode::Decoded(decoded) =
                 decode_scaled_jpeg(jpeg_source, edge, MAX_DECODER_ALLOCATION)
@@ -516,6 +530,16 @@ impl PreviewStore for LocalPreviewStore {
                 force_regenerate,
             },
         )
+    }
+}
+
+impl PreviewCacheAccounting for LocalPreviewStore {
+    fn used_bytes(&self) -> u64 {
+        Self::used_bytes(self)
+    }
+
+    fn release(&self, preview_size: u64) {
+        Self::release(self, preview_size);
     }
 }
 
@@ -873,10 +897,10 @@ fn preview_issue(file: &DiscoveredFile, code: &str, error: impl std::fmt::Displa
 
 fn inspect_source_display_dimensions(
     file: &DiscoveredFile,
-    source: &File,
+    source: &impl PreviewSource,
 ) -> Result<(u32, u32), ScanIssue> {
     let source = source
-        .try_clone()
+        .reader_from_start()
         .map_err(|error| preview_issue(file, "image_open_failed", error))?;
     let mut reader = ImageReader::new(BufReader::new(source))
         .with_guessed_format()
@@ -1022,7 +1046,7 @@ mod tests {
     }
 
     #[test]
-    fn existing_artifact_recovers_oriented_source_dimensions_from_headers() {
+    fn existing_artifact_recovers_oriented_dimensions_after_source_reader_advances() {
         let storage = tempdir().expect("storage");
         let source_path = storage.path().join("oriented.jpg");
         let source_bytes = orientation_jpeg(6);
@@ -1049,7 +1073,14 @@ mod tests {
         drop(store);
         let store = LocalPreviewStore::new(preview_root, 1024).expect("reopen preview store");
 
-        let preview = materialize_and_commit(&store, &file, 256, 0, 0);
+        let mut source = File::open(&source_path).expect("open source");
+        source.seek(SeekFrom::End(0)).expect("previous source read");
+        let materialization = store
+            .materialize(&file, &source, 256, 0, 0, false)
+            .expect("recover source dimensions from its header");
+        let preview = store
+            .commit(materialization)
+            .expect("retain cached preview");
 
         assert_eq!(PathBuf::from(preview.path), artifact_path);
         assert_eq!((preview.width, preview.height), (60, 80));

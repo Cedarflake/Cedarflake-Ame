@@ -1,3 +1,5 @@
+use crate::ports::LibraryChangeDispatch;
+
 use super::super::indexed_startup::RecoveryPreparation;
 use super::*;
 use crate::domain::{

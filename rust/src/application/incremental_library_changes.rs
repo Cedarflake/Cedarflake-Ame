@@ -1,22 +1,26 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::adapters::{FileVisitOutcome, LocalMediaInspector, PublicationGuardedFileDiscovery};
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublicationStatus,
-    DerivedEvidenceDisposition, DiscoveredFile, ExpectedFileState, IncrementalLibraryChangeReport,
-    IncrementalReconciliationOutcome, LeasedLibraryChange, LibraryChangeCatchUpEvidence,
-    LibraryChangeCompletion, LibraryChangeFailure, LibraryChangeIntentKind, LibraryChangeLane,
-    LibraryChangeLeaseUpdateOutcome, LibraryChangeQueuePolicy, LibraryChangeScope,
-    LibraryRootGeneration, MetadataInventoryEntry, MetadataInventoryEntryKind,
-    MetadataInventoryPlaceholderState, PreviewStatus, ReconciliationFileEvidence,
-    ReconciliationObservedState, RetainedPreviewExpectation, ScanError, ScanIssue,
-    TerminalMediaEvidenceUpdate,
+    DerivedEvidenceDisposition, DiscoveredFile, ExpectedFileState, FileVisitOutcome,
+    IncrementalLibraryChangeReport, IncrementalReconciliationOutcome, LeasedLibraryChange,
+    LibraryChangeCatchUpEvidence, LibraryChangeCompletion, LibraryChangeFailure,
+    LibraryChangeIntentKind, LibraryChangeLane, LibraryChangeLeaseUpdateOutcome,
+    LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration, MetadataInventoryEntry,
+    MetadataInventoryEntryKind, MetadataInventoryPlaceholderState, PreviewStatus,
+    ReconciliationFileEvidence, ReconciliationObservedState, RetainedPreviewExpectation, ScanError,
+    ScanIssue, TerminalMediaEvidenceUpdate,
+};
+use crate::ports::media_inspection::GuardedMediaInspector;
+use crate::ports::source_publication::{
+    PublicationFileSource, PublicationNamespace, PublicationNamespaceFactory,
 };
 use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue};
 
 use super::directory_synchronization::reconcile_path_evidence;
 use super::metadata_inventory::inventory_matches_location;
-use super::scan_library::{stable_id, stable_location_id};
+use super::scan_library::stable_location_id;
+use crate::domain::stable_id;
 
 const MAX_CATALOG_REVISION_REBASE_ATTEMPTS: usize = 2;
 
@@ -26,6 +30,7 @@ mod location_evidence;
 mod media_admission_recheck;
 mod preparation_catalog;
 mod preparation_rebase;
+pub(super) mod production;
 mod rename_change;
 mod terminal_media;
 pub(super) use authoritative_path_set::{
@@ -303,10 +308,9 @@ where
         )?;
         return Ok(report);
     };
-    let discovery = match PublicationGuardedFileDiscovery::new_incremental_publication_guard(
-        &root.root_path,
-        &expected_root_identity,
-    ) {
+    let discovery = match production::publication_namespaces()
+        .open(&root.root_path, Some(&expected_root_identity))
+    {
         Ok(discovery) => discovery,
         Err(error) => {
             let issue = scan_failure(error);
@@ -325,7 +329,7 @@ where
         defer_cancelled_leases(repository, &leased, now_unix_ms, &mut report)?;
         return Ok(report);
     }
-    let inspector = LocalMediaInspector::new();
+    let inspector = production::media_inspector();
     let mut prepared = Vec::new();
     let mut retries = Vec::new();
     let mut preparation = PreparationCatalog::new(repository);
@@ -593,8 +597,8 @@ fn record_lease_deferral(
 
 fn prepare_change<Repository>(
     repository: &mut PreparationCatalog<'_, Repository>,
-    discovery: &PublicationGuardedFileDiscovery,
-    inspector: &LocalMediaInspector,
+    discovery: &impl PublicationFileSource,
+    inspector: &impl GuardedMediaInspector,
     leased: &LeasedLibraryChange,
 ) -> Result<PreparedChange, LibraryChangeFailure>
 where
@@ -636,8 +640,8 @@ where
 
 fn prepare_path_change<Repository>(
     repository: &mut PreparationCatalog<'_, Repository>,
-    discovery: &PublicationGuardedFileDiscovery,
-    inspector: &LocalMediaInspector,
+    discovery: &impl PublicationFileSource,
+    inspector: &impl GuardedMediaInspector,
     leased: &LeasedLibraryChange,
     context: PathChangeContext<'_>,
 ) -> Result<PreparedChange, LibraryChangeFailure>
@@ -1005,7 +1009,7 @@ fn metadata_inventory_dirty_path_change(
     })
 }
 
-fn inspect_path(discovery: &PublicationGuardedFileDiscovery, relative_path: &str) -> InspectedPath {
+fn inspect_path(discovery: &impl PublicationFileSource, relative_path: &str) -> InspectedPath {
     match discovery.visit_relative_path(relative_path).outcome {
         FileVisitOutcome::File(file) => InspectedPath::File(file),
         FileVisitOutcome::TerminalMedia {
@@ -1048,7 +1052,7 @@ fn select_prior<'a>(
 }
 
 fn revalidate_change(
-    discovery: &PublicationGuardedFileDiscovery,
+    discovery: &impl PublicationFileSource,
     change: &PreparedChange,
 ) -> Result<(), LibraryChangeFailure> {
     for target in &change.revalidation {

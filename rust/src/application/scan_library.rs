@@ -6,22 +6,29 @@ use std::thread;
 use std::time::{Duration, Instant};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use blake3::Hasher;
+use crate::domain::stable_id;
 
-use crate::adapters::{FileDiscovery, LocalMediaInspector, SqliteCatalog, user_visible_path};
 #[cfg(test)]
-use crate::domain::{AssetLocationView, PreviewStatus};
-use crate::domain::{
-    LibraryChangeLane, RecoverableScan, ScanCheckpoint, ScanError, ScanEvent, ScanIssue,
-    ScanRequest,
-};
+use crate::adapters::SqliteCatalog;
+use crate::domain::user_visible_path;
+#[cfg(test)]
+use crate::domain::{AssetLocationView, LibraryChangeLane, PreviewStatus};
 #[cfg(test)]
 use crate::domain::{
     PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalCapability,
     PersistentJournalCapabilityState, PersistentJournalContinuityState, PersistentJournalFailure,
 };
+use crate::domain::{
+    RecoverableScan, ScanCheckpoint, ScanError, ScanEvent, ScanIssue, ScanRequest,
+};
 #[cfg(test)]
 use crate::ports::PersistentJournalRepository;
+#[cfg(test)]
+use crate::ports::scan_admission::ScanAdmissionRepository;
+use crate::ports::scan_discovery::ScanFileDiscovery;
+use crate::ports::scan_publication::ScanPublicationRepository;
+use crate::ports::scan_staging::ScanStagingRepository;
+use crate::ports::source_publication::PublicationNamespace;
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 
 use super::storage::catalog_admission::with_scan_start;
@@ -48,6 +55,7 @@ mod inspection_failure;
 mod media_input_tests;
 #[cfg(test)]
 mod operation_cost;
+mod production;
 mod publication;
 #[cfg(all(test, windows))]
 mod relocation_tests;
@@ -223,8 +231,10 @@ fn run_scan_with_storage_selection(
     };
     let storage = resolve_storage()?;
     bind_scan_catalog(&request.scan_id, &storage.catalog_path)?;
-    let media_inspector = LocalMediaInspector::new();
-    let discovery = FileDiscovery::new(&request.root_path)?;
+    let media_inspector = production::media_inspector();
+    let namespace_factory = production::publication_namespaces();
+    let source_state = production::source_state();
+    let discovery = production::file_discovery(&request.root_path)?;
     let canonical_root = discovery.canonical_root()?;
     let publication_root_identity =
         discovery
@@ -241,13 +251,10 @@ fn run_scan_with_storage_selection(
     #[cfg(not(test))]
     let is_authoritative_recovery = false;
     let (mut catalog, admission) = with_scan_start(&storage, &canonical_root, || {
-        let mut catalog = super::catalog_session::open_catalog_for_foreground_scan(
-            &storage.catalog_path,
-            LibraryChangeLane::Recovery,
-            &request.scan_id,
-        )?;
+        let mut catalog = production::catalog(&storage.catalog_path, &request.scan_id)?;
         let admission = root_selection.begin(
             &mut catalog,
+            &namespace_factory,
             &request,
             &root_path,
             &publication_root_identity,
@@ -487,6 +494,8 @@ fn run_scan_with_storage_selection(
 
         let Some(validated) = finalization::validate_staged_locations(
             catalog,
+            &namespace_factory,
+            &source_state,
             &mut finalization,
             FinalizationContext {
                 control: &control,
@@ -550,6 +559,7 @@ fn run_scan_with_storage_selection(
                 .require_metadata_inventory_root_identity(&publication_root_identity)?;
             let consolidation = root_consolidation::PreparedRootConsolidation::capture(
                 catalog,
+                &namespace_factory,
                 &request.scan_id,
                 &root_id,
                 &validated.publication_guard,
@@ -627,7 +637,7 @@ fn current_unix_ms() -> Result<i64, ScanError> {
 
 fn finish_if_controlled(
     control: u8,
-    catalog: &mut SqliteCatalog,
+    catalog: &mut impl CatalogRepository,
     request: &ScanRequest,
     checkpoint: &crate::domain::ScanCheckpoint,
     issue_count: u64,
@@ -731,14 +741,6 @@ fn validate_request(request: &ScanRequest) -> Result<(), ScanError> {
         ));
     }
     Ok(())
-}
-
-pub(super) fn stable_id(namespace: &str, value: &str) -> String {
-    let mut hasher = Hasher::new();
-    hasher.update(namespace.as_bytes());
-    hasher.update(&[0]);
-    hasher.update(value.as_bytes());
-    hasher.finalize().to_hex().to_string()
 }
 
 pub(super) fn stable_location_id(root_id: &str, relative_path: &str) -> String {

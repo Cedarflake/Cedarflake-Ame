@@ -1,8 +1,12 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
+import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
+import "package:cedarflake_ame/features/library/domain/library_time_snapshot.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_update_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
@@ -11,6 +15,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../support/fixed_query_projection.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final scenario in [
@@ -247,7 +253,7 @@ class _Fixture {
   _Fixture() {
     final initial = catalog.snapshot(const LibraryGalleryQuery());
     container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryCatalogProvider.overrideWithValue(catalog),
         libraryScannerProvider.overrideWithValue(scanner),
         initialLibraryStateProvider.overrideWithValue(
@@ -255,7 +261,7 @@ class _Fixture {
             initial,
           ).copyWith(timeline: catalog.timeline(const LibraryGalleryQuery())),
         ),
-      ],
+      ]),
     );
     library = container.read(libraryControllerProvider.notifier);
     updates = container.read(libraryUpdateControllerProvider.notifier);

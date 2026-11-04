@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../domain/library_folder_models.dart";
 import "../domain/library_models.dart";
 import "library_catalog.dart";
+import "ports/library_catalog.dart";
 import "library_controller.dart";
 import "library_folder_root_loader.dart";
 import "library_folder_tree.dart";

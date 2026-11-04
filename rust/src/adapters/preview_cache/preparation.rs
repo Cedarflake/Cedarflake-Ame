@@ -1,14 +1,9 @@
 use std::path::Path;
 
 use crate::domain::ScanError;
+use crate::ports::preview_cache_storage::PreviewRootPreparation;
 
 use super::{PreviewCacheNamespace, cache_inventory};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum PreviewRootPreparation {
-    Ready,
-    NamespaceUnavailable,
-}
 
 pub(crate) fn open_preview_cache_operation_namespace(
     root: &Path,

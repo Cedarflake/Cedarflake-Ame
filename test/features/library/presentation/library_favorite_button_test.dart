@@ -10,6 +10,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_organization_fixture.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 void main() {
   testWidgets(
     "shows committed state and disables duplicate input during save",
@@ -83,10 +85,10 @@ Widget _host(
   OrganizationServiceFixture service,
   LibraryOrganizationTarget target,
 ) => ProviderScope(
-  overrides: [
+  overrides: applicationTestOverrides([
     libraryOrganizationProvider.overrideWithValue(service),
     libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
-  ],
+  ]),
   child: MaterialApp(
     home: Scaffold(body: LibraryFavoriteButton(target: target)),
   ),

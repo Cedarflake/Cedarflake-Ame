@@ -7,6 +7,8 @@ use std::time::{Duration, Instant};
 
 use crate::adapters::{SqliteCatalog, SqliteCatalogReadExecutor, SqliteCatalogSession};
 use crate::domain::{LibraryChangeLane, ScanError};
+use crate::ports::catalog_reader::CatalogReader;
+use crate::ports::scan_recovery::ForegroundScanRecovery;
 
 mod maintenance;
 
@@ -125,14 +127,14 @@ pub(super) fn open_catalog_for_foreground_scan(
     }
 }
 
-pub(super) fn open_catalog_reader(path: &Path) -> Result<SqliteCatalogReadExecutor, ScanError> {
+pub(super) fn open_catalog_reader(path: &Path) -> Result<impl CatalogReader + use<>, ScanError> {
     open_catalog(path, LibraryChangeLane::Recovery)
         .map(|catalog| SqliteCatalogReadExecutor::new(catalog.validated_session()))
 }
 
 pub(super) fn with_recovery_catalog_if_idle<T>(
     path: &Path,
-    operation: impl FnOnce(&mut SqliteCatalog) -> Result<T, ScanError>,
+    operation: impl FnOnce(&mut dyn ForegroundScanRecovery) -> Result<T, ScanError>,
 ) -> Result<Option<T>, ScanError> {
     let mut operation = Some(operation);
     loop {

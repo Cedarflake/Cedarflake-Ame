@@ -11,6 +11,9 @@ use std::sync::{LazyLock, Mutex};
 use std::time::UNIX_EPOCH;
 
 #[cfg(windows)]
+use crate::domain::user_visible_path;
+
+#[cfg(windows)]
 use std::ffi::OsString;
 #[cfg(windows)]
 use std::fs::OpenOptions;
@@ -68,10 +71,9 @@ use windows_sys::Win32::System::IO::IO_STATUS_BLOCK;
 use windows_sys::Win32::System::SystemServices::FILE_CS_FLAG_CASE_SENSITIVE_DIR;
 
 use crate::domain::{
-    DiscoveredFile, ExpectedFileState, FileIdentityEvidence, LibraryRootAvailability,
-    MediaInspection, MetadataInventoryEntry, MetadataInventoryEntryKind,
-    MetadataInventoryPlaceholderState, RootAvailabilityEvidence, ScanError, ScanIssue,
-    SourceRevisionEvidence,
+    ExpectedFileState, FileIdentityEvidence, FileVisit, FileVisitOutcome, LibraryRootAvailability,
+    MetadataInventoryEntry, MetadataInventoryEntryKind, MetadataInventoryPlaceholderState,
+    RootAvailabilityEvidence, ScanError, ScanIssue, SourceRevisionEvidence,
 };
 
 mod catalog_identity;
@@ -83,8 +85,11 @@ mod media_signature;
 mod metadata_inventory_evidence;
 mod preview_cache_namespace;
 mod preview_source;
+mod publication_namespace;
 #[cfg(windows)]
 mod root_location;
+mod scan_discovery;
+pub(crate) use publication_namespace::LocalPublicationNamespaces;
 mod scan_enumeration;
 #[cfg(all(windows, test))]
 mod source_content_observation;
@@ -110,7 +115,6 @@ pub(crate) use directory_enumeration::instrumentation::{
     reset_source_enumeration_instrumentation, source_directory_open_count, source_entry_read_count,
     source_peak_staged_window,
 };
-pub use file_admission::{FileVisit, FileVisitOutcome};
 pub use file_revalidation::revalidate_file_state;
 #[cfg(windows)]
 use file_revalidation::revalidate_file_state_values;
@@ -119,9 +123,11 @@ use file_revalidation::revalidate_file_state_with_metadata;
 pub(crate) use file_revalidation::revalidate_open_preview_source;
 use metadata_inventory_evidence::metadata_inventory_entry_from_checked_directory_entry;
 pub(crate) use preview_cache_namespace::PreviewCacheNamespace;
+pub(crate) use preview_source::LocalPreviewSources;
+#[cfg(any(not(windows), test))]
 pub(crate) use preview_source::open_preview_source;
 #[cfg(windows)]
-pub(crate) use root_location::{LocatedLibraryRoot, locate_library_root};
+pub(crate) use root_location::locate_library_root;
 #[cfg(all(windows, test))]
 use source_content_observation::record_source_content_open;
 #[cfg(all(windows, test))]
@@ -510,13 +516,6 @@ impl PublicationGuardedFileDiscovery {
         Ok(Self { discovery })
     }
 
-    pub(crate) fn new_incremental_publication_guard(
-        root_path: &str,
-        expected_identity: &FileIdentityEvidence,
-    ) -> Result<PublicationGuardedFileDiscovery, ScanError> {
-        Self::new_metadata_inventory_publication_guard(root_path, expected_identity)
-    }
-
     pub(crate) fn metadata_inventory_root_identity(
         &self,
     ) -> Result<Option<FileIdentityEvidence>, ScanError> {
@@ -540,14 +539,6 @@ impl PublicationGuardedFileDiscovery {
 
     pub(crate) fn visit_relative_path(&self, relative_path: &str) -> FileVisit {
         self.discovery.visit_relative_path(relative_path)
-    }
-
-    pub(crate) fn inspect_media(
-        &self,
-        inspector: &super::media_inspector::LocalMediaInspector,
-        file: &DiscoveredFile,
-    ) -> Result<MediaInspection, crate::ports::MediaInspectionFailure> {
-        inspector.inspect_with_discovery(&self.discovery, file)
     }
 
     pub(crate) fn revalidate_relative_file_state(
@@ -659,7 +650,8 @@ impl FileDiscovery {
         }
     }
 
-    pub(crate) fn visit_directory_entry(&self, entry: CheckedDirectoryEntry) -> FileVisit {
+    #[cfg(not(windows))]
+    fn visit_directory_entry(&self, entry: CheckedDirectoryEntry) -> FileVisit {
         let relative_path = entry.relative_path;
         let path = self.root.join(Path::new(&relative_path));
         self.visit_relative_path_with_metadata(
@@ -2569,24 +2561,6 @@ fn relative_path_text(path: impl AsRef<Path>) -> String {
     path_text(path).replace('\\', "/")
 }
 
-pub(crate) fn user_visible_path(path: &str) -> String {
-    const DEVICE_PREFIX: &str = "\\\\?\\";
-    const UNC_DEVICE_PREFIX: &str = "\\\\?\\UNC\\";
-    if path
-        .get(..UNC_DEVICE_PREFIX.len())
-        .is_some_and(|prefix| prefix.eq_ignore_ascii_case(UNC_DEVICE_PREFIX))
-    {
-        return format!("\\\\{}", &path[UNC_DEVICE_PREFIX.len()..]);
-    }
-    if path
-        .get(..DEVICE_PREFIX.len())
-        .is_some_and(|prefix| prefix.eq_ignore_ascii_case(DEVICE_PREFIX))
-    {
-        return path[DEVICE_PREFIX.len()..].to_owned();
-    }
-    path.to_owned()
-}
-
 #[cfg(all(windows, test))]
 fn has_cloud_placeholder_attribute(attributes: u32) -> bool {
     use windows_sys::Win32::Storage::FileSystem::{
@@ -2687,22 +2661,6 @@ mod tests {
             &str,
         ) -> Result<PublicationGuardedMetadataInventoryEntries, ScanIssue> =
             PublicationGuardedFileDiscovery::streaming_metadata_inventory_entries_in_directory;
-    }
-
-    #[test]
-    fn user_visible_path_hides_windows_device_prefixes() {
-        assert_eq!(
-            user_visible_path(r"\\?\G:\Pictures\sample.png"),
-            r"G:\Pictures\sample.png"
-        );
-        assert_eq!(
-            user_visible_path(r"\\?\UNC\server\share\sample.png"),
-            r"\\server\share\sample.png"
-        );
-        assert_eq!(
-            user_visible_path(r"C:\Pictures\sample.png"),
-            r"C:\Pictures\sample.png"
-        );
     }
 
     #[test]
@@ -4603,6 +4561,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
 
     const ADAPTERS_PARENT_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
         AvailabilityModuleContract {
+            name: "catalog_capacity",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "classification_feature_cache",
             visibility: "",
             attributes: &[],
@@ -4669,6 +4633,18 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "journal_boundary",
+            visibility: "",
+            attributes: &["cfg(windows)"],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "journal_runtime",
+            visibility: "",
+            attributes: &["cfg(windows)"],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "local_files",
             visibility: "",
             attributes: &[],
@@ -4681,13 +4657,31 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "local_source_state",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "media_inspector",
             visibility: "",
             attributes: &[],
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "persistent_journal",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "preview_cache",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "preview_cache_storage",
             visibility: "",
             attributes: &[],
             is_inline: false,
@@ -4719,6 +4713,30 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const DOMAIN_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "path_display",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "scan_publication",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "source_discovery",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "stable_identity",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "classification",
             visibility: "pub",
@@ -4902,6 +4920,18 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const LOCAL_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "publication_namespace",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "scan_discovery",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "directory_enumeration",
             visibility: "",
@@ -5230,7 +5260,7 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             locator: AvailabilitySupportLocator::UseContaining(
                 "crate::domain::RootAvailabilityEvidence",
             ),
-            digest: "fbe8afb4ad396f7dcce39c217abd1742da311b35225fb6bf9225f38ffaadee8b",
+            digest: "085102b6d400384b15de72c1d074e5dde22bb8d9383c2e19f90fc2f447cb2573",
             summary: "shared Ame-owned availability and source-revision evidence types",
         },
         AvailabilitySupportContract {

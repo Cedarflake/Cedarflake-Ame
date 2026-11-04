@@ -12,6 +12,7 @@ use crate::adapters::local_files::{
 use crate::adapters::media_inspector::LocalMediaInspector;
 use crate::domain::ExpectedFileState;
 use crate::media_fixtures::{MediaFixtureFormat, encode_rgb_quadrants};
+use crate::ports::media_inspection::GuardedMediaInspector;
 
 #[test]
 fn discovery_keeps_opened_file_evidence_when_its_path_is_renamed_or_replaced() {
@@ -174,7 +175,7 @@ fn first_content_read_preserves_revision_for_known_and_sniffed_extensions() {
             };
             let after_discovery = file_source_evidence(&path).expect("after discovery");
             let inspection = LocalMediaInspector::new()
-                .inspect_with_discovery(&discovery, &file)
+                .inspect_with_source(&discovery, &file)
                 .expect("production pinned source inspection");
             let after_inspection = file_source_evidence(&path).expect("after inspection");
             eprintln!(

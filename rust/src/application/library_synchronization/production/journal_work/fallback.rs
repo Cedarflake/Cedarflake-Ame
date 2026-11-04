@@ -7,7 +7,8 @@ use crate::domain::{
     PersistentJournalReadFailure, PersistentJournalRootFailureKind,
     PersistentJournalRootReadOutcome,
 };
-use crate::ports::PersistentJournalVolumeReader;
+use crate::ports::catalog_session::CatalogLaneSession;
+use crate::ports::{PersistentJournalRepository, PersistentJournalVolumeReader};
 
 const MAX_FAILED_READS: u32 = 3;
 
@@ -74,16 +75,19 @@ impl JournalReadFailures {
         };
     }
 
-    pub(super) fn handle_closing_failure(
+    pub(super) fn handle_closing_failure<Session>(
         &self,
         error: crate::domain::ScanError,
         root: &(String, crate::domain::LibraryRootGeneration),
-        session: &crate::adapters::SqliteCatalogSession,
+        session: &Session,
         now: i64,
         policy: crate::domain::LibraryChangeQueuePolicy,
         cancelled: &AtomicBool,
-    ) -> Result<(), crate::domain::ScanError> {
-        use crate::ports::PersistentJournalRepository;
+    ) -> Result<(), crate::domain::ScanError>
+    where
+        Session: CatalogLaneSession,
+        Session::Catalog: PersistentJournalRepository,
+    {
         if cancelled.load(Ordering::Acquire)
             || !matches!(
                 error.code.as_str(),

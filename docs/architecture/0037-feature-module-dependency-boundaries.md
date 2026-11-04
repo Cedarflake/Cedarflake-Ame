@@ -1,14 +1,15 @@
 # ADR 0037: Feature module dependencies and production composition
 
-- Status: Accepted for validation
+- Status: Accepted
 - Date: 2026-11-02
+- Last amended: 2026-11-04
 
 ## Context
 
-Ame already separates product features and exposes application interfaces. Some Dart files also
-contain native implementations, bridge mappings and default Provider bindings. Other interfaces
-live in adapter files, so their consumers import an implementation directory to obtain a contract.
-These arrangements make dependency ownership inconsistent even when callers use interface types.
+Before this rollout, Ame separated product features and exposed application interfaces, but some
+Dart files also contained native implementations, bridge mappings and default Provider bindings.
+Other interfaces lived in adapter files, so consumers imported an implementation directory to obtain
+a contract. These arrangements made dependency ownership inconsistent even with interface-based calls.
 
 The target must preserve Flutter/Riverpod and Rust conventions, existing resource lifetimes and
 the invariant owners established by [ADR 0025](0025-invariant-owned-workflow-modules.md). Directory
@@ -23,8 +24,8 @@ layers, a directory per class, or a generic `services`, `helpers` or `utils` buc
 
 The [repository layout](../development/repository-layout.md#dart-ownership) owns physical locations.
 This decision owns dependency direction, public contracts, composition and exceptions. The
-[roadmap](../roadmap.md#project-organization-after-r5) owns activation; validation of a migrated
-boundary does not establish conformance for the rest of the repository.
+[roadmap](../roadmap.md#project-organization-after-r5) owns delivery disposition, with structural and
+behavior evidence in the [handover](../acceptance/project-organization-continuity.md#organization-handover--2026-11-04).
 
 ### Dart dependency rules
 
@@ -61,6 +62,15 @@ entrypoint and its consumer in the affected boundary's documentation when that r
 State publication and cancellation stay with the owning feature; callers cannot acquire authority
 by mutating another controller's internal state.
 
+The Settings organization-record surfaces consume the library's named archive and cleanup
+controllers, their request/state projections, and archive/cleanup inspection/failure values.
+`libraryArchiveControllerProvider` owns export, inspection, confirmed restore and retry;
+`libraryCleanupControllerProvider` owns inspection and confirmed retirement. Settings renders their
+state and submits intents without owning task handles or publication. Album preferences use
+`libraryAlbumProvider` for a bounded saved-album lookup. Exact consumer-to-contract registrations
+live in `tool/dependency-boundaries/dart_boundary_policy.json`; this admits no other library internals
+or cross-feature widget imports.
+
 Cross-feature assembly belongs in application bootstrap. A business workflow spanning features
 still has one application owner and narrow collaborators. Promote a component to shared ownership
 only when independent consumers need the same stable behavior; shared visual primitives cannot
@@ -85,6 +95,44 @@ bindings fail at assembly, before the affected workflow starts; they cannot sile
 an unguarded native path or a second runtime. Validate normal and failure bootstrap with the same
 production binding roster used by the application.
 
+`AmeProviderAssembly` owns the single root Riverpod container. Create its lifetime owner before
+acquiring background resources so the existing reverse-order shutdown joins those resources before
+disposing the container. Feature binding modules supply typed overrides and required-port rosters;
+assembly reads those required ports before publishing the container through `UncontrolledProviderScope`.
+Failed validation disposes the unpublished container. `acquireAmeApplication` retires already acquired
+resources through the existing shutdown coordinator and preserves both acquisition and cleanup
+failures. This owner contains container lifetime and validation only; feature modules retain concrete
+service selection and application owners retain workflow policy.
+
+`LibraryReadBindings` supplies the same catalog to startup loading and the catalog/folder Providers.
+It selects native preview and source-reader adapters with one foreground-read activity contract.
+The application source-scheduler Provider constructs and retires its scheduler from the reader port;
+neither image widgets nor image providers construct a replacement native reader. The existing image
+copy owner retains acquired-lease closure, including after container or widget retirement.
+
+`LibrarySynchronizationBindings.production()` selects the native lifecycle gateway and the
+application polling controller, then binds that same controller to the retained bootstrap lifecycle
+owner. The application constructor accepts only an Ame gateway; generated policy still controls
+production cadence, and test-only constructors retain timing/failure injection. The inactive
+synchronization fixture exists only in test support.
+
+`LibraryDuplicateBindings` selects exact-analysis/query, gallery-annotation and duplicate-review
+ports. Its exact service is shared with `LibraryExactAnalysisBindings`, which constructs the one
+analysis controller and scheduler using the existing foreground-read authority. The runtime binding
+owns joined, idempotent close followed by notifier disposal; application owners retain admission,
+cancellation and publication policy. Required production Providers cannot fall back to an absent
+scheduler or a second controller. Test support explicitly selects inactive scheduling where needed.
+Duplicate adapters translate native failures into Ame-owned code/message values.
+
+`libraryOrganizationBindings` supplies organization, batches, review, archive, cleanup, conflicts and
+sidebar-order ports. Native task wrappers own bridge handles and event conversion; the existing
+archive/cleanup controllers retain cancellation, terminal-result admission, handle retirement and
+post-commit publication. Required binding does not create an operation or grant confirmation.
+
+Classification runtime and model-installation composition follow the
+[scoped lifetime contract](workflow-ownership/dart-presentation-and-composition.md#classification-composition).
+Their port definitions and required Provider identities follow the same rules above.
+
 ### Presentation ownership
 
 Pages compose surfaces and connect user intent to application entrypoints. Widgets render bounded
@@ -97,6 +145,13 @@ navigation destination or application contract, not that feature's internal widg
 Keep feature-specific widgets in their feature. Place a visual primitive in `lib/app/presentation`
 only when its inputs and behavior are independent of feature policy.
 
+Framework rendering and navigation capabilities use typed presentation contracts, with concrete
+selection in bootstrap. They remain separate from framework-independent application ports. The
+[workbench binding](workflow-ownership/dart-presentation-and-composition.md#workbench-destinations) and
+[preview rendering](workflow-ownership/dart-gallery-and-viewer.md#preview-image-construction) contracts
+own those boundaries. The read-only `app/window/ame_runtime_platform.dart` host fact is an admitted
+desktop contract; its conditional implementation files are private to that platform boundary.
+
 Assign a class by its responsibility rather than its `Controller`, `Service`, `Page` or `Widget`
 suffix. Moving a file does not justify moving cancellation, query-generation or source-lease
 authority to a different layer. Preserve complete lifecycle owners under ADR 0025.
@@ -106,12 +161,26 @@ authority to a different layer. Preserve complete lifecycle owners under ADR 002
 Retain the existing domain, ports, application, adapters and bridge API modules. Domain models and
 port signatures expose Ame contracts. Business use cases consume ports; adapters own engine calls,
 SQL and persistence implementation. Bridge APIs translate requests/results into application calls.
+The crate-root `journal_broker`, `windows_usn` and `classification_worker` modules and Cargo binary
+entrypoints have native adapter ownership. They follow the same rules as `adapters`, including after
+alias or re-export resolution. Other root facades, including `lib.rs`, follow application dependency
+rules; their public exports cannot hide a native dependency from a consumer. Only the exact
+[tool exports](workflow-ownership/native-composition.md#native-tool-entrypoints) retain native exposure.
+
+Pure rules shared by use cases and persistence validation belong to domain. Adapters re-evaluate
+those rules against transaction-local state before committing; they cannot import application
+orchestration or bridge entrypoints to obtain them. Moving a rule does not move its transaction,
+stale-state check or cancellation boundary.
 
 Production factories may construct concrete adapters in explicitly identified composition functions
 or runtime hosts, including the catalog-session boundary. Such admission is scoped to named owners,
 not every file under `application`. Factories own construction and retirement, while use cases retain
 policy and adapters retain transactions. A factory exemption does not admit SQL, engine types in
 public contracts or concrete dependencies in unrelated application code.
+
+Retained native factories follow the [scoped composition contract](workflow-ownership/native-composition.md).
+Its exact registrations distinguish accepted technical boundaries from the fixed migration inventory;
+each retains its invariant, regression owner and replacement path.
 
 The validation inventory must name the admitted Rust composition functions and their lifetimes.
 An existing construction call alone is not evidence that the surrounding module is a composition
@@ -131,9 +200,10 @@ and a removal condition tied to an execution slice. No directory-wide exemptions
 acceptance of new violations are allowed. Remove an exception in the same change that closes it.
 Permanent exceptions require an accepted amendment explaining their invariant and replacement path.
 
-Existing violations are migration work, not templates for new code. The execution plan inventories
-them against a fixed baseline; each migrated slice prevents their return. The roadmap determines
-when this target applies to new work and when repository-wide enforcement becomes active.
+The fixed rollout inventory retains migration provenance. Retired violations are not templates for
+new code; dependency checks reject their return. Current composition admissions remain the exact
+technical exceptions documented above. Later migrations require their own scoped plan and preserve
+the existing baseline rather than accepting a new inventory of arbitrary violations.
 
 ## Alternatives
 
@@ -168,9 +238,9 @@ the scoped Rust boundaries while excluding only genuinely generated or admitted 
 
 For each migrated boundary, prove production/test assembly, adapter substitution and the affected
 success, failure, cancellation, disposal and stale-completion paths. Follow
-[quality-gate ownership](../acceptance/quality-gates.md#delivery-and-verification) for automated and
-client verification. Change this decision to Accepted only after its structural and behavior gates
-have evidence for the delivered scope; code organization alone does not establish product acceptance.
+[quality-gate ownership](../acceptance/quality/verification-workflow.md#delivery-and-verification) for automated and
+client verification. The owning acceptance records retain structural and behavior evidence for the
+delivered scope; subsequent changes require their affected verification rather than relying on this status.
 
 Each delivery slice includes moves, imports, bindings, tests and documentation in one reversible
 unit. Revert the owned slice through an ordinary follow-up commit if its behavior cannot be retained;

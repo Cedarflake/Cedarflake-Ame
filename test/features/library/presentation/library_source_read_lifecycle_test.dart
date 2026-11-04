@@ -4,19 +4,22 @@ import "dart:io";
 import "dart:typed_data";
 import "dart:ui" as ui;
 
+import "package:cedarflake_ame/features/library/adapters/platform/library_preview_image.dart";
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
-import "package:cedarflake_ame/features/library/application/library_source_reader.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_scope.dart";
-import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -29,6 +32,7 @@ void main() {
       final fixture = _Fixture();
       await tester.pumpWidget(
         ProviderScope(
+          overrides: applicationTestOverrides(),
           child: MaterialApp(
             home: LibraryViewerSourceScope(
               scheduler: fixture.scheduler,
@@ -109,6 +113,7 @@ void main() {
         }
         await tester.pumpWidget(
           ProviderScope(
+            overrides: applicationTestOverrides(),
             child: MaterialApp(
               home: LibraryViewerSourceScope(
                 scheduler: fixture.scheduler,
@@ -283,6 +288,7 @@ void main() {
       final fixture = _Fixture()..reader.gate = Completer();
       final key = GlobalKey();
       Widget viewer() => LibraryViewerImage(
+        previewImages: createLibraryPreviewImage,
         key: key,
         asset: _asset("first"),
         sourceReadScheduler: fixture.scheduler,
@@ -480,6 +486,7 @@ class _Fixture {
   Widget viewer(String id) => MaterialApp(
     home: Scaffold(
       body: LibraryViewerImage(
+        previewImages: createLibraryPreviewImage,
         asset: _asset(id),
         sourceReadScheduler: scheduler,
         sourceBufferLoader: loadBuffer,
@@ -498,6 +505,7 @@ class _Fixture {
       bufferLoader: loader ?? loadBuffer,
       child: Scaffold(
         body: LibraryViewerImage(
+          previewImages: createLibraryPreviewImage,
           asset: _asset(id),
           sourceReadScheduler: overrides?.scheduler,
           sourceBufferLoader: overrides?.loadBuffer,

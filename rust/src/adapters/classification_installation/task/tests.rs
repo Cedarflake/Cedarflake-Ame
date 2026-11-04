@@ -1,14 +1,17 @@
 use std::sync::atomic::AtomicBool;
 
+use super::super::ClassificationInstallationStore;
 use super::*;
-use crate::adapters::{ClassificationInstallation, ClassificationInstallationStore};
+use crate::domain::classification::installation::ClassificationInstallation;
+use crate::ports::classification_installation::ClassificationInstallationRepository;
 
 #[test]
 fn migration_preserves_version_one_selection_without_authorizing_a_download() {
     let root = tempfile::tempdir().unwrap();
     let path = root.path().join("settings.sqlite3");
     assert!(
-        DownloadIntent::pending(&path, "model-v1")
+        ClassificationInstallationStore
+            .pending_download(&path, "model-v1")
             .unwrap()
             .is_none()
     );
@@ -30,12 +33,13 @@ fn migration_preserves_version_one_selection_without_authorizing_a_download() {
         .unwrap();
     drop(connection);
     assert!(
-        DownloadIntent::pending(&path, "model-v1")
+        ClassificationInstallationStore
+            .pending_download(&path, "model-v1")
             .unwrap()
             .is_none()
     );
     assert_eq!(
-        ClassificationInstallationStore::load(&path).unwrap(),
+        ClassificationInstallationStore.load(&path).unwrap(),
         Some(selected)
     );
     assert_eq!(
@@ -51,23 +55,45 @@ fn migration_preserves_version_one_selection_without_authorizing_a_download() {
 fn reopened_intent_retains_authority_and_stale_cancel_cannot_retire_its_replacement() {
     let root = tempfile::tempdir().unwrap();
     let path = root.path().join("settings.sqlite3");
-    let first = DownloadIntent::authorize(&path, "model-v1").unwrap();
+    let first = ClassificationInstallationStore
+        .authorize_download(&path, "model-v1")
+        .unwrap();
     assert_eq!(
-        DownloadIntent::pending(&path, "model-v1").unwrap(),
+        ClassificationInstallationStore
+            .pending_download(&path, "model-v1")
+            .unwrap(),
         Some(first.clone())
     );
-    assert_eq!(DownloadIntent::authorize(&path, "model-v1").unwrap(), first);
+    assert_eq!(
+        ClassificationInstallationStore
+            .authorize_download(&path, "model-v1")
+            .unwrap(),
+        first
+    );
     assert!(
-        DownloadIntent::pending(&path, "model-v2")
+        ClassificationInstallationStore
+            .pending_download(&path, "model-v2")
             .unwrap()
             .is_none()
     );
-    first.cancel(&path).unwrap();
-    let next = DownloadIntent::authorize(&path, "model-v1").unwrap();
+    ClassificationInstallationStore
+        .cancel_download(&path, &first)
+        .unwrap();
+    let next = ClassificationInstallationStore
+        .authorize_download(&path, "model-v1")
+        .unwrap();
     assert_ne!(first, next);
-    first.cancel(&path).unwrap();
-    assert!(first.require_current(&path).is_err());
-    next.require_current(&path).unwrap();
+    ClassificationInstallationStore
+        .cancel_download(&path, &first)
+        .unwrap();
+    assert!(
+        ClassificationInstallationStore
+            .require_current_download(&path, &first)
+            .is_err()
+    );
+    ClassificationInstallationStore
+        .require_current_download(&path, &next)
+        .unwrap();
 }
 
 #[test]
@@ -78,30 +104,45 @@ fn installation_selection_and_intent_completion_commit_atomically() {
         models: root.path().join("models"),
         runtime: root.path().join("runtime"),
     };
-    let first = DownloadIntent::authorize(&path, "model-v1").unwrap();
+    let first = ClassificationInstallationStore
+        .authorize_download(&path, "model-v1")
+        .unwrap();
     let cancelled = AtomicBool::new(true);
     assert!(
-        ClassificationInstallationStore::publish(&path, None, &selected, Some(&first), &cancelled)
+        ClassificationInstallationStore
+            .publish(&path, None, &selected, Some(&first), &cancelled)
             .is_err()
     );
-    assert_eq!(ClassificationInstallationStore::load(&path).unwrap(), None);
-    first.require_current(&path).unwrap();
-    first.cancel(&path).unwrap();
-    let next = DownloadIntent::authorize(&path, "model-v1").unwrap();
+    assert_eq!(ClassificationInstallationStore.load(&path).unwrap(), None);
+    ClassificationInstallationStore
+        .require_current_download(&path, &first)
+        .unwrap();
+    ClassificationInstallationStore
+        .cancel_download(&path, &first)
+        .unwrap();
+    let next = ClassificationInstallationStore
+        .authorize_download(&path, "model-v1")
+        .unwrap();
     let active = AtomicBool::new(false);
     assert!(
-        ClassificationInstallationStore::publish(&path, None, &selected, Some(&first), &active)
+        ClassificationInstallationStore
+            .publish(&path, None, &selected, Some(&first), &active)
             .is_err()
     );
-    assert_eq!(ClassificationInstallationStore::load(&path).unwrap(), None);
-    next.require_current(&path).unwrap();
-    ClassificationInstallationStore::publish(&path, None, &selected, Some(&next), &active).unwrap();
+    assert_eq!(ClassificationInstallationStore.load(&path).unwrap(), None);
+    ClassificationInstallationStore
+        .require_current_download(&path, &next)
+        .unwrap();
+    ClassificationInstallationStore
+        .publish(&path, None, &selected, Some(&next), &active)
+        .unwrap();
     assert_eq!(
-        ClassificationInstallationStore::load(&path).unwrap(),
+        ClassificationInstallationStore.load(&path).unwrap(),
         Some(selected)
     );
     assert!(
-        DownloadIntent::pending(&path, "model-v1")
+        ClassificationInstallationStore
+            .pending_download(&path, "model-v1")
             .unwrap()
             .is_none()
     );

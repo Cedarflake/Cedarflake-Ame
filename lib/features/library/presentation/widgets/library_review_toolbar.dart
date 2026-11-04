@@ -5,7 +5,7 @@ import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_organization_queue.dart";
-import "../library_organization_mode.dart";
+import "../coordination/library_organization_mode.dart";
 
 class LibraryReviewToolbar extends StatelessWidget {
   const LibraryReviewToolbar({required this.mode, this.counts, super.key});

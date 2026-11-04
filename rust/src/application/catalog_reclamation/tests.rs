@@ -5,7 +5,8 @@ use rusqlite::Connection;
 use tempfile::tempdir;
 
 use super::*;
-use crate::adapters::SqliteCatalog;
+use crate::adapters::{SqliteCatalog, SqliteCatalogSpaceMaintenance};
+use crate::domain::CatalogAutoVacuumMode;
 
 mod scan_interleaving;
 mod small_catalog;

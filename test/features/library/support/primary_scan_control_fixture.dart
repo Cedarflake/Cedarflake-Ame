@@ -11,11 +11,13 @@ import "package:flutter_test/flutter_test.dart";
 
 import "retained_scan_fixture.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 class PrimaryScanControlFixture {
   PrimaryScanControlFixture() {
     final catalog = RetainedScanCatalog(scanner);
     container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryCatalogProvider.overrideWithValue(catalog),
         initialLibraryStateProvider.overrideWithValue(
@@ -23,7 +25,7 @@ class PrimaryScanControlFixture {
             catalog.snapshot(const LibraryGalleryQuery()),
           ),
         ),
-      ],
+      ]),
     );
     addTearDown(scanner.dispose);
     addTearDown(container.dispose);

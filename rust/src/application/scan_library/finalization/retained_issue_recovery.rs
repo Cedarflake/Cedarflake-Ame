@@ -1,7 +1,5 @@
 use super::*;
 
-use crate::adapters::{load_retained_scan_issue_window, retained_scan_has_unclassified_issues};
-
 const TERMINAL_CODES: &[&str] = &[
     "image_dimensions_failed",
     "image_format_unsupported",
@@ -32,7 +30,7 @@ const NONBLOCKING_CODES: &[&str] = &[
 ];
 
 pub(in crate::application::scan_library) fn require_complete_namespace(
-    catalog: &SqliteCatalog,
+    catalog: &impl ScanPublicationRepository,
     scan_id: &str,
 ) -> Result<(), ScanError> {
     let classified: Vec<&str> = TERMINAL_CODES
@@ -40,7 +38,7 @@ pub(in crate::application::scan_library) fn require_complete_namespace(
         .chain(NONBLOCKING_CODES)
         .copied()
         .collect();
-    if retained_scan_has_unclassified_issues(catalog, scan_id, &classified)? {
+    if catalog.retained_scan_has_unclassified_issues(scan_id, &classified)? {
         return Err(ScanError::new(
             "catalog_root_consolidation_incomplete",
             "A parent import with unresolved source reads cannot replace child sources",
@@ -49,9 +47,9 @@ pub(in crate::application::scan_library) fn require_complete_namespace(
     Ok(())
 }
 
-pub(super) fn restore(
-    plan: &mut FinalizationPlan,
-    catalog: &SqliteCatalog,
+pub(super) fn restore<Rejected>(
+    plan: &mut FinalizationPlan<Rejected>,
+    catalog: &impl ScanPublicationRepository<RejectedRoster = Rejected>,
     scan_id: &str,
     canonical_root: &Path,
     requested_root: &Path,
@@ -69,8 +67,7 @@ pub(super) fn restore(
     let mut after_id = 0;
     let mut has_recoverable_issue = false;
     loop {
-        let window = load_retained_scan_issue_window(
-            catalog,
+        let window = catalog.load_retained_scan_issue_window(
             scan_id,
             &codes,
             after_id,
@@ -106,7 +103,7 @@ pub(super) fn restore(
         .chain(NONBLOCKING_CODES.iter().copied())
         .collect();
     Ok(has_recoverable_issue
-        && !retained_scan_has_unclassified_issues(catalog, scan_id, &classified)?)
+        && !catalog.retained_scan_has_unclassified_issues(scan_id, &classified)?)
 }
 
 fn authoritative_retry_relative_path(

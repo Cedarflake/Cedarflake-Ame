@@ -1,3 +1,5 @@
+use crate::ports::scan_recovery::ForegroundScanRecovery;
+
 use crate::adapters::sqlite_catalog::tests::support::{
     fixture_request, migrate_v29_ambiguous_gap_fixture, publication_identity,
     seed_current_explicit_recovery_claim,

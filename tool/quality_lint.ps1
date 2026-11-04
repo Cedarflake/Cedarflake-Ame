@@ -37,6 +37,7 @@ try {
     & (Join-Path $PSScriptRoot "acceptance_test_r2c_change_driven_reliability_guardrails.ps1")
     & (Join-Path $PSScriptRoot "integration_test_windows_accessibility_guardrails.ps1")
     & (Join-Path $PSScriptRoot "integration_test_windows_scan_guardrails.ps1")
+    & (Join-Path $PSScriptRoot "integration_test_native_directory_picker.ps1")
     & (Join-Path $PSScriptRoot "integration_test_windows_runner_guardrails.ps1")
     & (Join-Path $PSScriptRoot "release_test_version_validation.ps1")
     & (Join-Path $PSScriptRoot "release_test_installer_payload.ps1")
@@ -54,6 +55,7 @@ try {
     )
     & (Join-Path $PSScriptRoot "quality_generate_library_synchronization_policy.ps1") -Check
     & (Join-Path $PSScriptRoot "quality_format.ps1") -Check
+    & (Join-Path $PSScriptRoot "quality_verify_dependencies.ps1")
     Invoke-AmeChecked $toolchain.Cargo @(
         "clippy",
         "--locked",

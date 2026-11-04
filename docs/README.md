@@ -7,21 +7,26 @@ only the contracts, execution details, and evidence that own the task.
 | --- | --- |
 | What stage is active, what blocks it, and what comes next? | [Roadmap](roadmap.md), the sole active stage and priority index |
 | What is the product and which concepts or capabilities are in scope? | [Workbench contract](product/workbench.md) and [organization workflows](product/organization-workflows.md) |
-| What are R4's album, favorite, organization-progress, and recovery rules? | [R4 requirements](product/r4-organization.md); control placement remains in the [gallery UI contract](product/gallery-ui.md#review-workflow) |
-| In what order should R4 be implemented, and what must each slice deliver? | [R4 implementation plan](plans/r4-organization.md), ordered by the [roadmap](roadmap.md#r4-implementation-sequence) |
-| What are R5's metadata, smart-album, analysis, and recovery rules? | [R5 requirements](product/r5-classification.md), with the accepted [smart-album UI](product/gallery-ui.md#smart-album-workflow) |
-| How should R5 be implemented from the delivered R4 foundation? | [R5 implementation plan](plans/r5-classification.md), ordered by the [roadmap](roadmap.md#r5-implementation-sequence) |
+| What are R4's album, favorite, organization-progress, and recovery rules? | [R4 requirements](product/r4-organization.md); control placement remains in the [gallery UI contract](product/gallery/organization.md#review-workflow) |
+| Where are the delivered R4 slices defined? | [R4 implementation plan](plans/r4-organization.md) and [roadmap disposition](roadmap.md#r4-implementation-sequence) |
+| What are R5's metadata, smart-album, analysis, and recovery rules? | [R5 requirements](product/r5-classification.md), with the accepted [smart-album UI](product/gallery/smart-albums.md#smart-album-workflow) |
+| Where are the delivered R5 slices defined? | [R5 implementation plan](plans/r5-classification.md) and [roadmap disposition](roadmap.md#r5-implementation-sequence) |
 | How will project organization be refactored after R5? | [Organization execution plan](plans/project-organization.md), activated by the [roadmap](roadmap.md#project-organization-after-r5) |
+| Where are organization changes and their verification recorded? | [Initial, catalog, scan and preview evidence](acceptance/project-organization.md); [incremental and synchronization evidence](acceptance/project-organization-continuity.md) |
 | How should the accepted gallery and controls behave, and why? | [Gallery UI contract and rationale](product/gallery-ui.md#design-principles-and-rationale), under the accepted UI ADRs |
-| Which shared UI owner, regression and client path apply to a change? | [UI verification map](acceptance/quality-gates.md#ui-workflow-verification) |
-| Where does the current maintenance work resume? | [Maintainability refactor execution](plans/maintainability-refactor.md), selected by the roadmap |
+| Which shared UI owner, regression and client path apply to a change? | [UI verification map](acceptance/quality/ui-verification.md#ui-workflow-verification) |
+| Where does current maintenance resume? | [Current queue](roadmap.md#current-execution-queue) and its linked active plan |
+| Where are completed maintenance outcomes and deferred observations? | [Completed maintenance index](acceptance/completed-maintenance.md), linking the owning evidence |
 | Where is the completed R3 delivery recorded? | [R3 exact duplicate implementation](plans/r3-exact-duplicates.md) and its linked verification; the roadmap selects subsequent work |
 | Where is the frozen R2c execution history? | [R2c closeout execution](plans/r2c-closeout.md), with its final checkpoint and historical coverage |
 | Why was a technical boundary chosen? | [Architecture decisions](architecture/README.md) |
 | What must be proved, what actually ran, and what remains unverified? | [Acceptance index](acceptance/README.md) and [quality gates](acceptance/quality-gates.md) |
 | Where do implementation and tool files belong? | [Repository layout](development/repository-layout.md) |
+| How should documents be written, split and maintained? | [Documentation standard](development/documentation.md), required by `AGENTS.md` |
+| Which tests add useful coverage, and which should be merged or removed? | [Test design and maintenance](development/testing.md), required by `AGENTS.md` |
 | Which future module dependencies, public contracts and production bindings are allowed? | [ADR 0037](architecture/0037-feature-module-dependency-boundaries.md), with staged adoption through the roadmap |
-| Which durable engineering and safety rules apply? | [Repository contract](../AGENTS.md), with its required [delivery/verification workflow](acceptance/quality-gates.md#delivery-and-verification) |
+| Which native factories retain concrete adapters, and who owns their resources? | [Native composition contract](architecture/workflow-ownership/native-composition.md) and its exact dependency registrations |
+| Which durable engineering and safety rules apply? | [Repository contract](../AGENTS.md), with its required [delivery/verification workflow](acceptance/quality/verification-workflow.md#delivery-and-verification) |
 | Where did the reorganized rules move, and how was their loading checked? | [Rule organization evidence](acceptance/engineering-rules-organization.md) |
 
 Keep stable requirements separate from dated observations. Update an obsolete roadmap status instead

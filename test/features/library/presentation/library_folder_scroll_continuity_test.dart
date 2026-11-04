@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_folder_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
@@ -11,6 +12,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 void main() {
   testWidgets(
     "a refreshed leaf retires an expanded child and can be expanded again after recovery",
@@ -20,12 +23,12 @@ void main() {
       addTearDown(revision.dispose);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             libraryFolderCatalogProvider.overrideWithValue(catalog),
             initialLibraryStateProvider.overrideWithValue(
               LibraryState(catalogRevision: BigInt.one, roots: const [_root]),
             ),
-          ],
+          ]),
           child: MaterialApp(
             home: Scaffold(
               body: ValueListenableBuilder(
@@ -75,12 +78,12 @@ void main() {
       addTearDown(revision.dispose);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             libraryFolderCatalogProvider.overrideWithValue(catalog),
             initialLibraryStateProvider.overrideWithValue(
               LibraryState(catalogRevision: BigInt.one, roots: const [_root]),
             ),
-          ],
+          ]),
           child: MaterialApp(
             home: Scaffold(
               body: ValueListenableBuilder(

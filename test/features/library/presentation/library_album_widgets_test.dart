@@ -13,6 +13,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_organization_fixture.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 void main() {
   late OrganizationServiceFixture service;
   late OrganizationLibraryFixture library;
@@ -21,10 +23,10 @@ void main() {
     service = OrganizationServiceFixture();
     library = OrganizationLibraryFixture();
     container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryOrganizationProvider.overrideWithValue(service),
         libraryControllerProvider.overrideWith(() => library),
-      ],
+      ]),
     );
   });
   tearDown(() => container.dispose());

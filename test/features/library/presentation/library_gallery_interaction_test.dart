@@ -1,7 +1,7 @@
 import "package:cedarflake_ame/app/presentation/ame_scroll_motion.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
-import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_scroll_surface.dart";
@@ -12,6 +12,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "support/gallery_wall_fixture.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final withManifest in [false, true]) {
@@ -200,6 +202,7 @@ Future<_WallFixture> _mountWall(
   addTearDown(fixture.scroll.dispose);
   await tester.pumpWidget(
     ProviderScope(
+      overrides: applicationTestOverrides(),
       child: MaterialApp(
         home: MediaQuery(
           data: const MediaQueryData(disableAnimations: true),

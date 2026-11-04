@@ -1,8 +1,9 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 
-use crate::adapters::{FileDiscovery, SqliteCatalog};
 use crate::domain::{ScanCheckpoint, ScanError, ScanEvent, ScanIssue, ScanRequest};
-use crate::ports::{CatalogRepository, MediaInspector};
+use crate::ports::MediaInspector;
+use crate::ports::scan_discovery::{ScanDirectoryEntries, ScanFileDiscovery};
+use crate::ports::scan_publication::ScanPublicationRepository;
 
 use super::entry_processing::{ScanEntryContext, ScanEntryOutcome, apply_scan_entry};
 use super::finalization::FinalizationPlan;
@@ -11,10 +12,10 @@ use super::{CHECKPOINT_INTERVAL, finish_if_controlled, retain_detached_scan, use
 const DIRECTORY_ENTRY_BATCH: usize = 256;
 const DIRECTORY_ENTRY_WINDOW: u32 = 256;
 
-pub(super) struct ScanTraversalContext<'a, I> {
+pub(super) struct ScanTraversalContext<'a, D, I> {
     pub request: &'a ScanRequest,
     pub control: &'a AtomicU8,
-    pub discovery: &'a FileDiscovery,
+    pub discovery: &'a D,
     pub inspector: &'a I,
     pub root_id: &'a str,
     pub had_published_root: bool,
@@ -30,10 +31,10 @@ pub(super) enum ScanTraversalOutcome {
     },
 }
 
-pub(super) fn traverse_scan(
-    catalog: &mut SqliteCatalog,
-    finalization: &mut FinalizationPlan,
-    context: ScanTraversalContext<'_, impl MediaInspector>,
+pub(super) fn traverse_scan<Repository: ScanPublicationRepository>(
+    catalog: &mut Repository,
+    finalization: &mut FinalizationPlan<Repository::RejectedRoster>,
+    context: ScanTraversalContext<'_, impl ScanFileDiscovery, impl MediaInspector>,
     checkpoint: &mut ScanCheckpoint,
     issue_count: &mut u64,
     publish: &mut impl FnMut(ScanEvent) -> bool,

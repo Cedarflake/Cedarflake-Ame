@@ -5,8 +5,8 @@ use std::sync::{
 
 use rusqlite::params;
 
-use crate::application::classification_discovery::validate_category_merge;
 use crate::domain::ScanError;
+use crate::domain::classification::maintenance::merging_rules::validate_category_merge;
 use crate::domain::classification::maintenance::{CategoryMergePlan, CategoryMergeSnapshot};
 use crate::domain::classification_configuration::ClassificationConfigurationSnapshot;
 use crate::ports::classification_configuration::CategoryMergeRepository;

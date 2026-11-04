@@ -1,3 +1,5 @@
+use crate::adapters::SqliteCatalog;
+
 use std::collections::BTreeSet;
 
 use super::*;

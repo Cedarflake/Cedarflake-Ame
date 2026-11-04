@@ -4,9 +4,10 @@ use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread::{self, JoinHandle};
 use std::time::Instant;
 
-use crate::adapters::SqliteCatalogSession;
 use crate::application::AuthoritativeRecoveryPolicy;
 use crate::domain::{LibraryChangeQueuePolicy, LibraryRootGeneration, ScanError};
+use crate::ports::catalog_session::CatalogLaneSession;
+use crate::ports::{IncrementalCatalogRepository, LibraryChangeDispatch};
 
 use super::finish_runtime_task_until;
 
@@ -22,13 +23,17 @@ pub(super) struct LiveTask {
 }
 
 impl LiveTask {
-    pub(super) fn start(
-        session: Arc<SqliteCatalogSession>,
+    pub(super) fn start<Session>(
+        session: Arc<Session>,
         root_id: String,
         root_generation: LibraryRootGeneration,
         queue_policy: LibraryChangeQueuePolicy,
         recovery_policy: AuthoritativeRecoveryPolicy,
-    ) -> Result<Self, ScanError> {
+    ) -> Result<Self, ScanError>
+    where
+        Session: CatalogLaneSession,
+        Session::Catalog: IncrementalCatalogRepository + LibraryChangeDispatch,
+    {
         let cancelled = Arc::new(AtomicBool::new(false));
         let worker_cancelled = Arc::clone(&cancelled);
         let worker_root_id = root_id.clone();

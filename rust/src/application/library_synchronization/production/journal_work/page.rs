@@ -1,21 +1,15 @@
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
-use crate::adapters::{SqliteCatalog, SqliteCatalogSession};
-use crate::application::{
-    PersistentJournalBrokerRoot, ProductionPersistentJournalVolumeReader,
-    catch_up_persistent_journal_window, classify_persistent_journal_operation_failure,
-};
+use crate::application::catch_up_persistent_journal_window;
 use crate::domain::{
     LibraryChangeLane, LibraryChangeQueuePolicy, PersistentJournalCheckpoint,
-    PersistentJournalEnrollmentReport, PersistentJournalRootFailure,
+    PersistentJournalEnrollmentReport, PersistentJournalReadFailure, PersistentJournalRootFailure,
     PersistentJournalRootFailureKind, ScanError,
 };
-use crate::journal_broker::{
-    CallerClaim, PersistentChangeJournalOperationError, PersistentChangeJournalSession,
-    ProductionPersistentJournalRoot, describe_production_persistent_journal_root,
-};
 use crate::ports::PersistentJournalRepository;
+use crate::ports::catalog_session::JournalCatalogSession;
+use crate::ports::journal_volume::PersistentJournalVolumeSource;
 
 use super::fallback::{FallbackReader, JournalReadFailures};
 use super::{JournalTaskOutcome, JournalVolumeWork};
@@ -25,25 +19,27 @@ pub(super) struct JournalPageControl {
     pub(super) cancelled: Arc<AtomicBool>,
 }
 
-pub(super) fn run(
+pub(super) fn run<Session>(
     work: JournalVolumeWork,
-    session: Arc<dyn PersistentChangeJournalSession>,
-    caller: CallerClaim,
+    volume_source: impl PersistentJournalVolumeSource,
     observed_unix_ms: i64,
-    catalog_session: Arc<SqliteCatalogSession>,
+    catalog_session: Arc<Session>,
     policy: LibraryChangeQueuePolicy,
     control: JournalPageControl,
-) -> Result<JournalTaskOutcome, ScanError> {
+) -> Result<JournalTaskOutcome, ScanError>
+where
+    Session: JournalCatalogSession,
+    Session::Catalog: PersistentJournalRepository,
+{
     let mut catalog = catalog_session.open_in_lane(LibraryChangeLane::Journal)?;
     let mut report = PersistentJournalEnrollmentReport::default();
-    let mut registrations = Vec::<ProductionPersistentJournalRoot>::new();
-    let mut broker_roots = Vec::new();
+    let mut registrations = Vec::new();
     let mut checkpoints = Vec::new();
     for root in work.roots {
         let checkpoint = root.checkpoint;
-        let registration = match describe_production_persistent_journal_root(
+        let registration = match volume_source.open_root(
             &checkpoint.root_id,
-            checkpoint.root_generation.value(),
+            checkpoint.root_generation,
             &root.root_path,
         ) {
             Ok(registration) => registration,
@@ -61,24 +57,15 @@ pub(super) fn run(
                 continue;
             }
         };
-        broker_roots.push(PersistentJournalBrokerRoot {
-            authorization: registration.authorization.clone(),
-            client_root_handle: registration.client_root_handle,
-            volume_serial: registration.volume_serial,
-        });
         registrations.push(registration);
         checkpoints.push(checkpoint);
     }
     if checkpoints.is_empty() {
         return Ok(JournalTaskOutcome::Page(report.into()));
     }
-    let reader = ProductionPersistentJournalVolumeReader::new(
-        session,
-        caller,
-        broker_roots,
-        Arc::new(crate::adapters::SqliteJournalNamespaceReader(Arc::clone(
-            &catalog_session,
-        ))),
+    let reader = volume_source.into_reader(
+        &registrations,
+        Arc::clone(&catalog_session).namespace_reader(),
         catalog.load_persistent_journal_baselines()?,
     )?;
     let reader = FallbackReader {
@@ -98,14 +85,13 @@ pub(super) fn run(
 }
 
 fn persist_journal_registration_failure(
-    catalog: &mut SqliteCatalog,
+    catalog: &mut impl PersistentJournalRepository,
     checkpoint: &PersistentJournalCheckpoint,
     failures: &JournalReadFailures,
-    error: PersistentChangeJournalOperationError,
+    mut classified: PersistentJournalReadFailure,
     failed_unix_ms: i64,
     policy: crate::domain::LibraryChangeQueuePolicy,
 ) -> Result<PersistentJournalRootFailure, ScanError> {
-    let mut classified = classify_persistent_journal_operation_failure(error);
     failures.classify(checkpoint, &mut classified);
     let failure = PersistentJournalRootFailure {
         root_id: checkpoint.root_id.clone(),

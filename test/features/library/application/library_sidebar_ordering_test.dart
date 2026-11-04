@@ -1,6 +1,6 @@
 import "dart:async";
 
-import "package:cedarflake_ame/features/library/application/library_sidebar_order.dart";
+import "package:cedarflake_ame/features/library/domain/library_sidebar_order.dart";
 import "package:cedarflake_ame/features/library/application/library_sidebar_ordering.dart";
 import "package:flutter_test/flutter_test.dart";
 

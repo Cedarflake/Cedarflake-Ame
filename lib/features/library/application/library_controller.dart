@@ -2,8 +2,9 @@ import "dart:async";
 
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../settings/domain/ame_preferences.dart";
 import "../../settings/application/ame_preferences.dart";
-import "../adapters/directory_picker.dart";
+import "directory_picker.dart";
 import "../domain/gallery_layout_manifest.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";

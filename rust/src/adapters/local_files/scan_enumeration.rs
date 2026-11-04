@@ -2,6 +2,7 @@ use std::fs::{self, ReadDir};
 use std::path::PathBuf;
 
 use crate::domain::{FileIdentityEvidence, ScanIssue};
+use crate::ports::scan_discovery::ScanDirectoryEntries;
 
 use super::{
     FileDiscovery, is_link_or_reparse_point, path_containment_issue, path_text, relative_path_text,
@@ -56,8 +57,8 @@ impl FileDiscovery {
     }
 }
 
-impl DirectoryEntryPaths<'_> {
-    pub(crate) fn finish(self) -> Result<Option<FileIdentityEvidence>, ScanIssue> {
+impl ScanDirectoryEntries for DirectoryEntryPaths<'_> {
+    fn finish(self) -> Result<Option<FileIdentityEvidence>, ScanIssue> {
         if !self.exhausted {
             return Err(ScanIssue {
                 path: Some(path_text(&self.directory_path)),

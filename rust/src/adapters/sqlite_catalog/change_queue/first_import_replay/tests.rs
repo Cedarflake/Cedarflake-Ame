@@ -1,3 +1,5 @@
+use crate::ports::LibraryChangeDispatch;
+
 use tempfile::{TempDir, tempdir};
 
 use crate::adapters::sqlite_catalog::SqliteCatalog;
@@ -8,7 +10,9 @@ use crate::domain::{
     PersistentJournalBaselineClosingBoundary, PersistentJournalBaselineStartRequest,
     PersistentJournalVolumeIdentity, ScanRequest,
 };
-use crate::ports::{CatalogRepository, LibraryChangeQueue, PersistentJournalRepository};
+use crate::ports::{
+    CatalogRepository, LibraryChangeQueue, LibraryChangeReadiness, PersistentJournalRepository,
+};
 
 use super::*;
 

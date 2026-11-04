@@ -1,3 +1,7 @@
+use crate::ports::scan_recovery::ForegroundScanRecovery;
+
+use crate::ports::journal_baseline::JournalBaselineAdmission;
+
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -395,6 +399,7 @@ fn delayed_journal_opening_cannot_reacquire_paused_or_cancelled_first_import() {
             "root",
             LibraryRootGeneration::initial(),
             2,
+            crate::journal_broker::PROTOCOL_VERSION,
         );
         assert_eq!(
             catalog
@@ -500,6 +505,7 @@ fn first_import_write_admission_rechecks_live_lease_before_any_catalog_changes()
                         "root",
                         LibraryRootGeneration::initial(),
                         2,
+                        crate::journal_broker::PROTOCOL_VERSION,
                     ),
                     &fixture.request.scan_id,
                     acquire,

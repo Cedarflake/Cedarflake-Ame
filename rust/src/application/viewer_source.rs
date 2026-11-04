@@ -5,6 +5,7 @@ use crate::adapters::PreviewPublicationGuard;
 #[cfg(windows)]
 use crate::adapters::open_viewer_source_guard;
 use crate::domain::{AssetLocationView, IncrementalCatalogRoot, ScanError, SourceRevisionEvidence};
+use crate::ports::catalog_reader::CatalogReader;
 
 const MAX_ENCODED_SOURCE_BYTES: u64 = 256 * 1024 * 1024;
 const MAX_SOURCE_PATH_UNITS: usize = 32_767;

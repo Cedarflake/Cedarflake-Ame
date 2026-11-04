@@ -1,23 +1,14 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../adapters/rust_library_classification_review.dart";
 import "../domain/library_classification_review.dart";
 import "../domain/library_organization.dart";
 import "library_controller.dart";
-
-abstract interface class LibraryClassificationReviewService {
-  Future<List<LibraryClassificationItem>> loadItems(
-    List<LibraryOrganizationTarget> targets,
-  );
-  Future<Map<String, LibraryClassificationReviewReason>> annotations(
-    BigInt revision,
-    List<LibraryOrganizationTarget> targets,
-  );
-}
+import "ports/library_classification_review.dart";
 
 final libraryClassificationReviewServiceProvider =
     Provider<LibraryClassificationReviewService>(
-      (ref) => const RustLibraryClassificationReview(),
+      (ref) =>
+          throw StateError("Library classification review binding is required"),
     );
 
 final libraryClassificationItemProvider = FutureProvider.autoDispose

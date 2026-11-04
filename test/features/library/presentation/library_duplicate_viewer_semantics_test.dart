@@ -4,11 +4,12 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/application/library_gallery_duplicates.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
+import "package:cedarflake_ame/features/library/presentation/pages/library_exact_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_asset_information_sheet.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_workbench.dart";
@@ -19,6 +20,7 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/application_test_bindings.dart";
 import "../../../support/duplicate_review_fixtures.dart";
 import "../../../support/semantics/retained_semantics_update_harness.dart";
 
@@ -38,7 +40,7 @@ void main() {
         try {
           await tester.pumpWidget(
             ProviderScope(
-              overrides: [
+              overrides: applicationTestOverrides([
                 libraryControllerProvider.overrideWith(
                   () => ReviewFixtureLibrary(
                     duplicateMode: LibraryGalleryDuplicateMode.merged,
@@ -51,7 +53,7 @@ void main() {
                 libraryDuplicateReviewProvider.overrideWithValue(
                   ReviewFixtureService(),
                 ),
-              ],
+              ]),
               child: MaterialApp(
                 builder: (context, child) => MediaQuery(
                   data: MediaQuery.of(

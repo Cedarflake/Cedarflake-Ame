@@ -1,11 +1,11 @@
-use crate::adapters::SqliteCatalog;
 use crate::domain::{
     CatalogFreshnessCause, CatalogFreshnessState, IncrementalCatalogRoot, LibraryChangeQueueHealth,
     LibraryChangeSourceHealth, LibraryRootAvailability, LibraryRootSynchronizationStatus,
     LibrarySynchronizationPhase, LibrarySynchronizationSnapshot, PersistentJournalContinuityState,
     ScanError,
 };
-use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
+use crate::ports::scan_admission::FirstImportReadiness;
+use crate::ports::{CatalogRepository, IncrementalCatalogRepository, LibraryChangeIngress};
 
 use crate::application::scan_library::first_import_capture_lease;
 
@@ -20,12 +20,14 @@ pub(super) struct SynchronizationAdmissions {
 }
 
 impl SynchronizationAdmissions {
-    pub(super) fn load(catalog: &SqliteCatalog) -> Result<Self, ScanError> {
+    pub(super) fn load(
+        catalog: &(impl CatalogRepository + IncrementalCatalogRepository + FirstImportReadiness),
+    ) -> Result<Self, ScanError> {
         Self::classify_roots(catalog, catalog.load_incremental_catalog_roots()?)
     }
 
     fn classify_roots(
-        catalog: &SqliteCatalog,
+        catalog: &(impl CatalogRepository + IncrementalCatalogRepository + FirstImportReadiness),
         observed: Vec<IncrementalCatalogRoot>,
     ) -> Result<Self, ScanError> {
         let mut roots = Vec::new();
@@ -110,14 +112,18 @@ impl SynchronizationAdmissions {
             .sort_by(|left, right| left.root_id.cmp(&right.root_id));
     }
 
-    pub(super) fn revalidate(
+    pub(super) fn revalidate<Repository>(
         &mut self,
-        catalog: &SqliteCatalog,
-        runtime: &mut super::LibrarySynchronizationRuntime<
-            <SqliteCatalog as crate::ports::LibraryChangeIngress>::Reservation,
-        >,
+        catalog: &Repository,
+        runtime: &mut super::LibrarySynchronizationRuntime<Repository::Reservation>,
         snapshot: &mut LibrarySynchronizationSnapshot,
-    ) -> Result<(), ScanError> {
+    ) -> Result<(), ScanError>
+    where
+        Repository: CatalogRepository
+            + IncrementalCatalogRepository
+            + FirstImportReadiness
+            + LibraryChangeIngress,
+    {
         *self = Self::load(catalog)?;
         let roots = self.observing_roots();
         runtime.reconcile_roots(&roots)?;

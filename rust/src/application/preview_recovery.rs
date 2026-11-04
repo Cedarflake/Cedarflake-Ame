@@ -5,11 +5,12 @@ use std::sync::{Mutex, OnceLock};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::adapters::{
-    PreviewCacheNamespace, SqliteCatalog, current_preview_artifact_key,
-    is_managed_preview_cleanup_entry,
-};
+#[cfg(test)]
+use crate::adapters::SqliteCatalog;
 use crate::domain::{LibraryChangeLane, ScanError};
+use crate::ports::preview_cache_storage::{
+    PreviewCacheDirectory, PreviewCacheEntryKind, PreviewCacheStorage,
+};
 use crate::ports::{CatalogRepository, PreviewHealthOutcome, PreviewHealthTarget};
 
 use super::{StoragePaths, acquire_preview_reclamation};
@@ -81,11 +82,12 @@ pub fn preview_recovery_snapshot() -> PreviewRecoverySnapshot {
 fn run_preview_recovery(storage: &StoragePaths) -> Result<(), ScanError> {
     let mut catalog =
         super::catalog_session::open_catalog(&storage.catalog_path, LibraryChangeLane::Recovery)?;
-    let namespace = PreviewCacheNamespace::observe_existing(&storage.preview_root)?;
+    let cache = super::storage::production::preview_cache();
+    let namespace = cache.observe_existing_namespace(&storage.preview_root)?;
     #[cfg(all(test, windows))]
     namespace_tests::after_namespace_observation(&storage.preview_root);
     if namespace.root().is_some() {
-        reconcile_directory(storage, &catalog)?;
+        reconcile_directory(storage, &catalog, &cache)?;
     }
     update_snapshot(|snapshot| snapshot.phase = PreviewRecoveryPhase::Index);
     reconcile_index(storage, &mut catalog, &namespace)?;
@@ -103,7 +105,11 @@ pub(super) fn run_preview_recovery_for_test(storage: &StoragePaths) -> Result<()
     run_preview_recovery(storage)
 }
 
-fn reconcile_directory(storage: &StoragePaths, catalog: &SqliteCatalog) -> Result<(), ScanError> {
+fn reconcile_directory(
+    storage: &StoragePaths,
+    catalog: &impl CatalogRepository,
+    cache: &impl PreviewCacheStorage,
+) -> Result<(), ScanError> {
     if !storage.preview_root.exists() {
         return Ok(());
     }
@@ -138,14 +144,17 @@ fn reconcile_directory(storage: &StoragePaths, catalog: &SqliteCatalog) -> Resul
                 }
             };
             let path = entry.path();
-            if !path.is_file() || !is_managed_preview_cleanup_entry(&path) {
+            if !path.is_file() {
                 continue;
             }
+            let Some(kind) = cache.managed_entry_kind(&path) else {
+                continue;
+            };
             update_snapshot(|snapshot| {
                 snapshot.inspected_files = snapshot.inspected_files.saturating_add(1);
             });
-            let is_temporary = path.extension().and_then(|value| value.to_str()) == Some("tmp");
-            let artifact_key = current_preview_artifact_key(&path);
+            let is_temporary = kind == PreviewCacheEntryKind::Temporary;
+            let artifact_key = cache.current_artifact_key(&path);
             let is_unreferenced = !is_temporary
                 && !catalog
                     .is_preview_artifact_path_indexed(&path.to_string_lossy(), artifact_key)?;
@@ -156,7 +165,7 @@ fn reconcile_directory(storage: &StoragePaths, catalog: &SqliteCatalog) -> Resul
             if !is_temporary
                 && catalog.is_preview_artifact_path_indexed(
                     &path.to_string_lossy(),
-                    current_preview_artifact_key(&path),
+                    cache.current_artifact_key(&path),
                 )?
             {
                 continue;
@@ -185,8 +194,8 @@ fn reconcile_directory(storage: &StoragePaths, catalog: &SqliteCatalog) -> Resul
 
 fn reconcile_index(
     storage: &StoragePaths,
-    catalog: &mut SqliteCatalog,
-    namespace: &PreviewCacheNamespace,
+    catalog: &mut impl CatalogRepository,
+    namespace: &impl PreviewCacheDirectory,
 ) -> Result<(), ScanError> {
     let root_prefix = preview_root_prefix(&storage.preview_root);
     let mut after_artifact_key = None;

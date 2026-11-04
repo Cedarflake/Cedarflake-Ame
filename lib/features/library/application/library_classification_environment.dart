@@ -1,7 +1,7 @@
 import "dart:async";
 
-import "library_classification.dart";
 import "library_foreground_reads.dart";
+import "ports/library_classification.dart";
 
 class LibraryClassificationEnvironment {
   LibraryClassificationEnvironment(this._foregroundReads, this._reportError) {

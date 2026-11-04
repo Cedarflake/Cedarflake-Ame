@@ -8,7 +8,7 @@ import "../../application/library_review_requests.dart";
 import "../../application/library_review_session.dart";
 import "../../domain/library_organization.dart";
 import "../../domain/library_review.dart";
-import "../library_organization_mode.dart";
+import "../coordination/library_organization_mode.dart";
 import "../library_organization_messages.dart";
 import "../library_progress_controls.dart";
 import "library_album_viewer_action.dart";

@@ -2,13 +2,17 @@ import "dart:async";
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
-import "package:cedarflake_ame/features/library/adapters/directory_picker.dart";
-import "package:cedarflake_ame/features/library/adapters/windows_library_platform_actions.dart";
-import "package:cedarflake_ame/features/library/application/library_catalog.dart";
-import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/ports/directory_picker.dart";
+import "package:cedarflake_ame/features/library/application/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_platform_actions.dart";
+import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/application/library_update_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
@@ -23,6 +27,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_query_snapshot_fixture.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 void main() {
   testWidgets("preserves gallery position after closing the image viewer", (
     tester,
@@ -34,9 +40,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(_libraryState()),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -85,7 +91,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             _libraryState(
               assetCount: 2,
@@ -94,7 +100,7 @@ void main() {
             ),
           ),
           libraryPlatformActionsProvider.overrideWithValue(platformActions),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -146,11 +152,11 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -186,12 +192,12 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -238,12 +244,12 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -295,12 +301,12 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -434,14 +440,14 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(
               _SynchronizationViewerCatalog(_snapshotFromState(initialState)),
             ),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -503,13 +509,13 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             _libraryState(assetCount: 1),
           ),
           libraryScannerProvider.overrideWithValue(scanner),
           librarySynchronizationProvider.overrideWithValue(synchronization),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -542,7 +548,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
@@ -550,7 +556,7 @@ void main() {
               initialState.roots,
             ),
             libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -622,12 +628,12 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -674,14 +680,14 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(
             _SynchronizationViewerCatalog(_snapshotFromState(initialState)),
           ),
           libraryScannerProvider.overrideWithValue(scanner),
           librarySynchronizationProvider.overrideWithValue(synchronization),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -719,12 +725,12 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -803,13 +809,13 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(
             _SynchronizationViewerCatalog(_snapshotFromState(initialState)),
           ),
           librarySynchronizationProvider.overrideWithValue(synchronization),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -852,7 +858,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
@@ -861,7 +867,7 @@ void main() {
               initialState.roots,
             ),
             libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -992,7 +998,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             directoryPickerProvider.overrideWithValue(
               const _FailingDirectoryPicker(),
@@ -1000,7 +1006,7 @@ void main() {
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -1091,11 +1097,11 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -1167,11 +1173,11 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -1242,11 +1248,11 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -1406,7 +1412,7 @@ Future<void> _verifyTerminalScanFeedbackAcknowledgement(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(initialState),
         libraryCatalogProvider.overrideWithValue(catalog),
         libraryScannerProvider.overrideWithValue(scanner),
@@ -1415,7 +1421,7 @@ Future<void> _verifyTerminalScanFeedbackAcknowledgement(
           initialState.roots,
         ),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
-      ],
+      ]),
       child: const AmeApp(),
     ),
   );

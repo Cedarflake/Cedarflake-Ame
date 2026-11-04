@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_scan_shutdown.dart";
 import "package:cedarflake_ame/features/library/application/library_scan_execution.dart";
@@ -13,6 +14,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/concurrent_library_scanner.dart";
 import "../support/library_query_snapshot_fixture.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final duringCommittedReload in [false, true]) {
@@ -28,7 +31,7 @@ void main() {
         final catalog = _RemovingUpdateCatalog(roots);
         final initial = catalog.snapshot;
         final container = ProviderContainer(
-          overrides: [
+          overrides: applicationTestOverrides([
             libraryScannerProvider.overrideWithValue(scanner),
             libraryCatalogProvider.overrideWithValue(catalog),
             initialLibraryStateProvider.overrideWithValue(
@@ -44,7 +47,7 @@ void main() {
                 ),
               ),
             ),
-          ],
+          ]),
         );
         addTearDown(scanner.dispose);
         addTearDown(container.dispose);
@@ -174,14 +177,14 @@ void main() {
       _root("root-c", "C:\\C"),
     ];
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryUpdateConfiguredRootsProvider.overrideWithValue(roots),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
         libraryUpdateCatalogRefreshProvider.overrideWithValue(() async {
           catalogRefreshCount += 1;
         }),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -281,12 +284,12 @@ void main() {
       availability: LibraryRootAvailability.offline,
     );
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
         libraryUpdateCatalogRefreshProvider.overrideWithValue(() async {}),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -306,12 +309,12 @@ void main() {
     final scanner = ConcurrentLibraryScanner();
     final root = _root("root-a", "C:\\Current");
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
         libraryUpdateCatalogRefreshProvider.overrideWithValue(() async {}),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -337,14 +340,14 @@ void main() {
     ];
     var currentRoots = roots;
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryUpdateConfiguredRootsProvider.overrideWith(
           (ref) => currentRoots,
         ),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
         libraryUpdateCatalogRefreshProvider.overrideWithValue(() async {}),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -378,13 +381,13 @@ void main() {
     final primaryOwner = Object();
     expect(execution.tryAcquirePrimary(primaryOwner), isTrue);
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryScanExecutionCoordinatorProvider.overrideWithValue(execution),
         libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
         libraryUpdateCatalogRefreshProvider.overrideWithValue(() async {}),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -405,12 +408,12 @@ void main() {
     final scanner = ConcurrentLibraryScanner(delayedRegistration: true);
     final root = _root("root-a", "C:\\A");
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
         libraryUpdateCatalogRefreshProvider.overrideWithValue(() async {}),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -468,12 +471,12 @@ void main() {
     final scanner = ConcurrentLibraryScanner();
     final root = _root("root-a", "C:\\A");
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
         libraryUpdateCatalogRefreshProvider.overrideWithValue(() async {}),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -515,7 +518,7 @@ void main() {
       var refreshAttempts = 0;
       final root = _root("root-a", "C:\\A");
       final container = ProviderContainer(
-        overrides: [
+        overrides: applicationTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
           libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
@@ -525,7 +528,7 @@ void main() {
               throw StateError("query refresh failed");
             }
           }),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       addTearDown(scanner.dispose);
@@ -577,12 +580,12 @@ void main() {
       final scanner = ConcurrentLibraryScanner();
       final root = _root("root-a", "C:\\A");
       final container = ProviderContainer(
-        overrides: [
+        overrides: applicationTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
           libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
           libraryUpdateCatalogRefreshProvider.overrideWithValue(() async {}),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       addTearDown(scanner.dispose);
@@ -635,14 +638,14 @@ void main() {
     var refreshCount = 0;
     final root = _root("root-a", "C:\\A");
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
         libraryUpdateCatalogRefreshProvider.overrideWithValue(() async {
           refreshCount += 1;
         }),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -695,13 +698,13 @@ void main() {
       _root("root-c", "C:\\C"),
     ];
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryScannerProvider.overrideWithValue(scanner),
         libraryScanShutdownCoordinatorProvider.overrideWithValue(coordinator),
         libraryUpdateConfiguredRootsProvider.overrideWithValue(roots),
         libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
         libraryUpdateCatalogRefreshProvider.overrideWithValue(() async {}),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     addTearDown(scanner.dispose);
@@ -733,13 +736,13 @@ void main() {
       final coordinator = LibraryScanShutdownCoordinator();
       final root = _root("root-a", "C:\\A");
       final container = ProviderContainer(
-        overrides: [
+        overrides: applicationTestOverrides([
           libraryScannerProvider.overrideWithValue(scanner),
           libraryScanShutdownCoordinatorProvider.overrideWithValue(coordinator),
           libraryUpdateConfiguredRootsProvider.overrideWithValue([root]),
           libraryUpdatePrimaryBusyProvider.overrideWithValue(false),
           libraryUpdateCatalogRefreshProvider.overrideWithValue(() async {}),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       addTearDown(scanner.dispose);

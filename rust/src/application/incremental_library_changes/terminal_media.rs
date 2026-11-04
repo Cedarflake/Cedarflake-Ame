@@ -1,4 +1,4 @@
-use crate::adapters::{LocalMediaInspector, user_visible_path};
+use crate::domain::user_visible_path;
 use crate::domain::{
     AssetLocationView, CatalogDeltaMutation, DerivedEvidenceDisposition, DiscoveredFile,
     IncrementalReconciliationOutcome, LeasedLibraryChange, LibraryChangeCompletion,
@@ -11,7 +11,7 @@ use super::{
 };
 
 pub(super) fn terminal_media_change(
-    inspector: &LocalMediaInspector,
+    inspector: &impl MediaInspector,
     leased: &LeasedLibraryChange,
     file: DiscoveredFile,
     prior: Option<&AssetLocationView>,

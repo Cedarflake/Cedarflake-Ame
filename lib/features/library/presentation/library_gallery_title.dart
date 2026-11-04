@@ -1,6 +1,6 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../application/library_classification_configuration.dart";
+import "../domain/library_classification_configuration.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_strings.dart";

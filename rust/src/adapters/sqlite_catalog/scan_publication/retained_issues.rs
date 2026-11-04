@@ -1,13 +1,8 @@
 use rusqlite::{params_from_iter, types::Value};
 
-use crate::domain::ScanError;
+use crate::domain::{RetainedScanIssue, ScanError};
 
 use super::super::{SqliteCatalog, database_error};
-
-pub(crate) struct RetainedScanIssue {
-    pub(crate) id: i64,
-    pub(crate) path: Option<String>,
-}
 
 pub(crate) fn load_retained_scan_issue_window(
     catalog: &SqliteCatalog,

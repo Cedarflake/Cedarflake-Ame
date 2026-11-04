@@ -2,15 +2,14 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::atomic::{AtomicU8, Ordering};
 
-use crate::adapters::{
-    PublicationGuardedFileDiscovery, SqliteCatalog, StagedValidationOutcome,
-    StagedValidationRoster, ValidatedStagingProof, revalidate_file_state,
-};
 use crate::domain::{
     FileIdentityEvidence, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin,
     LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration, ScanCheckpoint, ScanError,
-    ScanEvent, ScanIssue, ScanRequest,
+    ScanEvent, ScanIssue, ScanRequest, StagedValidationOutcome,
 };
+use crate::ports::scan_publication::ScanPublicationRepository;
+use crate::ports::source_publication::{PublicationNamespace, PublicationNamespaceFactory};
+use crate::ports::source_state::SourceStateProbe;
 use crate::ports::{CatalogRepository, LibraryChangeQueue};
 
 const FINALIZATION_WINDOW: u32 = 256;
@@ -28,14 +27,14 @@ pub(super) enum FinalizationMode {
     AuthoritativeRecovery,
 }
 
-pub(super) struct FinalizationPlan {
+pub(super) struct FinalizationPlan<Rejected> {
     mode: FinalizationMode,
     authoritative_retry_paths: BTreeSet<String>,
     foreground_revalidation: ForegroundRevalidationPlan,
-    rejected_inputs: RejectedInputs,
+    rejected_inputs: RejectedInputs<Rejected>,
 }
 
-impl FinalizationPlan {
+impl<Rejected> FinalizationPlan<Rejected> {
     pub(super) fn new(mode: FinalizationMode) -> Self {
         Self {
             mode,
@@ -47,7 +46,7 @@ impl FinalizationPlan {
 
     pub(super) fn restore_retained_scan_issues(
         &mut self,
-        catalog: &mut SqliteCatalog,
+        catalog: &mut impl ScanPublicationRepository<RejectedRoster = Rejected>,
         scan_id: &str,
         canonical_root: &Path,
         requested_root: &Path,
@@ -69,7 +68,7 @@ impl FinalizationPlan {
 
     pub(super) fn record_rejected_input(
         &mut self,
-        catalog: &SqliteCatalog,
+        catalog: &impl ScanPublicationRepository<RejectedRoster = Rejected>,
         file: &crate::domain::DiscoveredFile,
     ) -> Result<(), ScanError> {
         self.rejected_inputs.record(catalog, file)?;
@@ -97,7 +96,7 @@ impl FinalizationPlan {
 
     pub(super) fn handoff_foreground_revalidation(
         &self,
-        catalog: &mut SqliteCatalog,
+        catalog: &mut impl LibraryChangeQueue,
         root_id: &str,
         root_generation: LibraryRootGeneration,
     ) -> Result<(), ScanError> {
@@ -128,7 +127,7 @@ impl ForegroundRevalidationPlan {
 
     fn enqueue(
         &self,
-        catalog: &mut SqliteCatalog,
+        catalog: &mut impl LibraryChangeQueue,
         root_id: &str,
         root_generation: LibraryRootGeneration,
     ) -> Result<(), ScanError> {
@@ -210,49 +209,52 @@ pub(super) struct FinalizationContext<'a> {
     pub(super) accepted_items: u64,
 }
 
-pub(super) struct ValidatedScan {
-    pub(super) publication_guard: PublicationGuardedFileDiscovery,
+pub(super) struct ValidatedScan<Proof, Namespace> {
+    pub(super) publication_guard: Namespace,
     pub(super) validated_items: u64,
     pub(super) total_items: u64,
-    pub(super) foreground_proof: Option<ValidatedStagingProof>,
+    pub(super) foreground_proof: Option<Proof>,
 }
 
-pub(super) fn validate_staged_locations(
-    catalog: &mut SqliteCatalog,
-    plan: &mut FinalizationPlan,
+type ScanValidationResult<Proof, Namespace> =
+    Result<Option<ValidatedScan<Proof, Namespace>>, ScanError>;
+
+pub(super) fn validate_staged_locations<
+    Repository: ScanPublicationRepository,
+    Namespaces: PublicationNamespaceFactory,
+>(
+    catalog: &mut Repository,
+    namespace_factory: &Namespaces,
+    source_state: &impl SourceStateProbe,
+    plan: &mut FinalizationPlan<Repository::RejectedRoster>,
     context: FinalizationContext<'_>,
     issue_count: &mut u64,
     publish: &mut impl FnMut(ScanEvent) -> bool,
-) -> Result<Option<ValidatedScan>, ScanError> {
+) -> ScanValidationResult<Repository::StagingProof, Namespaces::Namespace> {
     let roster = if plan.mode == FinalizationMode::Foreground {
-        Some(StagedValidationRoster::capture(
-            catalog,
-            &context.request.scan_id,
-        )?)
+        Some(catalog.capture_staging_validation(&context.request.scan_id)?)
     } else {
         None
     };
     let total_items = match &roster {
-        Some(roster) => roster.total_items(),
+        Some(roster) => catalog.staging_validation_total_items(roster),
         None => catalog.count_staged_file_states(&context.request.scan_id)?,
     };
-    let publication_guard = match PublicationGuardedFileDiscovery::new_incremental_publication_guard(
-        context.root_path,
-        context.publication_root_identity,
-    ) {
-        Ok(guard) => guard,
-        Err(failure) => {
-            if let Err(cleanup) = catalog.fail_scan_publication_namespace(
-                &context.request.scan_id,
-                context.root_id,
-                &failure,
-                *issue_count,
-            ) {
-                return Err(super::scan_cleanup_failure(&failure, &cleanup));
+    let publication_guard =
+        match namespace_factory.open(context.root_path, Some(context.publication_root_identity)) {
+            Ok(guard) => guard,
+            Err(failure) => {
+                if let Err(cleanup) = catalog.fail_scan_publication_namespace(
+                    &context.request.scan_id,
+                    context.root_id,
+                    &failure,
+                    *issue_count,
+                ) {
+                    return Err(super::scan_cleanup_failure(&failure, &cleanup));
+                }
+                return Err(failure);
             }
-            return Err(failure);
-        }
-    };
+        };
     if !publish(finalizing_event(&context, 0, total_items, *issue_count)) {
         super::retain_detached_scan(
             catalog,
@@ -280,9 +282,11 @@ pub(super) fn validate_staged_locations(
     let mut after_location_id = None;
     loop {
         let window = match &roster {
-            Some(roster) => {
-                roster.load_window(catalog, after_location_id.as_deref(), FINALIZATION_WINDOW)?
-            }
+            Some(roster) => catalog.load_staging_validation_window(
+                roster,
+                after_location_id.as_deref(),
+                FINALIZATION_WINDOW,
+            )?,
             None => catalog.load_staged_file_state_window(
                 &context.request.scan_id,
                 after_location_id.as_deref(),
@@ -307,9 +311,9 @@ pub(super) fn validate_staged_locations(
             let mut outcome = StagedValidationOutcome::FilesystemVerified;
             let issue = if plan.preserves_authoritative_retry_evidence(&relative_path) {
                 None
-            } else if let Err(issue) = revalidate_file_state(&expected) {
+            } else if let Err(issue) = source_state.revalidate_file(&expected) {
                 if let Some(roster) = &roster
-                    && roster.superseded_by_live(catalog, context.root_id, &location_id)?
+                    && catalog.staging_superseded_by_live(roster, context.root_id, &location_id)?
                 {
                     outcome = StagedValidationOutcome::SupersededByLive;
                     None
@@ -353,7 +357,7 @@ pub(super) fn validate_staged_locations(
                 }
             }
             if let Some(roster) = &roster {
-                roster.record_outcome(catalog, &location_id, outcome)?;
+                catalog.record_staging_validation(roster, &location_id, outcome)?;
             }
             validated_items = validated_items.checked_add(1).ok_or_else(|| {
                 ScanError::new(
@@ -405,7 +409,7 @@ pub(super) fn validate_staged_locations(
         validated_items,
         total_items,
         foreground_proof: roster
-            .map(|roster| roster.finish(validated_items))
+            .map(|roster| catalog.finish_staging_validation(roster, validated_items))
             .transpose()?,
     }))
 }
@@ -442,7 +446,7 @@ mod tests {
 
     #[test]
     fn foreground_revalidation_deduplicates_exact_paths() {
-        let mut plan = FinalizationPlan::new(FinalizationMode::Foreground);
+        let mut plan = FinalizationPlan::<()>::new(FinalizationMode::Foreground);
         assert!(plan.record_retryable_path("album/image.png"));
         assert!(plan.record_retryable_path("album/image.png"));
 
@@ -456,7 +460,7 @@ mod tests {
 
     #[test]
     fn foreground_revalidation_overflow_becomes_one_root_gap() {
-        let mut plan = FinalizationPlan::new(FinalizationMode::Foreground);
+        let mut plan = FinalizationPlan::<()>::new(FinalizationMode::Foreground);
         for index in 0..=RETRY_PATH_LIMIT {
             assert!(plan.record_retryable_path(&format!("image-{index}.png")));
         }

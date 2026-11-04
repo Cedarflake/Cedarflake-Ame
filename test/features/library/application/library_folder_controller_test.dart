@@ -1,11 +1,14 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_folder_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   test(
@@ -28,10 +31,10 @@ void main() {
         replacement.future,
       ]);
       final container = ProviderContainer(
-        overrides: [
+        overrides: applicationTestOverrides([
           libraryFolderCatalogProvider.overrideWithValue(catalog),
           libraryFolderConfiguredRootsProvider.overrideWithValue(_roots),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final controller = container.read(
@@ -105,10 +108,10 @@ void main() {
         ),
       ]);
       final container = ProviderContainer(
-        overrides: [
+        overrides: applicationTestOverrides([
           libraryFolderCatalogProvider.overrideWithValue(catalog),
           libraryFolderConfiguredRootsProvider.overrideWithValue(_roots),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final controller = container.read(
@@ -165,10 +168,10 @@ void main() {
         ),
       ]);
       final container = ProviderContainer(
-        overrides: [
+        overrides: applicationTestOverrides([
           libraryFolderCatalogProvider.overrideWithValue(catalog),
           libraryFolderConfiguredRootsProvider.overrideWithValue(_roots),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final controller = container.read(
@@ -212,10 +215,10 @@ void main() {
         ),
       ]);
       final container = ProviderContainer(
-        overrides: [
+        overrides: applicationTestOverrides([
           libraryFolderCatalogProvider.overrideWithValue(catalog),
           libraryFolderConfiguredRootsProvider.overrideWithValue(_roots),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final controller = container.read(
@@ -256,10 +259,10 @@ void main() {
         ),
       ]);
       final container = ProviderContainer(
-        overrides: [
+        overrides: applicationTestOverrides([
           libraryFolderCatalogProvider.overrideWithValue(catalog),
           libraryFolderConfiguredRootsProvider.overrideWithValue(_roots),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final controller = container.read(
@@ -325,10 +328,10 @@ void main() {
         ),
       ]);
       final container = ProviderContainer(
-        overrides: [
+        overrides: applicationTestOverrides([
           libraryFolderCatalogProvider.overrideWithValue(catalog),
           libraryFolderConfiguredRootsProvider.overrideWithValue(_roots),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final controller = container.read(
@@ -377,10 +380,10 @@ void main() {
       ),
     ]);
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryFolderCatalogProvider.overrideWithValue(catalog),
         libraryFolderConfiguredRootsProvider.overrideWithValue(_roots),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     final controller = container.read(libraryFolderControllerProvider.notifier);
@@ -446,10 +449,10 @@ void main() {
         ),
       ]);
       final container = ProviderContainer(
-        overrides: [
+        overrides: applicationTestOverrides([
           libraryFolderCatalogProvider.overrideWithValue(catalog),
           libraryFolderConfiguredRootsProvider.overrideWithValue(_roots),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final controller = container.read(
@@ -511,10 +514,10 @@ void main() {
         ),
       ]);
       final container = ProviderContainer(
-        overrides: [
+        overrides: applicationTestOverrides([
           libraryFolderCatalogProvider.overrideWithValue(catalog),
           libraryFolderConfiguredRootsProvider.overrideWithValue(_roots),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final controller = container.read(
@@ -575,10 +578,10 @@ void main() {
           newPage.future,
         ]);
         final container = ProviderContainer(
-          overrides: [
+          overrides: applicationTestOverrides([
             libraryFolderCatalogProvider.overrideWithValue(catalog),
             libraryFolderConfiguredRootsProvider.overrideWithValue(_roots),
-          ],
+          ]),
         );
         addTearDown(container.dispose);
         final controller = container.read(
@@ -662,10 +665,10 @@ void main() {
       ),
     ]);
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryFolderCatalogProvider.overrideWithValue(catalog),
         libraryFolderConfiguredRootsProvider.overrideWithValue(_roots),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     final controller = container.read(libraryFolderControllerProvider.notifier);

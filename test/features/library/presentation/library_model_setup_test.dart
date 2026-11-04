@@ -2,19 +2,25 @@ import "dart:async";
 
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/app/presentation/ame_notifications.dart";
-import "package:cedarflake_ame/features/library/application/library_classification.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_lifecycle.dart";
 import "package:cedarflake_ame/features/library/application/library_foreground_reads.dart";
 import "package:cedarflake_ame/features/library/application/library_model_installation.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_classification.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_classification_configuration.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_model_installation.dart";
+import "package:cedarflake_ame/features/library/domain/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/domain/library_gallery_collection.dart";
+import "package:cedarflake_ame/features/library/domain/library_model_installation.dart";
+import "package:cedarflake_ame/features/library/presentation/library_model_installation_notifications.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_model_installation_feedback.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_smart_album_navigation.dart";
-import "package:cedarflake_ame/features/library/presentation/library_model_installation_notifications.dart";
 import "package:flutter/material.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -264,7 +270,7 @@ class _Fixture {
   Future<void> open(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           libraryClassificationLifecycleProvider.overrideWith(
             (ref) => lifecycle,
           ),
@@ -272,7 +278,7 @@ class _Fixture {
             configuration,
           ),
           libraryModelInstallationProvider.overrideWith((ref) => installation),
-        ],
+        ]),
         child: _NotificationOwner(
           child: MaterialApp(
             home: Scaffold(

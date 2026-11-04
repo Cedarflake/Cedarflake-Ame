@@ -3,16 +3,28 @@ import "dart:io";
 import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/ame_app.dart";
+import "package:cedarflake_ame/app/bootstrap/library_classification_bindings.dart";
+import "package:cedarflake_ame/app/bootstrap/library_duplicate_bindings.dart";
+import "package:cedarflake_ame/app/bootstrap/library_organization_bindings.dart";
+import "package:cedarflake_ame/app/bootstrap/library_synchronization_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/library_synchronization_lifecycle_owner.dart";
-import "package:cedarflake_ame/features/library/adapters/directory_picker.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_foreground_reads.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
+import "package:cedarflake_ame/features/library/application/ports/directory_picker.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
-import "package:cedarflake_ame/features/library/presentation/unified_library_screen.dart";
-import "package:cedarflake_ame/features/storage/application/storage_settings.dart";
+import "package:cedarflake_ame/features/library/presentation/pages/unified_library_screen.dart";
+import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/application/organization_archive_picker.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
+import "package:cedarflake_ame/features/storage/adapters/rust/rust_storage_settings_gateway.dart";
 import "package:cedarflake_ame/src/rust/frb_generated.dart";
 import "package:file_selector/file_selector.dart";
 import "package:flutter/material.dart";
@@ -21,14 +33,19 @@ import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:integration_test/integration_test.dart";
 
+import "../test/support/application_test_bindings.dart";
+import "support/classification_bindings_workflow.dart";
 import "support/covered_folder_workflow.dart";
+import "support/duplicate_workflow.dart";
 import "support/library_management_workflow.dart";
 import "support/native_directory_picker.dart";
+import "support/organization_records_workflow.dart";
 import "support/organization_unavailable_workflow.dart";
 import "support/organization_workflow.dart";
 import "support/parent_folder_workflow.dart";
 import "support/retained_import_workflow.dart";
 import "support/viewer_source_workflow.dart";
+import "support/workbench_destinations_workflow.dart";
 
 const _fixturePng =
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
@@ -50,7 +67,7 @@ class _InitialDirectoryPicker implements DirectoryPicker {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  late final RustLibrarySynchronization synchronization;
+  late final LibrarySynchronization synchronization;
   late final LibrarySynchronizationLifecycleOwner synchronizationLifecycle;
 
   setUpAll(() async {
@@ -66,10 +83,9 @@ void main() {
         debugInfo: "Windows integration Debug library",
       ),
     );
-    synchronization = RustLibrarySynchronization.production();
-    synchronizationLifecycle = LibrarySynchronizationLifecycleOwner(
-      synchronization,
-    );
+    final bindings = LibrarySynchronizationBindings.production();
+    synchronization = bindings.synchronization;
+    synchronizationLifecycle = bindings.lifecycle;
     synchronizationLifecycle.startInBackground();
     final startResult = await synchronizationLifecycle.startOperation;
     if (startResult != LibrarySynchronizationStartResult.started) {
@@ -91,9 +107,9 @@ void main() {
   ) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           librarySynchronizationProvider.overrideWithValue(synchronization),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -188,12 +204,12 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           directoryPickerProvider.overrideWithValue(
             _InitialDirectoryPicker(sourceDirectory.path),
           ),
           librarySynchronizationProvider.overrideWithValue(synchronization),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -337,14 +353,14 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           directoryPickerProvider.overrideWithValue(
             _InitialDirectoryPicker(secondSourceDirectory.path),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
           initialLibraryStateProvider.overrideWithValue(restoredState),
           librarySynchronizationProvider.overrideWithValue(synchronization),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -433,19 +449,76 @@ void main() {
     );
     expect(secondRestoredState.roots, hasLength(2));
     expect(secondRestoredState.assets, hasLength(2));
+    final duplicates = LibraryDuplicateBindings.production();
+    final exactAnalysis = LibraryExactAnalysisBindings(
+      service: duplicates.exactDuplicates,
+      paused: true,
+      foregroundReads: libraryForegroundReads,
+    );
+    addTearDown(exactAnalysis.close);
+    final classification = LibraryClassificationBindings(
+      services: const LibraryClassificationServices.production(),
+      foregroundReads: libraryForegroundReads,
+    );
+    addTearDown(classification.lifecycle.close);
+    addTearDown(classification.modelInstallation.close);
+    final workspace = Directory.current.path;
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final archive = File(
+      "$workspace/build/integration-archive-$stamp.ame-backup",
+    );
+    expect(await archive.exists(), isFalse);
+    addTearDown(() async {
+      if (await archive.exists()) await archive.delete();
+    });
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
+          ...duplicates.overrides,
+          ...exactAnalysis.overrides,
+          ...libraryOrganizationBindings(),
+          ...classification.overrides,
+          organizationArchivePickerProvider.overrideWithValue(
+            ControlledOrganizationArchivePicker(archive.path),
+          ),
+          initialAmePreferencesProvider.overrideWithValue(
+            const AmePreferences(exactAnalysisPaused: true),
+          ),
           initialLibraryStateProvider.overrideWithValue(secondRestoredState),
           librarySynchronizationProvider.overrideWithValue(synchronization),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
     await tester.pumpAndSettle();
+    await verifyClassificationBindingsWorkflow(
+      ProviderScope.containerOf(
+        tester.element(find.byType(UnifiedLibraryScreen)),
+      ),
+      classification,
+    );
     await verifyViewerSourceWorkflow(tester);
     await verifyOrganizationUnavailableWorkflow(tester);
     await verifyOrganizationWorkflow(
+      tester,
+      ProviderScope.containerOf(
+        tester.element(find.byType(UnifiedLibraryScreen)),
+      ),
+    );
+    await verifyDuplicateWorkflow(
+      tester,
+      ProviderScope.containerOf(
+        tester.element(find.byType(UnifiedLibraryScreen)),
+      ),
+    );
+    await verifyOrganizationRecordsWorkflow(
+      tester,
+      ProviderScope.containerOf(
+        tester.element(find.byType(UnifiedLibraryScreen)),
+      ),
+      archive,
+    );
+    await verifyWorkbenchDestinationsWorkflow(
       tester,
       ProviderScope.containerOf(
         tester.element(find.byType(UnifiedLibraryScreen)),
@@ -463,6 +536,8 @@ void main() {
     expect(await sourceDirectory.list().length, 2);
     expect(await nestedSourceDirectory.list().length, 1);
     expect(await secondSourceDirectory.list().length, 1);
+    await classification.modelInstallation.close();
+    await classification.lifecycle.close();
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
   });

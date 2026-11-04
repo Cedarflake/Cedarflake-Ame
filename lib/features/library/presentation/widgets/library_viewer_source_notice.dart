@@ -2,7 +2,7 @@ import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../library_strings.dart";
-import "../library_viewer_source_state.dart";
+import "../coordination/library_viewer_source_state.dart";
 import "library_viewer_notice.dart";
 
 class LibraryViewerSourceNoticeBanner extends StatelessWidget {

@@ -1,6 +1,7 @@
 use crate::domain::ScanError;
 use crate::domain::classification::ClassificationRevision;
-use crate::domain::classification::discovery::{ConceptId, VocabularyConcept};
+use crate::domain::classification::discovery::{ConceptId, NamingContext, VocabularyConcept};
+use crate::domain::classification::maintenance::ManagedCategoryCatalog;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ConceptNeighborhood {
@@ -25,4 +26,9 @@ pub trait ClassificationVocabulary {
         after: Option<ConceptId>,
         limit: usize,
     ) -> Result<ConceptPage, ScanError>;
+}
+
+pub(crate) trait ManagedClassificationVocabulary: ClassificationVocabulary {
+    fn managed_catalog(&self) -> &ManagedCategoryCatalog;
+    fn naming_contexts(&self) -> Vec<NamingContext>;
 }

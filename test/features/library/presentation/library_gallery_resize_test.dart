@@ -1,7 +1,7 @@
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_extent_sliver.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
@@ -16,6 +16,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "support/gallery_wall_fixture.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   test("square manifest produces query-wide fixed-cell geometry", () {
@@ -92,6 +94,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: applicationTestOverrides(),
         child: MaterialApp(
           home: ListenableBuilder(
             listenable: Listenable.merge([wallSize, libraryState]),
@@ -294,6 +297,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
+          overrides: applicationTestOverrides(),
           child: MaterialApp(
             home: ValueListenableBuilder(
               valueListenable: manifest,
@@ -434,6 +438,7 @@ void main() {
         addTearDown(() => tester.binding.setSurfaceSize(null));
         await tester.pumpWidget(
           ProviderScope(
+            overrides: applicationTestOverrides(),
             child: MaterialApp(
               home: ValueListenableBuilder(
                 valueListenable: configuration,
@@ -562,6 +567,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: applicationTestOverrides(),
         child: MaterialApp(
           home: Align(
             alignment: Alignment.topLeft,
@@ -622,6 +628,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: applicationTestOverrides(),
         child: MaterialApp(
           home: ValueListenableBuilder<Size>(
             valueListenable: wallSize,
@@ -755,6 +762,7 @@ void main() {
 
         await tester.pumpWidget(
           ProviderScope(
+            overrides: applicationTestOverrides(),
             child: MaterialApp(
               home: ValueListenableBuilder(
                 valueListenable: manifest,
@@ -951,6 +959,7 @@ void main() {
       }) async {
         await tester.pumpWidget(
           ProviderScope(
+            overrides: applicationTestOverrides(),
             child: MaterialApp(
               home: SizedBox(
                 width: wallSize.width,
@@ -1089,6 +1098,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
+          overrides: applicationTestOverrides(),
           child: MaterialApp(
             home: ValueListenableBuilder(
               valueListenable: configuration,
@@ -1274,6 +1284,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: applicationTestOverrides(),
         child: MaterialApp(
           home: ValueListenableBuilder<int>(
             valueListenable: rebuild,

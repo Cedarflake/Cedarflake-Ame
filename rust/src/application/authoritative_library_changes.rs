@@ -1,17 +1,19 @@
 use std::collections::{BTreeSet, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::adapters::{FileVisitOutcome, PublicationGuardedFileDiscovery};
 use crate::domain::{
-    IncrementalCatalogRoot, IncrementalLibraryChangeReport, LeasedLibraryChange,
+    FileVisitOutcome, IncrementalCatalogRoot, IncrementalLibraryChangeReport, LeasedLibraryChange,
     LibraryChangeCapacityDeferral, LibraryChangeFailure, LibraryChangeIntentKind,
     LibraryChangeLeaseUpdateOutcome, LibraryChangeOrigin, LibraryChangeQueuePolicy,
     LibraryChangeScope, LibraryRootGeneration, ScanError, ScanIssue,
 };
+use crate::ports::source_publication::{
+    PublicationDirectorySource, PublicationDirectoryVisits, PublicationNamespaceFactory,
+};
 use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue};
 
 use super::incremental_library_changes::{
-    AuthoritativePathSetContext, process_authoritative_path_set,
+    AuthoritativePathSetContext, process_authoritative_path_set, production,
 };
 
 const MAX_AUTHORITATIVE_ENTRIES: u32 = 4_096;
@@ -197,10 +199,9 @@ where
             queue_policy,
         );
     };
-    let discovery = match PublicationGuardedFileDiscovery::new_incremental_publication_guard(
-        &root.root_path,
-        expected_root_identity,
-    ) {
+    let discovery = match production::publication_namespaces()
+        .open(&root.root_path, Some(expected_root_identity))
+    {
         Ok(discovery) => discovery,
         Err(error) => {
             return retry_authoritative_change(
@@ -347,7 +348,7 @@ fn recovery_scopes(leased: &LeasedLibraryChange) -> Result<Vec<String>, ScanErro
 }
 
 fn enumerate_scopes(
-    discovery: &PublicationGuardedFileDiscovery,
+    discovery: &impl PublicationDirectorySource,
     scopes: &[String],
     policy: AuthoritativeRecoveryPolicy,
     cancellation: &AtomicBool,
@@ -385,10 +386,10 @@ fn enumerate_scopes(
         if cancellation.load(Ordering::Relaxed) {
             return Err(EnumerationFailure::Cancelled);
         }
-        let entries = discovery
+        let mut entries = discovery
             .file_visits_in_directory(&directory)
             .map_err(|issue| EnumerationFailure::Issue(scan_issue_failure(issue)))?;
-        for visit in entries {
+        for visit in entries.by_ref() {
             if cancellation.load(Ordering::Relaxed) {
                 return Err(EnumerationFailure::Cancelled);
             }
@@ -424,6 +425,9 @@ fn enumerate_scopes(
                 }
             }
         }
+        entries
+            .finish()
+            .map_err(|issue| EnumerationFailure::Issue(scan_issue_failure(issue)))?;
     }
     Ok(paths)
 }

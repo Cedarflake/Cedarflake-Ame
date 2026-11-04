@@ -1,6 +1,6 @@
-use crate::adapters::SqliteCatalog;
 use crate::domain::{AssetLocationView, DiscoveredFile, ScanCheckpoint, ScanError, ScanIssue};
-use crate::ports::{CatalogRepository, MediaInspectionFailure, MediaInspectionFailureKind};
+use crate::ports::scan_publication::ScanPublicationRepository;
+use crate::ports::{MediaInspectionFailure, MediaInspectionFailureKind};
 
 use super::finalization::FinalizationPlan;
 
@@ -13,9 +13,9 @@ pub(super) struct FailedFileContext<'a> {
     pub accepted_items: u64,
 }
 
-pub(super) fn record_failed_file(
-    catalog: &mut SqliteCatalog,
-    finalization: &mut FinalizationPlan,
+pub(super) fn record_failed_file<Repository: ScanPublicationRepository>(
+    catalog: &mut Repository,
+    finalization: &mut FinalizationPlan<Repository::RejectedRoster>,
     context: FailedFileContext<'_>,
     failure: MediaInspectionFailure,
     checkpoint: &mut ScanCheckpoint,

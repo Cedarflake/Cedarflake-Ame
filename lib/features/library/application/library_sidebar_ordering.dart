@@ -1,6 +1,6 @@
 import "package:flutter/foundation.dart";
 
-import "library_sidebar_order.dart";
+import "../domain/library_sidebar_order.dart";
 
 class LibrarySidebarOrdering extends ChangeNotifier {
   LibrarySidebarOrdering({required List<String> ids, required this._save})

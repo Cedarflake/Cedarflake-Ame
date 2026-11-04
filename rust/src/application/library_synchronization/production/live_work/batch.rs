@@ -2,7 +2,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
-use crate::adapters::{SqliteCatalog, SqliteCatalogSession};
 use crate::application::{
     AuthoritativeRecoveryPolicy, process_leased_authoritative_library_change_cancellable,
     process_ready_library_changes_in_lane_cancellable,
@@ -11,7 +10,8 @@ use crate::domain::{
     IncrementalLibraryChangeReport, LibraryChangeLane, LibraryChangeQueuePolicy,
     LibraryRootGeneration, ScanError,
 };
-use crate::ports::IncrementalCatalogRepository;
+use crate::ports::catalog_session::CatalogLaneSession;
+use crate::ports::{IncrementalCatalogRepository, LibraryChangeDispatch};
 
 use super::super::now_unix_ms;
 
@@ -38,8 +38,8 @@ enum LiveStep {
     Idle,
 }
 
-struct LiveReconciliation<'a> {
-    catalog: &'a mut SqliteCatalog,
+struct LiveReconciliation<'a, Repository> {
+    catalog: &'a mut Repository,
     root_id: &'a str,
     root_generation: LibraryRootGeneration,
     queue_policy: LibraryChangeQueuePolicy,
@@ -47,7 +47,10 @@ struct LiveReconciliation<'a> {
     cancelled: &'a AtomicBool,
 }
 
-impl LiveReconciliation<'_> {
+impl<Repository> LiveReconciliation<'_, Repository>
+where
+    Repository: IncrementalCatalogRepository + LibraryChangeDispatch,
+{
     fn next(&mut self, first: bool, now: i64) -> Result<LiveStep, ScanError> {
         let Some(root) = self.catalog.load_incremental_catalog_root(self.root_id)? else {
             return Ok(LiveStep::Idle);
@@ -90,14 +93,18 @@ impl LiveReconciliation<'_> {
     }
 }
 
-pub(super) fn run(
-    session: Arc<SqliteCatalogSession>,
+pub(super) fn run<Session>(
+    session: Arc<Session>,
     root_id: &str,
     root_generation: LibraryRootGeneration,
     queue_policy: LibraryChangeQueuePolicy,
     recovery_policy: AuthoritativeRecoveryPolicy,
     cancelled: &AtomicBool,
-) -> LiveWorkOutcome {
+) -> LiveWorkOutcome
+where
+    Session: CatalogLaneSession,
+    Session::Catalog: IncrementalCatalogRepository + LibraryChangeDispatch,
+{
     let mut catalog = match session.open_in_lane(LibraryChangeLane::Live) {
         Ok(catalog) => catalog,
         Err(error) => return LiveWorkOutcome::failed(error),

@@ -1,3 +1,5 @@
+use crate::ports::journal_recovery::JournalRecoveryRepository;
+
 use super::*;
 use crate::domain::{LibraryChangeId, LibraryRecoveryAuthorityReason};
 

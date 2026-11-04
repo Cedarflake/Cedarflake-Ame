@@ -14,27 +14,13 @@ use windows_sys::Win32::Storage::FileSystem::{
 };
 
 use crate::domain::{FileIdentityEvidence, MetadataInventoryPlaceholderState, ScanError};
+use crate::ports::root_location::LocatedLibraryRoot;
 
 use super::{
     PublicationGuardedFileDiscovery, file_attribute_tag_info_from_handle,
     file_identity_from_handle, final_path_from_handle, metadata_placeholder_state_from_attributes,
     raw_file_id_info,
 };
-
-pub(crate) struct LocatedLibraryRoot {
-    path: String,
-    guard: PublicationGuardedFileDiscovery,
-}
-
-impl LocatedLibraryRoot {
-    pub(crate) fn path(&self) -> &str {
-        &self.path
-    }
-
-    pub(crate) fn guard(&self) -> &PublicationGuardedFileDiscovery {
-        &self.guard
-    }
-}
 
 pub(crate) fn locate_library_root(
     registered_path: &str,
@@ -75,7 +61,7 @@ pub(crate) fn locate_library_root(
         .canonical_root
         .to_string_lossy()
         .into_owned();
-    Ok(Some(LocatedLibraryRoot { path, guard }))
+    Ok(Some(LocatedLibraryRoot::new(path, Box::new(guard))))
 }
 
 fn local_volume_hint(path: &Path) -> Option<PathBuf> {

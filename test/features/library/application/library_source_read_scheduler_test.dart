@@ -2,10 +2,91 @@ import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_source_reader.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 
 void main() {
+  test("one root owns the scheduler inherited by its child scopes", () async {
+    final reader = _Reader();
+    final container = ProviderContainer(
+      overrides: [librarySourceReaderProvider.overrideWithValue(reader)],
+    );
+    final child = ProviderContainer(parent: container);
+    final scheduler = container.read(librarySourceReadSchedulerProvider);
+    expect(child.read(librarySourceReadSchedulerProvider), same(scheduler));
+    child.dispose();
+    final active = scheduler.request(_asset("active"));
+    final underlying = _Lease("active");
+    reader.responses.single.complete(underlying);
+    final lease = await active.lease;
+    container.dispose();
+    expect(active.isCancelled, isTrue);
+    expect(underlying.closeCount, 0);
+    final closing = lease.close();
+    underlying.closed.complete();
+    await closing;
+    expect(underlying.closeCount, 1);
+  });
+
+  test(
+    "disposal retires waiting work without releasing an active buffer",
+    () async {
+      final reader = _Reader();
+      final scheduler = LibrarySourceReadScheduler(reader: reader);
+      final active = scheduler.request(_asset("active"));
+      final underlying = _Lease("active");
+      reader.responses.single.complete(underlying);
+      final lease = await active.lease;
+      final waiting = scheduler.request(_asset("waiting"));
+
+      scheduler.dispose();
+      scheduler.dispose();
+
+      await expectLater(
+        waiting.lease,
+        throwsA(isA<LibrarySourceReadFailure>()),
+      );
+      expect(active.isCancelled, isTrue);
+      expect(underlying.closeCount, 0);
+      expect(reader.opened, ["active"]);
+      expect(
+        () => scheduler.request(_asset("late")),
+        throwsA(isA<LibrarySourceReadFailure>()),
+      );
+
+      final closing = lease.close();
+      underlying.closed.complete();
+      await closing;
+      expect(underlying.closeCount, 1);
+      expect(reader.opened, ["active"]);
+    },
+  );
+
+  test(
+    "disposal during admission waits for the acquired lease to close",
+    () async {
+      final reader = _Reader();
+      final scheduler = LibrarySourceReadScheduler(reader: reader);
+      final active = scheduler.request(_asset("active"));
+      scheduler.dispose();
+      final underlying = _Lease("active");
+      var settled = false;
+      final outcome = expectLater(
+        active.lease,
+        throwsA(isA<LibrarySourceReadFailure>()),
+      ).then((_) => settled = true);
+      reader.responses.single.complete(underlying);
+      await Future<void>.delayed(Duration.zero);
+      expect(underlying.closeCount, 1);
+      expect(settled, isFalse);
+      underlying.closed.complete();
+      await outcome;
+      expect(reader.opened, ["active"]);
+    },
+  );
+
   test("early cancellation is observed before a consumer attaches", () async {
     final reader = _Reader();
     final scheduler = LibrarySourceReadScheduler(reader: reader);

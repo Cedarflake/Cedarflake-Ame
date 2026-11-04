@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_gallery_duplicates.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_gallery_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
@@ -11,6 +12,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/duplicate_review_fixtures.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final update in ["catalog revision", "scroll window"]) {
@@ -96,10 +99,10 @@ void main() {
 Finder _badge(String id) => find.byKey(ValueKey("duplicate-badge-$id"));
 
 Widget _host(_Window library, _Annotations service) => ProviderScope(
-  overrides: [
+  overrides: applicationTestOverrides([
     libraryControllerProvider.overrideWith(() => library),
     libraryGalleryDuplicatesProvider.overrideWithValue(service),
-  ],
+  ]),
   child: MaterialApp(
     home: Scaffold(
       body: Consumer(

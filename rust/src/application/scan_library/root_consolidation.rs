@@ -1,22 +1,23 @@
 use std::path::Path;
 
-use crate::adapters::{PublicationGuardedFileDiscovery, SqliteCatalog};
 use crate::domain::ScanError;
-use crate::ports::{
-    IncrementalCatalogRepository, RootConsolidationCandidate, RootConsolidationPlan,
-};
+use crate::ports::scan_admission::ScanAdmissionRepository;
+use crate::ports::scan_publication::ScanPublicationRepository;
+use crate::ports::source_publication::{PublicationNamespace, PublicationNamespaceFactory};
+use crate::ports::{RootConsolidationCandidate, RootConsolidationPlan};
 
-pub(super) struct PreparedRootConsolidation {
+pub(super) struct PreparedRootConsolidation<Namespace> {
     plan: Option<RootConsolidationPlan>,
-    _namespaces: Vec<PublicationGuardedFileDiscovery>,
+    _namespaces: Vec<Namespace>,
 }
 
-impl PreparedRootConsolidation {
+impl<Namespace: PublicationNamespace> PreparedRootConsolidation<Namespace> {
     pub(super) fn capture(
-        catalog: &SqliteCatalog,
+        catalog: &(impl ScanAdmissionRepository + ScanPublicationRepository),
+        namespace_factory: &impl PublicationNamespaceFactory<Namespace = Namespace>,
         scan_id: &str,
         root_id: &str,
-        parent_namespace: &PublicationGuardedFileDiscovery,
+        parent_namespace: &Namespace,
         was_limited: bool,
     ) -> Result<Self, ScanError> {
         let parent = catalog
@@ -58,10 +59,8 @@ impl PreparedRootConsolidation {
                     "The covered publication has no verifiable directory identity",
                 ));
             }
-            let namespace = PublicationGuardedFileDiscovery::new_metadata_inventory_source_guard(
-                &root.root_path,
-                root.publication_root_identity.as_ref(),
-            )?;
+            let namespace =
+                namespace_factory.open(&root.root_path, root.publication_root_identity.as_ref())?;
             let identity = namespace
                 .metadata_inventory_root_identity()?
                 .ok_or_else(|| {

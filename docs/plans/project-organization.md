@@ -1,6 +1,6 @@
 # Project organization after R5
 
-Status: queued execution plan; activation and delivery order belong to the roadmap.
+Status: execution specification; the roadmap owns slice disposition.
 
 The [roadmap](../roadmap.md#project-organization-after-r5) selects this maintenance scope after R5.
 [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md) owns the target dependency
@@ -41,6 +41,9 @@ its target location. Include cross-feature imports, generated DTO exposure, barr
 the exact Rust composition functions. Record production, inline-test and dedicated-test sizes for
 large affected owners without applying a universal line cap.
 
+The [dependency baseline inventory](project-organization-inventory.md) maps contracts, native mappings,
+bindings, existing lifecycle authority, consumers and regression owners to the target locations.
+
 Implement a dependency check in the existing quality workflow with a fixed inventory of legacy
 exceptions. New violations fail from this slice onward; each later slice removes its own exceptions.
 The final gate must not accept a fresh baseline generated from arbitrary current violations.
@@ -67,6 +70,12 @@ Separate catalog, folder/time/query reads, layout manifests, previews and source
 Move native DTO and error mappings with their implementations. Keep Provider declarations and
 application projections with their state owners; remove direct bridge dependencies from these use
 cases and presentation. Preserve held-source capabilities and opaque-handle close ownership.
+
+The live mapper dependency closure also includes native scan, duplicate-review, organization,
+organization-batch and review implementations. Their existing contracts and bodies move with the
+shared asset/query mappings in O3, with required bindings in their named capability modules. O4 and
+O5 retain the remaining runtime, service and lifecycle work in their original order; this dependency
+closure does not broaden those workflows or duplicate their scheduling/publication owners.
 
 Exit: bounded paging, filtering, time navigation, preview publication and full-resolution viewing
 retain their contracts. Adapter fixtures and actual affected browsing paths cover failure, stale
@@ -114,14 +123,35 @@ scroll/selection, viewer entry/return, focus and shared feedback retain their ac
 
 ### O7 Repository conformance and handover
 
-Verify the scoped Rust domain/port/API boundaries and the exact production-composition roster.
+Verify Rust domain, ports, application, adapters and API boundaries, including broker/platform
+entrypoints and the exact production-composition roster. Resolve aliases and re-exports before
+checking dependency direction and cross-layer cycles; the frozen inventory is not the complete
+set of paths the final gate must inspect.
 Repair a demonstrated ownership violation in its narrow owner, with its regression, rather than
 bulk moving native code. Keep generated bridge and canonical tool entrypoint paths stable.
+
+Resolve the native inventory in independently reversible groups:
+
+1. Duplicate source-state probing and duplicate/organization resource composition.
+2. Catalog-session, storage and bounded-read boundaries.
+3. Classification execution, configuration, authorized installation and shared decision rules;
+   preserve transaction-local validation when moving pure rules into domain.
+4. Scan admission/publication and preview/source capabilities.
+5. Synchronization, journal and recovery integration, including broker protocol translation behind
+   Ame contracts, followed by the final exception audit.
+
+Each group distinguishes resource factories from use-case policy, establishes only the missing port
+or owner, and retires its exact migration IDs. Retained composition records require a scoped
+architecture decision, lifetime, replacement path and regression owner; their neighboring functions
+receive no admission. Preserve the inventory's original source and mappings for provenance.
 
 Remove migration-only exports, duplicate bindings and legacy exceptions for completed scope. Move
 tests with their owners and update live documentation/tool links; historical evidence retains its
 revision and is not rewritten as a current path map. Check that new feature examples can follow the
 target without importing implementation details or reviving a retired entrypoint.
+
+Complete the [test-value review](../development/testing.md#maintaining-and-pruning-tests) before
+handover. Record retained behavior coverage and actual reductions in the acceptance evidence.
 
 Exit: all target boundaries are covered, remaining exceptions are explicitly accepted technical
 exceptions rather than unfinished migration, and applicable submitted-commit CI and client checks
@@ -133,7 +163,7 @@ Each slice records its affected invariant, public surface, resource lifetime, pr
 boundary. Keep functional behavior changes separate from organizational moves. A pure move retains
 existing assertions; add tests where assembly, ownership, failure or race coverage is missing.
 
-Use [quality-gate ownership](../acceptance/quality-gates.md#required-engineering-workflow): local
+Use [quality-gate ownership](../acceptance/quality/verification-workflow.md#required-engineering-workflow): local
 format/diff preparation and necessary affected-client checks, then normal hosted checks for the
 pushed commit. Use serial lock-aware local commands and the existing controlled test library.
 Do not turn directory migration into another full-library import, model evaluation or performance
@@ -143,7 +173,27 @@ Evidence must cover no duplicate runtime construction, stable Provider scope/dis
 port results/error conversion, preserved cancellation/publication authority and the affected real
 interactions. Startup failure and incomplete bindings are part of composition verification.
 
+After the complete migration, launch the resulting desktop client and check regressions using the
+configured real library with isolated derived storage. Cover startup and retained browsing, queries,
+previews, full-resolution viewing and the affected background workflows. Select bounded checks from
+the existing client/source-safety procedures; preserve original media and catalogs, never hydrate
+placeholders, and reuse installed resources. Record the actual interactions and failures in the
+acceptance record before closing O7.
+
 Revert an owned failing slice with an ordinary commit if required. Revert its bindings, imports,
 tests and live documentation together; preserve unrelated work, catalogs, user decisions and media.
 Retain the useful evidence and continue only from a coherent baseline. No destructive Git operation,
 source mutation, schema reset or release publication is part of this plan.
+
+## Execution baseline and evidence
+
+The authorized branch is `codex/project-organization`, based on merged R5 revision `f74146a4`.
+GitHub runs CI without waiting or blocking subsequent slices. PR metadata describes the complete
+rollout scope and remains stable between explicitly requested updates. Normal hosted checks continue
+independently of scoped local preparation.
+
+The [acceptance record](../acceptance/project-organization.md) owns delivered slices, exact checks,
+failures and limitations. The [handover](../acceptance/project-organization-continuity.md#organization-handover--2026-11-04)
+maps every slice to evidence and retains the pause-timeout observation's disposition. The
+[roadmap queue](../roadmap.md#current-execution-queue) owns remaining work. Completed implementation
+details belong in those records rather than accumulating here.

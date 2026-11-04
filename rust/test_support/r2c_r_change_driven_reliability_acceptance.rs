@@ -15,8 +15,9 @@ use tempfile::tempdir;
 use crate::adapters::{
     FileDiscovery, SqliteCatalog, SqliteCatalogReadExecutor, WatcherRecoveryObservation,
 };
-use crate::application::scan_library::{run_scan_with_storage, stable_id};
+use crate::application::scan_library::run_scan_with_storage;
 use crate::application::storage::StoragePaths;
+use crate::domain::stable_id;
 use crate::domain::{
     AssetLocationView, JournalFileReference, JournalIdentifier, JournalUsn, LibraryRootGeneration,
     PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalCapability,

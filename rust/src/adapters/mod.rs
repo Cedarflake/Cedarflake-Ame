@@ -1,3 +1,5 @@
+mod catalog_capacity;
+pub(crate) use catalog_capacity::LocalCatalogCapacity;
 mod classification_feature_cache;
 #[cfg(all(windows, any(feature = "classification-worker", test)))]
 pub(crate) mod classification_image_input;
@@ -10,21 +12,41 @@ mod durable_local_metadata_inventory;
 mod exact_content_reader;
 mod exif_metadata;
 mod image_orientation;
+#[cfg(windows)]
+mod journal_boundary;
+#[cfg(windows)]
+mod journal_runtime;
+#[cfg(all(windows, test))]
+pub(crate) use journal_runtime::journal_runtime_factory_for_test;
+#[cfg(windows)]
+pub(crate) use journal_runtime::{NativeJournalConnection, production_journal_runtime_factory};
 mod jpeg_preview;
+#[cfg(windows)]
+pub(crate) use journal_boundary::resume_boundary_source;
+#[cfg(all(windows, test))]
+pub(crate) use journal_boundary::session_boundary_source;
 mod local_files;
+pub(crate) use local_files::LocalPublicationNamespaces;
+mod local_source_state;
+pub(crate) use local_source_state::LocalSourceState;
 #[cfg(test)]
 mod local_metadata_inventory;
 mod media_inspector;
+mod persistent_journal;
+#[cfg(test)]
+pub(crate) use persistent_journal::{
+    PersistentJournalBrokerRoot, SessionBackedPersistentJournalVolumeReader,
+};
 #[cfg(windows)]
 pub(crate) mod windows_search_index;
 pub(crate) use exact_content_reader::GuardedExactContentReader;
 mod preview_cache;
+mod preview_cache_storage;
+pub(crate) use preview_cache_storage::LocalPreviewCacheStorage;
 mod sqlite_catalog;
 mod storage_settings;
 #[cfg(windows)]
 mod windows_identity_journal;
-#[cfg(windows)]
-pub(crate) use windows_identity_journal::current_identity_paths;
 #[cfg(windows)]
 pub(crate) use windows_identity_journal::production_factory as production_identity_journal_factory;
 #[cfg(windows)]
@@ -32,9 +54,7 @@ mod windows_library_change_source;
 
 pub use classification_feature_cache::SqliteClassificationFeatureCache;
 #[cfg(all(windows, feature = "classification-worker"))]
-pub(crate) use classification_installation::{
-    ClassificationInstallation, ClassificationInstallationStore, DownloadIntent,
-};
+pub(crate) use classification_installation::ClassificationInstallationStore;
 pub use classification_vocabulary::{
     CuratedClassificationVocabulary, LocalClassificationVocabulary,
 };
@@ -42,18 +62,17 @@ pub(crate) use durable_local_metadata_inventory::DurableLocalMetadataInventory;
 #[cfg(all(windows, test))]
 pub(crate) use local_files::force_publication_namespace_guard_failure_for_test;
 #[cfg(windows)]
+pub(crate) use local_files::locate_library_root;
+#[cfg(test)]
+pub(crate) use local_files::open_preview_source;
+#[cfg(windows)]
 pub(crate) use local_files::open_viewer_source_guard;
 #[cfg(test)]
 pub(crate) use local_files::read_catalog_identity;
-pub use local_files::{
-    FileDiscovery, FileVisitOutcome, inspect_root_availability, revalidate_file_state,
-};
-#[cfg(windows)]
-pub(crate) use local_files::{LocatedLibraryRoot, locate_library_root};
+pub use local_files::{FileDiscovery, inspect_root_availability, revalidate_file_state};
 pub(crate) use local_files::{
-    PreviewCacheNamespace, PreviewPublicationGuard, PublicationGuardedFileDiscovery,
-    open_preview_publication_guard, open_preview_source, revalidate_open_preview_source,
-    user_visible_path,
+    LocalPreviewSources, PreviewCacheNamespace, PreviewPublicationGuard,
+    PublicationGuardedFileDiscovery, revalidate_open_preview_source,
 };
 #[cfg(test)]
 pub(crate) use local_files::{
@@ -72,24 +91,19 @@ pub(crate) use local_metadata_inventory::{
 };
 pub(crate) use media_inspector::LocalMediaInspector;
 pub use preview_cache::LocalPreviewStore;
-pub(crate) use preview_cache::{
-    PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION, PREVIEW_CACHE_VERSION,
-    PREVIEW_ORIENTATION_CONTRACT, PreviewRootPreparation, current_preview_artifact_key,
-    is_ame_preview_cache_entry, is_current_preview_artifact, is_managed_preview_cleanup_entry,
-    open_preview_cache_operation_namespace, prepare_preview_root,
-};
+pub(crate) use preview_cache::open_preview_cache_operation_namespace;
 #[cfg(test)]
 pub(crate) use preview_cache::{
-    fail_next_atomic_replace_for_test, prepare_preview_root_with_namespace_probe,
+    PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION, PREVIEW_CACHE_VERSION,
+    PREVIEW_ORIENTATION_CONTRACT, current_preview_artifact_key, fail_next_atomic_replace_for_test,
+    is_current_preview_artifact, prepare_preview_root, prepare_preview_root_with_namespace_probe,
     replace_file_atomically_for_test, seed_legacy_jpeg_preview,
 };
 pub(crate) use sqlite_catalog::MetadataInventorySpoolExecution;
 pub use sqlite_catalog::SqliteCatalog;
 pub(crate) use sqlite_catalog::{
-    RejectedInputValidationRoster, SqliteCatalogReadExecutor, SqliteCatalogSession,
-    SqliteCatalogSpaceMaintenance, SqliteJournalNamespaceReader, SqliteOrganizationBatch,
-    StagedValidationOutcome, StagedValidationRoster, ValidatedStagingProof,
-    load_retained_scan_issue_window, retained_scan_has_unclassified_issues,
+    SqliteCatalogReadExecutor, SqliteCatalogSession, SqliteCatalogSpaceMaintenance,
+    SqliteOrganizationBatch,
 };
 #[cfg(test)]
 pub(crate) use sqlite_catalog::{

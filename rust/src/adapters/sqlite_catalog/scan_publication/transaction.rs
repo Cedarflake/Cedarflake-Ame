@@ -1,14 +1,14 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use crate::domain::{LibraryChangeLane, ScanError};
+use crate::domain::{LibraryChangeLane, ScanError, ScanPublicationReceipt};
 use crate::ports::ScanPublicationControl;
 
 use super::super::{
     SqliteCatalog, SqliteWritePreemptCallback, database_error, load_scan_catch_up_lineage,
     sqlite_integer, sqlite_unsigned, unix_time_ms,
 };
-use super::{ScanPublicationProof, ScanPublicationReceipt};
+use super::ScanPublicationProof;
 
 const PUBLICATION_PROGRESS_OPERATION_INTERVAL: i32 = 1_000;
 

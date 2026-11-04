@@ -4,7 +4,6 @@ pub use crate::adapters::{
 };
 #[cfg(all(windows, feature = "classification-worker"))]
 pub use crate::application::classification_analysis::analyze_classification_content;
-pub use crate::application::classification_decisions::plan_classification_change;
 pub use crate::application::classification_discovery::{
     CategoryAdmission, CategoryAdmissionCandidate, CategoryAdmissionCriteria,
     CategoryAdmissionDisposition, CategoryAdmissionPolicy, CategoryExpansionAssessment,
@@ -62,6 +61,7 @@ pub use crate::domain::classification::maintenance::{
     CategoryRetirementPlan, CategoryRetirementSnapshot, EquivalentCategoryRetirement,
     ManagedCategoryOrigin,
 };
+pub use crate::domain::classification::plan_classification_change;
 pub use crate::domain::classification::work::{
     ClassificationAnalysisResult, ClassificationBacklogPage, ClassificationDispatchCommand,
     ClassificationDispatchMode, ClassificationDispatchState, ClassificationRecoveryCursor,

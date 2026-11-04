@@ -9,7 +9,6 @@ use super::super::recovery_sources::{RecoverySourceTransfer, RecoverySources};
 use super::{
     RecoveryTask, RecoveryTaskKind, RecoveryTaskOutcome, RecoveryWorkPolicy, RecoveryWorkRoot,
 };
-use crate::adapters::SqliteCatalogSession;
 use crate::application::{
     AuthoritativeLibraryChangeReport, MetadataInventoryProgressPhase,
     MetadataInventoryRecoveryExecution, MetadataInventoryRecoveryPage,
@@ -21,20 +20,30 @@ use crate::application::{
 use crate::domain::{
     LeasedLibraryChange, LibraryChangeLane, LibrarySynchronizationPhase, ScanError,
 };
-use crate::ports::IncrementalCatalogRepository;
+use crate::ports::catalog_session::CatalogLaneSession;
+use crate::ports::search_index::{IndexedRecoveryRepository, SearchIndex};
+use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue};
 
 #[cfg(test)]
 thread_local! { static FAIL_NEXT_RECOVERY_WORKER_SPAWN: Cell<bool> = const { Cell::new(false) }; }
 
-pub(in super::super) fn start(
+fn new_production_search_index() -> impl SearchIndex {
+    crate::adapters::windows_search_index::WindowsSearchIndex
+}
+
+pub(in super::super) fn start<Session>(
     root: RecoveryWorkRoot,
     leased: LeasedLibraryChange,
     now_unix_ms: i64,
-    catalog_session: Arc<SqliteCatalogSession>,
+    catalog_session: Arc<Session>,
     policy: RecoveryWorkPolicy,
     sources: &mut RecoverySources,
     preparation: RecoveryPreparation,
-) -> Result<RecoveryTask, ScanError> {
+) -> Result<RecoveryTask, ScanError>
+where
+    Session: CatalogLaneSession,
+    Session::Catalog: IndexedRecoveryRepository + LibraryChangeQueue,
+{
     let RecoveryWorkRoot {
         root_id,
         root_generation,
@@ -128,7 +137,7 @@ pub(in super::super) fn start(
                 if matches!(preparation, RecoveryPreparation::IndexedStartup) {
                     if let Err(error) = crate::application::indexed_startup::prepare(
                         &mut catalog,
-                        &crate::adapters::windows_search_index::WindowsSearchIndex,
+                        &new_production_search_index(),
                         &root,
                         &leased,
                         now_unix_ms,

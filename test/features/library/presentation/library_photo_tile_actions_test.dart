@@ -11,6 +11,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "../../../support/duplicate_review_fixtures.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 void main() {
   const count = 9223372036854775807;
   for (final mode in LibraryGalleryDuplicateMode.values) {
@@ -25,7 +27,7 @@ void main() {
           var annotationRequests = 0;
           await tester.pumpWidget(
             ProviderScope(
-              overrides: [
+              overrides: applicationTestOverrides([
                 libraryControllerProvider.overrideWith(
                   () => ReviewFixtureLibrary(duplicateMode: mode),
                 ),
@@ -33,7 +35,7 @@ void main() {
                   annotationRequests++;
                   return groups.future;
                 }),
-              ],
+              ]),
               child: MaterialApp(
                 theme: ThemeData(useMaterial3: true),
                 builder: (context, child) => MediaQuery(

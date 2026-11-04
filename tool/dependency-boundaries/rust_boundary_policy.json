@@ -1,0 +1,1116 @@
+{
+  "activeIds": [],
+  "retainedOwners": {
+    "classification-tool-exports": {
+      "responsibility": "Expose the three native vocabulary and feature-cache constructors used by repository tools",
+      "reason": "Existing classification probe and cache-export entrypoints select these concrete implementations; alias resolution still identifies them as adapters for all consumers.",
+      "lifetime": "The facade only re-exports names. Each tool owns its opened vocabulary or cache and retains the implementation's existing read and close behavior.",
+      "replacement": "Replace the three tool constructors and their adapter contract implementations together while preserving public tool entrypoints and port results.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#native-tool-entrypoints",
+      "coverage": [
+        "rust/examples/classification_cache_export.rs",
+        "rust/examples/classification_worker_probe/discovery/context_vocabulary.rs",
+        "rust/src/adapters/classification_feature_cache/tests.rs",
+        "rust/src/adapters/classification_vocabulary/tests.rs",
+        "rust/src/adapters/classification_vocabulary/curated/tests.rs"
+      ]
+    },
+    "duplicate-native-readers": {
+      "responsibility": "Construct the admitted fingerprint reader and metadata-only source-state probe",
+      "reason": "The factories select native implementations behind Ame ports; availability and analysis policy stay in application owners.",
+      "lifetime": "One stateless probe per inspection; fingerprint leases retain the existing shared background admission and held source until publication.",
+      "replacement": "Replace these two factories through ExactContentReader and SourceStateProbe while retaining lease and source-safety contracts.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#duplicate-and-organization-composition",
+      "coverage": [
+        "rust/src/application/exact_duplicates/availability/tests.rs",
+        "rust/src/application/exact_duplicates/execution/tests.rs",
+        "rust/src/application/background_analysis/exact_reader/tests.rs"
+      ]
+    },
+    "organization-catalog-composition": {
+      "responsibility": "Open lane-scoped catalog handles for duplicate review and virtual organization",
+      "reason": "These named factories select storage and the existing validated catalog session; callers use repository ports and adapters retain transactions.",
+      "lifetime": "The caller owns each handle; duplicate member reads release it before source inspection, and organization operations retain their transaction boundaries.",
+      "replacement": "Replace catalog-session construction together with the repository implementations without changing validation or operation policy.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#duplicate-and-organization-composition",
+      "coverage": [
+        "rust/src/adapters/sqlite_catalog/exact_duplicates/tests/review.rs",
+        "rust/src/adapters/sqlite_catalog/organization/tests.rs"
+      ]
+    },
+    "organization-batch-composition": {
+      "responsibility": "Acquire a bounded organization-selection session and its repository",
+      "reason": "The constructor acquires a permit and shared cancellation control, then selects the batch adapter; later operations consume OrganizationBatchRepository.",
+      "lifetime": "ActiveSelection owns the repository and capacity permit; failed construction drops the permit, and close signals cancellation before joined retirement.",
+      "replacement": "Substitute the batch repository at this constructor while preserving permit, cancellation and close ownership.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#duplicate-and-organization-composition",
+      "coverage": [
+        "rust/src/application/organization_batch/tests.rs",
+        "rust/src/adapters/sqlite_catalog/organization/tests/batch.rs"
+      ]
+    },
+    "catalog-session-composition": {
+      "responsibility": "Shared validated catalog session, validation flights and lane-scoped connection factories",
+      "reason": "These resource hosts retain adapter-owned identity/schema proof while application owns shared waiters, invalidation, backoff and foreground-scan exclusion.",
+      "lifetime": "One shared validation owner per catalog path; failed or invalidated flights wake their original waiters, and current-session identity guards scan acquisition and stale replacement.",
+      "replacement": "Replace the proof and connection factories together with persistence while retaining shared validation, scan protection, lane selection and caller-owned connections.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#validated-catalog-session",
+      "coverage": [
+        "rust/src/application/catalog_session/tests.rs",
+        "rust/src/application/catalog_session/maintenance/tests.rs"
+      ]
+    },
+    "catalog-reclamation-composition": {
+      "responsibility": "Select the catalog maintenance repository and native available-capacity probe",
+      "reason": "The factories construct path-scoped or stateless adapters behind existing maintenance operations and the capacity port; execution and retry policy consume the ports.",
+      "lifetime": "The maintenance value holds its path only; each adapter operation retires its connection, permit and interruption registration. Capacity queries retain no handle or output pointer.",
+      "replacement": "Replace the factory selections and port implementations while preserving operation identity, maintenance admission, source safety and terminal publication.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#catalog-reclamation-resources",
+      "coverage": [
+        "rust/src/application/catalog_reclamation/execution/tests.rs",
+        "rust/src/application/catalog_reclamation/tests.rs",
+        "rust/src/adapters/catalog_capacity.rs"
+      ]
+    },
+    "catalog-read-source-composition": {
+      "responsibility": "Select the metadata-only source-state probe for catalog root availability",
+      "reason": "The factory selects the native implementation through SourceStateProbe; root projection consumes Ame availability evidence.",
+      "lifetime": "A stateless probe is selected after preview reconciliation and recovery scheduling; it reads root metadata only and retains no source handle.",
+      "replacement": "Replace the source-state factory through its port without moving snapshot projection, read retry or preview recovery ownership.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#catalog-read-capabilities",
+      "coverage": [
+        "rust/src/application/load_catalog/root_availability/tests.rs",
+        "rust/src/application/load_catalog.rs"
+      ]
+    },
+    "storage-composition": {
+      "responsibility": "Select settings persistence, preview-cache capabilities and OS default locations",
+      "reason": "Only these factories select native implementations; application retains validation, transition admission, budgets and activation policy.",
+      "lifetime": "Settings callers own the original connection scope; cleanup and recovery retain observed namespace guards through completion, while default-path selection acquires no resource.",
+      "replacement": "Replace the settings/cache ports and OS directory selection without changing restart policy, overlap checks or pending-root retirement.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#storage-resources-and-layout",
+      "coverage": [
+        "rust/src/application/storage/tests.rs",
+        "rust/src/application/storage/tests/activation_tests.rs",
+        "rust/src/application/storage/catalog_admission/tests.rs",
+        "rust/src/application/preview_cleanup/source_admission_tests.rs",
+        "rust/src/application/preview_recovery/namespace_tests.rs",
+        "rust/src/application/storage/tests/preview_capability_tests.rs"
+      ]
+    },
+    "classification-execution-composition": {
+      "responsibility": "Own the native dispatcher, lazily acquired feature cache and encoder residency resources",
+      "reason": "These exact host types and acquisition methods connect the existing repository, encoder and execution ports without owning SQL or native inference protocols.",
+      "lifetime": "One process runtime retains its catalog and executor; feature/matcher acquisition is lazy, borrowed resources stay inside that host, and failed retirement prevents replacement.",
+      "replacement": "Replace the host concrete resource types and native factory together while retaining dispatcher, feature, encoder, source and retirement contracts.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#classification-execution-resources",
+      "coverage": [
+        "rust/src/application/classification_runtime/ownership.rs",
+        "rust/src/application/classification_runtime/tests.rs",
+        "rust/src/application/classification_residency/tests.rs"
+      ]
+    },
+    "classification-source-composition": {
+      "responsibility": "Select guarded image and exact-content readers under the shared background admission",
+      "reason": "These entrypoints acquire native resources and delegate analysis/verification to existing Ame repository and source-reader ports.",
+      "lifetime": "Content admission precedes catalog acquisition and outlives source retirement; exact-reader leases retain admission and namespace handles through publication or rollback.",
+      "replacement": "Replace the selected guarded readers through ClassificationImageReader and ExactContentReader while preserving claim revalidation, source retirement and shared admission.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#classification-execution-resources",
+      "coverage": [
+        "rust/src/adapters/sqlite_catalog/classification/tests/work/analysis.rs",
+        "rust/src/adapters/sqlite_catalog/classification/tests/work/verification.rs",
+        "rust/src/application/background_analysis/exact_reader/tests.rs"
+      ]
+    },
+    "classification-vocabulary-composition": {
+      "responsibility": "Select the bundled managed classification vocabulary through its Ame contract",
+      "reason": "The factory owns the concrete vocabulary selection; discovery consumes repository ports and the vocabulary metadata/read contract.",
+      "lifetime": "The stateless factory runs only when the current pass needs vocabulary; the pass retains its vocabulary and naming contexts until invalidation, completion or release.",
+      "replacement": "Replace this factory and managed vocabulary implementation while preserving catalog revisions, naming contexts, cancellation and the notification-scoped pass lifecycle.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#classification-discovery-resources",
+      "coverage": [
+        "rust/src/adapters/classification_vocabulary/curated/tests.rs",
+        "rust/src/application/classification_discovery/tests/preparation.rs",
+        "rust/src/adapters/sqlite_catalog/classification/tests/work/dispatch/maintenance.rs"
+      ]
+    },
+    "classification-installation-composition": {
+      "responsibility": "Select installation persistence, the pinned native model package and OS model storage",
+      "reason": "Three stateless factories bind Ame installation and prepared-resource contracts; configuration, recovery and publication consume those contracts.",
+      "lifetime": "Construction opens no database or model; each operation retains its transaction or verified file/namespace guards, and the application installation owner spans preparation and publication.",
+      "replacement": "Replace persistence or the model package behind these contracts while preserving durable intent generations, atomic selection, fixed artifact verification and guarded retirement before publication.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#classification-installation-resources",
+      "coverage": [
+        "rust/src/adapters/classification_installation/task/tests.rs",
+        "rust/src/adapters/classification_runtime/installation/tests.rs",
+        "rust/src/adapters/classification_runtime/installation/bundle_tests.rs",
+        "rust/src/application/classification_model_installation/tests.rs",
+        "rust/src/application/classification_model_installation/operation/tests.rs",
+        "rust/src/application/classification_configuration/tests.rs",
+        "rust/src/application/classification_desktop/tests.rs"
+      ]
+    },
+    "preview-store-composition": {
+      "responsibility": "Own the selected native preview store and operation-scoped cache namespace",
+      "reason": "The resource host selects a store only under generation or reclamation access and keeps namespace identity across their bounded capacity handoff.",
+      "lifetime": "The operation retains its namespace guard; each acquired access selects the current store, while registry inventory runs outside the short publication lock.",
+      "replacement": "Replace namespace and store construction together while preserving access-first selection, shared current accounting, invalidation and guarded namespace retirement.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#preview-store-resources",
+      "coverage": [
+        "rust/src/application/preview/tests/store_reacquisition.rs"
+      ]
+    },
+    "viewer-source-composition": {
+      "responsibility": "Acquire and retain the native source and namespace guard for one bounded viewer lease",
+      "reason": "The exact guard factory and private lease field are a resource boundary; request, catalog and capacity policy remain outside the admitted edges.",
+      "lifetime": "Catalog authority is checked before and after native acquisition; the lease releases its file/ancestor guard before returning process source capacity.",
+      "replacement": "Replace guarded native acquisition while preserving no-follow/no-recall behavior, complete namespace retention, stale-catalog rejection and the opaque bridge close contract.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#viewer-source-resources",
+      "coverage": [
+        "rust/src/application/viewer_source/tests.rs",
+        "rust/src/adapters/local_files/viewer_source_guard/tests.rs"
+      ]
+    },
+    "scan-source-composition": {
+      "responsibility": "Select pinned source discovery, publication namespaces, metadata-only revalidation and media inspection for a foreground scan",
+      "reason": "Only named resource factories choose concrete adapters; scan admission, traversal, validation and publication consume Ame ports and domain values.",
+      "lifetime": "The configured-root proof outlives borrowed directory cursors; publication namespaces retain root and ancestor bindings through admission or publication, while the stateless probe grants no namespace authority.",
+      "replacement": "Replace native selections through their ports while preserving root acquisition order, no-follow/no-recall admission, held-handle evidence, cancellation and bounded traversal.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#scan-source-resources",
+      "coverage": [
+        "rust/src/application/scan_library/tests.rs",
+        "rust/src/adapters/local_files/scan_enumeration/tests.rs",
+        "rust/src/adapters/local_files/file_admission/tests.rs",
+        "rust/src/application/scan_library/root_coverage_tests.rs",
+        "rust/src/application/scan_library/root_consolidation/tests.rs",
+        "rust/src/application/scan_library/relocation_tests.rs"
+      ]
+    },
+    "preview-source-composition": {
+      "responsibility": "Select admitted preview-source, metadata identity-location and open-media inspection capabilities",
+      "reason": "The factories expose Ame contracts while initial read admission, source mismatch handling and publication policy keep their existing application owners.",
+      "lifetime": "Initial source reading follows catalog/root admission; fresh publication protection follows decode revalidation and retains source/ancestor guards through catalog publication or rollback. Missing-source identity lookup retains its operation-scoped root and identity guards; guarded path reconciliation retains publication authority.",
+      "replacement": "Replace source, identity-location and media-inspection selections through their ports while preserving no-recall admission, root/file identity checks, bounded metadata lookup, acquisition points and drop order.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#preview-source-resources",
+      "coverage": [
+        "rust/src/application/preview.rs",
+        "rust/src/application/preview/tests/source_reconciliation.rs",
+        "rust/src/application/preview/tests/failure.rs",
+        "rust/src/adapters/local_files/file_revalidation/tests.rs",
+        "rust/src/application/preview/tests/source_reconciliation/relocated_source.rs"
+      ]
+    },
+    "incremental-source-composition": {
+      "responsibility": "Select publication-bound source access and guarded media inspection",
+      "reason": "Incremental changes, preview reconciliation, indexed startup and metadata recovery consume source contracts while retaining their lease, evidence and catalog-publication policy.",
+      "lifetime": "The admitted root and ancestor namespace remains held through preparation, source revalidation and publication or rollback; media readers retain their original open and drop scopes.",
+      "replacement": "Replace the source and inspector port implementations without reopening mutable absolute paths, changing no-recall admission or altering queue authority and transaction order.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#incremental-source-resources",
+      "coverage": [
+        "rust/src/application/incremental_library_changes/tests.rs",
+        "rust/src/application/authoritative_library_changes/tests.rs",
+        "rust/src/application/metadata_inventory/tests.rs",
+        "rust/src/application/metadata_inventory/tests/indexed_startup.rs",
+        "rust/src/application/incremental_library_changes/tests/preparation_rebase.rs",
+        "rust/src/application/incremental_library_changes/tests/authoritative_path_rebase.rs",
+        "rust/src/application/preview/tests/source_reconciliation.rs",
+        "rust/src/adapters/local_files/file_admission/tests.rs"
+      ]
+    },
+    "indexed-recovery-composition": {
+      "responsibility": "Select the optional platform search index behind SearchIndex",
+      "reason": "Only the named factory selects Windows Search; the recovery worker consumes catalog ports and indexed preparation owns hint admission.",
+      "lifetime": "The stateless index is selected inside the admitted Recovery worker after root revalidation; its read owns and retires the COM apartment and cursor.",
+      "replacement": "Replace the SearchIndex implementation without changing recovery selection, cancellation, bounded hint reads, source verification or journal failure fallback.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#indexed-recovery-resources",
+      "coverage": [
+        "rust/src/adapters/windows_search_index.rs",
+        "rust/src/application/metadata_inventory/tests/indexed_startup.rs",
+        "rust/src/application/library_synchronization/production/tests/indexed_startup.rs"
+      ]
+    },
+    "root-location-composition": {
+      "responsibility": "Select metadata-only directory identity discovery behind the held namespace contract",
+      "reason": "Only the named factory selects the Windows locator; application recovery scheduling and catalog publication consume Ame contracts.",
+      "lifetime": "The located value retains its original directory and ancestor guards through identity revalidation, the recovery transaction and terminal worker retirement.",
+      "replacement": "Replace the locator and PublicationNamespace implementation without changing no-recall admission, cancellation, catalog generation checks or atomic recovery publication.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#root-location-resources",
+      "coverage": [
+        "rust/src/adapters/local_files/root_location/tests.rs",
+        "rust/src/adapters/sqlite_catalog/root_location_recovery/tests.rs",
+        "rust/src/application/library_synchronization/production/root_location/tests.rs",
+        "rust/src/application/library_synchronization/production/tests/root_location_recovery.rs"
+      ]
+    },
+    "synchronization-catalog-resources": {
+      "responsibility": "Bind the validated worker session and own the retained poll connection and cleanup connection factory",
+      "reason": "The named resource owners acquire and retire native proof/connections; scheduling, cleanup and status projection consume persistence ports.",
+      "lifetime": "One path-bound poll connection is checked out at a time; worker factories retain the existing shared proof, refresh through the scan-protected owner and close outside transition locks.",
+      "replacement": "Replace these session and connection resources together while preserving epoch binding, proof identity, worker handoff, retained WAL and joined retirement.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#validated-catalog-session",
+      "coverage": [
+        "rust/src/application/library_synchronization/production/poll_catalog/tests.rs",
+        "rust/src/application/library_synchronization/production/runtime_lifecycle/tests/poll_catalog.rs",
+        "rust/src/application/library_synchronization/production/inventory_cleanup/tests.rs",
+        "rust/src/application/library_synchronization/production/inventory_cleanup/tests/production_debt.rs",
+        "rust/src/application/library_synchronization/production/recovery_sources/tests.rs"
+      ]
+    },
+    "synchronization-source-state-composition": {
+      "responsibility": "Select the metadata-only root-availability probe through SourceStateProbe",
+      "reason": "Only the named factory chooses LocalSourceState; the synchronization runtime consumes Ame availability evidence.",
+      "lifetime": "The stateless probe is selected at the existing root observation point and retains no source handle or content reader.",
+      "replacement": "Replace the probe through SourceStateProbe while preserving no-recall metadata inspection and existing availability projection.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#synchronization-source-state",
+      "coverage": [
+        "rust/src/application/library_synchronization/production/tests/root_availability.rs",
+        "rust/src/adapters/local_files.rs"
+      ]
+    },
+    "journal-boundary-composition": {
+      "responsibility": "Select an independently owned journal boundary source for scan resume",
+      "reason": "The named factory selects the protocol adapter; resume verification consumes a typed boundary and root lease.",
+      "lifetime": "Selection acquires no resources. The root lease survives verification; the independent connection closes after verification and retires before the root guard.",
+      "replacement": "Replace the resume source through its port while preserving root identity, error precedence, verification authority and connection close.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#journal-boundary-resources",
+      "coverage": [
+        "rust/src/adapters/journal_boundary/tests.rs",
+        "rust/src/application/library_synchronization/journal_baseline.rs",
+        "rust/src/application/library_synchronization/journal_baseline/opening/tests.rs",
+        "rust/src/application/library_synchronization/production/tests/first_import.rs",
+        "rust/src/application/library_synchronization/production/ordinary_journal/import_resumption.rs",
+        "rust/src/application/scan_library/resumption_tests.rs"
+      ]
+    },
+    "journal-runtime-composition": {
+      "responsibility": "Bind the production journal connection type and select its native factory",
+      "reason": "The generic coordinator consumes journal lifecycle and reader ports; the native adapter owns connection/caller admission, protocol bindings and close-error translation.",
+      "lifetime": "One connection opens after watcher startup; all readers share it. Runtime retirement retains the original close worker, failure outcome and replacement fence.",
+      "replacement": "Replace the default connection type and factory through journal runtime, boundary and volume ports without changing scheduling, publication, cancellation or joined retirement.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#journal-runtime-resources",
+      "coverage": [
+        "rust/src/application/library_synchronization/production/runtime_lifecycle/tests/journal_sessions.rs",
+        "rust/src/application/library_synchronization/production/runtime_lifecycle/tests/shutdown.rs",
+        "rust/src/application/library_synchronization/production/tests/startup.rs",
+        "rust/src/application/library_synchronization/production/tests/journal_baseline.rs",
+        "rust/src/application/library_synchronization/production/ordinary_journal.rs",
+        "rust/src/application/library_synchronization/production/ordinary_journal/import_resumption.rs"
+      ]
+    },
+    "synchronization-observation-composition": {
+      "responsibility": "Bind the poll catalog ingress reservation and select the native observation starter",
+      "reason": "The reservation stays opaque behind LibraryChangeIngress and the generic handoff; observers consume LibraryChangeSource. Only these two production bindings select native types or implementations.",
+      "lifetime": "Each observer owns its source until joined retirement. The handoff retains its unpublished plan and writer position through contention, releasing admission on completion, other failures, stop or root removal.",
+      "replacement": "Replace the source factory through its port; replace the reservation and poll catalog ingress implementation together while preserving ordering, transaction-local validation, rollback and publication authority.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#synchronization-observation-resources",
+      "coverage": [
+        "rust/src/application/library_synchronization/tests/observer_contention.rs",
+        "rust/src/adapters/sqlite_catalog/change_queue/ingress/tests.rs",
+        "rust/src/application/library_synchronization/production/tests/startup.rs",
+        "rust/src/application/library_synchronization/production/runtime_lifecycle/tests/shutdown.rs"
+      ]
+    }
+  },
+  "retained": [
+    {
+      "id": "classification-tool-curated-vocabulary",
+      "owner": "classification-tool-exports",
+      "dependency": {
+        "source": "rust/src/classification.rs",
+        "symbol": "crate::classification::export::CuratedClassificationVocabulary",
+        "target": "crate::adapters::classification_vocabulary::curated::CuratedClassificationVocabulary",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-tool-local-vocabulary",
+      "owner": "classification-tool-exports",
+      "dependency": {
+        "source": "rust/src/classification.rs",
+        "symbol": "crate::classification::export::LocalClassificationVocabulary",
+        "target": "crate::adapters::classification_vocabulary::LocalClassificationVocabulary",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-tool-feature-cache",
+      "owner": "classification-tool-exports",
+      "dependency": {
+        "source": "rust/src/classification.rs",
+        "symbol": "crate::classification::export::SqliteClassificationFeatureCache",
+        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "duplicate-review-catalog",
+      "owner": "organization-catalog-composition",
+      "dependency": {
+        "source": "rust/src/application/exact_duplicate_review.rs",
+        "symbol": "crate::application::exact_duplicate_review::open_catalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "organization-catalog",
+      "owner": "organization-catalog-composition",
+      "dependency": {
+        "source": "rust/src/application/organization.rs",
+        "symbol": "crate::application::organization::open_catalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "organization-batch",
+      "owner": "organization-batch-composition",
+      "dependency": {
+        "source": "rust/src/application/organization_batch.rs",
+        "symbol": "crate::application::organization_batch::OrganizationBatchSession::open",
+        "target": "crate::adapters::sqlite_catalog::organization::batch::SqliteOrganizationBatch",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "duplicate-content-reader",
+      "owner": "duplicate-native-readers",
+      "dependency": {
+        "source": "rust/src/application/exact_duplicates/production.rs",
+        "symbol": "crate::application::exact_duplicates::production::content_reader",
+        "target": "crate::adapters::exact_content_reader::GuardedExactContentReader",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "duplicate-source-state",
+      "owner": "duplicate-native-readers",
+      "dependency": {
+        "source": "rust/src/application/exact_duplicates/production.rs",
+        "symbol": "crate::application::exact_duplicates::production::source_state",
+        "target": "crate::adapters::local_source_state::LocalSourceState",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-session-state",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogSessionState",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-validation-decision",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogValidationDecision",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-validation-flight",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogValidationFlight",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-validation-complete",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogValidationFlight::complete",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-validation-wait",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::CatalogValidationFlight::wait",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-open",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::open_catalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-foreground-open",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::open_catalog_for_foreground_scan",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-foreground-session",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::open_catalog_for_foreground_scan",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-reader",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::open_catalog_reader",
+        "target": "crate::adapters::sqlite_catalog::read_retry::SqliteCatalogReadExecutor",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-refresh",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::refresh_stale_catalog_session",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-refresh-for-scan",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::refresh_stale_catalog_session_for_scan",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-validate",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::validated_catalog_session",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-validate-with",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::validated_catalog_session_with",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-validate-with-exemption",
+      "owner": "catalog-session-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_session.rs",
+        "symbol": "crate::application::catalog_session::validated_catalog_session_with_exemption",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-reclamation-maintenance",
+      "owner": "catalog-reclamation-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_reclamation/production.rs",
+        "symbol": "crate::application::catalog_reclamation::production::maintenance",
+        "target": "crate::adapters::sqlite_catalog::reclamation::SqliteCatalogSpaceMaintenance",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-reclamation-capacity",
+      "owner": "catalog-reclamation-composition",
+      "dependency": {
+        "source": "rust/src/application/catalog_reclamation/production.rs",
+        "symbol": "crate::application::catalog_reclamation::production::capacity",
+        "target": "crate::adapters::catalog_capacity::LocalCatalogCapacity",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "catalog-read-source-state",
+      "owner": "catalog-read-source-composition",
+      "dependency": {
+        "source": "rust/src/application/load_catalog/production.rs",
+        "symbol": "crate::application::load_catalog::production::source_state",
+        "target": "crate::adapters::local_source_state::LocalSourceState",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "storage-settings",
+      "owner": "storage-composition",
+      "dependency": {
+        "source": "rust/src/application/storage/production.rs",
+        "symbol": "crate::application::storage::production::settings",
+        "target": "crate::adapters::storage_settings::SqliteStorageSettings",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "storage-preview-cache",
+      "owner": "storage-composition",
+      "dependency": {
+        "source": "rust/src/application/storage/production.rs",
+        "symbol": "crate::application::storage::production::preview_cache",
+        "target": "crate::adapters::preview_cache_storage::LocalPreviewCacheStorage",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "storage-default-storage",
+      "owner": "storage-composition",
+      "dependency": {
+        "source": "rust/src/application/storage/production.rs",
+        "symbol": "crate::application::storage::production::default_storage",
+        "target": "directories::ProjectDirs::from",
+        "rule": "external-engine"
+      }
+    },
+    {
+      "id": "classification-source-image",
+      "owner": "classification-source-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_analysis.rs",
+        "symbol": "crate::application::classification_analysis::analyze_classification_content",
+        "target": "crate::adapters::classification_image_input::GuardedClassificationImageReader",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-source-fingerprint",
+      "owner": "classification-source-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_verification.rs",
+        "symbol": "crate::application::classification_verification::verify_classification_source",
+        "target": "crate::adapters::exact_content_reader::GuardedExactContentReader",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-runtime-host",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime.rs",
+        "symbol": "crate::application::classification_runtime::NativeClassificationRuntime",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-feature-resources",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::FeatureResources",
+        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-encoder-residency",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeEncoderResidency",
+        "target": "crate::adapters::classification_runtime::factory::LocalClassificationEncoderFactory",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-executor-host",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor",
+        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-executor-analysis-acquisition",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::analyze",
+        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-feature-acquisition",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::feature_resources",
+        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-executor-construction",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/executor.rs",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::new",
+        "target": "crate::adapters::classification_runtime::factory::LocalClassificationEncoderFactory",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-vocabulary",
+      "owner": "classification-vocabulary-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/production.rs",
+        "symbol": "crate::application::classification_runtime::production::vocabulary",
+        "target": "crate::adapters::classification_vocabulary::curated::CuratedClassificationVocabulary",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-installation-repository",
+      "owner": "classification-installation-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation/production.rs",
+        "symbol": "crate::application::classification_model_installation::production::installation_repository",
+        "target": "crate::adapters::classification_installation::ClassificationInstallationStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-model-package",
+      "owner": "classification-installation-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation/production.rs",
+        "symbol": "crate::application::classification_model_installation::production::model_package",
+        "target": "crate::adapters::classification_runtime::package::LocalClassificationModelPackage",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "classification-model-storage",
+      "owner": "classification-installation-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_model_installation/production.rs",
+        "symbol": "crate::application::classification_model_installation::production::model_storage",
+        "target": "directories::ProjectDirs::from",
+        "rule": "external-engine"
+      }
+    },
+    {
+      "id": "preview-active-store",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::ActiveStore",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-operation-source",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewOperationSource",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-store-admission",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewStoreAdmission",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-store-source",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewStoreSource",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-operation-namespace",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewStoreSource<'a>::operation",
+        "target": "crate::adapters::preview_cache::preparation::open_preview_cache_operation_namespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-store-resolution",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::PreviewStoreSource<'a>::resolve",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-resolved-store",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::ResolvedStore",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-store-match-namespace",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::matching_store",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-store-match-instance",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::matching_store",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-active-store-namespace",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::resolve_active_store",
+        "target": "crate::adapters::local_files::preview_cache_namespace::PreviewCacheNamespace",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-active-store-construction",
+      "owner": "preview-store-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/store_admission.rs",
+        "symbol": "crate::application::preview::store_admission::resolve_active_store",
+        "target": "crate::adapters::preview_cache::LocalPreviewStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "viewer-source-lease",
+      "owner": "viewer-source-composition",
+      "dependency": {
+        "source": "rust/src/application/viewer_source.rs",
+        "symbol": "crate::application::viewer_source::ViewerSourceLease",
+        "target": "crate::adapters::local_files::PreviewPublicationGuard",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "viewer-source-guard-result",
+      "owner": "viewer-source-composition",
+      "dependency": {
+        "source": "rust/src/application/viewer_source.rs",
+        "symbol": "crate::application::viewer_source::acquire_guard",
+        "target": "crate::adapters::local_files::PreviewPublicationGuard",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "viewer-source-guard-acquisition",
+      "owner": "viewer-source-composition",
+      "dependency": {
+        "source": "rust/src/application/viewer_source.rs",
+        "symbol": "crate::application::viewer_source::acquire_guard",
+        "target": "crate::adapters::local_files::viewer_source_guard::open_viewer_source_guard",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "scan-file-discovery-factory",
+      "owner": "scan-source-composition",
+      "dependency": {
+        "source": "rust/src/application/scan_library/production.rs",
+        "symbol": "crate::application::scan_library::production::file_discovery",
+        "target": "crate::adapters::local_files::FileDiscovery",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "scan-media-inspector-factory",
+      "owner": "scan-source-composition",
+      "dependency": {
+        "source": "rust/src/application/scan_library/production.rs",
+        "symbol": "crate::application::scan_library::production::media_inspector",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "scan-publication-namespace-factory",
+      "owner": "scan-source-composition",
+      "dependency": {
+        "source": "rust/src/application/scan_library/production.rs",
+        "symbol": "crate::application::scan_library::production::publication_namespaces",
+        "target": "crate::adapters::local_files::publication_namespace::LocalPublicationNamespaces",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "scan-source-state-factory",
+      "owner": "scan-source-composition",
+      "dependency": {
+        "source": "rust/src/application/scan_library/production.rs",
+        "symbol": "crate::application::scan_library::production::source_state",
+        "target": "crate::adapters::local_source_state::LocalSourceState",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-source-factory",
+      "owner": "preview-source-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/production.rs",
+        "symbol": "crate::application::preview::production::sources",
+        "target": "crate::adapters::local_files::preview_source::LocalPreviewSources",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "preview-source-media-inspector-factory",
+      "owner": "preview-source-composition",
+      "dependency": {
+        "source": "rust/src/application/preview/production.rs",
+        "symbol": "crate::application::preview::production::media_inspector",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "incremental-publication-source-factory",
+      "owner": "incremental-source-composition",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/production.rs",
+        "symbol": "crate::application::incremental_library_changes::production::publication_namespaces",
+        "target": "crate::adapters::local_files::publication_namespace::LocalPublicationNamespaces",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "incremental-media-inspector-factory",
+      "owner": "incremental-source-composition",
+      "dependency": {
+        "source": "rust/src/application/incremental_library_changes/production.rs",
+        "symbol": "crate::application::incremental_library_changes::production::media_inspector",
+        "target": "crate::adapters::media_inspector::LocalMediaInspector",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "indexed-recovery-search-factory",
+      "owner": "indexed-recovery-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/recovery_work/automatic.rs",
+        "symbol": "crate::application::library_synchronization::production::recovery_work::automatic::new_production_search_index",
+        "target": "crate::adapters::windows_search_index::WindowsSearchIndex",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "root-location-factory",
+      "owner": "root-location-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/root_location.rs",
+        "symbol": "crate::application::library_synchronization::production::root_location::new_production_root_location_recovery",
+        "target": "crate::adapters::local_files::root_location::locate_library_root",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "poll-catalog-checkout",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::PollCatalogCheckout",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "poll-catalog-install",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::PollCatalogCheckout::install",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "poll-catalog-session",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::PollCatalogCheckout::session",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "poll-retained-catalog",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::RetainedCatalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "poll-retained-proof",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::RetainedCatalog",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "sync-worker-catalog-proof",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::WorkerCatalogSession",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "sync-worker-catalog-binding",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::WorkerCatalogSession::bind",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "sync-worker-catalog-acquisition",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::WorkerCatalogSession::validated",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalogSession",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "sync-inventory-cleanup-factory",
+      "owner": "synchronization-catalog-resources",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production/poll_catalog.rs",
+        "symbol": "crate::application::library_synchronization::production::poll_catalog::WorkerCatalogSession::cleanup_connection",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "synchronization-source-state-factory",
+      "owner": "synchronization-source-state-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::new_production_source_state",
+        "target": "crate::adapters::local_source_state::LocalSourceState",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "scan-resume-boundary-factory",
+      "owner": "journal-boundary-composition",
+      "dependency": {
+        "source": "rust/src/application/scan_library/resumption.rs",
+        "symbol": "crate::application::scan_library::resumption::new_production_resume_boundary_source",
+        "target": "crate::adapters::journal_boundary::resume::resume_boundary_source",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "journal-runtime-connection-type",
+      "owner": "journal-runtime-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::ProductionSynchronization",
+        "target": "crate::adapters::journal_runtime::NativeJournalConnection",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "journal-runtime-factory",
+      "owner": "journal-runtime-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::new_production_synchronization",
+        "target": "crate::adapters::journal_runtime::production_journal_runtime_factory",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "synchronization-ingress-reservation-type",
+      "owner": "synchronization-observation-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::ProductionSynchronization",
+        "target": "crate::adapters::sqlite_catalog::SqliteCatalog",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "synchronization-observation-factory",
+      "owner": "synchronization-observation-composition",
+      "dependency": {
+        "source": "rust/src/application/library_synchronization/production.rs",
+        "symbol": "crate::application::library_synchronization::production::new_production_synchronization",
+        "target": "crate::adapters::production_library_change_source_factory",
+        "rule": "concrete-adapter"
+      }
+    }
+  ]
+}

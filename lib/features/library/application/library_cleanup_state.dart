@@ -1,5 +1,5 @@
 import "../domain/library_organization_cleanup.dart";
-import "library_organization_cleanup.dart";
+import "ports/library_organization_cleanup.dart";
 
 sealed class LibraryCleanupRequest {
   LibraryCleanupRequest(this.minimumAgeDays);

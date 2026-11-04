@@ -5,10 +5,9 @@ use std::sync::mpsc::{self, Receiver};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use crate::adapters::SqliteCatalogSession;
 use crate::application::metadata_inventory::cleanup::cleanup_terminal_inventory_batch;
-use crate::domain::{LibraryChangeLane, MetadataInventoryCleanupReport, ScanError};
-use crate::ports::InventoryCleanupControl;
+use crate::domain::{MetadataInventoryCleanupReport, ScanError};
+use crate::ports::{InventoryCleanupControl, MetadataInventoryRepository};
 
 use super::{finish_runtime_task_until, now_unix_ms};
 
@@ -36,26 +35,17 @@ enum InventoryCleanupOutcome {
 }
 
 impl InventoryCleanupOwner {
-    pub(super) fn poll(
+    pub(super) fn poll<Repository: MetadataInventoryRepository>(
         &mut self,
-        session: Arc<SqliteCatalogSession>,
+        open_catalog: impl Fn() -> Result<Repository, ScanError> + Send + 'static,
         cancelled: Arc<AtomicBool>,
     ) -> Result<(), ScanError> {
         self.poll_with(Instant::now(), cancelled, move |cancelled| {
             if cancelled.load(Ordering::Acquire) {
                 return Ok(InventoryCleanupOutcome::Cancelled);
             }
-            let mut catalog = match session.open_in_lane(LibraryChangeLane::Recovery) {
-                Ok(catalog) => catalog,
-                Err(error) if error.code == "catalog_validated_session_stale" => {
-                    crate::application::catalog_session::refresh_stale_catalog_session(
-                        session.path(),
-                        &session,
-                    )?
-                    .open_in_lane(LibraryChangeLane::Recovery)?
-                }
-                Err(error) => return Err(error),
-            };
+            // Retain the factory's shared session proof through cleanup and connection retirement.
+            let mut catalog = open_catalog()?;
             if cancelled.load(Ordering::Acquire) {
                 return Ok(InventoryCleanupOutcome::Cancelled);
             }

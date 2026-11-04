@@ -1,7 +1,3 @@
-use crate::adapters::ClassificationInstallationStore;
-use crate::adapters::classification_runtime::{
-    selected_model_compatibility, verify_local_installation,
-};
 use crate::domain::classification::work::ClassificationDispatchCommand;
 use crate::domain::classification::{
     CategoryDefinition, CategoryId, ClassificationError, ClassificationRecordId, Taxonomy,
@@ -13,11 +9,16 @@ use crate::domain::classification_configuration::{
 };
 use crate::domain::{LibraryChangeLane, ScanError};
 use crate::ports::classification_configuration::ClassificationConfigurationRepository;
+use crate::ports::classification_installation::ClassificationInstallationRepository;
+use crate::ports::classification_model_package::ClassificationModelPackage;
 use crate::ports::classification_work::ClassificationWorkRepository;
 
 use super::catalog_session::open_catalog;
 use super::classification_candidate;
 use super::classification_desktop::installation_path;
+use super::classification_model_installation::production::{
+    installation_repository, model_package,
+};
 use super::classification_runtime::while_retired;
 use super::storage::{StoragePaths, storage_paths};
 
@@ -62,7 +63,7 @@ pub(crate) fn save(
     )
     .map_err(invalid)?;
     let setup =
-        classification_candidate::prepare(id.clone(), taxonomy, selected_model_compatibility())
+        classification_candidate::prepare(id.clone(), taxonomy, model_package().compatibility())
             .map_err(invalid)?;
     let change = ClassificationConfigurationChange {
         operation_id: id,
@@ -80,14 +81,15 @@ fn save_with_storage(
     change: &ClassificationConfigurationChange,
 ) -> Result<ClassificationSettings, ScanError> {
     if change.action == ClassificationConfigurationAction::Enable {
-        let installation = ClassificationInstallationStore::load(&installation_path(storage))?
+        let installation = installation_repository()
+            .load(&installation_path(storage))?
             .ok_or_else(|| {
                 ScanError::new(
                     "classification_installation_missing",
                     "Install the classification model before enabling analysis",
                 )
             })?;
-        verify_local_installation(&installation.models, &installation.runtime)?;
+        model_package().verify(&installation)?;
     }
     let mut catalog = open_catalog(&storage.catalog_path, LibraryChangeLane::Recovery)?;
     settings(catalog.save_classification_configuration(change)?, storage)
@@ -127,7 +129,8 @@ fn settings(
         mode: snapshot.dispatch.mode,
         categories,
         run_id: snapshot.dispatch.run_id.map(|id| id.as_str().to_owned()),
-        installation_selected: ClassificationInstallationStore::load(&installation_path(storage))?
+        installation_selected: installation_repository()
+            .load(&installation_path(storage))?
             .is_some(),
     })
 }

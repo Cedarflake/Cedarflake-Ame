@@ -1,3 +1,5 @@
+use crate::ports::classification_selection::ClassificationSelectionReader;
+
 use crate::domain::classification_selection::ClassificationReviewReason;
 
 use super::*;

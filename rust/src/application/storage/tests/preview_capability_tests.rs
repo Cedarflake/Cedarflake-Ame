@@ -1,8 +1,7 @@
 use super::super::preview_activation::activate_configured_preview_root_with_preparation;
 use super::*;
-use crate::adapters::{
-    PreviewRootPreparation, prepare_preview_root, prepare_preview_root_with_namespace_probe,
-};
+use crate::adapters::{prepare_preview_root, prepare_preview_root_with_namespace_probe};
+use crate::ports::preview_cache_storage::PreviewRootPreparation;
 
 fn unavailable_namespace(path: &Path) -> Result<PreviewRootPreparation, ScanError> {
     prepare_preview_root_with_namespace_probe(path, |_| {

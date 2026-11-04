@@ -3,8 +3,10 @@ import "dart:async";
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_scanner.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
@@ -18,6 +20,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_query_snapshot_fixture.dart";
 import "support/library_screen_fixture.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 void main() {
   testWidgets("opens one source menu from overflow or secondary click", (
     tester,
@@ -29,11 +33,11 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             populatedScreenState(totalItems: 1),
           ),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -88,10 +92,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -141,10 +145,10 @@ void main() {
       final catalog = _DeferredScreenRemovalCatalog(initialState);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -205,10 +209,10 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(initialState),
             libraryCatalogProvider.overrideWithValue(catalog),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -266,11 +270,11 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -300,11 +304,11 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             populatedScreenState(totalItems: 1),
           ),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -349,12 +353,12 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             baseState.copyWith(roots: [...baseState.roots, secondRoot]),
           ),
           libraryScannerProvider.overrideWithValue(scanner),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );

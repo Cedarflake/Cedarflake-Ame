@@ -112,7 +112,7 @@ fn production_offline_root_recovery_preserves_catalog_while_peer_changes_publish
         .expect("canonical peer root")
         .to_string_lossy()
         .into_owned();
-    let peer_id = crate::application::scan_library::stable_id("library-root-v1", &peer_path);
+    let peer_id = crate::domain::stable_id("library-root-v1", &peer_path);
     let mut completed = false;
     crate::application::scan_library::run_scan_with_storage(
         ScanRequest {

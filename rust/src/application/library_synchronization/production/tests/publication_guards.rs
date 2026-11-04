@@ -37,7 +37,7 @@ fn assert_production_p0_catalog_commit_guard(
         .expect("authoritative root identity query")
         .expect("authoritative stable root identity");
     drop(discovery);
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),
@@ -295,7 +295,7 @@ fn production_bounded_p2_holds_guard_through_catalog_rollback_without_retiring_a
         .expect("bounded P2 root identity query")
         .expect("bounded P2 stable root identity");
     drop(discovery);
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),

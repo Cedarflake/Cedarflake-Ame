@@ -1,4 +1,4 @@
-import "library_scanner.dart";
+import "ports/library_scanner.dart";
 import "../domain/library_models.dart";
 
 enum LibraryScanCommand { suspend, pause, cancel }

@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
-import "../library_organization_mode.dart";
+import "../coordination/library_organization_mode.dart";
 import "library_viewer_notice.dart";
 
 class LibraryReviewModeNotice extends StatelessWidget {

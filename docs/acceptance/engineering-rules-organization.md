@@ -6,8 +6,8 @@ Date: 2026-09-22. Baseline: `c3586612cf6bd0857bc393779a6801364935f762`.
 
 This record traces contract organization and its checks. The [roadmap](../roadmap.md) owns current
 delivery. The sections through Instruction discovery and verification describe the 2026-09-22
-checkpoint, including its then-active R2c scope and unresolved observations. Current routing and
-loading evidence are in the [2026-10-17 checkpoint](#2026-10-17-scoped-rule-routing).
+checkpoint, including its then-active R2c scope and unresolved observations. Subsequent sections
+record later routing and loading checks.
 
 ## Ownership and retained clauses
 
@@ -25,7 +25,7 @@ loading evidence are in the [2026-10-17 checkpoint](#2026-10-17-scoped-rule-rout
 | Second §10 Rust engineering | Root §10.2, unchanged rules; duplicate numbering removed |
 | §11 configuration owners, format/names/comments, generated exclusions | Root §11, condensed; no formatter/linter configuration change |
 | §12 proportional evidence, categories, source checks, heavy serialization | Root §12, retained |
-| §12.1 command catalog, script/workflow naming, CI security, hosted ownership | [Quality command reference](quality-gates.md#repository-command-reference), moved in full except its heading and two navigation references; root §12.1 retains mandatory pre-execution reading, canonical entrypoints, locks, real-root authorization, and CI security |
+| §12.1 command catalog, script/workflow naming, CI security, hosted ownership | [Quality command reference](quality/commands.md#repository-command-reference), moved in full except its heading and two navigation references; root §12.1 retains mandatory pre-execution reading, canonical entrypoints, locks, real-root authorization, and CI security |
 | §12.2 implementation, formatting ownership, focused/lint/Daily gates, warning policy | Root §12.2, condensed; document-only validation distinction matches the existing roadmap |
 | §13 ADR content and scope | Root §13, condensed |
 | §14 branch/commit/push, rollback, publication, PR wording, excluded artifacts | Root §14, condensed; explicit user branch instructions still take precedence |
@@ -89,17 +89,17 @@ R4 is not started. Existing section numbers remain discoverable from the root co
 | §4: scope, delegation, complete outcomes, owner extraction and bounded diagnosis | Root §4, condensed; independent commit/push boundaries, one delegate by default, no nested execution without authorization, size evidence and no symptom concealment retained |
 | §§5–8: layers, identities, background work, media safety, persistence and dependencies | Root §§5–8, condensed; source authority, hydration prohibition, migrations, transactions, bounded work, replaceability and licensing retained |
 | §9: component admission and interface copy | [Component implementation](../product/gallery-ui.md#component-implementation) and [content/action wording](../product/gallery-ui.md#content-and-action-wording), mandatory through root §9; pinned-SDK proof, framework ownership, accessibility, bounded rendering and wording scope retained |
-| §10.1: workstation Flutter commands and ownership | [Local toolchain](quality-gates.md#local-flutter-toolchain), moved with navigation references adjusted; exact SDK commands, serial locks, descendant-only cleanup and SDK-lock safeguards retained |
+| §10.1: workstation Flutter commands and ownership | [Local toolchain](quality/execution-safety.md#local-flutter-toolchain), moved with navigation references adjusted; exact SDK commands, serial locks, descendant-only cleanup and SDK-lock safeguards retained |
 | Other §10 and §11: language, Rust, configuration and comments | Root §§10–11, condensed; strict typing, accepted-ADR condition for unsafe, warning policy, canonical configuration and generated-code exclusions retained |
-| §11.1: readable handwritten implementation | [Human-readable implementation](quality-gates.md#human-readable-implementation), body retained; root §11.1 requires it for the same source/test/SQL/workflow/diagnostic scope |
-| §12 and §12.1: verification ownership, categories, execution and source-safe storage | [Verification ownership](quality-gates.md#verification-ownership) and [execution/storage](quality-gates.md#execution-scope-and-storage), moved with navigation references adjusted; local/hosted division, real-root authority, preserved catalogs and fixture cleanup unchanged |
-| §§12.2–12.3: engineering workflow, warnings, CI and behavior-preserving review | [Required workflow](quality-gates.md#required-engineering-workflow) and [review requirements](quality-gates.md#reviewability-and-behavior-preserving-changes), moved with navigation references adjusted; no weakened gates, broad suppressions or substituted evidence |
+| §11.1: readable handwritten implementation | [Human-readable implementation](quality/verification-workflow.md#human-readable-implementation), body retained; root §11.1 requires it for the same source/test/SQL/workflow/diagnostic scope |
+| §12 and §12.1: verification ownership, categories, execution and source-safe storage | [Verification ownership](quality/verification-workflow.md#verification-ownership) and [execution/storage](quality/execution-safety.md#execution-scope-and-storage), moved with navigation references adjusted; local/hosted division, real-root authority, preserved catalogs and fixture cleanup unchanged |
+| §§12.2–12.3: engineering workflow, warnings, CI and behavior-preserving review | [Required workflow](quality/verification-workflow.md#required-engineering-workflow) and [review requirements](quality/verification-workflow.md#reviewability-and-behavior-preserving-changes), moved with navigation references adjusted; no weakened gates, broad suppressions or substituted evidence |
 | Code Review Rules and §§13–15: review, ADRs, Git and completion | Retained in root; explicit merge/destructive/publication authority, English Conventional Commits, owned staging, PR content boundaries and complete user-path evidence preserved |
 
 The [design rationale](../product/gallery-ui.md#design-principles-and-rationale) explains contextual
 layout choices, useful information, spatial continuity, proportionate feedback and shared behavior.
 Its exceptions retain responsive layout, accessibility, reduced motion and product authority.
-The [UI verification map](quality-gates.md#ui-workflow-verification) links shared implementation to
+The [UI verification map](quality/ui-verification.md#ui-workflow-verification) links shared implementation to
 existing regressions and affected client paths. It selects relevant checks without requiring the
 whole matrix for every edit. No new skill, duplicate checklist, dependency or quality entrypoint is added.
 
@@ -116,3 +116,37 @@ normalization and retained every root heading. All five changed documents passed
 and 44 anchor checks, UTF-8/LF encoding, trailing-whitespace validation and `git diff --check`.
 Condensed clauses were reviewed against the baseline mapping above. This documentation-only change
 does not claim another native UI or product acceptance.
+
+## 2026-11-03 task-scoped documentation routing
+
+Baseline: `364fc2cf`. This documentation-only change preserves the applicable engineering, UI,
+source-safety and architecture requirements. It does not include the unfinished O5.3 source edits.
+
+| Entry document | Previous lines | Current lines | Detailed owners |
+| --- | --- | --- | --- |
+| Quality gates | 1,579 | 24 | Twelve task/procedure references under `acceptance/quality` |
+| Gallery UI | 1,296 | 173 | Eight surface contracts under `product/gallery`; common rules remain at the entry |
+| ADR 0025 | 1,055 | 113 | Eight subsystem contracts under `architecture/workflow-ownership` |
+| Roadmap | 435 | 131 | Current queue and dispositions; [completed maintenance](completed-maintenance.md) links historical evidence |
+
+The [documentation standard](../development/documentation.md), referenced by `AGENTS.md`, defines
+canonical ownership, concise entry documents, task-scoped reading, cohesive splitting, replacement
+of obsolete instructions, and verification of moves. It uses responsibility and reading cost rather
+than arbitrary file-length caps. Existing deep entry anchors remain available, and current callers
+link directly to the scoped rule where applicable.
+
+Preservation checks compare all 122 moved source segments, allowing only local-link relocation and
+whitespace normalization. They also check every substantive original line against its retained or
+moved owner. Local document paths, fragments, UTF-8/LF and diff whitespace pass. Representative
+routes cover ordinary delivery, local Flutter execution, UI feedback, native scan ownership and
+current maintenance. The largest new scoped file is 304 lines; no product build or acceptance replay
+is part of this document change. Historical test results retain their revision and scope.
+
+## Test-design standard routing — 2026-11-04
+
+The [test-design standard](../development/testing.md) owns additions, assertions, fixture fidelity
+and pruning. Root contract section 12, the documentation and quality indexes, and the verification
+workflow route to it; O7 references its pruning criteria instead of maintaining another rule list.
+The six affected contract/design/plan documents pass UTF-8/LF checks and 85 local link/anchor checks.
+This documentation-only change preserves required check categories and execution ownership; it adds
+no automatic suite, mutation-testing campaign or product-acceptance claim.

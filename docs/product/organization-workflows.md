@@ -57,7 +57,7 @@ Scope:
 - shared pending, deferred, organized, and ignored progress, including deferred album conflicts and
   content-change reconciliation;
 - organization mode entered from the existing gallery, stable continuation, new groups at the queue
-  front, and the [accepted desktop controls](gallery-ui.md#review-workflow);
+  front, and the [accepted desktop controls](gallery/organization.md#review-workflow);
 - durable album/Favorite decisions, transactional progress, undo, migrations,
   export/restoration, explicit source-removal cleanup, and manual unresolved-record cleanup.
 

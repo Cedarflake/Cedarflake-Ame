@@ -1,51 +1,15 @@
 import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../../../src/rust/api/exact_duplicates.dart" as rust_api;
 import "../domain/library_exact_duplicates.dart";
 import "library_controller.dart";
 
-abstract interface class LibraryGalleryDuplicates {
-  Future<Map<String, LibraryDuplicateGroup>> load(
-    BigInt revision,
-    List<String> locationIds,
-  );
-}
-
-class RustLibraryGalleryDuplicates implements LibraryGalleryDuplicates {
-  const RustLibraryGalleryDuplicates();
-
-  @override
-  Future<Map<String, LibraryDuplicateGroup>> load(
-    BigInt revision,
-    List<String> locationIds,
-  ) async {
-    final page = await rust_api.loadGalleryDuplicates(
-      revision: revision,
-      locationIds: locationIds,
-    );
-    if (page.revision < revision) {
-      throw StateError(
-        "Duplicate annotations precede the requested gallery revision",
-      );
-    }
-    return {
-      for (final annotation in page.annotations)
-        annotation.locationId: LibraryDuplicateGroup(
-          digest: annotation.group.digest,
-          byteLength: annotation.group.byteLength.toInt(),
-          locationCount: annotation.group.locationCount.toInt(),
-          physicalFileCount: annotation.group.physicalFileCount.toInt(),
-          representativeLocationId: annotation.group.representativeLocationId,
-          representativePath: annotation.group.representativePath,
-          pendingLocationCount: annotation.pendingLocationCount.toInt(),
-        ),
-    };
-  }
-}
+import "ports/library_gallery_duplicates.dart";
 
 final libraryGalleryDuplicatesProvider = Provider<LibraryGalleryDuplicates?>(
-  (ref) => null,
+  (ref) => throw StateError(
+    "LibraryGalleryDuplicates must be bound during application startup",
+  ),
 );
 
 /// A bounded catalog window owns one batched request, shared by all its photo tiles.

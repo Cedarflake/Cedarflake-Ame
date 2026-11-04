@@ -1,6 +1,7 @@
 use std::cell::Cell;
 
 use super::*;
+use crate::adapters::SqliteCatalog;
 use crate::application::library_synchronization::production::tests::{
     ProductionGapFixture, live_worker::enqueue_deletions,
 };

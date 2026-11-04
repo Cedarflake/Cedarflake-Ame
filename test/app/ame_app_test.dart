@@ -3,17 +3,24 @@ import "dart:async";
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/presentation/ame_localizations.dart";
 import "package:cedarflake_ame/app/presentation/ame_system_theme.dart";
-import "package:cedarflake_ame/features/library/presentation/unified_library_screen.dart";
+import "package:cedarflake_ame/features/library/presentation/pages/unified_library_screen.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../support/application_test_bindings.dart";
+
 void main() {
   testWidgets("uses Simplified Chinese locale and dense text geometry", (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: AmeApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: applicationTestOverrides(),
+        child: const AmeApp(),
+      ),
+    );
 
     final context = tester.element(find.byType(UnifiedLibraryScreen));
     expect(Localizations.localeOf(context), ameLocale);
@@ -39,7 +46,12 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(const ProviderScope(child: AmeApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: applicationTestOverrides(),
+        child: const AmeApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(UnifiedLibraryScreen));
@@ -65,7 +77,12 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(const ProviderScope(child: AmeApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: applicationTestOverrides(),
+        child: const AmeApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(UnifiedLibraryScreen));
@@ -80,7 +97,12 @@ void main() {
     tester,
   ) async {
     const methodChannel = MethodChannel("cedarflake_ame/system_theme");
-    await tester.pumpWidget(const ProviderScope(child: AmeApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: applicationTestOverrides(),
+        child: const AmeApp(),
+      ),
+    );
     await tester.pump();
     const accent = Color(0xFF2B8F4E);
     unawaited(
@@ -118,7 +140,12 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(const ProviderScope(child: AmeApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: applicationTestOverrides(),
+        child: const AmeApp(),
+      ),
+    );
     const newestAccent = Color(0xFF7D5128);
     unawaited(
       tester.binding.defaultBinaryMessenger.handlePlatformMessage(

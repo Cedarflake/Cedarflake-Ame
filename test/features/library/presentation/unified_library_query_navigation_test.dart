@@ -4,6 +4,7 @@ import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
@@ -15,6 +16,8 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "support/library_screen_fixture.dart";
 import "support/library_screen_menu_fixture.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets("favorites belongs to Albums and preserves the Library source", (
@@ -36,10 +39,10 @@ void main() {
     );
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -142,10 +145,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -203,11 +206,11 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             populatedScreenState(totalItems: 1),
           ),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -307,7 +310,7 @@ void main() {
       final catalog = AnchorResolvingQueryCatalog(initialSnapshot);
 
       final container = ProviderContainer(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(initialState),
           initialLibraryViewPreferencesProvider.overrideWithValue(
             const LibraryViewPreferences(
@@ -316,7 +319,7 @@ void main() {
             ),
           ),
           libraryCatalogProvider.overrideWithValue(catalog),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       await tester.pumpWidget(
@@ -454,7 +457,7 @@ void main() {
     addTearDown(catalog.releaseHeldAnchorRequest);
 
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(initialState),
         initialLibraryViewPreferencesProvider.overrideWithValue(
           const LibraryViewPreferences(
@@ -463,7 +466,7 @@ void main() {
           ),
         ),
         libraryCatalogProvider.overrideWithValue(catalog),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     await tester.pumpWidget(

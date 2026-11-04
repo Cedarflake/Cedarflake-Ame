@@ -1,7 +1,9 @@
 use std::fs::{File, Metadata};
 use std::path::{Path, PathBuf};
 
-use crate::domain::{DiscoveredFile, MetadataInventoryPlaceholderState, ScanIssue};
+use crate::domain::{
+    DiscoveredFile, FileVisit, FileVisitOutcome, MetadataInventoryPlaceholderState, ScanIssue,
+};
 
 use super::media_signature::{has_image_extension, has_supported_magic_from_reader};
 #[cfg(windows)]
@@ -13,27 +15,6 @@ use super::{
 use super::{FileDiscovery, ReparseKind, created_unix_ms, modified_unix_ms, path_text};
 #[cfg(not(windows))]
 use super::{file_identity, open_source_file};
-
-pub enum FileVisitOutcome {
-    File(DiscoveredFile),
-    TerminalMedia {
-        file: DiscoveredFile,
-        issue: ScanIssue,
-        report_issue: bool,
-    },
-    RetryableFile {
-        file: DiscoveredFile,
-        issue: ScanIssue,
-    },
-    Issue(ScanIssue),
-    Directory,
-    Ignored,
-}
-
-pub struct FileVisit {
-    pub relative_path: String,
-    pub outcome: FileVisitOutcome,
-}
 
 impl FileDiscovery {
     #[cfg(windows)]

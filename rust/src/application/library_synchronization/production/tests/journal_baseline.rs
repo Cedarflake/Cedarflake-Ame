@@ -7,7 +7,7 @@ fn production_baseline_brackets_inventory_and_publishes_current_atomically() {
     let source_root = directory.path().join("source");
     std::fs::create_dir_all(&source_root).expect("source root");
     let root_path = source_root.to_string_lossy().into_owned();
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),
@@ -59,11 +59,13 @@ fn production_baseline_brackets_inventory_and_publishes_current_atomically() {
         crate::ports::erase_library_change_source_factory(HealthyFactory),
         PersistentChangeJournalConnection::Connected(session),
     );
-    production.persistent_change_journal_caller = Some(crate::journal_broker::CallerClaim {
-        process_id: std::process::id(),
-        session_id: 1,
-        client_instance: [8; 16],
-    });
+    production
+        ._persistent_change_journal
+        .set_caller_for_test(crate::journal_broker::CallerClaim {
+            process_id: std::process::id(),
+            session_id: 1,
+            client_instance: [8; 16],
+        });
 
     let mut saw_active_baseline = false;
     let mut completed = false;
@@ -127,7 +129,7 @@ fn production_baseline_replays_changes_during_inventory_before_publishing_curren
     let source_root = directory.path().join("source");
     std::fs::create_dir_all(&source_root).expect("source root");
     let root_path = source_root.to_string_lossy().into_owned();
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),
@@ -180,11 +182,13 @@ fn production_baseline_replays_changes_during_inventory_before_publishing_curren
         crate::ports::erase_library_change_source_factory(HealthyFactory),
         PersistentChangeJournalConnection::Connected(session),
     );
-    production.persistent_change_journal_caller = Some(crate::journal_broker::CallerClaim {
-        process_id: std::process::id(),
-        session_id: 1,
-        client_instance: [5; 16],
-    });
+    production
+        ._persistent_change_journal
+        .set_caller_for_test(crate::journal_broker::CallerClaim {
+            process_id: std::process::id(),
+            session_id: 1,
+            client_instance: [5; 16],
+        });
 
     let mut saw_catching_up = false;
     let mut completed = false;

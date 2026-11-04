@@ -1,5 +1,5 @@
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
-import "package:cedarflake_ame/features/library/application/library_organization.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_actions.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";

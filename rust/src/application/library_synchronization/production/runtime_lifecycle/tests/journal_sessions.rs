@@ -1,7 +1,7 @@
 use super::*;
 
 fn opened_runtime(factory: &Arc<CountingJournalFactory>) -> ProductionSynchronization {
-    let mut runtime = new_production_synchronization_with_factory(
+    let mut runtime = new_test_synchronization_with_factory(
         crate::ports::erase_library_change_source_factory(HealthyFactory),
         factory.clone(),
     );

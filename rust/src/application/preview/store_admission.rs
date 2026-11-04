@@ -7,6 +7,8 @@ use crate::adapters::{
 use crate::application::preview_cleanup::{PreviewGenerationGuard, PreviewReclamationGuard};
 use crate::application::{StoragePaths, acquire_preview_generation, acquire_preview_reclamation};
 use crate::domain::ScanError;
+use crate::ports::PreviewStore;
+use crate::ports::preview_cache_storage::PreviewCacheAccounting;
 
 use super::PreviewStageTimings;
 
@@ -167,11 +169,11 @@ impl<'a, Access> PreviewStoreAdmission<'a, Access> {
         }
     }
 
-    pub(in crate::application) fn store(&self) -> &LocalPreviewStore {
+    pub(in crate::application) fn store(&self) -> &(impl PreviewStore + PreviewCacheAccounting) {
         match &self.store {
-            ResolvedStore::Active { store, .. } => store,
+            ResolvedStore::Active { store, .. } => store.as_ref(),
             #[cfg(test)]
-            ResolvedStore::Injected { store, .. } => store,
+            ResolvedStore::Injected { store, .. } => *store,
         }
     }
 

@@ -488,7 +488,7 @@ fn prepare_one(
         .metadata_inventory_root_identity()
         .expect("root identity")
         .expect("stable identity");
-    let discovery = PublicationGuardedFileDiscovery::new_incremental_publication_guard(
+    let discovery = PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
         &fixture.root_path,
         &identity,
     )

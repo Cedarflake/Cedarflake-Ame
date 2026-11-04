@@ -1,6 +1,6 @@
 import "package:cedarflake_ame/features/library/application/library_album_proposal.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
-import "package:cedarflake_ame/features/settings/application/album_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/album_preferences.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_organization_fixture.dart";

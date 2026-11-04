@@ -4,11 +4,12 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/domain/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_duplicates_page.dart";
+import "package:cedarflake_ame/features/library/presentation/pages/library_exact_duplicates_page.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "support/application_test_bindings.dart";
 import "support/duplicate_review_fixtures.dart";
 
 void main() {
@@ -24,10 +25,10 @@ void main() {
         final library = _PublishingLibrary();
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [
+            overrides: applicationTestOverrides([
               libraryControllerProvider.overrideWith(() => library),
               libraryDuplicateReviewProvider.overrideWithValue(service),
-            ],
+            ]),
             child: const MaterialApp(
               home: Scaffold(body: LibraryExactDuplicatesPage()),
             ),

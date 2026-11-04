@@ -1,9 +1,11 @@
 import "dart:async";
 
-import "package:cedarflake_ame/features/library/application/library_classification.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_lifecycle.dart";
 import "package:cedarflake_ame/features/library/application/library_foreground_reads.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_classification.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_classification_configuration.dart";
+import "package:cedarflake_ame/features/library/domain/library_classification_configuration.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {

@@ -4,7 +4,7 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout_snapshot.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
@@ -18,6 +18,8 @@ import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/semantics/retained_semantics_update_harness.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   RetainedSemanticsUpdateBinding();
@@ -47,7 +49,9 @@ void main() {
     try {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [initialLibraryStateProvider.overrideWithValue(state)],
+          overrides: applicationTestOverrides([
+            initialLibraryStateProvider.overrideWithValue(state),
+          ]),
           child: MaterialApp(
             home: Scaffold(
               body: Align(

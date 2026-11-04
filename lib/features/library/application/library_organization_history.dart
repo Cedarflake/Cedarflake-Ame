@@ -4,6 +4,7 @@ import "../domain/library_organization.dart";
 import "../domain/library_organization_history.dart";
 import "library_controller.dart";
 import "library_organization.dart";
+import "ports/library_organization.dart";
 import "library_organization_actions.dart";
 import "library_organization_publication.dart";
 import "library_organization_requests.dart";

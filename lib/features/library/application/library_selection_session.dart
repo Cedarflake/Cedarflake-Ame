@@ -4,7 +4,7 @@ import "package:flutter/foundation.dart";
 
 import "../domain/library_organization.dart";
 import "../domain/library_organization_batch.dart";
-import "library_organization_batch.dart";
+import "ports/library_organization_batch.dart";
 
 class LibrarySelectionSession {
   LibrarySelectionSession(this.service, this.selection);

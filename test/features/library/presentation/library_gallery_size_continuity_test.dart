@@ -3,6 +3,8 @@ import "dart:typed_data";
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_layout_manifest_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_layout_manifest_catalog.dart";
+import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
@@ -12,6 +14,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_pho
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final shape in GalleryLayoutShape.values) {
@@ -224,7 +228,7 @@ Future<ScrollPosition> _openGallery(
   final snapshot = _snapshot(itemCount: itemCount);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(snapshot),
         ),
@@ -238,7 +242,7 @@ Future<ScrollPosition> _openGallery(
           libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(
             _ManifestLoader(snapshot),
           ),
-      ],
+      ]),
       child: const AmeApp(),
     ),
   );

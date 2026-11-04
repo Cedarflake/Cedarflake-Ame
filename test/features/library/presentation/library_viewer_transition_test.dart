@@ -1,7 +1,8 @@
 import "dart:async";
 
+import "package:cedarflake_ame/features/library/adapters/platform/library_preview_image.dart";
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
-import "package:cedarflake_ame/features/library/application/library_source_reader.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_transition.dart";
@@ -149,6 +150,7 @@ void main() {
       final scheduler = LibrarySourceReadScheduler(reader: reader);
       var bufferReads = 0;
       final viewer = LibraryViewerImage(
+        previewImages: createLibraryPreviewImage,
         asset: _asset(),
         sourceReadScheduler: scheduler,
         sourceBufferLoader: (_) async {

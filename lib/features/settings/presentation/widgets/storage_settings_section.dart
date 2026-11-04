@@ -1,14 +1,14 @@
 import "dart:async";
-import "dart:io";
 
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../storage/application/ports/storage_settings_gateway.dart";
 import "../../../storage/application/storage_settings.dart";
 import "../../../storage/domain/storage_models.dart";
-import "../../../storage/presentation/catalog_reclamation_controller.dart";
+import "../../../storage/application/catalog_reclamation_controller.dart";
 import "settings_section.dart";
 
 enum _StorageErrorTarget { settings, catalogReclamation, previewCleanup }
@@ -139,7 +139,7 @@ class _StorageSettingsSectionState
     }
     final directory = await ref
         .read(storageDirectoryPickerProvider)
-        .pick(initialDirectory: File(status.configuredCatalogPath).parent.path);
+        .pick(currentPath: status.configuredCatalogPath);
     if (directory != null && mounted) {
       await _update(catalogDirectory: directory);
     }
@@ -152,9 +152,7 @@ class _StorageSettingsSectionState
     }
     final directory = await ref
         .read(storageDirectoryPickerProvider)
-        .pick(
-          initialDirectory: Directory(status.configuredPreviewRoot).parent.path,
-        );
+        .pick(currentPath: status.configuredPreviewRoot);
     if (directory != null && mounted) {
       await _update(previewDirectory: directory);
     }

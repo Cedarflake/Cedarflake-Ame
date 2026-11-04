@@ -1,11 +1,11 @@
 import "dart:async";
-import "dart:io";
 
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../application/library_source_read_scheduler.dart";
 import "../../domain/library_models.dart";
+import "../library_preview_images.dart";
 import "../library_strings.dart";
 import "library_image_reveal.dart";
 import "library_loading_indicator.dart";
@@ -21,6 +21,7 @@ typedef LibraryViewerImageBuilder =
 class LibraryViewerImage extends StatefulWidget {
   const LibraryViewerImage({
     required this.asset,
+    required this.previewImages,
     this.sourceReadScheduler,
     this.sourceBufferLoader,
     this.imageBuilder,
@@ -31,6 +32,7 @@ class LibraryViewerImage extends StatefulWidget {
   });
 
   final LibraryAsset asset;
+  final LibraryPreviewImages previewImages;
   final LibrarySourceReadScheduler? sourceReadScheduler;
   final LibrarySourceBufferLoader? sourceBufferLoader;
   final LibraryViewerImageBuilder? imageBuilder;
@@ -157,8 +159,8 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
     if (!_hasPreview) {
       return _buildUnavailableSource();
     }
-    return Image.file(
-      File(widget.asset.previewPath),
+    return Image(
+      image: widget.previewImages(widget.asset.previewPath),
       fit: BoxFit.contain,
       filterQuality: FilterQuality.medium,
       frameBuilder: (context, image, frame, wasSynchronouslyLoaded) {
@@ -211,8 +213,8 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   }
 
   Widget _buildPreview() {
-    return Image.file(
-      File(widget.asset.previewPath),
+    return Image(
+      image: widget.previewImages(widget.asset.previewPath),
       fit: BoxFit.contain,
       filterQuality: FilterQuality.medium,
       errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
@@ -222,7 +224,12 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   LibrarySourceImage _createSourceImage() => LibrarySourceImage(
     widget.asset,
     retryGeneration: _retryGeneration,
-    scheduler: widget.sourceReadScheduler ?? _sourceScope?.scheduler,
+    scheduler:
+        widget.sourceReadScheduler ??
+        _sourceScope?.scheduler ??
+        (throw StateError(
+          "LibraryViewerImage requires a source-read scheduler",
+        )),
     bufferLoader: widget.sourceBufferLoader ?? _sourceScope?.bufferLoader,
   );
 

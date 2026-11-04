@@ -1,5 +1,6 @@
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_locations_sheet.dart";
 import "package:flutter/gestures.dart";
@@ -9,6 +10,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
 
+import "support/application_test_bindings.dart";
+
 void main() {
   for (final reducedMotion in [false, true]) {
     testWidgets("sheet wheel motion honors reducedMotion=$reducedMotion", (
@@ -16,10 +19,10 @@ void main() {
     ) async {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
             libraryExactDuplicatesProvider.overrideWithValue(_Duplicates()),
-          ],
+          ]),
           child: MaterialApp(
             home: MediaQuery(
               data: MediaQueryData(

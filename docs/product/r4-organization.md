@@ -181,7 +181,7 @@ anchor with the ordinary browsing position. Exiting organization mode or closing
 progress and continuation. Opening the saved work, not a separate dashboard or task page, resumes
 the same gallery/viewer workflow.
 
-The [review UI contract](gallery-ui.md#review-workflow) owns the overflow-menu entry, count row,
+The [review UI contract](gallery/organization.md#review-workflow) owns the overflow-menu entry, count row,
 two-row upper-right operation area, continuation button, and contextual actions. R4 targets the desktop
 application and does not introduce a mobile layout.
 
@@ -255,7 +255,7 @@ pipelines, retaining their source-read, cancellation, and cloud-placeholder safe
 ## Acceptance requirements
 
 Preserve the following R4 behavior through affected implementation changes and the
-[repository verification workflow](../acceptance/quality-gates.md#delivery-and-verification):
+[repository verification workflow](../acceptance/quality/verification-workflow.md#delivery-and-verification):
 
 - cross-folder duplicates fold in albums after late identification; folded and unfolded selections
   target the same complete groups and current representatives;

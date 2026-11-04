@@ -1,0 +1,245 @@
+{
+  "activeExceptions": [],
+  "publicFeatureEdges": [
+    {
+      "source": "lib/features/library/application/library_album_proposal.dart",
+      "target": "lib/features/settings/domain/album_preferences.dart",
+      "contract": "AlbumPreferences"
+    },
+    {
+      "source": "lib/features/library/application/library_controller.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/application/library_controller.dart",
+      "target": "lib/features/settings/domain/ame_preferences.dart",
+      "contract": "AmePreferences and presentation preference values"
+    },
+    {
+      "source": "lib/features/library/presentation/coordination/library_viewer_zoom.dart",
+      "target": "lib/features/settings/domain/ame_preferences.dart",
+      "contract": "AmePreferences and presentation preference values"
+    },
+    {
+      "source": "lib/features/library/presentation/pages/unified_library_screen.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_album_viewer_action.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_analysis_activity.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_duplicate_review_viewer.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_exact_analysis_actions.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_image_viewer.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_image_viewer.dart",
+      "target": "lib/features/settings/domain/ame_preferences.dart",
+      "contract": "AmePreferences and presentation preference values"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_selection_actions.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_viewer_zoom_geometry.dart",
+      "target": "lib/features/settings/domain/ame_preferences.dart",
+      "contract": "AmePreferences and presentation preference values"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_workbench.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider and declared preference state"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_workbench.dart",
+      "target": "lib/features/settings/domain/ame_preferences.dart",
+      "contract": "AmePreferences and presentation preference values"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/application/ports/library_view_preference_store.dart",
+      "contract": "LibraryViewPreferenceStore"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_asset.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_gallery_collection.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_metadata_filter.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_models.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_organization_queue.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_root_consolidation.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_scroll_section.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/adapters/platform/shared_preferences_ame_store.dart",
+      "target": "lib/features/library/domain/library_view_preferences.dart",
+      "contract": "Ame library value contracts exposed by the persisted view preference model"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
+      "target": "lib/features/storage/application/catalog_reclamation_controller.dart",
+      "contract": "CatalogReclamationController and typed snapshot/save requests"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
+      "target": "lib/features/storage/application/ports/storage_settings_gateway.dart",
+      "contract": "StorageSettingsGateway"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
+      "target": "lib/features/storage/application/storage_settings.dart",
+      "contract": "storageSettingsGatewayProvider and storageDirectoryPickerProvider"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
+      "target": "lib/features/storage/domain/storage_models.dart",
+      "contract": "StorageStatusModel, cleanup and reclamation results"
+    },
+    {
+      "source": "lib/features/settings/presentation/organization_archive_messages.dart",
+      "target": "lib/features/library/application/library_archive_requests.dart",
+      "contract": "LibraryArchiveRequest operation kind and path for Settings copy"
+    },
+    {
+      "source": "lib/features/settings/presentation/organization_archive_messages.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "contract": "LibraryArchiveState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/organization_archive_messages.dart",
+      "target": "lib/features/library/domain/library_organization_archive.dart",
+      "contract": "LibraryArchivePhase, inspection and failure values"
+    },
+    {
+      "source": "lib/features/settings/presentation/organization_record_actions.dart",
+      "target": "lib/features/library/application/library_archive_controller.dart",
+      "contract": "libraryArchiveControllerProvider and archive command entrypoints"
+    },
+    {
+      "source": "lib/features/settings/presentation/organization_record_actions.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "contract": "LibraryArchiveState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/organization_record_actions.dart",
+      "target": "lib/features/library/application/library_cleanup_controller.dart",
+      "contract": "libraryCleanupControllerProvider and cleanup command entrypoints"
+    },
+    {
+      "source": "lib/features/settings/presentation/organization_record_actions.dart",
+      "target": "lib/features/library/application/library_cleanup_state.dart",
+      "contract": "LibraryCleanupState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/album_settings_section.dart",
+      "target": "lib/features/library/application/library_album_pages.dart",
+      "contract": "libraryAlbumProvider bounded saved-album lookup"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_archive_confirmation.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "contract": "LibraryArchiveState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_archive_section.dart",
+      "target": "lib/features/library/application/library_archive_controller.dart",
+      "contract": "libraryArchiveControllerProvider and archive command entrypoints"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_archive_section.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "contract": "LibraryArchiveState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_confirmation.dart",
+      "target": "lib/features/library/application/library_cleanup_controller.dart",
+      "contract": "libraryCleanupControllerProvider and cleanup command entrypoints"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_confirmation.dart",
+      "target": "lib/features/library/application/library_cleanup_state.dart",
+      "contract": "LibraryCleanupState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_confirmation.dart",
+      "target": "lib/features/library/domain/library_organization_cleanup.dart",
+      "contract": "LibraryCleanupInspection counts and confirmation evidence"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_row.dart",
+      "target": "lib/features/library/application/library_cleanup_controller.dart",
+      "contract": "libraryCleanupControllerProvider and cleanup command entrypoints"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_cleanup_row.dart",
+      "target": "lib/features/library/application/library_cleanup_state.dart",
+      "contract": "LibraryCleanupState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_record_feedback.dart",
+      "target": "lib/features/library/application/library_archive_controller.dart",
+      "contract": "libraryArchiveControllerProvider and archive command entrypoints"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_record_feedback.dart",
+      "target": "lib/features/library/application/library_archive_state.dart",
+      "contract": "LibraryArchiveState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_record_feedback.dart",
+      "target": "lib/features/library/application/library_cleanup_controller.dart",
+      "contract": "libraryCleanupControllerProvider and cleanup command entrypoints"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/organization_record_feedback.dart",
+      "target": "lib/features/library/application/library_cleanup_state.dart",
+      "contract": "LibraryCleanupState progress, confirmation and terminal projections"
+    }
+  ]
+}

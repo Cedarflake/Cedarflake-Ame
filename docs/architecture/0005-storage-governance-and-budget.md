@@ -396,8 +396,9 @@ fully validate instead of relying on prepared state from before `VACUUM`. Full v
 forbidden while a protected scan is active; it must not recover that execution's live claim.
 Successful incremental page reclamation preserves the preceding validated session. Its dedicated
 application entrypoint invokes only the bounded free-page operation; arbitrary maintenance and
-auto-vacuum conversion cannot select that retention policy. Interrupted, failed or unwound page
-reclamation still retires the proof, and an independently invalidated reservation cannot restore it.
+auto-vacuum conversion cannot select that retention policy. Normal SQLite interruption of incremental
+page reclamation also preserves that proof. Unrelated storage errors or unwind retire it, and an
+independently invalidated reservation cannot restore it.
 All subsequent opens and retained-connection reuse keep fresh file identity and schema-cookie
 checks, so namespace replacement or schema mutation still requires complete validation. A completed
 space-only batch must not make every synchronization poll and preview repeat the complete row audit.
@@ -437,10 +438,10 @@ moving committed WAL pages; an arbitrary maintenance result is not evidence of s
 
 Storage status reports total catalog files separately from estimated live main-database bytes and
 reclaimable freelist bytes. WAL and shared-memory sidecars remain part of total on-disk usage but
-are never mislabeled as freelist. The Windows capacity adapter contains one isolated
-`GetDiskFreeSpaceExW` call. Its unsafe boundary accepts a live NUL-terminated UTF-16 directory
-buffer and one valid writable `u64`; all other output pointers are null and no pointer escapes the
-call.
+are never mislabeled as freelist. `adapters/catalog_capacity.rs` implements the `CatalogCapacity`
+port with one isolated Windows `GetDiskFreeSpaceExW` call. Its unsafe boundary accepts a live
+NUL-terminated UTF-16 directory buffer and one valid writable `u64`; all other output pointers are
+null and no pointer escapes the call.
 
 ### Preview-root transition
 

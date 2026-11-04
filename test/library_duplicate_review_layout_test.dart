@@ -4,17 +4,18 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_scheduler.dart";
-import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
+import "package:cedarflake_ame/features/library/presentation/pages/library_exact_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_review_cards.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_review_grid.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_message.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "support/application_test_bindings.dart";
 import "support/duplicate_review_fixtures.dart";
 
 void main() {
@@ -29,12 +30,12 @@ void main() {
         final analysis = LibraryExactAnalysisController(_NoAnalysis());
         final scheduler = LibraryExactAnalysisScheduler(analysis);
         final container = ProviderContainer(
-          overrides: [
+          overrides: applicationTestOverrides([
             libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
             libraryDuplicateReviewProvider.overrideWithValue(service),
             libraryExactAnalysisControllerProvider.overrideWithValue(analysis),
             libraryExactAnalysisSchedulerProvider.overrideWithValue(scheduler),
-          ],
+          ]),
         );
         addTearDown(() {
           container.dispose();
@@ -238,7 +239,9 @@ void main() {
       addTearDown(active.dispose);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [libraryControllerProvider.overrideWith(() => library)],
+          overrides: applicationTestOverrides([
+            libraryControllerProvider.overrideWith(() => library),
+          ]),
           child: MaterialApp(
             home: Scaffold(
               body: Center(

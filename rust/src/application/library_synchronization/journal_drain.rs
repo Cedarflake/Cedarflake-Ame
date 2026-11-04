@@ -1,11 +1,10 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::adapters::SqliteCatalog;
 use crate::domain::{
     IncrementalLibraryChangeReport, LibraryChangeLane, LibraryChangeQueuePolicy,
     LibraryRootGeneration, ScanError,
 };
-use crate::ports::IncrementalCatalogRepository;
+use crate::ports::{IncrementalCatalogRepository, LibraryChangeDispatch, LibraryChangeReadiness};
 
 use crate::application::authoritative_library_changes::{
     AuthoritativeRecoveryPolicy, process_leased_authoritative_library_change_cancellable,
@@ -16,7 +15,7 @@ use crate::application::incremental_library_changes::process_ready_library_chang
 mod tests;
 
 pub(super) fn process_ready(
-    catalog: &mut SqliteCatalog,
+    catalog: &mut (impl IncrementalCatalogRepository + LibraryChangeDispatch + LibraryChangeReadiness),
     root_id: &str,
     generation: LibraryRootGeneration,
     now_unix_ms: i64,

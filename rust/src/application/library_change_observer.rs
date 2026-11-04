@@ -16,7 +16,6 @@ use crate::ports::{LibraryChangeSourceFactory, erase_library_change_source_facto
 
 use super::plan_library_changes;
 
-const STOP_TASK_TIMEOUT: Duration = Duration::from_secs(2);
 const HEALTHY_POLLS_BEFORE_RESTART_RESET: u32 = 2;
 
 type StartResult = Result<BoxedLibraryChangeSource, LibraryChangeSourceError>;
@@ -207,13 +206,6 @@ impl LibraryChangeObserver {
             ignored_callback_count,
             last_source_error_code: self.last_source_error_code.clone(),
         })
-    }
-
-    pub(crate) fn stop(
-        &mut self,
-    ) -> Result<LibraryChangeSourceStopReport, LibraryChangeSourceError> {
-        self.request_stop()?;
-        self.finish_stop_until(Instant::now() + STOP_TASK_TIMEOUT)
     }
 
     pub(crate) fn request_stop(&mut self) -> Result<(), LibraryChangeSourceError> {

@@ -22,7 +22,7 @@ use crate::domain::{
 };
 use crate::ports::CatalogRepository;
 
-use super::user_visible_path;
+use crate::domain::user_visible_path;
 
 mod catalog_namespace;
 use catalog_namespace::{
@@ -50,6 +50,7 @@ mod operation_diagnostics;
 mod organization;
 mod organization_archive;
 pub(crate) use organization::SqliteOrganizationBatch;
+mod lane_session;
 #[cfg_attr(
     not(test),
     expect(
@@ -77,19 +78,21 @@ mod scan_admission;
 mod scan_change_capture;
 mod scan_checkpoint;
 mod scan_directories;
-#[cfg(windows)]
-mod search_index_hints;
-pub(crate) use journal_namespace::SqliteJournalNamespaceReader;
 mod scan_lifecycle;
 mod scan_publication;
+mod scan_repository;
 mod scan_resume_inventory;
 mod scan_resumption;
+mod scan_root_repository;
 mod scan_staging;
+#[cfg(windows)]
+mod search_index_hints;
 #[cfg(test)]
 mod session_open_diagnostics;
 mod sidebar_order;
 mod source_reconciliation;
 mod spool_retirement;
+mod synchronization_maintenance;
 mod write_admission;
 
 #[cfg(test)]
@@ -117,11 +120,6 @@ pub(crate) use metadata_inventory::MetadataInventorySpoolExecution;
 use migrations::{migrate_schema, prepare_fresh_catalog_auto_vacuum};
 pub(crate) use read_retry::SqliteCatalogReadExecutor;
 pub(crate) use reclamation::SqliteCatalogSpaceMaintenance;
-pub(crate) use scan_publication::{
-    RejectedInputValidationRoster, StagedValidationOutcome, StagedValidationRoster,
-    ValidatedStagingProof, load_retained_scan_issue_window, retained_scan_has_unclassified_issues,
-};
-
 mod catalog_delta;
 #[cfg(test)]
 mod catch_up;
@@ -828,49 +826,6 @@ impl SqliteCatalog {
         result
     }
 
-    pub(crate) fn pristine_first_import_scan(
-        &self,
-        root_id: &str,
-        root_generation: LibraryRootGeneration,
-    ) -> Result<Option<(String, i64)>, ScanError> {
-        let mut statement = self
-            .connection
-            .prepare(
-                "SELECT scan.id, scan.started_unix_ms
-                 FROM scan_runs AS scan
-                 JOIN library_roots AS root ON root.id = scan.root_id
-                 JOIN library_change_root_state AS active
-                   ON active.root_id = scan.root_id
-                  AND active.generation = scan.root_generation_at_start
-                 WHERE scan.root_id = ?1 AND scan.root_generation_at_start = ?2
-                   AND scan.scan_owner = 'foreground' AND scan.status = 'running'
-                   AND scan.visited_entries = 0 AND scan.accepted_items = 0
-                   AND root.active_scan_id IS NULL AND active.is_active = 1
-                 ORDER BY scan.started_unix_ms, scan.id
-                 LIMIT 2",
-            )
-            .map_err(database_error)?;
-        let scan_ids = statement
-            .query_map(
-                params![
-                    root_id,
-                    sqlite_integer(root_generation.value(), "root generation")?,
-                ],
-                |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
-            )
-            .map_err(database_error)?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(database_error)?;
-        match scan_ids.as_slice() {
-            [] => Ok(None),
-            [scan] => Ok(Some(scan.clone())),
-            _ => Err(ScanError::new(
-                "catalog_first_import_scan_ambiguous",
-                "The root has more than one pristine first-import scan",
-            )),
-        }
-    }
-
     pub(crate) fn first_import_change_capture_is_ready(
         &self,
         scan_id: &str,
@@ -1409,127 +1364,6 @@ impl SqliteCatalog {
         }
         transaction.commit().map_err(database_error)?;
         self.abandon_scan(scan_id, "failed", issue_count)
-    }
-
-    pub(crate) fn load_single_recoverable_foreground_scan(
-        &mut self,
-    ) -> Result<Option<RecoverableScan>, ScanError> {
-        self.converge_single_recoverable_foreground_scan()?;
-        load_scan_with_status(&self.connection, "running", ScanOwner::Foreground)
-    }
-
-    pub(crate) fn load_single_paused_foreground_scan(
-        &mut self,
-    ) -> Result<Option<RecoverableScan>, ScanError> {
-        self.converge_single_recoverable_foreground_scan()?;
-        load_scan_with_status(&self.connection, "paused", ScanOwner::Foreground)
-    }
-
-    fn converge_single_recoverable_foreground_scan(&mut self) -> Result<(), ScanError> {
-        let retired_scan_ids = {
-            let completed_unix_ms = unix_time_ms();
-            let transaction = self.begin_write()?;
-            let unfinished_scans = {
-                let mut statement = transaction
-                    .prepare(
-                        "SELECT scans.id, scans.issue_count,
-                                roots.active_scan_id IS NOT NULL AS has_published_root
-                         FROM scan_runs AS scans
-                         JOIN library_roots AS roots ON roots.id = scans.root_id
-                         WHERE scans.status IN ('running', 'paused')
-                           AND scans.scan_owner = 'foreground'
-                         ORDER BY CASE scans.status WHEN 'paused' THEN 0 ELSE 1 END,
-                                  scans.started_unix_ms DESC, scans.id DESC",
-                    )
-                    .map_err(database_error)?;
-                let rows = statement
-                    .query_map([], |row| {
-                        Ok((
-                            row.get::<_, String>(0)?,
-                            row.get::<_, i64>(1)?,
-                            row.get::<_, bool>(2)?,
-                        ))
-                    })
-                    .map_err(database_error)?;
-                rows.collect::<Result<Vec<_>, _>>()
-                    .map_err(database_error)?
-            };
-            let mut retired_scan_ids = Vec::new();
-            let mut retained_initial_import = false;
-            for (scan_id, issue_count, has_published_root) in unfinished_scans {
-                if !has_published_root && !retained_initial_import {
-                    retained_initial_import = true;
-                    continue;
-                }
-                abandon_scan_transaction(
-                    &transaction,
-                    &scan_id,
-                    "failed",
-                    issue_count,
-                    completed_unix_ms,
-                )?;
-                retired_scan_ids.push(scan_id);
-            }
-            transaction.commit().map_err(database_error)?;
-            retired_scan_ids
-        };
-        if !retired_scan_ids.is_empty() {
-            self.pending_locations.retain(|pending| {
-                !retired_scan_ids
-                    .iter()
-                    .any(|scan_id| scan_id == &pending.scan_id)
-            });
-        }
-        Ok(())
-    }
-
-    pub(crate) fn retire_legacy_automatic_full_scans(
-        &mut self,
-        retired_unix_ms: i64,
-    ) -> Result<u32, ScanError> {
-        let scans = {
-            let mut statement = self
-                .connection
-                .prepare(
-                    "SELECT scans.id, scans.issue_count
-                     FROM scan_runs AS scans
-                     WHERE scans.status IN ('running', 'paused')
-                       AND scans.scan_owner = 'authoritative_recovery'
-                     ORDER BY scans.id",
-                )
-                .map_err(database_error)?;
-            let rows = statement
-                .query_map([], |row| {
-                    Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
-                })
-                .map_err(database_error)?;
-            let mut scans = Vec::new();
-            for row in rows {
-                let (scan_id, issue_count) = row.map_err(database_error)?;
-                scans.push((scan_id, sqlite_unsigned(issue_count, "scan issue count")?));
-            }
-            scans
-        };
-        let retired_scan_count = u32::try_from(scans.len()).unwrap_or(u32::MAX);
-        for (scan_id, issue_count) in scans {
-            self.abandon_scan(&scan_id, "superseded", issue_count)?;
-        }
-        let transaction = self.begin_write()?;
-        transaction
-            .execute(
-                "UPDATE library_change_queue
-                 SET status = 'superseded', next_retry_unix_ms = NULL,
-                     lease_expires_unix_ms = NULL, authoritative_scan_id = NULL,
-                     superseded_by_change_id = NULL, last_failure_code = NULL,
-                     last_failure_message = NULL, updated_unix_ms = ?1
-                 WHERE origin = 'consistency_audit'
-                   AND intent_kind = 'reconcile' AND scope = 'root'
-                   AND status IN ('pending', 'leased', 'retry_wait')",
-                [retired_unix_ms],
-            )
-            .map_err(database_error)?;
-        transaction.commit().map_err(database_error)?;
-        Ok(retired_scan_count)
     }
 }
 

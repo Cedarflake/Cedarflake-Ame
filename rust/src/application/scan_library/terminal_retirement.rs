@@ -1,9 +1,8 @@
-use crate::adapters::SqliteCatalog;
 use crate::domain::ScanError;
 use crate::ports::CatalogRepository;
 
 pub(super) fn finish(
-    mut catalog: SqliteCatalog,
+    mut catalog: impl CatalogRepository,
     scan_id: &str,
     issue_count: u64,
     result: Result<(), ScanError>,

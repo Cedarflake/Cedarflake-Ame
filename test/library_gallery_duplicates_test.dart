@@ -2,7 +2,8 @@ import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_gallery_duplicates.dart";
-import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_gallery_duplicates.dart";
+import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
@@ -10,6 +11,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_gal
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "support/application_test_bindings.dart";
 
 void main() {
   test(
@@ -80,10 +83,10 @@ void main() {
   test("annotation batches are shared and bounded to 256 locations", () async {
     final service = _Annotations();
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryControllerProvider.overrideWith(() => _Window(_state(513, 1))),
         libraryGalleryDuplicatesProvider.overrideWithValue(service),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     final subscription = container.listen(
@@ -103,10 +106,10 @@ void main() {
     () async {
       final service = _Annotations()..delayed = Completer();
       final container = ProviderContainer(
-        overrides: [
+        overrides: applicationTestOverrides([
           libraryControllerProvider.overrideWith(() => _Window(_state(513, 1))),
           libraryGalleryDuplicatesProvider.overrideWithValue(service),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       final subscription = container.listen(

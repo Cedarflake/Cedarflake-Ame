@@ -1,45 +1,49 @@
 use super::*;
 
-use crate::adapters::RejectedInputValidationRoster;
 use crate::domain::DiscoveredFile;
 
-#[derive(Default)]
-pub(super) struct RejectedInputs {
-    roster: Option<RejectedInputValidationRoster>,
+pub(super) struct RejectedInputs<Rejected> {
+    roster: Option<Rejected>,
 }
 
-impl RejectedInputs {
+impl<Rejected> Default for RejectedInputs<Rejected> {
+    fn default() -> Self {
+        Self { roster: None }
+    }
+}
+
+impl<Rejected> RejectedInputs<Rejected> {
     pub(super) fn record(
         &mut self,
-        catalog: &SqliteCatalog,
+        catalog: &impl ScanPublicationRepository<RejectedRoster = Rejected>,
         file: &DiscoveredFile,
     ) -> Result<(), ScanError> {
         if self.roster.is_none() {
-            self.roster = Some(RejectedInputValidationRoster::create(catalog)?);
+            self.roster = Some(catalog.create_rejected_input_roster()?);
         }
         if let Some(roster) = &self.roster {
-            roster.record(catalog, file)?;
+            catalog.record_rejected_input(roster, file)?;
         }
         Ok(())
     }
 
     fn load_window(
         &self,
-        catalog: &SqliteCatalog,
+        catalog: &impl ScanPublicationRepository<RejectedRoster = Rejected>,
         after: Option<&str>,
     ) -> Result<Vec<(String, crate::domain::ExpectedFileState)>, ScanError> {
         self.roster.as_ref().map_or_else(
             || Ok(Vec::new()),
-            |roster| roster.load_window(catalog, after, FINALIZATION_WINDOW),
+            |roster| catalog.load_rejected_input_window(roster, after, FINALIZATION_WINDOW),
         )
     }
 }
 
-pub(super) fn validate_rejected_inputs(
-    catalog: &mut SqliteCatalog,
-    plan: &mut FinalizationPlan,
+pub(super) fn validate_rejected_inputs<Repository: ScanPublicationRepository>(
+    catalog: &mut Repository,
+    plan: &mut FinalizationPlan<Repository::RejectedRoster>,
     context: &FinalizationContext<'_>,
-    guard: &PublicationGuardedFileDiscovery,
+    guard: &impl PublicationNamespace,
     total_items: u64,
     issue_count: &mut u64,
     publish: &mut impl FnMut(ScanEvent) -> bool,
@@ -109,7 +113,7 @@ pub(super) fn validate_rejected_inputs(
 }
 
 fn retain_detached(
-    catalog: &mut SqliteCatalog,
+    catalog: &mut impl CatalogRepository,
     context: &FinalizationContext<'_>,
     issue_count: u64,
 ) -> Result<bool, ScanError> {

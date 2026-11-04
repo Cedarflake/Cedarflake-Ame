@@ -4,15 +4,17 @@ use std::path::Path;
 use image::{ImageDecoder, ImageReader, Limits};
 
 use crate::domain::{DiscoveredFile, ImageOrientation, MediaInspection, ScanIssue};
+use crate::ports::media_inspection::{GuardedMediaInspector, MediaSource};
 use crate::ports::{
     MediaInspectionFailure, MediaInspectionFailureKind, MediaInspector, MetadataExtractor,
+    PreviewSource, SourceMediaInspector,
 };
 
 use super::exif_metadata::KamadakExifExtractor;
 use super::image_orientation::from_image_orientation;
 #[cfg(test)]
 use super::local_files::canonical_source_root_path;
-use super::local_files::{FileDiscovery, open_source_file};
+use super::local_files::open_source_file;
 
 mod decoder_failure;
 mod jpeg_headers;
@@ -38,60 +40,10 @@ impl LocalMediaInspector {
         }
     }
 
-    pub(crate) fn inspect_with_discovery(
-        &self,
-        discovery: &FileDiscovery,
-        file: &DiscoveredFile,
-    ) -> Result<MediaInspection, MediaInspectionFailure> {
-        #[cfg(windows)]
-        {
-            let source = discovery
-                .open_pinned_source_file(&file.relative_path)
-                .map_err(|error| {
-                    media_failure(
-                        file,
-                        MediaInspectionFailureKind::Retryable,
-                        "image_open_failed",
-                        error,
-                    )
-                })?;
-            self.inspect_source(file, source)
-        }
-        #[cfg(not(windows))]
-        {
-            let _ = discovery;
-            self.inspect(file)
-        }
-    }
-
-    pub(crate) fn inspect_open_source(
-        &self,
-        file: &DiscoveredFile,
-        source: &std::fs::File,
-    ) -> Result<MediaInspection, MediaInspectionFailure> {
-        let mut source = source.try_clone().map_err(|error| {
-            media_failure(
-                file,
-                MediaInspectionFailureKind::Retryable,
-                "image_open_failed",
-                error,
-            )
-        })?;
-        source.seek(SeekFrom::Start(0)).map_err(|error| {
-            media_failure(
-                file,
-                MediaInspectionFailureKind::Retryable,
-                "image_open_failed",
-                error,
-            )
-        })?;
-        self.inspect_source(file, source)
-    }
-
     fn inspect_source(
         &self,
         file: &DiscoveredFile,
-        source: std::fs::File,
+        source: impl Read + Seek,
     ) -> Result<MediaInspection, MediaInspectionFailure> {
         let reader = ImageReader::new(BufReader::new(source))
             .with_guessed_format()
@@ -175,6 +127,44 @@ impl LocalMediaInspector {
             height,
             metadata,
         })
+    }
+}
+
+impl GuardedMediaInspector for LocalMediaInspector {
+    #[flutter_rust_bridge::frb(ignore)]
+    fn inspect_with_source(
+        &self,
+        source: &impl MediaSource,
+        file: &DiscoveredFile,
+    ) -> Result<MediaInspection, MediaInspectionFailure> {
+        let source = source.open_media_reader(file).map_err(|error| {
+            media_failure(
+                file,
+                MediaInspectionFailureKind::Retryable,
+                "image_open_failed",
+                error,
+            )
+        })?;
+        self.inspect_source(file, source)
+    }
+}
+
+impl SourceMediaInspector for LocalMediaInspector {
+    #[flutter_rust_bridge::frb(ignore)]
+    fn inspect_open_source(
+        &self,
+        file: &DiscoveredFile,
+        source: &impl PreviewSource,
+    ) -> Result<MediaInspection, MediaInspectionFailure> {
+        let source = source.reader_from_start().map_err(|error| {
+            media_failure(
+                file,
+                MediaInspectionFailureKind::Retryable,
+                "image_open_failed",
+                error,
+            )
+        })?;
+        self.inspect_source(file, source)
     }
 }
 

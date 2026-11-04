@@ -5,7 +5,7 @@ import "../../application/library_organization_actions.dart";
 import "../../application/library_operation_notice.dart";
 import "../../domain/library_organization.dart";
 import "../../domain/library_models.dart";
-import "../library_organization_mode.dart";
+import "../coordination/library_organization_mode.dart";
 import "library_album_viewer_action.dart";
 import "library_favorite_button.dart";
 import "library_organization_feedback.dart";

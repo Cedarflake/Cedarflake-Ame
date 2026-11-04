@@ -43,15 +43,6 @@ pub(super) fn require_running_first_import(
 }
 
 impl SqliteCatalog {
-    pub(crate) fn save_first_import_journal_capability<Permit>(
-        &mut self,
-        capability: &PersistentJournalCapability,
-        scan_id: &str,
-        acquire: impl FnOnce() -> Result<Permit, ScanError>,
-    ) -> Result<(), ScanError> {
-        self.save_journal_capability(capability, Some(scan_id), acquire)
-    }
-
     pub(super) fn save_journal_capability<Permit>(
         &mut self,
         capability: &PersistentJournalCapability,

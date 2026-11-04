@@ -1,5 +1,15 @@
 use super::*;
 
+pub(super) fn new_test_synchronization_with_factory(
+    start_source: LibraryChangeSourceStarter,
+    factory: Arc<dyn PersistentChangeJournal>,
+) -> ProductionSynchronization {
+    new_production_synchronization_with_factory(
+        start_source,
+        crate::adapters::journal_runtime_factory_for_test(factory),
+    )
+}
+
 #[derive(Clone, Copy)]
 pub(super) struct HealthyFactory;
 

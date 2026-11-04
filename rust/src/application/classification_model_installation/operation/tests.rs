@@ -53,11 +53,14 @@ fn preparation_retains_ownership_until_cancelled_work_returns() {
 
 #[test]
 fn shutdown_preserves_recovered_intent_and_explicit_cancel_retires_it_before_preparation() {
-    use crate::adapters::DownloadIntent;
+    use super::super::production::installation_repository;
+    use crate::ports::classification_installation::ClassificationInstallationRepository;
 
     let directory = tempfile::tempdir().unwrap();
     let settings = directory.path().join("installation.sqlite");
-    let intent = DownloadIntent::authorize(&settings, "fixture").unwrap();
+    let intent = installation_repository()
+        .authorize_download(&settings, "fixture")
+        .unwrap();
     let operation =
         ModelInstallationOperation::with_source(InstallationSource::Resume(PendingDownload {
             settings: settings.clone(),
@@ -65,12 +68,15 @@ fn shutdown_preserves_recovered_intent_and_explicit_cancel_retires_it_before_pre
         }));
     operation.cancel().unwrap();
     assert_eq!(
-        DownloadIntent::pending(&settings, "fixture").unwrap(),
+        installation_repository()
+            .pending_download(&settings, "fixture")
+            .unwrap(),
         Some(intent)
     );
     operation.discard().unwrap();
     assert!(
-        DownloadIntent::pending(&settings, "fixture")
+        installation_repository()
+            .pending_download(&settings, "fixture")
             .unwrap()
             .is_none()
     );

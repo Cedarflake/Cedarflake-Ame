@@ -5,8 +5,7 @@ import "package:flutter/foundation.dart";
 import "package:flutter/painting.dart";
 
 import "../../application/library_source_read_scheduler.dart";
-import "../../application/library_source_reader.dart";
-import "../../application/rust_library_source_reader.dart";
+import "../../application/ports/library_source_reader.dart";
 import "../../domain/library_models.dart";
 import "library_source_image_stream.dart";
 
@@ -17,10 +16,9 @@ class LibrarySourceImage extends ImageProvider<LibrarySourceImage> {
   LibrarySourceImage(
     LibraryAsset asset, {
     this.retryGeneration = 0,
-    LibrarySourceReadScheduler? scheduler,
+    required this._scheduler,
     LibrarySourceBufferLoader? bufferLoader,
   }) : _asset = asset,
-       _scheduler = scheduler ?? librarySourceReadScheduler,
        _bufferLoader = bufferLoader ?? ui.ImmutableBuffer.fromFilePath,
        sourceVersion = (
          rootId: asset.rootId,

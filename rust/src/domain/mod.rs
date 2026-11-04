@@ -7,6 +7,8 @@ pub mod classification_review;
 pub mod classification_selection;
 pub mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
+mod path_display;
+pub(crate) use path_display::user_visible_path;
 pub mod media_metadata;
 pub use media_metadata::CameraMetadata;
 pub mod organization;
@@ -42,9 +44,17 @@ mod media_admission_recheck;
 pub use media_admission_recheck::MediaAdmissionRecheck;
 pub(crate) mod library_synchronization;
 pub(crate) mod persistent_journal;
+mod scan_publication;
 mod scan_resume_coverage;
+mod source_discovery;
+mod stable_identity;
+pub(crate) use stable_identity::stable_id;
 
+pub(crate) use scan_publication::{
+    RetainedScanIssue, ScanPublicationReceipt, StagedValidationOutcome,
+};
 pub(crate) use scan_resume_coverage::ScanResumeCoverage;
+pub use source_discovery::{FileVisit, FileVisitOutcome};
 
 pub use library_catalog_delta::{
     CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublication,

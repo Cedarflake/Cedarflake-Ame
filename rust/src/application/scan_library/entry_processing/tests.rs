@@ -2,11 +2,12 @@ use std::cell::Cell;
 
 use tempfile::{TempDir, tempdir};
 
+use crate::adapters::SqliteCatalog;
 use crate::domain::{
     DiscoveredFile, FileIdentityEvidence, MediaInspection, MetadataInspection, ScanIssue,
     ScanRequest, SourceRevisionEvidence,
 };
-use crate::ports::{MediaInspectionFailure, MediaInspectionFailureKind};
+use crate::ports::{CatalogRepository, MediaInspectionFailure, MediaInspectionFailureKind};
 
 use super::super::finalization::FinalizationMode;
 use super::*;
@@ -157,7 +158,7 @@ struct EntryFixture {
     source: TempDir,
     catalog: SqliteCatalog,
     checkpoint: ScanCheckpoint,
-    finalization: FinalizationPlan,
+    finalization: FinalizationPlan<<SqliteCatalog as ScanPublicationRepository>::RejectedRoster>,
     issue_count: u64,
 }
 

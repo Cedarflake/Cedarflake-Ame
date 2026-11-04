@@ -16,6 +16,8 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../support/duplicate_review_fixtures.dart";
 import "../../../support/semantics/retained_semantics_update_harness.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 void main() {
   RetainedSemanticsUpdateBinding();
   setUp(RetainedSemanticsUpdateValidator.instance.reset);
@@ -28,7 +30,7 @@ void main() {
       try {
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [
+            overrides: applicationTestOverrides([
               libraryControllerProvider.overrideWith(_FilterLibrary.new),
               libraryGalleryLayoutManifestProvider.overrideWith((
                 ref,
@@ -37,7 +39,7 @@ void main() {
                 await Future<void>.delayed(const Duration(milliseconds: 60));
                 return _manifest(_state(request.query));
               }),
-            ],
+            ]),
             child: const AmeApp(),
           ),
         );

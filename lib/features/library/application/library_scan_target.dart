@@ -1,6 +1,6 @@
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
-import "library_scanner.dart";
+import "ports/library_scanner.dart";
 
 sealed class LibraryScanTarget {
   const LibraryScanTarget();

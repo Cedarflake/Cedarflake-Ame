@@ -2,12 +2,16 @@ use rusqlite::{OptionalExtension, Transaction, params};
 
 use crate::domain::{IncrementalCatalogRoot, LibraryRootGeneration, ScanError};
 
+use crate::ports::scan_admission::FirstImportReadiness;
+
 use super::scan_staging::retire_scan_staging;
 
 use super::{
     SqliteCatalog, database_error, restore_explicit_recovery_claims_from_foreground_scan,
-    retire_root_change_queue, sqlite_unsigned,
+    retire_root_change_queue, sqlite_integer, sqlite_unsigned,
 };
+
+mod recovery;
 
 #[cfg(test)]
 mod tests;
@@ -136,10 +140,51 @@ pub(super) fn discard_first_import_boundary(
     Ok(())
 }
 
-impl SqliteCatalog {
-    pub(crate) fn load_inactive_first_import_roots(
+impl FirstImportReadiness for SqliteCatalog {
+    fn pristine_first_import_scan(
         &self,
-    ) -> Result<Vec<IncrementalCatalogRoot>, ScanError> {
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+    ) -> Result<Option<(String, i64)>, ScanError> {
+        let mut statement = self
+            .connection
+            .prepare(
+                "SELECT scan.id, scan.started_unix_ms
+                 FROM scan_runs AS scan
+                 JOIN library_roots AS root ON root.id = scan.root_id
+                 JOIN library_change_root_state AS active
+                   ON active.root_id = scan.root_id
+                  AND active.generation = scan.root_generation_at_start
+                 WHERE scan.root_id = ?1 AND scan.root_generation_at_start = ?2
+                   AND scan.scan_owner = 'foreground' AND scan.status = 'running'
+                   AND scan.visited_entries = 0 AND scan.accepted_items = 0
+                   AND root.active_scan_id IS NULL AND active.is_active = 1
+                 ORDER BY scan.started_unix_ms, scan.id
+                 LIMIT 2",
+            )
+            .map_err(database_error)?;
+        let scan_ids = statement
+            .query_map(
+                params![
+                    root_id,
+                    sqlite_integer(root_generation.value(), "root generation")?,
+                ],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .map_err(database_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(database_error)?;
+        match scan_ids.as_slice() {
+            [] => Ok(None),
+            [scan] => Ok(Some(scan.clone())),
+            _ => Err(ScanError::new(
+                "catalog_first_import_scan_ambiguous",
+                "The root has more than one pristine first-import scan",
+            )),
+        }
+    }
+
+    fn load_inactive_first_import_roots(&self) -> Result<Vec<IncrementalCatalogRoot>, ScanError> {
         let mut statement = self
             .connection
             .prepare(

@@ -183,4 +183,8 @@ class LibraryExactAnalysisScheduler extends ChangeNotifier {
 
 // The desktop composition root supplies its native lifecycle-owned instance.
 final libraryExactAnalysisSchedulerProvider =
-    Provider<LibraryExactAnalysisScheduler?>((ref) => null);
+    Provider<LibraryExactAnalysisScheduler?>((ref) {
+      throw StateError(
+        "LibraryExactAnalysisScheduler must be bound during application startup",
+      );
+    });

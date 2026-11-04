@@ -5,13 +5,16 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_album_viewer_action.dart";
-import "package:cedarflake_ame/features/settings/application/album_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/album_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_organization_fixture.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   late OrganizationServiceFixture service;
@@ -22,10 +25,10 @@ void main() {
   setUp(() {
     service = OrganizationServiceFixture()..albumItems = [current, destination];
     container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryOrganizationProvider.overrideWithValue(service),
         libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
-      ],
+      ]),
     );
   });
   tearDown(() => container.dispose());

@@ -2,422 +2,128 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-03
+Last planning update: 2026-11-04
 
-This file owns product delivery order, the current focus, blocking obligations, and stage exit
-decisions. Only one stage may be active. Detailed product contracts, execution procedures, architecture,
-and historical verification have separate owners in the [documentation index](README.md).
-Read the linked active execution plan before working on its scope; it cannot independently advance
-a stage or change this queue. Historical results never establish current-source acceptance.
+This file owns current stage disposition, execution order, blockers, decomposition obligations and
+exit decisions. Read the linked active plan before implementation. Product requirements, technical
+decisions, procedures and historical evidence remain in their named owners in the
+[documentation index](README.md).
 
 ## Product direction
 
-Ame is a local-first Windows image-organizing workbench for a large personal library. Its sequence
-is trustworthy catalog and browsing, exact duplicate understanding, durable virtual organization
-and review, machine-assisted understanding, and finally separately authorized physical operations.
-The gallery remains one shared canvas throughout. Cataloging, browsing, analysis, and virtual
-organization preserve original media and do not require a second full source copy.
+Ame is a local-first Windows image-organizing workbench for large personal libraries. Delivery
+progresses from trustworthy catalog and browsing to exact duplicates, durable virtual organization,
+machine-assisted discovery and separately authorized physical operations. Cataloging, browsing,
+analysis and virtual organization preserve original media.
 
-The [workbench contract](product/workbench.md) owns product concepts, exclusions, and reference
-policy. The [gallery UI contract](product/gallery-ui.md) retains the accepted presentation rules.
-[Organization workflow requirements](product/organization-workflows.md) preserve the full
-R3–R10 scope; their existence does not make those capabilities available.
+The [workbench contract](product/workbench.md) owns concepts and exclusions;
+[organization workflows](product/organization-workflows.md) retain the complete R3–R10 scope.
 
 ## Delivery sequence
 
-| Stage | User outcome | Current disposition |
+| Stage | Outcome | Disposition |
 | --- | --- | --- |
-| R0 | A real Windows picker-to-catalog-to-preview vertical slice | Accepted foundation |
-| R1 | Progressive, resumable, multi-root catalog with source preservation | Accepted foundation |
-| R2a | Accepted unified gallery and connected-control design | Accepted foundation |
-| R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
-| R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
-| R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
-| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Completed and merged into main on 2026-10-30 |
-| R5 | Metadata, smart albums, and calibrated initial screening | Merged into main on 2026-11-03; final submitted-head CI remains pending |
-| R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
-| R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
-| R8 | Immutable physical-organization dry-run with conflicts and no execution | Planned after R7 |
-| R9 | Freshly authorized file operations with revalidation, history, and recovery | Planned after R8 |
-| R10 | Large-library maturity and release readiness | Later maturity work; infrastructure may support earlier stages |
-
-R2b's [foundation evidence](acceptance/gallery-foundation.md) retains the frozen interaction baseline
-and conditional adaptation gates. Accepted work is not reopened merely to complete an optional
-migration checklist. R3–R10 retain their full product and safety requirements in the linked contract;
-this overview does not reduce them to navigation shells or compilation milestones.
+| R0 | Windows picker, catalog and preview | Accepted foundation |
+| R1 | Progressive, resumable multi-root catalog | Accepted foundation |
+| R2a | Unified gallery and connected controls | Accepted foundation |
+| R2b | Continuous browsing, viewing and storage | Accepted; preserve [foundation boundaries](acceptance/gallery-foundation.md) |
+| R2c | Change-driven continuity during browsing | Completed and frozen on 2026-10-16 |
+| R3 | Exact duplicates and physical-location inspection | Completed on 2026-10-17 |
+| R4 | Favorites, albums and durable organization progress | Merged into `main` on 2026-10-30 |
+| R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
+| R6 | Perceptual similarity review | Planned after post-R5 organization |
+| R7 | Structured and semantic discovery | Planned after R6 |
+| R8 | Immutable physical-organization dry-run | Planned after R7 |
+| R9 | Freshly authorized physical operations and recovery | Planned after R8 |
+| R10 | Large-library maturity and release readiness | Later work; infrastructure may support earlier stages |
 
 ## Current stage and acceptance boundary
 
-**R2c is frozen and R3 is completed. R4 is completed and merged into `main` on 2026-10-30.**
-R4-01 through R4-07 deliver whole-group single-album decisions, independent Favorites, durable
-organization progress and continuation, late-group conflict handling, bounded gallery/viewer
-scopes, recovery and explicit unresolved-record cleanup. The accepted desktop controls, sidebar
-management and state-aware actions are connected. The
-[merge verification](acceptance/r4-organization.md#r4-merge-verification---2026-10-30) links the
-functional, recovery, source-preservation, retained-scale and complete hosted evidence.
+R4 and R5 are integrated; no later product stage is active. Their
+[R4 merge evidence](acceptance/r4-organization.md#r4-merge-verification---2026-10-30) and
+[R5 integrated evidence](acceptance/r5-closeout.md) retain coverage, accepted limits and merge authority.
+GitHub continues hosted checks independently, as the user directed; pending checks do not block the
+next organization slice or require local substitutes for unchanged CI workloads.
 
-The implementation is verified through `17c16c7d`, with subsequent changes limited to delivery
-records. The R4 branch through `53bbb5bc` is integrated without conflict or history rewriting.
-R5's [requirements](product/r5-classification.md) and [implementation plan](plans/r5-classification.md)
-were integrated into `main` through PR #45 on 2026-11-03. On the same date, open-ended
-category naming was withdrawn in favor of an application-maintained finite catalog. R5-02 now owns
-consolidated topics, explicit purpose restrictions and their actual quality assessment. The
-[integrated evidence map](acceptance/r5-closeout.md) covers R5-01 through R5-07, including the current
-automatic-analysis and browsing controls. The [merge record](acceptance/r5-closeout.md#r5-merge--2026-11-03)
-retains the explicit decision to merge before the final submitted-head CI completed. No later product
-stage is active.
-
-On 2026-10-30, the remaining cloud-primary first-viewer and mode-entry frame peaks are explicitly
-deferred to a [separate performance follow-up](#deferred-constrained-device-rendering).
-That limitation remains recorded and is no longer an R4 merge condition. Skia, the accepted visual
-language, full-resolution viewing and original-media safeguards remain unchanged.
-
-The [R3 execution record](plans/r3-exact-duplicates.md) and
-[closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
-[R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
-client verification, source preservation, resource bounds and hosted results.
-
-The R2c product baseline is commit `5ea62d05eb7f84a64a12967fdba20fda9008f371`. The
-[frozen closeout checkpoint](plans/r2c-closeout.md#current-execution-checkpoint) and
-[final recovery verification](acceptance/r2c-update-checkpoint.md#r2c-freeze-on-2026-10-16)
-retain its delivered behavior, hosted result and deferred incident. Previous R2c queue instructions,
-paused-R3 statements and candidate-readiness requirements are historical. They do not schedule
-another R2c closeout cycle or block the selected R3 work. Historical test records retain their
-actual coverage and failures; stage closure does not rewrite those observations.
-
-The earlier Debug process termination during recovery is deferred until it recurs. Retain its
-existing log and Windows error report, with the cause unresolved. Do not schedule another crash
-investigation or replay from that old incident. A new occurrence can receive a scoped maintenance
-fix without reopening the R2c milestone. New source-safety failures or defects that directly prevent
-R3's selected workflow are handled at their owning layer under the repository contract.
+Preserve the delivered R5 curated catalog, purpose restrictions, automatic analysis, legacy decisions,
+archive compatibility and authorized model-installation recovery. The
+[R5 requirements](product/r5-classification.md) own current behavior and withdrawn controls.
+Reuse completed acceptance when its inputs are unchanged; new behavior receives its affected checks.
 
 ## Current execution queue
 
-R4 and R5 are integrated into `main`; the R5 development branch has been deleted locally and remotely.
-The pending final hosted result is tracked in the [merge record](acceptance/r5-closeout.md#r5-merge--2026-11-03).
-Inspect that result and address any relevant failure without replaying unchanged R5 acceptance.
-The next planned maintenance is [project organization](#project-organization-after-r5), before R6.
-Preserve stable identities, legacy choices, the selected SigLIP runtime and source safeguards;
-no additional naming model is included. The previous
-[naming boundary record](acceptance/r5-category-discovery.md#open-category-naming-boundary--2026-11-02)
-remains evidence of the superseded open-ended design, not an outstanding expansion requirement.
+Project organization O1–O7 is complete on `codex/project-organization`; the
+[handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04) maps the
+delivered scope to evidence. [PR 46](https://github.com/Cedarflake/Cedarflake-Ame/pull/46) remains a
+draft; merging requires separate authorization. No later product stage is active.
 
-The 2026-11-02 model-delivery
-follow-up has its scoped local evidence: compact download entry, existing-notification-center
-progress, installer-bundled models and authorized download recovery across restart. The
-[delivery checks](acceptance/r5-desktop-classification.md#model-restart-recovery-and-installer-payload--2026-11-02)
-retain the exact desktop and packaging coverage. PR #45 contains the integrated R5-07 delivery;
-its live checks retain their actual hosted status. Preserve the
-completed actual-media and base-gallery checks without another replay.
-[PR #45](https://github.com/Cedarflake/Cedarflake-Ame/pull/45) covers the complete stage rather than
-an individual slice. The [integrated evidence map](acceptance/r5-closeout.md) links each slice to its
-native, desktop, recovery, quality and resource checks. No later product stage is active.
-
-The delivered desktop retains the existing four-choice Filter menu, passive smart-album heading,
-category rows and ordinary gallery/preview actions. Installer models activate after verification;
-missing-model downloads require explicit authorization and preserve an unfinished task across restart.
-Installed analysis runs automatically, including recovery from legacy modes, with cause-aware silent per-image
-recovery. Manual classification, category authoring, analysis controls and Settings prompts were
-withdrawn. Preserve legacy records, archive compatibility, R4 organization and source-safety guards.
-
-The integrated screening assessment retains provisional reference authority, small-category coverage
-and unsupported confidence bands. It admits initial screening with bounded automatic refinement,
-without a manual-review or correction-time requirement. Reuse the completed comparisons and source-safe
-first-use, restart, archive, large-library and paired local/cloud checks when their inputs are unchanged.
-
-On 2026-11-02, current performance was accepted for this round. Complete-query, first-admission,
-bulk-action latency and constrained-device frame peaks retain their measured limits as follow-up work.
-The [retained query measurements](acceptance/r5-smart-albums.md) and
-[paired foreground comparison](acceptance/r5-incremental-analysis.md#connected-localcloud-foreground-comparison--2026-11-01)
-own those observations. No additional unchanged performance cycle is required for R5 closure.
-
-The R5 merge includes the connected curated catalog, enforced purpose boundaries, useful
-per-topic results and coherent nonempty sidebar categories, with the linked functional, quality,
-resource and preservation evidence. The final submitted-head hosted result remains pending after the
-explicitly authorized early merge. Further behavior changes require their affected checks and
-submitted-head result. R6 and the deferred rendering follow-up retain their existing order and scope.
-
-The separate deferred rendering follow-up retains its bounded scope and does not reopen R4 verification.
-
-The requested notification maintenance standardizes bottom feedback and image-preview top notices
-through shared templates under the [gallery contract](product/gallery-ui.md#feedback-templates).
-Its [scoped verification](acceptance/notification-feedback.md) retains the affected checks and client
-evidence. Preserve these shared templates during the separate rendering follow-up.
-
-The requested sidebar maintenance hides expansion for leaf roots and reserves source status for
-import and directory synchronization, independently of duplicate analysis. Its [scoped evidence](acceptance/library-sidebar.md) records the focused
-regressions and client checks; it does not start a new stage.
-
-The requested image-rendering maintenance covers adaptive original-image sampling, sharper cropped
-previews, larger card densities in both gallery layouts and neighboring-image row packing. Its
-[scoped evidence](acceptance/image-rendering.md) owns the focused regressions, Windows client checks
-and retained resource limits. Hosted verification follows publication; this maintenance does not
-start R4.
-
-The source-status maintenance repairs retained local journal registration failures that left an
-empty queue without a recovery consumer. Known failures now revalidate the root and journal opening
-before entering the existing background verification. Focused regressions and the retained-library
-client pass, including a second startup with ordinary catch-up and `已同步`. The
-[scoped evidence](acceptance/r3-exact-duplicates.md#retained-registration-failure-and-source-status)
-records recovery, status precedence and source preservation. Hosted verification follows publication;
-this maintenance does not reopen R2c/R3 or start R4.
-
-The requested recovery-order maintenance adds bounded failed-read admission into Windows Search
-preparation followed by materialized background verification. Once fallback is admitted, complete
-verification owns this round without waiting for USN to recover. Preserve completed inventory work,
-source revalidation and truthful continuity state. Its
-[scoped evidence](acceptance/r3-exact-duplicates.md#journal-fallback-order) owns the regressions and
-client verification. This is maintenance of the accepted synchronization path.
-
-The requested foreground-image maintenance adjusts the Windows engine's image I/O
-thread to normal priority at startup. Its scope is the reproducible upload wait on
-a two-core device; the separate five-minute Release observation is deferred by user
-direction. Preserve source leases, cancellation, catalog state and other worker
-priorities. The [scoped evidence](acceptance/viewer-scheduling.md) owns the measured
-diagnosis and verification. The actual-engine checks and cloud Debug comparison
-pass, and commit `a8cbc84` passed its applicable hosted checks. This maintenance does
-not start R4.
-
-The requested [first-import performance maintenance](plans/first-import-performance.md) stops at
-the current candidate by user direction on 2026-10-22. Retain the measured catalog improvements and
-the subsequent coalesced progress commit; do not schedule further optimization or client imports.
-The measured 80.381-second cloud-primary import exceeds the earlier 60-second limit, and the latest
-progress-commit change has no new client timing. PR #44 integrated this candidate alongside the scoped
-browsing follow-ups as `664da6a` after current-head hosted verification. This disposition does not
-claim the one-minute outcome or start R4. Its timings, source preservation, cache limitations and
-verification belong in the [acceptance record](acceptance/first-import-performance.md).
-
-R3 is closed after exact identification, physical-location inspection, both gallery modes,
-duplicate review, incremental maintenance and durable choices passed their affected verification.
-Preserve its source-read boundaries, deterministic representatives, bounded windows, retained viewer
-navigation and accepted workbench behavior. The execution and acceptance records retain the completed
-R3-01 through R3-05 deliveries; they are no longer an active repair queue.
-
-The completed [R4 virtual organization and review](product/r4-organization.md) remains the baseline.
-Its requirements cover whole-group single-album assignment, independent Favorites, continuous
-organization progress, conflict handling, and recovery/cleanup. The
-[gallery contract](product/gallery-ui.md#review-workflow) owns the accepted desktop interaction.
-The [R4 execution plan](plans/r4-organization.md) retains its delivered
-[implementation sequence](#r4-implementation-sequence). R5 reuses its durable identity, guarded group
-commands, recovery, and desktop controls under the explicit
-[classification boundary](product/r4-organization.md#boundary-with-r5-classification).
-Keep physical operations, perceptual similarity, and release signing in their owning scopes.
-
-The requested maintenance scope
-[fast recovery after journal loss](plans/r3-exact-duplicates.md#fast-recovery-after-journal-loss)
-is completed on `main` through PR #43. It applies Windows Search hints through guarded actual-file checks
-at startup, then verifies the complete source quietly using the original materialized inventory.
-The accepted Windows metadata-reuse boundary and multi-root scheduling remain intact; direct
-streaming capture is withdrawn. The corrected production entrypoint has completed its retained-library
-client check. The sidebar keeps `正在核对`, and confirmed gallery-viewer changes offer reload or return
-through the shared floating notice without moving the image. Focused regressions and the affected
-client interactions pass. The requested date-condition follow-up retains the time rail's painted
-frame across query replacement so its existing motion can continue; old-query input is retired.
-Exact-commit hosted verification passed before merge, and the delivery branch was removed locally
-and remotely. The owning
-[verification](acceptance/r3-exact-duplicates.md#fast-recovery-after-journal-loss) separates indexed
-refresh, complete verification and the earlier interrupted timings. There is no fixed startup-time
-threshold for this maintenance scope.
-
-The time-rail return-to-top follow-up retires superseded queued and active navigation even when
-the new target is already loaded. Focused regressions and the corrected near-top-to-top client
-sequence pass. Hosted verification passed and PR #44 integrated the change into `main`; its branch
-was removed locally and remotely. The [scoped evidence](acceptance/r3-exact-duplicates.md#returning-the-time-rail-to-the-loaded-top)
-retains the two request-lifetime boundaries. This does not reopen a completed stage.
-
-The duplicate-review follow-up uses a bounded direct-position read for distant group navigation
-and retained-position revalidation, with ordinary adjacent keyset paging and preserved user choices.
-Focused regressions and the rebuilt real-library client interaction pass; the user confirmed the
-loading issue resolved. Its [scoped evidence](acceptance/r3-exact-duplicates.md#direct-positioning-in-duplicate-review)
-and implementation were integrated through PR #44 after hosted verification.
-
-The earlier [startup-update repair](plans/r3-exact-duplicates.md#startup-update-maintenance)
-retains its delivered behavior. Time-rail input,
-progressive duplicate folding and post-sync gallery convergence are implemented and client-verified
-on `main`. Stable existing folded cards, progressive confirmed copies, shared update status and
-bounded badge inspection are also implemented and client-verified. The `journal_trim` investigation
-confirmed expired checkpoint retention and added observed-bound diagnostics. Preserve guarded source
-evidence and the existing test library. This scoped repair does not reopen R2c/R3 milestones or start R4.
-
-The [maintainability refactor](plans/maintainability-refactor.md) is implemented on six sequential
-responsibility branches: historical migration proof and compatibility repair, synchronization runtime
-ownership, gallery refresh/dimension lifecycles, retained-page rules, superseded test paths and
-release/acceptance script ownership. Native GitHub stack #35 contained PRs #22–#27 and the
-consolidated follow-up PR #29. The plan links current hosted checks and the completed client comparison,
-scoped audit and retained observations. The six branch heads and combined source candidate passed
-their applicable hosted checks. All seven PRs merged into `main` after explicit authorization on
-2026-10-18; the stack is closed. Gallery notification ownership and catalog preview-reset transactions
-subsequently merged through PR #36. M9–M13 then merged through native stack #40 at `4808928`:
-gallery interaction ownership, native-file enumeration and parsing, persistent-journal decomposition,
-hosted CI parallelism and catalog/gallery test organization. All five PRs are merged and the stack
-is closed; original commits remain reachable and the five delivery branches were removed. The
-[final maintenance closeout](acceptance/maintainability-refactor.md#second-round-closeout)
-records the preserved behavior, client checks, final audit, complete hosted coverage and timing.
-The requested maintenance queue is complete. Preserve isolated hosted timing workloads, serial
-workstation execution and the delivered ownership boundaries. The plan retains the five original
-maintenance findings and their evidence.
-This delivery does not start R4 or reopen R2c/R3 acceptance.
-The same plan records the completed card-size position correction, continuous-filter anchor retention,
-timeline stability during updates and journal catch-up correction as separate behavior changes after
-the six refactor boundaries. Hosted mixed-load diagnostics and the catalog-proof correction retain
-their evidence in the linked acceptance record.
-
-## R4 implementation sequence
-
-R4-01 through R4-07 are verified and integrated into `main`. The
-[execution plan](plans/r4-organization.md) retains their dependencies and exit conditions, and the
-[merge verification](acceptance/r4-organization.md#r4-merge-verification---2026-10-30) connects each
-slice to its actual evidence. The three audit repairs, retained-library publication checks and
-album-heading continuity repair are included in the verified implementation. Historical failures,
-rejected performance candidates and measurements remain in the acceptance record.
-
-| Order | Slice | Required result |
-| --- | --- | --- |
-| R4-01 | [Durable group decisions and command targets](plans/r4-organization.md#r4-01-durable-group-decisions-and-command-targets) | Stable organization identity, whole-group commands, transactional records and recoverable migration foundation |
-| R4-02 | [Organization transitions and group reconciliation](plans/r4-organization.md#r4-02-organization-transitions-and-group-reconciliation) | Single-album/Favorite decisions, shared progress, undo, merges/splits and safe source lifecycle handling |
-| R4-03 | [Bounded album and Favorite queries](plans/r4-organization.md#r4-03-bounded-album-and-favorite-queries) | Consistent, bounded gallery scopes, pages, counts, layout and viewer navigation |
-| R4-04 | [Continuous queues and durable continuation](plans/r4-organization.md#r4-04-continuous-queues-and-durable-continuation) | Inherited gallery sorting, optional new-first ordering, stable logical continuation and shared counts across ordinary and organization modes |
-| R4-05 | [Connected albums, Favorites and organization mode](plans/r4-organization.md#r4-05-connected-albums-favorites-and-organization-mode) | Ordinary album/Favorite workflows and accepted organization controls, continuation and persistent conflict resolution |
-| R4-06 | [Export, restoration and unresolved-record cleanup](plans/r4-organization.md#r4-06-export-restoration-and-unresolved-record-cleanup) | Versioned portable recovery, preserved rebuilds and explicit cleanup without resurrection on reimport |
-| R4-07 | [Integrated verification and stage closure](plans/r4-organization.md#r4-07-integrated-verification-and-stage-closure) | Verified complete desktop flow, retained-library resource bounds, recovery and source preservation |
-
-This sequence remains the implementation reference. Migration recovery, whole-group authority,
-explicit source-removal behavior and the separation of durable decisions from derived data remain
-binding. Native recovery, cleanup/reimport, cancellation, retained-scale reads and writes, desktop
-interaction and complete hosted verification cover the integrated result.
-
-## R5 implementation sequence
-
-The [R5 requirements](product/r5-classification.md) define metadata, classification authority,
-`智能相册`, automatic analysis, legacy recovery, and the two-core/8-GiB baseline. The
-[execution plan](plans/r5-classification.md) expands these ordered slices. The selected initial
-candidate is SigLIP 2 Base/16-224 with FP16 image and INT8 text encoders. Its exploratory evidence
-informs R5-02 admission; functional, license, runtime, and resource gates remain in their owning slices.
-
-| Order | Slice | Required result |
-| --- | --- | --- |
-| R5-01 | [Metadata and structured search](plans/r5-classification.md#r5-01-metadata-and-bounded-structured-search) | Admitted metadata and coherent bounded search through the existing gallery, usable without a model |
-| R5-02 | [Taxonomy, model, and runtime admission](plans/r5-classification.md#r5-02-taxonomy-model-and-runtime-admission) | Labeling rubric, quality/calibration evidence, licenses, runtime boundary, and measured resource budgets |
-| R5-03 | [Durable classification and recovery](plans/r5-classification.md#r5-03-durable-classification-decisions-and-recovery) | Immutable classification evidence, preserved legacy decisions, migrations, and portable recovery |
-| R5-04 | [Incremental local analysis](plans/r5-classification.md#r5-04-incremental-local-analysis) | Compatible model publication with bounded resources, automatic yielding/recovery/restart, and foreground priority |
-| R5-05 | [Smart-album projections](plans/r5-classification.md#r5-05-smart-album-projections-and-coherent-queries) | Coherent derived categories, metadata filters, counts, pages, selection, and viewer scope |
-| R5-06 | [Desktop smart albums](plans/r5-classification.md#r5-06-desktop-smart-albums) | Approved browsing controls, read-only categories, automatic recovery, and shared feedback |
-| R5-07 | [Integrated verification](plans/r5-classification.md#r5-07-integrated-quality-scale-and-closure) | Measured screening quality, source-safe recovery, usable low-resource browsing, and applicable hosted gates |
-
-The [integrated evidence map](acceptance/r5-closeout.md) records the delivered result of each slice.
-ADR 0032 owns indexed search, ADR 0033 retains typed query/archive compatibility, and ADRs 0034–0036
-own the admitted model/runtime, durable evidence and dispatch boundaries. The selected SigLIP 2
-configuration remains an initial-screening candidate with the measured quality limits in that record.
-
-The desktop metadata form, manual classification workflow, category editor and analysis controls are
-withdrawn. The current product contracts own their replacements and retained compatibility rules;
-historical interaction checks do not reinstate removed UI. The pending final hosted result follows
-the current execution queue above. R6 through R10 retain their order.
+The historical pause timeout remains an accepted observation with a
+[recurrence-based follow-up](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04).
+It did not recur in current Windows or bounded timing verification. It no longer
+blocks this rollout; its cause is not recorded as fixed. R6 remains planned after this maintenance.
 
 ## Project organization after R5
 
-Following R5's authorized merge, the
-[project-organization plan](plans/project-organization.md) defines the requested maintenance pass.
-Its planned position is before R6 implementation; implementation of this maintenance pass and later
-product stages has not started. The separate rendering follow-up keeps its existing scope and disposition.
+[ADR 0037](architecture/0037-feature-module-dependency-boundaries.md) owns dependencies and composition;
+the [repository layout](development/repository-layout.md) owns placement. The
+[execution plan](plans/project-organization.md) defines O1–O7 and each slice's exit conditions.
 
-[ADR 0037](architecture/0037-feature-module-dependency-boundaries.md) owns the future dependency and
-composition target, and the [repository layout](development/repository-layout.md) owns placement.
-Apply the target to new and materially changed modules when this rollout starts. Inventory legacy
-edges once, reject new violations from O1, and remove exceptions with each migrated boundary.
-The execution plan owns the ordered slices, behavior-preservation checks and rollback units.
-Closure requires repository conformance and applicable hosted/client evidence; publishing the
-documents does not establish migration, activate implementation or reopen completed stage acceptance.
+| Scope | Disposition |
+| --- | --- |
+| O1–O7 | Completed on the organization branch; [handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04) |
+
+New and materially changed modules follow the accepted dependency and layout contracts. Keep the
+fixed legacy inventory as provenance and retain only the exact admitted technical boundaries.
+Preserve established scan, synchronization, analysis, query and source-read lifetimes.
 
 ## Deferred constrained-device rendering
 
-By explicit user decision on 2026-10-30, first-use rendering optimization on cloud-primary is a
-separate follow-up after R4 and does not block its merge. The
-[retained diagnosis](acceptance/r4-organization.md#constrained-device-first-use-rendering---2026-10-30)
-owns the measurements and known limits. The remaining scope is the first viewer frame and mode-entry
-graphics upload/synchronization on the two-core, 8-GiB software-rendered client.
+The user deferred first-viewer and mode-entry graphics peaks on the two-core, 8-GiB cloud-primary
+client on 2026-10-30. This remains separate from project organization and does not reopen R4 or R5.
+Its [retained diagnosis](acceptance/r4-organization.md#constrained-device-first-use-rendering---2026-10-30)
+owns measurements and rejected candidates.
 
-Resume from the saved per-interaction traces, identify a cause-level repair and compare the same
-Skia workflow before and after on cloud-primary and local-primary. Preserve accepted controls and
-motion, full-resolution viewing, source-read lifetimes, cancellation and bounded memory. The tested
-warm-up, reduced-motion and cache variants are not product changes and should not be repeated
-without new evidence. This follow-up does not schedule another complete R4 acceptance cycle or
-change the R5–R10 order.
-
-## Frozen R2c ownership
-
-The [R2c closeout plan](plans/r2c-closeout.md) is historical and has no active execution queue.
-The detailed runtime, native-client and platform observations remain in the
-[acceptance index](acceptance/README.md). The pre-freeze queue is available at the
-[frozen source revision](https://github.com/Cedarflake/Cedarflake-Ame/blob/5ea62d05eb7f84a64a12967fdba20fda9008f371/docs/roadmap.md).
-Use the existing records when a relevant boundary changes; do not replay old pending instructions
-merely because a new session reads them.
-
-ADR [0024](architecture/0024-windows-change-driven-library-continuity.md) continues to own the
-synchronization design. The former ADR 0023 model and its older acceptance slices remain historical.
-The signed distribution and installer lifecycle retain their separate qualification under
-[ADR 0027](architecture/0027-windows-installer-lifecycle.md). Signing, service installation and
-Sandbox diagnostics are outside the R3 queue; future changes to those workflows retain their own
-scope, verification and authorization. Historical gaps remain documented without becoming
-additional R3 entry gates.
+When selected, resume from those traces and compare the same Skia interaction on cloud-primary and
+local-primary. Preserve accepted controls and motion, full-resolution viewing, cancellation and
+source leases. Do not repeat warm-up, reduced-motion or cache candidates without new evidence.
+This follow-up keeps its existing scope without another full stage-acceptance cycle.
 
 ## Retained ownership and decomposition obligations
 
-ADR [0025](architecture/0025-invariant-owned-workflow-modules.md) owns module boundaries. Review
-the live owner before extending it; a forwarding wrapper or lower line count is not an extraction.
-The retained debt constrains changes to the affected owners. It does not schedule a broad R2c
-refactor before independent R3 work; extract the boundary needed by the selected delivery.
+[ADR 0025](architecture/0025-invariant-owned-workflow-modules.md) and its scoped owner contracts bind
+any affected extension. Existing extractions are regression boundaries, not tasks to repeat. A new
+multi-responsibility extension must first establish its typed owner; record only an actual unfinished
+larger split here, with affected scope and resume condition. This documentation reorganization
+schedules no additional broad split.
 
-- Preserve typed ownership of scan execution/publication, mutually exclusive first-import versus
-  existing-root journal opening, query/viewport generation, and committed-removal display refresh.
-  Already extracted owners are regression boundaries, not another implementation checklist.
-- Historical migrations now have shared schema-shape, contract-validation and compatibility-repair
-  owners; production synchronization has dedicated runtime and Journal/Recovery owners alongside Live.
-  Preserve these delivered boundaries rather than rescheduling their extraction.
-- Move tests with their owners. Revisit viewer, selection, or sidebar decomposition only when an
-  independent lifecycle requires it. Stable migration history, cohesive layout, and shared quality
-  or release entrypoints are not split merely for size.
-- The catalog's row serialization, physical-identity state reads and source reconciliation have
-  dedicated owners. Preserve the reconciliation transaction across observation admission,
-  generation allocation and retained-alias updates. This does not reorder the retained migration
-  and synchronization-runtime split duties.
-- A repair establishes the required typed boundary and records production/inline-test/dedicated-test
-  size. If a larger split exceeds the active repair, retain it here as debt and add no further
-  behavior to that debt owner until the required split is complete. This does not authorize a broad rewrite
-  or expand the active R3 delivery.
+## R4 implementation sequence
+
+R4-01 through R4-07 are integrated. The [execution plan](plans/r4-organization.md) retains slice
+definitions; the [acceptance record](acceptance/r4-organization.md) owns implementation and merge evidence.
+
+## R5 implementation sequence
+
+R5-01 through R5-07 are integrated. The [execution plan](plans/r5-classification.md) retains slice
+definitions; the [closeout record](acceptance/r5-closeout.md) maps each to evidence and accepted limits.
+
+## Frozen R2c ownership
+
+R2c's [closeout plan](plans/r2c-closeout.md) and
+[freeze record](acceptance/r2c-update-checkpoint.md#r2c-freeze-on-2026-10-16) retain its historical queue.
+They do not start another closeout cycle. [Completed maintenance](acceptance/completed-maintenance.md)
+indexes subsequent deliveries, deferred observations and original roadmap provenance.
 
 ## R2c exit and non-negotiable constraints
 
-R2c is closed. The following constraints preserve its behavior while later stages evolve. The
-[continuity contract](acceptance/library-continuity.md) retains the invariant and regression cases;
-[quality gates](acceptance/quality-gates.md) owns execution commands and hosted/client boundaries.
-
-- Ordinary supported changes converge through the change-driven production path; unchanged
-  synchronization startup performs zero source-root enumeration/media opens/inventory creation.
-  P0 retains its one-second P95 under P1/P2 work; continuous closed-process single changes retain
-  the two-second P95 bound. R3 analysis reads are separately scheduled and accounted for.
-- Cached content remains usable during continuity work. No stale result, partial scan, failed
-  recovery, unavailable root or interrupted task can publish false completion, freshness or absence.
-- Original media, original catalogs and durable user intent remain intact. No routine full scan,
-  cloud hydration, catalog reset, weakened identity/lease guard or broader broker privilege may
-  hide a failure. Schema changes retain forward migration and data-preservation requirements.
-- Reuse the frozen R2c verification and run the applicable regression checks when later changes
-  affect its boundaries. The historical final-audit and platform matrices retain their recorded
-  results; they are not an active stage-wide acceptance cycle.
-- Unsigned Debug/Release remain supported. Signing credentials and signing-dependent installation
-  qualification do not become R3 prerequisites. Bounded read-only verification of known roots
-  follows the standing repository policy. Source mutation, service installation, release publication
-  and branch merging retain their applicable authorization requirements.
+Preserve the [continuity contract](acceptance/library-continuity.md) and
+[ADR 0024](architecture/0024-windows-change-driven-library-continuity.md): trustworthy publication,
+bounded change-driven work, usable retained browsing and source safety. Evidence retains its revision
+and scope. Signing and installed-service qualification keep their separate authorization and
+acceptance owners under [ADR 0027](architecture/0027-windows-installer-lifecycle.md).
 
 ## Maintaining this roadmap
 
-Update only stage disposition, the bounded queue, blockers, required decomposition, and exit
-decisions here after checking current source and evidence. Replace an obsolete status instead of
-appending another dated repair narrative. Put detailed procedures in the linked execution plan,
-stable product behavior in product contracts, accepted technical decisions in ADRs, and commands,
-test totals, measurements, failed attempts, and completed repair history in acceptance records.
-
-Historical records and the pre-organization source are discoverable from the
-[acceptance index](acceptance/README.md#historical-roadmap-provenance). They remain evidence rather
-than a second active roadmap. Do not copy their implementation snapshots back into this file or
-infer current acceptance from an old passing head.
+Replace obsolete status rather than appending a repair narrative. Keep active order, actual blockers,
+required decomposition and exit decisions here. Put execution steps in plans, stable rules in their
+contract or ADR, and completed work, measurements and failures in acceptance records. Follow the
+[documentation standard](development/documentation.md) when updating any of these owners.

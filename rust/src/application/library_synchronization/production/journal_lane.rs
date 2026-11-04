@@ -1,10 +1,16 @@
 use std::sync::Arc;
 
-use crate::adapters::SqliteCatalog;
 use crate::domain::{
     LibraryChangeQueuePolicy, LibraryRootGeneration, LibrarySynchronizationSnapshot, ScanError,
 };
-use crate::journal_broker::{CallerClaim, PersistentChangeJournalConnection};
+use crate::ports::journal_baseline::JournalBaselineAdmission;
+use crate::ports::journal_recovery::JournalRecoveryRepository;
+use crate::ports::journal_runtime::{JournalRuntimeConnection, JournalRuntimeSession};
+use crate::ports::scan_admission::FirstImportReadiness;
+use crate::ports::{
+    CatalogRepository, IncrementalCatalogRepository, LibraryChangeReadiness,
+    MetadataInventoryRepository, PersistentJournalRepository,
+};
 
 use super::super::journal_baseline;
 use super::journal_volume::JournalVolumeWork;
@@ -40,17 +46,25 @@ impl JournalLane {
         }
     }
 
-    pub(super) fn select(
+    pub(super) fn select<Repository, Connection: JournalRuntimeConnection>(
         &mut self,
-        catalog: &mut SqliteCatalog,
+        catalog: &mut Repository,
         snapshot: &LibrarySynchronizationSnapshot,
         now_unix_ms: i64,
-        connection: &PersistentChangeJournalConnection,
-        caller: Option<&CallerClaim>,
+        connection: &Connection,
         policy: LibraryChangeQueuePolicy,
-    ) -> Result<Option<JournalWork>, ScanError> {
+    ) -> Result<Option<JournalWork<Connection::Session>>, ScanError>
+    where
+        Repository: CatalogRepository
+            + IncrementalCatalogRepository
+            + LibraryChangeReadiness
+            + MetadataInventoryRepository
+            + FirstImportReadiness
+            + JournalBaselineAdmission
+            + JournalRecoveryRepository,
+    {
         self.fallback_session
-            .prepare(catalog, now_unix_ms, policy, connection)?;
+            .prepare(catalog, now_unix_ms, policy, connection.is_connected())?;
         self.failures
             .retain_roots(|id| snapshot.roots.iter().any(|root| root.root_id == id));
         if let Some((root_id, root_generation)) =
@@ -63,18 +77,21 @@ impl JournalLane {
                 root_generation,
             }));
         }
-        let (session, caller) = match (connection, caller) {
-            (PersistentChangeJournalConnection::Connected(session), Some(caller)) => {
-                (Arc::clone(session), caller.clone())
-            }
-            (PersistentChangeJournalConnection::LiveOnly(_), _) => {
+        let session = match connection.session() {
+            Some(session) => session,
+            None if !connection.is_connected() => {
                 if let Some(work) = journal_baseline::select_opening_work(
                     catalog,
                     snapshot,
                     self.root_cursor.as_deref(),
                     None,
                 )? {
-                    journal_baseline::persist_unavailable_session(catalog, &work, now_unix_ms)?;
+                    journal_baseline::persist_unavailable_session(
+                        catalog,
+                        &work,
+                        now_unix_ms,
+                        connection.protocol_version(),
+                    )?;
                 }
                 return Ok(None);
             }
@@ -93,7 +110,6 @@ impl JournalLane {
                 work,
                 failures: Arc::clone(&self.failures),
                 session,
-                caller,
             }));
         }
 
@@ -105,7 +121,6 @@ impl JournalLane {
                 failures: Arc::clone(&self.failures),
                 work,
                 session,
-                caller,
             }));
         }
         if let Some(work) = journal_baseline::select_opening_work(
@@ -115,11 +130,7 @@ impl JournalLane {
             session.identity_source().as_deref(),
         )? {
             self.root_cursor = Some(work.root_id().to_owned());
-            return Ok(Some(JournalWork::Opening {
-                work,
-                session,
-                caller,
-            }));
+            return Ok(Some(JournalWork::Opening { work, session }));
         }
 
         if self.next_action_is_read
@@ -140,7 +151,6 @@ impl JournalLane {
                 work,
                 failures: Arc::clone(&self.failures),
                 session,
-                caller,
             }));
         }
         self.next_action_is_read = true;
@@ -149,16 +159,14 @@ impl JournalLane {
 
     pub(super) fn capacity_debt_roots(
         &self,
-        catalog: &SqliteCatalog,
+        catalog: &(
+             impl LibraryChangeReadiness + IncrementalCatalogRepository + PersistentJournalRepository
+         ),
         snapshot: &LibrarySynchronizationSnapshot,
-        connection: &PersistentChangeJournalConnection,
-        caller: Option<&CallerClaim>,
+        connection: &impl JournalRuntimeConnection,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<Vec<(String, LibraryRootGeneration)>, ScanError> {
-        if !self.next_action_is_read
-            || !matches!(connection, PersistentChangeJournalConnection::Connected(_))
-            || caller.is_none()
-        {
+        if !self.next_action_is_read || connection.session().is_none() {
             return Ok(Vec::new());
         }
         let Some(work) = self.next_volume(catalog, snapshot)? else {
@@ -180,7 +188,7 @@ impl JournalLane {
 
     fn next_volume(
         &self,
-        catalog: &SqliteCatalog,
+        catalog: &(impl IncrementalCatalogRepository + PersistentJournalRepository),
         snapshot: &LibrarySynchronizationSnapshot,
     ) -> Result<Option<JournalVolumeWork>, ScanError> {
         journal_volume::select(catalog, snapshot, self.volume_cursor.as_deref())
@@ -188,7 +196,7 @@ impl JournalLane {
 
     fn next_root(
         &self,
-        catalog: &SqliteCatalog,
+        catalog: &impl LibraryChangeReadiness,
         snapshot: &LibrarySynchronizationSnapshot,
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,

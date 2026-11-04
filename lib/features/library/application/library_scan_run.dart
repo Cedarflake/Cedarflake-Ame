@@ -4,7 +4,7 @@ import "../domain/library_models.dart";
 import "library_query_refresh.dart";
 import "library_scan_control.dart";
 import "library_scan_source_admission.dart";
-import "library_scanner.dart";
+import "ports/library_scanner.dart";
 
 abstract interface class LibraryScanRunListener {
   void onScanUpdate(LibraryScanRun run, LibraryScanUpdate update);

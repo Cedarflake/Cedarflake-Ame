@@ -18,7 +18,7 @@ import "../../domain/library_organization.dart";
 import "../../domain/library_organization_batch.dart";
 import "../../domain/library_review.dart";
 import "../../domain/library_selection_availability.dart";
-import "../gallery_selection.dart";
+import "../coordination/gallery_selection.dart";
 import "../library_organization_messages.dart";
 import "../library_progress_controls.dart";
 import "library_album_picker.dart";

@@ -6,11 +6,12 @@ use std::sync::mpsc::{self, Receiver};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use crate::adapters::{LocatedLibraryRoot, SqliteCatalogSession, locate_library_root};
 use crate::domain::{
     FileIdentityEvidence, IncrementalCatalogRoot, LibraryChangeLane, LibraryRootAvailability,
     LibrarySynchronizationSnapshot, ScanError,
 };
+use crate::ports::catalog_session::CatalogLaneSession;
+use crate::ports::root_location::{LocatedLibraryRoot, RootLocationRepository};
 
 use super::finish_runtime_task_until;
 
@@ -27,14 +28,14 @@ pub(super) struct RootLocationRecoveryOwner {
     stopping: bool,
 }
 
+pub(super) fn new_production_root_location_recovery() -> RootLocationRecoveryOwner {
+    RootLocationRecoveryOwner::with_locator(crate::adapters::locate_library_root)
+}
+
+#[cfg(test)]
 impl Default for RootLocationRecoveryOwner {
     fn default() -> Self {
-        Self {
-            locator: Arc::new(locate_library_root),
-            task: None,
-            attempts: BTreeMap::new(),
-            stopping: false,
-        }
+        new_production_root_location_recovery()
     }
 }
 
@@ -52,7 +53,6 @@ struct LocationTask {
 }
 
 impl RootLocationRecoveryOwner {
-    #[cfg(test)]
     pub(super) fn with_locator(
         locator: impl Fn(&str, &FileIdentityEvidence) -> Result<Option<LocatedLibraryRoot>, ScanError>
         + Send
@@ -61,17 +61,23 @@ impl RootLocationRecoveryOwner {
     ) -> Self {
         Self {
             locator: Arc::new(locator),
-            ..Self::default()
+            task: None,
+            attempts: BTreeMap::new(),
+            stopping: false,
         }
     }
 
-    pub(super) fn poll(
+    pub(super) fn poll<Session>(
         &mut self,
-        session: Arc<SqliteCatalogSession>,
+        session: Arc<Session>,
         roots: Vec<IncrementalCatalogRoot>,
         snapshot: &mut LibrarySynchronizationSnapshot,
         cancelled: Arc<AtomicBool>,
-    ) -> Result<(), ScanError> {
+    ) -> Result<(), ScanError>
+    where
+        Session: CatalogLaneSession,
+        Session::Catalog: RootLocationRepository,
+    {
         let now = Instant::now();
         self.reap_finished(now);
         self.attempts
@@ -112,7 +118,12 @@ impl RootLocationRecoveryOwner {
             .name("ame-root-location".to_owned())
             .spawn(move || {
                 let result = catch_unwind(AssertUnwindSafe(|| {
-                    recover(&session, &worker_root, &worker_cancelled, locator.as_ref())
+                    recover(
+                        session.as_ref(),
+                        &worker_root,
+                        &worker_cancelled,
+                        locator.as_ref(),
+                    )
                 }))
                 .unwrap_or_else(|_| Err(worker_panic()));
                 let _ = sender.send(result);
@@ -196,12 +207,16 @@ fn same_binding(left: &IncrementalCatalogRoot, right: &IncrementalCatalogRoot) -
         && left.publication_root_identity == right.publication_root_identity
 }
 
-fn recover(
-    session: &SqliteCatalogSession,
+fn recover<Session>(
+    session: &Session,
     root: &IncrementalCatalogRoot,
     cancelled: &AtomicBool,
     locator: &DirectoryLocator,
-) -> Result<(), ScanError> {
+) -> Result<(), ScanError>
+where
+    Session: CatalogLaneSession,
+    Session::Catalog: RootLocationRepository,
+{
     if cancelled.load(Ordering::Acquire) {
         return Ok(());
     }

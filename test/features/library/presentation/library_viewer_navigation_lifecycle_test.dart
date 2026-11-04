@@ -14,6 +14,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/retained_scan_fixture.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 void main() {
   for (final (collection, reopenSameAsset, clickAgain) in [
     (const LibraryGalleryCollection.library(), true, false),
@@ -48,7 +50,7 @@ void main() {
         final scanner = RetainedScanScanner()..checkpoint = null;
         final catalog = _HeldViewerPageCatalog(scanner, viewerQuery);
         final container = ProviderContainer(
-          overrides: [
+          overrides: applicationTestOverrides([
             libraryScannerProvider.overrideWithValue(scanner),
             libraryCatalogProvider.overrideWithValue(catalog),
             initialLibraryStateProvider.overrideWithValue(
@@ -57,7 +59,7 @@ void main() {
                 query: viewerQuery,
               ),
             ),
-          ],
+          ]),
         );
         addTearDown(scanner.dispose);
         addTearDown(container.dispose);

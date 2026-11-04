@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use crate::adapters::SqliteCatalog;
 use crate::domain::{
     LibraryChangeSourceHealth, LibraryRootAvailability, LibraryRootGeneration,
     LibrarySynchronizationSnapshot, PersistentJournalCapabilityState, PersistentJournalCheckpoint,
@@ -22,7 +21,7 @@ pub(super) struct JournalRootWork {
 }
 
 pub(super) fn select(
-    catalog: &SqliteCatalog,
+    catalog: &(impl IncrementalCatalogRepository + PersistentJournalRepository),
     snapshot: &LibrarySynchronizationSnapshot,
     cursor: Option<&str>,
 ) -> Result<Option<JournalVolumeWork>, ScanError> {

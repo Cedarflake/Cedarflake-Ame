@@ -3,9 +3,12 @@ import "dart:typed_data";
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_layout_manifest_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_previewer.dart";
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
@@ -15,6 +18,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_query_snapshot_fixture.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -235,7 +240,7 @@ String _description(WidgetTester tester, _Fixture fixture) {
 class _Fixture {
   _Fixture() {
     container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(
             catalog.page(0, 160),
@@ -244,7 +249,7 @@ class _Fixture {
         libraryCatalogProvider.overrideWithValue(catalog),
         libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(manifest),
         libraryPreviewerProvider.overrideWithValue(_PendingPreviewer()),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
   }

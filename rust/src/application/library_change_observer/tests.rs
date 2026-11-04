@@ -359,7 +359,9 @@ fn slow_runtime_stop_does_not_block_poll_and_window_close_remains_bounded() {
     assert!(poll_started.elapsed() < Duration::from_millis(200));
     assert_eq!(poll.source_health, LibraryChangeSourceHealth::Failed);
     let close_started = Instant::now();
-    observer.stop().expect("bounded window-close stop");
+    observer
+        .finish_stop_until(Instant::now() + Duration::from_secs(2))
+        .expect("bounded window-close stop");
     assert!(close_started.elapsed() < Duration::from_secs(2));
     assert_eq!(*stops.lock().expect("stop state"), 1);
 }
@@ -641,8 +643,12 @@ fn stop_is_idempotent_and_prevents_future_polling_or_restart() {
     )
     .expect("observer");
 
-    let first = observer.stop().expect("first stop");
-    let second = observer.stop().expect("second stop");
+    let first = observer
+        .finish_stop_until(Instant::now() + Duration::from_secs(2))
+        .expect("first stop");
+    let second = observer
+        .finish_stop_until(Instant::now() + Duration::from_secs(2))
+        .expect("second stop");
 
     assert_eq!(first.elapsed_millis, 3);
     assert_eq!(second, LibraryChangeSourceStopReport::default());

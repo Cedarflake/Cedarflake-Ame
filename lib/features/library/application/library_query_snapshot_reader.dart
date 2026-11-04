@@ -1,5 +1,7 @@
 import "../domain/library_models.dart";
 import "library_catalog.dart";
+import "ports/library_catalog.dart";
+import "../domain/library_query_snapshot.dart";
 
 class LibraryQuerySnapshotReader {
   const LibraryQuerySnapshotReader(this._catalog);

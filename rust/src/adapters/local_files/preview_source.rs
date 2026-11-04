@@ -1,10 +1,16 @@
 use std::fs::File;
-use std::io;
+use std::io::{self, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
 use crate::domain::{ExpectedFileState, FileIdentityEvidence, ScanIssue, SourceRevisionEvidence};
+use crate::ports::PreviewSource;
+use crate::ports::preview_source::{
+    PreviewPublicationLease, PreviewSourceFactory, PreviewSourceLease,
+};
 
-use super::revalidate_open_preview_source;
+use super::{
+    PreviewPublicationGuard, open_preview_publication_guard, revalidate_open_preview_source,
+};
 #[cfg(windows)]
 use super::{WindowsDirectoryRootProof, open_source_file_with_root_proof};
 #[cfg(not(windows))]
@@ -14,6 +20,83 @@ pub(crate) struct OpenedPreviewSource {
     pub(crate) file: File,
     pub(crate) source_revision: Option<SourceRevisionEvidence>,
     pub(crate) source_root_path: PathBuf,
+}
+
+pub(crate) struct LocalPreviewSources;
+
+#[cfg(not(windows))]
+impl crate::ports::source_identity::SourceIdentityLocator for LocalPreviewSources {
+    fn current_paths(
+        &self,
+        _root_id: &str,
+        _root_generation: crate::domain::LibraryRootGeneration,
+        _root_path: &str,
+        _expected_root_identity: &FileIdentityEvidence,
+        _file_identity: &FileIdentityEvidence,
+    ) -> Result<Option<Vec<String>>, crate::domain::ScanError> {
+        Ok(None)
+    }
+}
+
+impl PreviewSourceFactory for LocalPreviewSources {
+    type Source = OpenedPreviewSource;
+    type Publication = PreviewPublicationGuard;
+
+    fn open(
+        &self,
+        expected: &ExpectedFileState,
+        source_root: &Path,
+        expected_root_identity: Option<&FileIdentityEvidence>,
+    ) -> Result<Self::Source, ScanIssue> {
+        open_preview_source(expected, source_root, expected_root_identity)
+    }
+
+    fn protect_publication(
+        &self,
+        expected: &ExpectedFileState,
+        source_root: &Path,
+        expected_root_identity: Option<&FileIdentityEvidence>,
+    ) -> Result<Self::Publication, ScanIssue> {
+        open_preview_publication_guard(expected, source_root, expected_root_identity)
+    }
+}
+
+impl PreviewSource for OpenedPreviewSource {
+    type Reader = File;
+
+    fn reader_from_start(&self) -> io::Result<Self::Reader> {
+        self.file.reader_from_start()
+    }
+}
+
+impl PreviewSourceLease for OpenedPreviewSource {
+    fn source_root(&self) -> &Path {
+        &self.source_root_path
+    }
+
+    fn source_revision(&self) -> Option<&SourceRevisionEvidence> {
+        self.source_revision.as_ref()
+    }
+
+    fn revalidate(&self, expected: &ExpectedFileState) -> Result<(), ScanIssue> {
+        revalidate_open_preview_source(&self.file, expected).map(|_| ())
+    }
+}
+
+impl PreviewPublicationLease for PreviewPublicationGuard {
+    fn revalidate(&self, expected: &ExpectedFileState) -> Result<(), ScanIssue> {
+        revalidate_open_preview_source(self.source_file(), expected).map(|_| ())
+    }
+}
+
+impl PreviewSource for File {
+    type Reader = File;
+
+    fn reader_from_start(&self) -> io::Result<Self::Reader> {
+        let mut reader = self.try_clone()?;
+        reader.seek(SeekFrom::Start(0))?;
+        Ok(reader)
+    }
 }
 
 pub(crate) fn open_preview_source(

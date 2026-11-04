@@ -1,9 +1,11 @@
-use crate::adapters::{LocalMediaInspector, PublicationGuardedFileDiscovery, user_visible_path};
+use crate::domain::user_visible_path;
 use crate::domain::{
     AssetLocationView, DerivedEvidenceDisposition, DiscoveredFile,
     IncrementalReconciliationDecision, IncrementalReconciliationOutcome, LeasedLibraryChange,
     LibraryChangeFailure, PreviewStatus,
 };
+use crate::ports::media_inspection::GuardedMediaInspector;
+use crate::ports::source_publication::PublicationFileSource;
 use crate::ports::{MediaInspectionFailureKind, MediaInspector};
 
 use super::{failure, incremental_asset_id, issue_failure, stable_location_id};
@@ -19,8 +21,8 @@ pub(super) enum BuildLocationFailure {
 }
 
 pub(super) fn build_location(
-    discovery: &PublicationGuardedFileDiscovery,
-    inspector: &LocalMediaInspector,
+    discovery: &impl PublicationFileSource,
+    inspector: &impl GuardedMediaInspector,
     leased: &LeasedLibraryChange,
     file: &DiscoveredFile,
     decision: &IncrementalReconciliationDecision,
@@ -42,8 +44,8 @@ pub(super) fn build_location(
                 file.issues.first().map(issue_failure),
             )
         } else {
-            let inspection = discovery
-                .inspect_media(inspector, file)
+            let inspection = inspector
+                .inspect_with_source(discovery, file)
                 .map_err(|failure| match failure.kind {
                     MediaInspectionFailureKind::Retryable => {
                         BuildLocationFailure::Retry(issue_failure(&failure.issue))
@@ -135,7 +137,7 @@ pub(super) fn build_location(
 
 pub(super) fn inspection_metadata_is_compatible(
     prior: &AssetLocationView,
-    inspector: &LocalMediaInspector,
+    inspector: &impl MediaInspector,
 ) -> bool {
     prior.metadata_engine_id == inspector.metadata_engine_id()
         && prior.metadata_engine_version == inspector.metadata_engine_version()

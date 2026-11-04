@@ -13,19 +13,7 @@ use crate::ports::{PersistentJournalRepository, PersistentJournalVolumeReader};
 
 mod capture_window;
 mod empty_replay;
-mod identity_reader;
-mod production_reader;
-mod read_boundary;
-mod recovery_probe;
-mod session_reader;
 pub(crate) use capture_window::{JournalCaptureWindowReport, catch_up_persistent_journal_window};
-pub(crate) use production_reader::ProductionPersistentJournalVolumeReader;
-pub(crate) use recovery_probe::{can_reprobe_failure, can_reprobe_journal_failure};
-
-pub(crate) use session_reader::{
-    PersistentJournalBrokerRoot, SessionBackedPersistentJournalVolumeReader,
-    classify_persistent_journal_operation_failure,
-};
 
 pub(crate) fn catch_up_persistent_journal_volume<Repository, Reader>(
     repository: &mut Repository,

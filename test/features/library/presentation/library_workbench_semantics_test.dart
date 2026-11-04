@@ -4,8 +4,8 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_workbench.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/vertical_material_timeline_slider.dart";
-import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
-import "package:cedarflake_ame/features/settings/presentation/ame_settings_page.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/presentation/pages/ame_settings_page.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/settings_section.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
@@ -13,6 +13,7 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/application_test_bindings.dart";
 import "../../../support/semantics/retained_semantics_update_harness.dart";
 
 void main() {
@@ -28,6 +29,7 @@ void main() {
     try {
       await tester.pumpWidget(
         ProviderScope(
+          overrides: applicationTestOverrides(),
           child: MaterialApp(
             home: Scaffold(
               body: LibraryWorkbench(
@@ -119,11 +121,11 @@ void main() {
         addTearDown(folded.dispose);
         var groups = <String, LibraryDuplicateGroup>{};
         final container = ProviderContainer(
-          overrides: [
+          overrides: applicationTestOverrides([
             libraryGalleryDuplicateAnnotationsProvider.overrideWith(
               (ref) async => groups,
             ),
-          ],
+          ]),
         );
         addTearDown(container.dispose);
         await tester.pumpWidget(

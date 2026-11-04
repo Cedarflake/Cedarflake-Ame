@@ -14,6 +14,7 @@ use crate::domain::{
 #[cfg(test)]
 use crate::domain::{LibraryChangeCatchUpEvidence, PersistentJournalEnrollmentBatch};
 use crate::ports::PersistentJournalRepository;
+use crate::ports::journal_baseline::JournalBaselineAdmission;
 
 #[cfg(test)]
 use super::change_queue::{
@@ -1346,8 +1347,8 @@ mod tests {
         persistent_journal_pending_rename_id,
     };
     use crate::ports::{
-        CatalogRepository, LibraryChangeQueue, MetadataInventoryRepository,
-        PersistentJournalRepository,
+        CatalogRepository, LibraryChangeDispatch, LibraryChangeQueue, LibraryChangeReadiness,
+        MetadataInventoryRepository, PersistentJournalRepository,
     };
 
     use super::super::{SqliteCatalog, sqlite_integer};

@@ -118,8 +118,8 @@ fn run_priority_workload(
         .expect("canonical P2 root")
         .to_string_lossy()
         .into_owned();
-    let p1_root_id = crate::application::scan_library::stable_id("library-root-v1", &p1_root_path);
-    let p2_root_id = crate::application::scan_library::stable_id("library-root-v1", &p2_root_path);
+    let p1_root_id = crate::domain::stable_id("library-root-v1", &p1_root_path);
+    let p2_root_id = crate::domain::stable_id("library-root-v1", &p2_root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),
@@ -262,11 +262,13 @@ fn run_priority_workload(
         crate::ports::erase_library_change_source_factory(source_factory.clone()),
         PersistentChangeJournalConnection::Connected(session),
     );
-    production.persistent_change_journal_caller = Some(crate::journal_broker::CallerClaim {
-        process_id: std::process::id(),
-        session_id: 1,
-        client_instance: [4; 16],
-    });
+    production
+        ._persistent_change_journal
+        .set_caller_for_test(crate::journal_broker::CallerClaim {
+            process_id: std::process::id(),
+            session_id: 1,
+            client_instance: [4; 16],
+        });
     production.runtime.queue_policy = policy;
     assert_eq!(
         production.metadata_inventory_page_entries,

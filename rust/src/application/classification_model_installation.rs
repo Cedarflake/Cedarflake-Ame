@@ -1,13 +1,14 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::adapters::DownloadIntent;
-use crate::adapters::classification_runtime::installation::{
-    PACKAGE_DIRECTORY, VerifiedModelInstallation, check_cancelled, prepare, prepare_bundled,
-};
-use crate::adapters::{ClassificationInstallation, ClassificationInstallationStore};
 use crate::domain::ScanError;
-use crate::domain::classification::installation::ModelInstallationProgress;
+use crate::domain::classification::installation::{
+    ClassificationInstallation, DownloadIntent, ModelInstallationProgress, check_cancelled,
+};
+use crate::ports::classification_installation::ClassificationInstallationRepository;
+use crate::ports::classification_model_package::{
+    ClassificationModelPackage, PreparedClassificationModel,
+};
 
 use super::classification_desktop::installation_path;
 use super::classification_runtime::while_retired;
@@ -15,6 +16,8 @@ use super::classification_runtime::while_retired;
 static INSTALLING: AtomicBool = AtomicBool::new(false);
 
 pub(crate) mod operation;
+pub(super) mod production;
+use production::{installation_repository, model_package, model_storage};
 mod recovery;
 use recovery::{InstallationSource, PendingDownload, application_data};
 
@@ -43,7 +46,7 @@ impl Drop for InstallationOwnership {
 pub struct PreparedModelInstallation {
     settings: PathBuf,
     expected: Option<ClassificationInstallation>,
-    verified: VerifiedModelInstallation,
+    verified: Box<dyn PreparedClassificationModel>,
     pending: Option<PendingDownload>,
     _ownership: InstallationOwnership,
 }
@@ -68,18 +71,19 @@ impl ModelPreparation {
         check_cancelled(cancelled)?;
         let ownership = InstallationOwnership::acquire()?;
         let settings = installation_path(&super::storage_paths()?);
-        let expected = ClassificationInstallationStore::load(&settings)?;
+        let expected = installation_repository().load(&settings)?;
         let intent = match &source {
-            InstallationSource::Download => {
-                Some(DownloadIntent::authorize(&settings, PACKAGE_DIRECTORY)?)
-            }
+            InstallationSource::Download => Some(
+                installation_repository()
+                    .authorize_download(&settings, model_package().package_directory())?,
+            ),
             InstallationSource::Resume(pending) => {
                 if pending.settings != settings {
                     return Err(path_error(
                         "The pending download belongs to another profile",
                     ));
                 }
-                pending.intent.require_current(&settings)?;
+                installation_repository().require_current_download(&settings, &pending.intent)?;
                 Some(pending.intent.clone())
             }
             InstallationSource::Bundled(_) => None,
@@ -105,16 +109,15 @@ impl ModelPreparation {
         let runtime = application_data()?.join("classification-runtime");
         let verified = match &self.source {
             InstallationSource::Bundled(models) => {
-                prepare_bundled(models, &runtime, cancelled, progress)?
+                model_package().prepare_bundled(models, &runtime, cancelled, progress)?
             }
-            InstallationSource::Download | InstallationSource::Resume(_) => {
-                prepare(&model_storage()?, &runtime, cancelled, progress)?
-            }
+            InstallationSource::Download | InstallationSource::Resume(_) => model_package()
+                .prepare_download(&model_storage()?, &runtime, cancelled, progress)?,
         };
         Ok(PreparedModelInstallation {
             settings: self.settings,
             expected: self.expected,
-            verified,
+            verified: Box::new(verified),
             pending: self.pending,
             _ownership: self.ownership,
         })
@@ -123,10 +126,7 @@ impl ModelPreparation {
 
 impl PreparedModelInstallation {
     pub fn commit(self, cancelled: &AtomicBool) -> Result<(), ScanError> {
-        let installation = ClassificationInstallation {
-            models: self.verified.models.clone(),
-            runtime: self.verified.runtime.clone(),
-        };
+        let installation = self.verified.installation();
         publish_installation(
             &self.settings,
             self.expected.as_ref(),
@@ -147,35 +147,15 @@ fn publish_installation(
     while_retired(|| {
         check_cancelled(cancelled)?;
         if intent.is_none() {
-            return ClassificationInstallationStore::save_if_unchanged(
+            return installation_repository().save_if_unchanged(
                 settings,
                 expected,
                 installation,
                 cancelled,
             );
         }
-        ClassificationInstallationStore::publish(
-            settings,
-            expected,
-            installation,
-            intent,
-            cancelled,
-        )
+        installation_repository().publish(settings, expected, installation, intent, cancelled)
     })
-}
-
-fn model_storage() -> Result<PathBuf, ScanError> {
-    #[cfg(debug_assertions)]
-    if let Some(root) = std::env::var_os("CEDARFLAKE_AME_TEST_STORAGE_ROOT") {
-        let root = PathBuf::from(root);
-        if !root.is_absolute() {
-            return Err(path_error("Test model storage must be absolute"));
-        }
-        return Ok(root.join("models"));
-    }
-    directories::ProjectDirs::from("com", "Cedarflake", "Ame")
-        .map(|directories| directories.data_local_dir().join("models"))
-        .ok_or_else(|| path_error("The operating system did not provide model storage"))
 }
 
 fn path_error(error: impl std::fmt::Display) -> ScanError {

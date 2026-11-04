@@ -1,3 +1,5 @@
+use crate::ports::scan_recovery::ForegroundScanRecovery;
+
 use std::sync::{
     Arc,
     atomic::{AtomicBool, AtomicUsize, Ordering},

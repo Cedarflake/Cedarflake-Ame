@@ -1,5 +1,4 @@
 import "dart:async";
-import "dart:io";
 
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -8,6 +7,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_preview_store.dart";
 import "../../domain/library_models.dart";
+import "../library_preview_images.dart";
 import "library_image_reveal.dart";
 import "library_path_text.dart";
 import "library_photo_tile.dart" show libraryPreviewDecodeWidth;
@@ -229,7 +229,9 @@ class _LibraryViewerFilmstripThumbnailState
                     final image = ResizeImage.resizeIfNeeded(
                       edge,
                       null,
-                      FileImage(File(resolved.previewPath)),
+                      ref.read(libraryPreviewImagesProvider)(
+                        resolved.previewPath,
+                      ),
                     );
                     return LibraryImageReveal(
                       key: ValueKey((source, _imageGeneration)),

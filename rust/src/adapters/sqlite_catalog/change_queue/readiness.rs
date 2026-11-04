@@ -1,9 +1,12 @@
 use rusqlite::{Connection, params};
 
-use crate::domain::{LibraryChangeQueuePolicy, LibraryRootGeneration, ScanError};
+use crate::domain::{
+    LibraryChangeLane, LibraryChangeQueuePolicy, LibraryRootGeneration, ScanError,
+};
+use crate::ports::LibraryChangeReadiness;
 
 use super::{
-    database_error, metadata_inventory_recovery_affinity_change_id, sqlite_integer,
+    SqliteCatalog, database_error, metadata_inventory_recovery_affinity_change_id, sqlite_integer,
     validate_policy, validate_root_id,
 };
 
@@ -450,4 +453,179 @@ pub(super) fn has_unresolved_metadata_inventory_recovery_candidates(
             |row| row.get::<_, bool>(0),
         )
         .map_err(database_error)
+}
+
+impl LibraryChangeReadiness for SqliteCatalog {
+    fn roots_with_pending_metadata(&self) -> Result<Vec<String>, ScanError> {
+        let mut statement = self.connection.prepare_cached(
+            "SELECT library.id FROM library_roots AS library
+             JOIN library_change_root_state AS root ON root.root_id = library.id AND root.is_active = 1
+             WHERE EXISTS (SELECT 1 FROM asset_locations INDEXED BY asset_locations_pending_metadata
+                WHERE root_id = library.id AND scan_id = library.active_scan_id
+                  AND metadata_engine_id = 'ame-invalidated-media-metadata')",
+        ).map_err(database_error)?;
+        let rows = statement
+            .query_map([], |row| row.get(0))
+            .map_err(database_error)?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(database_error)
+    }
+
+    fn journal_admission_has_headroom(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<bool, ScanError> {
+        validate_policy(policy)?;
+        validate_root_id(root_id)?;
+        let (total, lower): (i64, i64) = self
+            .connection
+            .query_row(
+                "SELECT COUNT(*),
+                        COALESCE(SUM(CASE WHEN lane.lane <> 'p0_live' THEN 1 ELSE 0 END), 0)
+                 FROM library_change_queue AS queue
+                 JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
+                 WHERE queue.root_id = ?1 AND queue.root_generation = ?2
+                   AND queue.status IN ('pending', 'leased', 'retry_wait')",
+                params![
+                    root_id,
+                    sqlite_integer(root_generation.value(), "root generation")?,
+                ],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(database_error)?;
+        Ok(total < i64::from(policy.max_unresolved_changes)
+            && lower < i64::from(policy.lane_capacity(LibraryChangeLane::Journal)))
+    }
+
+    fn has_ready_live_path_library_change(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<bool, ScanError> {
+        ReadinessQuery::new(
+            &self.connection,
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+        )?
+        .has_ready_live_path_library_change()
+    }
+
+    fn has_ready_journal_path_library_change(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<bool, ScanError> {
+        ReadinessQuery::new(
+            &self.connection,
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+        )?
+        .has_ready_journal_path_library_change()
+    }
+
+    fn has_ready_metadata_inventory_recovery_candidates(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<bool, ScanError> {
+        ReadinessQuery::new(
+            &self.connection,
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+        )?
+        .has_ready_metadata_inventory_recovery_candidates()
+    }
+
+    fn has_ready_legacy_unowned_recovery_debt(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<bool, ScanError> {
+        ReadinessQuery::new(
+            &self.connection,
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+        )?
+        .has_ready_legacy_unowned_recovery_debt()
+    }
+
+    fn has_unresolved_metadata_inventory_recovery_candidates(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+    ) -> Result<bool, ScanError> {
+        has_unresolved_metadata_inventory_recovery_candidates(
+            &self.connection,
+            root_id,
+            root_generation,
+        )
+    }
+
+    fn has_ready_metadata_inventory_recovery(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<bool, ScanError> {
+        ReadinessQuery::new(
+            &self.connection,
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+        )?
+        .has_ready_metadata_inventory_recovery()
+    }
+
+    fn has_ready_live_authoritative_library_change(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<bool, ScanError> {
+        ReadinessQuery::new(
+            &self.connection,
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+        )?
+        .has_ready_live_authoritative_library_change()
+    }
+
+    fn has_ready_journal_authoritative_library_change(
+        &self,
+        root_id: &str,
+        root_generation: LibraryRootGeneration,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<bool, ScanError> {
+        ReadinessQuery::new(
+            &self.connection,
+            root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
+        )?
+        .has_ready_journal_authoritative_library_change()
+    }
 }

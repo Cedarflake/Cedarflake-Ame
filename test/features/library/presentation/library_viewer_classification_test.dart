@@ -1,17 +1,18 @@
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
-import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_review.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_settings.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_operation_notice.dart";
+import "package:cedarflake_ame/features/library/domain/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/domain/library_classification_review.dart";
 import "package:cedarflake_ame/features/library/presentation/library_classification_notifications.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_classification.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_organization_feedback.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_classification.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/application_test_bindings.dart";
 import "../support/library_classification_review_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
@@ -22,7 +23,7 @@ void main() {
     LibraryClassificationMode mode,
   ) async {
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryClassificationReviewServiceProvider.overrideWithValue(review),
         libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
         libraryClassificationSettingsProvider.overrideWith(
@@ -41,7 +42,7 @@ void main() {
             installationSelected: true,
           ),
         ),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     await tester.pumpWidget(

@@ -7,6 +7,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
 
+import "support/application_test_bindings.dart";
+
 void main() {
   for (final singleColumn in [false, true]) {
     for (final reducedMotion in [false, true]) {
@@ -17,11 +19,11 @@ void main() {
           addTearDown(() => tester.binding.setSurfaceSize(null));
           await tester.pumpWidget(
             ProviderScope(
-              overrides: [
+              overrides: applicationTestOverrides([
                 libraryControllerProvider.overrideWith(
                   ReviewFixtureLibrary.new,
                 ),
-              ],
+              ]),
               child: MaterialApp(
                 home: MediaQuery(
                   data: MediaQueryData(disableAnimations: reducedMotion),

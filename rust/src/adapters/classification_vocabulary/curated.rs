@@ -12,7 +12,7 @@ use crate::domain::classification::maintenance::{
 };
 use crate::domain::classification::{CategoryId, ClassificationRevision};
 use crate::ports::classification_vocabulary::{
-    ClassificationVocabulary, ConceptNeighborhood, ConceptPage,
+    ClassificationVocabulary, ConceptNeighborhood, ConceptPage, ManagedClassificationVocabulary,
 };
 
 use super::{check_cancelled, invalid, resource};
@@ -100,12 +100,14 @@ impl CuratedClassificationVocabulary {
             managed_catalog,
         })
     }
+}
 
-    pub fn managed_catalog(&self) -> &ManagedCategoryCatalog {
+impl ManagedClassificationVocabulary for CuratedClassificationVocabulary {
+    fn managed_catalog(&self) -> &ManagedCategoryCatalog {
         &self.managed_catalog
     }
 
-    pub fn naming_contexts(&self) -> Vec<NamingContext> {
+    fn naming_contexts(&self) -> Vec<NamingContext> {
         self.concepts
             .values()
             .map(|concept| NamingContext {

@@ -1,20 +1,21 @@
-use std::path::Path;
-
+mod production;
 mod query;
+mod root_availability;
 mod time_snapshot;
 use query::{gallery_query_identity, normalize_gallery_query, normalize_relative_folder};
 pub use time_snapshot::load_catalog_time_snapshot;
 
 #[cfg(test)]
 use crate::adapters::SqliteCatalog;
-use crate::adapters::{SqliteCatalogReadExecutor, inspect_root_availability};
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk,
     GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
     LibraryChangeLane, LibraryFolderCursor, LibraryFolderPage, PreviewStatus, ScanError,
 };
 use crate::ports::CatalogRepository;
+use crate::ports::catalog_reader::CatalogReader;
 
+use super::catalog_session::open_catalog_reader;
 use super::preview_health::reconcile_snapshot_previews;
 use super::storage_paths;
 
@@ -35,7 +36,7 @@ pub fn load_catalog_query_snapshot(
     let query = normalize_gallery_query(query);
     let query_id = gallery_query_identity(&query);
     let storage = storage_paths()?;
-    let mut result = prepare_catalog_reader(&storage.catalog_path)?.load_query_snapshot(
+    let mut result = open_catalog_reader(&storage.catalog_path)?.load_query_snapshot(
         max_items,
         &query,
         &query_id,
@@ -56,7 +57,7 @@ fn load_catalog_window(
     let query = normalize_gallery_query(query);
     let query_id = gallery_query_identity(&query);
     let storage = storage_paths()?;
-    let reader = prepare_catalog_reader(&storage.catalog_path)?;
+    let reader = open_catalog_reader(&storage.catalog_path)?;
     let mut snapshot = match anchor_location_id.as_deref() {
         Some(location_id) => {
             reader.load_snapshot_around_location(max_items, &query, &query_id, location_id)
@@ -80,11 +81,7 @@ fn finish_loaded_snapshot(
 ) -> Result<(), ScanError> {
     finish_loaded_preview_state(storage, snapshot)?;
     super::preview_recovery::start_preview_recovery(storage.clone());
-    for root in &mut snapshot.roots {
-        let evidence = inspect_root_availability(&root.path);
-        root.availability = evidence.availability;
-        root.availability_message = evidence.message;
-    }
+    root_availability::refresh(&production::source_state(), &mut snapshot.roots);
     Ok(())
 }
 
@@ -111,7 +108,7 @@ pub fn load_gallery_timeline(query: GalleryQuery) -> Result<GalleryTimeline, Sca
     let query = normalize_gallery_query(query);
     let query_id = gallery_query_identity(&query);
     let storage = storage_paths()?;
-    prepare_catalog_reader(&storage.catalog_path)?.load_gallery_timeline(&query, &query_id)
+    open_catalog_reader(&storage.catalog_path)?.load_gallery_timeline(&query, &query_id)
 }
 
 pub fn load_gallery_layout_manifest_chunk(
@@ -122,7 +119,7 @@ pub fn load_gallery_layout_manifest_chunk(
     let query = normalize_gallery_query(query);
     let query_id = gallery_query_identity(&query);
     let storage = storage_paths()?;
-    prepare_catalog_reader(&storage.catalog_path)?.load_gallery_layout_manifest_chunk(
+    open_catalog_reader(&storage.catalog_path)?.load_gallery_layout_manifest_chunk(
         max_items,
         &query,
         &query_id,
@@ -137,7 +134,7 @@ pub fn load_library_folders(
     after: Option<LibraryFolderCursor>,
 ) -> Result<LibraryFolderPage, ScanError> {
     let storage = storage_paths()?;
-    prepare_catalog_reader(&storage.catalog_path)?.load_folder_page(
+    open_catalog_reader(&storage.catalog_path)?.load_folder_page(
         &root_id,
         &normalize_relative_folder(&parent_relative_path),
         max_items,
@@ -202,7 +199,7 @@ pub fn load_catalog_around_asset(
     let query = normalize_gallery_query(query);
     let query_id = gallery_query_identity(&query);
     let storage = storage_paths()?;
-    let mut snapshot = prepare_catalog_reader(&storage.catalog_path)?.load_snapshot_around_asset(
+    let mut snapshot = open_catalog_reader(&storage.catalog_path)?.load_snapshot_around_asset(
         max_items,
         &query,
         &query_id,
@@ -229,19 +226,15 @@ pub fn load_catalog_asset_by_id(
         ));
     }
     let storage = storage_paths()?;
-    prepare_catalog_reader(&storage.catalog_path)?
+    open_catalog_reader(&storage.catalog_path)?
         .load_active_location_by_asset_id(&asset_id, preferred_location_id.as_deref())
-}
-
-fn prepare_catalog_reader(path: &Path) -> Result<SqliteCatalogReadExecutor, ScanError> {
-    super::catalog_session::open_catalog_reader(path)
 }
 
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
     use std::fs;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::process::Command;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -270,11 +263,14 @@ mod tests {
         super::super::catalog_session::reset_catalog_session(&catalog_path);
         crate::adapters::reset_full_schema_validation_count(&catalog_path);
 
-        let reader = prepare_catalog_reader(&catalog_path).expect("read executor");
+        let reader = {
+            let opening_path = catalog_path.clone();
+            open_catalog_reader(&opening_path).expect("read executor")
+        };
         let timeline = reader
             .load_gallery_timeline(&GalleryQuery::default(), "current-schema-query")
             .expect("current catalog read");
-        let second_reader = prepare_catalog_reader(&catalog_path).expect("reused read executor");
+        let second_reader = open_catalog_reader(&catalog_path).expect("reused read executor");
         let second_timeline = second_reader
             .load_gallery_timeline(&GalleryQuery::default(), "second-current-schema-query")
             .expect("second current catalog read");

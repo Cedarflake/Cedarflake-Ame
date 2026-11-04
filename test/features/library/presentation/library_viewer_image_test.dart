@@ -3,11 +3,12 @@ import "dart:io";
 import "dart:typed_data";
 import "dart:ui" as ui;
 
+import "package:cedarflake_ame/features/library/adapters/platform/library_preview_image.dart";
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
-import "package:cedarflake_ame/features/library/application/library_source_reader.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
-import "package:cedarflake_ame/features/library/presentation/library_viewer_source_state.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/library_viewer_source_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_notice.dart";
@@ -51,8 +52,11 @@ void main() {
     "source cache identity follows revision and generation, not preview",
     () {
       final original = _asset("same.png");
-      final key = LibrarySourceImage(original);
-      expect(LibrarySourceImage(_asset("same.png")), key);
+      final key = LibrarySourceImage(original, scheduler: _sourceScheduler);
+      expect(
+        LibrarySourceImage(_asset("same.png"), scheduler: _sourceScheduler),
+        key,
+      );
       expect(
         LibrarySourceImage(
           original.withPreview(
@@ -61,20 +65,43 @@ void main() {
             height: 2,
             previewStatus: LibraryPreviewStatus.ready,
           ),
+          scheduler: _sourceScheduler,
         ),
         key,
       );
-      expect(LibrarySourceImage(_asset("same.png", generation: 2)), isNot(key));
       expect(
-        LibrarySourceImage(_asset("same.png", scanId: "scan-2")),
+        LibrarySourceImage(
+          _asset("same.png", generation: 2),
+          scheduler: _sourceScheduler,
+        ),
         isNot(key),
       );
       expect(
-        LibrarySourceImage(_asset("same.png", revision: "revision-2")),
+        LibrarySourceImage(
+          _asset("same.png", scanId: "scan-2"),
+          scheduler: _sourceScheduler,
+        ),
         isNot(key),
       );
-      expect(LibrarySourceImage(_asset("renamed.png")), isNot(key));
-      expect(LibrarySourceImage(original, retryGeneration: 1), isNot(key));
+      expect(
+        LibrarySourceImage(
+          _asset("same.png", revision: "revision-2"),
+          scheduler: _sourceScheduler,
+        ),
+        isNot(key),
+      );
+      expect(
+        LibrarySourceImage(_asset("renamed.png"), scheduler: _sourceScheduler),
+        isNot(key),
+      );
+      expect(
+        LibrarySourceImage(
+          original,
+          retryGeneration: 1,
+          scheduler: _sourceScheduler,
+        ),
+        isNot(key),
+      );
     },
   );
 
@@ -325,6 +352,7 @@ Widget _viewer(
 }) => MaterialApp(
   home: Scaffold(
     body: LibraryViewerImage(
+      previewImages: createLibraryPreviewImage,
       asset: asset,
       sourceReadScheduler: _sourceScheduler,
       sourceBufferLoader: bufferLoader,

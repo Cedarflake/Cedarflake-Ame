@@ -1,3 +1,5 @@
+use crate::adapters::SqliteCatalog;
+
 use super::*;
 use crate::domain::{
     JournalFileReference, JournalIdentifier, JournalUsn, LibraryRootGeneration,
@@ -79,7 +81,14 @@ fn local_p1_registration_failure_is_durable_and_root_isolated() {
         &mut catalog,
         &checkpoint,
         &JournalReadFailures::default(),
-        PersistentChangeJournalOperationError::InvalidRequest,
+        PersistentJournalReadFailure {
+            kind: PersistentJournalRootFailureKind::NonRecoverable,
+            failure: crate::domain::PersistentJournalFailure {
+                code: "persistent_journal_request_invalid".to_owned(),
+                message: "persistent change journal request is invalid".to_owned(),
+            },
+            opening_boundary: None,
+        },
         1_000,
         policy,
     )

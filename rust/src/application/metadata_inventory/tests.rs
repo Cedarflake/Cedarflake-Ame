@@ -1,3 +1,5 @@
+use crate::ports::LibraryChangeDispatch;
+
 use std::cell::RefCell;
 use std::fs;
 use std::path::Path;
@@ -15,10 +17,11 @@ use crate::adapters::{
     source_spool_open_count,
 };
 use crate::application::StoragePaths;
-use crate::application::scan_library::{run_scan_with_storage, stable_id};
+use crate::application::scan_library::run_scan_with_storage;
 use crate::application::{
     process_ready_library_changes, process_ready_metadata_inventory_recovery_candidates_cancellable,
 };
+use crate::domain::stable_id;
 use crate::domain::{
     FileIdentityEvidence, IncrementalCatalogRoot, JournalFileReference, JournalIdentifier,
     JournalUsn, LeasedLibraryChange, LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent,

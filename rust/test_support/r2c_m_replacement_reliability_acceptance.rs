@@ -16,10 +16,11 @@ use tempfile::tempdir;
 
 use crate::adapters::{LocalMetadataInventory, SqliteCatalog};
 use crate::application::metadata_inventory::run_metadata_inventory_with_source_for_test;
-use crate::application::scan_library::{run_scan_with_storage, stable_id};
+use crate::application::scan_library::run_scan_with_storage;
 use crate::application::storage::{
     StoragePaths, resolved_path_is_within, resolved_paths_overlap, resolved_paths_same,
 };
+use crate::domain::stable_id;
 use crate::domain::{
     AssetLocationView, CatalogFreshnessState, GalleryQuery, IncrementalCatalogRoot,
     LibraryChangeQueuePolicy, LibraryChangeSourceHealth, LibrarySynchronizationSnapshot,

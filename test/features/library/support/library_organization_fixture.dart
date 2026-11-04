@@ -1,7 +1,7 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
-import "package:cedarflake_ame/features/library/application/library_organization.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization_history.dart";
 import "package:cedarflake_ame/features/library/domain/library_review.dart";

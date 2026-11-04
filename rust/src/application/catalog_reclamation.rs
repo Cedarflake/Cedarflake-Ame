@@ -4,15 +4,15 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use crate::adapters::SqliteCatalogSpaceMaintenance;
 use crate::domain::{
-    CatalogAutoVacuumMode, CatalogReclamationPhase, CatalogReclamationSnapshot, CatalogSpaceUsage,
-    ScanError,
+    CatalogReclamationPhase, CatalogReclamationSnapshot, CatalogSpaceUsage, ScanError,
 };
 use crate::ports::{CatalogMaintenanceAttempt, CatalogMaintenanceControl, CatalogSpaceRepository};
 
+mod execution;
 mod operation_registry;
 mod policy;
+mod production;
 mod scan_staging;
 
 use operation_registry::{CatalogReclamationOperation, ReclamationCompletion, registry};
@@ -90,7 +90,7 @@ pub(crate) fn catalog_reclamation_snapshot(
     if !path.is_file() {
         return Ok(CatalogReclamationSnapshot::idle());
     }
-    let maintenance = SqliteCatalogSpaceMaintenance::new(path.to_path_buf());
+    let maintenance = production::maintenance(path.to_path_buf());
     match maintenance.inspect_catalog_space()? {
         CatalogMaintenanceAttempt::Completed(usage) => Ok(snapshot_for_usage(usage)),
         CatalogMaintenanceAttempt::Busy | CatalogMaintenanceAttempt::Interrupted => {
@@ -149,76 +149,12 @@ fn run_reclamation_inner(
         snapshot.required_temporary_bytes = None;
         snapshot.available_temporary_bytes = None;
     });
-    let maintenance = SqliteCatalogSpaceMaintenance::new(path.to_path_buf());
-    if scan_staging::discard_retired_staging(&maintenance, operation)?.is_none() {
-        return Ok(ReclamationCompletion::Cancelled);
-    }
-    let Some(mut usage) = inspect_with_retry(&maintenance, operation)? else {
-        return Ok(ReclamationCompletion::Cancelled);
-    };
-    operation.update(|snapshot| apply_usage(snapshot, usage));
-
-    if usage.auto_vacuum == CatalogAutoVacuumMode::Full {
-        let Some(converted) = convert_with_retry(path, &maintenance, operation)? else {
-            return Ok(ReclamationCompletion::Cancelled);
-        };
-        usage = converted;
-        operation.update(|snapshot| apply_usage(snapshot, usage));
-    }
-
-    if should_start_reclamation(usage) && usage.auto_vacuum == CatalogAutoVacuumMode::None {
-        operation.update(|snapshot| snapshot.phase = CatalogReclamationPhase::CheckingCapacity);
-        let required = required_vacuum_capacity(usage.catalog_file_bytes())?;
-        let available = available_space_for(path)?;
-        operation.update(|snapshot| {
-            snapshot.required_temporary_bytes = Some(required);
-            snapshot.available_temporary_bytes = Some(available);
-        });
-        if available < required {
-            return Err(ScanError::new(
-                "catalog_reclamation_space_insufficient",
-                format!(
-                    "Catalog compaction requires {required} bytes of free space, but only {available} bytes are available"
-                ),
-            ));
-        }
-        let Some(converted) = convert_with_retry(path, &maintenance, operation)? else {
-            return Ok(ReclamationCompletion::Cancelled);
-        };
-        usage = converted;
-        operation.update(|snapshot| apply_usage(snapshot, usage));
-    }
-
-    if should_start_reclamation(usage) && usage.auto_vacuum == CatalogAutoVacuumMode::Incremental {
-        while !reclamation_target_reached(usage) {
-            if operation.is_cancelled() {
-                return Ok(ReclamationCompletion::Cancelled);
-            }
-            operation.update(|snapshot| snapshot.phase = CatalogReclamationPhase::Reclaiming);
-            let Some(next) = reclaim_batch_with_retry(path, &maintenance, operation)? else {
-                return Ok(ReclamationCompletion::Cancelled);
-            };
-            if next.freelist_count >= usage.freelist_count && next.page_count >= usage.page_count {
-                return Err(ScanError::new(
-                    "catalog_reclamation_no_progress",
-                    "Incremental catalog reclamation could not release another page",
-                ));
-            }
-            usage = next;
-            operation.update(|snapshot| apply_usage(snapshot, usage));
-            thread::yield_now();
-        }
-    }
-
-    let Some(()) = checkpoint_with_retry(&maintenance, operation)? else {
-        return Ok(ReclamationCompletion::Cancelled);
-    };
-
-    Ok(ReclamationCompletion::Completed)
+    let maintenance = production::maintenance(path.to_path_buf());
+    execution::run(path, operation, &maintenance, &production::capacity())
 }
 
 fn inspect_with_retry(
-    maintenance: &SqliteCatalogSpaceMaintenance,
+    maintenance: &impl CatalogSpaceRepository,
     operation: &CatalogReclamationOperation,
 ) -> Result<Option<CatalogSpaceUsage>, ScanError> {
     let mut backoff = BusyRetryBackoff::new();
@@ -242,7 +178,7 @@ fn inspect_with_retry(
 
 fn convert_with_retry(
     path: &Path,
-    maintenance: &SqliteCatalogSpaceMaintenance,
+    maintenance: &impl CatalogSpaceRepository,
     operation: &CatalogReclamationOperation,
 ) -> Result<Option<CatalogSpaceUsage>, ScanError> {
     retry_controlled_maintenance(operation, CatalogReclamationPhase::Converting, |control| {
@@ -254,7 +190,7 @@ fn convert_with_retry(
 
 fn reclaim_batch_with_retry(
     path: &Path,
-    maintenance: &SqliteCatalogSpaceMaintenance,
+    maintenance: &impl CatalogSpaceRepository,
     operation: &CatalogReclamationOperation,
 ) -> Result<Option<CatalogSpaceUsage>, ScanError> {
     retry_controlled_maintenance(operation, CatalogReclamationPhase::Reclaiming, |control| {
@@ -268,7 +204,7 @@ fn reclaim_batch_with_retry(
 }
 
 fn checkpoint_with_retry(
-    maintenance: &SqliteCatalogSpaceMaintenance,
+    maintenance: &impl CatalogSpaceRepository,
     operation: &CatalogReclamationOperation,
 ) -> Result<Option<()>, ScanError> {
     retry_controlled_maintenance(operation, CatalogReclamationPhase::Reclaiming, |control| {
@@ -358,59 +294,6 @@ fn required_vacuum_capacity(catalog_file_bytes: u64) -> Result<u64, ScanError> {
                 "The catalog is too large to calculate a safe compaction capacity",
             )
         })
-}
-
-#[cfg(windows)]
-fn available_space_for(path: &Path) -> Result<u64, ScanError> {
-    use std::os::windows::ffi::OsStrExt;
-
-    use windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
-
-    let directory = path.parent().ok_or_else(|| {
-        ScanError::new(
-            "catalog_reclamation_directory_invalid",
-            "The catalog does not have a parent directory",
-        )
-    })?;
-    let wide = directory
-        .as_os_str()
-        .encode_wide()
-        .chain(std::iter::once(0))
-        .collect::<Vec<_>>();
-    let mut available = 0_u64;
-    // SAFETY: `wide` is a live NUL-terminated UTF-16 buffer for the duration of the call, and the
-    // only non-null output points to a valid initialized `u64` owned by this stack frame.
-    let succeeded = unsafe {
-        GetDiskFreeSpaceExW(
-            wide.as_ptr(),
-            &mut available,
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
-        )
-    };
-    if succeeded == 0 {
-        return Err(ScanError::new(
-            "catalog_reclamation_capacity_unavailable",
-            format!(
-                "Could not inspect free space for catalog compaction: {}",
-                std::io::Error::last_os_error()
-            ),
-        ));
-    }
-    Ok(available)
-}
-
-#[cfg(all(not(windows), test))]
-fn available_space_for(_path: &Path) -> Result<u64, ScanError> {
-    Ok(u64::MAX)
-}
-
-#[cfg(all(not(windows), not(test)))]
-fn available_space_for(_path: &Path) -> Result<u64, ScanError> {
-    Err(ScanError::new(
-        "catalog_reclamation_platform_unsupported",
-        "Catalog compaction is currently supported only on Windows",
-    ))
 }
 
 fn reclamation_key(path: &Path) -> PathBuf {

@@ -1,5 +1,6 @@
-import "package:cedarflake_ame/features/library/application/library_organization.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
@@ -7,6 +8,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_sou
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "source_read_block.dart";
 import "viewer_source_workflow.dart";
@@ -21,7 +23,11 @@ Future<void> verifyOrganizationUnavailableWorkflow(WidgetTester tester) async {
   final target = LibraryOrganizationTarget.fromAsset(selected);
   final block = await SourceReadBlock.acquire(selected.sourcePath);
   try {
-    await LibrarySourceImage(selected).evict();
+    final scheduler = ProviderScope.containerOf(
+      tester.element(tile),
+      listen: false,
+    ).read(librarySourceReadSchedulerProvider);
+    await LibrarySourceImage(selected, scheduler: scheduler).evict();
     await tester.tapAt(tester.getRect(tile).topLeft + const Offset(16, 16));
     await _waitForFallback(tester);
     expect(_current(tester).locationId, selected.locationId);

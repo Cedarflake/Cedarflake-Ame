@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use image::{Rgb, RgbImage};
 use tempfile::{TempDir, tempdir};
 
+use crate::adapters::FileDiscovery;
 use crate::domain::{CatalogSnapshot, GalleryQuery, IncrementalCatalogRoot};
 
 use super::*;

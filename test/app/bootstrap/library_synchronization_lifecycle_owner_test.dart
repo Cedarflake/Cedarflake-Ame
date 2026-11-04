@@ -1,12 +1,15 @@
 import "dart:async";
 
 import "package:cedarflake_ame/app/bootstrap/library_synchronization_lifecycle_owner.dart";
-import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
+
+import "package:cedarflake_ame/features/library/application/ports/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
 import "package:cedarflake_ame/src/rust/domain/library_synchronization.dart"
     as rust_sync;
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../support/synchronization_fixture.dart";
 
 void main() {
   testWidgets(
@@ -15,7 +18,7 @@ void main() {
       final startEntered = Completer<void>();
       final startResult = Completer<rust_sync.LibrarySynchronizationSnapshot>();
       var stopCalls = 0;
-      final synchronization = RustLibrarySynchronization.testing(
+      final synchronization = createTestLibrarySynchronization(
         startCall: () {
           startEntered.complete();
           return startResult.future;

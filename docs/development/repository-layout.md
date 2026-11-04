@@ -33,9 +33,9 @@ of copying its complete implementation history into the roadmap.
 
 ## Dart ownership
 
-The tree below is the target for the [post-R5 organization rollout](../roadmap.md#project-organization-after-r5).
-Current files move through its execution slices. Dependency direction, public contracts,
-composition and exceptions belong to
+The tree below defines Dart directory ownership. The
+[post-R5 rollout](../roadmap.md#project-organization-after-r5) retains delivery disposition and evidence.
+Dependency direction, public contracts, composition and exceptions belong to
 [ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md), not a second rule list here.
 
 ```text
@@ -86,9 +86,60 @@ within that adapter area. Keep port failure/value types in their contract or dom
 Provider declarations beside the state owner and production implementations in bootstrap bindings.
 The contract and its platform implementation share a feature, not a source file or directory.
 
+The platform/storage pilot demonstrates this placement in
+[`library_platform_bindings.dart`](../../lib/app/bootstrap/library_platform_bindings.dart),
+[`settings_bindings.dart`](../../lib/app/bootstrap/settings_bindings.dart) and
+[`storage_bindings.dart`](../../lib/app/bootstrap/storage_bindings.dart). A new required external
+capability declares its port and Provider in the feature, adds its concrete selection and required
+Provider to that feature's binding module, and covers the actual production roster and omitted-binding
+failure. Test-only memory preferences live in `test/support`; application declarations do not select
+them as defaults. The same preference-store instance serves application, library and window contracts.
+
+[`library_read_bindings.dart`](../../lib/app/bootstrap/library_read_bindings.dart) demonstrates native
+catalog, layout-manifest, preview and source-reader selection. Startup reads through its catalog port,
+and the same instance is bound for subsequent queries. Shared native mappings live in the library's
+`adapters/rust` directory with their callers. Provider declarations do not re-export those mappings
+or implementations. Test roots compose these production modules through
+[`application_test_bindings.dart`](../../test/support/application_test_bindings.dart), then apply
+scenario overrides by the same Provider identities.
+
+[`library_synchronization_bindings.dart`](../../lib/app/bootstrap/library_synchronization_bindings.dart)
+shows lifecycle composition: one selected gateway, one application polling controller and one
+bootstrap start/close owner. Native status mappings stay beside the gateway; phase-age preservation,
+failure retention and diagnostics remain application collaborators. Production does not import the
+inactive synchronization fixture from test support.
+
+[`library_duplicate_bindings.dart`](../../lib/app/bootstrap/library_duplicate_bindings.dart) groups
+the duplicate ports and the separately owned analysis runtime. Native group/location/progress
+conversion and failure translation stay in library `adapters/rust`; batching, stale-window
+retirement, idle admission and foreground preemption remain in application. Production and test
+assembly use the same Provider identities, with required production ports validated before use.
+
+[`library_organization_bindings.dart`](../../lib/app/bootstrap/library_organization_bindings.dart)
+selects the organization, review, archive, cleanup, conflict and sidebar-order ports. Archive/cleanup
+task wrappers and event conversion live beside their native adapters. Sidebar move/kind/placement
+values live in domain; optimistic ordering remains with its existing application owner. Settings
+uses the explicit library controller and read contracts documented in ADR 0037.
+
+[`library_classification_bindings.dart`](../../lib/app/bootstrap/library_classification_bindings.dart)
+selects classification and model-installation ports and composes their existing application owners.
+Configuration and progress values live in domain; native calls and error translation live in
+`adapters/rust`. The [lifetime contract](../architecture/workflow-ownership/dart-presentation-and-composition.md#classification-composition)
+owns startup, shutdown and required-binding behavior.
+
 Tests mirror their resulting source area. Keep an integration workflow at its canonical entrypoint
 while moving only owned private support. Temporary compatibility exports belong to the migrating
 slice and are removed before its closure; do not create a permanent parallel directory layout.
+
+Gallery and duplicate-review entries live in `library/presentation/pages`; the Settings entry lives
+in `settings/presentation/pages`. Their widgets remain in their feature's `presentation/widgets`.
+Existing selection, gallery-transition, workspace, viewer and zoom state owners live together in
+`library/presentation/coordination`; their tests mirror that location. Their application collaborators
+retain catalog publication, query execution and source-read authority.
+[`workbench_presentation_bindings.dart`](../../lib/app/bootstrap/workbench_presentation_bindings.dart)
+connects cross-feature surfaces through declared callbacks. Preview provider construction lives in
+`library/adapters/platform`, with its rendering contract in library presentation. Host-platform facts
+live under `app/window` beside the existing desktop contracts.
 
 ## Rust ownership
 
@@ -111,7 +162,7 @@ owners retain their accepted architecture and canonical entrypoints.
 
 Quality and acceptance scripts stay directly under `tool` because their paths are public repository
 commands indexed by `AGENTS.md` and defined in the
-[quality command reference](../acceptance/quality-gates.md#repository-command-reference).
+[quality command reference](../acceptance/quality/commands.md#repository-command-reference).
 Internal helpers may move into a
 support directory when more than one helper exists, but entrypoint paths must remain stable.
 

@@ -1,13 +1,13 @@
 use std::path::Path;
 
-use crate::adapters::{SqliteCatalog, is_current_preview_artifact, user_visible_path};
+use crate::domain::user_visible_path;
 use crate::domain::{
     AssetLocationView, DiscoveredFile, MediaInspection, MetadataInspection, PreviewStatus,
     ScanError,
 };
-use crate::ports::{
-    CatalogRepository, IncrementalCatalogRepository, MediaInspectionFailure, MediaInspector,
-};
+use crate::ports::preview_cache_storage::PreviewCacheStorage;
+use crate::ports::scan_staging::ScanStagingRepository;
+use crate::ports::{MediaInspectionFailure, MediaInspector};
 
 use super::{stable_id, stable_location_id};
 
@@ -24,7 +24,7 @@ pub(super) struct PreparedScanFile<'a> {
 
 impl<'a> PreparedScanFile<'a> {
     pub fn load(
-        catalog: &SqliteCatalog,
+        catalog: &impl ScanStagingRepository,
         inspector: &impl MediaInspector,
         scan_id: &'a str,
         root_id: &'a str,
@@ -143,7 +143,9 @@ impl<'a> PreparedScanFile<'a> {
                     && matches!(prior.preview_status, PreviewStatus::Ready)
                     && !prior.preview_path.is_empty()
                     && Path::new(&prior.preview_path).is_file()
-                    && is_current_preview_artifact(&prior.preview_path)
+                    && crate::application::storage::production::preview_cache()
+                        .current_artifact_key(Path::new(&prior.preview_path))
+                        .is_some()
             })
             .map(|prior| (prior.preview_path.clone(), PreviewStatus::Ready))
             .unwrap_or_else(|| (String::new(), PreviewStatus::Pending));

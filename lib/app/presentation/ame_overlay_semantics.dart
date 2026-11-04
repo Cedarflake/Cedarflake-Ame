@@ -4,7 +4,7 @@ import "package:flutter/foundation.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 
-import "ame_runtime_platform.dart";
+import "../window/ame_runtime_platform.dart";
 
 // Flutter 3.44 can merge sibling OverlayPortal traversal parents and serialize
 // an orphan node on Windows. Windows tooltips avoid that portal below; this

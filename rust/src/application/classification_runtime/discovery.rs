@@ -4,10 +4,13 @@ use std::sync::{
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::adapters::{CuratedClassificationVocabulary, SqliteCatalog};
 use crate::domain::ScanError;
 use crate::domain::classification::ClassificationRecordId;
 use crate::domain::classification::maintenance::CategoryMaintenancePlan;
+use crate::ports::classification_configuration::{
+    CategoryExpansionRepository, CategoryMergeRepository, CategoryRetirementRepository,
+};
+use crate::ports::classification_vocabulary::ManagedClassificationVocabulary;
 
 use super::super::classification_discovery::{
     DiscoveryPreparationRequest, DiscoverySampleCursor, NamingContextCatalog,
@@ -38,26 +41,32 @@ enum Pass {
     },
 }
 
-pub(super) struct NativeCategoryDiscovery {
+pub(super) struct CategoryDiscovery<V> {
     pass: Pass,
-    vocabulary: Option<(CuratedClassificationVocabulary, NamingContextCatalog)>,
+    vocabulary: Option<(V, NamingContextCatalog)>,
+    open_vocabulary: fn(&AtomicBool) -> Result<V, ScanError>,
 }
 
-impl NativeCategoryDiscovery {
-    pub(super) fn new() -> Self {
+impl<V: ManagedClassificationVocabulary> CategoryDiscovery<V> {
+    pub(super) fn new(open_vocabulary: fn(&AtomicBool) -> Result<V, ScanError>) -> Self {
         Self {
             pass: Pass::New,
             vocabulary: None,
+            open_vocabulary,
         }
     }
 }
 
-impl ClassificationMaintenance<SqliteCatalog, NativeExecutor> for NativeCategoryDiscovery {
+impl<R, V> ClassificationMaintenance<R, NativeExecutor> for CategoryDiscovery<V>
+where
+    R: CategoryExpansionRepository + CategoryMergeRepository + CategoryRetirementRepository,
+    V: ManagedClassificationVocabulary,
+{
     type Prepared = CategoryMaintenancePlan;
 
     fn prepare(
         &mut self,
-        repository: &SqliteCatalog,
+        repository: &R,
         executor: &mut NativeExecutor,
         notification: u64,
         cancelled: &Arc<AtomicBool>,
@@ -84,10 +93,12 @@ impl ClassificationMaintenance<SqliteCatalog, NativeExecutor> for NativeCategory
     }
 }
 
-impl NativeCategoryDiscovery {
+impl<V: ManagedClassificationVocabulary> CategoryDiscovery<V> {
     fn prepare_pass(
         &mut self,
-        repository: &SqliteCatalog,
+        repository: &(
+             impl CategoryExpansionRepository + CategoryMergeRepository + CategoryRetirementRepository
+         ),
         executor: &mut NativeExecutor,
         notification: u64,
         cancelled: &Arc<AtomicBool>,
@@ -113,7 +124,7 @@ impl NativeCategoryDiscovery {
         }
         let policy = ManagedDiscoveryPolicy::for_taxonomy(executor.taxonomy())?;
         if self.vocabulary.is_none() {
-            let vocabulary = CuratedClassificationVocabulary::bundled(cancelled)?;
+            let vocabulary = (self.open_vocabulary)(cancelled)?;
             let contexts = NamingContextCatalog::new(vocabulary.naming_contexts())?;
             self.vocabulary = Some((vocabulary, contexts));
         }

@@ -5,23 +5,28 @@ import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_layout_manifest_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_previewer.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_scanner.dart";
+import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout_snapshot.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_time_navigation.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_virtual_gallery_geometry.dart";
-import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/settings_section.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
@@ -31,6 +36,8 @@ import "package:flutter_test/flutter_test.dart";
 import "package:integration_test/integration_test.dart";
 
 import "../test/features/library/support/library_query_snapshot_fixture.dart";
+
+import "../test/support/application_test_bindings.dart";
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -81,7 +88,7 @@ void main() {
     try {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(state),
             libraryCatalogProvider.overrideWithValue(
               _StaticCatalog(snapshot, state.timeline!),
@@ -90,7 +97,7 @@ void main() {
             libraryPreviewerProvider.overrideWithValue(
               _StaticPreviewer(state.assets),
             ),
-          ],
+          ]),
           child: MaterialApp(
             home: Scaffold(
               body: Align(
@@ -267,7 +274,7 @@ void main() {
     try {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(state),
             initialLibraryViewPreferencesProvider.overrideWithValue(
               const LibraryViewPreferences(
@@ -285,7 +292,7 @@ void main() {
             libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(
               _StaticManifestLoader(manifest),
             ),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );

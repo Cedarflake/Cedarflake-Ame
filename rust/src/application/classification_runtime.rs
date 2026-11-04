@@ -17,6 +17,7 @@ mod discovery;
 mod executor;
 mod maintenance;
 mod ownership;
+mod production;
 mod setup;
 pub use control::ClassificationRuntimeControl;
 use executor::NativeExecutor;
@@ -81,7 +82,7 @@ impl NativeClassificationRuntime {
         self.dispatcher.run()
     }
     pub fn run_until_maintenance(&mut self) -> Result<Option<CategoryMaintenancePlan>, ScanError> {
-        let mut maintenance = discovery::NativeCategoryDiscovery::new();
+        let mut maintenance = discovery::CategoryDiscovery::new(production::vocabulary);
         self.dispatcher.run_with_maintenance(&mut maintenance)
     }
     pub fn step(&mut self) -> Result<ClassificationDispatchStep, ScanError> {

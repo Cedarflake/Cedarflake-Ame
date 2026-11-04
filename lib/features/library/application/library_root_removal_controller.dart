@@ -1,6 +1,6 @@
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
-import "library_catalog.dart";
+import "ports/library_catalog.dart";
 import "library_catalog_publication.dart";
 import "library_query_projection.dart";
 import "library_viewport_controller.dart";

@@ -1,5 +1,5 @@
-use crate::application::classification_decisions::plan_classification_change;
 use crate::domain::ScanError;
+use crate::domain::classification::plan_classification_change;
 use crate::domain::classification::{
     ClassificationAction, ClassificationObservation, ClassificationReview, ReviewRecommendation,
     Taxonomy,

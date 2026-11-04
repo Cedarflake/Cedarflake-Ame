@@ -3,7 +3,6 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::adapters::{LocalMediaInspector, PublicationGuardedFileDiscovery};
 use crate::domain::{
     IncrementalCatalogRoot, IncrementalLibraryChangeReport, LeasedLibraryChange,
     LibraryChangeFailure, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeLane,
@@ -13,10 +12,13 @@ use crate::domain::{
     MetadataInventoryRunRequest, MetadataInventoryRunStatus, MetadataInventoryScope,
     MetadataInventoryStartRequest, ScanError,
 };
+use crate::ports::source_publication::{PublicationNamespace, PublicationNamespaceFactory};
 use crate::ports::{
     IncrementalCatalogRepository, LibraryChangeQueue, MetadataInventoryAbsencePublicationRequest,
     MetadataInventoryRepository, MetadataInventorySource, MetadataInventorySourcePreparation,
 };
+
+use super::incremental_library_changes::production;
 
 const MAX_INVENTORY_PAGE_ENTRIES: u32 = 4_096;
 const TERMINATION_ATTEMPTS: usize = 2;
@@ -269,10 +271,8 @@ where
         ));
     }
     let expected_publication_identity = root.publication_root_identity.clone();
-    let opening_guard = PublicationGuardedFileDiscovery::new_metadata_inventory_source_guard(
-        &root.root_path,
-        expected_publication_identity.as_ref(),
-    )?;
+    let opening_guard = production::publication_namespaces()
+        .open(&root.root_path, expected_publication_identity.as_ref())?;
     let expected_source_identity = opening_guard
         .metadata_inventory_root_identity()?
         .ok_or_else(|| {
@@ -576,7 +576,7 @@ fn metadata_inventory_recovery_reason(
 #[cfg(test)]
 fn metadata_inventory_run_id(leased: &LeasedLibraryChange) -> String {
     let intent = &leased.change.intent;
-    super::scan_library::stable_id(
+    crate::domain::stable_id(
         "metadata-inventory-run-v2",
         &format!(
             "{}:{}:{}:{}:{}:{}:{}",
@@ -825,7 +825,7 @@ where
     }
     let mut sequence = 1_u64;
     let mut claimed_identities = BTreeSet::new();
-    let media_inspector = LocalMediaInspector::new();
+    let media_inspector = production::media_inspector();
     loop {
         if cancellation.load(Ordering::Relaxed) {
             if authority.is_none() {
@@ -1023,10 +1023,7 @@ where
         let _publication_guard = recovery_root_binding
             .as_ref()
             .map(|(root_path, expected_identity)| {
-                PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
-                    root_path,
-                    expected_identity,
-                )
+                production::publication_namespaces().open(root_path, Some(expected_identity))
             })
             .transpose()?;
         repository.authorize_metadata_inventory_absence(&request.run_id, observed_unix_ms)?;
@@ -1081,10 +1078,7 @@ where
         let _publication_guard = recovery_root_binding
             .as_ref()
             .map(|(root_path, expected_identity)| {
-                PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
-                    root_path,
-                    expected_identity,
-                )
+                production::publication_namespaces().open(root_path, Some(expected_identity))
             })
             .transpose()?;
         let run = if let Some(authority) = authority {
@@ -1161,10 +1155,7 @@ where
         let _publication_guard = recovery_root_binding
             .as_ref()
             .map(|(root_path, expected_identity)| {
-                PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
-                    root_path,
-                    expected_identity,
-                )
+                production::publication_namespaces().open(root_path, Some(expected_identity))
             })
             .transpose()?;
         repository.complete_metadata_inventory(&request.run_id, observed_unix_ms)?

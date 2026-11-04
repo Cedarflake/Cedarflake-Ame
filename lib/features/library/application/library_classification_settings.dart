@@ -1,5 +1,7 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../domain/library_classification_configuration.dart";
+import "../domain/library_model_installation.dart";
 import "library_classification_configuration.dart";
 import "library_controller.dart";
 import "library_model_installation.dart";

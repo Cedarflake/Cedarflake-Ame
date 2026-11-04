@@ -1,12 +1,15 @@
 use rusqlite::params;
 
-use crate::domain::{IncrementalCatalogRoot, ScanError};
-use crate::ports::search_index::IndexedFileHint;
+use crate::domain::{
+    FileIdentityEvidence, IncrementalCatalogRoot, LeasedLibraryChange, LibraryChangeIntent,
+    LibraryChangeQueuePolicy, MetadataInventoryRun, ScanError,
+};
+use crate::ports::search_index::{IndexedFileHint, IndexedRecoveryRepository};
 
 use super::{SqliteCatalog, database_error};
 
-impl SqliteCatalog {
-    pub(crate) fn begin_search_index_hints(&self) -> Result<(), ScanError> {
+impl IndexedRecoveryRepository for SqliteCatalog {
+    fn begin_search_index_hints(&self) -> Result<(), ScanError> {
         self.connection
             .execute_batch(
                 "PRAGMA temp_store = FILE;
@@ -20,10 +23,7 @@ impl SqliteCatalog {
             .map_err(database_error)
     }
 
-    pub(crate) fn stage_search_index_hints(
-        &mut self,
-        hints: &[IndexedFileHint],
-    ) -> Result<(), ScanError> {
+    fn stage_search_index_hints(&mut self, hints: &[IndexedFileHint]) -> Result<(), ScanError> {
         if hints.len() > 256 {
             return Err(ScanError::new(
                 "search_index_page_too_large",
@@ -52,7 +52,7 @@ impl SqliteCatalog {
         transaction.commit().map_err(database_error)
     }
 
-    pub(crate) fn changed_search_index_paths(
+    fn changed_search_index_paths(
         &self,
         root: &IncrementalCatalogRoot,
         limit: u32,
@@ -88,5 +88,27 @@ impl SqliteCatalog {
             .map_err(database_error)?
             .collect::<Result<Vec<_>, _>>()
             .map_err(database_error)
+    }
+
+    fn bind_indexed_recovery_namespace(
+        &mut self,
+        run: &MetadataInventoryRun,
+        lease: &LeasedLibraryChange,
+        identity: &FileIdentityEvidence,
+        now_unix_ms: i64,
+    ) -> Result<(), ScanError> {
+        self.initialize_metadata_inventory_spool(run, lease, identity, None, Some(""), now_unix_ms)
+            .map(|_| ())
+    }
+
+    fn publish_indexed_recovery_candidates(
+        &mut self,
+        lease: &LeasedLibraryChange,
+        run_id: &str,
+        intents: &[LibraryChangeIntent],
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<u32, ScanError> {
+        self.publish_indexed_recovery_candidates(lease, run_id, intents, now_unix_ms, policy)
     }
 }

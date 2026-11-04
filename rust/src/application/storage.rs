@@ -2,22 +2,20 @@ use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::sync::OnceLock;
 
-use directories::ProjectDirs;
-
 #[cfg(test)]
 use crate::adapters::SqliteCatalog;
-use crate::adapters::{
-    PREVIEW_CACHE_VERSION, SqliteStorageSettings, is_ame_preview_cache_entry, user_visible_path,
-};
+use crate::domain::user_visible_path;
 use crate::domain::{
     GalleryQuery, LibraryChangeLane, RetiredPreviewRootView, ScanError, StorageConfiguration,
     StorageSettingsUpdate, StorageStatus,
 };
+use crate::ports::preview_cache_storage::PreviewCacheStorage;
 use crate::ports::{CatalogRepository, StorageSettingsRepository};
 
 pub(super) mod catalog_admission;
 mod configuration_update;
 mod preview_activation;
+pub(in crate::application) mod production;
 pub(super) mod source_cleanup_admission;
 use preview_activation::activate_configured_preview_root;
 #[cfg(test)]
@@ -49,10 +47,8 @@ pub(crate) fn storage_paths() -> Result<StoragePaths, ScanError> {
         }
         let storage = StoragePaths {
             catalog_path: test_root.join("catalog").join("ame.sqlite3"),
-            preview_root: test_root
-                .join("cache")
-                .join("previews")
-                .join(PREVIEW_CACHE_VERSION),
+            preview_root: production::preview_cache()
+                .versioned_root(&test_root.join("cache").join("previews")),
             preview_budget_bytes: DEFAULT_PREVIEW_BUDGET_BYTES,
             settings_path: test_root.join("settings").join("storage.sqlite3"),
         };
@@ -82,7 +78,7 @@ pub fn update_storage_settings(update: StorageSettingsUpdate) -> Result<StorageS
 }
 
 fn resolve_configured_storage() -> Result<StoragePaths, ScanError> {
-    let (settings_path, defaults) = default_storage()?;
+    let (settings_path, defaults) = production::default_storage(DEFAULT_PREVIEW_BUDGET_BYTES)?;
     let configured = load_or_initialize_configuration(&settings_path, &defaults)?;
     validate_configuration(&configured)?;
     let preview_root = activate_configured_preview_root(
@@ -111,39 +107,10 @@ fn load_or_initialize_configuration(
     settings_path: &Path,
     defaults: &StorageConfiguration,
 ) -> Result<StorageConfiguration, ScanError> {
-    let mut settings = SqliteStorageSettings::open(settings_path.to_path_buf())?;
+    let mut settings = production::settings(settings_path)?;
     let configured = settings.load_or_initialize(defaults)?;
     validate_configuration(&configured)?;
     Ok(configured)
-}
-
-fn default_storage() -> Result<(PathBuf, StorageConfiguration), ScanError> {
-    let Some(project_dirs) = ProjectDirs::from("com", "Cedarflake", "Ame") else {
-        return Err(ScanError::new(
-            "application_storage_unavailable",
-            "The operating system did not provide application storage directories",
-        ));
-    };
-    let settings_path = project_dirs
-        .config_dir()
-        .join("storage")
-        .join("settings.sqlite3");
-    let configuration = StorageConfiguration {
-        catalog_path: project_dirs
-            .data_local_dir()
-            .join("catalog")
-            .join("ame.sqlite3")
-            .to_string_lossy()
-            .into_owned(),
-        preview_root: project_dirs
-            .cache_dir()
-            .join("previews")
-            .join(PREVIEW_CACHE_VERSION)
-            .to_string_lossy()
-            .into_owned(),
-        preview_budget_bytes: DEFAULT_PREVIEW_BUDGET_BYTES,
-    };
-    Ok((settings_path, configuration))
 }
 
 fn validate_configuration(configuration: &StorageConfiguration) -> Result<(), ScanError> {
@@ -236,7 +203,7 @@ pub(crate) fn validate_source_root_storage_paths(
         preview_root: storage.preview_root.to_string_lossy().into_owned(),
         preview_budget_bytes: storage.preview_budget_bytes,
     };
-    let mut settings = SqliteStorageSettings::open(storage.settings_path.clone())?;
+    let mut settings = production::settings(&storage.settings_path)?;
     let configured = settings.load_or_initialize(&defaults)?;
     validate_source_root_against_paths(
         source_root,
@@ -418,7 +385,7 @@ fn storage_status(
 ) -> Result<StorageStatus, ScanError> {
     let active_catalog_path = active.catalog_path.to_string_lossy().into_owned();
     let active_preview_root = active.preview_root.to_string_lossy().into_owned();
-    let mut settings = SqliteStorageSettings::open(active.settings_path.clone())?;
+    let mut settings = production::settings(&active.settings_path)?;
     let retired_preview_roots = settings
         .load_retired_preview_roots()?
         .into_iter()
@@ -447,7 +414,7 @@ fn storage_status(
         configured_catalog_display_path: user_visible_path(&configured.catalog_path),
         configured_preview_display_path: user_visible_path(&configured.preview_root),
         preview_budget_bytes: configured.preview_budget_bytes,
-        preview_used_bytes: directory_size(&active.preview_root)?,
+        preview_used_bytes: production::preview_cache().used_bytes(&active.preview_root)?,
         catalog_used_bytes,
         catalog_live_bytes,
         catalog_reclaimable_bytes: catalog_reclamation.reclaimable_bytes,
@@ -461,40 +428,6 @@ fn storage_status(
         )? || active.preview_budget_bytes != configured.preview_budget_bytes,
         retired_preview_roots,
     })
-}
-
-fn directory_size(path: &Path) -> Result<u64, ScanError> {
-    if !path.exists() {
-        return Ok(0);
-    }
-    let entries = fs::read_dir(path).map_err(|error| {
-        ScanError::new(
-            "storage_usage_unavailable",
-            format!("Could not inspect preview cache usage: {error}"),
-        )
-    })?;
-    let mut size = 0_u64;
-    for entry in entries {
-        let entry = entry
-            .map_err(|error| ScanError::new("storage_usage_unavailable", error.to_string()))?;
-        if !is_ame_preview_cache_entry(&entry.path()) {
-            continue;
-        }
-        let metadata = match entry.metadata() {
-            Ok(metadata) => metadata,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
-            Err(error) => {
-                return Err(ScanError::new(
-                    "storage_usage_unavailable",
-                    error.to_string(),
-                ));
-            }
-        };
-        if metadata.is_file() {
-            size = size.saturating_add(metadata.len());
-        }
-    }
-    Ok(size)
 }
 
 fn catalog_size(path: &Path) -> Result<u64, ScanError> {

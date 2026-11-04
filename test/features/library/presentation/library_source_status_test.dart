@@ -3,7 +3,7 @@ import "dart:async";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_scheduler.dart";
-import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
@@ -14,6 +14,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_sou
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final fails in [false, true]) {
@@ -27,11 +29,11 @@ void main() {
           idleDelay: const Duration(milliseconds: 20),
         );
         final container = ProviderContainer(
-          overrides: [
+          overrides: applicationTestOverrides([
             libraryControllerProvider.overrideWith(_Library.new),
             libraryExactAnalysisControllerProvider.overrideWithValue(analysis),
             libraryExactAnalysisSchedulerProvider.overrideWithValue(scheduler),
-          ],
+          ]),
         );
         addTearDown(() {
           container.dispose();

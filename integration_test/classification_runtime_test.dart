@@ -1,13 +1,13 @@
 import "dart:io";
 
-import "package:cedarflake_ame/app/bootstrap/library_synchronization_lifecycle_owner.dart";
+import "package:cedarflake_ame/app/bootstrap/library_synchronization_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/rust_library_loader.dart";
-import "package:cedarflake_ame/features/library/adapters/rust_library_classification_configuration.dart";
-import "package:cedarflake_ame/features/library/application/library_catalog.dart";
-import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_catalog.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_classification_configuration.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_foreground_reads.dart";
-import "package:cedarflake_ame/features/library/application/library_scanner.dart";
-import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_synchronization.dart";
+import "package:cedarflake_ame/features/library/domain/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/src/rust/api/classification.dart" as native;
 import "package:cedarflake_ame/src/rust/frb_generated.dart";
@@ -25,9 +25,8 @@ void main() {
   ) async {
     await initializeRustLibrary();
     addTearDown(() => RustLib.dispose());
-    final synchronization = LibrarySynchronizationLifecycleOwner(
-      RustLibrarySynchronization.production(),
-    );
+    final synchronization =
+        LibrarySynchronizationBindings.production().lifecycle;
     addTearDown(synchronization.close);
     synchronization.startInBackground();
     expect(

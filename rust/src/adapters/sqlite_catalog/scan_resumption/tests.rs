@@ -1,3 +1,5 @@
+use crate::ports::scan_recovery::ForegroundScanRecovery;
+
 use super::*;
 use crate::domain::{
     AssetLocationView, JournalFileReference, JournalIdentifier, JournalUsn,

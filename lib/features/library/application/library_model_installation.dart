@@ -3,49 +3,17 @@ import "dart:async";
 import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/legacy.dart";
 
-enum LibraryModelInstallationStage {
-  idle,
-  preparing,
-  verifying,
-  downloading,
-  stopping,
-  enabling,
-  enabled,
-  cancelled,
-  failed,
-}
-
-class LibraryModelDownloadProgress {
-  const LibraryModelDownloadProgress({
-    required this.downloading,
-    required this.completedBytes,
-    required this.totalBytes,
-  });
-
-  final bool downloading;
-  final int completedBytes;
-  final int totalBytes;
-}
-
-abstract interface class LibraryModelInstallationSession {
-  Future<void> prepare();
-  LibraryModelDownloadProgress? progress();
-  void cancel();
-  Future<void> commit();
-  Future<void> discard();
-  void dispose();
-}
-
-abstract interface class LibraryModelInstallationService {
-  LibraryModelInstallationSession create();
-  Future<LibraryModelInstallationSession?> recover();
-}
+import "../domain/library_model_installation.dart";
+import "ports/library_model_installation.dart";
 
 typedef EnablePreparedLibraryModel =
     Future<void> Function(Future<void> Function() commit);
 
 final libraryModelInstallationProvider =
-    ChangeNotifierProvider<LibraryModelInstallation?>((ref) => null);
+    ChangeNotifierProvider<LibraryModelInstallation?>(
+      (ref) =>
+          throw StateError("Library model installation binding is required"),
+    );
 
 class LibraryModelInstallation extends ChangeNotifier {
   LibraryModelInstallation(this._service);

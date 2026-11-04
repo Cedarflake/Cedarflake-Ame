@@ -1,4 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use crate::domain::ScanError;
 
 use super::discovery::{CategoryNaming, ConceptId};
 use super::{
@@ -12,6 +15,7 @@ use crate::domain::classification_configuration::{
 mod activation;
 pub(crate) use activation::CategoryActivation;
 mod catalog;
+pub(crate) use catalog::catalog_retirements;
 pub use catalog::{CategoryCatalogReconciliationPlan, ManagedCategoryCatalog};
 mod coverage;
 pub use coverage::{
@@ -19,9 +23,11 @@ pub use coverage::{
     CategoryCoverageSummary, CategoryCoverageSupport,
 };
 mod merging;
+pub(crate) mod merging_rules;
 pub use merging::{CategoryMergeBasis, CategoryMergePlan, CategoryMergeSnapshot};
 pub(crate) use merging::{CategoryMergeContext, PurposeCategoryMerge};
 mod retirement;
+pub(crate) use retirement::equivalent_retirements;
 pub use retirement::{
     CategoryRetirementPlan, CategoryRetirementSnapshot, EquivalentCategoryRetirement,
 };
@@ -168,4 +174,14 @@ impl CategoryExpansionPlan {
     pub fn configuration(&self) -> &ClassificationConfigurationChange {
         &self.configuration
     }
+}
+
+fn check_cancelled(cancelled: &AtomicBool) -> Result<(), ScanError> {
+    if cancelled.load(Ordering::Acquire) {
+        return Err(ScanError::new(
+            "classification_cancelled",
+            "Classification was cancelled",
+        ));
+    }
+    Ok(())
 }

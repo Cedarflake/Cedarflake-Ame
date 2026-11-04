@@ -85,6 +85,12 @@ Disposal cancels the task; an unsuccessful stream also requests cancellation bef
 handle. Completed restoration invalidates album projections and uses the shared organization
 publication owner to refresh browsing.
 
+The Dart archive and cleanup task contracts live in library application ports. Their Rust adapters
+retain opaque bridge handles and event/error conversion, selected by the organization bootstrap
+binding module. Settings consumes the named controller/state contracts; no task ownership moves
+into presentation or bootstrap. Provider identity and the existing terminal-before-disposal
+sequence remain unchanged when these modules are relocated.
+
 Settings composes the existing SettingsSection/SettingsRow, Material buttons, shared notification
 owner and scrollable AlertDialog. The installed Flutter 3.44.9 AlertDialog supports scrollable
 content with actions outside that scroll region; a custom dialog or separate notification component

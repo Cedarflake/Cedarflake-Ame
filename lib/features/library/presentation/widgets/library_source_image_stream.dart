@@ -3,7 +3,7 @@ import "dart:ui" as ui;
 import "package:flutter/foundation.dart";
 import "package:flutter/painting.dart";
 
-import "../../application/library_source_reader.dart";
+import "../../application/ports/library_source_reader.dart";
 
 ImageStreamCompleter createLibrarySourceImageStream({
   required Future<ui.Codec> codec,

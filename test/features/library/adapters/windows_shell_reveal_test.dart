@@ -1,6 +1,6 @@
 import "dart:io";
 
-import "package:cedarflake_ame/features/library/adapters/windows_shell_reveal.dart";
+import "package:cedarflake_ame/features/library/adapters/platform/windows_shell_reveal.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 

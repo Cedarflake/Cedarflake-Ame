@@ -2,27 +2,23 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::adapters::{SqliteCatalog, SqliteCatalogSession};
 use crate::application::scan_library::{FirstImportCaptureLease, first_import_capture_lease};
 use crate::domain::{
-    JournalFileReference, JournalIdentifier, JournalUsn, LibraryChangeLane, LibraryRootGeneration,
-    LibrarySynchronizationSnapshot, PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalBaseline,
+    LibraryChangeLane, LibraryRootGeneration, LibrarySynchronizationSnapshot,
+    PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalBaseline,
     PersistentJournalBaselineClosingBoundary, PersistentJournalBaselinePhase,
     PersistentJournalCapability, PersistentJournalCapabilityState,
-    PersistentJournalContinuityState, PersistentJournalFailure, PersistentJournalVolumeIdentity,
-    ScanError,
+    PersistentJournalContinuityState, PersistentJournalFailure, ScanError,
 };
-use crate::journal_broker::{
-    BrokerResponse, CallerClaim, JournalCapability, PersistentChangeJournalOperationError,
-    PersistentChangeJournalSession, ProductionPersistentJournalRoot, QueryJournalRequest,
-    RegisterRootRequest, describe_production_persistent_journal_root,
+use crate::ports::catalog_session::CatalogLaneSession;
+use crate::ports::journal_boundary::{
+    JournalBoundaryProbe, JournalBoundaryReader, JournalBoundarySource, SupportedJournalBoundary,
 };
+use crate::ports::scan_admission::FirstImportReadiness;
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, MetadataInventoryRepository,
     PersistentJournalRepository,
 };
-
-const JOURNAL_BOUNDARY_TIMEOUT_MILLIS: u32 = 10_000;
 
 mod opening;
 
@@ -97,23 +93,10 @@ impl JournalBaselineClosingWork {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub(in crate::application) enum JournalBoundaryProbe {
-    Supported(SupportedJournalBoundary),
-    LiveOnly,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub(in crate::application) struct SupportedJournalBoundary {
-    pub(in crate::application) volume: PersistentJournalVolumeIdentity,
-    pub(in crate::application) root_file_reference: JournalFileReference,
-    pub(in crate::application) journal_id: JournalIdentifier,
-    pub(in crate::application) first_usn: JournalUsn,
-    pub(in crate::application) next_usn: JournalUsn,
-}
-
 pub(super) fn select_closing_work(
-    catalog: &SqliteCatalog,
+    catalog: &(
+         impl IncrementalCatalogRepository + PersistentJournalRepository + MetadataInventoryRepository
+     ),
     snapshot: &LibrarySynchronizationSnapshot,
     root_cursor: Option<&str>,
 ) -> Result<Option<JournalBaselineClosingWork>, ScanError> {
@@ -151,7 +134,12 @@ pub(super) fn select_closing_work(
 }
 
 pub(super) fn select_opening_work(
-    catalog: &SqliteCatalog,
+    catalog: &(
+         impl CatalogRepository
+         + IncrementalCatalogRepository
+         + PersistentJournalRepository
+         + FirstImportReadiness
+     ),
     snapshot: &LibrarySynchronizationSnapshot,
     root_cursor: Option<&str>,
     identity_source: Option<&dyn crate::ports::PersistentIdentityJournalSource>,
@@ -241,22 +229,21 @@ pub(super) fn select_opening_work(
     Ok(select_candidate(candidates, root_cursor))
 }
 
-pub(super) fn capture_closing_boundary(
+pub(super) fn capture_closing_boundary<Session>(
     work: JournalBaselineClosingWork,
-    session: &dyn PersistentChangeJournalSession,
-    caller: &CallerClaim,
+    boundary_source: &impl JournalBoundarySource,
     observed_unix_ms: i64,
-    catalog_session: &SqliteCatalogSession,
+    catalog_session: &Session,
     cancelled: &AtomicBool,
-) -> Result<(), ScanError> {
+) -> Result<(), ScanError>
+where
+    Session: CatalogLaneSession,
+    Session::Catalog: PersistentJournalRepository,
+{
     ensure_boundary_not_cancelled(cancelled, "closing")?;
-    let registration = describe_production_persistent_journal_root(
-        &work.root_id,
-        work.root_generation.value(),
-        &work.root_path,
-    )
-    .map_err(map_journal_operation_error)?;
-    let boundary = probe_journal_boundary(session, caller, &registration)?;
+    let registration =
+        boundary_source.open_root(&work.root_id, work.root_generation, &work.root_path)?;
+    let boundary = registration.read_boundary()?;
     let closing = closing_request(&work, boundary, observed_unix_ms)?;
     let mut catalog = catalog_session.open_in_lane(LibraryChangeLane::Journal)?;
     catalog.capture_persistent_journal_baseline_closing_boundary(&closing)?;
@@ -270,6 +257,7 @@ fn closing_request(
     observed_unix_ms: i64,
 ) -> Result<PersistentJournalBaselineClosingBoundary, ScanError> {
     let SupportedJournalBoundary {
+        protocol_version,
         volume,
         root_file_reference,
         journal_id,
@@ -277,7 +265,7 @@ fn closing_request(
         ..
     } = match boundary {
         JournalBoundaryProbe::Supported(supported) => supported,
-        JournalBoundaryProbe::LiveOnly => {
+        JournalBoundaryProbe::LiveOnly { .. } => {
             return Err(ScanError::new(
                 "persistent_journal_baseline_closing_unavailable",
                 "The closing change boundary is unavailable",
@@ -290,80 +278,9 @@ fn closing_request(
         root_file_reference,
         journal_id,
         closing_next_usn: next_usn,
-        protocol_version: crate::journal_broker::PROTOCOL_VERSION,
+        protocol_version,
         captured_unix_ms: observed_unix_ms,
     })
-}
-
-pub(in crate::application) fn probe_journal_boundary(
-    session: &dyn PersistentChangeJournalSession,
-    caller: &CallerClaim,
-    registration: &ProductionPersistentJournalRoot,
-) -> Result<JournalBoundaryProbe, ScanError> {
-    let capability = session
-        .register_root(RegisterRootRequest {
-            caller: caller.clone(),
-            root: registration.authorization.clone(),
-            client_root_handle: registration.client_root_handle,
-            timeout_ms: JOURNAL_BOUNDARY_TIMEOUT_MILLIS,
-        })
-        .map_err(map_journal_operation_error)?;
-    match session
-        .query_journal(QueryJournalRequest {
-            caller: caller.clone(),
-            root: registration.authorization.clone(),
-            root_capability: capability,
-            timeout_ms: JOURNAL_BOUNDARY_TIMEOUT_MILLIS,
-        })
-        .map_err(map_journal_operation_error)?
-    {
-        BrokerResponse::Journal {
-            capability: JournalCapability::Supported,
-            journal_id: Some(journal_id),
-            first_usn: Some(first_usn),
-            next_usn: Some(next_usn),
-            ..
-        } if first_usn >= 0 && next_usn >= first_usn => {
-            Ok(JournalBoundaryProbe::Supported(SupportedJournalBoundary {
-                volume: if let Some(source) = session.identity_source() {
-                    source.volume_identity(&crate::ports::IdentityJournalRoot {
-                        root_id: registration.authorization.root_id.clone(),
-                        root_generation: LibraryRootGeneration::new(
-                            registration.authorization.root_generation,
-                        )
-                        .ok_or_else(|| {
-                            ScanError::new(
-                                "identity_journal_generation_invalid",
-                                "The journal root generation is invalid",
-                            )
-                        })?,
-                    })?
-                } else {
-                    PersistentJournalVolumeIdentity {
-                        volume_guid: registration.authorization.volume_id.clone(),
-                        volume_serial: registration.volume_serial,
-                    }
-                },
-                root_file_reference: JournalFileReference::from_bytes(
-                    &registration.authorization.root_identity,
-                )?,
-                journal_id: JournalIdentifier::new(journal_id)?,
-                first_usn: JournalUsn::new(first_usn)?,
-                next_usn: JournalUsn::new(next_usn)?,
-            }))
-        }
-        BrokerResponse::Journal {
-            capability: JournalCapability::LiveOnly,
-            journal_id: None,
-            first_usn: None,
-            next_usn: None,
-            ..
-        } => Ok(JournalBoundaryProbe::LiveOnly),
-        _ => Err(ScanError::new(
-            "persistent_journal_boundary_invalid",
-            "The retained change boundary response is incomplete or inconsistent",
-        )),
-    }
 }
 
 fn ensure_boundary_not_cancelled(
@@ -379,22 +296,16 @@ fn ensure_boundary_not_cancelled(
     Ok(())
 }
 
-fn map_journal_operation_error(error: PersistentChangeJournalOperationError) -> ScanError {
-    ScanError::new(
-        "persistent_journal_boundary_unavailable",
-        format!("The retained change boundary is unavailable: {error}"),
-    )
-}
-
 pub(super) fn live_only_capability(
     root_id: &str,
     root_generation: LibraryRootGeneration,
     observed_unix_ms: i64,
+    protocol_version: u16,
 ) -> PersistentJournalCapability {
     PersistentJournalCapability {
         root_id: root_id.to_owned(),
         root_generation,
-        protocol_version: crate::journal_broker::PROTOCOL_VERSION,
+        protocol_version,
         contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
         state: PersistentJournalCapabilityState::LiveOnly,
         continuity: PersistentJournalContinuityState::LiveOnly,
@@ -441,81 +352,43 @@ fn select_rotated_key<'a>(
 
 #[cfg(test)]
 mod tests {
+    use crate::adapters::SqliteCatalogSession;
     use std::path::PathBuf;
-    use std::sync::Mutex;
 
     use super::opening::opening_request;
     use super::*;
     use crate::domain::{
+        JournalFileReference, JournalIdentifier, JournalUsn, PersistentJournalVolumeIdentity,
+    };
+    use crate::domain::{
         LibraryChangeId, LibraryChangeQueuePolicy, LibraryRecoveryAuthorityReason,
         PersistentJournalBaselinePhase,
     };
-    use crate::journal_broker::{
-        PersistentChangeJournalRead, ReadJournalRangeRequest, ReadJournalVolumeRequest,
-        ResponseBinding, RootCapability,
-    };
 
-    struct RecordingBoundarySession {
-        registered: Mutex<Option<RegisterRootRequest>>,
-        queried: Mutex<Option<QueryJournalRequest>>,
-    }
+    struct UnopenedBoundarySource;
 
-    impl RecordingBoundarySession {
-        fn new() -> Self {
-            Self {
-                registered: Mutex::new(None),
-                queried: Mutex::new(None),
-            }
+    impl JournalBoundarySource for UnopenedBoundarySource {
+        type Root = Self;
+
+        fn open_root(
+            &self,
+            _: &str,
+            _: LibraryRootGeneration,
+            _: &std::path::Path,
+        ) -> Result<Self::Root, ScanError> {
+            panic!("cancelled opening must not acquire a root")
         }
     }
 
-    impl PersistentChangeJournalSession for RecordingBoundarySession {
-        fn register_root(
-            &self,
-            request: RegisterRootRequest,
-        ) -> Result<RootCapability, PersistentChangeJournalOperationError> {
-            *self.registered.lock().expect("record register request") = Some(request);
-            Ok(RootCapability([7; 32]))
-        }
-
-        fn query_journal(
-            &self,
-            request: QueryJournalRequest,
-        ) -> Result<BrokerResponse, PersistentChangeJournalOperationError> {
-            *self.queried.lock().expect("record query request") = Some(request.clone());
-            Ok(BrokerResponse::Journal {
-                request_id: 1,
-                binding: ResponseBinding::from_request(&request.caller, &request.root),
-                capability: JournalCapability::Supported,
-                journal_id: Some(44),
-                first_usn: Some(1),
-                next_usn: Some(20),
-            })
-        }
-
-        fn begin_read_range(
-            &self,
-            _request: ReadJournalRangeRequest,
-        ) -> Result<Box<dyn PersistentChangeJournalRead>, PersistentChangeJournalOperationError>
-        {
-            Err(PersistentChangeJournalOperationError::InvalidRequest)
-        }
-
-        fn begin_read_volume(
-            &self,
-            _request: ReadJournalVolumeRequest,
-        ) -> Result<Box<dyn PersistentChangeJournalRead>, PersistentChangeJournalOperationError>
-        {
-            Err(PersistentChangeJournalOperationError::InvalidRequest)
-        }
-
-        fn close(&self) -> Result<(), PersistentChangeJournalOperationError> {
-            Ok(())
+    impl JournalBoundaryReader for UnopenedBoundarySource {
+        fn read_boundary(&self) -> Result<JournalBoundaryProbe, ScanError> {
+            panic!("cancelled opening must not read a boundary")
         }
     }
 
     fn supported_boundary() -> JournalBoundaryProbe {
         JournalBoundaryProbe::Supported(SupportedJournalBoundary {
+            protocol_version: 7,
             volume: PersistentJournalVolumeIdentity {
                 volume_guid: "volume-a".to_owned(),
                 volume_serial: 7,
@@ -530,7 +403,7 @@ mod tests {
     fn supported_opening_boundary() -> SupportedJournalBoundary {
         match supported_boundary() {
             JournalBoundaryProbe::Supported(boundary) => boundary,
-            JournalBoundaryProbe::LiveOnly => unreachable!("test boundary is supported"),
+            JournalBoundaryProbe::LiveOnly { .. } => unreachable!("test boundary is supported"),
         }
     }
 
@@ -607,7 +480,7 @@ mod tests {
             PathBuf::from("unused"),
         );
         let request = opening_request(&work, supported_opening_boundary(), 100);
-        let expected_run_id = crate::application::scan_library::stable_id(
+        let expected_run_id = crate::domain::stable_id(
             "persistent-journal-baseline-v1",
             &format!("{}\0{}\0{}\0{}\0{}\0{}", "root-a", 1, "volume-a", 7, 44, 20),
         );
@@ -621,6 +494,7 @@ mod tests {
         );
         assert_eq!(request.authorized_unix_ms, 100);
         assert_eq!(request.opening_next_usn.value(), 20);
+        assert_eq!(request.protocol_version, 7);
     }
 
     #[test]
@@ -645,60 +519,11 @@ mod tests {
     }
 
     #[test]
-    fn boundary_probe_binds_register_and_query_requests_to_the_same_root() {
-        let directory = tempfile::tempdir().expect("test directory");
-        let source_root = directory.path().join("source");
-        std::fs::create_dir_all(&source_root).expect("source root");
-        let registration = describe_production_persistent_journal_root(
-            "root-a",
-            LibraryRootGeneration::initial().value(),
-            &source_root,
-        )
-        .expect("describe journal root");
-        let caller = CallerClaim {
-            process_id: std::process::id(),
-            session_id: 1,
-            client_instance: [9; 16],
-        };
-        let session = RecordingBoundarySession::new();
-
-        let boundary = probe_journal_boundary(&session, &caller, &registration)
-            .expect("probe journal boundary");
-
-        let register = session
-            .registered
-            .lock()
-            .expect("registered request")
-            .clone()
-            .expect("register request");
-        let query = session
-            .queried
-            .lock()
-            .expect("queried request")
-            .clone()
-            .expect("query request");
-        assert_eq!(register.caller, caller);
-        assert_eq!(register.root, registration.authorization);
-        assert_eq!(register.client_root_handle, registration.client_root_handle);
-        assert_eq!(register.timeout_ms, JOURNAL_BOUNDARY_TIMEOUT_MILLIS);
-        assert_eq!(query.caller, caller);
-        assert_eq!(query.root, register.root);
-        assert_eq!(query.root_capability, RootCapability([7; 32]));
-        assert_eq!(query.timeout_ms, JOURNAL_BOUNDARY_TIMEOUT_MILLIS);
-        assert!(matches!(
-            boundary,
-            JournalBoundaryProbe::Supported(SupportedJournalBoundary { next_usn, .. })
-                if next_usn.value() == 20
-        ));
-    }
-
-    #[test]
     fn cancelled_opening_stops_before_boundary_registration() {
         let directory = tempfile::tempdir().expect("test directory");
         let catalog_session =
             SqliteCatalogSession::validate(directory.path().join("catalog").join("ame.sqlite3"))
                 .expect("catalog session");
-        let session = RecordingBoundarySession::new();
         let cancelled = AtomicBool::new(true);
         let work = JournalBaselineOpeningWork::existing_root(
             "root-a".to_owned(),
@@ -708,12 +533,7 @@ mod tests {
 
         let error = capture_opening_boundary(
             work,
-            &session,
-            &CallerClaim {
-                process_id: std::process::id(),
-                session_id: 1,
-                client_instance: [8; 16],
-            },
+            &UnopenedBoundarySource,
             100,
             &catalog_session,
             LibraryChangeQueuePolicy::default(),
@@ -722,14 +542,6 @@ mod tests {
         .expect_err("cancelled opening must stop");
 
         assert_eq!(error.code, "persistent_journal_boundary_cancelled");
-        assert!(
-            session
-                .registered
-                .lock()
-                .expect("registered request")
-                .is_none()
-        );
-        assert!(session.queried.lock().expect("queried request").is_none());
     }
 
     #[test]
@@ -746,22 +558,19 @@ mod tests {
         assert_eq!(closing.change_id, work.baseline.change_id);
         assert_eq!(closing.closing_next_usn.value(), 20);
         assert_eq!(closing.captured_unix_ms, 200);
+        assert_eq!(closing.protocol_version, 7);
 
-        let error = closing_request(&work, JournalBoundaryProbe::LiveOnly, 200)
-            .expect_err("live-only cannot close a retained baseline");
+        let error = closing_request(
+            &work,
+            JournalBoundaryProbe::LiveOnly {
+                protocol_version: 7,
+            },
+            200,
+        )
+        .expect_err("live-only cannot close a retained baseline");
         assert_eq!(
             error.code,
             "persistent_journal_baseline_closing_unavailable"
         );
-    }
-
-    #[test]
-    fn broker_failure_maps_to_boundary_unavailable() {
-        let error = map_journal_operation_error(
-            PersistentChangeJournalOperationError::TransportUnavailable,
-        );
-
-        assert_eq!(error.code, "persistent_journal_boundary_unavailable");
-        assert!(error.message.contains("transport is unavailable"));
     }
 }

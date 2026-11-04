@@ -33,6 +33,7 @@ LibrarySynchronizationSnapshot retainUnresolvedSynchronizationFailures({
       pendingChangeCount: current.pendingChangeCount,
       retryWaitCount: current.retryWaitCount,
       freshnessUnknownCount: current.freshnessUnknownCount,
+      recoveryBlocked: current.recoveryBlocked,
       lastIssueCode: prior.lastIssueCode,
     );
   }

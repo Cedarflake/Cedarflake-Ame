@@ -5,6 +5,7 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_locations_sheet.dart";
 import "package:flutter/material.dart";
@@ -12,6 +13,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
+
+import "support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
@@ -151,7 +154,7 @@ Widget _host(
   LibraryExactAnalysisController? analysis,
   LibraryExactAnalysisScheduler? scheduler,
 }) => ProviderScope(
-  overrides: [
+  overrides: applicationTestOverrides([
     libraryControllerProvider.overrideWith(
       () => library ?? ReviewFixtureLibrary(),
     ),
@@ -160,7 +163,7 @@ Widget _host(
       libraryExactAnalysisControllerProvider.overrideWithValue(analysis),
     if (scheduler != null)
       libraryExactAnalysisSchedulerProvider.overrideWithValue(scheduler),
-  ],
+  ]),
   child: MaterialApp(
     home: Scaffold(
       body: LibraryDuplicateLocationsSheet(

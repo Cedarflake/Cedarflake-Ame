@@ -553,7 +553,7 @@ fn verify_changed_source_during_path_work(
             .publication_root_identity
             .as_ref()
             .expect("root identity");
-        let discovery = PublicationGuardedFileDiscovery::new_incremental_publication_guard(
+        let discovery = PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
             &current_root.root_path,
             identity,
         )

@@ -2,6 +2,9 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
+pub(crate) mod catalog_capacity;
+pub(crate) mod catalog_reader;
+pub(crate) mod catalog_session;
 pub(crate) mod classification;
 #[cfg(any(all(windows, feature = "classification-worker"), test))]
 pub(crate) mod classification_analysis;
@@ -10,7 +13,12 @@ pub(crate) mod classification_configuration;
 pub(crate) mod classification_encoder;
 pub(crate) mod classification_execution;
 pub(crate) mod classification_features;
+#[cfg(any(all(windows, feature = "classification-worker"), test))]
+pub(crate) mod classification_installation;
+#[cfg(all(windows, feature = "classification-worker"))]
+pub(crate) mod classification_model_package;
 pub(crate) mod classification_review;
+pub(crate) mod classification_selection;
 pub(crate) mod classification_setup;
 pub(crate) mod classification_source;
 pub(crate) mod classification_vocabulary;
@@ -18,14 +26,35 @@ pub(crate) mod classification_work;
 pub(crate) mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
 mod gallery_query;
+pub(crate) mod journal_baseline;
+#[cfg(windows)]
+pub(crate) mod journal_boundary;
+pub(crate) mod journal_recovery;
+#[cfg(windows)]
+pub(crate) mod journal_runtime;
+#[cfg(windows)]
+pub(crate) mod journal_volume;
+pub(crate) mod media_inspection;
 pub(crate) mod organization;
 pub(crate) mod organization_archive;
 pub(crate) mod organization_batch;
 pub(crate) mod organization_cleanup;
 pub(crate) mod organization_conflicts;
 pub(crate) mod organization_review;
+pub(crate) mod preview_cache_storage;
+pub(crate) mod preview_source;
+#[cfg(windows)]
+pub(crate) mod root_location;
+pub(crate) mod scan_admission;
+pub(crate) mod scan_discovery;
+pub(crate) mod scan_publication;
+pub(crate) mod scan_recovery;
+pub(crate) mod scan_staging;
 pub(crate) mod search_index;
 pub(crate) mod sidebar_order;
+pub(crate) mod source_identity;
+pub(crate) mod source_publication;
+pub(crate) mod source_state;
 pub use gallery_query::GalleryQueryRepository;
 mod source_reconciliation;
 pub(crate) use source_reconciliation::{
@@ -34,6 +63,8 @@ pub(crate) use source_reconciliation::{
 
 mod preview_health;
 pub use preview_health::{PreviewHealthObservation, PreviewHealthOutcome, PreviewHealthTarget};
+mod preview_materialization;
+pub use preview_materialization::{PreviewSource, PreviewStore};
 mod scan_publication_control;
 pub(crate) use scan_publication_control::ScanPublicationControl;
 mod root_consolidation;
@@ -42,8 +73,14 @@ pub(crate) use root_consolidation::{
 };
 mod inventory_cleanup_control;
 pub use inventory_cleanup_control::InventoryCleanupControl;
+mod library_change_readiness;
+pub(crate) use library_change_readiness::LibraryChangeReadiness;
+mod library_change_dispatch;
+pub(crate) use library_change_dispatch::LibraryChangeDispatch;
 mod library_change_ingress;
 pub(crate) use library_change_ingress::LibraryChangeIngress;
+mod synchronization_maintenance;
+pub(crate) use synchronization_maintenance::SynchronizationMaintenance;
 mod persistent_identity_journal;
 pub(crate) use persistent_identity_journal::{
     IdentityJournalLocation, IdentityJournalPage, IdentityJournalRead, IdentityJournalRecord,
@@ -68,8 +105,8 @@ use crate::domain::{
     PersistentJournalCheckpoint, PersistentJournalEnrollmentReport, PersistentJournalPendingRename,
     PersistentJournalReadFailure, PersistentJournalRootFailure, PersistentJournalRootReadOutcome,
     PersistentJournalVolumeBatch, PersistentJournalVolumeIdentity, PreviewArtifact,
-    PreviewMaterialization, PreviewReclamationCandidate, PreviewRequest, ScanCheckpoint, ScanError,
-    ScanIssue, ScanRequest, StorageConfiguration, TerminalMediaEvidence,
+    PreviewReclamationCandidate, PreviewRequest, ScanCheckpoint, ScanError, ScanIssue, ScanRequest,
+    StorageConfiguration, TerminalMediaEvidence,
 };
 
 type CatalogMaintenanceInterrupt = Arc<dyn Fn() + Send + Sync>;
@@ -1134,24 +1171,20 @@ pub trait StorageSettingsRepository {
     fn forget_retired_preview_root(&mut self, preview_root: &str) -> Result<bool, ScanError>;
 }
 
-pub trait PreviewStore {
-    fn materialize(
-        &self,
-        file: &DiscoveredFile,
-        source: &std::fs::File,
-        preview_edge: u32,
-        source_width: u32,
-        source_height: u32,
-        force_regenerate: bool,
-    ) -> Result<PreviewMaterialization, ScanIssue>;
-}
-
 pub(crate) trait MediaInspector {
     fn metadata_engine_id(&self) -> &'static str;
     fn metadata_engine_version(&self) -> &'static str;
     fn inspection_engine_id(&self) -> &'static str;
     fn inspection_engine_version(&self) -> u32;
     fn inspect(&self, file: &DiscoveredFile) -> Result<MediaInspection, MediaInspectionFailure>;
+}
+
+pub(crate) trait SourceMediaInspector {
+    fn inspect_open_source(
+        &self,
+        file: &DiscoveredFile,
+        source: &impl PreviewSource,
+    ) -> Result<MediaInspection, MediaInspectionFailure>;
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]

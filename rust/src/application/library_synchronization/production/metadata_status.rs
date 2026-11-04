@@ -1,12 +1,12 @@
-use crate::adapters::SqliteCatalog;
 use crate::domain::{
     CatalogFreshnessCause, CatalogFreshnessState, LibraryChangeSourceHealth,
     LibraryRootAvailability, LibraryRootSynchronizationStatus, LibrarySynchronizationPhase,
     LibrarySynchronizationSnapshot, ScanError,
 };
+use crate::ports::LibraryChangeReadiness;
 
 pub(super) fn project_pending_metadata(
-    catalog: &SqliteCatalog,
+    catalog: &impl LibraryChangeReadiness,
     snapshot: &mut LibrarySynchronizationSnapshot,
 ) -> Result<(), ScanError> {
     for root_id in catalog.roots_with_pending_metadata()? {

@@ -3,7 +3,7 @@ import "package:flutter/foundation.dart";
 import "../domain/library_duplicate_review.dart";
 import "../domain/library_exact_duplicates.dart";
 import "../domain/library_models.dart";
-import "library_duplicate_review.dart";
+import "ports/library_duplicate_review.dart";
 import "library_duplicate_review_window.dart";
 
 class LibraryDuplicateReviewController extends ChangeNotifier {

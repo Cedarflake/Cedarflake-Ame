@@ -7,7 +7,7 @@ import "library_preview_failure.dart";
 import "library_preview_order.dart";
 import "library_preview_root_failures.dart";
 import "library_preview_store.dart";
-import "library_previewer.dart";
+import "ports/library_previewer.dart";
 
 export "library_preview_order.dart" show LibraryPreviewPriority;
 

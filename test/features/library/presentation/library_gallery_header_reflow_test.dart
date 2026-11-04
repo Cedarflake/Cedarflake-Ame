@@ -1,4 +1,4 @@
-import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_header_actions.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
@@ -8,6 +8,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "support/gallery_wall_fixture.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   for (final hasManifest in [false, true]) {
@@ -36,6 +38,7 @@ void main() {
         await tester.binding.setSurfaceSize(const Size(1000, 700));
         await tester.pumpWidget(
           ProviderScope(
+            overrides: applicationTestOverrides(),
             child: MaterialApp(
               home: Scaffold(
                 body: MediaQuery(

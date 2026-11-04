@@ -2,13 +2,16 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::Path;
 
+#[cfg(test)]
 use crate::adapters::{
     LocalPreviewStore, PREVIEW_ALGORITHM_ID, PREVIEW_ALGORITHM_VERSION,
-    PREVIEW_ORIENTATION_CONTRACT, SqliteCatalog, current_preview_artifact_key,
-    is_ame_preview_cache_entry, is_managed_preview_cleanup_entry,
+    PREVIEW_ORIENTATION_CONTRACT, SqliteCatalog,
 };
 use crate::domain::{LibraryChangeLane, ScanError};
 use crate::ports::CatalogRepository;
+use crate::ports::preview_cache_storage::{
+    PreviewCacheAccounting, PreviewCacheEntryKind, PreviewCacheStorage,
+};
 
 #[cfg(test)]
 use super::StoragePaths;
@@ -42,6 +45,8 @@ pub(super) fn reclaim_admitted_capacity(
 ) -> Result<u64, ScanError> {
     let storage = admission.storage();
     let preview_store = admission.store();
+    let cache = super::storage::production::preview_cache();
+    let algorithm = cache.algorithm();
     let low_watermark = storage
         .preview_budget_bytes
         .saturating_mul(RECLAMATION_TARGET_NUMERATOR)
@@ -55,16 +60,22 @@ pub(super) fn reclaim_admitted_capacity(
 
     let mut catalog =
         super::catalog_session::open_catalog(&storage.catalog_path, LibraryChangeLane::Recovery)?;
-    remove_interrupted_and_unreferenced(&storage.preview_root, target, preview_store, &catalog)?;
+    remove_interrupted_and_unreferenced(
+        &storage.preview_root,
+        target,
+        preview_store,
+        &catalog,
+        &cache,
+    )?;
     for _ in 0..MAX_RECLAMATION_PASSES {
         if preview_store.used_bytes() <= target {
             break;
         }
         let candidates = catalog.load_preview_reclamation_candidates(
             protected_location_ids,
-            PREVIEW_ALGORITHM_ID,
-            PREVIEW_ALGORITHM_VERSION,
-            PREVIEW_ORIENTATION_CONTRACT,
+            algorithm.id,
+            algorithm.version,
+            algorithm.orientation_contract,
             &format!(
                 "{}{}",
                 storage.preview_root.to_string_lossy(),
@@ -82,7 +93,7 @@ pub(super) fn reclaim_admitted_capacity(
             }
             let path = Path::new(&candidate.path);
             if path.parent() != Some(storage.preview_root.as_path())
-                || !is_managed_preview_cleanup_entry(path)
+                || cache.managed_entry_kind(path).is_none()
             {
                 continue;
             }
@@ -107,8 +118,9 @@ pub(super) fn reclaim_admitted_capacity(
 fn remove_interrupted_and_unreferenced(
     preview_root: &Path,
     target: u64,
-    preview_store: &LocalPreviewStore,
-    catalog: &SqliteCatalog,
+    preview_store: &impl PreviewCacheAccounting,
+    catalog: &impl CatalogRepository,
+    cache: &impl PreviewCacheStorage,
 ) -> Result<(), ScanError> {
     if !preview_root.exists() {
         return Ok(());
@@ -127,11 +139,11 @@ fn remove_interrupted_and_unreferenced(
             continue;
         };
         let path = entry.path();
-        if !is_ame_preview_cache_entry(&path) {
+        let Some(kind) = cache.managed_entry_kind(&path) else {
             continue;
-        }
-        let is_temporary = path.extension().and_then(|extension| extension.to_str()) == Some("tmp");
-        let artifact_key = current_preview_artifact_key(&path);
+        };
+        let is_temporary = kind == PreviewCacheEntryKind::Temporary;
+        let artifact_key = cache.current_artifact_key(&path);
         let is_unreferenced = !is_temporary
             && !catalog.is_preview_artifact_path_indexed(&path.to_string_lossy(), artifact_key)?;
         if !is_temporary && !is_unreferenced {

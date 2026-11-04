@@ -9,6 +9,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_organization_fixture.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 void main() {
   testWidgets(
     "album multi-selection confirms once, cancellation preserves it and deletion clears it",
@@ -20,12 +22,12 @@ void main() {
         ];
       var selected = "";
       Widget view(bool active) => ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           libraryOrganizationProvider.overrideWithValue(service),
           libraryControllerProvider.overrideWith(
             OrganizationLibraryFixture.new,
           ),
-        ],
+        ]),
         child: MaterialApp(
           home: Scaffold(
             body: SizedBox(

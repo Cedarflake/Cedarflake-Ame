@@ -12,6 +12,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../../../support/duplicate_review_fixtures.dart";
 import "../../../support/semantics/retained_semantics_update_harness.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 void main() {
   RetainedSemanticsUpdateBinding();
   setUp(RetainedSemanticsUpdateValidator.instance.reset);
@@ -35,9 +37,9 @@ void main() {
     final semantics = tester.ensureSemantics();
     var opens = 0;
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     int? primaryNodeId;

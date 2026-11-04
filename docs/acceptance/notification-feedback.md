@@ -2,8 +2,8 @@
 
 Date: 2026-10-28.
 
-The [gallery contract](../product/gallery-ui.md#feedback-templates) owns stable presentation rules.
-The [verification map](quality-gates.md#ui-workflow-verification) owns affected interaction checks.
+The [gallery contract](../product/gallery/feedback.md#feedback-templates) owns stable presentation rules.
+The [verification map](quality/ui-verification.md#ui-workflow-verification) owns affected interaction checks.
 This maintenance covers bottom feedback and image-preview top notices within the existing R4 branch.
 
 ## Scope and ownership

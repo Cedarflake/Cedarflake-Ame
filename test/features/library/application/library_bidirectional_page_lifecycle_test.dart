@@ -1,10 +1,12 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
+import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/application/library_viewport_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/library_viewer_session.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/library_viewer_session.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../support/retained_scan_fixture.dart";

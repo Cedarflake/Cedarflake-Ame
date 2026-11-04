@@ -1,5 +1,4 @@
-use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, Read};
 
 use exif::{In, Reader, Tag};
 use image::metadata::Orientation;
@@ -54,11 +53,11 @@ impl std::fmt::Display for JpegPreviewError {
 }
 
 pub(crate) fn decode_scaled_jpeg(
-    file: File,
+    source: impl Read,
     requested_edge: u32,
     max_decoding_buffer_size: u64,
 ) -> Result<JpegPreviewDecode, JpegPreviewError> {
-    let mut decoder = Decoder::new(BufReader::new(file));
+    let mut decoder = Decoder::new(BufReader::new(source));
     decoder.set_max_decoding_buffer_size(
         max_decoding_buffer_size
             .try_into()

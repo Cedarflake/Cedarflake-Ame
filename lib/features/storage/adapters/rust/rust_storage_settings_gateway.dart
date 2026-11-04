@@ -1,0 +1,296 @@
+import "../../../../src/rust/api/storage.dart" as rust_api;
+import "../../../../src/rust/domain.dart" as rust_domain;
+import "../../application/ports/storage_settings_gateway.dart";
+import "../../domain/storage_models.dart";
+
+class RustStorageSettingsGateway implements StorageSettingsGateway {
+  const RustStorageSettingsGateway();
+
+  @override
+  Future<StorageStatusModel> load() async {
+    try {
+      return _mapStatus(await rust_api.loadStorageStatus());
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_storage_status_failed");
+    }
+  }
+
+  @override
+  Future<StorageStatusModel> update({
+    String? catalogDirectory,
+    String? previewCacheDirectory,
+    required BigInt previewBudgetBytes,
+  }) async {
+    try {
+      return _mapStatus(
+        await rust_api.updateStorageSettings(
+          update: rust_domain.StorageSettingsUpdate(
+            catalogDirectory: catalogDirectory,
+            previewCacheDirectory: previewCacheDirectory,
+            previewBudgetBytes: previewBudgetBytes,
+          ),
+        ),
+      );
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_storage_update_failed");
+    }
+  }
+
+  @override
+  Stream<PreviewCleanupUpdate> clearPreviews({required String operationId}) {
+    return _cleanupUpdates(
+      operationId: operationId,
+      events: rust_api.clearPreviewCache(operationId: operationId),
+    );
+  }
+
+  @override
+  Stream<PreviewCleanupUpdate> clearRetiredPreviews({
+    required String previewRoot,
+    required String operationId,
+  }) {
+    return _cleanupUpdates(
+      operationId: operationId,
+      events: rust_api.clearRetiredPreviewCache(
+        previewRoot: previewRoot,
+        operationId: operationId,
+      ),
+    );
+  }
+
+  Stream<PreviewCleanupUpdate> _cleanupUpdates({
+    required String operationId,
+    required Stream<rust_domain.PreviewCleanupEvent> events,
+  }) async* {
+    var current = PreviewCleanupUpdate(
+      operationId: operationId,
+      phase: PreviewCleanupPhase.started,
+      processedFiles: BigInt.zero,
+      totalFiles: BigInt.zero,
+      removedFiles: BigInt.zero,
+      removedBytes: BigInt.zero,
+      issueCount: BigInt.zero,
+    );
+    try {
+      await for (final event in events) {
+        current = _mapCleanupEvent(event, current);
+        yield current;
+      }
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_preview_cleanup_failed");
+    }
+  }
+
+  @override
+  Future<bool> cancelPreviewCleanup({required String operationId}) async {
+    try {
+      return rust_api.cancelPreviewCacheCleanup(operationId: operationId);
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_preview_cleanup_cancel_failed");
+    }
+  }
+
+  @override
+  Future<CatalogReclamationModel> startCatalogReclamation({
+    required String operationId,
+  }) async {
+    try {
+      return _mapCatalogReclamation(
+        await rust_api.startCatalogDatabaseReclamation(
+          operationId: operationId,
+        ),
+      );
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_catalog_reclamation_failed");
+    }
+  }
+
+  @override
+  Future<CatalogReclamationModel> loadCatalogReclamation() async {
+    try {
+      return _mapCatalogReclamation(
+        await rust_api.loadCatalogDatabaseReclamation(),
+      );
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_catalog_reclamation_status_failed");
+    }
+  }
+
+  @override
+  Future<bool> cancelCatalogReclamation({required String operationId}) async {
+    try {
+      return await rust_api.cancelCatalogDatabaseReclamation(
+        operationId: operationId,
+      );
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_catalog_reclamation_cancel_failed");
+    }
+  }
+
+  StorageStatusModel _mapStatus(rust_domain.StorageStatus status) {
+    return StorageStatusModel(
+      settingsPath: status.settingsPath,
+      activeCatalogPath: status.activeCatalogPath,
+      activePreviewRoot: status.activePreviewRoot,
+      configuredCatalogPath: status.configuredCatalogPath,
+      configuredPreviewRoot: status.configuredPreviewRoot,
+      configuredCatalogDisplayPath: status.configuredCatalogDisplayPath,
+      configuredPreviewDisplayPath: status.configuredPreviewDisplayPath,
+      previewBudgetBytes: status.previewBudgetBytes,
+      previewUsedBytes: status.previewUsedBytes,
+      catalogUsedBytes: status.catalogUsedBytes,
+      catalogLiveBytes: status.catalogLiveBytes,
+      catalogReclaimableBytes: status.catalogReclaimableBytes,
+      catalogReclamation: _mapCatalogReclamation(status.catalogReclamation),
+      requiresRestart: status.requiresRestart,
+      retiredPreviewRoots: [
+        for (final root in status.retiredPreviewRoots)
+          RetiredPreviewRootModel(
+            previewRoot: root.previewRoot,
+            displayPath: root.displayPath,
+          ),
+      ],
+    );
+  }
+
+  CatalogReclamationModel _mapCatalogReclamation(
+    rust_domain.CatalogReclamationSnapshot snapshot,
+  ) {
+    return CatalogReclamationModel(
+      operationId: snapshot.operationId,
+      phase: switch (snapshot.phase) {
+        rust_domain.CatalogReclamationPhase.idle =>
+          CatalogReclamationPhase.idle,
+        rust_domain.CatalogReclamationPhase.queued =>
+          CatalogReclamationPhase.queued,
+        rust_domain.CatalogReclamationPhase.inspecting =>
+          CatalogReclamationPhase.inspecting,
+        rust_domain.CatalogReclamationPhase.waitingForIdle =>
+          CatalogReclamationPhase.waitingForIdle,
+        rust_domain.CatalogReclamationPhase.checkingCapacity =>
+          CatalogReclamationPhase.checkingCapacity,
+        rust_domain.CatalogReclamationPhase.converting =>
+          CatalogReclamationPhase.converting,
+        rust_domain.CatalogReclamationPhase.reclaiming =>
+          CatalogReclamationPhase.reclaiming,
+        rust_domain.CatalogReclamationPhase.completed =>
+          CatalogReclamationPhase.completed,
+        rust_domain.CatalogReclamationPhase.cancelled =>
+          CatalogReclamationPhase.cancelled,
+        rust_domain.CatalogReclamationPhase.failed =>
+          CatalogReclamationPhase.failed,
+      },
+      catalogFileBytes: snapshot.catalogFileBytes,
+      liveBytes: snapshot.liveBytes,
+      reclaimableBytes: snapshot.reclaimableBytes,
+      reclaimedBytes: snapshot.reclaimedBytes,
+      requiredTemporaryBytes: snapshot.requiredTemporaryBytes,
+      availableTemporaryBytes: snapshot.availableTemporaryBytes,
+      errorCode: snapshot.errorCode,
+      errorMessage: snapshot.errorMessage,
+    );
+  }
+
+  StorageSettingsFailure _mapFailure(Object error, String fallbackCode) {
+    if (error case rust_domain.ScanError(:final code, :final message)) {
+      return StorageSettingsFailure(code: code, message: message);
+    }
+    return StorageSettingsFailure(
+      code: fallbackCode,
+      message: error.toString(),
+    );
+  }
+
+  PreviewCleanupUpdate _mapCleanupEvent(
+    rust_domain.PreviewCleanupEvent event,
+    PreviewCleanupUpdate current,
+  ) {
+    return switch (event) {
+      rust_domain.PreviewCleanupEvent_Started(
+        :final operationId,
+        :final totalFiles,
+      ) =>
+        PreviewCleanupUpdate(
+          operationId: operationId,
+          phase: PreviewCleanupPhase.started,
+          processedFiles: BigInt.zero,
+          totalFiles: totalFiles,
+          removedFiles: BigInt.zero,
+          removedBytes: BigInt.zero,
+          issueCount: BigInt.zero,
+        ),
+      rust_domain.PreviewCleanupEvent_Progress(
+        :final operationId,
+        :final processedFiles,
+        :final removedFiles,
+        :final removedBytes,
+        :final issueCount,
+        :final totalFiles,
+      ) =>
+        PreviewCleanupUpdate(
+          operationId: operationId,
+          phase: PreviewCleanupPhase.running,
+          processedFiles: processedFiles,
+          totalFiles: totalFiles,
+          removedFiles: removedFiles,
+          removedBytes: removedBytes,
+          issueCount: issueCount,
+        ),
+      rust_domain.PreviewCleanupEvent_Issue(:final operationId, :final issue) =>
+        PreviewCleanupUpdate(
+          operationId: operationId,
+          phase: PreviewCleanupPhase.running,
+          processedFiles: current.processedFiles,
+          totalFiles: current.totalFiles,
+          removedFiles: current.removedFiles,
+          removedBytes: current.removedBytes,
+          issueCount: current.issueCount + BigInt.one,
+          issueMessage: issue.message,
+        ),
+      rust_domain.PreviewCleanupEvent_Completed(
+        :final operationId,
+        :final removedFiles,
+        :final removedBytes,
+        :final issueCount,
+      ) =>
+        PreviewCleanupUpdate(
+          operationId: operationId,
+          phase: PreviewCleanupPhase.completed,
+          processedFiles: current.totalFiles,
+          totalFiles: current.totalFiles,
+          removedFiles: removedFiles,
+          removedBytes: removedBytes,
+          issueCount: issueCount,
+        ),
+      rust_domain.PreviewCleanupEvent_Cancelled(
+        :final operationId,
+        :final removedFiles,
+        :final removedBytes,
+        :final issueCount,
+      ) =>
+        PreviewCleanupUpdate(
+          operationId: operationId,
+          phase: PreviewCleanupPhase.cancelled,
+          processedFiles: current.processedFiles,
+          totalFiles: current.totalFiles,
+          removedFiles: removedFiles,
+          removedBytes: removedBytes,
+          issueCount: issueCount,
+        ),
+      rust_domain.PreviewCleanupEvent_Failed(
+        :final operationId,
+        :final message,
+      ) =>
+        PreviewCleanupUpdate(
+          operationId: operationId,
+          phase: PreviewCleanupPhase.failed,
+          processedFiles: current.processedFiles,
+          totalFiles: current.totalFiles,
+          removedFiles: current.removedFiles,
+          removedBytes: current.removedBytes,
+          issueCount: current.issueCount,
+          errorMessage: message,
+        ),
+    };
+  }
+}

@@ -3,6 +3,13 @@ use super::{
     LibraryRootGeneration, ScanError,
 };
 
+mod read_window;
+mod recovery_probe;
+pub(crate) use read_window::JournalReadWindows;
+pub(crate) use recovery_probe::{
+    can_reprobe_failure, can_reprobe_journal_failure, reprobed_failure,
+};
+
 pub(crate) const METADATA_FALLBACK_CODE: &str = "persistent_journal_metadata_fallback";
 
 pub const PERSISTENT_JOURNAL_CONTRACT_VERSION: u16 = 1;

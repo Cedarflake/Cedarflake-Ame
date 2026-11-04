@@ -1,6 +1,7 @@
-use crate::adapters::{LocalMediaInspector, PublicationGuardedFileDiscovery};
 use crate::domain::{LeasedLibraryChange, LibraryChangeFailure};
 use crate::ports::IncrementalCatalogRepository;
+use crate::ports::media_inspection::GuardedMediaInspector;
+use crate::ports::source_publication::PublicationFileSource;
 
 use super::preparation_catalog::PreparationCatalog;
 use super::{
@@ -10,8 +11,8 @@ use super::{
 
 pub(super) fn prepare_rename_change<Repository>(
     repository: &mut PreparationCatalog<'_, Repository>,
-    discovery: &PublicationGuardedFileDiscovery,
-    inspector: &LocalMediaInspector,
+    discovery: &impl PublicationFileSource,
+    inspector: &impl GuardedMediaInspector,
     leased: &LeasedLibraryChange,
 ) -> Result<PreparedChange, LibraryChangeFailure>
 where

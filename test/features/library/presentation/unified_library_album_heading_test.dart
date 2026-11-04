@@ -16,6 +16,8 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/library_organization_fixture.dart";
 import "support/library_screen_fixture.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 void main() {
   testWidgets("album headings retain the selected name while metadata loads", (
     tester,
@@ -40,12 +42,12 @@ void main() {
         const LibraryOrganizationAlbum("b", "Portrait"),
       ];
     final container = ProviderContainer(
-      overrides: [
+      overrides: applicationTestOverrides([
         initialLibraryStateProvider.overrideWithValue(state),
         libraryCatalogProvider.overrideWithValue(catalog),
         libraryOrganizationProvider.overrideWithValue(service),
         libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
-      ],
+      ]),
     );
     addTearDown(container.dispose);
     await tester.pumpWidget(

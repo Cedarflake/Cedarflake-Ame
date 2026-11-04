@@ -1,3 +1,5 @@
+use crate::ports::classification_selection::ClassificationSelectionReader;
+
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 

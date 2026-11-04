@@ -5,6 +5,7 @@ import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_feedback_card.dart";
 import "../../../../app/presentation/ame_notifications.dart";
 import "../../application/library_model_installation.dart";
+import "../../domain/library_model_installation.dart";
 import "../library_model_installation_notifications.dart";
 
 Widget? buildLibraryModelInstallationFeedback(

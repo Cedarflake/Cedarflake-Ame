@@ -1,3 +1,5 @@
+use crate::ports::LibraryChangeDispatch;
+
 use std::fs;
 #[cfg(windows)]
 use std::os::windows::fs::OpenOptionsExt;
@@ -10,21 +12,19 @@ use rusqlite::Connection;
 use tempfile::{TempDir, tempdir, tempdir_in};
 
 use crate::adapters::{
-    FileDiscovery, FileVisitOutcome, LocalMediaInspector, PublicationGuardedFileDiscovery,
-    SqliteCatalog, configured_root_open_count, remove_persistent_journal_v22_contract_for_test,
+    FileDiscovery, LocalMediaInspector, PublicationGuardedFileDiscovery, SqliteCatalog,
+    configured_root_open_count, remove_persistent_journal_v22_contract_for_test,
     reset_configured_root_open_instrumentation, reset_source_enumeration_instrumentation,
-    source_directory_open_count, source_entry_read_count, user_visible_path,
+    source_directory_open_count, source_entry_read_count,
 };
+use crate::adapters::{PersistentJournalBrokerRoot, SessionBackedPersistentJournalVolumeReader};
 #[cfg(windows)]
 use crate::adapters::{reset_source_content_open_instrumentation, source_content_open_count};
 use crate::application::metadata_inventory::{
     MetadataInventoryRecoveryExecution, process_leased_metadata_inventory_change,
     process_leased_metadata_inventory_change_with_retained_source,
 };
-use crate::application::persistent_journal_continuity::{
-    PersistentJournalBrokerRoot, SessionBackedPersistentJournalVolumeReader,
-    catch_up_persistent_journal_volume,
-};
+use crate::application::persistent_journal_continuity::catch_up_persistent_journal_volume;
 use crate::application::{
     AuthoritativeRecoveryPolicy, process_ready_authoritative_library_change_cancellable,
     process_ready_library_changes_in_lane,
@@ -32,9 +32,10 @@ use crate::application::{
 };
 #[cfg(windows)]
 use crate::domain::PreviewRequest;
+use crate::domain::user_visible_path;
 use crate::domain::{
     AssetLocationView, CatalogDeltaBatch, CatalogDeltaPublication, DerivedEvidenceDisposition,
-    FileIdentityEvidence, JournalFileReference, JournalIdentifier, JournalUsn,
+    FileIdentityEvidence, FileVisitOutcome, JournalFileReference, JournalIdentifier, JournalUsn,
     LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch, LibraryChangeEnqueueReport,
     LibraryChangeFailure, LibraryChangeId, LibraryChangeIntent, LibraryChangeIntentKind,
     LibraryChangeLane, LibraryChangeLeaseUpdateOutcome, LibraryChangeOrigin,
@@ -1877,7 +1878,7 @@ fn metadata_engine_mismatch_invalidates_a_rename_mutation_contract() {
         .metadata_inventory_root_identity()
         .expect("root identity")
         .expect("stable root identity");
-    let discovery = PublicationGuardedFileDiscovery::new_incremental_publication_guard(
+    let discovery = PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
         &fixture.root_path,
         &expected_identity,
     )

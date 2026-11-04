@@ -8,7 +8,6 @@ pub(crate) mod classification_analysis;
 pub(crate) mod classification_candidate;
 #[cfg(all(windows, feature = "classification-worker"))]
 pub(crate) mod classification_configuration;
-pub(crate) mod classification_decisions;
 #[cfg(all(windows, feature = "classification-worker"))]
 pub(crate) mod classification_desktop;
 pub(crate) mod classification_discovery;
@@ -76,7 +75,6 @@ pub(crate) use incremental_library_changes::process_ready_library_changes_in_lan
 pub(crate) use incremental_library_changes::process_ready_library_changes_in_lane_cancellable;
 pub(crate) use incremental_library_changes::process_ready_metadata_inventory_recovery_candidates_cancellable;
 pub(crate) use incremental_library_changes::process_ready_unowned_recovery_paths_cancellable;
-pub(crate) use library_change_observer::LibraryChangeObserver;
 pub use library_change_queue::enqueue_library_change_plan;
 pub use load_catalog::{
     load_catalog, load_catalog_around_asset, load_catalog_around_location,
@@ -91,9 +89,7 @@ pub(crate) use metadata_inventory::{
     process_leased_metadata_inventory_change_with_retained_source,
 };
 pub(crate) use persistent_journal_continuity::{
-    JournalCaptureWindowReport, PersistentJournalBrokerRoot,
-    ProductionPersistentJournalVolumeReader, catch_up_persistent_journal_window,
-    classify_persistent_journal_operation_failure,
+    JournalCaptureWindowReport, catch_up_persistent_journal_window,
 };
 pub use preview::materialize_preview;
 pub(crate) use preview_cleanup::{acquire_preview_generation, acquire_preview_reclamation};

@@ -8,42 +8,38 @@ use crate::domain::classification_selection::{
 };
 use crate::domain::organization::{OrganizationSelection, stale_selection, validate_selections};
 
-use super::super::{SqliteCatalog, database_error, load_catalog_revision, sqlite_integer};
+use super::super::{database_error, load_catalog_revision, sqlite_integer};
 use super::classification::{PredictionReadStrategy, effective_projection};
 use super::duplicates::{DISPLAY_FINGERPRINTS, compatible_fingerprint};
 
-impl SqliteCatalog {
-    pub(crate) fn classification_annotations(
-        &self,
-        revision: u64,
-        selections: &[OrganizationSelection],
-    ) -> Result<Vec<ClassificationAnnotation>, ScanError> {
-        validate_selections(selections)?;
-        let transaction = self
-            .connection
-            .unchecked_transaction()
-            .map_err(database_error)?;
-        if load_catalog_revision(&transaction)? != revision {
-            return Err(ScanError::new(
-                "catalog_revision_changed",
-                "Classification annotations require the displayed catalog revision",
-            ));
-        }
-        let selected = selections.iter().collect::<BTreeSet<_>>();
-        let placeholders = vec!["(?, ?, ?)"; selected.len()].join(", ");
-        let mut values = Vec::with_capacity(selected.len() * 3);
-        for selection in &selected {
-            values.extend([
-                Value::Text(selection.asset_id.clone()),
-                Value::Text(selection.location_id.clone()),
-                Value::Integer(sqlite_integer(
-                    selection.source_generation,
-                    "source generation",
-                )?),
-            ]);
-        }
-        let query = format!(
-            "WITH selected(asset_id, location_id, source_generation) AS (VALUES {placeholders})
+pub(in super::super) fn load(
+    connection: &Connection,
+    revision: u64,
+    selections: &[OrganizationSelection],
+) -> Result<Vec<ClassificationAnnotation>, ScanError> {
+    validate_selections(selections)?;
+    let transaction = connection.unchecked_transaction().map_err(database_error)?;
+    if load_catalog_revision(&transaction)? != revision {
+        return Err(ScanError::new(
+            "catalog_revision_changed",
+            "Classification annotations require the displayed catalog revision",
+        ));
+    }
+    let selected = selections.iter().collect::<BTreeSet<_>>();
+    let placeholders = vec!["(?, ?, ?)"; selected.len()].join(", ");
+    let mut values = Vec::with_capacity(selected.len() * 3);
+    for selection in &selected {
+        values.extend([
+            Value::Text(selection.asset_id.clone()),
+            Value::Text(selection.location_id.clone()),
+            Value::Integer(sqlite_integer(
+                selection.source_generation,
+                "source generation",
+            )?),
+        ]);
+    }
+    let query = format!(
+        "WITH selected(asset_id, location_id, source_generation) AS (VALUES {placeholders})
              SELECT locations.location_id, (
                {}
                SELECT CASE effective.review
@@ -63,34 +59,33 @@ impl SqliteCatalog {
                AND locations.source_generation = selected.source_generation
              JOIN library_roots AS roots ON roots.active_scan_id = locations.scan_id
              ORDER BY locations.location_id",
-            effective_projection("locations", PredictionReadStrategy::Indexed),
-            failed_work("locations")
-        );
-        let rows = {
-            let mut statement = transaction.prepare(&query).map_err(database_error)?;
-            statement
-                .query_map(params_from_iter(values), |row| {
-                    Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
-                })
-                .map_err(database_error)?
-                .collect::<rusqlite::Result<Vec<_>>>()
-                .map_err(database_error)?
-        };
-        if rows.len() != selected.len() {
-            return Err(stale_selection());
-        }
-        let mut result = Vec::new();
-        for (location_id, stored_reason) in rows {
-            if let Some(stored_reason) = stored_reason {
-                result.push(ClassificationAnnotation {
-                    location_id,
-                    reason: reason(&stored_reason)?,
-                });
-            }
-        }
-        transaction.commit().map_err(database_error)?;
-        Ok(result)
+        effective_projection("locations", PredictionReadStrategy::Indexed),
+        failed_work("locations")
+    );
+    let rows = {
+        let mut statement = transaction.prepare(&query).map_err(database_error)?;
+        statement
+            .query_map(params_from_iter(values), |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
+            })
+            .map_err(database_error)?
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(database_error)?
+    };
+    if rows.len() != selected.len() {
+        return Err(stale_selection());
     }
+    let mut result = Vec::new();
+    for (location_id, stored_reason) in rows {
+        if let Some(stored_reason) = stored_reason {
+            result.push(ClassificationAnnotation {
+                location_id,
+                reason: reason(&stored_reason)?,
+            });
+        }
+    }
+    transaction.commit().map_err(database_error)?;
+    Ok(result)
 }
 
 pub(in super::super) fn has_failed_work(

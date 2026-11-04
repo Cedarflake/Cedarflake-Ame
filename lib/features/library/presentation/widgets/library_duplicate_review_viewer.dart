@@ -6,7 +6,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../../settings/application/ame_preferences.dart";
-import "../../adapters/windows_library_platform_actions.dart";
+import "../../application/library_platform_actions.dart";
 import "../../application/library_controller.dart";
 import "../../domain/library_models.dart";
 import "../library_duplicate_strings.dart";

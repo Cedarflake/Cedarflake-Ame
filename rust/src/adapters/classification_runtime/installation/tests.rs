@@ -63,6 +63,11 @@ fn complete_installation_keeps_files_and_namespaces_pinned_until_publication() {
         &mut |progress| updates.push(progress),
     )
     .unwrap();
+    let installation: Box<
+        dyn crate::ports::classification_model_package::PreparedClassificationModel,
+    > = Box::new(installation);
+    assert_eq!(installation.installation().models, models);
+    assert_eq!(installation.installation().runtime, directory.path());
     assert_eq!(downloader.calls, [FIRST.name, SECOND.name]);
     assert_eq!(
         updates.last().unwrap().phase,

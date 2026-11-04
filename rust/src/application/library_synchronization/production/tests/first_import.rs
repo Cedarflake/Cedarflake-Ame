@@ -1,3 +1,5 @@
+use crate::ports::scan_admission::FirstImportReadiness;
+
 use super::*;
 
 #[cfg(windows)]
@@ -7,7 +9,7 @@ fn stale_live_only_first_import_capability_is_refreshed_once() {
     let source_root = directory.path().join("source");
     std::fs::create_dir_all(&source_root).expect("source root");
     let root_path = source_root.to_string_lossy().into_owned();
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),
@@ -39,6 +41,7 @@ fn stale_live_only_first_import_capability_is_refreshed_once() {
                 &root_id,
                 generation,
                 stale_unix_ms,
+                crate::journal_broker::PROTOCOL_VERSION,
             ),
         )
         .expect("seed stale LiveOnly capability");
@@ -132,7 +135,7 @@ fn failed_first_import_retries_with_fresh_generation_and_capture_owner() {
     let source_root = directory.path().join("source");
     std::fs::create_dir_all(&source_root).expect("source root");
     let root_path = source_root.to_string_lossy().into_owned();
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),
@@ -168,6 +171,7 @@ fn failed_first_import_retries_with_fresh_generation_and_capture_owner() {
                 &root_id,
                 generation,
                 stale_unix_ms,
+                crate::journal_broker::PROTOCOL_VERSION,
             ),
         )
         .expect("seed failed import capability");
@@ -225,7 +229,7 @@ fn startup_retires_legacy_full_scan_into_bounded_inventory_without_new_scan() {
     let source_root = directory.path().join("source");
     std::fs::create_dir_all(&source_root).expect("source root");
     let root_path = source_root.to_string_lossy().into_owned();
-    let root_id = crate::application::scan_library::stable_id("library-root-v1", &root_path);
+    let root_id = crate::domain::stable_id("library-root-v1", &root_path);
     let storage = crate::application::storage::StoragePaths {
         catalog_path: directory.path().join("catalog").join("ame.sqlite3"),
         preview_root: directory.path().join("previews"),
@@ -287,12 +291,13 @@ fn startup_retires_legacy_full_scan_into_bounded_inventory_without_new_scan() {
         runtime: LibrarySynchronizationRuntime::new_erased(
             crate::ports::erase_library_change_source_factory(HealthyFactory),
         ),
-        catalog_session: None,
+        catalog_session: WorkerCatalogSession::default(),
         poll_catalog: PollCatalogOwner::default(),
         persistent_change_journal_factory: None,
-        _persistent_change_journal: test_live_only_connection(),
+        _persistent_change_journal: crate::adapters::NativeJournalConnection::for_test(
+            test_live_only_connection(),
+        ),
         persistent_change_journal_opened: true,
-        persistent_change_journal_caller: None,
         journal: None,
         journal_status: JournalStatusOwner::default(),
         journal_lane: JournalLane::default(),

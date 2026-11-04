@@ -1,13 +1,17 @@
 import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/legacy.dart";
 
-import "library_classification.dart";
 import "library_classification_environment.dart";
 import "library_classification_session_lifetime.dart";
 import "library_foreground_reads.dart";
+import "ports/library_classification.dart";
 
 final libraryClassificationLifecycleProvider =
-    ChangeNotifierProvider<LibraryClassificationLifecycle?>((ref) => null);
+    ChangeNotifierProvider<LibraryClassificationLifecycle?>(
+      (ref) => throw StateError(
+        "Library classification lifecycle binding is required",
+      ),
+    );
 
 class LibraryClassificationLifecycle extends ChangeNotifier {
   LibraryClassificationLifecycle(

@@ -9,15 +9,7 @@ use crate::media_fixtures::{
 use super::*;
 
 fn decode_fixture(bytes: &[u8], budget: u64) -> Result<JpegPreviewDecode, JpegPreviewError> {
-    let directory = tempfile::tempdir().expect("JPEG contract directory");
-    let path = directory.path().join("source.jpg");
-    std::fs::write(&path, bytes).expect("JPEG source");
-    let result = decode_scaled_jpeg(File::open(&path).expect("open JPEG"), 128, budget);
-    assert_eq!(
-        std::fs::read(path).expect("source remains unchanged"),
-        bytes
-    );
-    result
+    decode_scaled_jpeg(Cursor::new(bytes), 128, budget)
 }
 
 #[test]

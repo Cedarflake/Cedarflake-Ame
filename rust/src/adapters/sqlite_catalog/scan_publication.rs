@@ -45,19 +45,11 @@ use crate::ports::{RootConsolidationPlan, ScanPublicationControl};
 pub(crate) use rejected_input_validation::RejectedInputValidationRoster;
 use transaction::PublicationInterruption;
 pub(crate) use transaction::publish_scan_with_proof;
-pub(crate) use validation::{
-    StagedValidationOutcome, StagedValidationRoster, ValidatedStagingProof,
-};
+pub(crate) use validation::{StagedValidationRoster, ValidatedStagingProof};
 
 pub(crate) struct ScanPublicationProof<'a> {
     staging: &'a ValidatedStagingProof,
     consolidation: Option<&'a RootConsolidationPlan>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct ScanPublicationReceipt {
-    pub(crate) asset_count: u64,
-    pub(crate) consolidated_roots: Vec<crate::domain::ConsolidatedLibraryRoot>,
 }
 
 const IDENTITY_RECONCILIATION_WINDOW: i64 = 128;

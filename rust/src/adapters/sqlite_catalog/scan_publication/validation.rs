@@ -2,7 +2,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use rusqlite::{Transaction, params};
 
-use crate::domain::{ExpectedFileState, ScanError};
+use crate::domain::{
+    ExpectedFileState, ScanError, ScanPublicationReceipt, StagedValidationOutcome,
+};
 
 use super::super::{
     SqliteCatalog, database_error, sqlite_unsigned, stored_file_identity, stored_source_revision,
@@ -67,13 +69,6 @@ pub(crate) struct StagedValidationRoster {
 }
 
 pub(crate) struct ValidatedStagingProof(StagedValidationRoster);
-
-#[derive(Clone, Copy)]
-pub(crate) enum StagedValidationOutcome {
-    FilesystemVerified = 1,
-    AwaitingLive = 2,
-    SupersededByLive = 3,
-}
 
 impl StagedValidationRoster {
     pub(crate) fn capture(catalog: &mut SqliteCatalog, scan_id: &str) -> Result<Self, ScanError> {
@@ -250,7 +245,7 @@ impl ValidatedStagingProof {
         issue_count: u64,
         consolidation: Option<&crate::ports::RootConsolidationPlan>,
         control: &crate::ports::ScanPublicationControl,
-    ) -> Result<super::ScanPublicationReceipt, ScanError> {
+    ) -> Result<ScanPublicationReceipt, ScanError> {
         super::publish_scan_with_proof(
             catalog,
             &self.0.scan_id,

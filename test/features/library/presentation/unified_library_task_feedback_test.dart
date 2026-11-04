@@ -11,6 +11,8 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "support/library_screen_fixture.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 void main() {
   testWidgets("shows scan controls in temporary import feedback", (
     tester,
@@ -22,7 +24,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             const LibraryState(
               status: LibraryStatus.scanning,
@@ -33,7 +35,7 @@ void main() {
               stagedAssetCount: 64,
             ),
           ),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -55,7 +57,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             const LibraryState(
               status: LibraryStatus.scanning,
@@ -69,7 +71,7 @@ void main() {
               validationAssetCount: 48384,
             ),
           ),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -102,10 +104,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -178,13 +180,13 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
           libraryUpdateControllerProvider.overrideWith(
             () => _FixedLibraryUpdateController(terminalUpdates),
           ),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -236,11 +238,11 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
           libraryUpdateControllerProvider.overrideWith(() => updateController),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -280,7 +282,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [initialLibraryStateProvider.overrideWithValue(state)],
+        overrides: applicationTestOverrides([
+          initialLibraryStateProvider.overrideWithValue(state),
+        ]),
         child: const AmeApp(),
       ),
     );
@@ -339,11 +343,11 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(snapshot),
           ),
-        ],
+        ]),
         child: const AmeApp(),
       ),
     );

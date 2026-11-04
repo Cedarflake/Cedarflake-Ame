@@ -1,20 +1,17 @@
 use std::sync::atomic::AtomicBool;
 
-use crate::adapters::{SqliteCatalog, SqliteCatalogSession};
 use crate::application::scan_library::FirstImportCaptureLease;
 use crate::domain::{
     LibraryChangeLane, LibraryChangeQueuePolicy, LibraryRecoveryAuthorityReason,
     PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalBaselineStartRequest, ScanError,
 };
-use crate::journal_broker::{
-    CallerClaim, PersistentChangeJournalSession, describe_production_persistent_journal_root,
-};
-use crate::ports::PersistentJournalRepository;
+use crate::ports::catalog_session::CatalogLaneSession;
+use crate::ports::journal_baseline::JournalBaselineAdmission;
+use crate::ports::journal_boundary::{JournalBoundaryReader, JournalBoundarySource};
 
 use super::{
     JournalBaselineOpeningAuthority, JournalBaselineOpeningWork, JournalBoundaryProbe,
     SupportedJournalBoundary, ensure_boundary_not_cancelled, live_only_capability,
-    map_journal_operation_error, probe_journal_boundary,
 };
 
 #[cfg(test)]
@@ -27,9 +24,10 @@ pub(in crate::application::library_synchronization) enum OpeningCaptureOutcome {
 }
 
 pub(in crate::application::library_synchronization) fn persist_unavailable_session(
-    catalog: &mut SqliteCatalog,
+    catalog: &mut impl JournalBaselineAdmission,
     work: &JournalBaselineOpeningWork,
     observed_unix_ms: i64,
+    protocol_version: u16,
 ) -> Result<OpeningCaptureOutcome, ScanError> {
     if !work.is_current() {
         return Ok(OpeningCaptureOutcome::Retired);
@@ -38,6 +36,7 @@ pub(in crate::application::library_synchronization) fn persist_unavailable_sessi
         &work.root_id,
         work.root_generation,
         work.authorized_unix_ms(observed_unix_ms),
+        protocol_version,
     );
     let result = match &work.authority {
         JournalBaselineOpeningAuthority::ExistingRoot => {
@@ -51,26 +50,25 @@ pub(in crate::application::library_synchronization) fn persist_unavailable_sessi
     work.complete_publication(result)
 }
 
-pub(in crate::application::library_synchronization) fn capture_opening_boundary(
+pub(in crate::application::library_synchronization) fn capture_opening_boundary<Session>(
     work: JournalBaselineOpeningWork,
-    session: &dyn PersistentChangeJournalSession,
-    caller: &CallerClaim,
+    boundary_source: &impl JournalBoundarySource,
     observed_unix_ms: i64,
-    catalog_session: &SqliteCatalogSession,
+    catalog_session: &Session,
     queue_policy: LibraryChangeQueuePolicy,
     cancelled: &AtomicBool,
-) -> Result<OpeningCaptureOutcome, ScanError> {
+) -> Result<OpeningCaptureOutcome, ScanError>
+where
+    Session: CatalogLaneSession,
+    Session::Catalog: JournalBaselineAdmission,
+{
     ensure_boundary_not_cancelled(cancelled, "opening")?;
     if !work.is_current() {
         return Ok(OpeningCaptureOutcome::Retired);
     }
-    let registration = describe_production_persistent_journal_root(
-        &work.root_id,
-        work.root_generation.value(),
-        &work.root_path,
-    )
-    .map_err(map_journal_operation_error)?;
-    let boundary = probe_journal_boundary(session, caller, &registration)?;
+    let registration =
+        boundary_source.open_root(&work.root_id, work.root_generation, &work.root_path)?;
+    let boundary = registration.read_boundary()?;
     ensure_boundary_not_cancelled(cancelled, "opening")?;
     if !work.is_current() {
         return Ok(OpeningCaptureOutcome::Retired);
@@ -93,8 +91,8 @@ pub(in crate::application::library_synchronization) fn capture_opening_boundary(
             );
             work.complete_publication(publication.map(|_| ()))
         }
-        JournalBoundaryProbe::LiveOnly => {
-            persist_unavailable_session(&mut catalog, &work, observed_unix_ms)
+        JournalBoundaryProbe::LiveOnly { protocol_version } => {
+            persist_unavailable_session(&mut catalog, &work, observed_unix_ms, protocol_version)
         }
     };
     drop(registration);
@@ -142,6 +140,7 @@ pub(super) fn opening_request(
     observed_unix_ms: i64,
 ) -> PersistentJournalBaselineStartRequest {
     let SupportedJournalBoundary {
+        protocol_version,
         volume,
         root_file_reference,
         journal_id,
@@ -151,7 +150,7 @@ pub(super) fn opening_request(
     let authorized_unix_ms = work.authorized_unix_ms(observed_unix_ms);
     let (run_id, authority_reason) = match &work.authority {
         JournalBaselineOpeningAuthority::ExistingRoot => (
-            crate::application::scan_library::stable_id(
+            crate::domain::stable_id(
                 "persistent-journal-baseline-v1",
                 &format!(
                     "{}\0{}\0{}\0{}\0{}\0{}",
@@ -179,7 +178,7 @@ pub(super) fn opening_request(
         root_file_reference,
         journal_id,
         opening_next_usn: next_usn,
-        protocol_version: crate::journal_broker::PROTOCOL_VERSION,
+        protocol_version,
         contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
         authorized_unix_ms,
     }

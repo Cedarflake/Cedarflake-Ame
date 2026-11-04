@@ -1,9 +1,9 @@
-abstract interface class LibraryPlatformActions {
-  Future<void> copyText(String value);
+import "package:flutter_riverpod/flutter_riverpod.dart";
 
-  Future<void> revealDirectory(String path);
+import "ports/library_platform_actions.dart";
 
-  Future<void> revealLibraryFolder(String rootPath, String relativePath);
-
-  Future<void> revealFile(String path);
-}
+final libraryPlatformActionsProvider = Provider<LibraryPlatformActions>((ref) {
+  throw StateError(
+    "LibraryPlatformActions must be bound during application startup",
+  );
+});

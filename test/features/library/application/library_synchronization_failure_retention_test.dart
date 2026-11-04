@@ -5,6 +5,32 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   test(
+    "failure retention keeps native recovery authority during a full scan",
+    () {
+      final failed = _snapshot(
+        _status(issueCode: "catalog_database_error", recoveryBlocked: true),
+      );
+      for (final recoveryBlocked in [true, false]) {
+        final scanning = _snapshot(
+          _status(
+            freshness: LibraryCatalogFreshness.updating,
+            phase: LibrarySynchronizationPhase.fullScan,
+            recoveryBlocked: recoveryBlocked,
+            pendingCount: 2,
+          ),
+        );
+        final retained = retainUnresolvedSynchronizationFailures(
+          previous: failed,
+          incoming: scanning,
+        ).statusFor("root-a")!;
+        expect(retained.recoveryBlocked, recoveryBlocked);
+        expect(retained.lastIssueCode, "catalog_database_error");
+        expect(retained.pendingChangeCount, BigInt.two);
+      }
+    },
+  );
+
+  test(
     "resuming first import uses its new progress without an old failure",
     () {
       final paused = _snapshot(
@@ -114,6 +140,7 @@ LibraryRootSynchronizationStatus _status({
   String? issueCode,
   int pendingCount = 0,
   int generation = 1,
+  bool recoveryBlocked = false,
 }) => LibraryRootSynchronizationStatus(
   rootId: "root-a",
   rootGeneration: BigInt.from(generation),
@@ -127,5 +154,6 @@ LibraryRootSynchronizationStatus _status({
   pendingChangeCount: BigInt.from(pendingCount),
   retryWaitCount: BigInt.zero,
   freshnessUnknownCount: BigInt.zero,
+  recoveryBlocked: recoveryBlocked,
   lastIssueCode: issueCode,
 );

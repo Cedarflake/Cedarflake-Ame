@@ -5,6 +5,7 @@ import "package:cedarflake_ame/app/notifications/ame_notification_controller.dar
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
+import "../../../support/inert_library_synchronization.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
@@ -15,6 +16,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../support/concurrent_library_scanner.dart";
+
+import "../../../support/application_test_bindings.dart";
 
 void main() {
   test(
@@ -471,7 +474,7 @@ void main() {
       addTearDown(scanner.dispose);
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState(
                 status: LibraryStatus.completed,
@@ -491,7 +494,7 @@ void main() {
             ),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -542,7 +545,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(
               LibraryState(
                 status: LibraryStatus.completed,
@@ -562,7 +565,7 @@ void main() {
             ),
             libraryScannerProvider.overrideWithValue(scanner),
             librarySynchronizationProvider.overrideWithValue(synchronization),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );

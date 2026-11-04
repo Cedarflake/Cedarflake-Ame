@@ -1,7 +1,7 @@
 use rusqlite::{Connection, params};
 
-use crate::application::classification_decisions::plan_classification_change;
 use crate::domain::ScanError;
+use crate::domain::classification::plan_classification_change;
 use crate::domain::classification::{
     ClassificationAction, ClassificationChange, ClassificationRecordId,
 };

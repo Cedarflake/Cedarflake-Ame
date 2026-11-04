@@ -2,11 +2,11 @@ import "dart:async";
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
-import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_settings.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
+import "package:cedarflake_ame/features/library/domain/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_header.dart";
@@ -15,6 +15,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/application_test_bindings.dart";
 import "../support/library_organization_fixture.dart";
 import "support/library_screen_fixture.dart";
 
@@ -43,7 +44,7 @@ void main() {
       );
       Future<LibraryClassificationSettings?> navigation = settings;
       final container = ProviderContainer(
-        overrides: [
+        overrides: applicationTestOverrides([
           initialLibraryStateProvider.overrideWithValue(state),
           libraryCatalogProvider.overrideWithValue(catalog),
           libraryOrganizationProvider.overrideWithValue(albums),
@@ -52,7 +53,7 @@ void main() {
           libraryClassificationNavigationProvider.overrideWith(
             (ref) => navigation,
           ),
-        ],
+        ]),
       );
       addTearDown(container.dispose);
       await tester.pumpWidget(
@@ -203,7 +204,7 @@ void main() {
       );
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(state),
             libraryCatalogProvider.overrideWithValue(catalog),
             libraryOrganizationProvider.overrideWithValue(
@@ -218,7 +219,7 @@ void main() {
             libraryClassificationNavigationProvider.overrideWith(
               (ref) async => _settings("插画"),
             ),
-          ],
+          ]),
           child: const AmeApp(),
         ),
       );
@@ -243,7 +244,7 @@ void main() {
       LibraryClassificationCategory? selected;
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
+          overrides: applicationTestOverrides([
             libraryClassificationNavigationProvider.overrideWith(
               (ref) async => LibraryClassificationSettings(
                 revision: BigInt.zero,
@@ -254,7 +255,7 @@ void main() {
                 installationSelected: false,
               ),
             ),
-          ],
+          ]),
           child: MaterialApp(
             home: Scaffold(
               body: SizedBox(

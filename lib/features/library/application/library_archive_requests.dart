@@ -1,5 +1,5 @@
 import "../domain/library_organization_archive.dart";
-import "library_organization_archive.dart";
+import "ports/library_organization_archive.dart";
 
 sealed class LibraryArchiveRequest {
   LibraryArchiveRequest(this.path)

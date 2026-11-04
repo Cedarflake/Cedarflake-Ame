@@ -6,6 +6,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 void main() {
   for (final mode in LibraryGalleryDuplicateMode.values) {
     for (final width in [800.0, 1280.0]) {
@@ -40,7 +42,9 @@ void main() {
         );
         await tester.pumpWidget(
           ProviderScope(
-            overrides: [initialLibraryStateProvider.overrideWithValue(state)],
+            overrides: applicationTestOverrides([
+              initialLibraryStateProvider.overrideWithValue(state),
+            ]),
             child: const AmeApp(),
           ),
         );

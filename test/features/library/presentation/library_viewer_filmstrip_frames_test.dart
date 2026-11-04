@@ -13,6 +13,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../support/application_test_bindings.dart";
+
 void main() {
   late ui.Image firstPixels;
   late ui.Image replacementPixels;
@@ -184,12 +186,12 @@ Future<void> _mount(
   addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [
+      overrides: applicationTestOverrides([
         libraryControllerProvider.overrideWith(() => controller),
         initialLibraryStateProvider.overrideWithValue(
           LibraryState(assets: [asset]),
         ),
-      ],
+      ]),
       child: MaterialApp(
         home: Scaffold(
           body: Center(

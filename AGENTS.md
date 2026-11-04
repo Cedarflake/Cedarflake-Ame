@@ -22,6 +22,9 @@ owners without copying transcripts, architecture or implementation diaries. Repl
 decisions in their owner; retain their reasons and applicable exceptions. Current status requires
 live source and evidence.
 
+Documentation changes follow the [writing and ownership standard](docs/development/documentation.md).
+Keep entry documents concise, route readers to scoped owners, and replace obsolete active text.
+
 Goals record outcomes, scope, order and continuing constraints. Update execution/delivery records
 with status, commits, measurements, failures and blockers; revise goals for user changes while
 preserving explicit decisions.
@@ -90,7 +93,7 @@ materially different decision; do not invent it.
 - Reuse completed implementation and valid evidence. Recheck affected parts when inputs change,
   a failure or reproduction condition appears, coverage is missing, or the user requests it. Once
   applicable verification is complete, deliver and continue in order. While CI is pending, follow
-  the [required workflow](docs/acceptance/quality-gates.md#required-engineering-workflow).
+  the [required workflow](docs/acceptance/quality/verification-workflow.md#required-engineering-workflow).
 - Diagnose the owning cause before architectural replacement or compensating layers. Repair it
   there with a focused boundary regression; presentation guards, retries, status text or
   catch-and-continue must not conceal unresolved application, persistence or platform rules.
@@ -110,12 +113,12 @@ materially different decision; do not invent it.
 
 ## 5. Architecture principles
 
-The future module dependency and composition target is owned by
+Module dependency and production-composition rules are owned by
 [ADR 0037](docs/architecture/0037-feature-module-dependency-boundaries.md); the
 [repository layout](docs/development/repository-layout.md) owns directory placement. Read both
-before adding or relocating modules during and after the
-[post-R5 rollout](docs/roadmap.md#project-organization-after-r5). Existing rules remain binding
-before that rollout; its target does not claim that current code has already migrated.
+before adding or relocating modules. The
+[roadmap](docs/roadmap.md#project-organization-after-r5) owns rollout disposition and evidence;
+new and materially changed modules follow these contracts.
 
 ### 5.1 Layer ownership
 
@@ -205,7 +208,7 @@ licenses, alternatives, consequences and replacement strategies; this contract i
 
 An ADR selects the framework/design system, never a prototype or screenshot. For UI work, read the
 [accepted design principles](docs/product/gallery-ui.md#design-principles-and-rationale), relevant
-surface contract and [verification map](docs/acceptance/quality-gates.md#ui-workflow-verification).
+surface contract and [verification map](docs/acceptance/quality/ui-verification.md#ui-workflow-verification).
 Use `microsoft-ui-ux` and `google-ui-ux` where applicable without expanding scope into theme
 replacement, redesign or extra features. Follow the existing design system and approved wording.
 
@@ -214,7 +217,7 @@ for admission, pinned-SDK proof, framework ownership, bounded rendering and acce
 [content/action rules](docs/product/gallery-ui.md#content-and-action-wording) for affected text.
 
 Bottom feedback and image-preview top notices follow the
-[feedback templates](docs/product/gallery-ui.md#feedback-templates), including their shared component
+[feedback templates](docs/product/gallery/feedback.md#feedback-templates), including their shared component
 owners and verification. Read this section before adding or changing notification UI.
 
 ## 10. Language and toolchain rules
@@ -230,7 +233,7 @@ only where that framework is present:
 
 ### 10.1 Local Flutter toolchain
 
-Before local Flutter work, read and follow the [local toolchain rules](docs/acceptance/quality-gates.md#local-flutter-toolchain):
+Before local Flutter work, read and follow the [local toolchain rules](docs/acceptance/quality/execution-safety.md#local-flutter-toolchain):
 use the installed SDK and canonical lock-aware commands serially; retain scoped process ownership
 and SDK-lock safeguards. This adds no local CI stage.
 
@@ -263,29 +266,31 @@ skip style analysis, never compilation, tests, bridge hashes or release packagin
 ### 11.1 Human-readable implementation
 
 For new/materially changed source, tests, SQL, workflows and diagnostics, follow the
-[handwritten implementation requirements](docs/acceptance/quality-gates.md#human-readable-implementation).
+[handwritten implementation requirements](docs/acceptance/quality/verification-workflow.md#human-readable-implementation).
 
 ## 12. Testing and verification
 
-Before selecting, changing or running checks, follow [delivery and verification](docs/acceptance/quality-gates.md#delivery-and-verification).
+Before selecting, changing or running checks, follow [delivery and verification](docs/acceptance/quality/verification-workflow.md#delivery-and-verification).
 It owns mandatory test categories, local/hosted execution, source-safe acceptance and reporting.
+Before adding, changing or removing tests, read the [test-design standard](docs/development/testing.md)
+for test value, assertion strength, fixtures and consolidation.
 
 ### 12.1 Repository quality commands
 
-Use the [command reference](docs/acceptance/quality-gates.md#repository-command-reference) and mandatory
-[execution/storage safeguards](docs/acceptance/quality-gates.md#execution-scope-and-storage), including
+Use the [command reference](docs/acceptance/quality/commands.md#repository-command-reference) and mandatory
+[execution/storage safeguards](docs/acceptance/quality/execution-safety.md#execution-scope-and-storage), including
 serial locks, hosted security, real-root authority and safe reuse/cleanup of `build/test`.
 
 ### 12.2 Required engineering workflow
 
-Every material code/configuration change follows the [required workflow](docs/acceptance/quality-gates.md#required-engineering-workflow),
+Every material code/configuration change follows the [required workflow](docs/acceptance/quality/verification-workflow.md#required-engineering-workflow),
 including exact-commit CI, cause-level repairs, warning policy and independent work while CI runs.
 Documentation-only changes use proportionate document checks without claiming product acceptance.
 
 ### 12.3 Reviewability and behavior-preserving changes
 
 Policy rewrites, async lifecycles and scan/persistence extraction follow the
-[review requirements](docs/acceptance/quality-gates.md#reviewability-and-behavior-preserving-changes).
+[review requirements](docs/acceptance/quality/verification-workflow.md#reviewability-and-behavior-preserving-changes).
 
 ## Code Review Rules
 

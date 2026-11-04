@@ -6,8 +6,8 @@ use rusqlite::{Connection, OpenFlags};
 use tempfile::tempdir;
 
 use crate::adapters::{
-    reset_source_content_open_instrumentation, reset_source_enumeration_instrumentation,
-    source_content_open_count, source_entry_read_count,
+    FileDiscovery, reset_source_content_open_instrumentation,
+    reset_source_enumeration_instrumentation, source_content_open_count, source_entry_read_count,
 };
 use crate::domain::{CatalogSnapshot, GalleryQuery};
 
