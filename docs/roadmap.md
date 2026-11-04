@@ -66,8 +66,9 @@ real-library and constrained-client acceptance. The [engine evaluation](acceptan
 owns R6-01's selection evidence. Sketch iteration has ended; notifications and styling are refined
 in the actual application.
 
-R6 acceptance is blocked by [real-library similarity false positives](acceptance/r6-engine-evaluation.md#real-library-quality-review---2026-11-05).
-Resolve the observed unrelated standard-degree matches while preserving transformation coverage.
+The observed unrelated matches are resolved by
+[paired detail confirmation](acceptance/r6-engine-evaluation.md#paired-engine-native-verification---2026-11-05).
+R6-04 retains broader-library coverage and constrained-client measurements.
 
 The historical pause timeout remains an accepted observation with a
 [recurrence-based follow-up](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04).

@@ -162,7 +162,8 @@ review decisions retained their existing coverage. No new test case or suite was
 
 The first upgrade check rejected SQLite's quoted table name after rename; the migration's canonical
 DDL now matches that exact shape. The final ten-case run passed in 21.59 s without build warnings.
-Source leases and normalization are unchanged. Fresh native candidate-group review remains required.
+Source leases and normalization are unchanged. The native verification below covers the connected
+adapter, persistence and query path.
 
 Hash construction has a 43-line adapter owner; the reader facade has 151 lines and 100 dedicated test
 lines. Confirmation migration/validation has 121 production/shared lines and 40 inline test-support
@@ -172,6 +173,35 @@ The existing catalog/migration facades receive only the schema version and order
 2,991/177 and 4,124/2,349 production/shared versus inline test/support lines respectively.
 The catalog facade's unchanged dedicated test tree contains 11,606 lines; the migration coordinator's
 own cases remain inline. No broader facade decomposition or test expansion is included.
+
+## Paired-engine native verification - 2026-11-05
+
+The guarded optimized native library from `3c59c25b` analyzed a fresh isolated copy of the same
+63,077-location local-primary baseline, upgrading it from schema 45 to 75. No user catalog or
+source tree was modified. The run stopped at the existing 2,000-source polling threshold:
+
+| Observation | Gradient-64 at `58ac3f28` | Paired scheme at `3c59c25b` |
+| --- | --- | --- |
+| Checked sources / content evidence | 2,004 / 1,997 | 2,003 / 1,996 |
+| Strict / standard / broad groups | 1 / 3 / 6 | 1 / 1 / 1 |
+| Analysis elapsed | 183.145 s | 148.656 s |
+| Sampled peak working set | 313 MiB | 406 MiB |
+| Cancellation retirement | 34 ms | 35 ms |
+
+These are single partial-run observations, not a general throughput or memory bound. The new group
+contains three distinct contents. Both reference/member pairs have distance zero and exactly match
+the SHA-256 pairs already visually confirmed as same-image resize variants. This covers every
+current reference/member relationship; none of the twelve known unrelated pairs or the related
+but different expressions remains. Group queries took 152.5-155.6 ms.
+
+The six skips remained four changed revisions and two source-guard failures. Original baseline
+SHA-256 and all 17 retained source-sample hashes were unchanged. The derived catalog passed SQLite
+quick-check and foreign-key checks, the child exited with code 0, and scratch retirement completed.
+The prior small reports and private pair manifest are retained in ignored diagnostic storage.
+
+This resolves the observed standard-degree false-positive blocker. Full-library precision/recall,
+retained-scale work growth and constrained-client measurements remain outside this partial run.
+Heavy crops, layout changes and semantic resemblance retain the stated quality limits.
 
 ## Provenance and remaining integration
 
