@@ -114,5 +114,21 @@ reported five generated FRB files absent from the dependency check's exact roste
 generated paths are registered; handwritten files and missing generation markers remain rejected.
 The dependency check passed for 504 modules, and all 18 retained boundary cases passed.
 
+## Desktop review contracts — 2026-11-04
+
+The native review adapter now maps all seven operations into Ame-owned Dart values and is a required
+production binding. Similarity queries reuse the existing bounded review window; exact-member
+decision metadata moves into its own typed slice without changing window capacity or read admission.
+Separate similarity query and write owners preserve degree, group and revision authority across
+navigation. Ignored queries use the broad degree; the selected normal degree remains available on
+return. Undo carries the exclusion identity even after returning to the group list.
+
+Three new application cases passed for superseded degree reads, pending-write navigation and retry,
+and member exclusion/undo with a group dropping below two contents. Eight retained exact-review
+cases and four production-composition cases also passed. These cases establish client state and
+binding behavior; the existing real SQLite evidence owns durability and stale-write rejection.
+The query/write owners have 315 production lines, the native adapter has 211, and their dedicated
+cases/support have 274 lines with no inline tests. Dependency verification passed for 509 modules.
+
 Actual desktop interaction, real-library accuracy, constrained-client resource measurements and the
 complete R6 user workflow retain their acceptance scope in the roadmap.

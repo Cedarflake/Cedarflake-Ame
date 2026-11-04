@@ -3,12 +3,14 @@ import "package:flutter_riverpod/misc.dart";
 import "../../features/library/adapters/rust/rust_library_duplicate_review.dart";
 import "../../features/library/adapters/rust/rust_library_exact_duplicates.dart";
 import "../../features/library/adapters/rust/rust_library_gallery_duplicates.dart";
+import "../../features/library/adapters/rust/rust_library_similar_review.dart";
 import "../../features/library/application/library_duplicate_review.dart";
 import "../../features/library/application/library_exact_analysis_controller.dart";
 import "../../features/library/application/library_exact_analysis_scheduler.dart";
 import "../../features/library/application/library_exact_duplicates.dart";
 import "../../features/library/application/library_foreground_reads.dart";
 import "../../features/library/application/library_gallery_duplicates.dart";
+import "../../features/library/application/library_similar_review_controller.dart";
 import "../../features/library/application/ports/library_exact_duplicates.dart";
 
 class LibraryDuplicateBindings {
@@ -24,6 +26,9 @@ class LibraryDuplicateBindings {
     ),
     libraryDuplicateReviewProvider.overrideWithValue(
       const RustLibraryDuplicateReview(),
+    ),
+    librarySimilarReviewProvider.overrideWithValue(
+      const RustLibrarySimilarReview(),
     ),
   ];
 }
@@ -67,6 +72,7 @@ final libraryDuplicateRequirements = <ProviderListenable<Object?>>[
   libraryExactDuplicatesProvider,
   libraryGalleryDuplicatesProvider,
   libraryDuplicateReviewProvider,
+  librarySimilarReviewProvider,
 ];
 
 final libraryExactAnalysisRequirements = <ProviderListenable<Object?>>[

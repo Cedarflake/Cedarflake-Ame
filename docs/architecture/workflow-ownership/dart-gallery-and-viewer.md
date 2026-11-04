@@ -37,7 +37,12 @@ factory neither replaces that path nor grants source-read authority.
   Forward publication uses the response's next cursor; backward publication retains the last kept
   page's next cursor. The viewport validates query/revision and publication authority before merging,
   resets the window on accepted replacement, and retains directional completion/error semantics.
-  Duplicate-review windows keep their separate checkpoint and capacity policy.
+  Duplicate-review windows keep their separate checkpoint and capacity policy. The same window
+  serves exact and similar groups; typed member slices carry each mode's decision snapshot only
+  after query-generation admission. Similarity query/selection state belongs to
+  `LibrarySimilarReviewController`; `LibrarySimilarChoices` serializes writes and owns their errors.
+  Late writes retain their original group, degree and revision and cannot replace a newer view.
+  Exclusion undo retains its operation identity independently of the currently open group.
 - `library_time_navigation_requests.dart` owns pending/active target reuse, latest navigation
   intent, explicit visible-range ownership, blocked retry and operation-matched loading release.
   The viewport retains query compatibility, publication generation, query-transition authority,

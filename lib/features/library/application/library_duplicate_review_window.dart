@@ -2,19 +2,15 @@ import "dart:math" as math;
 
 import "package:flutter/foundation.dart";
 
-import "../domain/library_duplicate_review.dart";
-
 class LibraryDuplicateReviewSlice<T, C> {
   const LibraryDuplicateReviewSlice({
     required this.items,
     required this.total,
     this.next,
-    this.decision,
   });
   final List<T> items;
   final int total;
   final C? next;
-  final LibraryDuplicateDecision? decision;
 }
 
 class LibraryDuplicateReviewSeek<T, C> {
