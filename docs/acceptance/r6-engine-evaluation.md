@@ -100,6 +100,28 @@ normalization 72.116 ms, and eight bounded hashes 3.113 ms. The final grayscale 
 and 19.120 ms respectively. These timings include ordinary host variation and do not promise a
 deadline inside every codec. Production Windows leases and stale-publication checks need integration.
 
+## Real-library quality review - 2026-11-05
+
+The production adapter at `58ac3f28` analyzed an isolated copy of the retained local-primary catalog
+(63,077 locations). The run checked 2,004 sources and published 1,997 content records in 183.145 s;
+its sampled peak RSS was 313 MiB. Cancellation requested at the 2,000-source polling threshold
+completed after 34 ms. Six sources were skipped: four revision changes and two source-guard failures.
+This was a bounded partial run, not full-library coverage. The original catalog digest and 17 sampled
+source digests remained unchanged; the derived catalog passed integrity and foreign-key checks.
+
+Strict / standard / broad returned 1 / 3 / 6 visible groups, with queries taking 149-153 ms.
+A deterministic sample of up to three reference/member pairs per observed distance produced 16
+pairs: visual review found two same-image resize variants, two related but different expressions,
+and twelve clearly unrelated pairs. Both sampled distance-5 pairs were unrelated, including an
+illustrated wallpaper paired with a system-monitor screenshot. Standard therefore admits obvious
+false positives; the synthetic fixture did not establish adequate production quality. These selected
+pairs are counterexamples, not an estimate of whole-library precision or recall.
+
+Algorithm/parameter selection must address these counterexamples while retaining transformation
+coverage before R6 acceptance. The current scheme and thresholds remain unchanged pending that
+comparison. Private source references and hashes remain only in ignored local diagnostic storage;
+no source image or catalog is committed.
+
 ## Provenance and remaining integration
 
 The shared `adapters/analysis_source.rs` boundary was extracted from production classification input
@@ -124,6 +146,6 @@ the admitted normalization, symmetric comparison and 64-bit index. An unused-imp
 first normalization build was removed; the final build and execution were warning-free.
 
 R6-02 connects the source lease, persistent evidence, bounded candidate windows, durable choices and
-stale-source publication rejection. The desktop, real-library false-positive review and constrained-
-client checks remain in R6-04. This probe changes no product interaction, catalog schema, model,
+stale-source publication rejection. Desktop and constrained-client checks remain in R6-04; the
+real-library counterexamples above require a quality repair. This probe changes no product interaction, catalog schema, model,
 source file or analysis scheduling. Hosted CI covers its actual source commit separately.

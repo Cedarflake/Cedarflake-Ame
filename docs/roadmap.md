@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-04
+Last planning update: 2026-11-05
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -65,6 +65,9 @@ connect and verify the browsing/comparison interface in the Windows application.
 real-library and constrained-client acceptance. The [engine evaluation](acceptance/r6-engine-evaluation.md)
 owns R6-01's selection evidence. Sketch iteration has ended; notifications and styling are refined
 in the actual application.
+
+R6 acceptance is blocked by [real-library similarity false positives](acceptance/r6-engine-evaluation.md#real-library-quality-review---2026-11-05).
+Resolve the observed unrelated standard-degree matches while preserving transformation coverage.
 
 The historical pause timeout remains an accepted observation with a
 [recurrence-based follow-up](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04).
