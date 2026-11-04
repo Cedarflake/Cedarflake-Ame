@@ -210,6 +210,20 @@ sheet opened and dismissed correctly. Normal close returned code 0 after 121 sec
 peak working set, with all 51 fixture source hashes unchanged. The page, results and similar-card
 owners have 351, 135 and 117 production lines, no inline tests; the retained workflow has 298 lines.
 
+The guarded `3c59c25b` client, with unchanged product inputs at `b57c8cc3`, automatically found one
+exact group and seven standard-degree similar groups from the same 51 files. The actual Windows
+workflow showed ignored exact and similar groups together with their respective labels. Ignoring
+and restoring either kind stayed in its member page; returning to the ignored list reflected each
+restoration, ending with no ignored groups. A saved similarity preference remained selected.
+Comparison loaded both originals, and ordinary return retained both checked members. Switching to
+Library and back returned to the group list; reopening cleared temporary checks and retained the
+saved preference. Strict, standard and broad degrees showed six, seven and seven groups respectively;
+switching back preserved that preference. Nested pages omitted both menus and the withdrawn member
+action. Normal caption close returned code 0 after 864.734 seconds, at a 219-MiB peak working set;
+all 51 source hashes were unchanged and the scratch profile was retired. The automated title-bar
+drag still produced no observed movement; its cause remains unverified. Source-driven removal of a
+selected/preferred member and a group falling below two members retain their actual-client check.
+
 The [699c5faf CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41836616389) passed its
 Flutter, Windows scan/accessibility and unsigned build jobs; Static rejected two missing brace blocks
 in the preceding review slice. Both are corrected. The
