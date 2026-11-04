@@ -67,8 +67,8 @@ resize cards. Both loaded-window and query-wide geometry use the same floor; squ
 also respects it. The duplicate and selection targets have separate bounded space without clipping or
 overlap.
 
-The Duplicates workspace owns exact and similar group inspection and durable representative,
-ignore and exclusion choices. It reuses gallery previews and viewing. Exact groups establish byte
+The Duplicates workspace owns exact and similar group inspection and durable representative and
+ignore choices. It reuses gallery previews and viewing. Exact groups establish byte
 identity; similar groups contain distinct contents selected by the admitted perceptual comparison.
 Similarity adds no filter or folding to Library, Favorites or albums. No analysis or display choice
 authorizes source mutation.
@@ -91,7 +91,7 @@ navigation and temporary selection. Ordinary return from viewing or comparison p
 Groups use responsive multi-column cards and members use full-width rows. Both reuse the
 thumbnail/text skeleton and whole-card hover/open interaction. Member rows retain filename, path,
 availability and accessible preference/Explorer actions; similar members also expose exact-copy
-locations and `移出此组`. Keep actions inline when space permits and wrap them below at narrow widths.
+locations. Keep actions inline when space permits and wrap them below at narrow widths.
 Measure text and controls instead of assigning a fixed row height. Omit decorative folder icons,
 a separate `首选副本` label and a redundant `查看图片` button. Group actions read `查看重复图片` or
 `查看相似图片`. The location sheet states the number of copies; each location row reveals that file
@@ -113,11 +113,9 @@ Keep the images side by side and the bottom controls in one row within the suppo
 An exact preference selects the scoped merged-gallery representative with a deterministic fallback.
 A similarity preference selects one content representative only within that group. Exact copies of
 that content share one member row while their locations remain inspectable. Ignore/restore saves in
-place; returning to the list reflects the decision. `移出此组` excludes the represented content only
-from the current similar group; shared feedback can undo that specific exclusion, including after
-returning to the list. Groups below two distinct contents disappear from the list without forcing
-navigation. A retained preference survives temporary exclusion or unavailability. Choices survive
-reopening, degree changes and compatible reanalysis. There is no finish/next-group workflow.
+place; returning to the list reflects the decision. Groups below two distinct contents disappear
+from the list without forcing navigation. A retained preference survives temporary unavailability.
+Choices survive reopening, degree changes and compatible reanalysis. There is no finish/next-group workflow.
 
 Analysis is automatic while Ame is running, after initial foreground browsing has priority.
 New or changed catalog content queues bounded analysis; compatible completed fingerprints survive

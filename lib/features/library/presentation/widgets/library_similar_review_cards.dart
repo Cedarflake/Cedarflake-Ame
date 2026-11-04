@@ -42,7 +42,6 @@ class LibrarySimilarMemberCard extends StatelessWidget {
     required this.member,
     required this.preferred,
     required this.onPrefer,
-    required this.onExclude,
     required this.onLocations,
     required this.onOpen,
     required this.selection,
@@ -51,7 +50,6 @@ class LibrarySimilarMemberCard extends StatelessWidget {
   final LibrarySimilarMember member;
   final bool preferred;
   final VoidCallback? onPrefer;
-  final VoidCallback? onExclude;
   final VoidCallback? onLocations;
   final VoidCallback onOpen;
   final Widget selection;
@@ -112,15 +110,6 @@ class LibrarySimilarMemberCard extends StatelessWidget {
             onPressed: reveal,
             icon: const Icon(Symbols.folder_open_rounded),
           ),
-        ),
-      ),
-      AmeTooltip(
-        message: LibraryDuplicateStrings.exclude,
-        child: IconButton(
-          key: ValueKey("exclude-${member.asset.locationId}"),
-          style: LibraryDuplicateReviewMetrics.iconActionStyle,
-          onPressed: onExclude,
-          icon: const Icon(Symbols.remove_rounded),
         ),
       ),
     ],

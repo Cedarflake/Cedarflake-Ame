@@ -44,12 +44,6 @@ abstract final class LibraryDuplicateStrings {
   static const waitingForSimilar = "找到的相似图片会显示在这里";
   static const compare = "对比图片";
   static const selectComparison = "选择图片进行对比";
-  static const exclude = "移出此组";
-  static const excluded = "已从此组移出图片";
-  static const undo = "撤销";
-  static const undoUnavailable = "这次移出操作已被后续选择替代";
-  static const undone = "已恢复到此组";
-  static const undoFailed = "未能恢复图片";
   static const syncComparison = "同步缩放和移动";
   static const resetComparison = "重置对比视图";
   static const zoomIn = "放大";

@@ -30,8 +30,7 @@ The planning choices below guide implementation; detailed styling and notificati
 | Browsing | Reuse group cards, member rows and image viewing. Browse freely, without group completion, a next-group step or review-progress tracking. |
 | Comparison | Select two members; put `对比图片` beside `忽略此组` / `恢复此组`. Omit the separate selection toolbar and its left-hand instruction/count. Plan side-by-side viewing with optional synchronized zoom/pan. |
 | Exact copies | Show one representative for byte-identical copies within a similar group and retain access to all locations. Reuse existing representative rules without merging asset/location identities. |
-| Unrelated members | Add a member-row action to exclude that image from the current similar group; proposed label: `移出此组`. This does not change the original file, Library visibility or other groups. |
-| Saved choices | Preserve preferences, ignored groups and member exclusions across degree changes and compatible reanalysis. A similarity preference does not fold or hide images in Library. |
+| Saved choices | Preserve preferences and ignored groups across degree changes and compatible reanalysis. A similarity preference does not fold or hide images in Library. |
 | Ignored groups | List ignored exact and similar groups together, identify the kind on each card, and support restoration. Ignore/restore saves in place without automatically leaving the open group. |
 | Automatic work | Discovery and result updates run automatically; remove manual refresh and pause/stop-search controls from this workspace. Navigation does not cancel analysis. |
 | Library | Add no similarity filter or similarity-driven folding to Library, Favorites or albums; existing exact-duplicate display remains separate. |
@@ -69,9 +68,10 @@ the workspace does not require a manual start, refresh or stop-search action.
   implementation in adapters; application owns scheduling, source admission and result publication.
 - Read bounded candidates from the published catalog. Revalidate source identity, revision and
   generation before publishing; changed or removed files invalidate derived results.
-- Record immutable engine/version/parameter and run evidence. Keep preferred-image, member-exclusion
-  and ignored-group decisions independent of derived hashes and compatible reanalysis.
-- Specify stable group/member identity and exclusion matching across regenerated groups before
+- Record immutable engine/version/parameter and run evidence. Keep preferred-image and ignored-group
+  decisions independent of derived hashes and compatible reanalysis. Retain existing persisted
+  member-exclusion records for compatibility; the member-exclusion action and its undo are withdrawn.
+- Specify stable group/member identity and saved-choice matching across regenerated groups before
   schema changes. Implement the confirmed single-representative projection without merging asset
   or location identities; use forward migrations if persistence changes.
 - Bound automatic scheduling, worker lifetime, memory and read concurrency. Retain cancellation,
@@ -89,8 +89,8 @@ Reuse existing workspace, group/member, preview, viewer, loading and feedback ow
 shared responsibility where needed instead of adding similarity flags throughout the exact-duplicate
 controller. Keep analysis, query state and user choices separately owned for each mode.
 
-Connect the group-view menu, degree changes, representative/location inspection, in-place decisions,
-member exclusion/undo and comparison. View or primary-destination switches reset nested navigation
+Connect the group-view menu, degree changes, representative/location inspection, in-place decisions
+and comparison. View or primary-destination switches reset nested navigation
 and temporary selection; durable decisions remain. Returning from comparison restores its member view.
 Keyboard navigation, enlarged text and supported desktop window sizes retain the same available actions.
 
@@ -109,7 +109,7 @@ Add only meaningful missing coverage under the [test-design standard](../develop
   Constrained-client optimization is deferred; retain measurements and limitations without reopening
   the separately deferred rendering work.
 - Browse groups, inspect exact-copy locations, switch views, change degree, compare images, set a
-  preference, exclude/undo a member and ignore/restore in the actual Windows application. Cover
+  preference and ignore/restore in the actual Windows application. Cover
   removal of a selected/preferred member and a group falling below two members. Verify automatic
   updates and navigation resets while Library behavior, durable decisions and original media remain intact.
 - Record results and remaining limits in acceptance; use normal hosted gates under the existing
@@ -118,10 +118,9 @@ Add only meaningful missing coverage under the [test-design standard](../develop
 ## Remaining engineering decisions
 
 R6-01 owns engine admission, measured transformation coverage and degree thresholds. R6-02 owns
-stable group/member identity, exclusion matching and bounded automatic scheduling.
+stable group/member identity, saved-choice matching and bounded automatic scheduling.
 
-Resolve member-exclusion details during implementation: scope when one row represents exact copies,
-undo through shared feedback, selected/preferred-member removal, and groups with fewer than two
+Handle selected/preferred-member removal after catalog changes and groups with fewer than two
 members. Preserve original files and durable intent while keeping ordinary return navigation available.
 Production styling and notification behavior will be reviewed in the real application, without
 treating the sketch as a final specification.

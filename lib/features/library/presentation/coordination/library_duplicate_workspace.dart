@@ -202,11 +202,6 @@ class LibraryDuplicateWorkspace extends ChangeNotifier {
     notifyListeners();
   }
 
-  void removeComparison(LibraryAsset asset) {
-    _comparison.remove(asset.locationId);
-    notifyListeners();
-  }
-
   @override
   void dispose() {
     exact.dispose();

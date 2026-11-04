@@ -19,7 +19,6 @@ class LibraryDuplicateResults extends StatelessWidget {
     required this.analyzing,
     required this.onOpen,
     required this.onPreferExact,
-    required this.onExclude,
     required this.onLocations,
     super.key,
   });
@@ -27,7 +26,6 @@ class LibraryDuplicateResults extends StatelessWidget {
   final bool analyzing;
   final void Function(LibraryAsset asset, int index) onOpen;
   final ValueChanged<LibraryAsset?> onPreferExact;
-  final ValueChanged<LibrarySimilarMember> onExclude;
   final ValueChanged<LibrarySimilarMember> onLocations;
 
   @override
@@ -58,7 +56,7 @@ class LibraryDuplicateResults extends StatelessWidget {
       itemCount: workspace.itemCount,
       singleColumn: workspace.hasMembers,
       selectable: workspace.hasMembers,
-      memberActions: workspace.isSimilar ? 4 : 2,
+      memberActions: workspace.isSimilar ? 3 : 2,
       onVisibleRange: workspace.ensureRange,
       assetAt: workspace.assetAt,
       itemBuilder: (context, index) {
@@ -99,11 +97,6 @@ class LibraryDuplicateResults extends StatelessWidget {
                 ? () => unawaited(
                     workspace.similar.prefer(preferred ? null : member),
                   )
-                : null,
-            onExclude:
-                canWrite &&
-                    member.availability == LibraryDuplicateAvailability.local
-                ? () => onExclude(member)
                 : null,
             onLocations: member.locationCount > 1
                 ? () => onLocations(member)

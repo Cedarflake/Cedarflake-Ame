@@ -109,47 +109,6 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
       ? _workspace.similar.setIgnored(!_workspace.ignored)
       : _workspace.exact.setIgnored(!_workspace.ignored);
 
-  Future<void> _exclude(LibrarySimilarMember member) async {
-    final undo = await _workspace.similar.exclude(member);
-    if (!mounted || undo == null) return;
-    _workspace.removeComparison(member.asset);
-    showAmeTransientFeedback(
-      context,
-      message: LibraryDuplicateStrings.excluded,
-      severity: AmeNotificationSeverity.info,
-      action: (
-        label: LibraryDuplicateStrings.undo,
-        invoke: () => unawaited(_undo(undo)),
-      ),
-    );
-  }
-
-  Future<void> _undo(LibrarySimilarExclusion exclusion) async {
-    final result = await _workspace.similar.undo(exclusion);
-    if (!mounted) return;
-    final String message;
-    if (result == null) {
-      message = LibraryDuplicateStrings.undoFailed;
-    } else if (result.restored) {
-      message = LibraryDuplicateStrings.undone;
-    } else {
-      message = LibraryDuplicateStrings.undoUnavailable;
-    }
-    showAmeTransientFeedback(
-      context,
-      message: message,
-      severity: result == null
-          ? AmeNotificationSeverity.error
-          : AmeNotificationSeverity.info,
-      action: result == null
-          ? (
-              label: LibraryDuplicateStrings.retry,
-              invoke: () => unawaited(_undo(exclusion)),
-            )
-          : null,
-    );
-  }
-
   Future<void> _locations(LibrarySimilarMember member) async {
     try {
       final revision = ref.read(libraryControllerProvider).catalogRevision;
@@ -373,8 +332,6 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
                                         unawaited(_open(asset, index)),
                                     onPreferExact: (asset) =>
                                         unawaited(_preferExact(asset)),
-                                    onExclude: (member) =>
-                                        unawaited(_exclude(member)),
                                     onLocations: (member) =>
                                         unawaited(_locations(member)),
                                   ),

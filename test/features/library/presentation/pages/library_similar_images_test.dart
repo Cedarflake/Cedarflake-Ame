@@ -30,7 +30,7 @@ import "../../../../support/similar_review_fixtures.dart";
 
 void main() {
   testWidgets(
-    "mixed ignored groups, comparison and exclusion preserve their review context",
+    "mixed ignored groups and comparison preserve context until primary navigation",
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1100, 850));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -243,24 +243,6 @@ void main() {
             .value,
         isTrue,
       );
-      await tester.tap(find.byKey(const ValueKey("exclude-one")));
-      await tester.pumpAndSettle();
-      expect(find.byType(LibrarySimilarMemberCard), findsOneWidget);
-      expect(
-        tester
-            .widget<TextButton>(find.widgetWithText(TextButton, "对比图片"))
-            .onPressed,
-        isNull,
-      );
-      await back();
-      expect(find.byType(LibrarySimilarGroupCard), findsNothing);
-      await tester.tap(find.text("撤销"));
-      await tester.pumpAndSettle();
-      expect(find.byType(LibrarySimilarGroupCard), findsOneWidget);
-      expect(similar.lastUndo?.content, similarMember("one").content);
-      await tester.tap(find.text("查看相似图片"));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey("compare-select-one")));
       container
           .read(libraryWorkbenchControllerProvider.notifier)
           .select(LibraryWorkspace.gallery);
