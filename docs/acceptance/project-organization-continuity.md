@@ -525,3 +525,25 @@ catalog's SHA-256 is identical before backup and after exit. No reimport or mode
 Initial window activation failed in the control tool; user foreground activation restored input.
 This tooling interruption is separate from the application results. Desktop interaction coverage
 is complete for this slice; O7 retains the historical pause-timeout investigation and final handover.
+
+## Pause timing diagnosis — 2026-11-04
+
+At `a1437bd2`, a bounded native diagnostic varies the pause request after Started by 0, 1, 5, 10,
+25, 50, 100 and 250 ms. It uses the production synchronization lifecycle and scanner, the receipt-bound
+optimized library with debug assertions, and one 1,024-image controlled source. All eight requests
+are accepted and reach Paused. Request-to-Paused latency ranges from 7 to 64 ms; complete scan-call
+durations range from 39 to 326 ms. Retained cancellation and root retirement succeed between cases,
+source bytes remain identical, process exit is zero and leased storage is removed. This diagnostic
+adds no permanent test or production instrumentation.
+
+Direct native stderr records one slow startup poll: 929 ms total, including 928 ms in catalog setup
+and 917 ms in session lookup. It precedes the scans. No poll-busy or failure result occurs in the
+eight timing cases. The API pause entry updates its control token synchronously; the scan checks
+that token around its first-import readiness loop. That loop can drive a full synchronization poll,
+so a slow in-flight poll is a plausible delay boundary, but the retained failure log does not identify
+which native operation waited. No specific cause or causal repair is established for the earlier
+30-second timeout. The original failure and the uninstrumented current pass remain separate evidence.
+
+All implementation and client-verification slices now have evidence. Final disposition of that
+unreproduced observation remains the O7 exit question; the roadmap and ADR status stay unchanged
+until that question is resolved.
