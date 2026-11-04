@@ -6,7 +6,7 @@ import "../../domain/library_duplicate_review.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_similar_review.dart";
 
-enum LibraryDuplicateView { exact, ignored, similar }
+enum LibraryDuplicateView { exact, similar, ignored }
 
 enum LibraryDuplicateKind { exact, similar }
 

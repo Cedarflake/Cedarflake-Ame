@@ -24,7 +24,7 @@ The planning choices below guide implementation; detailed styling and notificati
 
 | Area | Planned direction |
 | --- | --- |
-| Entry | Keep `去重`; omit top tabs. A right-hand `分组` menu with a layers icon switches between `重复组`, `已忽略` and `相似组`. |
+| Entry | Keep `去重`; omit top tabs. A right-hand `分组` menu with a layers icon lists `重复组`, `相似组` and `已忽略` in that order. |
 | Similarity degree | Offer `严格 / 标准 / 宽松`, initially `标准`, through a sliders-icon menu beside `分组` in the same action row. Show it only in the similar-group list, with the current degree in its tooltip and accessible name. |
 | Nested pages | Member, viewer and comparison pages omit both menus. Primary-destination switches reset nested navigation and temporary selection; ordinary return from viewing/comparison preserves its parent group. |
 | Browsing | Reuse group cards, member rows and image viewing. Browse freely, without group completion, a next-group step or review-progress tracking. |
