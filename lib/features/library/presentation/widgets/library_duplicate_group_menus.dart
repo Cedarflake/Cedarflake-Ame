@@ -25,6 +25,34 @@ class LibraryDuplicateGroupMenus extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
+      AmePopupMenuButton<LibraryDuplicateView>(
+        labels: LibraryDuplicateView.values.map(_viewLabel),
+        hasContentIcon: false,
+        leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
+        items: [
+          for (final value in LibraryDuplicateView.values)
+            ameMenuChoice(
+              value: value,
+              label: _viewLabel(value),
+              isSelected: value == view,
+            ),
+        ],
+        onSelected: onViewChanged,
+        builder: (context, open) => AmeTooltip(
+          message: "${LibraryDuplicateStrings.groupView}：${_viewLabel(view)}",
+          child: IconButton(
+            key: const Key("duplicate-group-menu"),
+            onPressed: open,
+            icon: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Symbols.layers_rounded),
+                Icon(Symbols.arrow_drop_down_rounded, size: 18),
+              ],
+            ),
+          ),
+        ),
+      ),
       if (view == LibraryDuplicateView.similar)
         AmePopupMenuButton<LibrarySimilarityDegree>(
           labels: LibrarySimilarityDegree.values.map(_degreeLabel),
@@ -55,34 +83,6 @@ class LibraryDuplicateGroupMenus extends StatelessWidget {
             ),
           ),
         ),
-      AmePopupMenuButton<LibraryDuplicateView>(
-        labels: LibraryDuplicateView.values.map(_viewLabel),
-        hasContentIcon: false,
-        leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
-        items: [
-          for (final value in LibraryDuplicateView.values)
-            ameMenuChoice(
-              value: value,
-              label: _viewLabel(value),
-              isSelected: value == view,
-            ),
-        ],
-        onSelected: onViewChanged,
-        builder: (context, open) => AmeTooltip(
-          message: "${LibraryDuplicateStrings.groupView}：${_viewLabel(view)}",
-          child: IconButton(
-            key: const Key("duplicate-group-menu"),
-            onPressed: open,
-            icon: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Symbols.layers_rounded),
-                Icon(Symbols.arrow_drop_down_rounded, size: 18),
-              ],
-            ),
-          ),
-        ),
-      ),
     ],
   );
 }
