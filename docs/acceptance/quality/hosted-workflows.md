@@ -27,8 +27,8 @@ pending update is retained, so successive fixes cannot repeatedly discard the co
 result. Pull-request and merge-group runs still cancel a superseded run in their own group.
 Each run remains evidence for its recorded source commit, never a later queued head.
 
-Every hosted job uses `windows-2025`. Daily components and the unsigned-build and signed-verifier
-release jobs install Flutter 3.47.8 and use the repository Rust toolchain; the protected signer and
+Every hosted job uses `windows-2025`. Daily components and the unsigned-build and release-verifier
+jobs install Flutter 3.47.8 and use the repository Rust toolchain; the optional protected signer and
 published-artifact verifier do not. Static Daily, the unsigned-build job, and the signed-verifier job
 download actionlint 1.7.12, verify the official Windows x64 SHA-256, and validate every workflow through
 `./tool/quality_lint_workflows.ps1` before restoring project dependencies. External actions are
@@ -55,24 +55,24 @@ artifact whose manifest records the source commit and enumerates every payload f
 path, length, and SHA-256; its signing allowlist is exactly `cedarflake_ame.exe` and
 `cedarflake_ame_journal_broker.exe`.
 
-The next job is bound to the `windows-production-signing` GitHub Environment, which must require a
-reviewer and restrict deployments to protected `main`. Its PFX and password exist only as
-Environment secrets. The signer does not check out or execute repository code, has no
-`GITHUB_TOKEN` permission, and does not run Flutter or Cargo; it only downloads and strictly verifies
-the artifact, parses the PFX as ephemeral in-process key material, admits one active private-key
-certificate with the exact publisher and code-signing usage, signs the two fixed binaries, rewrites
-their manifest evidence without changing the source commit, clears credential and certificate
-material in `finally`, and uploads a new immutable artifact. It never writes the PFX to disk or
-imports it into a certificate store. A third, credential-free job re-proves source, tag, and trusted
-workflow ancestry on another runner, downloads the signed artifact, verifies its complete manifest
-and both signatures, and only then executes the repository release gate.
+The default `unsigned` release channel skips the signing job entirely. A separate credential-free
+verifier proves the tag/source/workflow ancestry, downloads the immutable unsigned candidate,
+rechecks its complete manifest (all paths, lengths and SHA-256 hashes), x64 executables, unsigned
+application/broker state and broker protocol, then runs the release quality, packaged application
+and synthetic performance checks. No publisher variable or signing secret is required.
 
-A separate read-only packager checks out the immutable source SHA, binds the signed manifest to that
-SHA and the still-current tag, reverifies the bundle, and uploads the exact ZIP plus its SHA-256 as
-another immutable artifact. The sole `contents: write` publisher downloads only that ZIP, checks out
-no repository and executes no repository script. Immediately before GitHub Release mutation it
-peels the current tag through the GitHub API, requires the resolved commit to equal the signed
-source, and rechecks the ZIP hash. Repository configuration must additionally prevent update or
+Only the optional `signed` release channel enters the `windows-production-signing` Environment,
+which requires a reviewer and restricts deployment to protected `main`. Its PFX and password remain
+Environment secrets. The signer checks out no source, has no `GITHUB_TOKEN` authority, signs only the
+two fixed executables, scrubs ephemeral key material and uploads an immutable signed artifact. Its
+independent verifier rechecks the signed manifest and publisher before release.
+
+A separate read-only packager checks out the immutable source SHA, binds the selected channel's
+manifest to that SHA and the still-current tag, reverifies the bundle, and uploads the exact ZIP
+plus its SHA-256 as another immutable artifact. The sole `contents: write` publisher downloads only
+that ZIP, checks out no repository and executes no repository script. Immediately before GitHub
+Release mutation it peels the current tag through the GitHub API, requires the resolved commit to
+equal the verified source, and rechecks the ZIP hash. Repository configuration must additionally prevent update or
 deletion of admitted version tags; no workflow can make a tag lookup and release mutation atomic.
 
 For hosted Daily runs, the shared gate calls `quality_gate_daily_windows.yml` for eight isolated

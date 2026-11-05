@@ -1,9 +1,10 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$ExpectedBrokerPublisher,
-    [Parameter(Mandatory = $true)]
-    [string]$SignedBrokerBinaryPath,
+    [ValidateSet("signed", "unsigned")]
+    [string]$SigningMode = "signed",
+    [AllowEmptyString()]
+    [string]$ExpectedBrokerPublisher = "",
+    [string]$SignedBrokerBinaryPath = "",
     [Parameter(Mandatory = $true)]
     [string]$SignedApplicationBundlePath
 )
@@ -47,10 +48,18 @@ $toolLock = Enter-AmeRepositoryToolLock
 
 Push-Location $repositoryRoot
 try {
-    if ([string]::IsNullOrWhiteSpace($ExpectedBrokerPublisher) -or
-        [string]::IsNullOrWhiteSpace($SignedBrokerBinaryPath) -or
-        [string]::IsNullOrWhiteSpace($SignedApplicationBundlePath)) {
-        throw "Windows release verification requires signed application, broker, and publisher inputs"
+    if ($SigningMode -eq "signed") {
+        if (
+            [string]::IsNullOrWhiteSpace($ExpectedBrokerPublisher) -or
+            [string]::IsNullOrWhiteSpace($SignedBrokerBinaryPath)
+        ) {
+            throw "Signed Windows release verification requires broker and publisher inputs"
+        }
+    } elseif (
+        -not [string]::IsNullOrWhiteSpace($ExpectedBrokerPublisher) -or
+        -not [string]::IsNullOrWhiteSpace($SignedBrokerBinaryPath)
+    ) {
+        throw "Unsigned release verification does not accept signed-payload inputs"
     }
     $bundleFacts = Assert-AmeApplicationBundleSource `
         -BundlePath $releaseRoot `
@@ -59,21 +68,24 @@ try {
         $releaseExecutable,
         [System.StringComparison]::OrdinalIgnoreCase
     )) {
-        throw "Signed application bundle resolved an unexpected client binary"
+        throw "Application bundle resolved an unexpected client binary"
     }
-
-    $builtBroker = [System.IO.Path]::GetFullPath($SignedBrokerBinaryPath)
-    if (-not (Test-Path -LiteralPath $builtBroker -PathType Leaf)) {
-        throw "The signed Windows x64 journal broker was not found"
+    $admittedBroker = if ($SigningMode -eq "signed") {
+        [System.IO.Path]::GetFullPath($SignedBrokerBinaryPath)
+    } else {
+        $releaseBroker
     }
-    Assert-AmeBrokerReleaseBinaryName -Path $builtBroker
+    if (-not (Test-Path -LiteralPath $admittedBroker -PathType Leaf)) {
+        throw "The Windows x64 journal broker was not found"
+    }
+    Assert-AmeBrokerReleaseBinaryName -Path $admittedBroker
     Assert-AmeBrokerBinary `
-        -Path $builtBroker `
+        -Path $admittedBroker `
         -ExpectedPublisher $ExpectedBrokerPublisher | Out-Null
     if (-not (Test-Path -LiteralPath $releaseBroker -PathType Leaf)) {
-        throw "The signed application bundle does not contain the journal broker"
+        throw "The application bundle does not contain the journal broker"
     }
-    $builtBrokerHash = (Get-FileHash -LiteralPath $builtBroker -Algorithm SHA256).Hash
+    $builtBrokerHash = (Get-FileHash -LiteralPath $admittedBroker -Algorithm SHA256).Hash
     $releaseBrokerHash = (Get-FileHash -LiteralPath $releaseBroker -Algorithm SHA256).Hash
     if ($builtBrokerHash -cne $releaseBrokerHash) {
         throw "Packaged journal broker does not match the admitted x64 release binary"
@@ -81,52 +93,62 @@ try {
     Assert-AmeBrokerBinary `
         -Path $releaseBroker `
         -ExpectedPublisher $ExpectedBrokerPublisher | Out-Null
+    if ($SigningMode -eq "unsigned") {
+        foreach ($path in @($releaseExecutable, $releaseBroker)) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $path
+            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
+                throw "Unsigned release verification rejected an unexpectedly signed executable"
+            }
+        }
+    }
 
     if (-not (Test-Path -LiteralPath $releaseLibrary -PathType Leaf)) {
         throw "Windows release Rust library was not packaged"
     }
 
-    if (-not (Test-Path -LiteralPath $builtRustLibrary -PathType Leaf)) {
-        throw "Cargokit did not produce the Windows x64 Release Rust library"
-    }
-    if (-not (Test-Path -LiteralPath $rustDependencyFile -PathType Leaf)) {
-        throw "Cargokit did not produce Rust release dependency evidence"
-    }
-
-    $dependencyText = Get-Content -LiteralPath $rustDependencyFile -Raw
-    $dependencySeparator = $dependencyText.IndexOf(
-        ": ",
-        [System.StringComparison]::Ordinal
-    )
-    if ($dependencySeparator -lt 0) {
-        throw "Rust release dependency evidence is malformed"
-    }
-    $dependencyList = $dependencyText.Substring($dependencySeparator + 2) -replace `
-        '\\\r?\n',
-        ''
-    $rustReleaseDependencies = @(
-        [regex]::Matches($dependencyList, '(?:\\ |[^\s])+') | ForEach-Object {
-            $dependencyPath = $_.Value.Replace('\ ', ' ')
-            if (-not (Test-Path -LiteralPath $dependencyPath -PathType Leaf)) {
-                throw "Rust release dependency is missing: $dependencyPath"
-            }
-            Get-Item -LiteralPath $dependencyPath
+    if ($SigningMode -eq "signed") {
+        if (-not (Test-Path -LiteralPath $builtRustLibrary -PathType Leaf)) {
+            throw "Cargokit did not produce the Windows x64 Release Rust library"
         }
-    )
-    if ($rustReleaseDependencies.Count -eq 0) {
-        throw "Rust release dependency evidence is empty"
-    }
-    $latestRustReleaseDependency = $rustReleaseDependencies |
-        Sort-Object LastWriteTimeUtc -Descending |
-        Select-Object -First 1
-    $builtRustLibraryItem = Get-Item -LiteralPath $builtRustLibrary
-    if ($builtRustLibraryItem.LastWriteTimeUtc -lt $latestRustReleaseDependency.LastWriteTimeUtc) {
-        throw "Cargokit Rust library is older than its current release dependencies"
-    }
-    $builtRustLibraryHash = (Get-FileHash -LiteralPath $builtRustLibrary -Algorithm SHA256).Hash
-    $packagedRustLibraryHash = (Get-FileHash -LiteralPath $releaseLibrary -Algorithm SHA256).Hash
-    if ($packagedRustLibraryHash -ne $builtRustLibraryHash) {
-        throw "Packaged Rust library does not match the current Cargokit release build"
+        if (-not (Test-Path -LiteralPath $rustDependencyFile -PathType Leaf)) {
+            throw "Cargokit did not produce Rust release dependency evidence"
+        }
+
+        $dependencyText = Get-Content -LiteralPath $rustDependencyFile -Raw
+        $dependencySeparator = $dependencyText.IndexOf(
+            ": ",
+            [System.StringComparison]::Ordinal
+        )
+        if ($dependencySeparator -lt 0) {
+            throw "Rust release dependency evidence is malformed"
+        }
+        $dependencyList = $dependencyText.Substring($dependencySeparator + 2) -replace `
+            '\\\r?\n',
+            ''
+        $rustReleaseDependencies = @(
+            [regex]::Matches($dependencyList, '(?:\\ |[^\s])+') | ForEach-Object {
+                $dependencyPath = $_.Value.Replace('\ ', ' ')
+                if (-not (Test-Path -LiteralPath $dependencyPath -PathType Leaf)) {
+                    throw "Rust release dependency is missing: $dependencyPath"
+                }
+                Get-Item -LiteralPath $dependencyPath
+            }
+        )
+        if ($rustReleaseDependencies.Count -eq 0) {
+            throw "Rust release dependency evidence is empty"
+        }
+        $latestRustReleaseDependency = $rustReleaseDependencies |
+            Sort-Object LastWriteTimeUtc -Descending |
+            Select-Object -First 1
+        $builtRustLibraryItem = Get-Item -LiteralPath $builtRustLibrary
+        if ($builtRustLibraryItem.LastWriteTimeUtc -lt $latestRustReleaseDependency.LastWriteTimeUtc) {
+            throw "Cargokit Rust library is older than its current release dependencies"
+        }
+        $builtRustLibraryHash = (Get-FileHash -LiteralPath $builtRustLibrary -Algorithm SHA256).Hash
+        $packagedRustLibraryHash = (Get-FileHash -LiteralPath $releaseLibrary -Algorithm SHA256).Hash
+        if ($packagedRustLibraryHash -ne $builtRustLibraryHash) {
+            throw "Packaged Rust library does not match the current Cargokit release build"
+        }
     }
 
     $releaseStartInfo = [System.Diagnostics.ProcessStartInfo]::new()

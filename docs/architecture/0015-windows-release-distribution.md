@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-11
-- Last amended: 2026-10-18
+- Last amended: 2026-11-05
 
 ## Context
 
@@ -11,10 +11,11 @@ signing, and supply-chain work is ready. Flutter's Windows Release output is a d
 the executable, Flutter and plugin DLLs, the Rust bridge DLL, and runtime data. Shipping only the
 executable would produce an unusable application.
 
-The application currently has one primary user and one measured platform. Production signing does
-require a human-reviewed GitHub Environment whose deployment policy admits only protected `main`;
-the signing credential must never become available to a tag-controlled or arbitrary-ref workflow
-definition. No artifact may be published until the complete release-candidate gate has passed.
+The application currently has one primary user and one measured platform. Unsigned distribution
+is supported without a certificate or publisher identity. Optional production signing requires a
+human-reviewed GitHub Environment restricted to protected `main`; signing credentials must never
+be available to a tag-controlled or arbitrary-ref workflow definition. Both channels require the
+complete release-candidate gate before publication.
 Original media, local catalogs, caches, machine-specific paths, and identity data must never enter a
 release artifact.
 
@@ -72,15 +73,16 @@ verification rejects an unexpected filename, entries outside the single archive 
 absolute paths, duplicate paths, missing executable or core runtime DLLs, missing Rust bridge DLL,
 missing ICU or application data, and missing Flutter assets.
 
-The release-candidate workflow is manually dispatched only from protected `main`; a tag push does
-not run a credential-bearing workflow. The `windows-production-signing` Environment must require a
-reviewer and must restrict deployment branches and tags to protected `main` only. Its PFX and
-password are Environment secrets, never repository or organization secrets. The repository must
-also enforce an immutable release-tag ruleset that prevents update or deletion of admitted
-`v<semantic-version>` tags. Only after the read-only candidate and package gates succeed may a
-separate no-checkout job with repository-content write permission publish or update the
-corresponding GitHub Release. The published-release workflow downloads the exact attachment and
-verifies it independently.
+The release-candidate workflow is manually dispatched only from protected `main`; a tag push
+never obtains publication or signing credentials. The default `unsigned` channel verifies the
+manifest-bound source and binaries without a PFX or expected publisher. Optional `signed` release
+uses the `windows-production-signing` Environment, which must require a reviewer and restrict
+deployment branches and tags to protected `main`. Its PFX and password are Environment secrets,
+never repository or organization secrets. The repository must enforce an immutable release-tag
+ruleset preventing update or deletion of admitted `v<semantic-version>` tags. Only after the
+selected read-only candidate and package gates succeed may a separate no-checkout job with
+repository-content write permission publish or update the corresponding GitHub Release. The
+published-release workflow independently verifies the exact attachment in the selected channel.
 
 ADR 0026 adds a separate credential-free unsigned build check to ordinary quality CI. It verifies
 the application and broker payload plus an isolated bridge smoke, but does not feed artifacts to
@@ -94,7 +96,7 @@ the hosted runner runtime without relying on forced execution of Node.js 20 acti
 Actions Runner 2.327.1 or later. Existing named-artifact downloads retain their direct destination
 layout; the intervening single-artifact-by-ID path change does not apply to these workflows.
 Manifest/hash verification remains the admission boundary when replacing either action; transport
-updates do not change the signed payload, local toolchain or protected publication authority.
+updates do not change the verified payload, local toolchain or protected publication authority.
 
 ### ADR 0024 amendment: service-enabled distribution
 
@@ -151,9 +153,9 @@ ADR [0027](0027-windows-installer-lifecycle.md) replaces the user-facing script 
 with a versioned MSI whose native tables own both application and service lifecycle. The scripts
 remain diagnostic/recovery tools; the MSI neither invokes them nor inherits their separate
 transaction markers. A production signing identity is not implied. Signed release-candidate
-verification requires an already signed broker path and the
-exact expected publisher. The repository currently owns neither signing credentials nor a signed
-candidate, so an unsigned candidate fails closed and cannot be published.
+verification requires an already signed broker path and the exact expected publisher. An unsigned
+release instead requires complete manifest, executable architecture, broker protocol, runtime and
+process checks; the absence of signing credentials never blocks that channel.
 
 Before any lifecycle mutation, every existing component from the local volume root through the
 fixed install directory is opened and its normalized final handle path is compared with the
@@ -178,29 +180,30 @@ The same installer boundary creates or validates the complete fixed
 `FOLDERID_ProgramFilesX64\Cedarflake Ame\Application` bundle. The source bundle is bounded to 4,096
 entries and 2 GiB and contains no reparse point. Every installed entry is reopened to prove its
 final physical path and receives an exact protected ACL: SYSTEM and Administrators have full
-control and BUILTIN Users have read/execute only. The signed installed client and broker are then
+control and BUILTIN Users have read/execute only. The installed client and broker are then
 bound together by the SCM-protected `AMEJBID2` manifest using protocol/max-frame, canonical client
-path, both binary SHA-256 values, both signer-certificate SHA-256 values, and the exact publisher
-validated by the installer.
+path, binary SHA-256 values and the configured optional publisher/certificate policy validated by
+the installer.
 
-Hosted release verification consumes one immutable signed Application bundle rather than rebuilding
-or copying over it after admission. The protected-main dispatch commit is the trusted workflow
-commit. Before checkout, the workflow accepts only a strict `v`-prefixed SemVer tag; checkout names
-the complete `refs/tags/<tag>` ref and then proves `HEAD` equals `tag^{commit}` and that this source
+Hosted release verification consumes one immutable manifest-bound Application bundle without
+rebuilding or copying over it after admission. The protected-main dispatch commit is the trusted
+workflow commit. Before checkout, the workflow accepts only a strict `v`-prefixed SemVer tag; checkout
+names the complete `refs/tags/<tag>` ref and proves `HEAD` equals `tag^{commit}` and that the source
 commit is an ancestor of the trusted workflow commit. The application and broker are built without
-signing credentials on one runner and transferred as a bounded, exact path/length/SHA-256 manifest
-artifact whose `sourceCommit` records that immutable SHA. A second runner, bound to the
-`windows-production-signing` GitHub Environment, does not check out or execute any repository
-content. It admits one ephemeral PFX certificate with the exact publisher and code-signing usage,
-signs only the two fixed executable paths, clears the secret material, preserves the tag and source
-commit in a new immutable manifest artifact, and exposes neither secret outside that step. A third
-credential-free runner checks out the same source commit, proves the current tag and `HEAD` still
-resolve to it, revalidates the complete signed manifest, Authenticode publisher, x64 machine, and
-broker protocol, and gates publication.
+signing credentials and transferred as a bounded, exact path/length/SHA-256 manifest artifact whose
+`sourceCommit` records that immutable SHA.
 
-A read-only packaging job consumes that verified signer artifact, binds its signed manifest to the
-same source commit, packages it, and exports the ZIP name and SHA-256 through an immutable workflow
-artifact. The only `contents: write` job checks out no repository content and executes no repository
+The default unsigned channel independently downloads and validates that artifact, including exact
+manifest coverage, x64 executable identity, broker protocol, unsigned application/broker and
+packaged desktop behavior. Only the optional signed channel invokes the
+`windows-production-signing` GitHub Environment. Its signer does not check out or execute repository
+content; it admits an ephemeral PFX with exact publisher and code-signing usage, signs only the two
+fixed executables, clears secrets, preserves the source identity, and uploads a signed manifest.
+The signed verifier independently checks the complete manifest and both signatures before release.
+
+A read-only packaging job consumes the verified artifact in the selected channel, binds its
+manifest to the same source commit, packages it, and exports the ZIP name and SHA-256 through an
+immutable workflow artifact. The only `contents: write` job checks out no repository content and executes no repository
 script. Immediately before publication it resolves lightweight or annotated tag objects through the
 GitHub API and requires the resulting commit to equal the manifest-bound source commit, then
 rechecks the ZIP hash. For an existing release it lists every asset page through the authenticated
@@ -211,12 +214,13 @@ A release lookup's explicit HTTP 404 permits creation; transport errors and othe
 release or asset lookups never count as absence. The immutable tag ruleset is a required enforcement
 layer because a workflow
 cannot make tag resolution and release-asset mutation one GitHub transaction. Post-publication
-verification first enforces safe ZIP paths and bounded expansion, then extracts to fresh repository
-scratch storage, revalidates both embedded signatures and the broker protocol, and removes the
-scratch directory. The candidate workflow calls that reusable verifier directly after publication;
-the `release: published` entry point covers externally created releases and requires the repository
-Actions variable `AME_WINDOWS_EXPECTED_PUBLISHER`, while `workflow_dispatch` remains the recovery
-entry point. Repository protection must require the exact `Windows Gate / Windows Gate` status
+verification enforces safe ZIP paths and bounded expansion, extracts into fresh repository scratch
+storage, validates x64 payload and broker protocol, and checks either both unsigned executable states
+or the selected signatures/publisher before cleanup. The candidate workflow calls this reusable
+verifier directly after publication. Externally created `release: published` events use the default
+unsigned channel unless the repository Actions variable `AME_WINDOWS_RELEASE_SIGNING_MODE` explicitly
+selects `signed`, which also requires `AME_WINDOWS_EXPECTED_PUBLISHER`. Manual dispatch can select
+either channel. Repository protection must require the exact `Windows Gate / Windows Gate` status
 context. A structural ZIP check alone is not release identity evidence.
 
 ## Deferred decisions
@@ -228,8 +232,8 @@ Later release-maturity work outside ADR 0024 owns the following work:
 - manual and in-application application-update workflows;
 - database migration and compatibility policy;
 - application and database rollback behavior;
-- signing infrastructure and credential custody beyond the required broker Authenticode gate,
-  provenance, checksums, and broader supply-chain hardening.
+- optional code-signing infrastructure and credential custody, provenance, checksums,
+  and broader supply-chain hardening.
 
 The future uninstaller must remove Ame-owned cache, thumbnail, and temporary files. It must never
 delete or alter original media. Durable catalogs, user decisions, and operation history require a
@@ -241,8 +245,9 @@ them as disposable cache.
 - Users extract one directory and run `cedarflake_ame.exe` from that directory.
 - Moving the directory is supported; removing it does not clean application data.
 - The ZIP is larger than the executable because it intentionally includes all runtime dependencies.
-- The application and broker are Authenticode-signed; the portable artifact still has no installer
-  registration, automatic update, or rollback.
+- Application and broker executables are unsigned by default; optional signed releases verify
+  the exact configured publisher. The portable artifact has no installer registration, automatic
+  update, or rollback.
 - The portable payload may contain the broker executable but never grants service lifecycle
   authority or protected client identity, so the portable application remains `LiveOnly`.
 - GitHub Release publication has write permission only after the read-only candidate and packaging
@@ -256,9 +261,11 @@ them as disposable cache.
 - `tool/release_package_portable_windows.ps1` copies and archives the complete Release directory.
 - `tool/release_verify_portable_archive.ps1` validates identity, structure, and required runtime
   entries without extracting the archive.
-- `tool/release_verify_portable_signatures.ps1` safely extracts a structurally valid archive into
-  fresh bounded scratch storage and revalidates the application and broker signature, publisher,
-  x64 machine, and broker protocol before confirmed cleanup.
+- `tool/release_verify_unsigned_candidate.ps1` checks the exact candidate manifest, file
+  lengths/hashes, required runtime, x64 executables and broker protocol without signing secrets.
+- `tool/release_verify_portable_unsigned.ps1` safely extracts and verifies unsigned application
+  and broker identity, while `tool/release_verify_portable_signatures.ps1` retains the corresponding
+  publisher and Authenticode checks for an explicitly signed release.
 - `tool/release_test_portable_archive.ps1` proves a valid fixture passes and incomplete or
   traversal-bearing archives fail, including a broker-missing archive.
 - `tool/release_test_portable_publication.ps1` exercises the exact workflow-owned publication

@@ -9,6 +9,7 @@ recorded local checkpoint does not establish that the current product source pas
 | Record | Responsibility |
 | --- | --- |
 | [Quality gates](quality-gates.md) | Canonical commands, workload admission, hosted/client boundaries, and authorization requirements |
+| [Unsigned Windows publication](unsigned-windows-release.md) | Candidate admission, workflow outputs and optional signing integration checks |
 | [Project organization](project-organization.md) | Refactor baseline, boundary regressions and migrated-slice evidence |
 | [Completed maintenance](completed-maintenance.md) | Delivered outcomes, accepted limitations and post-R2c roadmap provenance |
 | [R4 organization verification](r4-organization.md) | Durable organization, migration recovery and connected desktop workflow evidence |
