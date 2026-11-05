@@ -44,14 +44,14 @@ try {
     $payloadRoot = Join-Path $scratchRoot "Cedarflake-Ame"
     $applicationPath = Join-Path $payloadRoot $script:AmeApplicationBinaryName
     $brokerPath = Join-Path $payloadRoot (Get-AmeBrokerServicePlan).BinaryName
-    Assert-AmeBrokerPayload -Path $applicationPath | Out-Null
-    Assert-AmeBrokerBinary -Path $brokerPath | Out-Null
     foreach ($target in @($applicationPath, $brokerPath)) {
         $signature = Get-AuthenticodeSignature -LiteralPath $target
         if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
             throw "Unsigned portable executable unexpectedly carries an Authenticode signature"
         }
     }
+    Assert-AmeBrokerPayload -Path $applicationPath | Out-Null
+    Assert-AmeBrokerBinary -Path $brokerPath | Out-Null
 } finally {
     if (Test-Path -LiteralPath $scratchRoot) {
         Remove-Item -LiteralPath $scratchRoot -Recurse -Force
