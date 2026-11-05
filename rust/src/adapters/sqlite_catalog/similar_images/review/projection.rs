@@ -20,8 +20,32 @@ const NOT_EXCLUDED: &str = "NOT EXISTS (
     WHERE excluded.group_id = m.group_id AND excluded.fingerprint_scheme = e.fingerprint_scheme
       AND excluded.digest = e.digest AND excluded.byte_length = e.byte_length)";
 
-pub(super) fn members_cte() -> String {
+pub(super) enum MemberScope {
+    AllGroups,
+    Group,
+}
+
+pub(super) fn members_cte(scope: MemberScope) -> String {
     let representative = representative_expression("l");
+    let (sources, group_predicate) = match scope {
+        MemberScope::AllGroups => (
+            format!("{CURRENT_LOCATIONS} JOIN content_fingerprints AS f {ELIGIBLE_CONTENT}"),
+            "",
+        ),
+        MemberScope::Group => (
+            format!(
+                "similarity_members AS m
+                 JOIN similarity_evidence AS e ON e.evidence_id = m.evidence_id
+                   AND e.scheme = ?2 AND e.disposition = 'ready'
+                 JOIN similarity_groups AS g ON g.group_id = m.group_id AND g.scheme = ?2
+                 CROSS JOIN content_fingerprints AS f
+                   ON f.scheme = e.fingerprint_scheme AND f.digest = e.digest
+                     AND f.byte_length = e.byte_length
+                 CROSS JOIN {CURRENT_LOCATIONS}"
+            ),
+            "AND m.group_id = ?4",
+        ),
+    };
     format!(
         "WITH visible_members AS (
             SELECT m.group_id, e.fingerprint_scheme AS content_scheme, e.digest AS content_digest,
@@ -32,11 +56,10 @@ pub(super) fn members_cte() -> String {
                        AND preference.fingerprint_scheme = e.fingerprint_scheme
                        AND preference.digest = e.digest
                        AND preference.byte_length = e.byte_length) AS preferred
-            FROM {CURRENT_LOCATIONS}
-            JOIN content_fingerprints AS f ON {COMPATIBLE_FINGERPRINT}
-            {ELIGIBLE_CONTENT}
+            FROM {sources}
             {DECISION_JOIN}
-            WHERE m.distance <= ?3 AND (?4 = '' OR m.group_id = ?4) AND {NOT_EXCLUDED}
+            WHERE {COMPATIBLE_FINGERPRINT}
+              AND m.distance <= ?3 {group_predicate} AND {NOT_EXCLUDED}
             GROUP BY m.group_id, e.evidence_id
         )"
     )

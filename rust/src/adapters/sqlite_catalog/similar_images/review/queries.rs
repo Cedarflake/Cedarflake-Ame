@@ -26,7 +26,7 @@ pub(super) fn count_groups(
                 LEFT JOIN similarity_decisions AS choice ON choice.group_id = v.group_id
                 WHERE COALESCE(choice.ignored, 0) = ?5
                 GROUP BY v.group_id HAVING COUNT(*) >= 2)",
-                projection::members_cte()
+                projection::members_cte(projection::MemberScope::AllGroups)
             ),
             params![
                 EXACT_FINGERPRINT_SCHEME,
@@ -49,7 +49,7 @@ pub(super) fn count_members(
         .query_row(
             &format!(
                 "{} SELECT COUNT(*) FROM visible_members",
-                projection::members_cte()
+                projection::members_cte(projection::MemberScope::Group)
             ),
             params![
                 EXACT_FINGERPRINT_SCHEME,
@@ -87,7 +87,7 @@ pub(super) fn groups(
         JOIN grouped ON grouped.representative = l.location_id
         LEFT JOIN similarity_decisions AS choice ON choice.group_id = grouped.group_id
         ORDER BY grouped.group_id",
-        projection::members_cte(),
+        projection::members_cte(projection::MemberScope::AllGroups),
     );
     let mut statement = connection.prepare(&sql).map_err(database_error)?;
     let rows = statement
@@ -147,7 +147,7 @@ pub(super) fn members(
         JOIN visible_members AS v ON v.representative = l.location_id
         WHERE (v.content_scheme, v.content_digest, v.content_bytes) > (?5, ?6, ?7)
         ORDER BY v.content_scheme, v.content_digest, v.content_bytes LIMIT ?8",
-        projection::members_cte(),
+        projection::members_cte(projection::MemberScope::Group),
     );
     let mut statement = connection.prepare(&sql).map_err(database_error)?;
     let rows = statement

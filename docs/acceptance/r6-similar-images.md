@@ -369,3 +369,19 @@ leased, command-scoped `TEMP` / `TMP`, followed by a successful full Debug build
 changed. The [26e1fffd hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41975539699)
 was still queued behind the preceding `main` run at this observation; its Rust regressions and
 remaining hosted gates were not yet verified.
+
+## Similar-group member query latency — 2026-11-05
+
+At `a346a246`, the optional group predicate made member counting and paging walk the current
+fingerprint scheme before selecting the requested group. A read-only `local-primary` reproduction
+using SQLite 3.47.1 measured 583.923 / 857.313 ms for the count/page of the same 36-member group.
+The group-scoped projection fixes join order before fingerprint/location lookup; the same snapshot
+returned identical rows in 5.825 / 3.108 ms. These timings isolate SQL, not total image-render latency.
+Current-source checks, representatives, exclusions, choices and read-snapshot consistency remain.
+
+A group equality predicate alone still allowed unrelated-fingerprint growth: adding 4,096 records
+increased a two-member read from 2,043 to 92,155 SQLite instructions. The regression measures the
+production member read rather than asserting a particular query-plan string or wall-clock limit.
+The final join order passed that bound and both existing review cases locally: three cases passed,
+covering choices, stale sources, exclusions, paging and seeks. Client verification and hosted checks
+remain pending for this change.

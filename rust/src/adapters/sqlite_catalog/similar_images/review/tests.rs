@@ -1,4 +1,5 @@
-use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use rusqlite::params;
 
@@ -397,5 +398,59 @@ fn group_pages_and_seeks_are_bounded_and_exclusions_remain_group_scoped() {
             .unwrap()
             .total_members,
         2
+    );
+}
+
+#[test]
+fn member_reads_do_not_walk_unrelated_fingerprints() {
+    let (_directory, mut catalog, run) = evidence_fixture();
+    finish(&mut catalog, &run);
+    let group = catalog
+        .load_similar_groups(SimilarityDegree::Standard, false, "")
+        .unwrap()
+        .groups
+        .remove(0);
+    let measure = || {
+        let steps = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::clone(&steps);
+        catalog
+            .connection
+            .progress_handler(
+                1,
+                Some(move || {
+                    observed.fetch_add(1, Ordering::Relaxed);
+                    false
+                }),
+            )
+            .unwrap();
+        let result =
+            catalog.load_similar_members(&group.group_id, SimilarityDegree::Standard, None);
+        catalog
+            .connection
+            .progress_handler(0, None::<fn() -> bool>)
+            .unwrap();
+        let page = result.unwrap();
+        assert_eq!(page.total_members, 2);
+        assert_eq!(page.members.len(), 2);
+        steps.load(Ordering::Relaxed)
+    };
+    let before = measure();
+    catalog
+        .connection
+        .execute_batch(
+            "WITH RECURSIVE unrelated(n) AS (
+                 VALUES(1) UNION ALL SELECT n + 1 FROM unrelated WHERE n < 4096
+             ), seed AS (SELECT * FROM content_fingerprints LIMIT 1)
+             INSERT INTO content_fingerprints
+                 (source_generation, scheme, digest, byte_length, run_id)
+             SELECT (SELECT MAX(source_generation) FROM content_fingerprints) + n,
+                    seed.scheme, printf('%064x', n), seed.byte_length, seed.run_id
+             FROM unrelated CROSS JOIN seed",
+        )
+        .unwrap();
+    let after = measure();
+    assert!(
+        after <= before + 1000,
+        "reading the same two members must not walk 4096 unrelated fingerprints: {before} -> {after}"
     );
 }
