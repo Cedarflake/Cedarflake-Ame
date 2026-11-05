@@ -7,9 +7,18 @@ on:
         description: Existing v-prefixed tag to verify and publish
         required: true
         type: string
-      expected_broker_publisher:
-        description: Exact Authenticode publisher for the Windows binaries
+      release_signing_mode:
+        description: Distribution channel
         required: true
+        default: unsigned
+        type: choice
+        options:
+          - unsigned
+          - signed
+      expected_broker_publisher:
+        description: Authenticode publisher (required only for signed releases)
+        required: false
+        default: ""
         type: string
 
 permissions:
@@ -35,6 +44,7 @@ jobs:
         env:
           AME_EVENT_NAME: ${{ github.event_name }}
           AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher }}
+          AME_RELEASE_SIGNING_MODE: ${{ inputs.release_signing_mode }}
           AME_HEAD_COMMIT: ${{ github.sha }}
           AME_REF: ${{ github.ref }}
           AME_REF_PROTECTED: ${{ github.ref_protected }}
@@ -68,8 +78,20 @@ jobs:
           if ($env:AME_RELEASE_TAG -cnotmatch $tagPattern) {
             throw "Release request requires one strict v-prefixed semantic-version tag"
           }
-          if ([string]::IsNullOrWhiteSpace($env:AME_EXPECTED_PUBLISHER)) {
-            throw "Release request requires the exact Authenticode publisher"
+          if ($env:AME_RELEASE_SIGNING_MODE -cnotin @("unsigned", "signed")) {
+            throw "Unsupported Windows release signing mode"
+          }
+          if (
+            $env:AME_RELEASE_SIGNING_MODE -ceq "signed" -and
+            [string]::IsNullOrWhiteSpace($env:AME_EXPECTED_PUBLISHER)
+          ) {
+            throw "Signed release request requires the Authenticode publisher"
+          }
+          if (
+            $env:AME_RELEASE_SIGNING_MODE -ceq "unsigned" -and
+            -not [string]::IsNullOrWhiteSpace($env:AME_EXPECTED_PUBLISHER)
+          ) {
+            throw "Unsigned release request must not specify a signing publisher"
           }
           "trusted_workflow_commit=$env:AME_WORKFLOW_COMMIT" >> $env:GITHUB_OUTPUT
 
@@ -83,6 +105,7 @@ jobs:
       gate_mode: release
       release_tag: ${{ inputs.release_tag }}
       expected_broker_publisher: ${{ inputs.expected_broker_publisher }}
+      release_signing_mode: ${{ inputs.release_signing_mode }}
       trusted_workflow_commit: ${{ needs.release_request.outputs.trusted_workflow_commit }}
 
   package_portable:
@@ -97,6 +120,7 @@ jobs:
     env:
       CI: "true"
       AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher }}
+      AME_RELEASE_SIGNING_MODE: ${{ inputs.release_signing_mode }}
       AME_RELEASE_TAG: ${{ inputs.release_tag }}
       AME_SOURCE_COMMIT: ${{ needs.release_windows.outputs.source_commit }}
       AME_TRUSTED_WORKFLOW_COMMIT: ${{ needs.release_request.outputs.trusted_workflow_commit }}
@@ -148,42 +172,55 @@ jobs:
             throw "Package source is not an ancestor of the trusted workflow commit"
           }
 
-      - name: Download immutable signed Windows bundle
+      - name: Download immutable verified Windows bundle
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: ${{ needs.release_windows.outputs.signed_bundle_artifact }}
-          path: build/signed-windows
+          name: ${{ needs.release_windows.outputs.verified_bundle_artifact }}
+          path: build/release-candidate
 
-      - name: Bind signed manifest to the package source
+      - name: Bind candidate manifest to the package source
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $candidateRoot = [System.IO.Path]::GetFullPath("build\signed-windows")
+          $candidateRoot = [System.IO.Path]::GetFullPath("build\release-candidate")
           $manifestPath = Join-Path $candidateRoot "manifest.json"
           if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
-            throw "Signed candidate manifest is missing from the package input"
+            throw "Candidate manifest is missing from the package input"
           }
           $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 |
             ConvertFrom-Json
+          $expectedFormat = if ($env:AME_RELEASE_SIGNING_MODE -ceq "signed") {
+            "cedarflake-ame-signed-v1"
+          } else {
+            "cedarflake-ame-unsigned-v1"
+          }
           if (
-            $manifest.format -cne "cedarflake-ame-signed-v1" -or
+            $manifest.format -cne $expectedFormat -or
             $manifest.tag -cne $env:AME_RELEASE_TAG -or
             $manifest.sourceCommit -cne $env:AME_SOURCE_COMMIT
           ) {
-            throw "Signed manifest tag and source commit do not match the package request"
+            throw "Candidate manifest mode, tag or source commit does not match"
           }
 
-      - name: Reverify downloaded signed Windows bundle
+      - name: Reverify downloaded Windows candidate
         shell: pwsh
         run: |
-          . ./tool/release_journal_broker_common.ps1
-          $releaseRoot = [System.IO.Path]::GetFullPath("build\signed-windows\payload")
-          Assert-AmeApplicationBundleSource `
-            -BundlePath $releaseRoot `
-            -ExpectedPublisher $env:AME_EXPECTED_PUBLISHER | Out-Null
-          Assert-AmeBrokerBinary `
-            -Path (Join-Path $releaseRoot "cedarflake_ame_journal_broker.exe") `
-            -ExpectedPublisher $env:AME_EXPECTED_PUBLISHER | Out-Null
+          $candidateRoot = [System.IO.Path]::GetFullPath("build\release-candidate")
+          $releaseRoot = Join-Path $candidateRoot "payload"
+          if ($env:AME_RELEASE_SIGNING_MODE -ceq "unsigned") {
+            ./tool/release_verify_unsigned_candidate.ps1 `
+              -CandidateRoot $candidateRoot `
+              -Tag $env:AME_RELEASE_TAG `
+              -SourceCommit $env:AME_SOURCE_COMMIT
+          } else {
+            . ./tool/release_journal_broker_common.ps1
+            Assert-AmeApplicationBundleSource `
+              -BundlePath $releaseRoot `
+              -ExpectedPublisher $env:AME_EXPECTED_PUBLISHER | Out-Null
+            Assert-AmeBrokerBinary `
+              -Path (Join-Path $releaseRoot "cedarflake_ame_journal_broker.exe") `
+              -ExpectedPublisher $env:AME_EXPECTED_PUBLISHER | Out-Null
+          }
 
       - name: Package portable ZIP
         id: portable_identity
@@ -193,7 +230,7 @@ jobs:
           $archivePath = (
             ./tool/release_package_portable_windows.ps1 `
               -Tag $env:AME_RELEASE_TAG `
-              -ReleaseRoot ([System.IO.Path]::GetFullPath("build\signed-windows\payload")) `
+              -ReleaseRoot ([System.IO.Path]::GetFullPath("build\release-candidate\payload")) `
               -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER |
               Select-Object -Last 1
           )
@@ -396,7 +433,7 @@ jobs:
 
           $tagCommit = Resolve-ReleaseTagCommit
           if ($tagCommit -cne $env:AME_SOURCE_COMMIT) {
-            throw "GitHub release tag moved after signed-source verification"
+            throw "GitHub release tag moved after candidate verification"
           }
           $archivePath = Join-Path (
             [System.IO.Path]::GetFullPath("build\publish")
@@ -453,3 +490,4 @@ jobs:
     with:
       release_tag: ${{ inputs.release_tag }}
       expected_broker_publisher: ${{ inputs.expected_broker_publisher }}
+      release_signing_mode: ${{ inputs.release_signing_mode }}
