@@ -30,4 +30,8 @@ class LibraryClassificationSettings {
   final List<LibraryClassificationCategory> categories;
   final String? runId;
   final bool installationSelected;
+
+  List<LibraryClassificationCategory> get visibleCategories => categories
+      .where((category) => category.id != "other")
+      .toList(growable: false);
 }

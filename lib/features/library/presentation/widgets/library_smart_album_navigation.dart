@@ -81,7 +81,7 @@ class _LibrarySmartAlbumNavigationState
           ...settings.when(
             skipLoadingOnReload: true,
             data: (value) => [
-              if (value == null || value.categories.isEmpty)
+              if (value == null || value.visibleCategories.isEmpty)
                 ListTile(
                   key: const Key("library-sidebar-smart-empty"),
                   contentPadding: const EdgeInsets.only(left: 16, right: 6),
@@ -110,7 +110,7 @@ class _LibrarySmartAlbumNavigationState
                       : null,
                 ),
               for (final category
-                  in value?.categories ??
+                  in value?.visibleCategories ??
                       const <LibraryClassificationCategory>[])
                 _SmartAlbumRow(
                   category: category,
@@ -124,7 +124,7 @@ class _LibrarySmartAlbumNavigationState
                       : null,
                 ),
               if (value?.installationSelected == false &&
-                  value!.categories.isNotEmpty)
+                  value!.visibleCategories.isNotEmpty)
                 ListTile(
                   leading: const Icon(Symbols.download_rounded),
                   title: const Text("下载模型"),
@@ -181,7 +181,6 @@ class _SmartAlbumRow extends StatelessWidget {
         "comic" => Symbols.menu_book_rounded,
         "meme" => Symbols.mood_rounded,
         "screenshot" => Symbols.desktop_windows_rounded,
-        "other" => Symbols.folder_rounded,
         _ => Symbols.photo_album_rounded,
       }, size: 20),
       title: Text(

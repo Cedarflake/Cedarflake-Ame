@@ -37,5 +37,5 @@ final libraryClassificationCategoriesProvider =
       ref,
     ) {
       final settings = ref.watch(libraryClassificationSettingsProvider);
-      return settings.whenData((value) => value?.categories ?? const []);
+      return settings.whenData((value) => value?.visibleCategories ?? const []);
     });

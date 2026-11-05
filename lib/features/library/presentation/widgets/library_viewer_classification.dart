@@ -14,7 +14,7 @@ class LibraryViewerClassification extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(libraryClassificationSettingsProvider).value;
-    if (settings == null || settings.categories.isEmpty) {
+    if (settings == null || settings.visibleCategories.isEmpty) {
       return const SizedBox.shrink();
     }
     final result = ref.watch(libraryClassificationItemProvider(target));
@@ -30,7 +30,7 @@ class LibraryViewerClassification extends ConsumerWidget {
       );
     }
     final item = result.value;
-    final category = settings.categories
+    final category = settings.visibleCategories
         .where((category) => category.id == item?.categoryId)
         .firstOrNull;
     if (category == null) return const SizedBox.shrink();

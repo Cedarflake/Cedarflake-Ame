@@ -62,8 +62,9 @@ records computation, workflow and rebuilt-client verification; hosted checks rem
 Similarity parameters and source safety remain unchanged.
 
 Current maintenance also addresses [similar-group member query latency](acceptance/r6-similar-images.md#similar-group-member-query-latency--2026-11-05)
-and the reported viewer classification-label flicker and action spacing. Their affected client
-verification and hosted checks remain required; this does not reopen R6 or start R7.
+and viewer classification-label continuity and spacing, removal of the visible `其他` entry,
+filmstrip drag continuity across its consumers, and the time rail's ineffective seek. Their affected
+client verification and hosted checks remain required; this does not reopen R6 or start R7.
 
 Project organization O1–O7 was merged into `main` on 2026-11-04 through
 [PR 46](https://github.com/Cedarflake/Cedarflake-Ame/pull/46). The

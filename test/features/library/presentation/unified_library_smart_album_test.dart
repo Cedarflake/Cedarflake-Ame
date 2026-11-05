@@ -63,6 +63,11 @@ void main() {
       await tester.tap(find.byKey(const Key("workbench-albums")));
       await tester.pumpAndSettle();
       final smartEntry = find.byKey(const Key("library-sidebar-smart-drawing"));
+      expect(
+        find.byKey(const Key("library-sidebar-smart-other")),
+        findsNothing,
+      );
+      expect(find.text("其他"), findsNothing);
       final headingText = find.byKey(
         const Key("library-sidebar-smart-heading"),
       );
@@ -316,6 +321,11 @@ LibraryClassificationSettings _settings(
   installationSelected: true,
   runId: "run",
   categories: [
+    const LibraryClassificationCategory(
+      id: "other",
+      label: "其他",
+      descriptions: ["documents, charts and design assets"],
+    ),
     if (populated)
       LibraryClassificationCategory(
         id: "drawing",

@@ -35,6 +35,11 @@ void main() {
             mode: mode,
             categories: const [
               LibraryClassificationCategory(
+                id: "other",
+                label: "其他",
+                descriptions: ["documents, charts and design assets"],
+              ),
+              LibraryClassificationCategory(
                 id: "drawing",
                 label: "插画",
                 descriptions: ["drawing"],
@@ -141,6 +146,19 @@ void main() {
     pending.complete(const []);
     await tester.pumpAndSettle();
     expect(find.text("插画"), findsNothing);
+    service.pendingRead = null;
+    service.items = const [
+      LibraryClassificationItem(
+        assetId: "asset-one",
+        categoryId: "other",
+        review: LibraryClassificationReview.suggested,
+      ),
+    ];
+    container.invalidate(
+      libraryClassificationItemProvider(organizationTarget("one")),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text("其他"), findsNothing);
   });
 
   testWidgets(

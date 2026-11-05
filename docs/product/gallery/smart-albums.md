@@ -13,6 +13,8 @@ section below manual albums in Albums' secondary sidebar. Use the same compact s
 alignment as manual albums, with a trailing expand/collapse arrow. The heading is plain text with
 no click target, hover treatment or navigation action; only the arrow expands or collapses the list.
 Category rows open the corresponding derived results.
+The built-in `other` purpose has no smart-album row or viewer label. Its stored evidence remains
+available internally and its images remain in Library; concrete supported categories stay visible.
 Category rows show application-managed categories with current results, using one coherent bounded
 presence snapshot with the gallery's membership rules. An empty category remains configured but has
 no sidebar row; an already-open category retains its title and browsing scope. First use relies on
