@@ -26,9 +26,12 @@ fn preview_failure_survives_disconnected_diagnostic_pipe() {
             &PreviewStageTimings::default(),
             &result,
         );
-        let failure = result.expect_err("source failure is retained");
-        assert_eq!(failure.code, "preview_source_missing");
-        assert_eq!(failure.message, "Source is unavailable");
+        assert!(
+            matches!(&result, Err(failure)
+                if failure.code == "preview_source_missing"
+                    && failure.message == "Source is unavailable"),
+            "source failure was not retained: {result:?}"
+        );
         return;
     }
 
