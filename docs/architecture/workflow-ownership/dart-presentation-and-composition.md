@@ -26,6 +26,9 @@ opening. The scheduler owns coalesced catalog generations, idle admission, foreg
 failure cooldown. The existing analysis environment supplies power, suspension and memory events;
 no second observer or native runtime is created. Window shutdown joins the pair before notifier and
 root-container disposal. Navigation and similarity-degree changes do not cancel analysis.
+`LibrarySimilarResultsRefresh` schedules one refresh at a time while analysis runs. The Duplicates
+page admits these reads only for the visible group list, preserving member review and comparison.
+The existing terminal analysis notification still refreshes final results; disposal retires polling.
 
 ## Workbench destinations
 

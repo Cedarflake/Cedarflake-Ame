@@ -317,3 +317,41 @@ and requires no product change. Comparison and ordinary viewing share `LibraryVi
 
 The session lasted 572.848 seconds and peaked at 218,607,616 bytes of working set. All 51 fixture
 source SHA-256 hashes remained unchanged, and the isolated scratch profile was retired.
+
+## Development analysis throughput — 2026-11-05
+
+The `c90fc58c` development client analyzed 218 contents in about 888 seconds. Read-only catalog
+inspection found 3 completed matching continuations and 210 pending reference searches; analysis
+was active without suspension or an error. Existing groups were empty. The first 191 ready contents
+also had no qualifying pair under standard or broad degree in an exhaustive stored-hash comparison.
+
+A bounded generated-PNG diagnostic used the production decoder and normalization/hash owners:
+
+| Image | Unoptimized Debug | Debug with optimization level 2 | Release |
+| --- | ---: | ---: | ---: |
+| 512 × 512 | 1,734.625 ms | 61.812 ms | 12.402 ms |
+| 2048 × 2048 | 9,624.556 ms | 178.410 ms | 61.639 ms |
+
+These totals cover decoding, normalization and both hash sizes, excluding fixture encoding, catalog
+work and scheduling. Both fixtures produced identical paired-hash digests in all three profiles.
+The optimized Debug measurement retains assertions and symbols; the approximately 54-fold gain on
+the larger fixture is a computation result, not a whole-library throughput claim.
+
+An optimized native comparison restored the same isolated catalog snapshot before each run over
+16 generated images. First standard-degree groups appeared after 452 ms with the original matching
+cadence and 224 ms with bounded slices; complete runs took 897 / 994 ms respectively. Both returned
+two standard groups, retained all expected broad-degree transformations, rejected unrelated scene
+membership and produced the expected signature bytes. Fresh reference admission can occur earlier;
+the fixed-reference criterion and existing reference identities remain unchanged. SQLite integrity,
+foreign keys and every source SHA-256 passed, and the leased derived storage was retired.
+
+The existing Flutter review workflow now also proves publication while analysis is still running,
+one in-flight refresh during a delayed query, and polling retirement after analysis stops. Its full
+comparison/navigation case passed locally. Matching cancellation, lease renewal and bounded forward
+progress have two focused Rust cases; their execution belongs to hosted CI.
+
+The execution facade and matching owner contain 129 / 35 production lines, no inline cases and
+122 dedicated matching-test lines. The Duplicates page and refresh owner contain 370 / 46 production
+lines, no inline cases and share the 382-line workflow test. Debug configuration changes no engine,
+schema, dependency version or source-read admission. The already running development process retains
+its loaded native library until a full rebuild and restart.

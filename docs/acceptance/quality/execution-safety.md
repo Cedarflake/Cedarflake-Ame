@@ -50,6 +50,9 @@ The repository Cargo configuration disables incremental compilation to prevent r
 feature/build variants from accumulating compiler working directories. Normal dependency and
 compiled-artifact reuse remains enabled. This trades some edited-crate rebuild speed for lower
 storage use; it does not change debug symbols, assertions or release optimization.
+`rust/cargokit.yaml` enables Rust optimization level 2 for Flutter Debug builds so media decoding
+and analysis remain usable during `flutter run`. Debug symbols, assertions and Dart hot reload stay
+enabled. Ordinary Cargo test/dev profiles and Flutter Profile/Release builds keep their own settings.
 The scratch lifecycle and a dependency-free Cargo probe run in the hosted Static gate through
 `tool/acceptance_test_scratch_storage.ps1`.
 

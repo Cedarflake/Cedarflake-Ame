@@ -1,16 +1,20 @@
+import "dart:async";
 import "dart:convert";
 import "dart:math" as math;
 import "dart:ui" as ui;
 
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
+import "package:cedarflake_ame/features/library/application/library_similar_analysis_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_similar_review_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_similar_analysis.dart";
 import "package:cedarflake_ame/features/library/application/library_workbench_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/features/library/domain/library_similar_analysis.dart";
 import "package:cedarflake_ame/features/library/domain/library_similar_review.dart";
 import "package:cedarflake_ame/features/library/presentation/pages/library_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_review_cards.dart";
@@ -31,7 +35,7 @@ import "../../../../support/similar_review_fixtures.dart";
 
 void main() {
   testWidgets(
-    "mixed ignored groups and comparison preserve context until primary navigation",
+    "running results join ignored groups and preserve comparison until navigation",
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1100, 850));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -44,11 +48,15 @@ void main() {
         );
       final library = ReviewFixtureLibrary();
       final source = _ComparisonReader();
+      final analysisService = _AnalysisService();
+      final members = List.of(similar.members);
+      similar.members.clear();
       final container = ProviderContainer(
         overrides: applicationTestOverrides([
           libraryControllerProvider.overrideWith(() => library),
           libraryDuplicateReviewProvider.overrideWithValue(exact),
           librarySimilarReviewProvider.overrideWithValue(similar),
+          librarySimilarAnalysisProvider.overrideWithValue(analysisService),
           librarySourceReaderProvider.overrideWithValue(source),
         ]),
       );
@@ -84,9 +92,32 @@ void main() {
       }
 
       await chooseView("已忽略");
+      expect(find.text("1 个组"), findsOneWidget);
+      expect(find.byType(LibrarySimilarGroupCard), findsNothing);
+      similar.members.addAll(members);
+      final pendingGroups = Completer<LibrarySimilarGroups>();
+      similar.pendingGroups = pendingGroups;
+      final analysis = container.read(librarySimilarAnalysisControllerProvider);
+      analysis.start();
+      await tester.pump();
+      final initialQueries = similar.queries.length;
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump(const Duration(seconds: 6));
+      expect(similar.queries.length, initialQueries + 1);
+      pendingGroups.complete(
+        LibrarySimilarGroups(groups: [similar.group()], total: 1),
+      );
+      similar.pendingGroups = null;
+      await tester.pumpAndSettle();
+      expect(analysis.isRunning, isTrue);
       expect(find.text("2 个组"), findsOneWidget);
       expect(find.byType(LibraryDuplicateGroupCard), findsOneWidget);
       expect(find.byType(LibrarySimilarGroupCard), findsOneWidget);
+      await analysis.close();
+      await tester.pumpAndSettle();
+      final stoppedQueries = similar.queries.length;
+      await tester.pump(const Duration(seconds: 4));
+      expect(similar.queries.length, stoppedQueries);
       expect(find.textContaining("重复组"), findsOneWidget);
       expect(find.textContaining("相似组"), findsOneWidget);
       await tester.tap(find.text("查看相似图片"));
@@ -283,6 +314,41 @@ void main() {
       expect(library.demands, isEmpty);
     },
   );
+}
+
+class _AnalysisService implements LibrarySimilarAnalysis {
+  @override
+  Future<LibrarySimilarAnalysisSession> open(String runId) async =>
+      _AnalysisSession(runId);
+}
+
+class _AnalysisSession implements LibrarySimilarAnalysisSession {
+  _AnalysisSession(this.runId);
+  final String runId;
+  final completion = Completer<LibrarySimilarAnalysisProgress>();
+
+  @override
+  Future<LibrarySimilarAnalysisProgress> run() => completion.future;
+
+  @override
+  LibrarySimilarAnalysisProgress progress() => LibrarySimilarAnalysisProgress(
+    runId: runId,
+    phase: LibrarySimilarAnalysisPhase.running,
+  );
+
+  @override
+  void cancel() => completion.complete(
+    LibrarySimilarAnalysisProgress(
+      runId: runId,
+      phase: LibrarySimilarAnalysisPhase.cancelled,
+    ),
+  );
+
+  @override
+  void suspend(bool suspended) {}
+
+  @override
+  void dispose() {}
 }
 
 class _ComparisonReader implements LibrarySourceReader {

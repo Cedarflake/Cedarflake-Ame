@@ -16,6 +16,7 @@ import "../../application/library_workbench_controller.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_similar_review.dart";
 import "../coordination/library_duplicate_workspace.dart";
+import "../coordination/library_similar_results_refresh.dart";
 import "../library_duplicate_strings.dart";
 import "../widgets/library_duplicate_group_menus.dart";
 import "../widgets/library_duplicate_locations_sheet.dart";
@@ -39,6 +40,7 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
   late final LibraryExactAnalysisController _exactAnalysis;
   late final LibrarySimilarAnalysisController _similarAnalysis;
   late final LibraryDuplicateWorkspace _workspace;
+  late final LibrarySimilarResultsRefresh _similarResultsRefresh;
   bool _exactRunning = false;
   bool _similarRunning = false;
   bool _viewerOpen = false;
@@ -61,6 +63,10 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
     _similarRunning = _similarAnalysis.isRunning;
     _exactAnalysis.addListener(_analysisChanged);
     _similarAnalysis.addListener(_analysisChanged);
+    _similarResultsRefresh = LibrarySimilarResultsRefresh(
+      analysis: _similarAnalysis,
+      refresh: _refreshSimilarResults,
+    );
     ref.listenManual(
       libraryControllerProvider.select((value) => value.catalogRevision),
       (_, _) => _catalogChanged(),
@@ -91,8 +97,21 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
     }
   }
 
+  Future<void> _refreshSimilarResults() {
+    if (_viewerOpen ||
+        _workspace.hasMembers ||
+        _workspace.view == LibraryDuplicateView.exact ||
+        _workspace.similar.groupWindow.isReading ||
+        ref.read(libraryWorkbenchControllerProvider) !=
+            LibraryWorkspace.duplicates) {
+      return Future.value();
+    }
+    return _workspace.similar.catalogChanged();
+  }
+
   @override
   void dispose() {
+    _similarResultsRefresh.dispose();
     _exactAnalysis.removeListener(_analysisChanged);
     _similarAnalysis.removeListener(_analysisChanged);
     _workspace.dispose();

@@ -400,6 +400,9 @@ either reader, retains the source lease through publication, then retires it bef
 its bridge object exists before asynchronous dispatch so cancellation can precede execution.
 The repository factory selects the validated Recovery-lane catalog. SQLite owns atomic publication,
 run leases and bounded matching continuations; neither factory owns those policies or SQL.
+The execution matching owner advances up to 128 windows or 100 ms between source reads, checking
+cancellation, suspension and lease renewal between windows. Remaining work retains its continuation
+and drains after source exhaustion; the time budget is checked between bounded database calls.
 Bridge discovery excludes the internal adapter module; clients use the API session wrapper and
 domain progress values.
 

@@ -10,6 +10,7 @@ use crate::ports::similar_images::{SimilarAnalysisRepository, SimilarImageReader
 
 use super::AnalysisControl;
 
+mod matching;
 mod source;
 
 pub(super) fn analyze(
@@ -89,7 +90,7 @@ fn execute(
                 return Ok(());
             }
             // Share the existing background-reader admission; only bounded matching runs outside it.
-            repository.match_similarity_window(run, &control.cancelled)?;
+            matching::advance(repository, run, control, &mut renewal)?;
             if last_emit.elapsed() >= Duration::from_millis(100) {
                 emit(progress.clone());
                 last_emit = Instant::now();
@@ -97,9 +98,7 @@ fn execute(
         }
     }
     progress.current_path = None;
-    while admit(repository, run, control, &mut renewal)?
-        && repository.match_similarity_window(run, &control.cancelled)?
-    {
+    while matching::advance(repository, run, control, &mut renewal)? {
         if last_emit.elapsed() >= Duration::from_millis(100) {
             emit(progress.clone());
             last_emit = Instant::now();

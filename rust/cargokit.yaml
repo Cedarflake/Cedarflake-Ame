@@ -1,0 +1,5 @@
+cargo:
+  debug:
+    extra_flags:
+      - "--config"
+      - "profile.dev.opt-level=2"
