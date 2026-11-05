@@ -111,6 +111,9 @@ foreach ($file in $files) {
     if (-not $manifestPaths.Contains($relativePath)) {
         throw "Unsigned candidate payload contains an unlisted file"
     }
+    if ($file.Extension -in @(".exe", ".dll")) {
+        Assert-AmeBrokerMachineFacts -Machine (Get-AmeBrokerPeMachine -Path $file.FullName)
+    }
 }
 $requiredFiles = @(
     "cedarflake_ame.exe",
