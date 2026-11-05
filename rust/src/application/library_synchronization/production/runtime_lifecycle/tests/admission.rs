@@ -1,6 +1,52 @@
 use super::*;
 
 #[test]
+fn a_new_start_ticket_adopts_the_ready_runtime_and_rejects_the_old_attachment() {
+    let closes = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let registry = ready_test_registry(runtime_with_close_probe(Arc::clone(&closes)));
+    let previous = active_owner_ticket(&registry);
+    let (_, _, retained) = claim_runtime_for_poll_with_ticket(&registry, previous).unwrap();
+    let epoch = registry
+        .state
+        .lock()
+        .unwrap()
+        .entry
+        .owner_identity()
+        .unwrap()
+        .epoch;
+    let cancelled = retained.lock().unwrap().stop_requested.clone();
+    execute_runtime_operation(
+        &registry,
+        epoch,
+        previous,
+        cancelled,
+        retained.clone(),
+        |_| Ok(()),
+    )
+    .unwrap();
+
+    let current = reserve_runtime_start_ticket(&registry).unwrap();
+    let SynchronizationRuntimeClaim::Poll {
+        epoch: reused_epoch,
+        cancelled,
+        runtime,
+    } = claim_runtime_for_start_with_ticket(&registry, current).unwrap()
+    else {
+        panic!("reattaching must preserve the existing runtime")
+    };
+    assert_eq!(reused_epoch, epoch);
+    assert!(Arc::ptr_eq(&runtime, &retained));
+    assert!(!cancelled.load(Ordering::Acquire));
+    execute_runtime_operation(&registry, epoch, current, cancelled, runtime, |_| Ok(())).unwrap();
+    assert!(claim_runtime_for_start_with_ticket(&registry, previous).is_err());
+    assert!(claim_runtime_for_poll_with_ticket(&registry, previous).is_err());
+    assert_eq!(active_owner_ticket(&registry), current);
+    assert_eq!(closes.load(Ordering::Acquire), 0);
+    stop_runtime(&registry).unwrap();
+    assert_eq!(closes.load(Ordering::Acquire), 1);
+}
+
+#[test]
 fn first_import_preflight_waits_until_the_runtime_is_ready_to_poll() {
     let empty_registry = SynchronizationRuntimeRegistry::default();
     assert_eq!(

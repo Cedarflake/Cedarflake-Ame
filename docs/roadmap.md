@@ -64,9 +64,10 @@ Similarity parameters and source safety remain unchanged.
 Current maintenance also addresses [similar-group member query latency](acceptance/r6-similar-images.md#similar-group-member-query-latency--2026-11-05)
 and viewer classification-label continuity and spacing, removal of the visible `其他` entry,
 filmstrip drag continuity across its consumers, and the time rail's ineffective seek. Follow-up work
-covers filmstrip boundary paging and inline loading feedback, classification continuity across
-development hot restart, and consistent duplicate icons. Affected client verification and hosted
-checks remain required; this does not reopen R6 or start R7.
+covers filmstrip boundary paging and inline loading feedback and consistent duplicate icons.
+[Desktop lifecycle continuity](acceptance/desktop-lifecycle-continuity.md) records verified
+classification and synchronization hot-restart attachment; normal-close presentation ordering
+remains under repair. Hosted checks remain required; this does not reopen R6 or start R7.
 
 Project organization O1–O7 was merged into `main` on 2026-11-04 through
 [PR 46](https://github.com/Cedarflake/Cedarflake-Ame/pull/46). The

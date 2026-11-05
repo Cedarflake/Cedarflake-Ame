@@ -178,7 +178,8 @@ pub(super) fn claim_runtime_for_start_with_ticket(
             owner_ticket: active_owner_ticket,
             cancelled,
             runtime,
-        } if active_owner_ticket == owner_ticket => {
+        } if active_owner_ticket.ordinal() <= owner_ticket.ordinal() => {
+            // A newer desktop attachment can reuse idle resources; old tickets cannot reclaim them.
             registry.entry = SynchronizationRuntimeEntry::Polling {
                 epoch,
                 owner_ticket,
