@@ -1,31 +1,20 @@
 use rusqlite::{Connection, OptionalExtension, Row, Transaction, params};
 
 use crate::domain::ScanError;
+use crate::domain::similar_images::SIMILARITY_SCHEME;
 use crate::domain::similar_images::review::{
     SimilarExclusionResult, SimilarGroupDecision, SimilarMemberExclusion, SimilarMemberSelection,
     SimilarReviewContext, SimilarUndoResult,
 };
-use crate::domain::similar_images::{SIMILARITY_SCHEME, SimilarContentKey};
 
 use super::super::super::exact_duplicates::read_unsigned;
 use super::super::super::{database_error, sqlite_integer};
 use super::{projection, queries};
 
 pub(super) fn read(row: &Row<'_>, start: usize) -> rusqlite::Result<SimilarGroupDecision> {
-    let scheme: Option<String> = row.get(start)?;
-    let preferred = scheme
-        .map(|scheme| -> rusqlite::Result<_> {
-            Ok(SimilarContentKey {
-                scheme,
-                digest: row.get(start + 1)?,
-                byte_length: read_unsigned(row, start + 2)?,
-            })
-        })
-        .transpose()?;
     Ok(SimilarGroupDecision {
-        preferred,
-        ignored: row.get(start + 3)?,
-        revision: read_unsigned(row, start + 4)?,
+        ignored: row.get(start)?,
+        revision: read_unsigned(row, start + 1)?,
     })
 }
 
@@ -35,8 +24,7 @@ pub(super) fn load(
 ) -> Result<SimilarGroupDecision, ScanError> {
     connection
         .query_row(
-            "SELECT choice.preferred_scheme, choice.preferred_digest, choice.preferred_byte_length,
-                COALESCE(choice.ignored, 0), COALESCE(choice.revision, 0)
+            "SELECT COALESCE(choice.ignored, 0), COALESCE(choice.revision, 0)
          FROM similarity_groups AS g
          LEFT JOIN similarity_decisions AS choice ON choice.group_id = g.group_id
          WHERE g.group_id = ?1 AND g.scheme = ?2",
@@ -68,16 +56,11 @@ fn save(
         .revision
         .checked_add(1)
         .ok_or_else(projection::stale)?;
-    let preferred = decision.preferred.as_ref();
     transaction.execute(
-        "INSERT INTO similarity_decisions VALUES (?1, ?2, ?3, ?4, ?5, ?6)
-         ON CONFLICT(group_id) DO UPDATE SET preferred_scheme = excluded.preferred_scheme,
-           preferred_digest = excluded.preferred_digest, preferred_byte_length = excluded.preferred_byte_length,
-           ignored = excluded.ignored, revision = excluded.revision",
+        "INSERT INTO similarity_decisions (group_id, ignored, revision) VALUES (?1, ?2, ?3)
+         ON CONFLICT(group_id) DO UPDATE SET ignored = excluded.ignored, revision = excluded.revision",
         params![
             group_id,
-            preferred.map(|key| key.scheme.as_str()), preferred.map(|key| key.digest.as_str()),
-            preferred.map(|key| sqlite_integer(key.byte_length, "content length")).transpose()?,
             decision.ignored, sqlite_integer(decision.revision, "decision revision")?,
         ],
     ).map_err(database_error)?;
@@ -87,15 +70,30 @@ fn save(
 pub(super) fn prefer(
     transaction: &Transaction<'_>,
     context: &SimilarReviewContext,
-    selection: Option<&SimilarMemberSelection>,
+    selection: &SimilarMemberSelection,
+    preferred: bool,
 ) -> Result<SimilarGroupDecision, ScanError> {
     let mut decision = current(transaction, context)?;
-    if let Some(selection) = selection {
-        projection::require_selected(transaction, context, selection)?;
-    }
-    let preferred = selection.map(|selection| selection.content.clone());
-    if preferred != decision.preferred {
-        decision.preferred = preferred;
+    projection::require_selected(transaction, context, selection)?;
+    let sql = if preferred {
+        "INSERT INTO similarity_preferences (group_id, fingerprint_scheme, digest, byte_length)
+         VALUES (?1, ?2, ?3, ?4) ON CONFLICT DO NOTHING"
+    } else {
+        "DELETE FROM similarity_preferences
+         WHERE group_id = ?1 AND fingerprint_scheme = ?2 AND digest = ?3 AND byte_length = ?4"
+    };
+    let changed = transaction
+        .execute(
+            sql,
+            params![
+                context.group_id,
+                selection.content.scheme,
+                selection.content.digest,
+                sqlite_integer(selection.content.byte_length, "content length")?,
+            ],
+        )
+        .map_err(database_error)?;
+    if changed > 0 {
         save(transaction, &context.group_id, &mut decision)?;
     }
     Ok(decision)

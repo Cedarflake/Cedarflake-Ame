@@ -78,7 +78,9 @@ acceptance. Implementation checks passed at `4c35a993`; the
 
 The [partial-Czkawka evaluation](acceptance/r6-engine-evaluation.md#partial-czkawka-reuse---2026-11-05)
 establishes feasible extraction but no combined quality gain on the retained samples. Keep the paired
-engine; visual-layout discrimination and heavier-crop coverage remain part of R6's acceptance decision.
+engine; its visual-layout discrimination and heavier-crop limits are accepted for R6. The current
+interaction adjustment allows multiple selected images within similar groups and selects the cover
+automatically from those choices; exact groups retain their existing behavior.
 
 The historical pause timeout remains an accepted observation with a
 [recurrence-based follow-up](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04).

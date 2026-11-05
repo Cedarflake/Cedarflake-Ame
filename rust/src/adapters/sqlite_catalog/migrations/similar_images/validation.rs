@@ -15,7 +15,9 @@ pub(in crate::adapters::sqlite_catalog::migrations) fn validate(
 ) -> Result<(), ScanError> {
     let version = super::super::schema_shape::schema_version(connection)?;
     for (kind, name, ddl) in super::schema::OBJECTS {
-        let expected = if version >= 75 {
+        let expected = if version >= 76 && *name == "similarity_decisions" {
+            super::preferences::DECISIONS.to_owned()
+        } else if version >= 75 {
             super::confirmation::current_ddl(name, ddl)
         } else {
             (*ddl).to_owned()
@@ -23,6 +25,16 @@ pub(in crate::adapters::sqlite_catalog::migrations) fn validate(
         if !schema_object_sql_matches(connection, kind, name, &expected)? {
             return Err(invalid());
         }
+    }
+    if version >= 76
+        && !schema_object_sql_matches(
+            connection,
+            "table",
+            "similarity_preferences",
+            super::preferences::PREFERENCES,
+        )?
+    {
+        return Err(invalid());
     }
     Ok(())
 }
@@ -113,13 +125,18 @@ fn validate_content(connection: &Connection) -> Result<(), ScanError> {
     if invalid_variants {
         return Err(invalid());
     }
+    let preferences = if super::super::schema_shape::schema_version(connection)? >= 76 {
+        "SELECT fingerprint_scheme, digest, byte_length FROM similarity_preferences"
+    } else {
+        "SELECT preferred_scheme, preferred_digest, preferred_byte_length
+         FROM similarity_decisions WHERE preferred_scheme IS NOT NULL"
+    };
     let mut statement = connection
-        .prepare(
+        .prepare(&format!(
             "SELECT fingerprint_scheme, digest, byte_length FROM similarity_evidence
          UNION ALL SELECT fingerprint_scheme, digest, byte_length FROM similarity_exclusions
-         UNION ALL SELECT preferred_scheme, preferred_digest, preferred_byte_length
-           FROM similarity_decisions WHERE preferred_scheme IS NOT NULL",
-        )
+         UNION ALL {preferences}"
+        ))
         .map_err(database_error)?;
     let contents = statement
         .query_map([], |row| {

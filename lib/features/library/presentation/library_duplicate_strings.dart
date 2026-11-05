@@ -49,6 +49,8 @@ abstract final class LibraryDuplicateStrings {
   static const zoomIn = "放大";
   static const zoomOut = "缩小";
   static const prefer = "设为首选";
+  static const selectSimilarImage = "选择图片";
+  static const deselectSimilarImage = "取消选择";
   static const clearPreferred = "取消首选";
   static const ignore = "忽略此组";
   static const restoreGroup = "恢复此组";

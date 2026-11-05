@@ -35,7 +35,6 @@ class LibrarySimilarReviewController extends ChangeNotifier {
   );
   bool _ignored = false;
   bool _disposed = false;
-  bool _revalidationPending = false;
   int _viewGeneration = 0;
 
   LibrarySimilarityDegree get degree => _degree;
@@ -43,6 +42,7 @@ class LibrarySimilarReviewController extends ChangeNotifier {
       _ignored ? LibrarySimilarityDegree.broad : _degree;
   bool get ignored => _ignored;
   LibrarySimilarDecision get decision => _decision;
+  bool get canWrite => !choices.saving && _context != null;
   bool get loading =>
       selected == null ? groupWindow.loading : memberWindow.loading;
   bool get loadFailed =>
@@ -54,7 +54,13 @@ class LibrarySimilarReviewController extends ChangeNotifier {
       : "similar-members-${selected!.id}-${effectiveDegree.name}";
   LibrarySimilarContext? get _context {
     final group = selected;
-    if (group == null || loading || loadFailed || _disposed) return null;
+    if (group == null ||
+        memberWindow.isReading ||
+        loading ||
+        loadFailed ||
+        _disposed) {
+      return null;
+    }
     return LibrarySimilarContext(
       groupId: group.id,
       degree: effectiveDegree,
@@ -144,7 +150,6 @@ class LibrarySimilarReviewController extends ChangeNotifier {
   Future<void> catalogChanged() {
     if (_disposed) return Future.value();
     if (choices.saving) {
-      _revalidationPending = true;
       return Future.value();
     }
     if (selected == null) return groupWindow.revalidate();
@@ -152,8 +157,8 @@ class LibrarySimilarReviewController extends ChangeNotifier {
     return memberWindow.revalidate();
   }
 
-  Future<bool> prefer(LibrarySimilarMember? member) =>
-      _saveDecision((context) => choices.prefer(context, member));
+  Future<bool> prefer(LibrarySimilarMember member, bool preferred) =>
+      _saveDecision((context) => choices.prefer(context, member, preferred));
   Future<bool> setIgnored(bool ignored) =>
       _saveDecision((context) => choices.ignore(context, ignored));
 
@@ -174,9 +179,7 @@ class LibrarySimilarReviewController extends ChangeNotifier {
         notifyListeners();
       }
     }
-    await _finishWrite(
-      revalidate: result == null || generation != _viewGeneration,
-    );
+    await catalogChanged();
     return result != null;
   }
 
@@ -191,7 +194,7 @@ class LibrarySimilarReviewController extends ChangeNotifier {
       groupWindow.invalidate();
       if (generation == _viewGeneration) _decision = result.decision;
     }
-    await _finishWrite(revalidate: true);
+    await catalogChanged();
     return result?.undo;
   }
 
@@ -209,15 +212,8 @@ class LibrarySimilarReviewController extends ChangeNotifier {
         _decision = result.decision;
       }
     }
-    await _finishWrite(revalidate: true);
+    await catalogChanged();
     return result;
-  }
-
-  Future<void> _finishWrite({required bool revalidate}) async {
-    if (revalidate || _revalidationPending) {
-      _revalidationPending = false;
-      await catalogChanged();
-    }
   }
 
   @override

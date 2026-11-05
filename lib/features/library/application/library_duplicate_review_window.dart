@@ -40,6 +40,7 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
   int _first = 0;
   int _end = 1;
   Future<void>? _pending;
+  bool get isReading => _pending != null;
 
   T? itemAt(int index) => _data.itemAt(index);
 

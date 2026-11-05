@@ -59,6 +59,7 @@ pub(crate) fn members(
         .map(|member| {
             let availability = inspect_candidate_availability(&member.candidate);
             SimilarReviewMember {
+                preferred: member.preferred,
                 content: member.content,
                 representative: member.candidate.location,
                 availability,
@@ -77,13 +78,12 @@ pub(crate) fn members(
 
 pub(crate) fn prefer(
     context: SimilarReviewContext,
-    selection: Option<SimilarMemberSelection>,
+    selection: SimilarMemberSelection,
+    preferred: bool,
 ) -> Result<SimilarGroupDecision, ScanError> {
     validate_digest(&context.group_id)?;
-    if let Some(selection) = &selection {
-        validate_selection(selection)?;
-    }
-    production::repository()?.prefer_similar_member(&context, selection.as_ref())
+    validate_selection(&selection)?;
+    production::repository()?.prefer_similar_member(&context, &selection, preferred)
 }
 
 pub(crate) fn ignore(

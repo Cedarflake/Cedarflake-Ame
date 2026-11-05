@@ -30,7 +30,7 @@ The planning choices below guide implementation; detailed styling and notificati
 | Browsing | Reuse group cards, member rows and image viewing. Browse freely, without group completion, a next-group step or review-progress tracking. |
 | Comparison | Select two members; put `对比图片` beside `忽略此组` / `恢复此组`. Omit the separate selection toolbar and its left-hand instruction/count. Plan side-by-side viewing with optional synchronized zoom/pan. |
 | Exact copies | Show one representative for byte-identical copies within a similar group and retain access to all locations. Reuse existing representative rules without merging asset/location identities. |
-| Saved choices | Preserve preferences and ignored groups across degree changes and compatible reanalysis. A similarity preference does not fold or hide images in Library. |
+| Saved choices | Similar groups support multiple selected images through bookmark toggles (`选择图片` / `取消选择`); automatically choose the cover from visible selections, with the ordinary fallback. Exact groups retain one preferred copy. Preserve choices across degree changes and compatible reanalysis; do not fold or hide images in Library. |
 | Ignored groups | List ignored exact and similar groups together, identify the kind on each card, and support restoration. Ignore/restore saves in place without automatically leaving the open group. |
 | Automatic work | Discovery and result updates run automatically; remove manual refresh and pause/stop-search controls from this workspace. Navigation does not cancel analysis. |
 | Library | Add no similarity filter or similarity-driven folding to Library, Favorites or albums; existing exact-duplicate display remains separate. |

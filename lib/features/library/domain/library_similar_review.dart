@@ -25,13 +25,8 @@ class LibrarySimilarContent {
 }
 
 class LibrarySimilarDecision {
-  const LibrarySimilarDecision({
-    required this.revision,
-    this.preferred,
-    this.ignored = false,
-  });
+  const LibrarySimilarDecision({required this.revision, this.ignored = false});
   final BigInt revision;
-  final LibrarySimilarContent? preferred;
   final bool ignored;
 }
 
@@ -75,12 +70,14 @@ class LibrarySimilarMember {
     required this.availability,
     required this.locationCount,
     required this.distance,
+    required this.preferred,
   });
   final LibrarySimilarContent content;
   final LibraryAsset asset;
   final LibraryDuplicateAvailability availability;
   final int locationCount;
   final int distance;
+  final bool preferred;
 }
 
 class LibrarySimilarMembers {

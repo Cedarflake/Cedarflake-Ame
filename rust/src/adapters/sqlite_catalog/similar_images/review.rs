@@ -66,10 +66,11 @@ impl SimilarReviewRepository for SqliteCatalog {
     fn prefer_similar_member(
         &mut self,
         context: &SimilarReviewContext,
-        selection: Option<&SimilarMemberSelection>,
+        selection: &SimilarMemberSelection,
+        preferred: bool,
     ) -> Result<SimilarGroupDecision, ScanError> {
         let transaction = self.begin_write()?;
-        let decision = decisions::prefer(&transaction, context, selection)?;
+        let decision = decisions::prefer(&transaction, context, selection, preferred)?;
         transaction.commit().map_err(database_error)?;
         Ok(decision)
     }

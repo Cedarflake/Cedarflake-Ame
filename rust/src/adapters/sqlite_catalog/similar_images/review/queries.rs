@@ -73,9 +73,7 @@ pub(super) fn groups(
     let sql = format!(
         "{}, grouped AS (
             SELECT v.group_id, COUNT(*) AS member_count,
-                   COALESCE(MIN(CASE WHEN choice.preferred_scheme = v.content_scheme
-                       AND choice.preferred_digest = v.content_digest
-                       AND choice.preferred_byte_length = v.content_bytes
+                   COALESCE(MIN(CASE WHEN v.preferred
                        THEN v.representative END), MIN(v.representative)) AS representative
             FROM visible_members AS v
             LEFT JOIN similarity_decisions AS choice ON choice.group_id = v.group_id
@@ -84,7 +82,6 @@ pub(super) fn groups(
             ORDER BY v.group_id LIMIT ?7 OFFSET ?8
         )
         SELECT {CANDIDATE_COLUMNS}, grouped.group_id, grouped.member_count,
-               choice.preferred_scheme, choice.preferred_digest, choice.preferred_byte_length,
                COALESCE(choice.ignored, 0), COALESCE(choice.revision, 0)
         FROM {CURRENT_LOCATIONS}
         JOIN grouped ON grouped.representative = l.location_id
@@ -145,7 +142,7 @@ pub(super) fn members(
     let decision = decisions::load(connection, group_id)?;
     let sql = format!(
         "{} SELECT {CANDIDATE_COLUMNS}, v.content_scheme, v.content_digest, v.content_bytes,
-                   v.location_count, v.distance
+                   v.location_count, v.distance, v.preferred
         FROM {CURRENT_LOCATIONS}
         JOIN visible_members AS v ON v.representative = l.location_id
         WHERE (v.content_scheme, v.content_digest, v.content_bytes) > (?5, ?6, ?7)
@@ -174,7 +171,9 @@ pub(super) fn members(
                 };
                 let location_count = read_unsigned(row, 34)?;
                 let distance = row.get(35)?;
+                let preferred = row.get(36)?;
                 Ok(candidate.map(|candidate| SimilarMemberCandidate {
+                    preferred,
                     content,
                     candidate,
                     location_count,

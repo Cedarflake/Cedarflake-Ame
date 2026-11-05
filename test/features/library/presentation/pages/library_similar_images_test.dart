@@ -23,6 +23,7 @@ import "package:flutter/gestures.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../support/application_test_bindings.dart";
 import "../../../../support/duplicate_review_fixtures.dart";
@@ -112,9 +113,26 @@ void main() {
       expect(similar.queries.last.degree, LibrarySimilarityDegree.strict);
       await tester.tap(find.text("查看相似图片"));
       await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel("选择图片"), findsNWidgets(2));
       await tester.tap(find.byKey(const ValueKey("prefer-one")));
       await tester.pumpAndSettle();
-      expect(similar.decision.preferred, similar.members.first.content);
+      expect(similar.members.first.preferred, isTrue);
+      await tester.tap(find.byKey(const ValueKey("prefer-two")));
+      await tester.pumpAndSettle();
+      for (final id in ["one", "two"]) {
+        expect(
+          tester
+              .widget<IconButton>(find.byKey(ValueKey("prefer-$id")))
+              .isSelected,
+          isTrue,
+        );
+      }
+      expect(find.byIcon(Symbols.bookmark_rounded), findsNWidgets(2));
+      expect(find.bySemanticsLabel("取消选择"), findsNWidgets(2));
+      await tester.tap(find.byKey(const ValueKey("prefer-one")));
+      await tester.pumpAndSettle();
+      expect(similar.members.first.preferred, isFalse);
+      expect(similar.members.last.preferred, isTrue);
       expect(library.refreshes, 0);
       for (final id in ["one", "two"]) {
         await tester.tap(find.byKey(ValueKey("compare-select-$id")));

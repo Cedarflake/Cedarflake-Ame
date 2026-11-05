@@ -22,8 +22,9 @@ class LibrarySimilarChoices extends ChangeNotifier {
 
   Future<LibrarySimilarDecision?> prefer(
     LibrarySimilarContext context,
-    LibrarySimilarMember? member,
-  ) => _save(() => _service.prefer(context, member));
+    LibrarySimilarMember member,
+    bool preferred,
+  ) => _save(() => _service.prefer(context, member, preferred));
 
   Future<LibrarySimilarDecision?> ignore(
     LibrarySimilarContext context,

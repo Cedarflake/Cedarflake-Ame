@@ -50,7 +50,7 @@ void main() {
       await review.showGroup(service.group());
       final held = Completer<LibrarySimilarDecision>();
       service.pendingWrite = held;
-      final save = review.prefer(service.members.first);
+      final save = review.prefer(service.members.first, true);
       expect(review.choices.saving, isTrue);
       expect(await review.setIgnored(true), isFalse);
       expect(service.writes, 1);
@@ -60,27 +60,37 @@ void main() {
       expect(service.memberQueries, hasLength(1));
       service.decision = LibrarySimilarDecision(revision: BigInt.from(7));
       await review.showGroup(service.group("new"));
-      held.complete(
-        LibrarySimilarDecision(
-          revision: BigInt.one,
-          preferred: service.members.first.content,
-        ),
-      );
+      held.complete(LibrarySimilarDecision(revision: BigInt.one));
       expect(await save, isTrue);
       expect(review.selected?.id, "new");
       expect(review.decision.revision, BigInt.from(7));
-      expect(review.decision.preferred, isNull);
+      expect(review.memberWindow.itemAt(0)?.preferred, isFalse);
       expect(review.choices.saving, isFalse);
       service.pendingWrite = null;
       service.failWrite = true;
-      expect(await review.prefer(service.members.first), isFalse);
+      expect(await review.prefer(service.members.first, true), isFalse);
       expect(review.choices.error, isNotNull);
       expect(review.decision.revision, BigInt.from(7));
       service.failWrite = false;
-      expect(await review.prefer(service.members.last), isTrue);
+      expect(await review.prefer(service.members.last, true), isTrue);
       expect(review.choices.error, isNull);
       expect(service.lastContext?.revision, BigInt.from(7));
-      expect(review.decision.preferred, service.members.last.content);
+      expect(review.memberWindow.itemAt(1)?.preferred, isTrue);
+      expect(await review.prefer(service.members.first, true), isTrue);
+      expect(review.memberWindow.itemAt(0)?.preferred, isTrue);
+      expect(review.memberWindow.itemAt(1)?.preferred, isTrue);
+      final heldRefresh = Completer<LibrarySimilarMembers>();
+      service.pendingMembers = heldRefresh;
+      final removal = review.prefer(service.members.first, false);
+      await Future<void>.delayed(Duration.zero);
+      expect(review.canWrite, isFalse);
+      expect(await review.prefer(service.members.last, false), isFalse);
+      expect(review.memberWindow.itemAt(0)?.preferred, isTrue);
+      heldRefresh.complete(service.memberPage);
+      expect(await removal, isTrue);
+      expect(review.canWrite, isTrue);
+      expect(review.memberWindow.itemAt(0)?.preferred, isFalse);
+      expect(review.memberWindow.itemAt(1)?.preferred, isTrue);
     },
   );
 
@@ -92,12 +102,12 @@ void main() {
       addTearDown(review.dispose);
       await review.showGroup(service.group());
       final member = service.members.first;
-      expect(await review.prefer(member), isTrue);
+      expect(await review.prefer(member, true), isTrue);
       final undo = await review.exclude(member);
       expect(undo, isNotNull);
       expect(undo!.content, member.content);
       expect(review.itemCount, 1);
-      expect(review.decision.preferred, member.content);
+      expect(service.excluded?.preferred, isTrue);
       expect(review.memberWindow.itemAt(0)?.content, isNot(member.content));
       await review.showGroups();
       expect(review.itemCount, 0);

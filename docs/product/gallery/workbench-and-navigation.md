@@ -111,8 +111,11 @@ reuse normal viewing's smooth wheel/button zoom, double-click mode switch, bound
 Keep the images side by side and the bottom controls in one row within the supported desktop window.
 
 An exact preference selects the scoped merged-gallery representative with a deterministic fallback.
-A similarity preference selects one content representative only within that group. Exact copies of
-that content share one member row while their locations remain inspectable. Ignore/restore saves in
+A similar group allows multiple selected images. Each member has a bookmark toggle with
+`选择图片` / `取消选择`; the comparison checkboxes remain separate. The group cover is selected
+automatically in the existing stable representative order from currently visible selected members,
+falling back to the ordinary representative when none is eligible. Exact copies of
+each content share one member row while their locations remain inspectable. Ignore/restore saves in
 place; returning to the list reflects the decision. Groups below two distinct contents disappear
 from the list without forcing navigation. A retained preference survives temporary unavailability.
 Choices survive reopening, degree changes and compatible reanalysis. There is no finish/next-group workflow.

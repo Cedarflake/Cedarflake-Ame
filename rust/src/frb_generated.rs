@@ -4770,15 +4770,18 @@ fn wire__crate__api__similar_image_review__set_similar_preference_impl(
                 <crate::domain::similar_images::review::SimilarReviewContext>::sse_decode(
                     &mut deserializer,
                 );
-            let api_selection = <Option<
-                crate::domain::similar_images::review::SimilarMemberSelection,
-            >>::sse_decode(&mut deserializer);
+            let api_selection =
+                <crate::domain::similar_images::review::SimilarMemberSelection>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_preferred = <bool>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::domain::ScanError>((move || {
                     let output_ok = crate::api::similar_image_review::set_similar_preference(
                         api_context,
                         api_selection,
+                        api_preferred,
                     )?;
                     Ok(output_ok)
                 })())
@@ -7548,21 +7551,6 @@ impl SseDecode for Option<crate::domain::similar_images::SimilarContentKey> {
     }
 }
 
-impl SseDecode for Option<crate::domain::similar_images::review::SimilarMemberSelection> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        if (<bool>::sse_decode(deserializer)) {
-            return Some(
-                <crate::domain::similar_images::review::SimilarMemberSelection>::sse_decode(
-                    deserializer,
-                ),
-            );
-        } else {
-            return None;
-        }
-    }
-}
-
 impl SseDecode for Option<crate::domain::SourceRevisionEvidence> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -8860,12 +8848,9 @@ impl SseDecode for crate::domain::similar_images::review::SimilarExclusionResult
 impl SseDecode for crate::domain::similar_images::review::SimilarGroupDecision {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_preferred =
-            <Option<crate::domain::similar_images::SimilarContentKey>>::sse_decode(deserializer);
         let mut var_ignored = <bool>::sse_decode(deserializer);
         let mut var_revision = <u64>::sse_decode(deserializer);
         return crate::domain::similar_images::review::SimilarGroupDecision {
-            preferred: var_preferred,
             ignored: var_ignored,
             revision: var_revision,
         };
@@ -8936,6 +8921,7 @@ impl SseDecode for crate::domain::similar_images::review::SimilarReviewGroup {
 impl SseDecode for crate::domain::similar_images::review::SimilarReviewMember {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_preferred = <bool>::sse_decode(deserializer);
         let mut var_content =
             <crate::domain::similar_images::SimilarContentKey>::sse_decode(deserializer);
         let mut var_representative = <crate::domain::AssetLocationView>::sse_decode(deserializer);
@@ -8946,6 +8932,7 @@ impl SseDecode for crate::domain::similar_images::review::SimilarReviewMember {
         let mut var_locationCount = <u64>::sse_decode(deserializer);
         let mut var_distance = <u8>::sse_decode(deserializer);
         return crate::domain::similar_images::review::SimilarReviewMember {
+            preferred: var_preferred,
             content: var_content,
             representative: var_representative,
             availability: var_availability,
@@ -13205,7 +13192,6 @@ impl
 impl flutter_rust_bridge::IntoDart for crate::domain::similar_images::review::SimilarGroupDecision {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.preferred.into_into_dart().into_dart(),
             self.ignored.into_into_dart().into_dart(),
             self.revision.into_into_dart().into_dart(),
         ]
@@ -13321,6 +13307,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::similar_images::review::Si
 impl flutter_rust_bridge::IntoDart for crate::domain::similar_images::review::SimilarReviewMember {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.preferred.into_into_dart().into_dart(),
             self.content.into_into_dart().into_dart(),
             self.representative.into_into_dart().into_dart(),
             self.availability.into_into_dart().into_dart(),
@@ -15575,18 +15562,6 @@ impl SseEncode for Option<crate::domain::similar_images::SimilarContentKey> {
     }
 }
 
-impl SseEncode for Option<crate::domain::similar_images::review::SimilarMemberSelection> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <bool>::sse_encode(self.is_some(), serializer);
-        if let Some(value) = self {
-            <crate::domain::similar_images::review::SimilarMemberSelection>::sse_encode(
-                value, serializer,
-            );
-        }
-    }
-}
-
 impl SseEncode for Option<crate::domain::SourceRevisionEvidence> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -16670,10 +16645,6 @@ impl SseEncode for crate::domain::similar_images::review::SimilarExclusionResult
 impl SseEncode for crate::domain::similar_images::review::SimilarGroupDecision {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <Option<crate::domain::similar_images::SimilarContentKey>>::sse_encode(
-            self.preferred,
-            serializer,
-        );
         <bool>::sse_encode(self.ignored, serializer);
         <u64>::sse_encode(self.revision, serializer);
     }
@@ -16724,6 +16695,7 @@ impl SseEncode for crate::domain::similar_images::review::SimilarReviewGroup {
 impl SseEncode for crate::domain::similar_images::review::SimilarReviewMember {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.preferred, serializer);
         <crate::domain::similar_images::SimilarContentKey>::sse_encode(self.content, serializer);
         <crate::domain::AssetLocationView>::sse_encode(self.representative, serializer);
         <crate::domain::exact_duplicates::DuplicateLocationAvailability>::sse_encode(

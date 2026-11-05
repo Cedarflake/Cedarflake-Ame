@@ -77,15 +77,22 @@ class LibrarySimilarMemberCard extends StatelessWidget {
     actions: [
       AmeTooltip(
         message: preferred
-            ? LibraryDuplicateStrings.clearPreferred
-            : LibraryDuplicateStrings.prefer,
+            ? LibraryDuplicateStrings.deselectSimilarImage
+            : LibraryDuplicateStrings.selectSimilarImage,
         child: IconButton(
           key: ValueKey("prefer-${member.asset.locationId}"),
           style: LibraryDuplicateReviewMetrics.iconActionStyle,
           onPressed: onPrefer,
           isSelected: preferred,
-          icon: const Icon(Symbols.star_rounded),
-          selectedIcon: const Icon(Symbols.star_rounded, fill: 1),
+          icon: const Icon(
+            Symbols.bookmark_rounded,
+            semanticLabel: LibraryDuplicateStrings.selectSimilarImage,
+          ),
+          selectedIcon: const Icon(
+            Symbols.bookmark_rounded,
+            fill: 1,
+            semanticLabel: LibraryDuplicateStrings.deselectSimilarImage,
+          ),
         ),
       ),
       AmeTooltip(

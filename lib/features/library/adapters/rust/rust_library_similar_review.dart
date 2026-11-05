@@ -77,6 +77,7 @@ class RustLibrarySimilarReview implements LibrarySimilarReview {
               },
               locationCount: member.locationCount.toInt(),
               distance: member.distance,
+              preferred: member.preferred,
             ),
           )
           .toList(growable: false),
@@ -89,12 +90,14 @@ class RustLibrarySimilarReview implements LibrarySimilarReview {
   @override
   Future<LibrarySimilarDecision> prefer(
     LibrarySimilarContext context,
-    LibrarySimilarMember? member,
+    LibrarySimilarMember member,
+    bool preferred,
   ) async => _decision(
     await invokeDuplicateBridge(
       () => api.setSimilarPreference(
         context: _context(context),
-        selection: member == null ? null : _selection(member),
+        selection: _selection(member),
+        preferred: preferred,
       ),
     ),
   );
@@ -172,13 +175,7 @@ LibrarySimilarContent _readContent(content.SimilarContentKey value) =>
       byteLength: value.byteLength,
     );
 LibrarySimilarDecision _decision(dto.SimilarGroupDecision value) =>
-    LibrarySimilarDecision(
-      revision: value.revision,
-      ignored: value.ignored,
-      preferred: value.preferred == null
-          ? null
-          : _readContent(value.preferred!),
-    );
+    LibrarySimilarDecision(revision: value.revision, ignored: value.ignored);
 dto.SimilarReviewContext _context(LibrarySimilarContext value) =>
     dto.SimilarReviewContext(
       groupId: value.groupId,

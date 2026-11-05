@@ -686,7 +686,8 @@ abstract class RustLibApi extends BaseApi {
 
   Future<SimilarGroupDecision> crateApiSimilarImageReviewSetSimilarPreference({
     required SimilarReviewContext context,
-    SimilarMemberSelection? selection,
+    required SimilarMemberSelection selection,
+    required bool preferred,
   });
 
   Future<CatalogReclamationSnapshot>
@@ -5065,17 +5066,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @override
   Future<SimilarGroupDecision> crateApiSimilarImageReviewSetSimilarPreference({
     required SimilarReviewContext context,
-    SimilarMemberSelection? selection,
+    required SimilarMemberSelection selection,
+    required bool preferred,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_similar_review_context(context, serializer);
-          sse_encode_opt_box_autoadd_similar_member_selection(
+          sse_encode_box_autoadd_similar_member_selection(
             selection,
             serializer,
           );
+          sse_encode_bool(preferred, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -5088,7 +5091,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_scan_error,
         ),
         constMeta: kCrateApiSimilarImageReviewSetSimilarPreferenceConstMeta,
-        argValues: [context, selection],
+        argValues: [context, selection, preferred],
         apiImpl: this,
       ),
     );
@@ -5097,7 +5100,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiSimilarImageReviewSetSimilarPreferenceConstMeta =>
       const TaskConstMeta(
         debugName: "set_similar_preference",
-        argNames: ["context", "selection"],
+        argNames: ["context", "selection", "preferred"],
       );
 
   @override
@@ -7630,16 +7633,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  SimilarMemberSelection? dco_decode_opt_box_autoadd_similar_member_selection(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null
-        ? null
-        : dco_decode_box_autoadd_similar_member_selection(raw);
-  }
-
-  @protected
   SourceRevisionEvidence? dco_decode_opt_box_autoadd_source_revision_evidence(
     dynamic raw,
   ) {
@@ -8603,12 +8596,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   SimilarGroupDecision dco_decode_similar_group_decision(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
     return SimilarGroupDecision(
-      preferred: dco_decode_opt_box_autoadd_similar_content_key(arr[0]),
-      ignored: dco_decode_bool(arr[1]),
-      revision: dco_decode_u_64(arr[2]),
+      ignored: dco_decode_bool(arr[0]),
+      revision: dco_decode_u_64(arr[1]),
     );
   }
 
@@ -8668,14 +8660,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   SimilarReviewMember dco_decode_similar_review_member(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return SimilarReviewMember(
-      content: dco_decode_similar_content_key(arr[0]),
-      representative: dco_decode_asset_location_view(arr[1]),
-      availability: dco_decode_duplicate_location_availability(arr[2]),
-      locationCount: dco_decode_u_64(arr[3]),
-      distance: dco_decode_u_8(arr[4]),
+      preferred: dco_decode_bool(arr[0]),
+      content: dco_decode_similar_content_key(arr[1]),
+      representative: dco_decode_asset_location_view(arr[2]),
+      availability: dco_decode_duplicate_location_availability(arr[3]),
+      locationCount: dco_decode_u_64(arr[4]),
+      distance: dco_decode_u_8(arr[5]),
     );
   }
 
@@ -11629,19 +11622,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  SimilarMemberSelection? sse_decode_opt_box_autoadd_similar_member_selection(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_similar_member_selection(deserializer));
-    } else {
-      return null;
-    }
-  }
-
-  @protected
   SourceRevisionEvidence? sse_decode_opt_box_autoadd_source_revision_evidence(
     SseDeserializer deserializer,
   ) {
@@ -12818,16 +12798,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_preferred = sse_decode_opt_box_autoadd_similar_content_key(
-      deserializer,
-    );
     var var_ignored = sse_decode_bool(deserializer);
     var var_revision = sse_decode_u_64(deserializer);
-    return SimilarGroupDecision(
-      preferred: var_preferred,
-      ignored: var_ignored,
-      revision: var_revision,
-    );
+    return SimilarGroupDecision(ignored: var_ignored, revision: var_revision);
   }
 
   @protected
@@ -12892,6 +12865,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_preferred = sse_decode_bool(deserializer);
     var var_content = sse_decode_similar_content_key(deserializer);
     var var_representative = sse_decode_asset_location_view(deserializer);
     var var_availability = sse_decode_duplicate_location_availability(
@@ -12900,6 +12874,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_locationCount = sse_decode_u_64(deserializer);
     var var_distance = sse_decode_u_8(deserializer);
     return SimilarReviewMember(
+      preferred: var_preferred,
       content: var_content,
       representative: var_representative,
       availability: var_availability,
@@ -15655,19 +15630,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_similar_member_selection(
-    SimilarMemberSelection? self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    sse_encode_bool(self != null, serializer);
-    if (self != null) {
-      sse_encode_box_autoadd_similar_member_selection(self, serializer);
-    }
-  }
-
-  @protected
   void sse_encode_opt_box_autoadd_source_revision_evidence(
     SourceRevisionEvidence? self,
     SseSerializer serializer,
@@ -16622,7 +16584,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_opt_box_autoadd_similar_content_key(self.preferred, serializer);
     sse_encode_bool(self.ignored, serializer);
     sse_encode_u_64(self.revision, serializer);
   }
@@ -16677,6 +16638,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.preferred, serializer);
     sse_encode_similar_content_key(self.content, serializer);
     sse_encode_asset_location_view(self.representative, serializer);
     sse_encode_duplicate_location_availability(self.availability, serializer);

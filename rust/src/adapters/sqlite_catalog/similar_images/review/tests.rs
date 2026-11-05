@@ -125,7 +125,7 @@ fn choices_follow_current_content_and_stale_undo_cannot_remove_a_new_exclusion()
         source: selected(&catalog, "c"),
     };
     let choice = catalog
-        .prefer_similar_member(&context, Some(&selection))
+        .prefer_similar_member(&context, &selection, true)
         .unwrap();
     assert_eq!(choice.revision, 1);
     assert_eq!(
@@ -145,6 +145,45 @@ fn choices_follow_current_content_and_stale_undo_cannot_remove_a_new_exclusion()
         "c"
     );
     context.revision = choice.revision;
+    let first_selection = SimilarMemberSelection {
+        content: content('a'),
+        source: selected(&catalog, "b"),
+    };
+    context.revision = catalog
+        .prefer_similar_member(&context, &first_selection, true)
+        .unwrap()
+        .revision;
+    let members = catalog
+        .load_similar_members(&context.group_id, context.degree, None)
+        .unwrap();
+    assert!(members.members.iter().all(|member| member.preferred));
+    let strict = catalog
+        .load_similar_members(&context.group_id, SimilarityDegree::Strict, None)
+        .unwrap();
+    assert_eq!(strict.members.len(), 1);
+    assert!(strict.members[0].preferred);
+    assert_eq!(
+        catalog
+            .load_similar_groups(context.degree, false, "")
+            .unwrap()
+            .groups[0]
+            .representative
+            .location_id,
+        "b"
+    );
+    let unchanged = catalog
+        .prefer_similar_member(&context, &first_selection, true)
+        .unwrap();
+    assert_eq!(unchanged.revision, context.revision);
+    context.revision = catalog
+        .prefer_similar_member(&context, &first_selection, false)
+        .unwrap()
+        .revision;
+    let members = catalog
+        .load_similar_members(&context.group_id, context.degree, None)
+        .unwrap();
+    assert!(!members.members[0].preferred);
+    assert!(members.members[1].preferred);
     context.revision = catalog
         .ignore_similar_group(&context, true)
         .unwrap()
@@ -166,7 +205,6 @@ fn choices_follow_current_content_and_stale_undo_cannot_remove_a_new_exclusion()
     let old = catalog
         .exclude_similar_member(&context, &selection, "old-choice")
         .unwrap();
-    assert_eq!(old.decision.preferred, Some(content('b')));
     assert_eq!(
         catalog
             .load_similar_groups(context.degree, true, "")
@@ -218,6 +256,13 @@ fn choices_follow_current_content_and_stale_undo_cannot_remove_a_new_exclusion()
         .unwrap();
     assert_eq!(rebuilt.groups[0].group_id, context.group_id);
     assert_eq!(rebuilt.groups[0].representative.location_id, "c");
+    assert!(
+        catalog
+            .load_similar_members(&context.group_id, context.degree, None)
+            .unwrap()
+            .members[1]
+            .preferred
+    );
     context.revision = restored.decision.revision;
     let decision = catalog.ignore_similar_group(&context, false).unwrap();
     context.revision = decision.revision;
@@ -240,7 +285,7 @@ fn choices_follow_current_content_and_stale_undo_cannot_remove_a_new_exclusion()
         .unwrap();
     assert_eq!(
         catalog
-            .prefer_similar_member(&context, Some(&selection))
+            .prefer_similar_member(&context, &selection, false)
             .unwrap_err()
             .code,
         "similarity_group_changed"
@@ -252,14 +297,11 @@ fn choices_follow_current_content_and_stale_undo_cannot_remove_a_new_exclusion()
             .total_groups,
         0
     );
-    assert_eq!(
-        catalog
-            .load_similar_members(&context.group_id, context.degree, None)
-            .unwrap()
-            .decision
-            .preferred,
-        Some(content('b'))
-    );
+    let retained: bool = catalog.connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM similarity_preferences WHERE group_id = ?1 AND digest = ?2)",
+        params![context.group_id, content('b').digest], |row| row.get(0),
+    ).unwrap();
+    assert!(retained);
 }
 
 #[test]

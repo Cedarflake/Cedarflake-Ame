@@ -187,6 +187,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         classification_merge::migrate_transaction(&transaction)?;
         similar_images::migrate_transaction(&transaction)?;
         similar_images::migrate_confirmation_transaction(&transaction)?;
+        similar_images::migrate_preferences_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -302,6 +303,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             72 => classification_merge::migrate(connection)?,
             73 => similar_images::migrate(connection)?,
             74 => similar_images::migrate_confirmation(connection)?,
+            75 => similar_images::migrate_preferences(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

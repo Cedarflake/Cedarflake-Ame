@@ -44,10 +44,12 @@ Future<SimilarReviewMembers> loadSimilarMembers({
 
 Future<SimilarGroupDecision> setSimilarPreference({
   required SimilarReviewContext context,
-  SimilarMemberSelection? selection,
+  required SimilarMemberSelection selection,
+  required bool preferred,
 }) => RustLib.instance.api.crateApiSimilarImageReviewSetSimilarPreference(
   context: context,
   selection: selection,
+  preferred: preferred,
 );
 
 Future<SimilarGroupDecision> setSimilarIgnored({

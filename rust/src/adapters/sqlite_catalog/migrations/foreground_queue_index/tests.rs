@@ -164,6 +164,7 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 "organization_recovery_duplicate_sources",
                 "organization_restored_fields",
                 "similarity_decisions",
+                "similarity_preferences",
                 "similarity_evidence",
                 "similarity_exclusions",
                 "similarity_groups",

@@ -114,8 +114,10 @@ one member is scoped to that group.
 An immutable reference can outlive its visible source location. Removed sources never appear or
 count as current members. Show a group only when at least two distinct, currently published contents
 remain eligible at the selected degree. Exact copies share one member key but retain their separate
-assets and locations. The representative follows a valid saved preference, then a deterministic
-current member; it does not replace the comparison reference.
+assets and locations. Similarity preferences form a set of complete content keys within each group.
+The displayed representative uses the lowest current representative location ID among eligible
+preferred members, then the same ordering among all current members. It does not replace the
+comparison reference. Exact-group preferences retain their single-copy contract.
 
 Ignore, preference and exclusion records are durable data independent of hashes and group
 projections. Bind them to the group key and, where applicable, the complete member content key.
@@ -125,6 +127,12 @@ so a stale undo cannot reverse a newer choice. Degree changes and compatible rea
 identities. An incompatible scheme keeps prior decisions without silently transferring them to a
 different group. Clearing derived data cannot delete choices; an unavailable reference may prevent
 its group from being reconstructed until that content becomes available again.
+
+Schema 76 moves existing singular preferences into a keyed preference table in one forward
+transaction, preserving group revision, ignore state and choices for older schemes. Member queries
+return one preference flag per bounded row rather than loading a group's entire preference set.
+Per-member add/remove validates the shared decision revision and current source generation;
+idempotent writes retain the revision and other members' choices.
 
 Application and persistence own current-source checks and decision transactions. Hashes confer no
 preference, ignore, exclusion, deletion or Library-folding authority.

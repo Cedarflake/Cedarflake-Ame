@@ -81,9 +81,8 @@ class LibraryDuplicateResults extends StatelessWidget {
         if (workspace.isSimilar) {
           final member = workspace.similar.memberWindow.itemAt(index);
           if (member == null) return const Card(margin: EdgeInsets.zero);
-          final preferred =
-              workspace.similar.decision.preferred == member.content;
-          final canWrite = !workspace.saving && !workspace.loading;
+          final preferred = member.preferred;
+          final canWrite = workspace.similar.canWrite;
           return LibrarySimilarMemberCard(
             member: member,
             preferred: preferred,
@@ -94,9 +93,7 @@ class LibraryDuplicateResults extends StatelessWidget {
                     (preferred ||
                         member.availability ==
                             LibraryDuplicateAvailability.local)
-                ? () => unawaited(
-                    workspace.similar.prefer(preferred ? null : member),
-                  )
+                ? () => unawaited(workspace.similar.prefer(member, !preferred))
                 : null,
             onLocations: member.locationCount > 1
                 ? () => onLocations(member)

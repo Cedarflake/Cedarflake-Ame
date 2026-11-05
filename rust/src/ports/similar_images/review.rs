@@ -8,6 +8,7 @@ use crate::domain::similar_images::review::{
 };
 
 pub(crate) struct SimilarMemberCandidate {
+    pub preferred: bool,
     pub content: SimilarContentKey,
     pub candidate: FingerprintCandidate,
     pub location_count: u64,
@@ -43,7 +44,8 @@ pub(crate) trait SimilarReviewRepository {
     fn prefer_similar_member(
         &mut self,
         context: &SimilarReviewContext,
-        selection: Option<&SimilarMemberSelection>,
+        selection: &SimilarMemberSelection,
+        preferred: bool,
     ) -> Result<SimilarGroupDecision, ScanError>;
     fn ignore_similar_group(
         &mut self,

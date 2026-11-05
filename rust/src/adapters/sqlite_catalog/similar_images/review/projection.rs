@@ -26,7 +26,12 @@ pub(super) fn members_cte() -> String {
         "WITH visible_members AS (
             SELECT m.group_id, e.fingerprint_scheme AS content_scheme, e.digest AS content_digest,
                    e.byte_length AS content_bytes, m.distance, COUNT(*) AS location_count,
-                   {representative} AS representative
+                   {representative} AS representative,
+                   EXISTS(SELECT 1 FROM similarity_preferences AS preference
+                     WHERE preference.group_id = m.group_id
+                       AND preference.fingerprint_scheme = e.fingerprint_scheme
+                       AND preference.digest = e.digest
+                       AND preference.byte_length = e.byte_length) AS preferred
             FROM {CURRENT_LOCATIONS}
             JOIN content_fingerprints AS f ON {COMPATIBLE_FINGERPRINT}
             {ELIGIBLE_CONTENT}

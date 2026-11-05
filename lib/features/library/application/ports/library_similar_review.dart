@@ -18,7 +18,8 @@ abstract interface class LibrarySimilarReview {
   );
   Future<LibrarySimilarDecision> prefer(
     LibrarySimilarContext context,
-    LibrarySimilarMember? member,
+    LibrarySimilarMember member,
+    bool preferred,
   );
   Future<LibrarySimilarDecision> ignore(
     LibrarySimilarContext context,

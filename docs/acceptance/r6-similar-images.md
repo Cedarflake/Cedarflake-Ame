@@ -239,3 +239,33 @@ performance, real-library and helper cases retain their separate execution owner
 Static missing-brace failures are corrected. The automated title-bar drag observation remains
 unverified; its shared drag region and native window-manager path are unchanged from `main`.
 Cloud-primary measurement is deferred outside R6; the local evidence does not qualify that client.
+
+## Multiple selected images — 2026-11-05
+
+Schema 76 preserves former single choices as independent selected-content rows, including choices
+for retired schemes, and leaves exact-group preferences unchanged. Three focused migration cases
+and two SQLite review cases passed under the repository lock and disposable scratch storage.
+They cover atomic rollback/retry, retained revisions and ignores, independent add/remove,
+idempotence, deterministic cover selection, stale-source rejection and compatible reanalysis.
+The controller's three cases and the existing desktop workflow passed with per-member selection,
+blocked writes during replacement reads, late completion, comparison continuity and accessible labels.
+
+The guarded Windows build used the production application with an isolated catalog and the existing
+51-file corpus. Two images remained selected together after closing and reopening the application.
+Removing `00025` kept `00013` selected and changed the group's cover to `00013`. The final wording
+check observed `选择图片` / `取消选择` in both tooltips and the native accessibility tree. Removing the
+last selection restored the ordinary `00025` cover. The two persistence sessions and final wording
+session closed with code 0 after 228.445, 127.623 and 190.889 seconds; each preserved all 51 source
+SHA-256 hashes. Both scratch profiles were retired. No original catalog or real-library root changed.
+The final build-input digest was
+`778938ff9baf79757b70d9e55e0b4944eaa3ccdb833e70a2c5f504fdd7352af0`;
+the debug-assertion native library's SHA-256 was
+`36545846f26064066fbcfc3961b95aa1560f4199583126d80665aaeff9726ade`.
+
+The preference migration has 78 source lines, no inline cases and 72 dedicated test lines.
+Review decisions/queries have 177/200 source lines and share the 401-line persistence suite.
+The similar controller and shared review window have 244/223 source lines, no inline cases;
+the focused controller/workflow suites have 129/316 lines. The SQLite facade remains 3,168 source
+lines; the migration coordinator has 4,185 source and 2,290 inline-test lines and only adds version
+dispatch. Generated bridge output is excluded from these counts. Hosted results belong to the
+exact pushed commit's checks.

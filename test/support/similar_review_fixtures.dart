@@ -6,17 +6,19 @@ import "package:cedarflake_ame/features/library/domain/library_similar_review.da
 
 import "duplicate_review_fixtures.dart";
 
-LibrarySimilarMember similarMember(String id) => LibrarySimilarMember(
-  content: LibrarySimilarContent(
-    scheme: "fixture-exact-v1",
-    digest: id,
-    byteLength: BigInt.from(1024),
-  ),
-  asset: reviewAsset(id),
-  availability: LibraryDuplicateAvailability.local,
-  locationCount: id == "one" ? 3 : 1,
-  distance: id == "one" ? 0 : 3,
-);
+LibrarySimilarMember similarMember(String id, {bool preferred = false}) =>
+    LibrarySimilarMember(
+      content: LibrarySimilarContent(
+        scheme: "fixture-exact-v1",
+        digest: id,
+        byteLength: BigInt.from(1024),
+      ),
+      asset: reviewAsset(id),
+      availability: LibraryDuplicateAvailability.local,
+      locationCount: id == "one" ? 3 : 1,
+      distance: id == "one" ? 0 : 3,
+      preferred: preferred,
+    );
 
 class SimilarReviewFixture implements LibrarySimilarReview {
   final members = [similarMember("one"), similarMember("two")];
@@ -97,13 +99,20 @@ class SimilarReviewFixture implements LibrarySimilarReview {
   @override
   Future<LibrarySimilarDecision> prefer(
     LibrarySimilarContext context,
-    LibrarySimilarMember? member,
+    LibrarySimilarMember member,
+    bool preferred,
   ) async {
     _write(context);
     if (pendingWrite case final pending?) return pending.future;
+    final index = members.indexWhere(
+      (value) => value.content == member.content,
+    );
+    members[index] = similarMember(
+      member.asset.locationId,
+      preferred: preferred,
+    );
     return decision = LibrarySimilarDecision(
       revision: decision.revision + BigInt.one,
-      preferred: member?.content,
       ignored: decision.ignored,
     );
   }
@@ -116,7 +125,6 @@ class SimilarReviewFixture implements LibrarySimilarReview {
     _write(context);
     return decision = LibrarySimilarDecision(
       revision: decision.revision + BigInt.one,
-      preferred: decision.preferred,
       ignored: ignored,
     );
   }
@@ -128,11 +136,10 @@ class SimilarReviewFixture implements LibrarySimilarReview {
     String exclusionId,
   ) async {
     _write(context);
-    excluded = member;
+    excluded = members.firstWhere((value) => value.content == member.content);
     members.removeWhere((value) => value.content == member.content);
     decision = LibrarySimilarDecision(
       revision: decision.revision + BigInt.one,
-      preferred: decision.preferred,
       ignored: decision.ignored,
     );
     return LibrarySimilarExclusionResult(

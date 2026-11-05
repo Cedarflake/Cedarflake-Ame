@@ -5,11 +5,15 @@ use crate::domain::ScanError;
 use super::{current_schema, database_error};
 
 mod confirmation;
+mod preferences;
 mod schema;
 mod validation;
 
 pub(super) use confirmation::{
     migrate as migrate_confirmation, migrate_transaction as migrate_confirmation_transaction,
+};
+pub(super) use preferences::{
+    migrate as migrate_preferences, migrate_transaction as migrate_preferences_transaction,
 };
 pub(super) use validation::{validate, validate_rows};
 
@@ -38,6 +42,7 @@ pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), S
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v73_for_test(connection: &Connection) {
+    preferences::downgrade_for_test(connection);
     confirmation::downgrade_for_test(connection);
     if super::schema_shape::schema_version(connection).unwrap() != 74 {
         return;

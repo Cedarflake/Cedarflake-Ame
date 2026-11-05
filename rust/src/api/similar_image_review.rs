@@ -33,9 +33,10 @@ pub fn load_similar_members(
 
 pub fn set_similar_preference(
     context: SimilarReviewContext,
-    selection: Option<SimilarMemberSelection>,
+    selection: SimilarMemberSelection,
+    preferred: bool,
 ) -> Result<SimilarGroupDecision, ScanError> {
-    review::prefer(context, selection)
+    review::prefer(context, selection, preferred)
 }
 
 pub fn set_similar_ignored(

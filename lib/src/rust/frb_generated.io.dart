@@ -1006,11 +1006,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  SimilarMemberSelection? dco_decode_opt_box_autoadd_similar_member_selection(
-    dynamic raw,
-  );
-
-  @protected
   SourceRevisionEvidence? dco_decode_opt_box_autoadd_source_revision_evidence(
     dynamic raw,
   );
@@ -2396,11 +2391,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   SimilarContentKey? sse_decode_opt_box_autoadd_similar_content_key(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  SimilarMemberSelection? sse_decode_opt_box_autoadd_similar_member_selection(
     SseDeserializer deserializer,
   );
 
@@ -4096,12 +4086,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_similar_content_key(
     SimilarContentKey? self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_opt_box_autoadd_similar_member_selection(
-    SimilarMemberSelection? self,
     SseSerializer serializer,
   );
 

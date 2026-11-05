@@ -30,25 +30,19 @@ class SimilarExclusionResult {
 }
 
 class SimilarGroupDecision {
-  final SimilarContentKey? preferred;
   final bool ignored;
   final BigInt revision;
 
-  const SimilarGroupDecision({
-    this.preferred,
-    required this.ignored,
-    required this.revision,
-  });
+  const SimilarGroupDecision({required this.ignored, required this.revision});
 
   @override
-  int get hashCode => preferred.hashCode ^ ignored.hashCode ^ revision.hashCode;
+  int get hashCode => ignored.hashCode ^ revision.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is SimilarGroupDecision &&
           runtimeType == other.runtimeType &&
-          preferred == other.preferred &&
           ignored == other.ignored &&
           revision == other.revision;
 }
@@ -152,6 +146,7 @@ class SimilarReviewGroup {
 }
 
 class SimilarReviewMember {
+  final bool preferred;
   final SimilarContentKey content;
   final AssetLocationView representative;
   final DuplicateLocationAvailability availability;
@@ -159,6 +154,7 @@ class SimilarReviewMember {
   final int distance;
 
   const SimilarReviewMember({
+    required this.preferred,
     required this.content,
     required this.representative,
     required this.availability,
@@ -168,6 +164,7 @@ class SimilarReviewMember {
 
   @override
   int get hashCode =>
+      preferred.hashCode ^
       content.hashCode ^
       representative.hashCode ^
       availability.hashCode ^
@@ -179,6 +176,7 @@ class SimilarReviewMember {
       identical(this, other) ||
       other is SimilarReviewMember &&
           runtimeType == other.runtimeType &&
+          preferred == other.preferred &&
           content == other.content &&
           representative == other.representative &&
           availability == other.availability &&

@@ -23,7 +23,6 @@ impl SimilarityDegree {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct SimilarGroupDecision {
-    pub preferred: Option<SimilarContentKey>,
     pub ignored: bool,
     pub revision: u64,
 }
@@ -51,6 +50,7 @@ pub struct SimilarReviewRange {
 
 #[derive(Clone, Debug)]
 pub struct SimilarReviewMember {
+    pub preferred: bool,
     pub content: SimilarContentKey,
     pub representative: AssetLocationView,
     pub availability: DuplicateLocationAvailability,
