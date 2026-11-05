@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
@@ -68,7 +69,8 @@ pub(crate) fn prepare(
     }
     let paths = catalog.changed_search_index_paths(root, limit)?;
     if paths.is_empty() {
-        eprintln!(
+        let _ = writeln!(
+            std::io::stderr().lock(),
             "[Ame sync] indexed startup rows={rows} candidates=0 elapsed_ms={}",
             started.elapsed().as_millis()
         );
@@ -83,7 +85,8 @@ pub(crate) fn prepare(
     let discovery = production::publication_namespaces().open(&root.root_path, Some(identity))?;
     let paths = changed_actual_paths(catalog, root, &discovery, paths, cancelled)?;
     if paths.is_empty() {
-        eprintln!(
+        let _ = writeln!(
+            std::io::stderr().lock(),
             "[Ame sync] indexed startup rows={rows} candidates=0 elapsed_ms={}",
             started.elapsed().as_millis()
         );
@@ -129,7 +132,8 @@ pub(crate) fn prepare(
         now_unix_ms,
         policy,
     )?;
-    eprintln!(
+    let _ = writeln!(
+        std::io::stderr().lock(),
         "[Ame sync] indexed startup rows={rows} candidates={count} elapsed_ms={}",
         started.elapsed().as_millis()
     );

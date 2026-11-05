@@ -70,3 +70,25 @@ the expanded existing assembly fixture contains 295 dedicated test lines. There 
 Hosted Static at `111dc092` found a `prefer_initializing_formals` lint in the unmount callback
 assignment. The initializing formal preserves the public argument and shutdown order. Strict
 analysis and all six existing assembly cases pass after that syntax-only correction.
+
+## Disconnected development diagnostics — 2026-11-05
+
+The live Debug client retained `bridge_preview_failed` with `PanicException(failed printing to
+stderr)` and Windows error 232 after its development connection ended. Synchronization subsequently
+reported `library_synchronization_not_started`. Diagnostic `eprintln!` calls could panic after normal
+work and drive the existing native panic-retirement path; cached browsing remained available.
+
+Desktop preview, catalog-open, synchronization and recovery diagnostics now use the existing
+fallible `writeln!` pattern. A closed diagnostic sink does not change operation results, recovery,
+source guards or publication. No dependency, schema, bridge or source-media change is introduced.
+One bounded subprocess regression closes the real stderr reader before invoking production preview
+diagnostics and verifies that the original source failure remains intact. It passes locally; Rust
+formatting and whitespace checks pass. The updated Windows Debug bundle built in 116.9 seconds.
+The restarted client reached `已同步`, retained synchronization after a 416-millisecond hot reload,
+and loaded full previews and additional filmstrip pages in the real local-primary catalog.
+The subprocess case supplies the disconnected-pipe evidence; hosted integration remains pending.
+
+The preview facade has 617 production/test-hook lines and 1,057 inline-test lines; its new dedicated
+pipe fixture has 71 lines. Synchronization, production synchronization and metadata inventory have
+881, 1,651 and 1,427 production/test-hook lines respectively, with tests in their existing modules.
+Their edits replace diagnostic writes only and introduce no new lifecycle state.

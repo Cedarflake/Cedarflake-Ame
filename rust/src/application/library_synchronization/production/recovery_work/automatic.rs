@@ -1,5 +1,6 @@
 #[cfg(test)]
 use std::cell::Cell;
+use std::io::Write;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread::{self, JoinHandle};
@@ -72,7 +73,10 @@ where
         "bounded-authoritative"
     };
     #[cfg(debug_assertions)]
-    eprintln!("[Ame sync] recovery started kind={recovery_kind} root={root_id}");
+    let _ = writeln!(
+        std::io::stderr().lock(),
+        "[Ame sync] recovery started kind={recovery_kind} root={root_id}"
+    );
     let queue_policy = policy.queue;
     let recovery_policy = policy.recovery;
     let metadata_inventory_page_entries = policy.metadata_inventory_page_entries;
@@ -152,7 +156,11 @@ where
                         ) {
                             return Err(error);
                         }
-                        eprintln!("[Ame sync] indexed startup unavailable code={}", error.code);
+                        let _ = writeln!(
+                            std::io::stderr().lock(),
+                            "[Ame sync] indexed startup unavailable code={}",
+                            error.code
+                        );
                     }
                     let deferred = defer_authoritative_change(
                         &mut catalog,

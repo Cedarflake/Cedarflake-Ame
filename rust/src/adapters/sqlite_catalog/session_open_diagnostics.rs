@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::time::{Duration, Instant};
 
 use crate::domain::{LibraryChangeLane, ScanError};
@@ -26,7 +27,8 @@ impl SqliteCatalogSession {
         });
         let elapsed = started.elapsed();
         if elapsed >= Duration::from_millis(100) {
-            eprintln!(
+            let _ = writeln!(
+                std::io::stderr().lock(),
                 "[Ame sync catalog open] lane={lane:?} total_ms={} identity_ms={identity_ms:?} \
                  open_config_ms={open_config_ms:?} tail_ms={} outcome={}",
                 elapsed.as_millis(),

@@ -1,3 +1,5 @@
+#[cfg(debug_assertions)]
+use std::io::Write;
 #[cfg(test)]
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
@@ -505,7 +507,8 @@ fn log_preview_diagnostic(
             Err(error) => ("error", error.code.as_str()),
         };
         if elapsed >= SLOW_PREVIEW_DIAGNOSTIC || !matches!(code, "none") {
-            eprintln!(
+            let _ = writeln!(
+                std::io::stderr().lock(),
                 "[Ame preview] outcome={outcome} code={code} retry={is_retry} total_ms={} \
                  access_ms={} store_ms={} catalog_ms={} source_ms={} materialize_ms={} \
                  commit_ms={} reclaim_ms={} publish_ms={} materialization={} source_issue={} location_id={location_id}",
@@ -616,6 +619,8 @@ fn install_preview_test_hook(
 mod tests {
     #[cfg(windows)]
     mod cache_namespace;
+    #[cfg(debug_assertions)]
+    mod diagnostics;
     #[cfg(windows)]
     mod failure;
     #[cfg(windows)]

@@ -1,5 +1,7 @@
 #[cfg(all(test, windows))]
 use std::collections::BTreeMap;
+#[cfg(all(windows, debug_assertions))]
+use std::io::Write;
 #[cfg(all(test, windows))]
 use std::panic::{AssertUnwindSafe, catch_unwind};
 #[cfg(windows)]
@@ -1033,7 +1035,8 @@ impl<Connection: JournalRuntimeConnection> ProductionSynchronization<Connection>
         self.live = None;
         if let Some(error) = outcome.failure {
             #[cfg(debug_assertions)]
-            eprintln!(
+            let _ = writeln!(
+                std::io::stderr().lock(),
                 "[Ame sync] live worker failed code={} message={}",
                 error.code,
                 one_line_message(&error.message),
@@ -1054,7 +1057,8 @@ impl<Connection: JournalRuntimeConnection> ProductionSynchronization<Connection>
                 self.journal_status.record_window(&window);
                 #[cfg(debug_assertions)]
                 for _report in window.reports() {
-                    eprintln!(
+                    let _ = writeln!(
+                        std::io::stderr().lock(),
                         "[Ame sync] journal page finished roots={} failed={} observations={} checkpoints={} failure_codes={:?}",
                         _report.enrolled_root_count,
                         _report.failed_root_count,
@@ -1071,7 +1075,8 @@ impl<Connection: JournalRuntimeConnection> ProductionSynchronization<Connection>
             }
             Ok(JournalTaskOutcome::Drain(report)) => {
                 #[cfg(debug_assertions)]
-                eprintln!(
+                let _ = writeln!(
+                    std::io::stderr().lock(),
                     "[Ame sync] journal drain finished leased={} completed={} retried={} superseded={} mutations={}",
                     report.leased_count,
                     report.completed_count,
@@ -1084,7 +1089,8 @@ impl<Connection: JournalRuntimeConnection> ProductionSynchronization<Connection>
             Ok(JournalTaskOutcome::BaselineBoundary) => 0,
             Err(_error) => {
                 #[cfg(debug_assertions)]
-                eprintln!(
+                let _ = writeln!(
+                    std::io::stderr().lock(),
                     "[Ame sync] journal worker failed code={} message={}",
                     _error.code,
                     one_line_message(&_error.message),
@@ -1173,7 +1179,8 @@ impl<Connection: JournalRuntimeConnection> ProductionSynchronization<Connection>
         match result {
             Ok(RecoveryTaskOutcome::Authoritative(report)) => {
                 #[cfg(debug_assertions)]
-                eprintln!(
+                let _ = writeln!(
+                    std::io::stderr().lock(),
                     "[Ame sync] recovery finished kind={recovery_kind} root={root_id} result=ok mutations={}",
                     report.incremental.applied_mutation_count
                 );
@@ -1194,7 +1201,8 @@ impl<Connection: JournalRuntimeConnection> ProductionSynchronization<Connection>
                 } = *page;
                 self.recovery_sources.publish(change_id, retained_source);
                 #[cfg(debug_assertions)]
-                eprintln!(
+                let _ = writeln!(
+                    std::io::stderr().lock(),
                     "[Ame sync] recovery finished kind={recovery_kind} root={root_id} result=ok leased={} completed={} retried={} deferred={} superseded={} staged={} candidates={} mutations={}",
                     report.incremental.leased_count,
                     report.incremental.completed_count,
@@ -1211,7 +1219,8 @@ impl<Connection: JournalRuntimeConnection> ProductionSynchronization<Connection>
             }
             Ok(RecoveryTaskOutcome::CandidateDrain(report)) => {
                 #[cfg(debug_assertions)]
-                eprintln!(
+                let _ = writeln!(
+                    std::io::stderr().lock(),
                     "[Ame sync] recovery finished kind={recovery_kind} root={root_id} result=ok mutations={}",
                     report.applied_mutation_count,
                 );
@@ -1221,7 +1230,8 @@ impl<Connection: JournalRuntimeConnection> ProductionSynchronization<Connection>
             }
             Ok(RecoveryTaskOutcome::LegacyUnownedDrain(report)) => {
                 #[cfg(debug_assertions)]
-                eprintln!(
+                let _ = writeln!(
+                    std::io::stderr().lock(),
                     "[Ame sync] recovery finished kind={recovery_kind} root={root_id} result=ok mutations={}",
                     report.applied_mutation_count,
                 );
@@ -1231,7 +1241,8 @@ impl<Connection: JournalRuntimeConnection> ProductionSynchronization<Connection>
             }
             Err(error) => {
                 #[cfg(debug_assertions)]
-                eprintln!(
+                let _ = writeln!(
+                    std::io::stderr().lock(),
                     "[Ame sync] recovery finished kind={recovery_kind} root={root_id} result=failed code={} message={}",
                     error.code,
                     one_line_message(&error.message)

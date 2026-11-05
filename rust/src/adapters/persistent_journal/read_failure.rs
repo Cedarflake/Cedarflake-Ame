@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::domain::{
     LibraryRecoveryOpeningBoundary, PersistentJournalCheckpoint, PersistentJournalFailure,
     PersistentJournalReadFailure, PersistentJournalRootFailureKind,
@@ -19,7 +21,10 @@ pub(super) fn trimmed_failure(
     );
     // A recovered checkpoint later clears its failure. Retain the observed numeric
     // bounds in the diagnostic log without exposing source paths or volume identity.
-    eprintln!("[Ame journal] continuity lost code={code}: {message}");
+    let _ = writeln!(
+        std::io::stderr().lock(),
+        "[Ame journal] continuity lost code={code}: {message}"
+    );
     PersistentJournalReadFailure {
         kind: PersistentJournalRootFailureKind::JournalTrim,
         failure: PersistentJournalFailure {

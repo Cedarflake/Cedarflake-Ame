@@ -1,6 +1,8 @@
 #[cfg(test)]
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
+#[cfg(debug_assertions)]
+use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::domain::{
@@ -436,9 +438,12 @@ where
         Ok(report) => report,
         Err(error) => {
             #[cfg(debug_assertions)]
-            eprintln!(
+            let _ = writeln!(
+                std::io::stderr().lock(),
                 "[Ame sync] metadata inventory page failed root={} change={:?} code={}",
-                root.root_id, leased.change.id, error.code
+                root.root_id,
+                leased.change.id,
+                error.code
             );
             let authoritative = super::retry_authoritative_change(
                 repository,

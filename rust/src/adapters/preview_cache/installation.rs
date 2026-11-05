@@ -1,5 +1,7 @@
 use std::fs::{self, File};
 use std::io;
+#[cfg(all(windows, debug_assertions))]
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 
@@ -196,7 +198,10 @@ fn retry_sharing_conflict(mut replace: impl FnMut() -> io::Result<()>) -> io::Re
             return result;
         }
         #[cfg(debug_assertions)]
-        eprintln!("ame_preview_installation action=retry_sharing_conflict delay_ms={delay_ms}");
+        let _ = writeln!(
+            std::io::stderr().lock(),
+            "ame_preview_installation action=retry_sharing_conflict delay_ms={delay_ms}"
+        );
         std::thread::sleep(std::time::Duration::from_millis(delay_ms));
         result = replace();
     }

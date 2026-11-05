@@ -160,8 +160,9 @@ end-button bounds, no-progress retry, held-thumb paging and missing-selection fe
 and strict analysis of the three changed Dart files pass. Earlier eighteen query-transition and
 eleven refresh cases retain their scope. In the live ordinary-gallery client, native-thumb dragging
 displayed the inline card at each loading edge and published another page; scrolling away showed
-the full-width thumbnail list, and the main image remained unchanged. A separately reported hot
-reload synchronization interruption remains under investigation. The strip, paging and position
+the full-width thumbnail list, and the main image remained unchanged. The separately reported
+development-output interruption is covered by the [native diagnostic repair](desktop-lifecycle-continuity.md#disconnected-development-diagnostics--2026-11-05).
+The strip, paging and position
 owners contain 363, 105 and 57 production lines, with no inline tests; the strip interaction file
 contains 698 dedicated test lines. Current-head hosted checks remain separate.
 

@@ -1,4 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
+#[cfg(debug_assertions)]
+use std::io::Write;
 use std::time::{Duration, Instant};
 
 use crate::domain::{
@@ -653,7 +655,8 @@ where
                 runtime.blocking_issue_code = Some(error.code.clone());
             }
             #[cfg(debug_assertions)]
-            eprintln!(
+            let _ = writeln!(
+                std::io::stderr().lock(),
                 "[Ame sync] queue persistence result={} root={} code={} message={}",
                 if is_backpressured || is_transient && runtime.blocking_issue_code.is_none() {
                     "retrying"
