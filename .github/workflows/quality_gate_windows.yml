@@ -1011,6 +1011,123 @@ jobs:
           "name=$env:AME_SIGNED_ARTIFACT" >> $env:GITHUB_OUTPUT
           "source_commit=$env:AME_SOURCE_COMMIT" >> $env:GITHUB_OUTPUT
 
+  release_verify_unsigned_windows:
+    name: Release / Unsigned Verification
+    needs: release_unsigned_windows
+    if: >-
+      inputs.gate_mode == 'release' &&
+      inputs.release_signing_mode == 'unsigned' &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.ref_protected
+    runs-on: windows-2025
+    timeout-minutes: 90
+    env:
+      CI: "true"
+    outputs:
+      unsigned_bundle_artifact: __DOLLAR__{{ steps.verified_artifact.outputs.name }}
+      source_commit: __DOLLAR__{{ steps.verified_artifact.outputs.source_commit }}
+    steps:
+      - name: Check out exact unsigned release tag
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: refs/tags/${{ inputs.release_tag }}
+
+      - name: Prove unsigned verifier release tag identity
+        shell: pwsh
+        env:
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+          AME_SOURCE_COMMIT: ${{ needs.release_unsigned_windows.outputs.source_commit }}
+          AME_TRUSTED_WORKFLOW_COMMIT: ${{ inputs.trusted_workflow_commit }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tagRef = "refs/tags/$env:AME_RELEASE_TAG"
+          $tagObject = (git show-ref --verify --hash $tagRef).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagObject)) {
+            throw "The exact release tag ref does not exist: $tagRef"
+          }
+          $tagCommit = (git rev-parse --verify "$tagRef^{commit}").Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagCommit)) {
+            throw "The exact release tag does not resolve to a commit: $tagRef"
+          }
+          $headCommit = (git rev-parse --verify HEAD).Trim()
+          if (
+            $LASTEXITCODE -ne 0 -or
+            $headCommit -cne $tagCommit -or
+            $headCommit -cne $env:AME_SOURCE_COMMIT
+          ) {
+            throw "Release tag commit does not match checked-out HEAD and unsigned source"
+          }
+          git cat-file -e "$env:AME_TRUSTED_WORKFLOW_COMMIT^{commit}"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Trusted release-workflow commit is unavailable to the verifier"
+          }
+          git merge-base --is-ancestor $headCommit $env:AME_TRUSTED_WORKFLOW_COMMIT
+          if ($LASTEXITCODE -ne 0) {
+            throw "Verified release source is not an ancestor of the trusted workflow commit"
+          }
+
+      - name: Download immutable unsigned candidate
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: ${{ needs.release_unsigned_windows.outputs.unsigned_candidate_artifact }}
+          path: build/unsigned-candidate
+
+      - name: Verify unsigned manifest, executable identities and source
+        shell: pwsh
+        env:
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+          AME_SOURCE_COMMIT: ${{ needs.release_unsigned_windows.outputs.source_commit }}
+        run: |
+          ./tool/release_verify_unsigned_candidate.ps1 -CandidateRoot (
+            [System.IO.Path]::GetFullPath("build\unsigned-candidate")
+          ) -Tag $env:AME_RELEASE_TAG -SourceCommit $env:AME_SOURCE_COMMIT
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.47.8
+          cache: true
+          pub-cache: true
+
+      - name: Restore locked dependencies
+        shell: pwsh
+        run: flutter pub get --enforce-lockfile
+
+      - name: Validate release version
+        shell: pwsh
+        env:
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+        run: ./tool/release_validate_version.ps1 -Tag $env:AME_RELEASE_TAG
+
+      - name: Run complete unsigned release acceptance
+        shell: pwsh
+        run: |
+          ./tool/quality_verify_daily.ps1
+          ./tool/release_verify_windows.ps1 -SigningMode unsigned -SignedApplicationBundlePath (
+            [System.IO.Path]::GetFullPath("build\unsigned-candidate\payload")
+          )
+          ./tool/performance_benchmark_synthetic_library.ps1
+
+      - name: Check committed whitespace
+        shell: pwsh
+        env:
+          AME_BASE_REVISION: ${{ inputs.base_revision }}
+        run: ./tool/quality_verify_git_range.ps1 -BaseRevision $env:AME_BASE_REVISION
+
+      - name: Expose verified unsigned candidate
+        id: verified_artifact
+        shell: pwsh
+        env:
+          AME_UNSIGNED_ARTIFACT: ${{ needs.release_unsigned_windows.outputs.unsigned_candidate_artifact }}
+          AME_SOURCE_COMMIT: ${{ needs.release_unsigned_windows.outputs.source_commit }}
+        run: |
+          "name=$env:AME_UNSIGNED_ARTIFACT" >> $env:GITHUB_OUTPUT
+          "source_commit=$env:AME_SOURCE_COMMIT" >> $env:GITHUB_OUTPUT
+
   quality_windows:
     name: Windows Gate
     if: always()
