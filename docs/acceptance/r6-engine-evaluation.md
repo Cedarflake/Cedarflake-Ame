@@ -7,12 +7,14 @@ The selected boundary and immutable parameters are owned by
 
 ## Integration candidates
 
-Upstream's latest release still resolves to
+The initial evaluation used
 [Czkawka 12.0.2](https://github.com/qarmin/czkawka/releases/tag/12.0.2).
 Its MIT core's [similar-image implementation](https://github.com/qarmin/czkawka/blob/12.0.2/czkawka_core/src/tools/similar_images/core.rs)
 owns directory traversal, path-based decoding, cache loading and parallel execution. These entrypoints
 do not accept Ame's held source lease. The complete core also brings unrelated media dependencies.
-Neither its pipeline nor the GPL Krokiet interface is copied or admitted.
+Neither its complete pipeline nor the GPL Krokiet interface is admitted to production. The
+[partial-reuse comparison](#partial-czkawka-reuse---2026-11-05) separately evaluates extracted core
+stages; directory/cache ownership does not prevent that narrower integration.
 
 The same release's lockfile selects `image_hasher` 3.1.1 and `bk-tree` 0.5.0. The former accepts an
 already decoded image; the latter can index Ame-owned hash bytes using a supplied distance metric.
@@ -235,6 +237,71 @@ and all 17 source-sample hashes were unchanged. SQLite quick-check passed with z
 issues; the child exited with code 0 and the scratch catalog was retired. Only a read-only preflight
 was performed on cloud-primary; no R6 measurement package was transferred or executed there.
 Cloud-primary runs and constrained-client measurement are deferred outside the current R6 scope.
+
+## Partial Czkawka reuse - 2026-11-05
+
+Based on Ame `09f97c23` and Czkawka 12.0.2 commit
+[`f9be31f586f9473a91b9fe3785b7ba76ddaecf44`](https://github.com/qarmin/czkawka/tree/f9be31f586f9473a91b9fe3785b7ba76ddaecf44).
+The core's [MIT license](https://github.com/qarmin/czkawka/blob/12.0.2/czkawka_core/LICENSE_MIT)
+was retained with an ignored local extraction. No Krokiet source or assets were used.
+
+The standalone prototype compiled and executed eight upstream hashing/matching/grouping methods,
+the disjoint-set merge and structural checks. It accepted decoded images and opaque sample IDs;
+it invoked no directory traversal, cache, path decoder or deletion workflow. Changes around the
+retained method bodies removed timing/progress output and supplied narrow construction/result
+wrappers. Scalar bit counting replaced the SIMD Hamming implementation with the same distance;
+reference-folder mode and upstream file filters were outside the experiment. This establishes a
+workable partial extraction, not a ready public upstream API or production integration.
+
+The comparison used `image_hasher` 3.1.1, `image` 0.25.10, `bk-tree` 0.5.0 and `indexmap` 2.14.0.
+The final upstream run enabled its `fast_resize_unstable` feature with `fast_image_resize` 6.1.0;
+the Ame baseline retained its admitted feature set. All runs were serial. The fixture reused 55
+distinct local-primary sources: the original 16 reviewed pairs and 28 retained-scale pairs. Its
+22 original sources supplied 132 light transformations and 22 heavier centered crops, retaining
+80% of each dimension. These are selected counterexamples and transformations, not a held-out
+whole-library accuracy sample.
+
+The CLI defaults (256-bit Gradient, Nearest, radius 5, geometric invariance off), rotation/mirror
+support and Lanczos3 alternatives were checked separately. Direct decoded-image input and Ame's
+white-alpha/grayscale/256-edge preparation produce different evidence; the existing transformations
+flatten transparency onto white. The table therefore compares the useful integration seam with
+the same Ame input preparation and eight rotation/reflection variants, keeping the input policy
+separate from upstream algorithm settings.
+
+| Candidate and maximum distances | Light variants / 132 | Known unrelated pairs admitted / 12 | Heavier crops / 22 | Layout-related pairs retained / 28 |
+| --- | --- | --- | --- | --- |
+| Current Ame standard: coarse 6, paired detail 44 | 132 | 0 | 2 | 20 |
+| Extracted Gradient-256, radius 41 | 132 | 0 | 1 | 18 |
+| Extracted Gradient-256, radius 42 | 132 | 0 | 2 | 22 |
+| Extracted Gradient-64, radius 6 | 132 | 2 | 2 | 20 |
+
+Both known same-image resize pairs survived every table configuration. The 256-bit candidates also
+rejected the two related-but-different expression pairs. Radius 41 was the smallest extracted
+256-bit threshold retaining all 132 light variants; radius 42 retained the second heavier crop.
+These are diagnostic thresholds, not upstream presets or newly admitted Ame parameters. At 44,
+the same candidate retained 25 layout-related pairs without adding another heavier crop. Tightening
+to 40 retained 16 layout-related pairs but lost one light crop and one heavier crop. This sample
+shows a tradeoff rather than a joint quality improvement. Layout-related pairs retain their earlier
+visual classification; this experiment does not relabel all of them as errors.
+
+The extracted grouping stages also merged a four-content hash fixture with only A-B, B-C and C-D
+zero-distance overlaps into one group. No content directly matched all other members. This confirms
+the upstream transitive merge policy, which conflicts with ADR 0038's fixed-reference membership.
+Importing that stage unchanged would alter group identity and durable-choice behavior. Ame should
+retain source admission, bounded persistent lookup, reference membership and saved choices even if
+an upstream calculation stage is adopted later.
+
+The final baseline took 11.778 s at a 307,621,888-byte peak working set; the six-configuration upstream
+run took 117.715 s at 453,758,976 bytes. These totals include different diagnostic workloads and are
+not an engine speed comparison. Final builds were warning-free. All 55 source digests matched before
+and after each final run; children exited with code 0 and leased scratch storage was removed. Source
+manifests, reports and extraction provenance remain in ignored local diagnostic storage. No permanent
+test suite, production dependency, schema or UI change was introduced.
+
+Disposition: partial reuse is technically viable, but this evaluation supplies no combined improvement
+in crop coverage and layout discrimination over the paired engine. Retain the current production
+scheme; do not introduce a maintained core fork or replace persistent matching/group semantics on
+this evidence. The two quality limits remain open for the R6 acceptance decision.
 
 ## Provenance and remaining integration
 

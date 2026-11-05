@@ -76,6 +76,10 @@ constrained-client measurements and optimization are deferred outside R6; they d
 acceptance. Implementation checks passed at `4c35a993`; the
 [integration record](acceptance/r6-similar-images.md) retains the exact hosted run and verification limits.
 
+The [partial-Czkawka evaluation](acceptance/r6-engine-evaluation.md#partial-czkawka-reuse---2026-11-05)
+establishes feasible extraction but no combined quality gain on the retained samples. Keep the paired
+engine; visual-layout discrimination and heavier-crop coverage remain part of R6's acceptance decision.
+
 The historical pause timeout remains an accepted observation with a
 [recurrence-based follow-up](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04).
 It did not recur in current Windows or bounded timing verification. It no longer

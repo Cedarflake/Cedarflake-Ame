@@ -12,6 +12,14 @@ Apache-2.0 `image_hasher` library behind a core pipeline that also traverses dir
 and manages caches. Its complete core would duplicate Ame's held-source and scheduling boundaries.
 The GPL Krokiet interface and assets are outside this decision.
 
+Partial core reuse is a separate, feasible alternative: extracted calculation and matching stages
+can consume Ame-admitted pixels and opaque identities without the directory/cache pipeline. The
+[partial-reuse evaluation](../acceptance/r6-engine-evaluation.md#partial-czkawka-reuse---2026-11-05)
+did not establish a combined quality improvement over the selected paired scheme. Retain the direct
+`image_hasher` adapter rather than admit a maintained core fork. Upstream's transitive group merge
+also differs from the fixed-reference identity below; candidate grouping cannot replace durable
+group policy unchanged. Future selection may reconsider a narrower upstream stage on new evidence.
+
 The [engine evaluation](../acceptance/r6-engine-evaluation.md) compares Gradient hashes at 64 and
 256 bits, Mean/DCT, Median/DCT, and BK-tree versus partitioned lookup. The initial 64-bit choice
 preserved light crops but admitted unrelated real-library images. A paired 256-bit Gradient confirms

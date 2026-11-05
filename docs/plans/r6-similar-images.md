@@ -40,8 +40,9 @@ product acceptance evidence, and no further sketch iteration is planned.
 
 ## R6-01: Admit an engine and comparison boundary
 
-Depends on R6-00. Evaluate the MIT `czkawka_core` similarity capability against a narrow adapter
-using the same ecosystem's perceptual-hash and candidate-search libraries. The
+Depends on R6-00. Evaluate complete and partial reuse of the MIT `czkawka_core` similarity capability
+against a narrow adapter using the same ecosystem's perceptual-hash and candidate-search libraries.
+Partial reuse may extract calculation or matching stages while Ame retains input and group policy. The
 [R3 decision](../architecture/0028-versioned-exact-content-analysis.md) retained Czkawka as a future
 candidate; it did not admit that dependency for R6.
 
