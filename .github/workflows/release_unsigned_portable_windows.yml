@@ -1,0 +1,208 @@
+name: Release / Unsigned Portable Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing v-prefixed immutable release tag
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unsigned-release-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  daily:
+    name: Daily Quality
+    if: github.ref == 'refs/heads/main' && github.ref_protected
+    uses: ./.github/workflows/quality_gate_daily_windows.yml
+    with:
+      checkout_ref: refs/tags/${{ inputs.release_tag }}
+
+  build:
+    name: Verify unsigned Windows x64 ZIP
+    needs: daily
+    runs-on: windows-2025
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    env:
+      CI: "true"
+      AME_TAG: ${{ inputs.release_tag }}
+      AME_MAIN_SHA: ${{ github.sha }}
+      AME_WORKFLOW_SHA: ${{ github.workflow_sha }}
+    outputs:
+      source: ${{ steps.identity.outputs.sha }}
+      filename: ${{ steps.archive.outputs.filename }}
+      digest: ${{ steps.archive.outputs.digest }}
+      artifact: ${{ steps.archive.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: refs/tags/${{ inputs.release_tag }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify immutable source and release version
+        id: identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $ident = '(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
+          $pattern = '^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-' + $ident + '(?:\.' + $ident + ')*)?$'
+          if ($env:AME_TAG -cnotmatch $pattern -or
+              $env:GITHUB_REF -cne 'refs/heads/main' -or
+              $env:AME_MAIN_SHA -cnotmatch '^[0-9a-f]{40}$' -or
+              $env:AME_MAIN_SHA -cne $env:AME_WORKFLOW_SHA) {
+            throw "Release must be dispatched from protected main with a valid tag"
+          }
+          $ref = "refs/tags/$env:AME_TAG"
+          $object = (git show-ref --verify --hash $ref).Trim()
+          if ($LASTEXITCODE -ne 0 -or $object -cnotmatch '^[0-9a-f]{40}$') { throw "Tag is missing" }
+          $source = (git rev-parse --verify "$ref^{commit}").Trim()
+          $head = (git rev-parse --verify HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $source -cne $head) { throw "Tag checkout mismatch" }
+          git merge-base --is-ancestor $source $env:AME_MAIN_SHA
+          if ($LASTEXITCODE -ne 0) { throw "Tagged commit is not an ancestor of protected main" }
+          ./tool/release_validate_version.ps1 -Tag $env:AME_TAG
+          "sha=$source" >> $env:GITHUB_OUTPUT
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.47.8
+          cache: true
+          pub-cache: true
+      - name: Build and verify unsigned payload
+        shell: pwsh
+        run: ./tool/quality_verify_unsigned_windows.ps1
+      - name: Package and hash verified ZIP
+        id: archive
+        shell: pwsh
+        env:
+          AME_SOURCE_SHA: ${{ steps.identity.outputs.sha }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $e = Get-Content 'build/quality-unsigned-windows/evidence.json' -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($e.format -cne 'cedarflake-ame-unsigned-quality-v1' -or
+              $e.status -cne 'passed' -or $e.dirtyWorktree -ne $false -or
+              $e.sourceCommit -cne $env:AME_SOURCE_SHA -or
+              $e.bridgeSmoke -cne 'passed_without_catalog_access' -or
+              $e.payload.machine -cne 'windows-x64' -or
+              @($e.payload.files).Count -ne $e.payload.fileCount) {
+            throw "Unsigned build evidence was not accepted"
+          }
+          $root = [IO.Path]::GetFullPath('build/windows/x64/runner/Release')
+          foreach ($f in @($e.payload.files)) {
+            $path = [IO.Path]::GetFullPath((Join-Path $root $f.relativePath))
+            if (-not $path.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -or
+                -not (Test-Path -LiteralPath $path -PathType Leaf) -or
+                (Get-Item $path).Length -ne $f.length -or
+                (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $f.sha256) {
+              throw "Unsigned bundle changed after verification"
+            }
+          }
+          $output = ./tool/release_package_portable_windows.ps1 -Tag $env:AME_TAG -ReleaseRoot $root -AllowUnsigned | Select-Object -Last 1
+          $item = Get-Item -LiteralPath $output
+          $name = "Cedarflake-Ame-$env:AME_TAG-windows-x64-portable.zip"
+          if ($item.Name -cne $name) { throw "Invalid portable archive name" }
+          $digest = (Get-FileHash $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "filename=$name" >> $env:GITHUB_OUTPUT
+          "path=$($item.FullName)" >> $env:GITHUB_OUTPUT
+          "digest=$digest" >> $env:GITHUB_OUTPUT
+          "artifact=ame-unsigned-$env:AME_TAG-$env:AME_SOURCE_SHA-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT" >> $env:GITHUB_OUTPUT
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: ${{ steps.archive.outputs.artifact }}
+          path: ${{ steps.archive.outputs.path }}
+          retention-days: 2
+          if-no-files-found: error
+
+  publish:
+    name: Publish verified unsigned ZIP
+    needs: build
+    runs-on: windows-2025
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      AME_TAG: ${{ inputs.release_tag }}
+      AME_SOURCE: ${{ needs.build.outputs.source }}
+      AME_NAME: ${{ needs.build.outputs.filename }}
+      AME_HASH: ${{ needs.build.outputs.digest }}
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: ${{ needs.build.outputs.artifact }}
+          path: build/publish
+      - name: Verify immutable tag and publish asset
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          if ($env:AME_SOURCE -cnotmatch '^[0-9a-f]{40}$' -or
+              $env:AME_HASH -cnotmatch '^[0-9a-f]{64}$') { throw "Invalid artifact identity" }
+          $items = @(Get-ChildItem 'build/publish' -Force)
+          if ($items.Count -ne 1 -or $items[0].PSIsContainer -or
+              $items[0].Name -cne $env:AME_NAME -or
+              ($items[0].Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Publication input is not one approved ZIP"
+          }
+          $path = $items[0].FullName
+          if ((Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $env:AME_HASH) {
+            throw "Published ZIP hash mismatch"
+          }
+          $ref = gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$env:AME_TAG" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw "Tag lookup failed" }
+          $type = [string]$ref.object.type
+          $sha = [string]$ref.object.sha
+          for ($i = 0; $type -ceq 'tag'; $i++) {
+            if ($i -ge 8 -or $sha -cnotmatch '^[0-9a-f]{40}$') { throw "Invalid annotated tag chain" }
+            $tag = gh api "repos/$env:GITHUB_REPOSITORY/git/tags/$sha" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw "Annotated tag lookup failed" }
+            $type = [string]$tag.object.type
+            $sha = [string]$tag.object.sha
+          }
+          if ($type -cne 'commit' -or $sha -cne $env:AME_SOURCE) {
+            throw "Publication tag has changed"
+          }
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = "application/vnd.github+json"
+            'X-GitHub-Api-Version' = "2022-11-28"
+          }
+          $url = "https://api.github.com/repos/$env:GITHUB_REPOSITORY/releases/tags/$([Uri]::EscapeDataString($env:AME_TAG))"
+          $r = Invoke-WebRequest -Uri $url -Headers $headers -SkipHttpErrorCheck -TimeoutSec 30
+          if ($r.StatusCode -eq 404) {
+            gh release create $env:AME_TAG $path --repo $env:GITHUB_REPOSITORY --verify-tag --title "Cedarflake Ame $env:AME_TAG" --generate-notes
+            if ($LASTEXITCODE -ne 0) { throw "GitHub Release creation failed" }
+          } elseif ($r.StatusCode -eq 200) {
+            $release = $r.Content | ConvertFrom-Json
+            if ($release.tag_name -cne $env:AME_TAG -or [string]$release.id -cnotmatch '^[1-9][0-9]*$') { throw "Invalid release identity" }
+            $matches = @()
+            $page = 1
+            do {
+              $a = Invoke-WebRequest -Uri "https://api.github.com/repos/$env:GITHUB_REPOSITORY/releases/$($release.id)/assets?per_page=100&page=$page" -Headers $headers -SkipHttpErrorCheck -TimeoutSec 30
+              if ($a.StatusCode -ne 200 -or -not ([string]$a.Content).TrimStart().StartsWith("[")) { throw "Asset list failed" }
+              [object[]]$assets = ConvertFrom-Json -InputObject $a.Content
+              if ($null -eq $assets) { $assets = @() }
+              foreach ($asset in $assets) {
+                if ($asset.name -ceq $env:AME_NAME) { $matches += $asset }
+              }
+              $page++
+            } while ($assets.Count -eq 100)
+            if ($matches.Count -gt 1) { throw "Ambiguous existing ZIP asset" }
+            if ($matches.Count -eq 1) {
+              if ($matches[0].state -cne 'uploaded' -or $matches[0].digest -cne "sha256:$env:AME_HASH") {
+                throw "Existing ZIP digest does not match"
+              }
+            } else {
+              gh release upload $env:AME_TAG $path --repo $env:GITHUB_REPOSITORY
+              if ($LASTEXITCODE -ne 0) { throw "GitHub Release upload failed" }
+            }
+          } else {
+            throw "Release lookup failed: HTTP $($r.StatusCode)"
+          }
