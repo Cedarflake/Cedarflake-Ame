@@ -56,18 +56,15 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-Development-build similarity throughput and early group publication are updated on `main`.
-The [scoped evidence](acceptance/r6-similar-images.md#development-analysis-throughput--2026-11-05)
-records computation, workflow and rebuilt-client verification; hosted checks remain pending.
-Similarity parameters and source safety remain unchanged.
-
-Current maintenance also addresses [similar-group member query latency](acceptance/r6-similar-images.md#similar-group-member-query-latency--2026-11-05)
-and viewer classification-label continuity and spacing, removal of the visible `其他` entry,
-filmstrip drag continuity across its consumers, and the time rail's ineffective seek. Follow-up work
-covers filmstrip boundary paging and inline loading feedback and consistent duplicate icons.
-[Desktop lifecycle continuity](acceptance/desktop-lifecycle-continuity.md) records verified
-classification and synchronization hot-restart attachment and joined presentation shutdown.
-Hosted checks remain required; this does not reopen R6 or start R7.
+Post-R6 maintenance is integrated into `main`. The owning records retain the local regression and
+rebuilt-client evidence for [similarity throughput](acceptance/r6-similar-images.md#development-analysis-throughput--2026-11-05),
+[group entry and duplicate icons](acceptance/r6-similar-images.md#similar-group-member-query-latency--2026-11-05),
+[viewer categories and spacing](acceptance/r5-desktop-classification.md#viewer-classification-continuity--2026-11-05),
+[date navigation and filmstrip paging](acceptance/image-rendering.md#time-navigation-after-catalog-publication--2026-11-05),
+and [hot-restart attachment and shutdown](acceptance/desktop-lifecycle-continuity.md).
+The generic `其他` category has been removed from browsing. Similarity parameters and source safety
+remain unchanged. Hosted CI remains the outstanding integration check; these repairs do not reopen
+R6 or start R7.
 
 Project organization O1–O7 was merged into `main` on 2026-11-04 through
 [PR 46](https://github.com/Cedarflake/Cedarflake-Ame/pull/46). The

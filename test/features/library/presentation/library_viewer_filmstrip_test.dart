@@ -592,11 +592,12 @@ class _EdgeFilmstripController extends LibraryController {
   }
 
   void complete({List<LibraryAsset>? assets, int? windowStart}) {
-    if (assets != null)
+    if (assets != null) {
       state = state.copyWith(
         assets: assets,
         windowStartItemOffset: windowStart,
       );
+    }
     _pending!.complete();
   }
 }

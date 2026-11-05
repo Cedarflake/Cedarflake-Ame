@@ -134,7 +134,8 @@ scrolling without releasing the mouse. All 16 affected filmstrip, preview-frame 
 The only scrolling-strip composition is the shared gallery viewer, covering the ordinary library,
 favorites, manual albums and smart albums. Duplicate review reuses the thumbnail only; its static
 cards do not own a filmstrip drag. Paging limits, preview fade/retention and source identity remain
-unchanged. Rebuilt-client interactions and exact-commit hosted checks remain pending.
+unchanged. Subsequent rebuilt-client interactions are recorded under
+[boundary paging](#filmstrip-boundary-paging--2026-11-05); hosted checks retain their own commit scope.
 The strip has 299 production lines, no inline tests; its dedicated interaction file has 542 lines.
 
 ## Filmstrip boundary paging — 2026-11-05
@@ -162,3 +163,7 @@ the complete row, keeping its native track and both end buttons across the full 
 the card occupies only the thumbnail area. Both directional cases assert unchanged end-button
 bounds during loading; all eleven strip cases pass. The rebuilt ordinary-gallery client displayed
 the right loading card with both arrows retained at the outer edges.
+
+Hosted run `42001105569` at `feaf501c` passed Flutter, native and release workloads but failed Static
+on a missing conditional block in the strip fixture. Adding that block preserves the test behavior;
+the affected file passes formatting and strict Dart analysis. Current-head CI remains separate.
