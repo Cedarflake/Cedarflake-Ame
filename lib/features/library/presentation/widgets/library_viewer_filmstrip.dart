@@ -48,6 +48,7 @@ class _LibraryViewerFilmstripState
   late final LibraryFilmstripPaging _paging;
   late final _position = widget.position ?? LibraryFilmstripPosition();
   int? _windowStart;
+  int _leadingItems = 0;
   String? _queryId;
   bool _centerSelection = true;
   bool _revealSelection = false;
@@ -71,7 +72,13 @@ class _LibraryViewerFilmstripState
   void _handleScroll() {
     final state = _displayState;
     if (_isActive && state != null && _scroll.hasClients) {
-      _position.capture(state, widget.selection, _scroll.offset, _extent);
+      _position.capture(
+        state,
+        widget.selection,
+        _scroll.offset,
+        _extent,
+        leadingItems: _leadingItems,
+      );
     }
     _scheduleDemand();
   }
@@ -125,67 +132,68 @@ class _LibraryViewerFilmstripState
       child: LayoutBuilder(
         builder: (context, constraints) {
           final hasPaging = _paging.isLoading || _paging.hasFailure;
-          final atStart = _paging.page == LibraryFilmstripPage.previous;
-          _width = constraints.maxWidth - (hasPaging ? 106 : 0);
-          _synchronizeWindow(state);
+          final leadingItems =
+              hasPaging && _paging.page == LibraryFilmstripPage.previous
+              ? 1
+              : 0;
+          _width = constraints.maxWidth;
+          _synchronizeWindow(state, leadingItems);
           _scheduleDemand();
           return LibraryViewerFilmstripScrollbar(
             controller: _scroll,
             step: _extent,
-            child: Row(
-              children: [
-                if (hasPaging && atStart) _buildPagingCard(context),
-                Expanded(
-                  child: NotificationListener<ScrollNotification>(
-                    onNotification: (notification) {
-                      if (notification.depth == 0 && _isActive) {
-                        if (notification is ScrollStartNotification) {
-                          widget.onScrollActivityChanged?.call(true);
-                        } else if (notification is ScrollEndNotification) {
-                          widget.onScrollActivityChanged?.call(false);
-                        }
-                      }
-                      return false;
-                    },
-                    child: AmeScrollMotion(
-                      controller: _scroll,
-                      scrollDirection: Axis.horizontal,
-                      child: ListView.builder(
-                        key: const Key("viewer-filmstrip"),
-                        controller: _scroll,
-                        scrollDirection: Axis.horizontal,
-                        itemExtent: _extent,
-                        scrollCacheExtent: const ScrollCacheExtent.pixels(
-                          _extent,
-                        ),
-                        padding: const EdgeInsets.only(
-                          top: 4,
-                          bottom: LibraryViewerFilmstripScrollbar.controlExtent,
-                        ),
-                        itemCount: state.assets.length,
-                        findChildIndexCallback: (key) {
-                          if (key is! ValueKey<String>) return null;
-                          final index = state.assets.indexWhere(
-                            (asset) => asset.locationId == key.value,
-                          );
-                          return index < 0 ? null : index;
-                        },
-                        itemBuilder: (context, index) {
-                          final asset = state.assets[index];
-                          return LibraryViewerFilmstripThumbnail(
-                            key: ValueKey(asset.locationId),
-                            asset: asset,
-                            isSelected:
-                                asset.locationId == widget.selection.locationId,
-                            onPressed: () => widget.onSelected(asset),
-                          );
-                        },
-                      ),
-                    ),
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification.depth == 0 && _isActive) {
+                  if (notification is ScrollStartNotification) {
+                    widget.onScrollActivityChanged?.call(true);
+                  } else if (notification is ScrollEndNotification) {
+                    widget.onScrollActivityChanged?.call(false);
+                  }
+                }
+                return false;
+              },
+              child: AmeScrollMotion(
+                controller: _scroll,
+                scrollDirection: Axis.horizontal,
+                child: ListView.builder(
+                  key: const Key("viewer-filmstrip"),
+                  controller: _scroll,
+                  scrollDirection: Axis.horizontal,
+                  itemExtent: _extent,
+                  scrollCacheExtent: const ScrollCacheExtent.pixels(_extent),
+                  padding: const EdgeInsets.only(
+                    top: 4,
+                    bottom: LibraryViewerFilmstripScrollbar.controlExtent,
                   ),
+                  itemCount: state.assets.length + (hasPaging ? 1 : 0),
+                  findChildIndexCallback: (key) {
+                    if (key == const Key("viewer-filmstrip-paging")) {
+                      if (!hasPaging) return null;
+                      return leadingItems == 1 ? 0 : state.assets.length;
+                    }
+                    if (key is! ValueKey<String>) return null;
+                    final index = state.assets.indexWhere(
+                      (asset) => asset.locationId == key.value,
+                    );
+                    return index < 0 ? null : index + leadingItems;
+                  },
+                  itemBuilder: (context, index) {
+                    final assetIndex = index - leadingItems;
+                    if (assetIndex < 0 || assetIndex >= state.assets.length) {
+                      return _buildPagingCard(context);
+                    }
+                    final asset = state.assets[assetIndex];
+                    return LibraryViewerFilmstripThumbnail(
+                      key: ValueKey(asset.locationId),
+                      asset: asset,
+                      isSelected:
+                          asset.locationId == widget.selection.locationId,
+                      onPressed: () => widget.onSelected(asset),
+                    );
+                  },
                 ),
-                if (hasPaging && !atStart) _buildPagingCard(context),
-              ],
+              ),
             ),
           );
         },
@@ -195,13 +203,7 @@ class _LibraryViewerFilmstripState
 
   Widget _buildPagingCard(BuildContext context) => Container(
     key: const Key("viewer-filmstrip-paging"),
-    width: _extent,
-    margin: const EdgeInsets.fromLTRB(
-      3,
-      4,
-      3,
-      LibraryViewerFilmstripScrollbar.controlExtent,
-    ),
+    margin: const EdgeInsets.symmetric(horizontal: 3),
     decoration: BoxDecoration(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(6),
@@ -222,13 +224,13 @@ class _LibraryViewerFilmstripState
           ),
   );
 
-  void _synchronizeWindow(LibraryState state) {
+  void _synchronizeWindow(LibraryState state, int leadingItems) {
     if (_queryId != state.queryId) {
       _centerSelection = true;
       _paging.retry();
     }
     final previousStart = _windowStart;
-    final nextStart = state.windowStartItemOffset;
+    final nextStart = state.windowStartItemOffset - leadingItems;
     if (!_centerSelection && previousStart != null && _scroll.hasClients) {
       // Correct during layout so retained tiles never paint at the old page
       // offset. Unlike jumpTo, this preserves the native scrollbar's drag.
@@ -236,6 +238,7 @@ class _LibraryViewerFilmstripState
         state,
         widget.selection,
         _extent,
+        leadingItems: leadingItems,
       );
       _scroll.position.correctBy(
         retainedOffset == null
@@ -245,6 +248,7 @@ class _LibraryViewerFilmstripState
     }
     _queryId = state.queryId;
     _windowStart = nextStart;
+    _leadingItems = leadingItems;
   }
 
   void _scheduleDemand() {
@@ -260,7 +264,7 @@ class _LibraryViewerFilmstripState
         );
         if (index >= 0) {
           _centerSelection = false;
-          _jump((index + 0.5) * _extent - _width / 2);
+          _jump((index + _leadingItems + 0.5) * _extent - _width / 2);
         }
       }
       if (_revealSelection) {
@@ -269,21 +273,40 @@ class _LibraryViewerFilmstripState
         );
         if (index >= 0) {
           _revealSelection = false;
-          final leading = index * _extent;
+          final leading = (index + _leadingItems) * _extent;
           final trailing = leading + _extent;
           if (leading < _scroll.offset) {
             _jump(leading);
           } else if (trailing > _scroll.offset + _width) {
             _jump(trailing - _width);
           }
+        } else if (_paging.page == LibraryFilmstripPage.selection &&
+            (_paging.isLoading || _paging.hasFailure)) {
+          final end = math.max(
+            0.0,
+            (state.assets.length + 1) * _extent - _width,
+          );
+          // A lazy list may publish its new extent only after reaching the old end.
+          _revealSelection = _scroll.position.maxScrollExtent < end;
+          _centerSelection = true;
+          _jump(end);
         }
       }
-      final start = math.max(0, (_scroll.offset / _extent).floor() - 1);
+      final start = math.max(
+        0,
+        (_scroll.offset / _extent).floor() - _leadingItems - 1,
+      );
       final end = math.min(
         state.assets.length,
-        ((_scroll.offset + _width) / _extent).ceil() + 1,
+        ((_scroll.offset + _width) / _extent).ceil() - _leadingItems + 1,
       );
-      _position.capture(state, widget.selection, _scroll.offset, _extent);
+      _position.capture(
+        state,
+        widget.selection,
+        _scroll.offset,
+        _extent,
+        leadingItems: _leadingItems,
+      );
       if (_selectionNeedsPage(state)) {
         _controller.releaseFilmstripPreviewDemand(_previewOwner);
       } else {
@@ -320,6 +343,7 @@ class _LibraryViewerFilmstripState
     final LibraryFilmstripPage page;
     if (locateSelection) {
       page = LibraryFilmstripPage.selection;
+      _revealSelection = true;
     } else if (previous) {
       page = LibraryFilmstripPage.previous;
     } else {

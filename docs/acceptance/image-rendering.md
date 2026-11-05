@@ -149,20 +149,21 @@ its fractional offset while keeping the main-image selection and underlying gall
 
 `LibraryFilmstripPaging` owns request retirement, progress validation and retry. No-progress results
 stop automatic demand. `LibraryFilmstripPosition` owns the strip anchor through refresh; native
-Scrollbar input and layout correction remain in use. Loading/retry occupies a separate card on the
-requested side, outside image bounds. Eleven strip cases, eighteen query-transition cases and eleven
-refresh cases pass, including left/right retry, held-thumb paging, viewer independence and deferred
-publication. The clean Windows Debug client rebuilt successfully. In a real smart album, dragging
-to either edge displayed the loading card on that side, published another page and retired the
-indicator; the main image remained unchanged through repeated classification updates. Hosted results
-remain pending. The strip, paging and position owners contain 339, 105 and 50 production lines,
-with no inline tests; the strip interaction file contains 663 dedicated test lines.
+Scrollbar input and layout correction remain in use. Loading/retry is a temporary first or last item
+in the same virtualized list, with the thumbnail slot size and spacing. It scrolls with the images
+without shrinking the viewport. The leading slot participates in anchor restoration and visible
+preview bounds; a missing selection reveals its inline feedback after the lazy list publishes the
+extended scroll range. The native track and both end buttons retain the full strip width.
 
-The first card composition also inset the scrollbar at the loading edge. The scrollbar now wraps
-the complete row, keeping its native track and both end buttons across the full strip width while
-the card occupies only the thumbnail area. Both directional cases assert unchanged end-button
-bounds during loading; all eleven strip cases pass. The rebuilt ordinary-gallery client displayed
-the right loading card with both arrows retained at the outer edges.
+All eleven strip cases pass, including both directions of card movement, retained thumbnail and
+end-button bounds, no-progress retry, held-thumb paging and missing-selection feedback. Formatting
+and strict analysis of the three changed Dart files pass. Earlier eighteen query-transition and
+eleven refresh cases retain their scope. In the live ordinary-gallery client, native-thumb dragging
+displayed the inline card at each loading edge and published another page; scrolling away showed
+the full-width thumbnail list, and the main image remained unchanged. A separately reported hot
+reload synchronization interruption remains under investigation. The strip, paging and position
+owners contain 363, 105 and 57 production lines, with no inline tests; the strip interaction file
+contains 698 dedicated test lines. Current-head hosted checks remain separate.
 
 Hosted run `42001105569` at `feaf501c` passed Flutter, native and release workloads but failed Static
 on a missing conditional block in the strip fixture. Adding that block preserves the test behavior;

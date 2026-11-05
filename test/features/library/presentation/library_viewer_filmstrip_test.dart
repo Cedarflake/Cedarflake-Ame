@@ -15,7 +15,7 @@ import "../../../support/application_test_bindings.dart";
 void main() {
   for (final previous in [false, true]) {
     testWidgets(
-      "an unchanged edge stops paging and retries inline; previous=$previous",
+      "edge feedback scrolls with thumbnails and retries without progress; previous=$previous",
       (tester) async {
         final assets = List.generate(20, (index) => _asset(100 + index));
         final controller = _EdgeFilmstripController();
@@ -74,29 +74,44 @@ void main() {
         final rightBounds = tester.getRect(rightButton);
         scroll.jumpTo(previous ? 0 : scroll.position.maxScrollExtent);
         await tester.pump();
+        final retained = find.byKey(
+          ValueKey(assets[previous ? 2 : 17].locationId),
+        );
+        final retainedBounds = tester.getRect(retained);
         await tester.pump();
         expect(controller.requests, 1);
+        expect(tester.getSize(strip).width, 700);
+        expect(tester.getRect(retained), retainedBounds);
         expect(tester.getRect(leftButton), leftBounds);
         expect(tester.getRect(rightButton), rightBounds);
+        scroll.jumpTo(previous ? 0 : scroll.position.maxScrollExtent);
+        await tester.pump();
         final card = find.byKey(const Key("viewer-filmstrip-paging"));
         final spinner = find.byType(CircularProgressIndicator);
-        if (previous) {
-          expect(
-            tester.getRect(card).right,
-            lessThanOrEqualTo(tester.getRect(strip).left),
-          );
-        } else {
-          expect(
-            tester.getRect(card).left,
-            greaterThanOrEqualTo(tester.getRect(strip).right),
-          );
-        }
+        expect(find.descendant(of: strip, matching: card), findsOneWidget);
+        expect(
+          tester.getRect(card).left,
+          greaterThanOrEqualTo(tester.getRect(strip).left),
+        );
+        expect(
+          tester.getRect(card).right,
+          lessThanOrEqualTo(tester.getRect(strip).right),
+        );
         expect(
           tester.getCenter(spinner),
           tester.getCenter(
             find.descendant(of: card, matching: find.byType(DecoratedBox)),
           ),
         );
+        final cardBeforeScroll = tester.getRect(card);
+        scroll.jumpTo(scroll.offset + (previous ? 70 : -70));
+        await tester.pump();
+        expect(
+          tester.getRect(card).left - cardBeforeScroll.left,
+          closeTo(previous ? -70 : 70, 0.01),
+        );
+        scroll.jumpTo(previous ? 0 : scroll.position.maxScrollExtent);
+        await tester.pump();
         controller.complete();
         await tester.pumpAndSettle();
         expect(spinner, findsNothing);
@@ -236,8 +251,17 @@ void main() {
         selection.value = destination[1];
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump();
+        await tester.pump();
         expect(controller.anchors, [destination[1].locationId]);
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        final spinner = find.byType(CircularProgressIndicator);
+        expect(spinner, findsOneWidget);
+        expect(
+          tester
+              .getRect(find.byKey(const Key("viewer-filmstrip")))
+              .contains(tester.getCenter(spinner)),
+          isTrue,
+        );
         controller.complete(findsSelection ? destination : initial);
         await tester.pumpAndSettle();
         expect(controller.anchors, hasLength(1));
@@ -248,7 +272,7 @@ void main() {
           );
           expect(find.text("重新加载缩略图"), findsNothing);
         } else {
-          expect(find.text("重新加载缩略图"), findsOneWidget);
+          expect(find.text("重新加载缩略图").hitTestable(), findsOneWidget);
           await tester.pump(const Duration(seconds: 1));
           expect(controller.anchors, hasLength(1));
         }

@@ -13,14 +13,16 @@ class LibraryFilmstripPosition {
     LibraryState state,
     LibraryAsset selection,
     double offset,
-    double extent,
-  ) {
+    double extent, {
+    int leadingItems = 0,
+  }) {
     if (state.assets.isEmpty) return;
-    final index = (offset / extent).floor().clamp(0, state.assets.length - 1);
+    final assetOffset = offset / extent - leadingItems;
+    final index = assetOffset.floor().clamp(0, state.assets.length - 1);
     final asset = state.assets[index];
     _query = state.query;
     _selection = selection.locationId;
-    _fraction = offset / extent - index;
+    _fraction = assetOffset - index;
     _anchor = LibraryQueryAnchor(
       requestedLocationId: asset.locationId,
       assetId: asset.assetId,
@@ -33,13 +35,18 @@ class LibraryFilmstripPosition {
       ? _anchor
       : null;
 
-  double? offsetIn(LibraryState state, LibraryAsset selection, double extent) {
+  double? offsetIn(
+    LibraryState state,
+    LibraryAsset selection,
+    double extent, {
+    int leadingItems = 0,
+  }) {
     final anchor = read(state, selection);
     if (anchor == null) return null;
     final index = state.assets.indexWhere(
       (asset) => asset.locationId == anchor.requestedLocationId,
     );
-    return index < 0 ? null : (index + _fraction) * extent;
+    return index < 0 ? null : (index + _fraction + leadingItems) * extent;
   }
 
   void clear() {
