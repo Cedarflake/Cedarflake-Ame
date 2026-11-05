@@ -1845,7 +1845,11 @@ Start rejects every ticket at or below the cancel-through watermark before epoch
 construction. A newer ticket may enter a new epoch only after the retained owner drains. Poll
 requires the exact active owner ticket, so an old poll cannot attach to a replacement epoch. A
 same-ticket bounded start retry may reuse a ready owner or construct a later epoch after contained
-constructor recovery; a different ticket cannot adopt that owner. Ticket or epoch overflow,
+constructor recovery. A newer desktop start ticket may take over a `Ready` runtime without changing
+its epoch, resources or cancellation flag, allowing development hot restart to reconnect. The previous
+ticket then fails both start and poll admission. `Starting`, `Polling`, `Stopping` and `Draining`
+cannot transfer ownership; the existing finite start retry may wait for an in-flight operation.
+Ticket or epoch overflow,
 unissued tokens, registry poison, runtime poison, and impossible same-owner state remain structured
 fail-closed outcomes. The asynchronous stop accepts only a previously admitted fence and can drain
 only the owner covered by that fence; it reuses the synchronously recorded deadline and never
@@ -1855,8 +1859,9 @@ Desktop bootstrap now renders the trusted cached catalog and initial state befor
 startup. A process-lifetime owner stores the handled start future, attaches synchronous and
 asynchronous error handling before scheduling background start, and shares shutdown disposal.
 Shutdown calls dispose and therefore the synchronous cancellation fence immediately without waiting
-for a hung start. Only `catalog_database_busy` and `catalog_database_locked` use the finite 100 ms,
-500 ms, and 2 s retry schedule; every other start failure is attempted once. Generation and owner
+for a hung start. `catalog_database_busy`, `catalog_database_locked`,
+`library_synchronization_start_in_progress` and `library_synchronization_poll_in_progress` use the
+finite 100 ms, 500 ms, and 2 s retry schedule; every other start failure is attempted once. Generation and owner
 ticket checks keep every late start or poll result from changing the stopped or replacement UI.
 
 The eleventh R2c-Q remediation closes a Dart-side ownership gap created by that process-global

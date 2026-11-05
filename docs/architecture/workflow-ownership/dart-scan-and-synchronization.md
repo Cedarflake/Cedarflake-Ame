@@ -47,6 +47,8 @@ shared principles; the roadmap owns current delivery order and acceptance status
 - `LibrarySynchronizationController` owns the desktop start/poll/stop generations, retry waits and
   terminal publication. Its gateway owns native tickets, bridge calls and Ame-only error/results;
   the adapter's snapshot mapping stamps observations without retaining controller state.
+  `LibrarySynchronizationRetry` owns transient-code admission and its elapsed-time/attempt budget;
+  the controller retains bounded start delays and retires their waits on stop or disposal.
   `library_synchronization_phase_projection.dart` preserves phase age within a root generation,
   while the existing failure-retention owner preserves unresolved diagnostics and current recovery
   authority. `library_synchronization_diagnostics.dart` owns report throttling only. Bootstrap retains

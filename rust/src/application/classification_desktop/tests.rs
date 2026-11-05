@@ -31,6 +31,55 @@ fn paused_startup_close_before_run_and_joined_shutdown_preserve_intent_without_l
     let directory = tempfile::tempdir().unwrap();
     let storage = storage(directory.path());
     let executable = directory.path().join("app.exe");
+    let catalog = paused_catalog(&storage);
+    let error = open_with_storage(&storage, executable.clone())
+        .err()
+        .unwrap();
+    assert_eq!(error.code, "classification_installation_missing");
+    install_fixture(&storage, directory.path());
+    let session = open_with_storage(&storage, executable.clone())
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        catalog.classification_dispatch_state().unwrap().mode,
+        ClassificationDispatchMode::Paused
+    );
+    assert_eq!(
+        super::super::classification_runtime::while_retired(|| Ok(()))
+            .err()
+            .unwrap()
+            .code,
+        "classification_runtime_active"
+    );
+    session.close().unwrap();
+    assert_eq!(
+        session.run().err().unwrap().code,
+        "classification_session_started"
+    );
+    drop(session);
+
+    let session = Arc::new(open_with_storage(&storage, executable).unwrap().unwrap());
+    session
+        .foreground_changed(ClassificationForegroundState::default())
+        .unwrap();
+    let running = session.clone();
+    let thread = std::thread::spawn(move || running.run());
+    session.request_close().unwrap();
+    thread.join().unwrap().unwrap();
+    session.close().unwrap();
+    assert_eq!(
+        catalog.classification_dispatch_state().unwrap().mode,
+        ClassificationDispatchMode::Paused
+    );
+    assert!(
+        !storage
+            .catalog_path
+            .with_file_name("classification-features")
+            .exists()
+    );
+}
+
+pub(super) fn paused_catalog(storage: &StoragePaths) -> SqliteCatalog {
     let mut catalog = SqliteCatalog::open(storage.catalog_path.clone()).unwrap();
     let taxonomy = Taxonomy::new(
         ["drawing", "photo"]
@@ -69,66 +118,26 @@ fn paused_startup_close_before_run_and_joined_shutdown_preserve_intent_without_l
     catalog
         .change_classification_dispatch(active.revision, &ClassificationDispatchCommand::Pause)
         .unwrap();
-    let error = open_with_storage(&storage, executable.clone())
-        .err()
-        .unwrap();
-    assert_eq!(error.code, "classification_installation_missing");
+    catalog
+}
+
+pub(super) fn install_fixture(storage: &StoragePaths, root: &std::path::Path) {
     installation_repository()
         .save(
-            &installation_path(&storage),
+            &installation_path(storage),
             &ClassificationInstallation {
-                models: directory.path().join("absent-models"),
-                runtime: directory.path().join("absent-runtime"),
+                models: root.join("absent-models"),
+                runtime: root.join("absent-runtime"),
             },
         )
         .unwrap();
-    let session = open_with_storage(&storage, executable.clone())
-        .unwrap()
-        .unwrap();
-    assert_eq!(
-        catalog.classification_dispatch_state().unwrap().mode,
-        ClassificationDispatchMode::Paused
-    );
-    assert_eq!(
-        open_with_storage(&storage, executable.clone())
-            .err()
-            .unwrap()
-            .code,
-        "classification_runtime_active"
-    );
-    session.close().unwrap();
-    assert_eq!(
-        session.run().err().unwrap().code,
-        "classification_session_started"
-    );
-    drop(session);
-
-    let session = Arc::new(open_with_storage(&storage, executable).unwrap().unwrap());
-    session
-        .foreground_changed(ClassificationForegroundState::default())
-        .unwrap();
-    let running = session.clone();
-    let thread = std::thread::spawn(move || running.run());
-    session.request_close().unwrap();
-    thread.join().unwrap().unwrap();
-    session.close().unwrap();
-    assert_eq!(
-        catalog.classification_dispatch_state().unwrap().mode,
-        ClassificationDispatchMode::Paused
-    );
-    assert!(
-        !storage
-            .catalog_path
-            .with_file_name("classification-features")
-            .exists()
-    );
 }
 
 fn id(value: &str) -> ClassificationRecordId {
     ClassificationRecordId::new(value.into()).unwrap()
 }
 
-fn storage(root: &std::path::Path) -> StoragePaths {
+pub(super) fn storage(root: &std::path::Path) -> StoragePaths {
     StoragePaths {
         catalog_path: root.join("catalog.sqlite3"),
         preview_root: root.join("previews"),
