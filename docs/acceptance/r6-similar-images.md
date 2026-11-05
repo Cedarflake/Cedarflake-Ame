@@ -190,7 +190,8 @@ The guarded `da1630d8` client passed linked wheel zoom/pan, independent right-pa
 maximize/restore, title-bar double-click, minimize/reactivation and Escape return with both member
 selections retained. Its second inspection reached the 1,200-second harness limit before the close
 check; all 51 source hashes remained unchanged, and peak working set was 190 MiB. Automated title-bar
-drag attempts did not produce observed movement; the cause remains unverified.
+drag attempts did not produce observed movement; subsequent
+[manual verification](#title-bar-drag-verification--2026-11-05) confirmed normal dragging.
 
 The guarded `a8b1bd36` client confirmed the selector removal and equally spaced link/reset/zoom-mode
 buttons in the actual 1,269-by-714 window. Changing link state preserved their placement; right-arrow
@@ -221,7 +222,7 @@ saved preference. Strict, standard and broad degrees showed six, seven and seven
 switching back preserved that preference. Nested pages omitted both menus and the withdrawn member
 action. Normal caption close returned code 0 after 864.734 seconds, at a 219-MiB peak working set;
 all 51 source hashes were unchanged and the scratch profile was retired. The automated title-bar
-drag still produced no observed movement; its cause remains unverified.
+drag still produced no observed movement; subsequent manual verification is recorded below.
 
 A second isolated profile admitted only disposable copies of the same two members. Moving the
 selected, preferred copy outside its watched directory caused the open page to remove that member,
@@ -236,8 +237,8 @@ The [4c35a993 CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/
 Completed logs include passing similarity adapter, migration rollback, prior-choice preservation,
 stale/cancelled publication, persistent paging and non-transitive membership cases. Existing manual
 performance, real-library and helper cases retain their separate execution owners. The earlier
-Static missing-brace failures are corrected. The automated title-bar drag observation remains
-unverified; its shared drag region and native window-manager path are unchanged from `main`.
+Static missing-brace failures are corrected. The shared drag region and native window-manager path
+are unchanged from `main`; the earlier automated drag observation is resolved below.
 Cloud-primary measurement is deferred outside R6; the local evidence does not qualify that client.
 
 ## Multiple selected images — 2026-11-05
@@ -269,3 +270,17 @@ the focused controller/workflow suites have 129/316 lines. The SQLite facade rem
 lines; the migration coordinator has 4,185 source and 2,290 inline-test lines and only adds version
 dispatch. Generated bridge output is excluded from these counts. Hosted results belong to the
 exact pushed commit's checks.
+
+## Title-bar drag verification — 2026-11-05
+
+At `29cd10e8`, the guarded Windows client reused the matching build-input digest recorded above.
+Automated drags left both the main window and ordinary viewer at screen origin `(19, 12)`;
+the available input interfaces did not expose a held-button gesture for further isolation.
+The user then manually dragged the comparison title bar and confirmed normal window movement.
+The comparison remained usable afterward and closed through its caption button with exit code 0.
+This completes the drag interaction check; the automated input discrepancy has no established cause
+and requires no product change. Comparison and ordinary viewing share `LibraryViewerFrame`,
+`LibraryViewerTopBar` and the unchanged `AmeWindowDragRegion`.
+
+The session lasted 572.848 seconds and peaked at 218,607,616 bytes of working set. All 51 fixture
+source SHA-256 hashes remained unchanged, and the isolated scratch profile was retired.

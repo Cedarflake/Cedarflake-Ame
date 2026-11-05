@@ -62,7 +62,8 @@ The [R6 plan](plans/r6-similar-images.md) owns the implementation sequence and p
 R6-02's production evidence, bounded analysis and durable choices are connected; the
 [integration record](acceptance/r6-similar-images.md) owns their checks and limits. R6-03's browsing,
 comparison, durable choices, navigation reset and automatic source updates are connected and checked
-in the Windows application; the record retains the unresolved automated title-bar drag observation.
+in the Windows application; [manual title-bar verification](acceptance/r6-similar-images.md#title-bar-drag-verification--2026-11-05)
+closes the earlier inconclusive automated drag observation.
 R6-04 is active for local real-library acceptance and current-commit hosted gates.
 The [engine evaluation](acceptance/r6-engine-evaluation.md)
 owns R6-01's selection evidence. Sketch iteration has ended; notifications and styling are refined
