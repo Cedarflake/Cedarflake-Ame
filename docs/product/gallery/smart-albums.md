@@ -78,6 +78,8 @@ do not expose classification deferral, review continuation, or classification un
 
 The viewer shows an available category as read-only text with its existing category icon beside
 Favorite and Album. It has no category-selection menu, drop-down arrow, or manual analysis retry.
+Retain the same image's category during a catalog-driven reload; replace or remove it when the
+new result arrives, without carrying another image's label across navigation.
 A failed category read offers `重新读取分类`; stale reads
 cannot replace the state of a newly opened image. Supported metadata stays in the viewer information
 area without another permanent panel.

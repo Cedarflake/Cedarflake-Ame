@@ -755,3 +755,12 @@ with the collapse arrow. The Windows Debug client based on `0c5f9e48` plus this 
 checked at a 236-logical-pixel sidebar width: both icons share the same vertical axis and the adjacent
 text remains on one line. Repository formatting and whitespace checks pass. Computer Use was reset
 after inspection; model installation behavior is unchanged.
+
+## Viewer classification continuity — 2026-11-05
+
+Catalog-revision reloads previously discarded the visible category until their replacement arrived.
+The viewer now consumes Riverpod's retained value for the same target. The regression failed on the
+former projection and passes through delayed reload and a completed empty result; all 12 category
+cases and the existing Windows retained-semantics case pass locally. The read-only category icon
+uses a 40-pixel slot matching the installed Material `IconButton` desktop extent, with its existing
+20-pixel icon. Client verification and hosted checks remain pending.

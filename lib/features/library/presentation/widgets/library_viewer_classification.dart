@@ -29,20 +29,22 @@ class LibraryViewerClassification extends ConsumerWidget {
         ),
       );
     }
-    final item = result.asData?.value;
+    final item = result.value;
     final category = settings.categories
         .where((category) => category.id == item?.categoryId)
         .firstOrNull;
     if (category == null) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsetsDirectional.only(end: 8),
       child: AmeTooltip(
         message: "分类：${category.label}",
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Symbols.label_rounded, size: 20),
-            const SizedBox(width: 8),
+            const SizedBox.square(
+              dimension: 40,
+              child: Icon(Symbols.label_rounded, size: 20),
+            ),
             Text(category.label),
           ],
         ),

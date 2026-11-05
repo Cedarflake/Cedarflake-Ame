@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_review.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_settings.dart";
@@ -25,7 +27,7 @@ void main() {
     final container = ProviderContainer(
       overrides: applicationTestOverrides([
         libraryClassificationReviewServiceProvider.overrideWithValue(review),
-        libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
+        libraryControllerProvider.overrideWith(_RefreshingLibrary.new),
         libraryClassificationSettingsProvider.overrideWith(
           (ref) async => LibraryClassificationSettings(
             revision: BigInt.one,
@@ -119,6 +121,28 @@ void main() {
     });
   }
 
+  testWidgets("catalog refresh retains the category until its replacement", (
+    tester,
+  ) async {
+    final service = ClassificationReviewFixture();
+    final container = await mount(
+      tester,
+      service,
+      LibraryClassificationMode.automatic,
+    );
+    final bounds = tester.getRect(find.text("插画"));
+    final pending = Completer<List<LibraryClassificationItem>>();
+    service.pendingRead = pending;
+    (container.read(libraryControllerProvider.notifier) as _RefreshingLibrary)
+        .publishRevision(BigInt.two);
+    await tester.pump();
+    expect(find.text("插画"), findsOneWidget);
+    expect(tester.getRect(find.text("插画")), bounds);
+    pending.complete(const []);
+    await tester.pumpAndSettle();
+    expect(find.text("插画"), findsNothing);
+  });
+
   testWidgets(
     "runtime failures use the shared preview notice and clear on recovery",
     (tester) async {
@@ -139,4 +163,10 @@ void main() {
       expect(find.textContaining("智能相册分析已中断"), findsNothing);
     },
   );
+}
+
+class _RefreshingLibrary extends OrganizationLibraryFixture {
+  void publishRevision(BigInt revision) {
+    state = state.copyWith(catalogRevision: revision);
+  }
 }
