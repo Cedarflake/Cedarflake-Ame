@@ -82,9 +82,15 @@ try {
 
     New-Item -ItemType Junction -Path $linked -Target $destination | Out-Null
     Assert-RuntimeRejected { Assert-AmeClassificationRuntimeDirectory $linked $fixture } 'reparse points'
-    Assert-RuntimeRejected {
-        & (Join-Path $PSScriptRoot "release_prepare_classification_runtime.ps1") -OutputDirectory $repository
-    } 'below the repository build directory'
+    $hostPath = (Get-Process -Id $PID).Path
+    $preparationScript = Join-Path $PSScriptRoot "release_prepare_classification_runtime.ps1"
+    $failureOutput = (& $hostPath -NoProfile -NonInteractive -ExecutionPolicy Bypass `
+        -File $preparationScript -OutputDirectory $repository 2>&1) | Out-String
+    if ($LASTEXITCODE -ne 1 -or $failureOutput -notmatch (
+        ': error AME_CLASSIFICATION_RUNTIME: Classification runtime build storage must be below the repository build directory'
+    )) {
+        throw "Runtime preparation must reject unsafe output and expose the cause through MSBuild"
+    }
     Write-Host "Classification runtime package guardrails passed"
 } finally {
     if (Test-Path -LiteralPath $linked) { [IO.Directory]::Delete($linked, $false) }

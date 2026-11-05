@@ -5,6 +5,11 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+trap {
+    $message = $_.Exception.Message -replace '\r?\n', ' '
+    Write-Host "${PSCommandPath}: error AME_CLASSIFICATION_RUNTIME: $message"
+    throw
+}
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
 
 $manifest = Get-AmeClassificationRuntimeManifest
