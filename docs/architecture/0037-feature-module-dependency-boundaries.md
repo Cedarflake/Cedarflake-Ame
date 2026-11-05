@@ -97,7 +97,11 @@ production binding roster used by the application.
 
 `AmeProviderAssembly` owns the single root Riverpod container. Create its lifetime owner before
 acquiring background resources so the existing reverse-order shutdown joins those resources before
-disposing the container. Feature binding modules supply typed overrides and required-port rosters;
+disposing the container. Before disposal, assembly awaits the mounted application's retirement through
+`AmeApplicationMount`: replace the root widget and finish the framework frame, including after the
+native window is hidden. This retires presentation subscriptions and callbacks while their Providers
+remain valid. Unmounted bootstrap failure requires no frame. Feature binding modules supply typed
+overrides and required-port rosters;
 assembly reads those required ports before publishing the container through `UncontrolledProviderScope`.
 Failed validation disposes the unpublished container. `acquireAmeApplication` retires already acquired
 resources through the existing shutdown coordinator and preserves both acquisition and cleanup

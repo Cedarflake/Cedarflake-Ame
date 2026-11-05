@@ -95,48 +95,55 @@ void main() {
     },
   );
 
-  test("a failed native start retries through start before polling", () async {
-    final secondStartEntered = Completer<void>();
-    final releaseSecondStart = Completer<void>();
-    var startCalls = 0;
-    var pollCalls = 0;
-    final synchronization = createTestLibrarySynchronization(
-      startCall: () async {
-        startCalls += 1;
-        if (startCalls == 1) {
-          throw const rust_domain.ScanError(
-            code: "catalog_database_busy",
-            message: "the catalog is temporarily busy",
-          );
+  for (final code in [
+    "catalog_database_busy",
+    "library_synchronization_start_in_progress",
+    "library_synchronization_poll_in_progress",
+  ]) {
+    test("a $code start retries through start before polling", () async {
+      final secondStartEntered = Completer<void>();
+      final releaseSecondStart = Completer<void>();
+      var startCalls = 0;
+      var pollCalls = 0;
+      final synchronization = createTestLibrarySynchronization(
+        startCall: () async {
+          startCalls += 1;
+          if (startCalls == 1) {
+            throw rust_domain.ScanError(
+              code: code,
+              message: "the previous operation is still in progress",
+            );
+          }
+          secondStartEntered.complete();
+          await releaseSecondStart.future;
+          return _snapshot(revision: 2);
+        },
+        pollCall: () async {
+          pollCalls += 1;
+          return _snapshot(revision: 2);
+        },
+        stopCall: () async {},
+        pollInterval: const Duration(milliseconds: 1),
+        startRetryDelays: const [Duration.zero],
+        enableDebugLogging: false,
+      );
+      addTearDown(() async {
+        if (!releaseSecondStart.isCompleted) {
+          releaseSecondStart.complete();
         }
-        secondStartEntered.complete();
-        await releaseSecondStart.future;
-        return _snapshot(revision: 2);
-      },
-      pollCall: () async {
-        pollCalls += 1;
-        return _snapshot(revision: 2);
-      },
-      stopCall: () async {},
-      pollInterval: const Duration(milliseconds: 1),
-      startRetryDelays: const [Duration.zero],
-      enableDebugLogging: false,
-    );
-    addTearDown(() async {
-      if (!releaseSecondStart.isCompleted) {
-        releaseSecondStart.complete();
-      }
-      await synchronization.stop();
+        await synchronization.stop();
+      });
+
+      final starting = synchronization.start();
+      await secondStartEntered.future.timeout(const Duration(seconds: 1));
+
+      expect(startCalls, 2);
+      expect(pollCalls, 0);
+      expect(synchronization.current.lastErrorCode, isNull);
+      releaseSecondStart.complete();
+      expect(await starting, LibrarySynchronizationStartResult.started);
     });
-
-    final starting = synchronization.start();
-    await secondStartEntered.future.timeout(const Duration(seconds: 1));
-
-    expect(startCalls, 2);
-    expect(pollCalls, 0);
-    releaseSecondStart.complete();
-    expect(await starting, LibrarySynchronizationStartResult.started);
-  });
+  }
 
   test("an exhausted native start never enables polling", () async {
     var startCalls = 0;

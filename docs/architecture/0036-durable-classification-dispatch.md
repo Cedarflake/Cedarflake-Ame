@@ -175,6 +175,17 @@ ordinary focus loss or a minimized window does not. A memory-pressure event reti
 one minute before trying the normal quiet interval; the integrated resource check owns that interval's
 measurement. These signals never overwrite manual pause or revive a stopped run.
 
+`classification_desktop/connection.rs` separates the process runtime from its desktop attachment.
+A new attachment to the same catalog reuses the live runtime and durable session, advancing only
+the attachment generation. The original bridge call retains execution; the current attachment
+waits for its terminal result. Replacing a waiting attachment releases that wait, so repeated
+reattachment retains at most one execution call and one current observer. Obsolete controls, close
+and handle destruction cannot stop the current runtime. The bridge awaits these blocking calls
+through its asynchronous executor, leaving ordinary bridge query workers available. Normal current-owner shutdown still joins
+execution before releasing the handle; configuration and model replacement still require proven
+runtime retirement. Inference and root recovery never hold the attachment mutex. This supports a
+development hot restart without replacing models, work claims or durable analysis intent.
+
 The Windows runner registers its HWND with `RegisterSuspendResumeNotification` and translates
 `WM_POWERBROADCAST` into a versioned power snapshot over an internal Flutter method channel. The
 adapter owns only registration, event identity and teardown; classification policy remains in the

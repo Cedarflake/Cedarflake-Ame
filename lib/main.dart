@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "app/ame_app.dart";
+import "app/bootstrap/ame_application_mount.dart";
 import "app/bootstrap/ame_bootstrap_failure.dart";
 import "app/bootstrap/ame_provider_assembly.dart";
 import "app/bootstrap/ame_startup_orchestrator.dart";
@@ -46,7 +47,11 @@ Future<void> main() async {
     preferenceStores.window,
     shutdownCoordinator,
   );
-  final providerAssembly = AmeProviderAssembly(shutdown: shutdownCoordinator);
+  final applicationMount = AmeApplicationMount();
+  final providerAssembly = AmeProviderAssembly(
+    shutdown: shutdownCoordinator,
+    unmountApplication: applicationMount.unmount,
+  );
 
   LibrarySynchronizationLifecycleOwner? synchronizationLifecycle;
   LibraryClassificationLifecycle? classificationLifecycle;
@@ -175,7 +180,7 @@ Future<void> main() async {
     );
   }
   await mountAmeApplicationAndRevealWindow(
-    mountApplication: () => runApp(application),
+    mountApplication: () => applicationMount.mount(application),
     startInBackground: () {
       synchronizationLifecycle?.startInBackground();
       classificationLifecycle?.startInBackground();

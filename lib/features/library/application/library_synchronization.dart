@@ -8,6 +8,7 @@ import "library_synchronization_diagnostics.dart";
 import "library_synchronization_failure_retention.dart";
 import "library_synchronization_phase_projection.dart";
 import "library_synchronization_policy.g.dart";
+import "library_synchronization_retry.dart";
 import "ports/library_synchronization.dart";
 import "ports/library_synchronization_gateway.dart";
 
@@ -40,7 +41,7 @@ class LibrarySynchronizationController implements LibrarySynchronization {
   LibrarySynchronizationController._({
     required this._gateway,
     this._pollInterval = productionLibrarySynchronizationPollInterval,
-    this._transientFailureTolerance = const Duration(seconds: 30),
+    Duration transientFailureTolerance = const Duration(seconds: 30),
     List<Duration> startRetryDelays = const [
       Duration(milliseconds: 100),
       Duration(milliseconds: 500),
@@ -51,6 +52,10 @@ class LibrarySynchronizationController implements LibrarySynchronization {
   }) : assert(startRetryDelays.every((delay) => !delay.isNegative)),
        _startRetryDelays = List.unmodifiable(startRetryDelays),
        _now = now ?? DateTime.now,
+       _retry = LibrarySynchronizationRetry(
+         tolerance: transientFailureTolerance,
+         now: now ?? DateTime.now,
+       ),
        _diagnostics = LibrarySynchronizationDiagnostics(
          enabled: enableDebugLogging,
          now: now ?? DateTime.now,
@@ -59,7 +64,7 @@ class LibrarySynchronizationController implements LibrarySynchronization {
   final LibrarySynchronizationGateway _gateway;
   final LibrarySynchronizationDiagnostics _diagnostics;
   final Duration _pollInterval;
-  final Duration _transientFailureTolerance;
+  final LibrarySynchronizationRetry _retry;
   final List<Duration> _startRetryDelays;
   final DateTime Function() _now;
   final StreamController<LibrarySynchronizationSnapshot> _updates =
@@ -79,9 +84,6 @@ class LibrarySynchronizationController implements LibrarySynchronization {
   int _generation = 0;
   Future<void>? _stopOperation;
   Future<void>? _disposeOperation;
-  DateTime? _transientFailureStartedAt;
-  String? _transientFailureCode;
-  int _transientFailureCount = 0;
 
   @override
   LibrarySynchronizationSnapshot get current => _current;
@@ -107,7 +109,7 @@ class LibrarySynchronizationController implements LibrarySynchronization {
     } on Object catch (error) {
       final errorCode = _errorCode(error);
       _diagnostics.failure(
-        attempt: _transientFailureCount,
+        attempt: _retry.attempt,
         phase: "start-admission",
         errorCode: errorCode,
         error: error,
@@ -167,7 +169,7 @@ class LibrarySynchronizationController implements LibrarySynchronization {
       if (attempt >= _startRetryDelays.length) {
         final errorCode = result.errorCode;
         if (result.isTransient && errorCode != null) {
-          _clearTransientFailure();
+          _retry.clear();
           _publish(
             _current.degraded(errorCode, occurredAt: _now()),
             phase: "start",
@@ -232,7 +234,7 @@ class LibrarySynchronizationController implements LibrarySynchronization {
       if (generation != _generation) {
         return const _SynchronizationCallResult.stale();
       }
-      _clearTransientFailure();
+      _retry.clear();
       _publish(snapshot, phase: phase, elapsed: stopwatch.elapsed);
       return const _SynchronizationCallResult.succeeded();
     } on Object catch (error) {
@@ -240,9 +242,9 @@ class LibrarySynchronizationController implements LibrarySynchronization {
         return const _SynchronizationCallResult.stale();
       }
       final errorCode = _errorCode(error);
-      if (_shouldRetryTransiently(errorCode)) {
+      if (_retry.admit(errorCode)) {
         _diagnostics.failure(
-          attempt: _transientFailureCount,
+          attempt: _retry.attempt,
           phase: phase,
           errorCode: errorCode,
           error: error,
@@ -255,14 +257,14 @@ class LibrarySynchronizationController implements LibrarySynchronization {
         );
       }
       _diagnostics.failure(
-        attempt: _transientFailureCount,
+        attempt: _retry.attempt,
         phase: phase,
         errorCode: errorCode,
         error: error,
         elapsed: stopwatch.elapsed,
         isTransient: false,
       );
-      _clearTransientFailure();
+      _retry.clear();
       _publish(
         _current.degraded(errorCode, occurredAt: _now()),
         phase: phase,
@@ -354,7 +356,7 @@ class LibrarySynchronizationController implements LibrarySynchronization {
     }
     _ownerTicket = null;
     _isStarted = false;
-    _clearTransientFailure();
+    _retry.clear();
     _publish(_current.stopped(), phase: "stop", elapsed: Duration.zero);
   }
 
@@ -398,29 +400,6 @@ class LibrarySynchronizationController implements LibrarySynchronization {
     if (!_updates.isClosed) {
       _updates.add(snapshot);
     }
-  }
-
-  bool _shouldRetryTransiently(String errorCode) {
-    if (errorCode != "catalog_database_busy" &&
-        errorCode != "catalog_database_locked") {
-      return false;
-    }
-    final now = _now();
-    if (_transientFailureCode != errorCode) {
-      _transientFailureCode = errorCode;
-      _transientFailureStartedAt = now;
-      _transientFailureCount = 1;
-    } else {
-      _transientFailureCount += 1;
-    }
-    final startedAt = _transientFailureStartedAt ?? now;
-    return now.difference(startedAt) < _transientFailureTolerance;
-  }
-
-  void _clearTransientFailure() {
-    _transientFailureStartedAt = null;
-    _transientFailureCode = null;
-    _transientFailureCount = 0;
   }
 
   String _errorCode(Object error) {

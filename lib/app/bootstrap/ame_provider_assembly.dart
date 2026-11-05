@@ -4,10 +4,14 @@ import "package:flutter_riverpod/misc.dart";
 import "../window/ame_shutdown_coordinator.dart";
 
 class AmeProviderAssembly {
-  AmeProviderAssembly({required AmeShutdownCoordinator shutdown}) {
+  AmeProviderAssembly({
+    required AmeShutdownCoordinator shutdown,
+    Future<void> Function()? unmountApplication,
+  }) : _unmountApplication = unmountApplication {
     shutdown.register(_close);
   }
 
+  final Future<void> Function()? _unmountApplication;
   ProviderContainer? _container;
   bool _isClosed = false;
 
@@ -33,9 +37,10 @@ class AmeProviderAssembly {
     }
   }
 
-  void _close() {
+  Future<void> _close() async {
     if (_isClosed) return;
     _isClosed = true;
+    await _unmountApplication?.call();
     _container?.dispose();
     _container = null;
   }

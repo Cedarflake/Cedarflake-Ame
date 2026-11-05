@@ -2,6 +2,9 @@ use super::classification_maintenance::PreparedClassificationMaintenance;
 use crate::domain::ScanError;
 
 #[cfg(all(windows, feature = "classification-worker"))]
+use std::sync::Arc;
+
+#[cfg(all(windows, feature = "classification-worker"))]
 use crate::application::{
     classification_desktop, classification_dispatch::ClassificationForegroundState,
 };
@@ -9,14 +12,17 @@ use crate::application::{
 #[flutter_rust_bridge::frb(opaque)]
 pub struct DesktopClassificationSession {
     #[cfg(all(windows, feature = "classification-worker"))]
-    inner: classification_desktop::ClassificationDesktopSession,
+    inner: Arc<classification_desktop::ClassificationDesktopSession>,
 }
 
 pub fn open_classification_session() -> Result<Option<DesktopClassificationSession>, ScanError> {
     #[cfg(all(windows, feature = "classification-worker"))]
     {
-        classification_desktop::open()
-            .map(|session| session.map(|inner| DesktopClassificationSession { inner }))
+        classification_desktop::open().map(|session| {
+            session.map(|inner| DesktopClassificationSession {
+                inner: Arc::new(inner),
+            })
+        })
     }
     #[cfg(not(all(windows, feature = "classification-worker")))]
     {
@@ -40,11 +46,15 @@ pub fn select_classification_installation(
 }
 
 impl DesktopClassificationSession {
-    pub fn run(&self) -> Result<Option<PreparedClassificationMaintenance>, ScanError> {
+    pub async fn run(&self) -> Result<Option<PreparedClassificationMaintenance>, ScanError> {
         #[cfg(all(windows, feature = "classification-worker"))]
         {
-            self.inner
-                .run()
+            let inner = Arc::clone(&self.inner);
+            flutter_rust_bridge::spawn_blocking_with(move || inner.run(), ())
+                .await
+                .map_err(|error| {
+                    ScanError::new("classification_session_join_failed", error.to_string())
+                })?
                 .map(|plan| plan.map(|inner| PreparedClassificationMaintenance { inner }))
         }
         #[cfg(not(all(windows, feature = "classification-worker")))]
