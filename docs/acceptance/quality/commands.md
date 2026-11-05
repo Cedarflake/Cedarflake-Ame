@@ -271,7 +271,8 @@ Hosted workflow ownership is:
 - `.github/workflows/quality_gate_synthetic_windows.yml` and
   `.github/workflows/quality_gate_unsigned_windows.yml` for mandatory isolated workload and unsigned
   build evidence in ordinary quality CI, without publication or signing authority;
-- `.github/workflows/release_candidate_windows.yml` for version-tag and manual release candidates,
+- `.github/workflows/release_unsigned_portable_windows.yml` for manual verified unsigned ZIP publication;
+- `.github/workflows/release_candidate_windows.yml` for optional signed version-tag release candidates,
   followed by portable ZIP publication;
 - `.github/workflows/release_verify_published.yml` for post-publication attachment verification.
 
