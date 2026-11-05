@@ -21,7 +21,7 @@ class LibraryDuplicateReviewController extends ChangeNotifier {
       LibraryDuplicateReviewWindow<LibraryDuplicateReviewLocation, String>(
         _loadMembers,
         onAdmitted: (slice) {
-          if (slice.decision case final decision?) _decision = decision;
+          if (slice is _MemberSlice) _decision = slice.decision;
         },
       );
   LibraryDuplicateDecision _decision = const LibraryDuplicateDecision();
@@ -91,12 +91,7 @@ class LibraryDuplicateReviewController extends ChangeNotifier {
   _loadMembers(String? after) async {
     final group = selected!;
     final page = await _service.loadLocations(group.group, after);
-    return LibraryDuplicateReviewSlice(
-      items: page.locations,
-      total: group.group.locationCount,
-      next: page.nextLocationId,
-      decision: page.decision,
-    );
+    return _MemberSlice(page, group.group.locationCount);
   }
 
   Future<void> refresh() =>
@@ -180,4 +175,14 @@ class LibraryDuplicateReviewController extends ChangeNotifier {
     memberWindow.dispose();
     super.dispose();
   }
+}
+
+class _MemberSlice
+    extends
+        LibraryDuplicateReviewSlice<LibraryDuplicateReviewLocation, String> {
+  _MemberSlice(LibraryDuplicateReviewLocations page, int total)
+    : decision = page.decision,
+      super(items: page.locations, total: total, next: page.nextLocationId);
+
+  final LibraryDuplicateDecision decision;
 }

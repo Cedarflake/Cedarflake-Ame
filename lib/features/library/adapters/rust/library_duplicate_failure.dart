@@ -1,6 +1,14 @@
 import "../../../../src/rust/domain.dart" as rust;
 import "../../domain/library_exact_duplicates.dart";
 
+T invokeDuplicateSync<T>(T Function() operation) {
+  try {
+    return operation();
+  } on Object catch (error, stack) {
+    throwDuplicateFailure(error, stack);
+  }
+}
+
 Future<T> invokeDuplicateBridge<T>(Future<T> Function() operation) async {
   try {
     return await operation();

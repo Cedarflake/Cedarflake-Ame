@@ -11,6 +11,8 @@ Use the [design rationale](../../product/gallery-ui.md#design-principles-and-rat
 surface contract to select checks. Before implementation, identify the nearest accepted surface,
 shared owner, state transition and retained user context. Reuse the owners below rather than copying
 their appearance or state logic. When a shared boundary changes, inspect its affected callers.
+Select layout cases from the [desktop design principle](../../product/gallery-ui.md#design-as-a-desktop-application)
+and actual window contract; speculative web/mobile viewports are not additional acceptance targets.
 
 This map is a starting set of existing evidence, not an exhaustive test list or a claim that a path
 passed. Follow current source when an owner moves, and update its references in the same change.

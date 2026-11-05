@@ -1,8 +1,10 @@
 use std::fs;
 use std::io::Cursor;
+use std::path::Path;
 use std::time::UNIX_EPOCH;
 
 use crate::domain::classification::ClassificationRecordId;
+use crate::domain::exact_duplicates::EXACT_FINGERPRINT_SCHEME;
 use crate::domain::{AssetLocationView, IncrementalCatalogRoot, PreviewStatus};
 
 use super::*;

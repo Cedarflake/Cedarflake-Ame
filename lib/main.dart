@@ -13,8 +13,10 @@ import "app/bootstrap/library_organization_bindings.dart";
 import "app/bootstrap/library_platform_bindings.dart";
 import "app/bootstrap/library_read_bindings.dart";
 import "app/bootstrap/library_scan_bindings.dart";
+import "app/bootstrap/library_similarity_bindings.dart";
 import "app/bootstrap/library_synchronization_bindings.dart";
 import "app/bootstrap/library_synchronization_lifecycle_owner.dart";
+import "app/bootstrap/native_licenses.dart";
 import "app/bootstrap/rust_library_loader.dart";
 import "app/bootstrap/settings_bindings.dart";
 import "app/bootstrap/storage_bindings.dart";
@@ -33,6 +35,7 @@ import "features/library/domain/library_state.dart";
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  registerNativeLicenses();
   final preferenceStores = AmePreferenceStores.production();
   final shutdownCoordinator = AmeShutdownCoordinator();
   final amePreferences = await preferenceStores.application
@@ -75,10 +78,15 @@ Future<void> main() async {
         final duplicates = LibraryDuplicateBindings.production();
         final exactAnalysisBindings = LibraryExactAnalysisBindings(
           service: duplicates.exactDuplicates,
-          paused: amePreferences.exactAnalysisPaused,
+          paused: false,
           foregroundReads: libraryForegroundReads,
         );
         shutdownCoordinator.register(exactAnalysisBindings.close);
+        final similarAnalysisBindings =
+            LibrarySimilarAnalysisBindings.production(
+              foregroundReads: libraryForegroundReads,
+            );
+        shutdownCoordinator.register(similarAnalysisBindings.close);
         final classificationBindings = LibraryClassificationBindings(
           services: const LibraryClassificationServices.production(),
           foregroundReads: libraryForegroundReads,
@@ -87,9 +95,21 @@ Future<void> main() async {
         classificationLifecycle = classificationOwner;
         shutdownCoordinator.register(classificationOwner.close);
         final classificationEnvironment = AmeAnalysisEnvironment(
-          onSuspendedChanged: classificationOwner.setSuspended,
-          onMemoryPressure: classificationOwner.memoryPressure,
-          onError: classificationOwner.reportEnvironmentError,
+          onSuspendedChanged: (suspended) {
+            classificationOwner.setSuspended(suspended);
+            similarAnalysisBindings.scheduler.setSuspended(suspended);
+          },
+          onMemoryPressure: () {
+            classificationOwner.memoryPressure();
+            similarAnalysisBindings.scheduler.memoryPressure();
+          },
+          onError: (error, stack) {
+            classificationOwner.reportEnvironmentError(error, stack);
+            similarAnalysisBindings.scheduler.reportEnvironmentError(
+              error,
+              stack,
+            );
+          },
         );
         shutdownCoordinator.register(classificationEnvironment.dispose);
         unawaited(classificationEnvironment.start());
@@ -108,6 +128,7 @@ Future<void> main() async {
             ...libraryScanRequirements,
             ...libraryDuplicateRequirements,
             ...libraryExactAnalysisRequirements,
+            ...librarySimilarAnalysisRequirements,
             ...libraryOrganizationRequirements,
             ...libraryClassificationRequirements,
             ...librarySynchronizationRequirements,
@@ -127,6 +148,7 @@ Future<void> main() async {
             ...libraryScanBindings(),
             ...duplicates.overrides,
             ...exactAnalysisBindings.overrides,
+            ...similarAnalysisBindings.overrides,
             ...libraryOrganizationBindings(),
             ...synchronizationBindings.overrides,
             ...classificationBindings.overrides,

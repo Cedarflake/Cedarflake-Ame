@@ -23,6 +23,8 @@ import 'api/organization_conflicts.dart';
 import 'api/organization_review.dart';
 import 'api/preview.dart';
 import 'api/sidebar_order.dart';
+import 'api/similar_image_review.dart';
+import 'api/similar_images.dart';
 import 'api/storage.dart';
 import 'api/synchronization.dart';
 import 'api/viewer_source.dart';
@@ -54,6 +56,9 @@ import 'domain/organization_queue.dart';
 import 'domain/organization_review.dart';
 import 'domain/persistent_journal.dart';
 import 'domain/sidebar_order.dart';
+import 'domain/similar_images.dart';
+import 'domain/similar_images/analysis.dart';
+import 'domain/similar_images/review.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_web.dart';
 
@@ -88,6 +93,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_PreparedClassificationMaintenancePtr => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_SimilarImageAnalysisPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_ViewerSourceReadLeasePtr => wire
@@ -129,6 +138,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   PreparedClassificationMaintenance
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    dynamic raw,
+  );
+
+  @protected
+  SimilarImageAnalysis
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
     dynamic raw,
   );
 
@@ -175,6 +190,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  SimilarImageAnalysis
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    dynamic raw,
+  );
+
+  @protected
   ViewerSourceReadLease
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     dynamic raw,
@@ -213,6 +234,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   PreparedClassificationMaintenance
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    dynamic raw,
+  );
+
+  @protected
+  SimilarImageAnalysis
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
     dynamic raw,
   );
 
@@ -421,6 +448,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ScanRequest dco_decode_box_autoadd_scan_request(dynamic raw);
+
+  @protected
+  SimilarContentKey dco_decode_box_autoadd_similar_content_key(dynamic raw);
+
+  @protected
+  SimilarMemberExclusion dco_decode_box_autoadd_similar_member_exclusion(
+    dynamic raw,
+  );
+
+  @protected
+  SimilarMemberSelection dco_decode_box_autoadd_similar_member_selection(
+    dynamic raw,
+  );
+
+  @protected
+  SimilarReviewContext dco_decode_box_autoadd_similar_review_context(
+    dynamic raw,
+  );
 
   @protected
   SourceRevisionEvidence dco_decode_box_autoadd_source_revision_evidence(
@@ -836,6 +881,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<SimilarReviewGroup> dco_decode_list_similar_review_group(dynamic raw);
+
+  @protected
+  List<SimilarReviewMember> dco_decode_list_similar_review_member(dynamic raw);
+
+  @protected
   ModelInstallationPhase dco_decode_model_installation_phase(dynamic raw);
 
   @protected
@@ -950,6 +1001,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RecoverableScan? dco_decode_opt_box_autoadd_recoverable_scan(dynamic raw);
+
+  @protected
+  SimilarContentKey? dco_decode_opt_box_autoadd_similar_content_key(
+    dynamic raw,
+  );
 
   @protected
   SourceRevisionEvidence? dco_decode_opt_box_autoadd_source_revision_evidence(
@@ -1163,6 +1219,51 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SidebarOrderPlacement dco_decode_sidebar_order_placement(dynamic raw);
 
   @protected
+  SimilarAnalysisPhase dco_decode_similar_analysis_phase(dynamic raw);
+
+  @protected
+  SimilarAnalysisProgress dco_decode_similar_analysis_progress(dynamic raw);
+
+  @protected
+  SimilarContentKey dco_decode_similar_content_key(dynamic raw);
+
+  @protected
+  SimilarExclusionResult dco_decode_similar_exclusion_result(dynamic raw);
+
+  @protected
+  SimilarGroupDecision dco_decode_similar_group_decision(dynamic raw);
+
+  @protected
+  SimilarMemberExclusion dco_decode_similar_member_exclusion(dynamic raw);
+
+  @protected
+  SimilarMemberSelection dco_decode_similar_member_selection(dynamic raw);
+
+  @protected
+  SimilarReviewContext dco_decode_similar_review_context(dynamic raw);
+
+  @protected
+  SimilarReviewGroup dco_decode_similar_review_group(dynamic raw);
+
+  @protected
+  SimilarReviewMember dco_decode_similar_review_member(dynamic raw);
+
+  @protected
+  SimilarReviewMembers dco_decode_similar_review_members(dynamic raw);
+
+  @protected
+  SimilarReviewPage dco_decode_similar_review_page(dynamic raw);
+
+  @protected
+  SimilarReviewRange dco_decode_similar_review_range(dynamic raw);
+
+  @protected
+  SimilarUndoResult dco_decode_similar_undo_result(dynamic raw);
+
+  @protected
+  SimilarityDegree dco_decode_similarity_degree(dynamic raw);
+
+  @protected
   SourceRevisionEvidence dco_decode_source_revision_evidence(dynamic raw);
 
   @protected
@@ -1232,6 +1333,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  SimilarImageAnalysis
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ViewerSourceReadLease
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     SseDeserializer deserializer,
@@ -1274,6 +1381,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  SimilarImageAnalysis
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ViewerSourceReadLease
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     SseDeserializer deserializer,
@@ -1312,6 +1425,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   PreparedClassificationMaintenance
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarImageAnalysis
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
     SseDeserializer deserializer,
   );
 
@@ -1586,6 +1705,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ScanRequest sse_decode_box_autoadd_scan_request(SseDeserializer deserializer);
+
+  @protected
+  SimilarContentKey sse_decode_box_autoadd_similar_content_key(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarMemberExclusion sse_decode_box_autoadd_similar_member_exclusion(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarMemberSelection sse_decode_box_autoadd_similar_member_selection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarReviewContext sse_decode_box_autoadd_similar_review_context(
+    SseDeserializer deserializer,
+  );
 
   @protected
   SourceRevisionEvidence sse_decode_box_autoadd_source_revision_evidence(
@@ -2099,6 +2238,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<SimilarReviewGroup> sse_decode_list_similar_review_group(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<SimilarReviewMember> sse_decode_list_similar_review_member(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ModelInstallationPhase sse_decode_model_installation_phase(
     SseDeserializer deserializer,
   );
@@ -2239,6 +2388,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RecoverableScan? sse_decode_opt_box_autoadd_recoverable_scan(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarContentKey? sse_decode_opt_box_autoadd_similar_content_key(
     SseDeserializer deserializer,
   );
 
@@ -2506,6 +2660,79 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  SimilarAnalysisPhase sse_decode_similar_analysis_phase(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarAnalysisProgress sse_decode_similar_analysis_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarContentKey sse_decode_similar_content_key(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarExclusionResult sse_decode_similar_exclusion_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarGroupDecision sse_decode_similar_group_decision(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarMemberExclusion sse_decode_similar_member_exclusion(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarMemberSelection sse_decode_similar_member_selection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarReviewContext sse_decode_similar_review_context(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarReviewGroup sse_decode_similar_review_group(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarReviewMember sse_decode_similar_review_member(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarReviewMembers sse_decode_similar_review_members(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarReviewPage sse_decode_similar_review_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarReviewRange sse_decode_similar_review_range(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarUndoResult sse_decode_similar_undo_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SimilarityDegree sse_decode_similarity_degree(SseDeserializer deserializer);
+
+  @protected
   SourceRevisionEvidence sse_decode_source_revision_evidence(
     SseDeserializer deserializer,
   );
@@ -2591,6 +2818,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SimilarImageAnalysis self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     ViewerSourceReadLease self,
     SseSerializer serializer,
@@ -2640,6 +2874,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SimilarImageAnalysis self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     ViewerSourceReadLease self,
     SseSerializer serializer,
@@ -2684,6 +2925,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
     PreparedClassificationMaintenance self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SimilarImageAnalysis self,
     SseSerializer serializer,
   );
 
@@ -2997,6 +3245,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_scan_request(
     ScanRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_similar_content_key(
+    SimilarContentKey self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_similar_member_exclusion(
+    SimilarMemberExclusion self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_similar_member_selection(
+    SimilarMemberSelection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_similar_review_context(
+    SimilarReviewContext self,
     SseSerializer serializer,
   );
 
@@ -3637,6 +3909,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_similar_review_group(
+    List<SimilarReviewGroup> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_similar_review_member(
+    List<SimilarReviewMember> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_model_installation_phase(
     ModelInstallationPhase self,
     SseSerializer serializer,
@@ -3798,6 +4082,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_recoverable_scan(
     RecoverableScan? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_similar_content_key(
+    SimilarContentKey? self,
     SseSerializer serializer,
   );
 
@@ -4129,6 +4419,96 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_similar_analysis_phase(
+    SimilarAnalysisPhase self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similar_analysis_progress(
+    SimilarAnalysisProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similar_content_key(
+    SimilarContentKey self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similar_exclusion_result(
+    SimilarExclusionResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similar_group_decision(
+    SimilarGroupDecision self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similar_member_exclusion(
+    SimilarMemberExclusion self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similar_member_selection(
+    SimilarMemberSelection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similar_review_context(
+    SimilarReviewContext self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similar_review_group(
+    SimilarReviewGroup self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similar_review_member(
+    SimilarReviewMember self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similar_review_members(
+    SimilarReviewMembers self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similar_review_page(
+    SimilarReviewPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similar_review_range(
+    SimilarReviewRange self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similar_undo_result(
+    SimilarUndoResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_similarity_degree(
+    SimilarityDegree self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_source_revision_evidence(
     SourceRevisionEvidence self,
     SseSerializer serializer,
@@ -4270,6 +4650,22 @@ class RustLibWire implements BaseWire {
       );
 
   void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+        ptr,
+      );
+
+  void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     int ptr,
   ) => wasmModule
@@ -4349,6 +4745,16 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
 
   external void
   rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
     int ptr,
   );
 

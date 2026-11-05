@@ -18,6 +18,8 @@ class LibraryDuplicateReviewGrid extends ConsumerStatefulWidget {
     required this.itemBuilder,
     this.onVisibleRange,
     this.singleColumn = false,
+    this.memberActions = 2,
+    this.selectable = false,
     super.key,
   });
   final int itemCount;
@@ -25,6 +27,8 @@ class LibraryDuplicateReviewGrid extends ConsumerStatefulWidget {
   final IndexedWidgetBuilder itemBuilder;
   final Future<void> Function(int first, int end)? onVisibleRange;
   final bool singleColumn;
+  final int memberActions;
+  final bool selectable;
 
   @override
   ConsumerState<LibraryDuplicateReviewGrid> createState() =>
@@ -113,6 +117,8 @@ class _LibraryDuplicateReviewGridState
         context,
         cardWidth,
         member: widget.singleColumn,
+        memberActions: widget.memberActions,
+        selectable: widget.selectable,
       );
       _rowStride = cardHeight + spacing;
       _scheduleDemand();

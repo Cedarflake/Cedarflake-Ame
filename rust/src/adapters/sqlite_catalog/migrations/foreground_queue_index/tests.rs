@@ -163,9 +163,31 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 "organization_recovery_duplicate_decisions",
                 "organization_recovery_duplicate_sources",
                 "organization_restored_fields",
+                "similarity_decisions",
+                "similarity_preferences",
+                "similarity_evidence",
+                "similarity_exclusions",
+                "similarity_groups",
+                "similarity_match_work",
+                "similarity_members",
+                "similarity_outcomes",
+                "similarity_reference_variants",
+                "similarity_references",
+                "similarity_runs",
+                "similarity_source_failures",
+                "similarity_variants",
             ] {
                 assert_eq!(after.remove(table), Some(Vec::new()), "{table}");
             }
+            assert_eq!(
+                after.remove("similarity_dispatch"),
+                Some(vec![vec![
+                    Value::Integer(1),
+                    Value::Null,
+                    Value::Null,
+                    Value::Integer(0),
+                ]]),
+            );
             assert_eq!(
                 after.remove("classification_state"),
                 Some(vec![vec![

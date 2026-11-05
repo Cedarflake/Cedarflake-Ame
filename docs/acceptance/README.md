@@ -13,6 +13,8 @@ recorded local checkpoint does not establish that the current product source pas
 | [Completed maintenance](completed-maintenance.md) | Delivered outcomes, accepted limitations and post-R2c roadmap provenance |
 | [R4 organization verification](r4-organization.md) | Durable organization, migration recovery and connected desktop workflow evidence |
 | [R5 integrated delivery](r5-closeout.md) | Ordered slice coverage, current desktop boundaries, retained limits and submitted CI provenance |
+| [R6 engine evaluation](r6-engine-evaluation.md) | Candidate integration, transformation quality, index growth and remaining admission evidence |
+| [R6 similarity integration](r6-similar-images.md) | Persistent identities, production analysis, durable choices and desktop workflow evidence |
 | [R5 exploratory model comparison](r5-model-evaluation.md) | Provisional local candidate comparison, source/provenance boundaries and remaining admission evidence |
 | [R5 inference runtime](r5-runtime-admission.md) | Pinned artifact provenance, isolated local/cloud resource observations and feature-compatibility evidence |
 | [R5 category discovery](r5-category-discovery.md) | Retained-feature grouping, bounded naming probes and category-maintenance admission gaps |

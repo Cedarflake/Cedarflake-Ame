@@ -16,6 +16,8 @@ pub mod organization_conflicts;
 pub mod organization_review;
 pub mod preview;
 pub mod sidebar_order;
+pub mod similar_image_review;
+pub mod similar_images;
 pub mod storage;
 pub mod synchronization;
 pub mod viewer_source;

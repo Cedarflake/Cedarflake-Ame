@@ -15,10 +15,12 @@ class LibraryDuplicateGroupCard extends StatelessWidget {
   const LibraryDuplicateGroupCard({
     required this.entry,
     required this.onOpen,
+    this.kindLabel,
     super.key,
   });
   final LibraryDuplicateReviewGroup entry;
   final VoidCallback onOpen;
+  final String? kindLabel;
 
   @override
   Widget build(BuildContext context) => LibraryDuplicateReviewCard(
@@ -26,6 +28,7 @@ class LibraryDuplicateGroupCard extends StatelessWidget {
     onOpen: onOpen,
     details: Text(
       [
+        ?kindLabel,
         LibraryDuplicateStrings.locations(entry.group.locationCount),
         if (entry.group.physicalFileCount < entry.group.locationCount)
           LibraryDuplicateStrings.physicalFiles(entry.group.physicalFileCount),
@@ -50,12 +53,14 @@ class LibraryDuplicateMemberCard extends StatelessWidget {
     required this.preferred,
     required this.onPrefer,
     required this.onOpen,
+    this.selection,
     super.key,
   });
   final LibraryDuplicateReviewLocation member;
   final bool preferred;
   final VoidCallback? onPrefer;
   final VoidCallback onOpen;
+  final Widget? selection;
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +74,7 @@ class LibraryDuplicateMemberCard extends StatelessWidget {
       asset: member.asset,
       onOpen: onOpen,
       inlineActions: true,
+      selection: selection,
       details: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -130,6 +136,7 @@ class LibraryDuplicateReviewCard extends StatelessWidget {
     required this.details,
     required this.actions,
     this.inlineActions = false,
+    this.selection,
     super.key,
   });
   final LibraryAsset asset;
@@ -137,77 +144,95 @@ class LibraryDuplicateReviewCard extends StatelessWidget {
   final Widget details;
   final List<Widget> actions;
   final bool inlineActions;
+  final Widget? selection;
 
   @override
-  Widget build(BuildContext context) {
-    final content = Row(
-      children: [
-        ExcludeFocus(
-          child: ExcludeSemantics(
-            child: IgnorePointer(
-              child: SizedBox.square(
-                dimension: LibraryDuplicateReviewMetrics.thumbnailExtent,
-                child: LibraryViewerFilmstripThumbnail(
-                  asset: asset,
-                  isSelected: false,
-                  onPressed: onOpen,
-                  previewWidth: 144,
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final inline =
+          inlineActions &&
+          LibraryDuplicateReviewMetrics.inlineMemberActions(
+            context,
+            constraints.maxWidth,
+            actions: actions.length,
+            selectable: selection != null,
+          );
+      final content = Row(
+        children: [
+          if (selection != null)
+            SizedBox(
+              width: LibraryDuplicateReviewMetrics.selectionExtent,
+              child: selection,
+            ),
+          ExcludeFocus(
+            child: ExcludeSemantics(
+              child: IgnorePointer(
+                child: SizedBox.square(
+                  dimension: LibraryDuplicateReviewMetrics.thumbnailExtent,
+                  child: LibraryViewerFilmstripThumbnail(
+                    asset: asset,
+                    isSelected: false,
+                    onPressed: onOpen,
+                    previewWidth: 144,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AmeTooltip(
-                message: displayLibraryFileName(asset.displayPath),
-                child: Text(
-                  displayLibraryFileName(asset.displayPath),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AmeTooltip(
+                  message: displayLibraryFileName(asset.displayPath),
+                  child: Text(
+                    displayLibraryFileName(asset.displayPath),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              details,
-            ],
+                const SizedBox(height: 4),
+                details,
+              ],
+            ),
+          ),
+          if (inline) ...[
+            const SizedBox(width: 12),
+            Row(mainAxisSize: MainAxisSize.min, children: actions),
+          ],
+        ],
+      );
+      return Card(
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: ValueKey("duplicate-card-${asset.locationId}"),
+          onTap: onOpen,
+          child: Padding(
+            padding: const EdgeInsets.all(
+              LibraryDuplicateReviewMetrics.padding,
+            ),
+            child: inline
+                ? content
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: content),
+                      const SizedBox(height: LibraryDuplicateReviewMetrics.gap),
+                      Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: actions,
+                      ),
+                    ],
+                  ),
           ),
         ),
-        if (inlineActions) ...[
-          const SizedBox(width: 12),
-          Row(mainAxisSize: MainAxisSize.min, children: actions),
-        ],
-      ],
-    );
-    return Card(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        key: ValueKey("duplicate-card-${asset.locationId}"),
-        onTap: onOpen,
-        child: Padding(
-          padding: const EdgeInsets.all(LibraryDuplicateReviewMetrics.padding),
-          child: inlineActions
-              ? content
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(child: content),
-                    const SizedBox(height: LibraryDuplicateReviewMetrics.gap),
-                    Wrap(
-                      alignment: WrapAlignment.end,
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: actions,
-                    ),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
+      );
+    },
+  );
 }

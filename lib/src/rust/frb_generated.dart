@@ -20,6 +20,8 @@ import 'api/organization_conflicts.dart';
 import 'api/organization_review.dart';
 import 'api/preview.dart';
 import 'api/sidebar_order.dart';
+import 'api/similar_image_review.dart';
+import 'api/similar_images.dart';
 import 'api/storage.dart';
 import 'api/synchronization.dart';
 import 'api/viewer_source.dart';
@@ -51,6 +53,9 @@ import 'domain/organization_queue.dart';
 import 'domain/organization_review.dart';
 import 'domain/persistent_journal.dart';
 import 'domain/sidebar_order.dart';
+import 'domain/similar_images.dart';
+import 'domain/similar_images/analysis.dart';
+import 'domain/similar_images/review.dart';
 import 'frb_generated.dart';
 import 'frb_generated.io.dart'
     if (dart.library.js_interop) 'frb_generated.web.dart';
@@ -111,7 +116,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 494456702;
+  int get rustContentHash => -542101592;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -231,6 +236,23 @@ abstract class RustLibApi extends BaseApi {
     required PreparedClassificationMaintenance that,
   });
 
+  void crateApiSimilarImagesSimilarImageAnalysisCancel({
+    required SimilarImageAnalysis that,
+  });
+
+  SimilarAnalysisProgress crateApiSimilarImagesSimilarImageAnalysisProgress({
+    required SimilarImageAnalysis that,
+  });
+
+  Future<SimilarAnalysisProgress> crateApiSimilarImagesSimilarImageAnalysisRun({
+    required SimilarImageAnalysis that,
+  });
+
+  void crateApiSimilarImagesSimilarImageAnalysisSuspend({
+    required SimilarImageAnalysis that,
+    required bool suspended,
+  });
+
   Future<void> crateApiViewerSourceViewerSourceReadLeaseClose({
     required ViewerSourceReadLease that,
   });
@@ -332,6 +354,13 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiOrganizationReviewEndOrganizationReview({
     required String sessionId,
+  });
+
+  Future<SimilarExclusionResult>
+  crateApiSimilarImageReviewExcludeSimilarMember({
+    required SimilarReviewContext context,
+    required SimilarMemberSelection selection,
+    required String exclusionId,
   });
 
   Stream<OrganizationArchiveEvent>
@@ -514,6 +543,18 @@ abstract class RustLibApi extends BaseApi {
 
   Future<RecoverableScan?> crateApiCatalogLoadRecoverableLibraryScan();
 
+  Future<SimilarReviewPage> crateApiSimilarImageReviewLoadSimilarGroups({
+    required SimilarityDegree degree,
+    required bool ignored,
+    String? after,
+  });
+
+  Future<SimilarReviewMembers> crateApiSimilarImageReviewLoadSimilarMembers({
+    required String groupId,
+    required SimilarityDegree degree,
+    SimilarContentKey? after,
+  });
+
   Future<StorageStatus> crateApiStorageLoadStorageStatus();
 
   Future<AssetLocationView> crateApiPreviewMaterializeLibraryPreview({
@@ -528,6 +569,10 @@ abstract class RustLibApi extends BaseApi {
     required GalleryQuery query,
     required BigInt catalogRevision,
     required bool allMatching,
+  });
+
+  Future<SimilarImageAnalysis> crateApiSimilarImagesOpenSimilarImageAnalysis({
+    required String runId,
   });
 
   bool crateApiCatalogPauseLibraryScan({required String scanId});
@@ -605,6 +650,12 @@ abstract class RustLibApi extends BaseApi {
     required bool ignored,
   });
 
+  Future<SimilarReviewRange> crateApiSimilarImageReviewSeekSimilarGroups({
+    required SimilarityDegree degree,
+    required bool ignored,
+    required BigInt index,
+  });
+
   Future<void> crateApiClassificationSelectClassificationInstallation({
     required String models,
     required String runtime,
@@ -626,6 +677,17 @@ abstract class RustLibApi extends BaseApi {
     required String operationId,
     required OrganizationPreparedSelection prepared,
     required bool favorite,
+  });
+
+  Future<SimilarGroupDecision> crateApiSimilarImageReviewSetSimilarIgnored({
+    required SimilarReviewContext context,
+    required bool ignored,
+  });
+
+  Future<SimilarGroupDecision> crateApiSimilarImageReviewSetSimilarPreference({
+    required SimilarReviewContext context,
+    required SimilarMemberSelection selection,
+    required bool preferred,
   });
 
   Future<CatalogReclamationSnapshot>
@@ -655,6 +717,10 @@ abstract class RustLibApi extends BaseApi {
     required String operationId,
     required String originalId,
     required BigInt expectedRevision,
+  });
+
+  Future<SimilarUndoResult> crateApiSimilarImageReviewUndoSimilarExclusion({
+    required SimilarMemberExclusion exclusion,
   });
 
   Future<StorageStatus> crateApiStorageUpdateStorageSettings({
@@ -714,6 +780,15 @@ abstract class RustLibApi extends BaseApi {
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_PreparedClassificationMaintenancePtr;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_SimilarImageAnalysis;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_SimilarImageAnalysis;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_SimilarImageAnalysisPtr;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_ViewerSourceReadLease;
@@ -1562,6 +1637,139 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  void crateApiSimilarImagesSimilarImageAnalysisCancel({
+    required SimilarImageAnalysis that,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+            that,
+            serializer,
+          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 23)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiSimilarImagesSimilarImageAnalysisCancelConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSimilarImagesSimilarImageAnalysisCancelConstMeta =>
+      const TaskConstMeta(
+        debugName: "SimilarImageAnalysis_cancel",
+        argNames: ["that"],
+      );
+
+  @override
+  SimilarAnalysisProgress crateApiSimilarImagesSimilarImageAnalysisProgress({
+    required SimilarImageAnalysis that,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+            that,
+            serializer,
+          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_similar_analysis_progress,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiSimilarImagesSimilarImageAnalysisProgressConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiSimilarImagesSimilarImageAnalysisProgressConstMeta =>
+      const TaskConstMeta(
+        debugName: "SimilarImageAnalysis_progress",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<SimilarAnalysisProgress> crateApiSimilarImagesSimilarImageAnalysisRun({
+    required SimilarImageAnalysis that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 25,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_similar_analysis_progress,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiSimilarImagesSimilarImageAnalysisRunConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSimilarImagesSimilarImageAnalysisRunConstMeta =>
+      const TaskConstMeta(
+        debugName: "SimilarImageAnalysis_run",
+        argNames: ["that"],
+      );
+
+  @override
+  void crateApiSimilarImagesSimilarImageAnalysisSuspend({
+    required SimilarImageAnalysis that,
+    required bool suspended,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+            that,
+            serializer,
+          );
+          sse_encode_bool(suspended, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiSimilarImagesSimilarImageAnalysisSuspendConstMeta,
+        argValues: [that, suspended],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiSimilarImagesSimilarImageAnalysisSuspendConstMeta =>
+      const TaskConstMeta(
+        debugName: "SimilarImageAnalysis_suspend",
+        argNames: ["that", "suspended"],
+      );
+
+  @override
   Future<void> crateApiViewerSourceViewerSourceReadLeaseClose({
     required ViewerSourceReadLease that,
   }) {
@@ -1576,7 +1784,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 27,
             port: port_,
           );
         },
@@ -1612,7 +1820,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 24,
+            funcId: 28,
             port: port_,
           );
         },
@@ -1647,7 +1855,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 29,
             port: port_,
           );
         },
@@ -1684,7 +1892,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 26,
+              funcId: 30,
               port: port_,
             );
           },
@@ -1734,7 +1942,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 27,
+              funcId: 31,
               port: port_,
             );
           },
@@ -1772,7 +1980,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 32,
             port: port_,
           );
         },
@@ -1806,7 +2014,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 29,
+            funcId: 33,
             port: port_,
           );
         },
@@ -1839,7 +2047,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 30,
+            funcId: 34,
             port: port_,
           );
         },
@@ -1869,7 +2077,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(scanId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 31)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -1895,7 +2103,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(operationId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 32)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 36)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -1926,7 +2134,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 33,
+            funcId: 37,
             port: port_,
           );
         },
@@ -1962,7 +2170,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 38,
             port: port_,
           );
         },
@@ -2010,7 +2218,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 39,
             port: port_,
           );
         },
@@ -2052,7 +2260,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 36,
+            funcId: 40,
             port: port_,
           );
         },
@@ -2091,7 +2299,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 41,
             port: port_,
           );
         },
@@ -2129,7 +2337,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 38,
+              funcId: 42,
               port: port_,
             );
           },
@@ -2169,7 +2377,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 39,
+              funcId: 43,
               port: port_,
             );
           },
@@ -2199,7 +2407,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 40)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 44)!;
         },
         codec: SseCodec(
           decodeSuccessData:
@@ -2234,7 +2442,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 45,
             port: port_,
           );
         },
@@ -2262,7 +2470,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 42)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 46)!;
         },
         codec: SseCodec(
           decodeSuccessData:
@@ -2291,7 +2499,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 43)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 47)!;
         },
         codec: SseCodec(
           decodeSuccessData:
@@ -2329,7 +2537,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 44,
+            funcId: 48,
             port: port_,
           );
         },
@@ -2362,7 +2570,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 49,
             port: port_,
           );
         },
@@ -2381,6 +2589,47 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(
         debugName: "end_organization_review",
         argNames: ["sessionId"],
+      );
+
+  @override
+  Future<SimilarExclusionResult>
+  crateApiSimilarImageReviewExcludeSimilarMember({
+    required SimilarReviewContext context,
+    required SimilarMemberSelection selection,
+    required String exclusionId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_similar_review_context(context, serializer);
+          sse_encode_box_autoadd_similar_member_selection(
+            selection,
+            serializer,
+          );
+          sse_encode_String(exclusionId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 50,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_similar_exclusion_result,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiSimilarImageReviewExcludeSimilarMemberConstMeta,
+        argValues: [context, selection, exclusionId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSimilarImageReviewExcludeSimilarMemberConstMeta =>
+      const TaskConstMeta(
+        debugName: "exclude_similar_member",
+        argNames: ["context", "selection", "exclusionId"],
       );
 
   @override
@@ -2407,7 +2656,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 46,
+              funcId: 51,
               port: port_,
             );
           },
@@ -2444,7 +2693,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 47,
+            funcId: 52,
             port: port_,
           );
         },
@@ -2474,7 +2723,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 48,
+            funcId: 53,
             port: port_,
           );
         },
@@ -2502,7 +2751,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 49,
+            funcId: 54,
             port: port_,
           );
         },
@@ -2549,7 +2798,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 50,
+              funcId: 55,
               port: port_,
             );
           },
@@ -2598,7 +2847,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 51,
+              funcId: 56,
               port: port_,
             );
           },
@@ -2636,7 +2885,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 52,
+            funcId: 57,
             port: port_,
           );
         },
@@ -2668,7 +2917,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 53,
+            funcId: 58,
             port: port_,
           );
         },
@@ -2704,7 +2953,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 54,
+            funcId: 59,
             port: port_,
           );
         },
@@ -2740,7 +2989,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 55,
+            funcId: 60,
             port: port_,
           );
         },
@@ -2773,7 +3022,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 56,
+            funcId: 61,
             port: port_,
           );
         },
@@ -2806,7 +3055,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 57,
+            funcId: 62,
             port: port_,
           );
         },
@@ -2845,7 +3094,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 58,
+            funcId: 63,
             port: port_,
           );
         },
@@ -2883,7 +3132,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 59,
+            funcId: 64,
             port: port_,
           );
         },
@@ -2923,7 +3172,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 60,
+            funcId: 65,
             port: port_,
           );
         },
@@ -2961,7 +3210,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 61,
+            funcId: 66,
             port: port_,
           );
         },
@@ -3001,7 +3250,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 62,
+            funcId: 67,
             port: port_,
           );
         },
@@ -3038,7 +3287,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 63,
+            funcId: 68,
             port: port_,
           );
         },
@@ -3073,7 +3322,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 64,
+            funcId: 69,
             port: port_,
           );
         },
@@ -3112,7 +3361,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 65,
+            funcId: 70,
             port: port_,
           );
         },
@@ -3153,7 +3402,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 66,
+            funcId: 71,
             port: port_,
           );
         },
@@ -3202,7 +3451,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 67,
+            funcId: 72,
             port: port_,
           );
         },
@@ -3239,7 +3488,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 68,
+            funcId: 73,
             port: port_,
           );
         },
@@ -3278,7 +3527,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 69,
+            funcId: 74,
             port: port_,
           );
         },
@@ -3319,7 +3568,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 70,
+            funcId: 75,
             port: port_,
           );
         },
@@ -3354,7 +3603,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 71,
+            funcId: 76,
             port: port_,
           );
         },
@@ -3391,7 +3640,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 72,
+            funcId: 77,
             port: port_,
           );
         },
@@ -3428,7 +3677,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 73,
+            funcId: 78,
             port: port_,
           );
         },
@@ -3458,7 +3707,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 74,
+            funcId: 79,
             port: port_,
           );
         },
@@ -3493,7 +3742,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 75,
+            funcId: 80,
             port: port_,
           );
         },
@@ -3529,7 +3778,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 76,
+            funcId: 81,
             port: port_,
           );
         },
@@ -3567,7 +3816,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 77,
+            funcId: 82,
             port: port_,
           );
         },
@@ -3600,7 +3849,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 78,
+            funcId: 83,
             port: port_,
           );
         },
@@ -3636,7 +3885,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 79,
+            funcId: 84,
             port: port_,
           );
         },
@@ -3668,7 +3917,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 80,
+            funcId: 85,
             port: port_,
           );
         },
@@ -3695,7 +3944,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 81,
+            funcId: 86,
             port: port_,
           );
         },
@@ -3722,7 +3971,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 82,
+            funcId: 87,
             port: port_,
           );
         },
@@ -3744,6 +3993,80 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<SimilarReviewPage> crateApiSimilarImageReviewLoadSimilarGroups({
+    required SimilarityDegree degree,
+    required bool ignored,
+    String? after,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_similarity_degree(degree, serializer);
+          sse_encode_bool(ignored, serializer);
+          sse_encode_opt_String(after, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 88,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_similar_review_page,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiSimilarImageReviewLoadSimilarGroupsConstMeta,
+        argValues: [degree, ignored, after],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSimilarImageReviewLoadSimilarGroupsConstMeta =>
+      const TaskConstMeta(
+        debugName: "load_similar_groups",
+        argNames: ["degree", "ignored", "after"],
+      );
+
+  @override
+  Future<SimilarReviewMembers> crateApiSimilarImageReviewLoadSimilarMembers({
+    required String groupId,
+    required SimilarityDegree degree,
+    SimilarContentKey? after,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(groupId, serializer);
+          sse_encode_similarity_degree(degree, serializer);
+          sse_encode_opt_box_autoadd_similar_content_key(after, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 89,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_similar_review_members,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiSimilarImageReviewLoadSimilarMembersConstMeta,
+        argValues: [groupId, degree, after],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSimilarImageReviewLoadSimilarMembersConstMeta =>
+      const TaskConstMeta(
+        debugName: "load_similar_members",
+        argNames: ["groupId", "degree", "after"],
+      );
+
+  @override
   Future<StorageStatus> crateApiStorageLoadStorageStatus() {
     return handler.executeNormal(
       NormalTask(
@@ -3752,7 +4075,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 83,
+            funcId: 90,
             port: port_,
           );
         },
@@ -3782,7 +4105,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 84,
+            funcId: 91,
             port: port_,
           );
         },
@@ -3813,7 +4136,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 85,
+            funcId: 92,
             port: port_,
           );
         },
@@ -3852,7 +4175,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 86,
+            funcId: 93,
             port: port_,
           );
         },
@@ -3877,13 +4200,47 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<SimilarImageAnalysis> crateApiSimilarImagesOpenSimilarImageAnalysis({
+    required String runId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(runId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 94,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiSimilarImagesOpenSimilarImageAnalysisConstMeta,
+        argValues: [runId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSimilarImagesOpenSimilarImageAnalysisConstMeta =>
+      const TaskConstMeta(
+        debugName: "open_similar_image_analysis",
+        argNames: ["runId"],
+      );
+
+  @override
   bool crateApiCatalogPauseLibraryScan({required String scanId}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(scanId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 87)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 95)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -3915,7 +4272,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 88,
+            funcId: 96,
             port: port_,
           );
         },
@@ -3950,7 +4307,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 89,
+            funcId: 97,
             port: port_,
           );
         },
@@ -3982,7 +4339,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 90,
+            funcId: 98,
             port: port_,
           );
         },
@@ -4025,7 +4382,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 91,
+              funcId: 99,
               port: port_,
             );
           },
@@ -4058,7 +4415,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 92,
+            funcId: 100,
             port: port_,
           );
         },
@@ -4097,7 +4454,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 93,
+            funcId: 101,
             port: port_,
           );
         },
@@ -4136,7 +4493,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 94,
+            funcId: 102,
             port: port_,
           );
         },
@@ -4163,7 +4520,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 95)!;
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 103,
+          )!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_64,
@@ -4190,7 +4551,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 96)!;
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 104,
+          )!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_64,
@@ -4240,7 +4605,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 97,
+              funcId: 105,
               port: port_,
             );
           },
@@ -4280,7 +4645,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 98,
+              funcId: 106,
               port: port_,
             );
           },
@@ -4318,7 +4683,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 99,
+            funcId: 107,
             port: port_,
           );
         },
@@ -4362,7 +4727,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 100,
+            funcId: 108,
             port: port_,
           );
         },
@@ -4410,7 +4775,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 101,
+              funcId: 109,
               port: port_,
             );
           },
@@ -4447,7 +4812,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 102,
+            funcId: 110,
             port: port_,
           );
         },
@@ -4471,6 +4836,43 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<SimilarReviewRange> crateApiSimilarImageReviewSeekSimilarGroups({
+    required SimilarityDegree degree,
+    required bool ignored,
+    required BigInt index,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_similarity_degree(degree, serializer);
+          sse_encode_bool(ignored, serializer);
+          sse_encode_u_64(index, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 111,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_similar_review_range,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiSimilarImageReviewSeekSimilarGroupsConstMeta,
+        argValues: [degree, ignored, index],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSimilarImageReviewSeekSimilarGroupsConstMeta =>
+      const TaskConstMeta(
+        debugName: "seek_similar_groups",
+        argNames: ["degree", "ignored", "index"],
+      );
+
+  @override
   Future<void> crateApiClassificationSelectClassificationInstallation({
     required String models,
     required String runtime,
@@ -4484,7 +4886,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 103,
+            funcId: 112,
             port: port_,
           );
         },
@@ -4522,7 +4924,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 104,
+            funcId: 113,
             port: port_,
           );
         },
@@ -4563,7 +4965,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 105,
+            funcId: 114,
             port: port_,
           );
         },
@@ -4605,7 +5007,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 106,
+            funcId: 115,
             port: port_,
           );
         },
@@ -4627,6 +5029,81 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<SimilarGroupDecision> crateApiSimilarImageReviewSetSimilarIgnored({
+    required SimilarReviewContext context,
+    required bool ignored,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_similar_review_context(context, serializer);
+          sse_encode_bool(ignored, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 116,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_similar_group_decision,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiSimilarImageReviewSetSimilarIgnoredConstMeta,
+        argValues: [context, ignored],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSimilarImageReviewSetSimilarIgnoredConstMeta =>
+      const TaskConstMeta(
+        debugName: "set_similar_ignored",
+        argNames: ["context", "ignored"],
+      );
+
+  @override
+  Future<SimilarGroupDecision> crateApiSimilarImageReviewSetSimilarPreference({
+    required SimilarReviewContext context,
+    required SimilarMemberSelection selection,
+    required bool preferred,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_similar_review_context(context, serializer);
+          sse_encode_box_autoadd_similar_member_selection(
+            selection,
+            serializer,
+          );
+          sse_encode_bool(preferred, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 117,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_similar_group_decision,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiSimilarImageReviewSetSimilarPreferenceConstMeta,
+        argValues: [context, selection, preferred],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSimilarImageReviewSetSimilarPreferenceConstMeta =>
+      const TaskConstMeta(
+        debugName: "set_similar_preference",
+        argNames: ["context", "selection", "preferred"],
+      );
+
+  @override
   Future<CatalogReclamationSnapshot>
   crateApiStorageStartCatalogDatabaseReclamation({
     required String operationId,
@@ -4639,7 +5116,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 107,
+            funcId: 118,
             port: port_,
           );
         },
@@ -4673,7 +5150,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 108,
+            funcId: 119,
             port: port_,
           );
         },
@@ -4714,7 +5191,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 109,
+            funcId: 120,
             port: port_,
           );
         },
@@ -4752,7 +5229,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 110,
+            funcId: 121,
             port: port_,
           );
         },
@@ -4784,7 +5261,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 111,
+            funcId: 122,
           )!;
         },
         codec: SseCodec(
@@ -4821,7 +5298,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 112,
+            funcId: 123,
             port: port_,
           );
         },
@@ -4843,6 +5320,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<SimilarUndoResult> crateApiSimilarImageReviewUndoSimilarExclusion({
+    required SimilarMemberExclusion exclusion,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_similar_member_exclusion(
+            exclusion,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 124,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_similar_undo_result,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiSimilarImageReviewUndoSimilarExclusionConstMeta,
+        argValues: [exclusion],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSimilarImageReviewUndoSimilarExclusionConstMeta =>
+      const TaskConstMeta(
+        debugName: "undo_similar_exclusion",
+        argNames: ["exclusion"],
+      );
+
+  @override
   Future<StorageStatus> crateApiStorageUpdateStorageSettings({
     required StorageSettingsUpdate update,
   }) {
@@ -4854,7 +5367,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 113,
+            funcId: 125,
             port: port_,
           );
         },
@@ -4922,6 +5435,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RustArcDecrementStrongCountFnType
   get rust_arc_decrement_strong_count_PreparedClassificationMaintenance => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_SimilarImageAnalysis => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_SimilarImageAnalysis => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_ViewerSourceReadLease => wire
@@ -5004,6 +5525,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SimilarImageAnalysis
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return SimilarImageAnalysisImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
   ViewerSourceReadLease
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     dynamic raw,
@@ -5079,6 +5609,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SimilarImageAnalysis
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return SimilarImageAnalysisImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
   ViewerSourceReadLease
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     dynamic raw,
@@ -5151,6 +5690,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return PreparedClassificationMaintenanceImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
+  }
+
+  @protected
+  SimilarImageAnalysis
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return SimilarImageAnalysisImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
@@ -5555,6 +6103,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ScanRequest dco_decode_box_autoadd_scan_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_scan_request(raw);
+  }
+
+  @protected
+  SimilarContentKey dco_decode_box_autoadd_similar_content_key(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_similar_content_key(raw);
+  }
+
+  @protected
+  SimilarMemberExclusion dco_decode_box_autoadd_similar_member_exclusion(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_similar_member_exclusion(raw);
+  }
+
+  @protected
+  SimilarMemberSelection dco_decode_box_autoadd_similar_member_selection(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_similar_member_selection(raw);
+  }
+
+  @protected
+  SimilarReviewContext dco_decode_box_autoadd_similar_review_context(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_similar_review_context(raw);
   }
 
   @protected
@@ -6784,6 +7362,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<SimilarReviewGroup> dco_decode_list_similar_review_group(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_similar_review_group).toList();
+  }
+
+  @protected
+  List<SimilarReviewMember> dco_decode_list_similar_review_member(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_similar_review_member)
+        .toList();
+  }
+
+  @protected
   ModelInstallationPhase dco_decode_model_installation_phase(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return ModelInstallationPhase.values[raw as int];
@@ -7030,6 +7622,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RecoverableScan? dco_decode_opt_box_autoadd_recoverable_scan(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_recoverable_scan(raw);
+  }
+
+  @protected
+  SimilarContentKey? dco_decode_opt_box_autoadd_similar_content_key(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_similar_content_key(raw);
   }
 
   @protected
@@ -7945,6 +8545,191 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SimilarAnalysisPhase dco_decode_similar_analysis_phase(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return SimilarAnalysisPhase.values[raw as int];
+  }
+
+  @protected
+  SimilarAnalysisProgress dco_decode_similar_analysis_progress(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return SimilarAnalysisProgress(
+      runId: dco_decode_String(arr[0]),
+      phase: dco_decode_similar_analysis_phase(arr[1]),
+      checkedSources: dco_decode_u_64(arr[2]),
+      analyzedContents: dco_decode_u_64(arr[3]),
+      skippedSources: dco_decode_u_64(arr[4]),
+      currentPath: dco_decode_opt_String(arr[5]),
+      issueCode: dco_decode_opt_String(arr[6]),
+    );
+  }
+
+  @protected
+  SimilarContentKey dco_decode_similar_content_key(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return SimilarContentKey(
+      scheme: dco_decode_String(arr[0]),
+      digest: dco_decode_String(arr[1]),
+      byteLength: dco_decode_u_64(arr[2]),
+    );
+  }
+
+  @protected
+  SimilarExclusionResult dco_decode_similar_exclusion_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return SimilarExclusionResult(
+      decision: dco_decode_similar_group_decision(arr[0]),
+      undo: dco_decode_similar_member_exclusion(arr[1]),
+    );
+  }
+
+  @protected
+  SimilarGroupDecision dco_decode_similar_group_decision(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return SimilarGroupDecision(
+      ignored: dco_decode_bool(arr[0]),
+      revision: dco_decode_u_64(arr[1]),
+    );
+  }
+
+  @protected
+  SimilarMemberExclusion dco_decode_similar_member_exclusion(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return SimilarMemberExclusion(
+      groupId: dco_decode_String(arr[0]),
+      content: dco_decode_similar_content_key(arr[1]),
+      exclusionId: dco_decode_String(arr[2]),
+    );
+  }
+
+  @protected
+  SimilarMemberSelection dco_decode_similar_member_selection(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return SimilarMemberSelection(
+      content: dco_decode_similar_content_key(arr[0]),
+      source: dco_decode_organization_selection(arr[1]),
+    );
+  }
+
+  @protected
+  SimilarReviewContext dco_decode_similar_review_context(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return SimilarReviewContext(
+      groupId: dco_decode_String(arr[0]),
+      degree: dco_decode_similarity_degree(arr[1]),
+      revision: dco_decode_u_64(arr[2]),
+    );
+  }
+
+  @protected
+  SimilarReviewGroup dco_decode_similar_review_group(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return SimilarReviewGroup(
+      groupId: dco_decode_String(arr[0]),
+      memberCount: dco_decode_u_64(arr[1]),
+      representative: dco_decode_asset_location_view(arr[2]),
+      decision: dco_decode_similar_group_decision(arr[3]),
+    );
+  }
+
+  @protected
+  SimilarReviewMember dco_decode_similar_review_member(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return SimilarReviewMember(
+      preferred: dco_decode_bool(arr[0]),
+      content: dco_decode_similar_content_key(arr[1]),
+      representative: dco_decode_asset_location_view(arr[2]),
+      availability: dco_decode_duplicate_location_availability(arr[3]),
+      locationCount: dco_decode_u_64(arr[4]),
+      distance: dco_decode_u_8(arr[5]),
+    );
+  }
+
+  @protected
+  SimilarReviewMembers dco_decode_similar_review_members(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return SimilarReviewMembers(
+      members: dco_decode_list_similar_review_member(arr[0]),
+      totalMembers: dco_decode_u_64(arr[1]),
+      next: dco_decode_opt_box_autoadd_similar_content_key(arr[2]),
+      decision: dco_decode_similar_group_decision(arr[3]),
+    );
+  }
+
+  @protected
+  SimilarReviewPage dco_decode_similar_review_page(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return SimilarReviewPage(
+      groups: dco_decode_list_similar_review_group(arr[0]),
+      totalGroups: dco_decode_u_64(arr[1]),
+      nextGroupId: dco_decode_opt_String(arr[2]),
+    );
+  }
+
+  @protected
+  SimilarReviewRange dco_decode_similar_review_range(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return SimilarReviewRange(
+      startIndex: dco_decode_u_64(arr[0]),
+      page: dco_decode_similar_review_page(arr[1]),
+    );
+  }
+
+  @protected
+  SimilarUndoResult dco_decode_similar_undo_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return SimilarUndoResult(
+      decision: dco_decode_similar_group_decision(arr[0]),
+      restored: dco_decode_bool(arr[1]),
+    );
+  }
+
+  @protected
+  SimilarityDegree dco_decode_similarity_degree(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return SimilarityDegree.values[raw as int];
+  }
+
+  @protected
   SourceRevisionEvidence dco_decode_source_revision_evidence(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -8126,6 +8911,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SimilarImageAnalysis
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return SimilarImageAnalysisImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
   ViewerSourceReadLease
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     SseDeserializer deserializer,
@@ -8210,6 +9007,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SimilarImageAnalysis
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return SimilarImageAnalysisImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
   ViewerSourceReadLease
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     SseDeserializer deserializer,
@@ -8288,6 +9097,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return PreparedClassificationMaintenanceImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  SimilarImageAnalysis
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return SimilarImageAnalysisImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -8788,6 +9609,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_scan_request(deserializer));
+  }
+
+  @protected
+  SimilarContentKey sse_decode_box_autoadd_similar_content_key(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_similar_content_key(deserializer));
+  }
+
+  @protected
+  SimilarMemberExclusion sse_decode_box_autoadd_similar_member_exclusion(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_similar_member_exclusion(deserializer));
+  }
+
+  @protected
+  SimilarMemberSelection sse_decode_box_autoadd_similar_member_selection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_similar_member_selection(deserializer));
+  }
+
+  @protected
+  SimilarReviewContext sse_decode_box_autoadd_similar_review_context(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_similar_review_context(deserializer));
   }
 
   @protected
@@ -10348,6 +11201,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<SimilarReviewGroup> sse_decode_list_similar_review_group(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <SimilarReviewGroup>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_similar_review_group(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<SimilarReviewMember> sse_decode_list_similar_review_member(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <SimilarReviewMember>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_similar_review_member(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   ModelInstallationPhase sse_decode_model_installation_phase(
     SseDeserializer deserializer,
   ) {
@@ -10722,6 +11603,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_recoverable_scan(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  SimilarContentKey? sse_decode_opt_box_autoadd_similar_content_key(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_similar_content_key(deserializer));
     } else {
       return null;
     }
@@ -11843,6 +12737,212 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SimilarAnalysisPhase sse_decode_similar_analysis_phase(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return SimilarAnalysisPhase.values[inner];
+  }
+
+  @protected
+  SimilarAnalysisProgress sse_decode_similar_analysis_progress(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_runId = sse_decode_String(deserializer);
+    var var_phase = sse_decode_similar_analysis_phase(deserializer);
+    var var_checkedSources = sse_decode_u_64(deserializer);
+    var var_analyzedContents = sse_decode_u_64(deserializer);
+    var var_skippedSources = sse_decode_u_64(deserializer);
+    var var_currentPath = sse_decode_opt_String(deserializer);
+    var var_issueCode = sse_decode_opt_String(deserializer);
+    return SimilarAnalysisProgress(
+      runId: var_runId,
+      phase: var_phase,
+      checkedSources: var_checkedSources,
+      analyzedContents: var_analyzedContents,
+      skippedSources: var_skippedSources,
+      currentPath: var_currentPath,
+      issueCode: var_issueCode,
+    );
+  }
+
+  @protected
+  SimilarContentKey sse_decode_similar_content_key(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_scheme = sse_decode_String(deserializer);
+    var var_digest = sse_decode_String(deserializer);
+    var var_byteLength = sse_decode_u_64(deserializer);
+    return SimilarContentKey(
+      scheme: var_scheme,
+      digest: var_digest,
+      byteLength: var_byteLength,
+    );
+  }
+
+  @protected
+  SimilarExclusionResult sse_decode_similar_exclusion_result(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_decision = sse_decode_similar_group_decision(deserializer);
+    var var_undo = sse_decode_similar_member_exclusion(deserializer);
+    return SimilarExclusionResult(decision: var_decision, undo: var_undo);
+  }
+
+  @protected
+  SimilarGroupDecision sse_decode_similar_group_decision(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_ignored = sse_decode_bool(deserializer);
+    var var_revision = sse_decode_u_64(deserializer);
+    return SimilarGroupDecision(ignored: var_ignored, revision: var_revision);
+  }
+
+  @protected
+  SimilarMemberExclusion sse_decode_similar_member_exclusion(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_groupId = sse_decode_String(deserializer);
+    var var_content = sse_decode_similar_content_key(deserializer);
+    var var_exclusionId = sse_decode_String(deserializer);
+    return SimilarMemberExclusion(
+      groupId: var_groupId,
+      content: var_content,
+      exclusionId: var_exclusionId,
+    );
+  }
+
+  @protected
+  SimilarMemberSelection sse_decode_similar_member_selection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_content = sse_decode_similar_content_key(deserializer);
+    var var_source = sse_decode_organization_selection(deserializer);
+    return SimilarMemberSelection(content: var_content, source: var_source);
+  }
+
+  @protected
+  SimilarReviewContext sse_decode_similar_review_context(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_groupId = sse_decode_String(deserializer);
+    var var_degree = sse_decode_similarity_degree(deserializer);
+    var var_revision = sse_decode_u_64(deserializer);
+    return SimilarReviewContext(
+      groupId: var_groupId,
+      degree: var_degree,
+      revision: var_revision,
+    );
+  }
+
+  @protected
+  SimilarReviewGroup sse_decode_similar_review_group(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_groupId = sse_decode_String(deserializer);
+    var var_memberCount = sse_decode_u_64(deserializer);
+    var var_representative = sse_decode_asset_location_view(deserializer);
+    var var_decision = sse_decode_similar_group_decision(deserializer);
+    return SimilarReviewGroup(
+      groupId: var_groupId,
+      memberCount: var_memberCount,
+      representative: var_representative,
+      decision: var_decision,
+    );
+  }
+
+  @protected
+  SimilarReviewMember sse_decode_similar_review_member(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_preferred = sse_decode_bool(deserializer);
+    var var_content = sse_decode_similar_content_key(deserializer);
+    var var_representative = sse_decode_asset_location_view(deserializer);
+    var var_availability = sse_decode_duplicate_location_availability(
+      deserializer,
+    );
+    var var_locationCount = sse_decode_u_64(deserializer);
+    var var_distance = sse_decode_u_8(deserializer);
+    return SimilarReviewMember(
+      preferred: var_preferred,
+      content: var_content,
+      representative: var_representative,
+      availability: var_availability,
+      locationCount: var_locationCount,
+      distance: var_distance,
+    );
+  }
+
+  @protected
+  SimilarReviewMembers sse_decode_similar_review_members(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_members = sse_decode_list_similar_review_member(deserializer);
+    var var_totalMembers = sse_decode_u_64(deserializer);
+    var var_next = sse_decode_opt_box_autoadd_similar_content_key(deserializer);
+    var var_decision = sse_decode_similar_group_decision(deserializer);
+    return SimilarReviewMembers(
+      members: var_members,
+      totalMembers: var_totalMembers,
+      next: var_next,
+      decision: var_decision,
+    );
+  }
+
+  @protected
+  SimilarReviewPage sse_decode_similar_review_page(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_groups = sse_decode_list_similar_review_group(deserializer);
+    var var_totalGroups = sse_decode_u_64(deserializer);
+    var var_nextGroupId = sse_decode_opt_String(deserializer);
+    return SimilarReviewPage(
+      groups: var_groups,
+      totalGroups: var_totalGroups,
+      nextGroupId: var_nextGroupId,
+    );
+  }
+
+  @protected
+  SimilarReviewRange sse_decode_similar_review_range(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_startIndex = sse_decode_u_64(deserializer);
+    var var_page = sse_decode_similar_review_page(deserializer);
+    return SimilarReviewRange(startIndex: var_startIndex, page: var_page);
+  }
+
+  @protected
+  SimilarUndoResult sse_decode_similar_undo_result(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_decision = sse_decode_similar_group_decision(deserializer);
+    var var_restored = sse_decode_bool(deserializer);
+    return SimilarUndoResult(decision: var_decision, restored: var_restored);
+  }
+
+  @protected
+  SimilarityDegree sse_decode_similarity_degree(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return SimilarityDegree.values[inner];
+  }
+
+  @protected
   SourceRevisionEvidence sse_decode_source_revision_evidence(
     SseDeserializer deserializer,
   ) {
@@ -12056,6 +13156,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SimilarImageAnalysis self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as SimilarImageAnalysisImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     ViewerSourceReadLease self,
     SseSerializer serializer,
@@ -12153,6 +13266,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SimilarImageAnalysis self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as SimilarImageAnalysisImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     ViewerSourceReadLease self,
     SseSerializer serializer,
@@ -12242,6 +13368,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       (self as PreparedClassificationMaintenanceImpl).frbInternalSseEncode(
         move: null,
       ),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
+    SimilarImageAnalysis self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as SimilarImageAnalysisImpl).frbInternalSseEncode(move: null),
       serializer,
     );
   }
@@ -12799,6 +13938,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_scan_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_similar_content_key(
+    SimilarContentKey self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_similar_content_key(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_similar_member_exclusion(
+    SimilarMemberExclusion self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_similar_member_exclusion(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_similar_member_selection(
+    SimilarMemberSelection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_similar_member_selection(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_similar_review_context(
+    SimilarReviewContext self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_similar_review_context(self, serializer);
   }
 
   @protected
@@ -14051,6 +15226,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_similar_review_group(
+    List<SimilarReviewGroup> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_similar_review_group(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_similar_review_member(
+    List<SimilarReviewMember> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_similar_review_member(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_model_installation_phase(
     ModelInstallationPhase self,
     SseSerializer serializer,
@@ -14414,6 +15613,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_recoverable_scan(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_similar_content_key(
+    SimilarContentKey? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_similar_content_key(self, serializer);
     }
   }
 
@@ -15322,6 +16534,171 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_similar_analysis_phase(
+    SimilarAnalysisPhase self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_similar_analysis_progress(
+    SimilarAnalysisProgress self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.runId, serializer);
+    sse_encode_similar_analysis_phase(self.phase, serializer);
+    sse_encode_u_64(self.checkedSources, serializer);
+    sse_encode_u_64(self.analyzedContents, serializer);
+    sse_encode_u_64(self.skippedSources, serializer);
+    sse_encode_opt_String(self.currentPath, serializer);
+    sse_encode_opt_String(self.issueCode, serializer);
+  }
+
+  @protected
+  void sse_encode_similar_content_key(
+    SimilarContentKey self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.scheme, serializer);
+    sse_encode_String(self.digest, serializer);
+    sse_encode_u_64(self.byteLength, serializer);
+  }
+
+  @protected
+  void sse_encode_similar_exclusion_result(
+    SimilarExclusionResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_similar_group_decision(self.decision, serializer);
+    sse_encode_similar_member_exclusion(self.undo, serializer);
+  }
+
+  @protected
+  void sse_encode_similar_group_decision(
+    SimilarGroupDecision self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.ignored, serializer);
+    sse_encode_u_64(self.revision, serializer);
+  }
+
+  @protected
+  void sse_encode_similar_member_exclusion(
+    SimilarMemberExclusion self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.groupId, serializer);
+    sse_encode_similar_content_key(self.content, serializer);
+    sse_encode_String(self.exclusionId, serializer);
+  }
+
+  @protected
+  void sse_encode_similar_member_selection(
+    SimilarMemberSelection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_similar_content_key(self.content, serializer);
+    sse_encode_organization_selection(self.source, serializer);
+  }
+
+  @protected
+  void sse_encode_similar_review_context(
+    SimilarReviewContext self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.groupId, serializer);
+    sse_encode_similarity_degree(self.degree, serializer);
+    sse_encode_u_64(self.revision, serializer);
+  }
+
+  @protected
+  void sse_encode_similar_review_group(
+    SimilarReviewGroup self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.groupId, serializer);
+    sse_encode_u_64(self.memberCount, serializer);
+    sse_encode_asset_location_view(self.representative, serializer);
+    sse_encode_similar_group_decision(self.decision, serializer);
+  }
+
+  @protected
+  void sse_encode_similar_review_member(
+    SimilarReviewMember self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.preferred, serializer);
+    sse_encode_similar_content_key(self.content, serializer);
+    sse_encode_asset_location_view(self.representative, serializer);
+    sse_encode_duplicate_location_availability(self.availability, serializer);
+    sse_encode_u_64(self.locationCount, serializer);
+    sse_encode_u_8(self.distance, serializer);
+  }
+
+  @protected
+  void sse_encode_similar_review_members(
+    SimilarReviewMembers self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_similar_review_member(self.members, serializer);
+    sse_encode_u_64(self.totalMembers, serializer);
+    sse_encode_opt_box_autoadd_similar_content_key(self.next, serializer);
+    sse_encode_similar_group_decision(self.decision, serializer);
+  }
+
+  @protected
+  void sse_encode_similar_review_page(
+    SimilarReviewPage self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_similar_review_group(self.groups, serializer);
+    sse_encode_u_64(self.totalGroups, serializer);
+    sse_encode_opt_String(self.nextGroupId, serializer);
+  }
+
+  @protected
+  void sse_encode_similar_review_range(
+    SimilarReviewRange self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self.startIndex, serializer);
+    sse_encode_similar_review_page(self.page, serializer);
+  }
+
+  @protected
+  void sse_encode_similar_undo_result(
+    SimilarUndoResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_similar_group_decision(self.decision, serializer);
+    sse_encode_bool(self.restored, serializer);
+  }
+
+  @protected
+  void sse_encode_similarity_degree(
+    SimilarityDegree self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
   void sse_encode_source_revision_evidence(
     SourceRevisionEvidence self,
     SseSerializer serializer,
@@ -15707,6 +17084,50 @@ class PreparedClassificationMaintenanceImpl extends RustOpaque
   Future<bool> commit() => RustLib.instance.api
       .crateApiClassificationMaintenancePreparedClassificationMaintenanceCommit(
         that: this,
+      );
+}
+
+@sealed
+class SimilarImageAnalysisImpl extends RustOpaque
+    implements SimilarImageAnalysis {
+  // Not to be used by end users
+  SimilarImageAnalysisImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  SimilarImageAnalysisImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_SimilarImageAnalysis,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_SimilarImageAnalysis,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_SimilarImageAnalysisPtr,
+  );
+
+  void cancel() => RustLib.instance.api
+      .crateApiSimilarImagesSimilarImageAnalysisCancel(that: this);
+
+  SimilarAnalysisProgress progress() => RustLib.instance.api
+      .crateApiSimilarImagesSimilarImageAnalysisProgress(that: this);
+
+  Future<SimilarAnalysisProgress> run() => RustLib.instance.api
+      .crateApiSimilarImagesSimilarImageAnalysisRun(that: this);
+
+  void suspend({required bool suspended}) =>
+      RustLib.instance.api.crateApiSimilarImagesSimilarImageAnalysisSuspend(
+        that: this,
+        suspended: suspended,
       );
 }
 

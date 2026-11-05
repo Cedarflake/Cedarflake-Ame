@@ -19,6 +19,7 @@ pub mod organization_conflicts;
 pub mod organization_queue;
 pub mod organization_review;
 pub mod sidebar_order;
+pub(crate) mod similar_images;
 pub use exact_duplicates::{
     DuplicateLocationAvailability, ExactAnalysisPhase, ExactAnalysisProgress, ExactDuplicateGroup,
     ExactDuplicateGroupCursor, ExactDuplicateGroupPage, ExactDuplicateLocation,

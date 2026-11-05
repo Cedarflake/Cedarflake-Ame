@@ -1,3 +1,5 @@
+#[cfg(windows)]
+mod analysis_source;
 mod catalog_capacity;
 pub(crate) use catalog_capacity::LocalCatalogCapacity;
 mod classification_feature_cache;
@@ -43,7 +45,9 @@ pub(crate) use exact_content_reader::GuardedExactContentReader;
 mod preview_cache;
 mod preview_cache_storage;
 pub(crate) use preview_cache_storage::LocalPreviewCacheStorage;
+mod similar_image_reader;
 mod sqlite_catalog;
+pub(crate) use similar_image_reader::GuardedSimilarImageReader;
 mod storage_settings;
 #[cfg(windows)]
 mod windows_identity_journal;

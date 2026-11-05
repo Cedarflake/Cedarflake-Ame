@@ -4,10 +4,11 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_scheduler.dart";
+import "package:cedarflake_ame/features/library/application/library_similar_review_controller.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
-import "package:cedarflake_ame/features/library/presentation/pages/library_exact_duplicates_page.dart";
+import "package:cedarflake_ame/features/library/presentation/pages/library_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_review_cards.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_review_grid.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_message.dart";
@@ -17,6 +18,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/application_test_bindings.dart";
 import "support/duplicate_review_fixtures.dart";
+import "support/similar_review_fixtures.dart";
 
 void main() {
   for (final width in [400.0, 800.0, 1200.0, 1280.0]) {
@@ -33,6 +35,9 @@ void main() {
           overrides: applicationTestOverrides([
             libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
             libraryDuplicateReviewProvider.overrideWithValue(service),
+            librarySimilarReviewProvider.overrideWithValue(
+              SimilarReviewFixture(),
+            ),
             libraryExactAnalysisControllerProvider.overrideWithValue(analysis),
             libraryExactAnalysisSchedulerProvider.overrideWithValue(scheduler),
           ]),
@@ -52,13 +57,13 @@ void main() {
                 ).copyWith(textScaler: TextScaler.linear(scale)),
                 child: child!,
               ),
-              home: const Scaffold(body: LibraryExactDuplicatesPage()),
+              home: const Scaffold(body: LibraryDuplicatesPage()),
             ),
           ),
         );
         await tester.pumpAndSettle();
         expect(find.text("重复图片查找"), findsOneWidget);
-        expect(find.text("72 个重复图像组"), findsOneWidget);
+        expect(find.text("72 个组"), findsOneWidget);
         expect(find.textContaining("范围："), findsNothing);
         expect(find.text("查找内容完全相同的图片"), findsNothing);
         expect(find.text("查找完成"), findsNothing);
@@ -76,27 +81,18 @@ void main() {
             tester.getTopLeft(cards.at(1)).dx,
             greaterThan(tester.getTopLeft(cards.at(0)).dx),
           );
-          expect(
-            tester.getTopLeft(find.text("暂停查重")).dy,
-            tester.getTopLeft(find.text("刷新结果")).dy,
-          );
         }
-        final category = find.byKey(const Key("duplicate-review-category"));
+        final category = find.byKey(const Key("duplicate-group-menu"));
         final actions = find.byKey(const Key("duplicate-review-actions"));
         final heading = find.byKey(const Key("duplicate-review-title"));
         final groupCount = find.byKey(const Key("duplicate-review-count"));
         final results = tester.getRect(find.byType(GridView));
-        expect(tester.getCenter(category).dx, results.center.dx);
         expect(tester.getTopRight(actions).dx, results.right);
         if (width > 1000 && scale == 1) {
           expect(tester.getCenter(category).dy, tester.getCenter(actions).dy);
           expect(
             tester.getTopLeft(category).dx,
             greaterThan(tester.getTopRight(heading).dx),
-          );
-          expect(
-            tester.getTopLeft(actions).dx,
-            greaterThan(tester.getTopRight(category).dx),
           );
         }
         if (width == 400) {
@@ -111,6 +107,8 @@ void main() {
         }
         final categoryTop = tester.getTopLeft(category).dy;
         service.pendingGroups = Completer();
+        await tester.tap(category);
+        await tester.pumpAndSettle();
         await tester.tap(find.text("已忽略"));
         await tester.pump();
         expect(tester.getTopLeft(category).dy, categoryTop);
@@ -118,10 +116,12 @@ void main() {
           const LibraryDuplicateReviewPage(groups: [], totalGroups: 0),
         );
         await tester.pumpAndSettle();
-        expect(find.text("0 个重复图像组"), findsOneWidget);
+        expect(find.text("0 个组"), findsOneWidget);
         expect(find.byType(LibraryGalleryMessage), findsOneWidget);
         expect(tester.getTopLeft(category).dy, categoryTop);
         service.pendingGroups = null;
+        await tester.tap(category);
+        await tester.pumpAndSettle();
         await tester.tap(find.text("重复组"));
         await tester.pumpAndSettle();
         expect(find.text("上一页"), findsNothing);
@@ -131,7 +131,7 @@ void main() {
             .controller!;
         groupScroll.jumpTo(groupScroll.position.maxScrollExtent);
         await tester.pumpAndSettle();
-        expect(find.text("72 个重复图像组"), findsOneWidget);
+        expect(find.text("72 个组"), findsOneWidget);
         expect(service.groupCursors, contains(isNotNull));
         groupScroll.jumpTo(0);
         await tester.pumpAndSettle();
@@ -140,7 +140,7 @@ void main() {
         final title = find.byKey(const Key("duplicate-review-title"));
         expect(tester.widget<Text>(title).data, "one.png");
         expect(find.text("合并重复图片时，优先显示你选择的这一份。"), findsNothing);
-        expect(find.text("72 个重复图像组"), findsNothing);
+        expect(find.text("72 个组"), findsNothing);
         expect(find.text("首选副本"), findsNothing);
         expect(find.text("本地可用"), findsNothing);
         final grid = find.byType(GridView);
@@ -169,23 +169,27 @@ void main() {
             tester.widget<GridView>(grid).gridDelegate
                 as SliverGridDelegateWithFixedCrossAxisCount;
         expect(memberDelegate.mainAxisExtent, greaterThanOrEqualTo(104));
-        if (scale == 1) expect(memberDelegate.mainAxisExtent, lessThan(160));
+        if (scale == 1 && width >= 800) {
+          expect(memberDelegate.mainAxisExtent, lessThan(160));
+        }
         expect(memberDelegate.crossAxisCount, 1);
         final memberCard = find.byKey(const ValueKey("duplicate-card-one"));
-        expect(
-          tester.getCenter(find.byKey(const ValueKey("prefer-one"))).dy,
-          tester.getCenter(memberCard).dy,
-        );
-        expect(
-          tester.getCenter(find.byKey(const ValueKey("reveal-one"))).dy,
-          tester.getCenter(memberCard).dy,
-        );
+        if (width >= 800 && scale == 1) {
+          expect(
+            tester.getCenter(find.byKey(const ValueKey("prefer-one"))).dy,
+            tester.getCenter(memberCard).dy,
+          );
+          expect(
+            tester.getCenter(find.byKey(const ValueKey("reveal-one"))).dy,
+            tester.getCenter(memberCard).dy,
+          );
+        }
         expect(find.text("设为首选"), findsNothing);
         expect(find.text("在文件资源管理器中打开"), findsNothing);
         if (width > 1000) {
           expect(
             tester.getTopLeft(find.text("忽略此组")).dy,
-            tester.getTopLeft(find.text("暂停查重")).dy,
+            tester.getTopLeft(find.text("对比图片")).dy,
           );
           expect(
             tester.getCenter(find.byKey(const ValueKey("prefer-one"))).dy,
@@ -203,8 +207,10 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key("duplicate-review-back")));
+        await tester.pumpAndSettle();
         service.pendingMembers = Completer();
-        await tester.tap(find.text("刷新结果"));
+        await tester.tap(find.text("查看重复图片").first);
         await tester.pump();
         final progress = find.byKey(const Key("library-top-loading"));
         expect(tester.getSize(progress).height, 2);

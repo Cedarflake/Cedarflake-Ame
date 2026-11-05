@@ -12,6 +12,21 @@ class LibraryDuplicateReviewMetrics {
   static const gap = 8.0;
   static const thumbnailExtent = 80.0;
   static const iconActionExtent = 48.0;
+  static const selectionExtent = 48.0;
+
+  static bool inlineMemberActions(
+    BuildContext context,
+    double width, {
+    required int actions,
+    required bool selectable,
+  }) =>
+      width >=
+      padding * 2 +
+          thumbnailExtent +
+          24 +
+          actions * iconActionExtent +
+          (selectable ? selectionExtent : 0) +
+          MediaQuery.textScalerOf(context).scale(120);
   static final iconActionStyle = IconButton.styleFrom(
     fixedSize: const Size.square(iconActionExtent),
     visualDensity: VisualDensity.standard,
@@ -28,15 +43,28 @@ class LibraryDuplicateReviewMetrics {
     BuildContext context,
     double width, {
     required bool member,
+    int memberActions = 2,
+    bool selectable = false,
   }) {
     final text = Theme.of(context).textTheme;
     final body = _measure(context, "图片", text.bodyMedium);
     final title = _measure(context, "图片", text.titleMedium);
     var detailHeight = body.height * 2;
+    final inline = inlineMemberActions(
+      context,
+      width,
+      actions: memberActions,
+      selectable: selectable,
+    );
     if (member) {
       final textWidth = math.max(
         1.0,
-        width - padding * 2 - thumbnailExtent - 24 - iconActionExtent * 2,
+        width -
+            padding * 2 -
+            thumbnailExtent -
+            24 -
+            (inline ? iconActionExtent * memberActions : 0) -
+            (selectable ? selectionExtent : 0),
       );
       var statusHeight = 0.0;
       for (final value in LibraryDuplicateAvailability.values) {
@@ -50,7 +78,19 @@ class LibraryDuplicateReviewMetrics {
       detailHeight += statusHeight;
     }
     final content = math.max(thumbnailExtent, title.height + 4 + detailHeight);
-    if (member) return padding * 2 + content;
+    if (member) {
+      if (inline) return padding * 2 + content;
+      final actionsPerRow = math.max(
+        1,
+        ((width - padding * 2 + 8) / (iconActionExtent + 8)).floor(),
+      );
+      final rows = (memberActions / actionsPerRow).ceil();
+      return padding * 2 +
+          content +
+          gap +
+          rows * iconActionExtent +
+          math.max(0, rows - 1) * 4;
+    }
     final available = width - padding * 2;
     final label = _measure(
       context,

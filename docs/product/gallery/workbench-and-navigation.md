@@ -67,51 +67,58 @@ resize cards. Both loaded-window and query-wide geometry use the same floor; squ
 also respects it. The duplicate and selection targets have separate bounded space without clipping or
 overlap.
 
-The Duplicates workspace owns duplicate-only results, analysis controls, group inspection and
-preferred-copy/ignore decisions. It reuses gallery preview and viewing capabilities. Exact duplicates
-are byte-identical; perceptual similarity is a separate later capability and is absent until connected.
-No analysis or display choice authorizes source mutation.
+The Duplicates workspace owns exact and similar group inspection and durable representative and
+ignore choices. It reuses gallery previews and viewing. Exact groups establish byte
+identity; similar groups contain distinct contents selected by the admitted perceptual comparison.
+Similarity adds no filter or folding to Library, Favorites or albums. No analysis or display choice
+authorizes source mutation.
 
-Use `重复图片查找` as the workspace heading and show the current category's total number of
-duplicate image groups beneath it, reserving that line while changing categories. Omit the scope,
-description and separate analysis-status text. Put the heading/count block on the left, the
-category switch at the content area's horizontal center, and refresh/pause actions on the right
-in one row. Equal flexible space on both sides keeps the switch centered independently of label
-length. Compact widths and enlarged text stack these blocks while retaining the centered switch
-and right-aligned actions.
-Analysis and review actions pair familiar leading icons with their existing text labels. Group
-review adds ignore/restore to the right-aligned action row. The subpage's back/title block and
-actions share one vertically centered row when space permits; compact widths and enlarged text
-move actions below the heading while retaining right alignment. Keep the full filename available
-through the existing path tooltip when the heading is truncated. Groups use responsive multi-column
-cards; group members use full-width single-column rows so paths have enough space. Both reuse the
-thumbnail/text skeleton. Group cards retain their lower-right text action; member rows place
-preference and Explorer icon buttons on the right, vertically centered, without a footer. Measure
-text and controls to reserve only their needed height, including enlarged availability text.
-The selected group's initial representative filename is the subpage heading; align
-its rows beneath that heading. Member rows use their image preview without an additional
-decorative folder icon or a separate `首选副本` label. The whole card provides hover feedback and
-opens its group or image. Member icons retain hover and accessible action names; omit
-the redundant `查看图片` button. Group actions read `查看重复图片`; the gallery sheet heading states
-the number of duplicate images. Each location row is the Explorer reveal action, without a second
-reveal button. Put `当前图片` at the right of its row; keep availability and wrapped paths beneath
-the filename. Result loading uses the gallery's two-pixel overlay at the boundary
-between toolbar and cards. Saving or switching a preference retains the member rows and scroll
-position. Subsequent catalog/analysis publication revalidates the visible range in the background
-and replaces it atomically, without clearing cards or flashing a page loader. Manual refresh and
-initial/continuation reads retain their loading feedback; read failures retain a retry action.
+Put the heading/count block on the left and icon menus on the right. The layers-icon `分组` menu
+offers `重复组`, `相似组` and `已忽略` in that order, without top tabs. Show `严格 / 标准 / 宽松` through the adjacent
+sliders menu only in the similar-group list, initially `标准`; its tooltip and accessible name identify
+the current degree. Changing degree queries existing results. `已忽略` combines exact and similar
+groups with kind labels; similar groups there use the broad degree so choices remain reachable.
+Use `重复图片查找` for the exact list and the selected view name for the other headings. Reserve the
+group-count line during loading; omit a separate scope, description or analysis-status block.
 
-Both levels scroll continuously without Previous/Next page buttons. Load catalog batches for the
-visible range and retain bounded payload and cursor caches; preview demand remains viewport-bound.
-Empty and failed results reuse the gallery's centered icon/title/detail component.
-Result groups and their members include bounded image previews and inspectable file locations.
-Opening a member uses the existing full-window image
-viewer, including navigation across catalog batches; returning preserves the reviewed group and scroll
-position. `设为首选` selects the representative used
-by merged gallery queries, with a deterministic in-scope fallback when that location no longer
-matches. `忽略此组` moves it to `已忽略`, where `恢复此组` restores it to the regular review list.
-These choices survive reopening and compatible reanalysis. Ignoring a group leaves its gallery
-images and badges visible, and neither action changes a source file.
+Member, viewer and comparison pages omit both menus. The member heading uses the initial
+representative filename, with the complete filename available through its tooltip. `对比图片` and
+`忽略此组` / `恢复此组` share the right action row. Selecting two members enables comparison; omit a
+separate instruction/count toolbar. Wide layouts align actions with the heading; compact widths and
+enlarged text wrap actions below it with right alignment. Primary-destination changes reset nested
+navigation and temporary selection. Ordinary return from viewing or comparison preserves the group.
+
+Groups use responsive multi-column cards and members use full-width rows. Both reuse the
+thumbnail/text skeleton and whole-card hover/open interaction. Member rows retain filename, path,
+availability and accessible preference/Explorer actions; similar members also expose exact-copy
+locations. Keep actions inline when space permits and wrap them below at narrow widths.
+Measure text and controls instead of assigning a fixed row height. Omit decorative folder icons,
+a separate `首选副本` label and a redundant `查看图片` button. Group actions read `查看重复图片` or
+`查看相似图片`. The location sheet states the number of copies; each location row reveals that file
+in Explorer, with `当前图片` at the right and availability/wrapped paths below the filename.
+
+Both levels scroll continuously through bounded payload/cursor windows and viewport-bound previews.
+Empty and failed results use the shared centered state component; read failures retain retry.
+Initial/continuation reads use the two-pixel loading overlay. Saving choices retains rows and scroll
+position; catalog/analysis publication revalidates the visible range without clearing retained cards.
+The full-window viewer navigates across member batches. Comparison shows two independently guarded
+original images, supports linked or independent zoom/pan and reset, and returns to the member view.
+Its top bar contains back, title, window dragging and the standard minimize/maximize/close controls.
+Reuse the viewer's bottom toolbar for zoom mode, percentage, slider, zoom buttons and full screen;
+place linking and reset there too, with the same button geometry and spacing. Pointer interaction
+or the left/right arrow keys select the active pane; omit a duplicate pane-selection control. Both panes
+reuse normal viewing's smooth wheel/button zoom, double-click mode switch, bounds and drag inertia.
+Keep the images side by side and the bottom controls in one row within the supported desktop window.
+
+An exact preference selects the scoped merged-gallery representative with a deterministic fallback.
+A similar group allows multiple selected images. Each member has a bookmark toggle with
+`选择图片` / `取消选择`; the comparison checkboxes remain separate. The group cover is selected
+automatically in the existing stable representative order from currently visible selected members,
+falling back to the ordinary representative when none is eligible. Exact copies of
+each content share one member row while their locations remain inspectable. Ignore/restore saves in
+place; returning to the list reflects the decision. Groups below two distinct contents disappear
+from the list without forcing navigation. A retained preference survives temporary unavailability.
+Choices survive reopening, degree changes and compatible reanalysis. There is no finish/next-group workflow.
 
 Analysis is automatic while Ame is running, after initial foreground browsing has priority.
 New or changed catalog content queues bounded analysis; compatible completed fingerprints survive
@@ -120,7 +127,9 @@ take priority. Automatic synchronization and cached browsing can overlap admitte
 update does not leave new duplicates unfolded until every other task ends. Completed evidence reaches
 the gallery in bounded batches through its existing publication owner. Cloud-only files wait for local availability. Analysis never
 adds startup source enumeration or a second complete source copy. Retain structured analysis progress
-and expose manual pause/resume in Duplicates; automatic analysis begins without a visit to that page.
+at the application boundary. Discovery starts without visiting Duplicates; this workspace has no
+manual refresh, start, pause or stop-search controls. Legacy pause settings do not block discovery,
+and navigation does not cancel admitted analysis.
 
 Badge updates may appear in place. Changes that fold/reorder photo cards are coalesced until
 interaction is idle and preserve the current logical image anchor. An open viewer retains its current

@@ -2,19 +2,15 @@ import "dart:math" as math;
 
 import "package:flutter/foundation.dart";
 
-import "../domain/library_duplicate_review.dart";
-
 class LibraryDuplicateReviewSlice<T, C> {
   const LibraryDuplicateReviewSlice({
     required this.items,
     required this.total,
     this.next,
-    this.decision,
   });
   final List<T> items;
   final int total;
   final C? next;
-  final LibraryDuplicateDecision? decision;
 }
 
 class LibraryDuplicateReviewSeek<T, C> {
@@ -44,6 +40,7 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
   int _first = 0;
   int _end = 1;
   Future<void>? _pending;
+  bool get isReading => _pending != null;
 
   T? itemAt(int index) => _data.itemAt(index);
 

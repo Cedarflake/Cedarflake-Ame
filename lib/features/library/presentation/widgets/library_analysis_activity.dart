@@ -5,12 +5,12 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/notifications/ame_notification_controller.dart";
-import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_classification_lifecycle.dart";
 import "../../application/library_exact_analysis_controller.dart";
 import "../../application/library_exact_analysis_publication.dart";
 import "../../application/library_exact_analysis_scheduler.dart";
+import "../../application/library_similar_analysis_scheduler.dart";
 import "../../application/library_synchronization.dart";
 import "../../application/library_update_controller.dart";
 import "../../domain/library_synchronization_models.dart";
@@ -30,6 +30,7 @@ class LibraryAnalysisActivity extends ConsumerStatefulWidget {
 class _LibraryAnalysisActivityState
     extends ConsumerState<LibraryAnalysisActivity> {
   LibraryExactAnalysisScheduler? _scheduler;
+  LibrarySimilarAnalysisScheduler? _similarity;
   LibraryClassificationLifecycle? _classification;
   late final LibraryExactAnalysisPublication _publication;
   late final LibraryExactAnalysisController _analysis;
@@ -46,6 +47,7 @@ class _LibraryAnalysisActivityState
           ref.read(libraryControllerProvider.notifier).refreshCurrentQuery(),
     );
     _scheduler = ref.read(libraryExactAnalysisSchedulerProvider);
+    _similarity = ref.read(librarySimilarAnalysisSchedulerProvider);
     _classification = ref.read(libraryClassificationLifecycleProvider);
     final notifications = LibraryClassificationNotifications(
       ref.read(ameNotificationControllerProvider.notifier),
@@ -60,7 +62,7 @@ class _LibraryAnalysisActivityState
     final synchronization = ref.read(librarySynchronizationProvider);
     _snapshot = synchronization.current;
     _updateCatalog();
-    if (_scheduler == null && _classification == null) {
+    if (_scheduler == null && _classification == null && _similarity == null) {
       return;
     }
     _synchronization = synchronization.watch().listen((snapshot) {
@@ -72,13 +74,6 @@ class _LibraryAnalysisActivityState
       libraryUpdateControllerProvider,
       (_, _) => _updateCatalog(),
     );
-    ref.listenManual(
-      amePreferencesControllerProvider.select(
-        (value) => value.exactAnalysisPaused,
-      ),
-      (_, paused) => _scheduler?.setPaused(paused),
-      fireImmediately: true,
-    );
     HardwareKeyboard.instance.addHandler(_onKey);
   }
 
@@ -86,32 +81,36 @@ class _LibraryAnalysisActivityState
     final state = ref.read(libraryControllerProvider);
     final updates = ref.read(libraryUpdateControllerProvider);
     final revision = state.catalogRevision;
+    final currentRevision =
+        revision == null || revision < _snapshot.catalogRevision
+        ? _snapshot.catalogRevision
+        : revision;
+    final roots = {
+      for (final root in state.roots)
+        root.id: _snapshot.roots[root.id]?.availability ?? root.availability,
+    };
+    final isBusy =
+        state.isTaskProcessing ||
+        state.isCommittedRemovalReloadPending ||
+        updates.hasActive;
+    _similarity?.updateCatalog(
+      revision: currentRevision,
+      roots: roots,
+      isBusy: isBusy,
+    );
     _scheduler?.updateCatalog(
-      revision: revision == null || revision < _snapshot.catalogRevision
-          ? _snapshot.catalogRevision
-          : revision,
-      roots: {
-        for (final root in state.roots)
-          root.id: _snapshot.roots[root.id]?.availability ?? root.availability,
-      },
-      isBusy:
-          state.isTaskProcessing ||
-          state.isCommittedRemovalReloadPending ||
-          updates.hasActive,
+      revision: currentRevision,
+      roots: roots,
+      isBusy: isBusy,
     );
     _classification?.updateCatalog(
-      revision: revision == null || revision < _snapshot.catalogRevision
-          ? _snapshot.catalogRevision
-          : revision,
+      revision: currentRevision,
       availableRoots: {
         for (final root in _snapshot.roots.values)
           if (root.availability == LibraryRootAvailability.available)
             root.rootId: root.rootGeneration,
       },
-      isBusy:
-          state.isTaskProcessing ||
-          state.isCommittedRemovalReloadPending ||
-          updates.hasActive,
+      isBusy: isBusy,
     );
     if (!state.isBusy && state.errorMessage == null) {
       _publication.retry();
@@ -128,7 +127,7 @@ class _LibraryAnalysisActivityState
   @override
   void dispose() {
     _publication.dispose();
-    if (_scheduler != null || _classification != null) {
+    if (_scheduler != null || _classification != null || _similarity != null) {
       HardwareKeyboard.instance.removeHandler(_onKey);
     }
     unawaited(_synchronization?.cancel());
@@ -137,6 +136,7 @@ class _LibraryAnalysisActivityState
 
   void _browsingActivity() {
     _scheduler?.browsingActivity();
+    _similarity?.browsingActivity();
     _classification?.browsingActivity();
   }
 

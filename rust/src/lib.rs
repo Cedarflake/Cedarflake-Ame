@@ -1,3 +1,4 @@
+/// flutter_rust_bridge:ignore
 mod adapters;
 pub mod api;
 mod application;

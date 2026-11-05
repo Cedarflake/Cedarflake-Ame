@@ -12,12 +12,11 @@ import "package:cedarflake_ame/features/library/application/library_workbench_co
 import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
-import "package:cedarflake_ame/features/library/presentation/pages/library_exact_duplicates_page.dart";
+import "package:cedarflake_ame/features/library/presentation/pages/library_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_analysis_activity.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_badge.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_workbench.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
-import "package:cedarflake_ame/features/settings/application/ports/ame_preference_store.dart";
 import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
@@ -313,73 +312,58 @@ void main() {
       },
     );
   }
-  for (final saveFails in [false, true]) {
-    testWidgets(
-      "pause controls persist or restore their state (failure=$saveFails)",
-      (tester) async {
-        final service = _Service();
-        final analysis = LibraryExactAnalysisController(service);
-        final scheduler = LibraryExactAnalysisScheduler(analysis, paused: true);
-        final store = _PauseStore(saveFails: saveFails);
-        final container = ProviderContainer(
-          overrides: applicationTestOverrides([
-            libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
-            libraryExactDuplicatesProvider.overrideWithValue(service),
-            libraryDuplicateReviewProvider.overrideWithValue(
-              ReviewFixtureService(showResults: () => service.hasResults),
-            ),
-            libraryExactAnalysisControllerProvider.overrideWithValue(analysis),
-            libraryExactAnalysisSchedulerProvider.overrideWithValue(scheduler),
-            initialAmePreferencesProvider.overrideWithValue(store.saved),
-            amePreferenceStoreProvider.overrideWithValue(store),
-          ]),
-        );
-        addTearDown(() {
-          container.dispose();
-          scheduler.dispose();
-          analysis.dispose();
-          unawaited(service.events.close());
-        });
-        await tester.pumpWidget(
-          UncontrolledProviderScope(
-            container: container,
-            child: const MaterialApp(
-              home: LibraryAnalysisActivity(
-                child: Scaffold(body: LibraryExactDuplicatesPage()),
-              ),
+  testWidgets(
+    "automatic discovery ignores the retained legacy pause preference",
+    (tester) async {
+      final service = _Service();
+      final analysis = LibraryExactAnalysisController(service);
+      final scheduler = LibraryExactAnalysisScheduler(analysis);
+      final container = ProviderContainer(
+        overrides: applicationTestOverrides([
+          libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
+          libraryDuplicateReviewProvider.overrideWithValue(
+            ReviewFixtureService(),
+          ),
+          libraryExactAnalysisControllerProvider.overrideWithValue(analysis),
+          libraryExactAnalysisSchedulerProvider.overrideWithValue(scheduler),
+          initialAmePreferencesProvider.overrideWithValue(
+            const AmePreferences(exactAnalysisPaused: true),
+          ),
+        ]),
+      );
+      addTearDown(() {
+        container.dispose();
+        scheduler.dispose();
+        analysis.dispose();
+      });
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: LibraryAnalysisActivity(
+              child: Scaffold(body: LibraryDuplicatesPage()),
             ),
           ),
-        );
-        await tester.pumpAndSettle();
-        expect(find.text("已暂停"), findsNothing);
-        expect(find.widgetWithText(TextButton, "继续查重"), findsOneWidget);
-        await tester.tap(find.widgetWithText(TextButton, "继续查重"));
-        await tester.pumpAndSettle();
-        expect(scheduler.isPaused, saveFails);
-        expect(
-          container.read(amePreferencesControllerProvider).exactAnalysisPaused,
-          saveFails,
-        );
-        if (saveFails) {
-          expect(store.saved.exactAnalysisPaused, isTrue);
-          expect(find.text("无法保存查重设置"), findsOneWidget);
-          expect(find.text("已暂停"), findsNothing);
-          expect(find.widgetWithText(TextButton, "继续查重"), findsOneWidget);
-        } else {
-          expect(store.saved.exactAnalysisPaused, isFalse);
-          await tester.tap(find.widgetWithText(TextButton, "暂停查重"));
-          await tester.pumpAndSettle();
-          expect(scheduler.isPaused, isTrue);
-          expect(store.saved.exactAnalysisPaused, isTrue);
-          expect(find.text("已暂停"), findsNothing);
-          expect(find.widgetWithText(TextButton, "继续查重"), findsOneWidget);
-        }
-        expect(tester.takeException(), isNull);
-        await tester.pumpWidget(const SizedBox.shrink());
-      },
-    );
-  }
-
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(scheduler.isPaused, isFalse);
+      expect(find.text("继续查重"), findsNothing);
+      expect(find.text("暂停查重"), findsNothing);
+      expect(find.text("停止查找"), findsNothing);
+      expect(find.text("刷新结果"), findsNothing);
+      scheduler.updateCatalog(
+        revision: BigInt.one,
+        roots: const {"root": LibraryRootAvailability.available},
+        isBusy: false,
+      );
+      await tester.pump(const Duration(seconds: 3));
+      expect(service.runId, isNotNull);
+      service.progress(LibraryExactAnalysisPhase.completed);
+      await service.events.close();
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
   test(
     "stopping before native admission is delivered after the first progress event",
     () async {
@@ -432,7 +416,7 @@ void main() {
                 albumsNavigationBuilder: (_) => const Text("Album list"),
                 navigationBuilder: (width) => SizedBox(width: width),
                 galleryBuilder: (_) => const Text("Gallery"),
-                duplicatesBuilder: (_) => const LibraryExactDuplicatesPage(),
+                duplicatesBuilder: (_) => const LibraryDuplicatesPage(),
                 settingsBuilder: (_) => const Text("Settings"),
                 onSidebarResizeChanged: (_) {},
                 onPreferenceError: (_, _) {},
@@ -442,7 +426,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, "查找重复图片"));
+      container.read(libraryExactAnalysisControllerProvider).start();
       service.progress(LibraryExactAnalysisPhase.running);
       await tester.pump();
       container
@@ -475,21 +459,4 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
-}
-
-class _PauseStore implements AmePreferenceStore {
-  _PauseStore({required this.saveFails});
-  final bool saveFails;
-  AmePreferences saved = const AmePreferences(exactAnalysisPaused: true);
-
-  @override
-  Future<AmePreferences> loadAmePreferences() async => saved;
-
-  @override
-  Future<void> saveAmePreferences(AmePreferences preferences) async {
-    if (saveFails) {
-      throw StateError("Controlled preference write failure");
-    }
-    saved = preferences;
-  }
 }

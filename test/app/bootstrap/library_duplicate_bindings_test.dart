@@ -6,12 +6,14 @@ import "package:cedarflake_ame/app/window/ame_shutdown_coordinator.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_gallery_duplicates.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_similar_review.dart";
 import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/application/library_foreground_reads.dart";
 import "package:cedarflake_ame/features/library/application/library_gallery_duplicates.dart";
+import "package:cedarflake_ame/features/library/application/library_similar_review_controller.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:flutter/foundation.dart";
@@ -54,6 +56,10 @@ void main() {
       expect(
         container.read(libraryDuplicateReviewProvider),
         isA<RustLibraryDuplicateReview>(),
+      );
+      expect(
+        container.read(librarySimilarReviewProvider),
+        isA<RustLibrarySimilarReview>(),
       );
       expect(
         child.read(libraryExactAnalysisControllerProvider),

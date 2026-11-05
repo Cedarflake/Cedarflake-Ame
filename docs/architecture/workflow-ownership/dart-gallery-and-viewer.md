@@ -37,7 +37,12 @@ factory neither replaces that path nor grants source-read authority.
   Forward publication uses the response's next cursor; backward publication retains the last kept
   page's next cursor. The viewport validates query/revision and publication authority before merging,
   resets the window on accepted replacement, and retains directional completion/error semantics.
-  Duplicate-review windows keep their separate checkpoint and capacity policy.
+  Duplicate-review windows keep their separate checkpoint and capacity policy. The same window
+  serves exact and similar groups; typed member slices carry each mode's decision snapshot only
+  after query-generation admission. Similarity query/selection state belongs to
+  `LibrarySimilarReviewController`; `LibrarySimilarChoices` serializes writes and owns their errors.
+  Late writes retain their original group, degree and revision and cannot replace a newer view.
+  Exclusion undo retains its operation identity independently of the currently open group.
 - `library_time_navigation_requests.dart` owns pending/active target reuse, latest navigation
   intent, explicit visible-range ownership, blocked retry and operation-matched loading release.
   The viewport retains query compatibility, publication generation, query-transition authority,
@@ -149,11 +154,20 @@ factory neither replaces that path nor grants source-read authority.
   buffer-copy lifetime. `application/viewer_source.rs` owns catalog admission and lease capacity,
   while `library_source_image_stream.dart` owns retired stream errors and late codec/frame resource
   release without replacing Flutter's decoding or animation scheduler.
+  `LibraryImageComparison` owns one latest-intent scheduler per pane and disposes both on exit.
+  The panes share the source-reader port and its native two-lease limit, not a superseding selection
+  queue. Each image retains its guard until its buffer copy finishes; retired panes cannot publish
+  decoded frames. Preview demand belongs to the comparison surface; `LibraryComparisonView` owns
+  active-pane selection and linking between two existing `LibraryViewerZoom` instances.
   `LibraryViewerImage` composes its current source frame with an image-only transformation builder;
   pending-load feedback and failure/retry controls stay outside that transformed child without
   another loading-state owner. A fallback preview retains the image transform independently.
   `library_viewer_zoom_geometry.dart` owns fitted versus actual-pixel scale, bounded zoom, slider
-  mapping and source-pixel percentage. The viewer retains input, animation and navigation.
+  mapping and source-pixel percentage. `LibraryViewerZoom` owns zoom intent, constraints and animation;
+  `LibraryViewerImageInteraction` shares framework gestures, smooth wheel zoom and keyboard bindings
+  between normal viewing and comparison. `LibraryViewerFrame` owns their shared title bar, caption
+  controls, full-screen lifetime and return behavior. `LibraryViewerToolbar` composes the common bottom
+  zoom controls with each surface's leading actions. These presentation owners grant no source authority.
   `local_files/viewer_source_guard.rs` owns the held Windows namespace. Opaque bridge methods
   only translate acquisition and idempotent close. A same-path edit with unchanged size and restored
   modification time must resolve a different stream when its source generation changes.

@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-04
+Last planning update: 2026-11-05
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -31,7 +31,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R3 | Exact duplicates and physical-location inspection | Completed on 2026-10-17 |
 | R4 | Favorites, albums and durable organization progress | Merged into `main` on 2026-10-30 |
 | R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
-| R6 | Perceptual similarity review | Planning only; implementation not started |
+| R6 | Perceptual similarity review | In progress; R6-04 acceptance |
 | R7 | Structured and semantic discovery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run | Planned after R7 |
 | R9 | Freshly authorized physical operations and recovery | Planned after R8 |
@@ -43,7 +43,8 @@ R4 and R5 are integrated. Their
 [R4 merge evidence](acceptance/r4-organization.md#r4-merge-verification---2026-10-30) and
 [R5 integrated evidence](acceptance/r5-closeout.md) retain coverage, accepted limits and merge authority.
 
-R6 remains at planning; implementation has not started.
+R6 implementation is active on `codex/r6-similar-images`. R6-01 selected the bounded perceptual
+comparison boundary in [ADR 0038](architecture/0038-bounded-perceptual-similarity.md).
 
 Preserve the delivered R5 curated catalog, purpose restrictions, automatic analysis, legacy decisions,
 archive compatibility and authorized model-installation recovery. The
@@ -57,9 +58,30 @@ Project organization O1–O7 was merged into `main` on 2026-11-04 through
 [handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04) maps the
 delivered scope to evidence.
 
-The [R6 plan](plans/r6-similar-images.md) holds the discussed interaction direction and implementation
-slices as planning material. Sketch iteration has ended; notifications and styling will be refined
-during implementation. R6-01 engine evaluation is the next planned slice and has not been activated.
+The [R6 plan](plans/r6-similar-images.md) owns the implementation sequence and planned interactions.
+R6-02's production evidence, bounded analysis and durable choices are connected; the
+[integration record](acceptance/r6-similar-images.md) owns their checks and limits. R6-03's browsing,
+comparison, durable choices, navigation reset and automatic source updates are connected and checked
+in the Windows application; [manual title-bar verification](acceptance/r6-similar-images.md#title-bar-drag-verification--2026-11-05)
+closes the earlier inconclusive automated drag observation.
+R6-04 is active for local real-library acceptance and current-commit hosted gates.
+The [engine evaluation](acceptance/r6-engine-evaluation.md)
+owns R6-01's selection evidence. Sketch iteration has ended; notifications and styling are refined
+in the actual application.
+
+The observed unrelated matches are resolved by
+[paired detail confirmation](acceptance/r6-engine-evaluation.md#paired-engine-native-verification---2026-11-05).
+The [expanded retained-library check](acceptance/r6-engine-evaluation.md#retained-library-growth-and-sampled-matches---2026-11-05)
+records persistent-query growth and the remaining visual-layout matching limits. Cloud-primary runs,
+constrained-client measurements and optimization are deferred outside R6; they do not block local
+acceptance. Implementation checks passed at `4c35a993`; the
+[integration record](acceptance/r6-similar-images.md) retains the exact hosted run and verification limits.
+
+The [partial-Czkawka evaluation](acceptance/r6-engine-evaluation.md#partial-czkawka-reuse---2026-11-05)
+establishes feasible extraction but no combined quality gain on the retained samples. Keep the paired
+engine; its visual-layout discrimination and heavier-crop limits are accepted for R6. The current
+interaction adjustment allows multiple selected images within similar groups and selects the cover
+automatically from those choices; exact groups retain their existing behavior.
 
 The historical pause timeout remains an accepted observation with a
 [recurrence-based follow-up](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04).

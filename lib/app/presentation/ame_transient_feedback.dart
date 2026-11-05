@@ -12,6 +12,7 @@ void showAmeTransientFeedback(
   BuildContext context, {
   required String message,
   required AmeNotificationSeverity severity,
+  ({String label, VoidCallback invoke})? action,
 }) {
   late ScaffoldFeatureController<SnackBar, SnackBarClosedReason> controller;
   controller = ScaffoldMessenger.of(context).showSnackBar(
@@ -25,6 +26,14 @@ void showAmeTransientFeedback(
         title: message,
         severity: severity,
         actions: [
+          if (action != null)
+            AmeFeedbackAction(
+              label: action.label,
+              onPressed: () {
+                controller.close();
+                action.invoke();
+              },
+            ),
           AmeFeedbackAction(
             label: AmeNotificationStrings.acknowledge,
             onPressed: () => controller.close(),
