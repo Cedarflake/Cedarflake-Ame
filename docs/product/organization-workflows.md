@@ -187,12 +187,15 @@ Scope:
 - remaining condition-triggered million-item manifest adaptation and extended synchronization
   catch-up evidence that was not required for earlier target-library value, including target-root
   authoritative recovery and publication timing;
-- general installed-product updates, signing maturity beyond the R2c broker installer, diagnostics
-  export, and recovery documentation;
+- general installed-product updates, diagnostics export, and recovery documentation;
 - formal i18n infrastructure and additional locale catalogs only after product copy is stable and
   the supported locales are separately confirmed;
 - controlled read-only combined scan of both real roots;
 - regression comparison against recorded Lap behavior without importing Lap code.
+
+Code signing is optional, not an R10 exit criterion or a prerequisite for verified unsigned
+Windows distribution. The existing automated GitHub publication pipeline remains a separately
+selected signed channel; it does not provide unsigned automated publication.
 
 Release packaging, hosted quality workflows, and portable-archive verification may be built earlier
 as cross-cutting infrastructure. Their existence does not make R10 complete or turn release work

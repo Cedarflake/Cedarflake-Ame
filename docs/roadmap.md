@@ -141,8 +141,9 @@ indexes subsequent deliveries, deferred observations and original roadmap proven
 Preserve the [continuity contract](acceptance/library-continuity.md) and
 [ADR 0024](architecture/0024-windows-change-driven-library-continuity.md): trustworthy publication,
 bounded change-driven work, usable retained browsing and source safety. Evidence retains its revision
-and scope. Signing and installed-service qualification keep their separate authorization and
-acceptance owners under [ADR 0027](architecture/0027-windows-installer-lifecycle.md).
+and scope. Installed-service qualification retains its separate authorization and acceptance owner under
+[ADR 0027](architecture/0027-windows-installer-lifecycle.md). Code signing is optional and is not
+an R10 completion requirement.
 
 ## Maintaining this roadmap
 
