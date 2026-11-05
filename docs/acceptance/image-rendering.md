@@ -109,8 +109,17 @@ publication cases pass, including blocked browsing, subsequent admission and dis
 The real ordinary gallery subsequently reached January 2025 and retained that position through later
 background updates. Temporary tracing was removed and the clean Debug client rebuilt. Subsequent
 smart-album checks reached a later date but also reproduced a jump returning to the former position
-while classification continued. The user independently observed that return. This remains open;
-admission before refresh alone has not closed every in-flight publication path. Hosted checks remain pending.
+while classification continued. Runtime tracing identified the remaining gap: the date result was
+published before its layout resolver, so the next refresh captured no anchor and loaded index zero
+after the rail had aligned to index 371. Query position capture now falls back to the admitted date
+result's loaded asset and global offset until layout can provide a position. Query, timeline and
+revision must agree; stale or unloaded targets cannot provide that fallback. All twenty transition
+cases pass, including pre-layout capture and stale-target rejection. The mapping owner has 42
+production lines, the transition 284, and its dedicated fixture 482; neither owner has inline tests.
+The clean Debug client retained September and December 2025 in the manga smart album through
+continuing classification updates, including a count increase from 2,825 to 3,196. After switching
+to the ordinary gallery, March and then September 2025 also loaded and remained at their targets
+through subsequent updates. No diagnostic tracing remains. Exact-commit hosted checks remain pending.
 
 ## Filmstrip page continuity — 2026-11-05
 

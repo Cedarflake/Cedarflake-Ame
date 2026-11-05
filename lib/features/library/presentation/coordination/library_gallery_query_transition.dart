@@ -6,6 +6,7 @@ import "../../domain/library_models.dart";
 import "../../domain/library_query_snapshot.dart";
 import "../../domain/library_state.dart";
 import "../widgets/library_gallery_wall.dart";
+import "library_time_navigation_position.dart";
 
 typedef LibraryGalleryQueryPublication = ({
   int generation,
@@ -131,7 +132,9 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
       clearFilterPosition();
     }
     final frozen = preservePosition
-        ? retainedPosition ?? capturePosition(_pendingPosition != null)
+        ? retainedPosition ??
+              capturePosition(_pendingPosition != null) ??
+              resolveLibraryTimeNavigationPosition(before)
         : null;
     _pendingPosition = frozen;
     final viewer = reconcileSelection ? readViewerAnchor() : null;

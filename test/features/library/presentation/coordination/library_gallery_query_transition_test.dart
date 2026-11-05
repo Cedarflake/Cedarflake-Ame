@@ -9,6 +9,56 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_gal
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  for (final stale in [false, true]) {
+    test(
+      "date result retains its target before layout; stale=$stale",
+      () async {
+        final fixture = _Fixture()..hasLayout = false;
+        final target = _asset("date-target");
+        fixture.state = fixture.state.copyWith(
+          assets: [_asset("before-target"), target],
+          windowStartItemOffset: 500,
+          timeline: LibraryTimeline(
+            queryId: "query",
+            revision: BigInt.one,
+            totalItems: 502,
+            buckets: const [
+              LibraryTimeBucket(
+                monthKey: "2026-01",
+                itemCount: 500,
+                aspectRatioSum: 500,
+              ),
+              LibraryTimeBucket(
+                monthKey: "2025-12",
+                itemCount: 2,
+                aspectRatioSum: 2,
+              ),
+            ],
+          ),
+          activeTimeAnchor: LibraryTimeAnchor(
+            queryId: "query",
+            revision: stale ? BigInt.zero : BigInt.one,
+            monthKey: "2025-12",
+            itemOffset: 1,
+          ),
+        );
+        await fixture.transition.publish((anchor) async {
+          if (stale) {
+            expect(anchor, isNull);
+          } else {
+            expect(anchor?.requestedLocationId, target.locationId);
+            expect(anchor?.assetId, target.assetId);
+            expect(anchor?.fallbackGlobalItemIndex, 501);
+          }
+          return LibraryQueryUpdateOutcome.applied;
+        });
+        if (!stale) {
+          expect(fixture.published.single.position?.globalItemIndex, 501);
+        }
+      },
+    );
+  }
+
   test(
     "refresh preserves the browsed strip independently of viewer selection",
     () async {
@@ -347,7 +397,7 @@ class _Fixture {
   _Fixture() {
     transition = LibraryGalleryQueryTransition(
       readState: () => state,
-      capturePosition: (_) => position,
+      capturePosition: (_) => hasLayout ? position : null,
       readViewerAnchor: () => viewer,
       readViewerBrowseAnchor: filmstrip.read,
       reconcileViewer: () async {
@@ -361,6 +411,7 @@ class _Fixture {
 
   LibraryState state = _state(revision: 1, resolved: false);
   LibraryAsset? viewer;
+  bool hasLayout = true;
   final filmstrip = LibraryFilmstripPosition();
   final position = LibraryGalleryVisiblePosition(
     queryId: "query",
