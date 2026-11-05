@@ -353,5 +353,19 @@ progress have two focused Rust cases; their execution belongs to hosted CI.
 The execution facade and matching owner contain 129 / 35 production lines, no inline cases and
 122 dedicated matching-test lines. The Duplicates page and refresh owner contain 370 / 46 production
 lines, no inline cases and share the 382-line workflow test. Debug configuration changes no engine,
-schema, dependency version or source-read admission. The already running development process retains
-its loaded native library until a full rebuild and restart.
+schema, dependency version or source-read admission.
+
+The rebuilt `26e1fffd` development client retained the previous 627 analysis outcomes. On
+`local-primary`, it produced 315 additional ready signatures over 186.703 seconds: about 101 per
+minute, compared with about 15 per minute in the initial observation. These are different live
+image batches, so the roughly sevenfold improvement is an observed rate rather than a controlled
+whole-library benchmark. The standard-degree page displayed 14 groups and then automatically rose
+to 16 while analysis remained active, without further input. The updated client was left running.
+Its loaded native library SHA-256 was
+`38aebe53700573698ba4d714d19b70d6988875285aee94fe11c46bbf7aa87abd`.
+
+The initial Debug rebuild encountered MSVC D8050 in `dart-sys`; the same compile succeeded with
+leased, command-scoped `TEMP` / `TMP`, followed by a successful full Debug build. No system settings
+changed. The [26e1fffd hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41975539699)
+was still queued behind the preceding `main` run at this observation; its Rust regressions and
+remaining hosted gates were not yet verified.

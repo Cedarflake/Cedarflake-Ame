@@ -56,10 +56,10 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-Current maintenance addresses development-build similarity throughput and early group publication.
+Development-build similarity throughput and early group publication are updated on `main`.
 The [scoped evidence](acceptance/r6-similar-images.md#development-analysis-throughput--2026-11-05)
-records computation and workflow checks; hosted checks and the rebuilt development client remain
-the delivery boundary. Similarity parameters and source safety remain unchanged.
+records computation, workflow and rebuilt-client verification; hosted checks remain pending.
+Similarity parameters and source safety remain unchanged.
 
 Project organization O1–O7 was merged into `main` on 2026-11-04 through
 [PR 46](https://github.com/Cedarflake/Cedarflake-Ame/pull/46). The
