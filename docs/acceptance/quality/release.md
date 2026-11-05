@@ -7,7 +7,9 @@ execution safeguards; the roadmap owns current delivery order and acceptance sta
 
 ## Release gate
 
-The standard release gate runs daily verification, Windows Release packaging, the packaged bridge
+Unsigned GitHub release: dispatch `.github/workflows/release_unsigned_portable_windows.yml` from protected `main` with an existing version tag. The workflow verifies the tag, runs daily quality checks and fresh unsigned Windows payload and bridge checks, builds a validated portable ZIP, then verifies its digest before publishing without signing credentials. The signed candidate gate below remains an optional channel.
+
+The signed release gate runs daily verification, Windows Release packaging, the packaged bridge
 smoke test, packaged same-user process ownership and replacement-start verification, and the
 synthetic performance gate:
 
