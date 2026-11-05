@@ -64,10 +64,20 @@ void main() {
         await tester.pumpAndSettle();
         final strip = find.byKey(const Key("viewer-filmstrip"));
         final scroll = tester.widget<ListView>(strip).controller!;
+        final leftButton = find.byKey(
+          const Key("viewer-filmstrip-scroll-left"),
+        );
+        final rightButton = find.byKey(
+          const Key("viewer-filmstrip-scroll-right"),
+        );
+        final leftBounds = tester.getRect(leftButton);
+        final rightBounds = tester.getRect(rightButton);
         scroll.jumpTo(previous ? 0 : scroll.position.maxScrollExtent);
         await tester.pump();
         await tester.pump();
         expect(controller.requests, 1);
+        expect(tester.getRect(leftButton), leftBounds);
+        expect(tester.getRect(rightButton), rightBounds);
         final card = find.byKey(const Key("viewer-filmstrip-paging"));
         final spinner = find.byType(CircularProgressIndicator);
         if (previous) {

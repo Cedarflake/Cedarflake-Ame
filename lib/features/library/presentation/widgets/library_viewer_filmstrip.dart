@@ -129,27 +129,27 @@ class _LibraryViewerFilmstripState
           _width = constraints.maxWidth - (hasPaging ? 106 : 0);
           _synchronizeWindow(state);
           _scheduleDemand();
-          return Row(
-            children: [
-              if (hasPaging && atStart) _buildPagingCard(context),
-              Expanded(
-                child: NotificationListener<ScrollNotification>(
-                  onNotification: (notification) {
-                    if (notification.depth == 0 && _isActive) {
-                      if (notification is ScrollStartNotification) {
-                        widget.onScrollActivityChanged?.call(true);
-                      } else if (notification is ScrollEndNotification) {
-                        widget.onScrollActivityChanged?.call(false);
+          return LibraryViewerFilmstripScrollbar(
+            controller: _scroll,
+            step: _extent,
+            child: Row(
+              children: [
+                if (hasPaging && atStart) _buildPagingCard(context),
+                Expanded(
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (notification) {
+                      if (notification.depth == 0 && _isActive) {
+                        if (notification is ScrollStartNotification) {
+                          widget.onScrollActivityChanged?.call(true);
+                        } else if (notification is ScrollEndNotification) {
+                          widget.onScrollActivityChanged?.call(false);
+                        }
                       }
-                    }
-                    return false;
-                  },
-                  child: AmeScrollMotion(
-                    controller: _scroll,
-                    scrollDirection: Axis.horizontal,
-                    child: LibraryViewerFilmstripScrollbar(
+                      return false;
+                    },
+                    child: AmeScrollMotion(
                       controller: _scroll,
-                      step: _extent,
+                      scrollDirection: Axis.horizontal,
                       child: ListView.builder(
                         key: const Key("viewer-filmstrip"),
                         controller: _scroll,
@@ -184,9 +184,9 @@ class _LibraryViewerFilmstripState
                     ),
                   ),
                 ),
-              ),
-              if (hasPaging && !atStart) _buildPagingCard(context),
-            ],
+                if (hasPaging && !atStart) _buildPagingCard(context),
+              ],
+            ),
           );
         },
       ),

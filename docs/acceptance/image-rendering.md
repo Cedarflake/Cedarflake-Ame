@@ -147,3 +147,9 @@ to either edge displayed the loading card on that side, published another page a
 indicator; the main image remained unchanged through repeated classification updates. Hosted results
 remain pending. The strip, paging and position owners contain 339, 105 and 50 production lines,
 with no inline tests; the strip interaction file contains 663 dedicated test lines.
+
+The first card composition also inset the scrollbar at the loading edge. The scrollbar now wraps
+the complete row, keeping its native track and both end buttons across the full strip width while
+the card occupies only the thumbnail area. Both directional cases assert unchanged end-button
+bounds during loading; all eleven strip cases pass. The rebuilt ordinary-gallery client displayed
+the right loading card with both arrows retained at the outer edges.
