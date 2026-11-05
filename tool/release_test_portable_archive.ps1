@@ -114,6 +114,20 @@ try {
     if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
         throw "Portable verifier did not retain the valid fixture archive"
     }
+    $signedPayloadRejectedByUnsignedPackaging = $false
+    try {
+        & (Join-Path $PSScriptRoot "release_package_portable_windows.ps1") `
+            -Tag $tag -ReleaseRoot $releaseRoot -OutputDirectory $outputDirectory `
+            -PubspecPath $pubspecFixture -CargoManifestPath $cargoFixture -AllowUnsigned
+    } catch {
+        $signedPayloadRejectedByUnsignedPackaging = $_.Exception.Message.Contains(
+            "Unsigned packaging requires unsigned application and broker"
+        )
+    }
+    if (-not $signedPayloadRejectedByUnsignedPackaging) {
+        throw "Unsigned packaging accepted a signed executable fixture"
+    }
+
     $wrongPublisherRejected = $false
     try {
         & $signatureVerifyScript `
