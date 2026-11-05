@@ -6,12 +6,18 @@ import "library_exact_analysis_controller.dart";
 
 /// Reconciles gallery membership after native analysis has retired its stream.
 class LibraryExactAnalysisPublication extends ChangeNotifier {
-  LibraryExactAnalysisPublication(this._analysis, {required this.refresh}) {
+  LibraryExactAnalysisPublication(
+    this._analysis, {
+    required this.refresh,
+    required this.canRefresh,
+  }) {
     _analysis.addListener(_onAnalysisChanged);
   }
 
   final LibraryExactAnalysisController _analysis;
   final Future<bool> Function() refresh;
+  final bool Function() canRefresh;
+  Timer? _retryTimer;
   String? _lastRunId;
   bool _pending = false;
   bool _refreshing = false;
@@ -63,6 +69,15 @@ class LibraryExactAnalysisPublication extends ChangeNotifier {
     notifyListeners();
     try {
       while (_pending && !_isDisposed) {
+        if (!canRefresh()) {
+          _retryTimer ??= Timer(const Duration(milliseconds: 250), () {
+            _retryTimer = null;
+            if (!_isDisposed && !_refreshing && _pending) {
+              unawaited(_drain());
+            }
+          });
+          return;
+        }
         _pending = false;
         final applied = await refresh();
         if (!_isDisposed) {
@@ -80,6 +95,7 @@ class LibraryExactAnalysisPublication extends ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
+    _retryTimer?.cancel();
     _pending = false;
     _analysis.removeListener(_onAnalysisChanged);
     super.dispose();

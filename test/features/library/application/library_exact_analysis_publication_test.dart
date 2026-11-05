@@ -7,6 +7,42 @@ import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  for (final disposeWhileWaiting in [false, true]) {
+    testWidgets(
+      "retirement waits for browsing admission; dispose=$disposeWhileWaiting",
+      (tester) async {
+        final service = _Service();
+        final analysis = LibraryExactAnalysisController(service);
+        var canBrowse = false;
+        var refreshes = 0;
+        final publication = LibraryExactAnalysisPublication(
+          analysis,
+          canRefresh: () => canBrowse,
+          refresh: () async {
+            refreshes += 1;
+            return true;
+          },
+        );
+        analysis.start();
+        service.emit(LibraryExactAnalysisPhase.completed);
+        await service.finish();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(publication.isPublishing, isTrue);
+        expect(publication.hasFailure, isFalse);
+        expect(refreshes, 0);
+        if (disposeWhileWaiting) publication.dispose();
+        canBrowse = true;
+        await tester.pump(const Duration(milliseconds: 250));
+        expect(refreshes, disposeWhileWaiting ? 0 : 1);
+        if (!disposeWhileWaiting) {
+          expect(publication.isPublishing, isFalse);
+          publication.dispose();
+        }
+        analysis.dispose();
+      },
+    );
+  }
+
   test(
     "earlier listeners see pending publication at stream retirement",
     () async {
@@ -23,6 +59,7 @@ void main() {
       final completion = Completer<bool>();
       publication = LibraryExactAnalysisPublication(
         analysis,
+        canRefresh: () => true,
         refresh: () => completion.future,
       );
       addTearDown(publication.dispose);
@@ -46,6 +83,7 @@ void main() {
       var attempts = 0;
       final publication = LibraryExactAnalysisPublication(
         analysis,
+        canRefresh: () => true,
         refresh: () {
           attempts++;
           return attempts == 1 ? first.future : Future.value(true);
@@ -81,6 +119,7 @@ void main() {
         var refreshes = 0;
         final publication = LibraryExactAnalysisPublication(
           analysis,
+          canRefresh: () => true,
           refresh: () async {
             refreshes += 1;
             return true;
@@ -110,6 +149,7 @@ void main() {
       var refreshes = 0;
       final publication = LibraryExactAnalysisPublication(
         analysis,
+        canRefresh: () => true,
         refresh: () {
           refreshes += 1;
           return refreshes == 1 ? first.future : Future.value(true);
@@ -137,6 +177,7 @@ void main() {
     var refreshes = 0;
     final publication = LibraryExactAnalysisPublication(
       analysis,
+      canRefresh: () => true,
       refresh: () {
         refreshes += 1;
         return first.future;

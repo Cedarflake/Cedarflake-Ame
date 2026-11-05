@@ -98,9 +98,17 @@ when its catalog identity was obsolete. Reuse now requires a snapshot matching t
 revision. A full-screen regression with an already available replacement manifest failed against the
 old guard (58 pixels, still at the beginning) and passes with current geometry admitted. Six gallery
 cases and 21 date-publication/input-lifetime cases pass. The screen remains the existing owner; this
-changes its reuse condition without adding a navigation policy. Smart-album and ordinary-gallery
-client verification after rebuilding, and exact-commit hosted checks, remain pending.
+changes its reuse condition without adding a navigation policy.
 The affected screen has 1,904 production lines, no inline tests; its dedicated timeline file has 649 lines.
+
+The rebuilt client still reproduced the symptom. Runtime tracing then identified exact-analysis
+retirement refreshing the catalog while a date request was active, advancing the publication
+generation and cancelling that request. Exact-analysis publication now retains its pending refresh
+until the existing browse admission allows it. Its disposal cancels the scheduled retry. All nine
+publication cases pass, including blocked browsing, subsequent admission and disposal while waiting.
+The real ordinary gallery subsequently reached January 2025 and retained that position through later
+background updates. Temporary tracing was removed and the clean Debug client rebuilt. Smart-album
+interaction and exact-commit hosted checks remain pending.
 
 ## Filmstrip page continuity — 2026-11-05
 

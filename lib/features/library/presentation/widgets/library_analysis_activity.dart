@@ -6,6 +6,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../application/library_controller.dart";
+import "../../application/library_browse_admission.dart";
 import "../../application/library_classification_lifecycle.dart";
 import "../../application/library_exact_analysis_controller.dart";
 import "../../application/library_exact_analysis_publication.dart";
@@ -43,6 +44,8 @@ class _LibraryAnalysisActivityState
     _analysis = ref.read(libraryExactAnalysisControllerProvider);
     _publication = LibraryExactAnalysisPublication(
       _analysis,
+      canRefresh: () =>
+          LibraryBrowseAdmission(ref.read(libraryControllerProvider)).canBrowse,
       refresh: () =>
           ref.read(libraryControllerProvider.notifier).refreshCurrentQuery(),
     );
