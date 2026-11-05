@@ -242,13 +242,14 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   before fixture cleanup. `./tool/acceptance_test_r2c_worker_report_guardrail.ps1` checks command
   admission, phase ordering, deadlines, result rejection, output bounds, environment restoration
   and independent cleanup with failure preservation; lint runs it before the executable guardrail.
-- `./tool/release_verify_windows.ps1` is the immutable signed Windows bundle and release-bridge
-  gate. It also proves that a packaged process rejects a same-user duplicate before runtime
+- `./tool/release_verify_windows.ps1` checks a verified Windows bundle and its release bridge;
+  it accepts the default unsigned or explicitly signed mode. It also proves that a packaged process rejects a same-user duplicate before runtime
   initialization and that a replacement starts after the original process exits. Run it when
   desktop integration, native packaging, generated bridge loading, or release behavior changes.
-- `./tool/release_verify_candidate.ps1` is the release-candidate orchestrator. It runs the daily, Windows
-  release, and synthetic performance gates in order, and adds retained real-library validation only
-  when explicitly requested with all authorization-bound paths.
+- `./tool/release_verify_candidate.ps1` retains the signed local release-candidate orchestrator.
+  The unsigned CI channel calls Daily, `release_verify_windows.ps1 -SigningMode unsigned`, and
+  synthetic performance on a separately manifest-verified immutable bundle. Retained real-library
+  validation requires separate explicit authorization.
 - `./tool/release_validate_version.ps1` requires a `v`-prefixed semantic version and verifies that
   the tag, Flutter application version, and Rust package version agree before a release gate runs.
 - `./tool/release_package_portable_windows.ps1` packages the complete Windows x64 Release directory
@@ -259,9 +260,12 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   decision using controlled API fixtures: missing attachments may upload, matching SHA-256 digests
   skip publication, and conflicting, unprovable, or failed lookups fail closed. It runs in lint
   without network access or publication permission.
-- `./tool/release_verify_portable_signatures.ps1` performs that structural gate, extracts into
-  fresh bounded scratch storage, revalidates the application and broker signature, exact publisher,
-  x64 machine, and broker protocol, then confirms scratch cleanup.
+- `./tool/release_verify_unsigned_candidate.ps1` checks the immutable unsigned artifact manifest,
+  tag/source commit, exact bounded payload, file hashes, unsigned x64 binaries and broker protocol.
+- `./tool/release_verify_portable_unsigned.ps1` validates an extracted unsigned portable ZIP,
+  including x64 application and broker protocol, then confirms scratch cleanup.
+- `./tool/release_verify_portable_signatures.ps1` is the optional signed-channel verifier and
+  requires exact publisher, signature, x64 machine, broker protocol and scratch cleanup.
 
 Hosted workflow ownership is:
 
