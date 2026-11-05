@@ -11,8 +11,14 @@ on:
         required: true
         type: string
       expected_broker_publisher:
-        description: Exact Authenticode publisher for the published Windows binaries
-        required: true
+        description: Exact Authenticode publisher for optional signed release
+        required: false
+        default: ""
+        type: string
+      release_signing_mode:
+        description: Release distribution channel
+        required: false
+        default: unsigned
         type: string
   workflow_dispatch:
     inputs:
@@ -21,9 +27,18 @@ on:
         required: true
         type: string
       expected_broker_publisher:
-        description: Exact Authenticode publisher for the published Windows binaries
-        required: true
+        description: Exact Authenticode publisher for optional signed release
+        required: false
+        default: ""
         type: string
+      release_signing_mode:
+        description: Release distribution channel
+        required: true
+        default: unsigned
+        type: choice
+        options:
+          - unsigned
+          - signed
 
 permissions:
   contents: read
@@ -41,6 +56,7 @@ jobs:
       contents: read
     env:
       AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher || vars.AME_WINDOWS_EXPECTED_PUBLISHER }}
+      AME_RELEASE_SIGNING_MODE: ${{ inputs.release_signing_mode || vars.AME_WINDOWS_RELEASE_SIGNING_MODE || 'unsigned' }}
       AME_RELEASE_TAG: ${{ inputs.release_tag || github.event.release.tag_name }}
     steps:
       - name: Validate published-verification request
@@ -58,8 +74,14 @@ jobs:
           if ($env:AME_RELEASE_TAG -cnotmatch $tagPattern) {
             throw "Published verification requires one strict v-prefixed semantic-version tag"
           }
-          if ([string]::IsNullOrWhiteSpace($env:AME_EXPECTED_PUBLISHER)) {
-            throw "Published verification requires the exact Authenticode publisher"
+          if ($env:AME_RELEASE_SIGNING_MODE -cnotin @("unsigned", "signed")) {
+            throw "Published verification requires a supported signing mode"
+          }
+          if (
+            $env:AME_RELEASE_SIGNING_MODE -ceq "signed" -and
+            [string]::IsNullOrWhiteSpace($env:AME_EXPECTED_PUBLISHER)
+          ) {
+            throw "Signed published verification requires the exact Authenticode publisher"
           }
 
       - name: Check out published tag
@@ -115,7 +137,13 @@ jobs:
       - name: Verify published portable ZIP
         shell: pwsh
         run: |
-          ./tool/release_verify_portable_signatures.ps1 `
-            -ArchivePath $env:AME_PORTABLE_ARCHIVE `
-            -Tag $env:AME_RELEASE_TAG `
-            -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER
+          if ($env:AME_RELEASE_SIGNING_MODE -ceq "unsigned") {
+            ./tool/release_verify_portable_unsigned.ps1 `
+              -ArchivePath $env:AME_PORTABLE_ARCHIVE `
+              -Tag $env:AME_RELEASE_TAG
+          } else {
+            ./tool/release_verify_portable_signatures.ps1 `
+              -ArchivePath $env:AME_PORTABLE_ARCHIVE `
+              -Tag $env:AME_RELEASE_TAG `
+              -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER
+          }
