@@ -6,8 +6,8 @@ import "../window/ame_shutdown_coordinator.dart";
 class AmeProviderAssembly {
   AmeProviderAssembly({
     required AmeShutdownCoordinator shutdown,
-    Future<void> Function()? unmountApplication,
-  }) : _unmountApplication = unmountApplication {
+    this._unmountApplication,
+  }) {
     shutdown.register(_close);
   }
 

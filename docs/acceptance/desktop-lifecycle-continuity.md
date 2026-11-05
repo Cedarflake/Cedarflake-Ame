@@ -66,3 +66,7 @@ applicable. Hosted verification for the submitted branch remains pending.
 
 The application mount, Provider assembly and entrypoint contain 18, 76 and 192 production lines;
 the expanded existing assembly fixture contains 295 dedicated test lines. There are no inline tests.
+
+Hosted Static at `111dc092` found a `prefer_initializing_formals` lint in the unmount callback
+assignment. The initializing formal preserves the public argument and shutdown order. Strict
+analysis and all six existing assembly cases pass after that syntax-only correction.
