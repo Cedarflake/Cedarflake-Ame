@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-11
-- Last amended: 2026-10-18
+- Last amended: 2026-11-05
 
 ## Context
 
@@ -194,7 +194,7 @@ signing credentials and transferred as a bounded, exact path/length/SHA-256 mani
 `sourceCommit` records that immutable SHA.
 
 The default unsigned channel independently downloads and validates that artifact, including exact
-manifest coverage, x64 executable identity, broker protocol, unsignatured application/broker and
+manifest coverage, x64 executable identity, broker protocol, unsigned application/broker and
 packaged desktop behavior. Only the optional signed channel invokes the
 `windows-production-signing` GitHub Environment. Its signer does not check out or execute repository
 content; it admits an ephemeral PFX with exact publisher and code-signing usage, signs only the two

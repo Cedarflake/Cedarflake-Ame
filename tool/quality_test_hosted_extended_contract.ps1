@@ -46,6 +46,15 @@ function Assert-AmeHostedExtendedContract {
     if (-not $aggregate.Contains("    if: always()")) {
         throw "The aggregate gate must run after an unsuccessful dependency"
     }
+    $unsignedVerifier = Get-AmeHostedJobSource $Gate "release_verify_unsigned_windows"
+    foreach ($output in @(
+        '      unsigned_bundle_artifact: ${{ steps.verified_artifact.outputs.name }}',
+        '      source_commit: ${{ steps.verified_artifact.outputs.source_commit }}'
+    )) {
+        if (-not $unsignedVerifier.Contains($output)) {
+            throw "Unsigned verification must expose evaluated artifact and source outputs"
+        }
+    }
     $cases = @([regex]::Matches($Synthetic, '(?m)^          - case: ([a-z]+)\r?$') |
         ForEach-Object { $_.Groups[1].Value } | Sort-Object)
     if (($cases -join ",") -cne "jpeg,media,publication,scan,usn") {
@@ -76,6 +85,20 @@ foreach ($mutation in @(
     @{ Gate = $gate.Replace("      - quality_synthetic_windows", ""); Synthetic = $synthetic },
     @{ Gate = $gate.Replace("      - quality_unsigned_windows", ""); Synthetic = $synthetic },
     @{ Gate = $gate.Replace("      - release_verify_unsigned_windows", ""); Synthetic = $synthetic },
+    @{
+        Gate = $gate.Replace(
+            'unsigned_bundle_artifact: ${{ steps.verified_artifact.outputs.name }}',
+            'unsigned_bundle_artifact: __DOLLAR__{{ steps.verified_artifact.outputs.name }}'
+        )
+        Synthetic = $synthetic
+    },
+    @{
+        Gate = $gate.Replace(
+            'source_commit: ${{ steps.verified_artifact.outputs.source_commit }}',
+            'source_commit: __DOLLAR__{{ steps.verified_artifact.outputs.source_commit }}'
+        )
+        Synthetic = $synthetic
+    },
     @{ Gate = $gate; Synthetic = $synthetic.Replace("          - case: usn", "          - case: skipped") },
     @{ Gate = $gate; Synthetic = $synthetic.Replace("          - case: media", "          - case: skipped") },
     @{ Gate = $gate; Synthetic = $synthetic.Replace("          - case: media", "          - case: jpeg") },

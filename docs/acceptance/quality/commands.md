@@ -243,7 +243,8 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   admission, phase ordering, deadlines, result rejection, output bounds, environment restoration
   and independent cleanup with failure preservation; lint runs it before the executable guardrail.
 - `./tool/release_verify_windows.ps1` checks a verified Windows bundle and its release bridge;
-  it accepts the default unsigned or explicitly signed mode. It also proves that a packaged process rejects a same-user duplicate before runtime
+  `-SigningMode unsigned` selects unsigned verification; its local default remains signed.
+  It also proves that a packaged process rejects a same-user duplicate before runtime
   initialization and that a replacement starts after the original process exits. Run it when
   desktop integration, native packaging, generated bridge loading, or release behavior changes.
 - `./tool/release_verify_candidate.ps1` retains the signed local release-candidate orchestrator.

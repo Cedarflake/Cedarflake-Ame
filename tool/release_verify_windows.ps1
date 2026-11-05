@@ -113,7 +113,7 @@ try {
         if (-not (Test-Path -LiteralPath $rustDependencyFile -PathType Leaf)) {
             throw "Cargokit did not produce Rust release dependency evidence"
         }
-    
+
         $dependencyText = Get-Content -LiteralPath $rustDependencyFile -Raw
         $dependencySeparator = $dependencyText.IndexOf(
             ": ",

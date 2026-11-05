@@ -1025,8 +1025,8 @@ jobs:
     env:
       CI: "true"
     outputs:
-      unsigned_bundle_artifact: __DOLLAR__{{ steps.verified_artifact.outputs.name }}
-      source_commit: __DOLLAR__{{ steps.verified_artifact.outputs.source_commit }}
+      unsigned_bundle_artifact: ${{ steps.verified_artifact.outputs.name }}
+      source_commit: ${{ steps.verified_artifact.outputs.source_commit }}
     steps:
       - name: Check out exact unsigned release tag
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

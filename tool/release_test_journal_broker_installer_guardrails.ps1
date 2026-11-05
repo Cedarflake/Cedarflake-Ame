@@ -1797,14 +1797,14 @@ foreach ($hostedGrammarContract in @(
 if (([regex]::Matches(
             $qualityWorkflowText,
             [regex]::Escape('ref: refs/tags/${{ inputs.release_tag }}')
-        )).Count -ne 2) {
+        )).Count -ne 3) {
     throw "Build and verifier checkouts must use the exact refs/tags namespace"
 }
 foreach ($workflowProof in @(
     @{
         Name = "reusable release"
         Text = $qualityWorkflowText
-        ExpectedCount = 2
+        ExpectedCount = 3
     },
     @{
         Name = "portable publication"
@@ -1888,7 +1888,7 @@ foreach ($requiredReusableTrustContract in @(
     "github.ref_protected",
     'git merge-base --is-ancestor $tagCommit $env:AME_TRUSTED_WORKFLOW_COMMIT',
     'git merge-base --is-ancestor $headCommit $env:AME_TRUSTED_WORKFLOW_COMMIT',
-    "value: `${{ jobs.release_verify_windows.outputs.source_commit }}"
+    'value: ${{ jobs.release_verify_unsigned_windows.outputs.source_commit || jobs.release_verify_windows.outputs.source_commit }}'
 )) {
     if ($qualityWorkflowText.IndexOf(
             $requiredReusableTrustContract,
@@ -1913,7 +1913,7 @@ foreach ($requiredPackageContract in @(
     "permissions:",
     "contents: read",
     'ref: ${{ needs.release_windows.outputs.source_commit }}',
-    "Bind signed manifest to the package source",
+    "Bind candidate manifest to the package source",
     'manifest.sourceCommit -cne $env:AME_SOURCE_COMMIT',
     "cedarflake-ame-signed-v1",
     "Assert-AmeApplicationBundleSource",
@@ -1952,7 +1952,7 @@ foreach ($requiredPublishContract in @(
     'repos/$env:GITHUB_REPOSITORY/git/ref/tags/$env:AME_RELEASE_TAG',
     'repos/$env:GITHUB_REPOSITORY/git/tags/$objectSha',
     'if ($tagCommit -cne $env:AME_SOURCE_COMMIT)',
-    "GitHub release tag moved after signed-source verification",
+    "GitHub release tag moved after candidate verification",
     "Portable ZIP changed immediately before publication",
     "gh release upload",
     "gh `$arguments"
@@ -2037,10 +2037,10 @@ foreach ($forbiddenPublishedCallContract in @(
     }
 }
 foreach ($requiredConfigurationContract in @(
-    'Environment must require a',
-    'reviewer and must restrict deployment branches and tags to protected `main` only',
-    "immutable release-tag ruleset",
-    "prevents update or deletion"
+    'Environment, which must require a reviewer and restrict',
+    'deployment branches and tags to protected `main`',
+    "immutable release-tag",
+    "ruleset preventing update or deletion"
 )) {
     if ($releaseArchitectureText.IndexOf(
             $requiredConfigurationContract,
@@ -2058,7 +2058,7 @@ if (
 }
 if (
     $publishedWorkflowText -notmatch 'release_verify_portable_signatures.ps1' -or
-    $publishedWorkflowText -notmatch 'Published verification requires the exact Authenticode publisher'
+    $publishedWorkflowText -notmatch 'Signed published verification requires the exact Authenticode publisher'
 ) {
     throw "Published portable verification must revalidate embedded signatures and publisher"
 }
