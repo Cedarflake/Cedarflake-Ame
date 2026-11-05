@@ -7,9 +7,40 @@ execution safeguards; the roadmap owns current delivery order and acceptance sta
 
 ## Release gate
 
-The standard release gate runs daily verification, Windows Release packaging, the packaged bridge
-smoke test, packaged same-user process ownership and replacement-start verification, and the
-synthetic performance gate:
+The default GitHub release channel is **unsigned**. Manually run
+`.github/workflows/release_candidate_windows.yml` from protected `main` with an existing strict
+`v<semantic-version>` tag, choose `release_signing_mode: unsigned`, and leave
+`expected_broker_publisher` empty. No certificate, PFX secret or signing Environment is required.
+
+The reusable gate builds the application and broker without signing, stages one immutable
+manifest-bound Windows x64 bundle, and independently verifies its complete file list, lengths,
+SHA-256 hashes, source commit, tag ancestry, executable architecture and broker protocol.
+The release gate also runs Daily checks, packaged process ownership/restart and bridge smoke, and
+synthetic performance acceptance. Only a passing candidate proceeds to the read-only portable
+packager and the no-checkout, write-authorized GitHub Release publisher.
+
+For independent unsigned-candidate validation:
+
+```powershell
+./tool/release_verify_unsigned_candidate.ps1 `
+  -CandidateRoot "<downloaded candidate directory containing manifest.json and payload>" `
+  -Tag "v0.1.0" `
+  -SourceCommit "<exact 40-character release source commit>"
+```
+
+For an already verified unsigned Windows Release directory, the portable packager accepts no
+publisher parameter:
+
+```powershell
+./tool/release_package_portable_windows.ps1 `
+  -Tag "v0.1.0" `
+  -ReleaseRoot "<verified unsigned Windows Release directory>"
+```
+
+An optional `signed` channel remains available. It requires an exact
+`expected_broker_publisher`, the protected `windows-production-signing` Environment, an
+authorized reviewer and production PFX secrets. Its original Authenticode admission and signed
+candidate verification stay mandatory **only for that channel**. The local signed gate remains:
 
 ```powershell
 ./tool/release_verify_candidate.ps1 `
@@ -18,55 +49,25 @@ synthetic performance gate:
   -SignedApplicationBundlePath "<immutable signed Windows Release directory>"
 ```
 
-After that gate has produced a complete Windows Release directory, create the portable artifact:
+The portable archive is written under `build/release-artifacts/` with one `Cedarflake-Ame/`
+root. It includes the broker executable but never installs, repairs, starts or removes an SCM
+service on extraction. Unsigned and signed clients can use an already installed compatible broker
+under the same caller/root-access policy.
 
-```powershell
-./tool/release_package_portable_windows.ps1 `
-  -Tag "v0.1.0" `
-  -ReleaseRoot "<immutable signed Windows Release directory>" `
-  -ExpectedBrokerPublisher "<exact Authenticode signer subject>"
-```
+Publication remains manual and protected-main only. The version tag must resolve to the
+manifest-bound source, be an ancestor of the protected workflow definition, and remain immutable.
+The publisher has no checkout or repository-script execution; it rechecks the ZIP SHA-256 and
+refuses conflicting or unprovable existing assets. After publication, the reusable verifier
+downloads the exact ZIP, validates archive paths and bounded expansion, then rechecks unsigned
+executable identity or, in the signed channel, both signatures and the exact publisher. It also
+checks the broker protocol and removes extraction scratch storage.
 
-The artifact is written to `build/release-artifacts/` with one `Cedarflake-Ame/` archive root. A
-manual release request dispatched from protected `main` performs this step only after its candidate
-gate passes; a tag push never obtains signing credentials. The accepted identity, x64-only support
-boundary, and deferred installer decisions are recorded in
-[ADR 0015](../../architecture/0015-windows-release-distribution.md).
+External `release: published` verification defaults to unsigned and can be configured for signed
+artifacts through `AME_WINDOWS_RELEASE_SIGNING_MODE=signed` and
+`AME_WINDOWS_EXPECTED_PUBLISHER`. The optional signing Environment and publisher variable do
+not block unsigned publication. The repository's protected `main` gate and immutable tag
+ruleset remain mandatory; their absence must stop publication.
 
-The portable ZIP contains the broker executable as installer-compatible payload. Extraction does
-not install, repair, update, or remove SCM state. Debug, Release and portable clients can use an
-already installed compatible broker through the same caller/root access policy; signing and a fixed
-client path are not runtime prerequisites. The hosted signed candidate flow builds once without credentials, transfers a manifest-bound
-unsigned artifact to the protected Environment signer, and transfers the resulting immutable signed
-artifact to a separate credential-free verifier and read-only packager. The signer checks out no
-repository content and signs only the application and broker. The final write-capable publisher
-checks out no repository content, executes no repository script, and consumes only the manifest-
-bound ZIP after a current tag-to-source comparison and hash recheck. A successful candidate release
-invokes the reusable published-verification workflow directly with the admitted tag and publisher;
-the `release: published` entry point independently verifies releases created outside that candidate
-workflow, and `workflow_dispatch` is the recovery entry point. Published verification downloads the
-ZIP, validates safe archive structure, extracts into fresh bounded scratch storage, and revalidates
-both signatures, the exact publisher, x64 machine, and broker protocol before cleanup. The external
-event entry point requires the repository Actions variable `AME_WINDOWS_EXPECTED_PUBLISHER`. The
-repository does not contain production signing credentials or a signed candidate. Until the named
-Environment secrets, protected-main deployment restriction, required reviewer, immutable version-
-tag ruleset, exact `Windows Gate / Windows Gate` required check, and
-`AME_WINDOWS_EXPECTED_PUBLISHER` variable are provisioned, candidate verification and external
-publication verification fail closed by design.
-
-When the retained real-library catalog is applicable to the release, append its prepared read-only
-validation explicitly:
-
-```powershell
-./tool/release_verify_candidate.ps1 `
-  -ExpectedBrokerPublisher "<exact Authenticode signer subject>" `
-  -SignedBrokerBinaryPath "<signed x64 cedarflake_ame_journal_broker.exe>" `
-  -SignedApplicationBundlePath "<immutable signed Windows Release directory>" `
-  -IncludeRealLibrary `
-  -AcceptanceStorageRoot "<retained acceptance storage>" `
-  -RootA "<first approved root>" `
-  -RootB "<second approved root>" `
-  -AuthorizationToken "<current authorization token>"
-```
-
-This option validates the retained catalog; it does not silently start another full source scan.
+When a retained real-library catalog needs release qualification, run the separately authorized
+read-only acceptance with its two approved roots and explicit authorization token. It does not
+silently scan or modify real media.
