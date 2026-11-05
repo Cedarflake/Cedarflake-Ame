@@ -21,6 +21,7 @@ $pubspecFixture = Join-Path $scratchRoot "pubspec.yaml"
 $cargoFixture = Join-Path $scratchRoot "Cargo.toml"
 $verifyScript = Join-Path $PSScriptRoot "release_verify_portable_archive.ps1"
 $signatureVerifyScript = Join-Path $PSScriptRoot "release_verify_portable_signatures.ps1"
+$unsignedVerifyScript = Join-Path $PSScriptRoot "release_verify_portable_unsigned.ps1"
 $tag = "v1.2.3"
 $archiveName = "Cedarflake-Ame-$tag-windows-x64-portable.zip"
 $utf8 = [System.Text.UTF8Encoding]::new($false)
@@ -134,6 +135,32 @@ try {
         -Filter "portable-signature-verify-$PID-*" `
         -ErrorAction SilentlyContinue).Count -ne 0) {
         throw "Portable signature verification retained extraction state after rejection"
+    }
+
+    $unsignedRejection = $null
+    try {
+        & $unsignedVerifyScript `
+            -ArchivePath $expectedArchivePath `
+            -Tag $tag `
+            -PubspecPath $pubspecFixture `
+            -CargoManifestPath $cargoFixture
+    } catch {
+        $unsignedRejection = $_
+    }
+    if (
+        $null -eq $unsignedRejection -or
+        -not $unsignedRejection.Exception.Message.Contains(
+            "Unsigned portable executable unexpectedly carries an Authenticode signature"
+        )
+    ) {
+        throw "Unsigned portable verifier failed to reject the signed fixture"
+    }
+    if (@(Get-ChildItem `
+        -LiteralPath $buildRoot `
+        -Directory `
+        -Filter "portable-unsigned-verify-$PID-*" `
+        -ErrorAction SilentlyContinue).Count -ne 0) {
+        throw "Unsigned portable verifier retained extraction state after rejection"
     }
 
     $tamperedFixtureRoot = Join-Path $scratchRoot "tampered-fixture\Cedarflake-Ame"
