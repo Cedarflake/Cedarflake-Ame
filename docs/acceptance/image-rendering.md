@@ -89,3 +89,15 @@ square controls, selection and deselection counts, the library check symbol, ope
 locations tray and Escape dismissal with the selected item retained. No original source media or
 user catalog was changed.
 Hosted checks remain owned by the published implementation commit.
+
+## Time navigation after catalog publication — 2026-11-05
+
+The current Windows client reproduced a date click that showed loading and returned to the original
+November 2026 view. The shared gallery snapshot skipped publication when geometry matched, including
+when its catalog identity was obsolete. Reuse now requires a snapshot matching the current query and
+revision. A full-screen regression with an already available replacement manifest failed against the
+old guard (58 pixels, still at the beginning) and passes with current geometry admitted. Six gallery
+cases and 21 date-publication/input-lifetime cases pass. The screen remains the existing owner; this
+changes its reuse condition without adding a navigation policy. Smart-album and ordinary-gallery
+client verification after rebuilding, and exact-commit hosted checks, remain pending.
+The affected screen has 1,904 production lines, no inline tests; its dedicated timeline file has 649 lines.

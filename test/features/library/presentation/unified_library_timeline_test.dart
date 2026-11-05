@@ -377,6 +377,75 @@ void main() {
     expect(galleryPosition.pixels, lessThan(beforeArrow));
   });
 
+  testWidgets("same geometry at a new revision still accepts date navigation", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final initial = populatedScreenState(totalItems: 120).copyWith(
+      assets: [
+        for (var index = 0; index < 120; index++)
+          galleryAsset(
+            id: "manifest-location-$index",
+            captureLocalTime: "2026-08-05T12:00:00",
+          ),
+      ],
+    );
+    final controller = _RevisionLibrary();
+    final container = ProviderContainer(
+      overrides: applicationTestOverrides([
+        initialLibraryStateProvider.overrideWithValue(initial),
+        libraryControllerProvider.overrideWith(() => controller),
+        libraryGalleryLayoutManifestProvider.overrideWith((ref, request) async {
+          return _queryWideManifest(
+            totalItems: 120,
+            loadedItemIndex: 0,
+            loadedLocationId: initial.assets.first.locationId,
+            revision: request.revision,
+          );
+        }),
+      ]),
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const AmeApp()),
+    );
+    await tester.pumpAndSettle();
+    final position = galleryScrollPosition(tester);
+    final extent = position.maxScrollExtent;
+    expect(extent, greaterThan(0));
+
+    final nextManifest = container.listen(
+      libraryGalleryLayoutManifestProvider(
+        LibraryGalleryLayoutManifestRequest(
+          query: initial.query,
+          revision: BigInt.two,
+          queryId: initial.queryId,
+        ),
+      ),
+      (_, _) {},
+    );
+    addTearDown(nextManifest.close);
+    await tester.pump();
+    controller.advanceRevision();
+    await tester.pumpAndSettle();
+    expect(galleryScrollPosition(tester).maxScrollExtent, extent);
+    final track = tester.getRect(
+      find.byKey(const Key("timeline-track-background")),
+    );
+    await tester.tapAt(
+      Offset(track.center.dx, track.top + track.height * 0.7),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+    expect(galleryScrollPosition(tester).pixels, greaterThan(extent * 0.5));
+    expect(controller.seeks, 0);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets(
     "loads the previous window from a timeline anchor without visual jumping",
     (tester) async {
@@ -523,15 +592,16 @@ LibraryGalleryLayoutManifest _queryWideManifest({
   required int totalItems,
   required int loadedItemIndex,
   required String loadedLocationId,
+  BigInt? revision,
 }) {
   final builder = LibraryGalleryLayoutManifestBuilder(
-    revision: BigInt.one,
+    revision: revision ?? BigInt.one,
     queryId: "query-1",
     totalItems: totalItems,
   );
   builder.append(
     LibraryGalleryLayoutManifestChunk(
-      revision: BigInt.one,
+      revision: revision ?? BigInt.one,
       queryId: "query-1",
       totalItems: totalItems,
       startOrdinal: 0,
@@ -550,4 +620,30 @@ LibraryGalleryLayoutManifest _queryWideManifest({
     ),
   );
   return builder.build();
+}
+
+class _RevisionLibrary extends LibraryController {
+  var seeks = 0;
+
+  @override
+  Future<bool> jumpToTime(
+    LibraryTimeBucket bucket, {
+    int itemOffset = 0,
+  }) async {
+    seeks += 1;
+    return false;
+  }
+
+  void advanceRevision() {
+    final timeline = state.timeline!;
+    state = state.copyWith(
+      catalogRevision: BigInt.two,
+      timeline: LibraryTimeline(
+        revision: BigInt.two,
+        queryId: timeline.queryId,
+        totalItems: timeline.totalItems,
+        buckets: timeline.buckets,
+      ),
+    );
+  }
 }

@@ -1717,10 +1717,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     final previousVirtualGeometry = previousSnapshot?.virtualGeometry;
     final hasSameMetrics =
         previousMetrics?.hasSameGeometry(nextMetrics) ?? false;
-    if (hasSameMetrics && nextMetrics.isQueryWide) {
+    final hasCurrentSnapshot = previousSnapshot?.matches(currentState) ?? false;
+    if (hasCurrentSnapshot && hasSameMetrics && nextMetrics.isQueryWide) {
       return;
     }
-    if (hasSameMetrics &&
+    if (hasCurrentSnapshot &&
+        hasSameMetrics &&
         (previousVirtualGeometry?.hasSameGeometry(nextVirtualGeometry) ??
             false)) {
       return;
