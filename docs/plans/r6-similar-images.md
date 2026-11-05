@@ -1,10 +1,11 @@
 # R6 - Similar image browsing and comparison
 
-Status: working implementation plan, not a binding product specification.
+Status: scoped implementation plan, not a binding product specification.
 
-This file holds R6's agreed planning direction, proposed implementation and unresolved details.
-The [roadmap](../roadmap.md#current-execution-queue) owns activation and acceptance. These planning
-choices do not change current product contracts; update those alongside reviewed implementation.
+This file holds R6's agreed planning direction and implementation sequence.
+The [roadmap](../roadmap.md#current-execution-queue) owns activation and acceptance. The
+[workbench contract](../product/gallery/workbench-and-navigation.md#workbench-blueprint) owns
+implemented behavior; planning choices do not override it.
 
 ## Delivery boundary
 
@@ -12,9 +13,8 @@ Add similar-image browsing inside the existing Duplicates workspace. Preserve th
 group list, member view, image viewer, source safety and ordinary Library browsing. Similarity
 degree is selectable. User choices are saved in place; there is no group-completion workflow.
 
-Planning introduces no runtime dependency, schema change or automatic similarity scanning. Sketch
-iteration has ended. Its navigation examples inform this plan, while production layout and especially
-notifications will be refined in the actual application using the existing
+The interaction sketch introduces no runtime dependency or schema authority. Sketch iteration has
+ended. Its navigation examples inform this plan; production layout and notifications use the existing
 [feedback templates](../product/gallery/feedback.md#feedback-templates). Sketch matches, metadata,
 notification styling and timers are illustrative.
 
@@ -109,19 +109,17 @@ Add only meaningful missing coverage under the [test-design standard](../develop
 - Check large-library candidate bounds and responsiveness on local-primary. Cloud-primary runs,
   constrained-client measurements and optimization are deferred outside R6 and are not exit conditions.
   Retain local measurements and their limits without reopening the deferred rendering work.
-- Browse groups, inspect exact-copy locations, switch views, change degree, compare images, set a
-  preference and ignore/restore in the actual Windows application. Cover
+- Browse groups, inspect exact-copy locations, switch views, change degree, compare images, save
+  selections and ignore/restore in the actual Windows application. Cover
   removal of a selected/preferred member and a group falling below two members. Verify automatic
   updates and navigation resets while Library behavior, durable decisions and original media remain intact.
 - Record results and remaining limits in acceptance; use normal hosted gates under the existing
   verification workflow. The roadmap owns the final exit decision.
 
-## Remaining engineering decisions
+## Decision and behavior owners
 
-R6-01 owns engine admission, measured transformation coverage and degree thresholds. R6-02 owns
-stable group/member identity, saved-choice matching and bounded automatic scheduling.
-
-Handle selected/preferred-member removal after catalog changes and groups with fewer than two
-members. Preserve original files and durable intent while keeping ordinary return navigation available.
-Production styling and notification behavior will be reviewed in the real application, without
-treating the sketch as a final specification.
+[ADR 0038](../architecture/0038-bounded-perceptual-similarity.md) owns engine parameters, bounded
+matching, stable group/member identity and durable-choice compatibility. The workbench contract
+linked above owns navigation, multiple selections, source updates and comparison. The
+[integration record](../acceptance/r6-similar-images.md#r6-closeout) owns verification and accepted
+limits; these owners supersede provisional sketch details.

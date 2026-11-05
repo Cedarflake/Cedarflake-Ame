@@ -6,6 +6,39 @@ The [engine evaluation](r6-engine-evaluation.md) records selection and resource 
 [ADR 0038](../architecture/0038-bounded-perceptual-similarity.md) owns the admitted algorithm and
 group identities. This record covers their production integration.
 
+## R6 closeout
+
+On 2026-11-05, [PR 47](https://github.com/Cedarflake/Cedarflake-Ame/pull/47) integrated R6 at
+`6619cc00e250fd712addcf43ce362b28bad2db7f`. The reviewed head was
+`0f1ae44c81f9abe5652218c1c9b468311defa815`, against base
+`6958dea6768afed3959190a02cb9c1170a2a2e70`. The merged tree matches that reviewed head.
+
+| Slice | Evidence |
+| --- | --- |
+| R6-01 | [Engine evaluation](r6-engine-evaluation.md), paired confirmation and partial-Czkawka comparison |
+| R6-02 | Native integration, persistent identities, bounded matching, automatic lifetime and [multiple selections](#multiple-selected-images--2026-11-05) below |
+| R6-03 | [Browsing and comparison](#browsing-and-comparison-integration--2026-11-04), native source updates, selection persistence and [title-bar interaction](#title-bar-drag-verification--2026-11-05) below |
+| R6-04 | Local retained-library growth and sampled matches in the engine record, native desktop evidence below and the hosted run identified here |
+
+The source review covered guarded reads and publication, matching continuations, migrations and
+durable choices, bridge/composition boundaries, analysis shutdown and reused viewer interactions.
+No confirmable new defect was found in that scope. Generated bridge output was checked through its
+contracts and hosted guardrails. Existing native interaction and source-safety evidence was reused;
+this closeout did not repeat the application sessions or qualify cloud-primary.
+
+[CI run 41964287109](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41964287109) passed
+all 14 applicable jobs and the aggregate Windows Gate. Its actual checkout was the synthetic merge
+`7a21681248f6ea99d90d4ee4cf838f1bfec1f229` of the reviewed head and base above. Completed logs include
+similarity decoder, migration rollback, retained/multiple choices, stale/cancelled publication,
+persistent paging, non-transitive membership, lifecycle and desktop workflow regressions.
+Three release-only jobs were skipped; manual performance, real-root and subprocess helper cases
+retain their separate execution owners. No unresolved PR review threads remained at merge.
+
+The accepted paired engine retains visual-layout discrimination and heavier-crop limits described
+in the [partial-reuse evaluation](r6-engine-evaluation.md#partial-czkawka-reuse---2026-11-05).
+Cloud-primary runs and constrained-client measurement/optimization remain outside R6. The
+[roadmap](../roadmap.md#current-stage-and-acceptance-boundary) owns the final exit decision.
+
 ## Persistent identities and choices — 2026-11-04
 
 At `b178fd87`, schema 74 separates immutable analysis runs, content evidence, bounded candidate indexes and

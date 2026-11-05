@@ -301,9 +301,9 @@ test suite, production dependency, schema or UI change was introduced.
 Disposition: partial reuse is technically viable, but this evaluation supplies no combined improvement
 in crop coverage and layout discrimination over the paired engine. Retain the current production
 scheme; do not introduce a maintained core fork or replace persistent matching/group semantics on
-this evidence. The two quality limits remain open for the R6 acceptance decision.
+this evidence. The [R6 closeout](r6-similar-images.md#r6-closeout) records the accepted quality limits.
 
-## Provenance and remaining integration
+## Provenance and integration boundaries
 
 The shared `adapters/analysis_source.rs` boundary was extracted from production classification input
 after `14e9ee00`. Classification consumes the same held file and namespace guard through this owner;
