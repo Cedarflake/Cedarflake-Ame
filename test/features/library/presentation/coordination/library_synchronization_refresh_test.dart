@@ -111,26 +111,36 @@ void main() {
     });
   }
 
-  testWidgets("browse admission defers reads without dropping the revision", (
-    tester,
-  ) async {
-    final fixture = _RefreshFixture();
-    addTearDown(fixture.refresh.dispose);
-    fixture.state = fixture.state.copyWith(isLoadingTimeAnchor: true);
-    fixture.refresh.queueRevision(BigInt.two);
-    await tester.pump(Duration.zero);
-    expect(fixture.revisions, isEmpty);
-    fixture.state = fixture.state.copyWith(isLoadingTimeAnchor: false);
-    await tester.pump(const Duration(milliseconds: 250));
-    await tester.pump(Duration.zero);
-    expect(fixture.revisions, [BigInt.two]);
-    fixture.complete(
-      0,
-      LibraryQueryUpdateOutcome.applied,
-      publishedRevision: 2,
-    );
-    await tester.pump(Duration.zero);
-  });
+  for (final waiting in ["date", "next page", "previous page"]) {
+    testWidgets("$waiting defers refresh without dropping the revision", (
+      tester,
+    ) async {
+      final fixture = _RefreshFixture();
+      addTearDown(fixture.refresh.dispose);
+      fixture.state = fixture.state.copyWith(
+        isLoadingTimeAnchor: waiting == "date",
+        isLoadingPage: waiting == "next page",
+        isLoadingPreviousPage: waiting == "previous page",
+      );
+      fixture.refresh.queueRevision(BigInt.two);
+      await tester.pump(Duration.zero);
+      expect(fixture.revisions, isEmpty);
+      fixture.state = fixture.state.copyWith(
+        isLoadingTimeAnchor: false,
+        isLoadingPage: false,
+        isLoadingPreviousPage: false,
+      );
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump(Duration.zero);
+      expect(fixture.revisions, [BigInt.two]);
+      fixture.complete(
+        0,
+        LibraryQueryUpdateOutcome.applied,
+        publishedRevision: 2,
+      );
+      await tester.pump(Duration.zero);
+    });
+  }
 
   testWidgets(
     "applied outcome still requires the requested published revision",

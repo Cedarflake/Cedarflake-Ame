@@ -64,7 +64,7 @@ class LibrarySynchronizationRefresh {
     if (target == null) {
       return;
     }
-    if (!LibraryBrowseAdmission(_readState()).canBrowse) {
+    if (!LibraryBrowseAdmission(_readState()).canReadPage) {
       _retryTimer = Timer(const Duration(milliseconds: 250), _schedule);
       return;
     }

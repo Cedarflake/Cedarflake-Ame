@@ -763,7 +763,9 @@ The viewer now consumes Riverpod's retained value for the same target. The regre
 former projection and passes through delayed reload and a completed empty result; all 12 category
 cases and the existing Windows retained-semantics case pass locally. The read-only category icon
 uses a 40-pixel slot matching the installed Material `IconButton` desktop extent, with its existing
-20-pixel icon. Client verification and hosted checks remain pending.
+20-pixel icon. The rebuilt Windows Debug viewer retained its category label while the real smart
+album's membership count increased through background classification; adjacent icon spacing was
+visually consistent. Hosted checks remain pending.
 
 ## Remove the visible Other category — 2026-11-05
 
@@ -771,4 +773,5 @@ The shared category projection omits the built-in `other` entry from navigation,
 labels while retaining complete configuration, analysis evidence and source images. The existing
 smart-album workflow now includes a populated `other` definition and still passes heading refresh,
 empty navigation and Library access. The category workflow also passes a retained `other` result
-without rendering its label. All 15 affected widget cases pass; client verification remains pending.
+without rendering its label. All 15 affected widget cases pass. The rebuilt Windows Debug sidebar
+shows the five named categories without an Other entry; their real gallery and viewer remain accessible.

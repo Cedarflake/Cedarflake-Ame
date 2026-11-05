@@ -91,6 +91,10 @@ unchanged.
 
 Paging preserves the visible thumbnails before the next frame is painted and keeps a held scrollbar
 drag active. Layout correction must not restart the gesture or briefly expose a different page.
+Loading occupies a separate thumbnail-sized card at the requested edge: left for earlier images,
+right for later images. It does not overlay an image. An attempt that leaves the same unfinished
+boundary stops automatic requests and exposes retry there. Background publication retains the
+independently browsed strip position without changing the main image.
 
 Completed preview metadata and verified sizes each keep at most 256 recently used entries beyond
 their immediate request lifetime. They reuse compatible results when returning to an image; source

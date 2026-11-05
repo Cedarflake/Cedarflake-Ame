@@ -4,10 +4,42 @@ import "package:cedarflake_ame/features/library/application/library_query_refres
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_gallery_query_transition.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/library_filmstrip_position.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test(
+    "refresh preserves the browsed strip independently of viewer selection",
+    () async {
+      final fixture = _Fixture();
+      final selected = _asset("viewer");
+      final browsed = _asset("browsed");
+      fixture.viewer = selected;
+      fixture.state = fixture.state.copyWith(
+        assets: [selected, browsed],
+        windowStartItemOffset: 100,
+      );
+      fixture.filmstrip.capture(fixture.state, selected, 125, 100);
+      await fixture.transition.publish((anchor) async {
+        expect(anchor?.requestedLocationId, browsed.locationId);
+        expect(anchor?.fallbackGlobalItemIndex, 101);
+        fixture.state = fixture.state.copyWith(
+          assets: [browsed],
+          windowStartItemOffset: 101,
+        );
+        return LibraryQueryUpdateOutcome.applied;
+      });
+      expect(fixture.filmstrip.offsetIn(fixture.state, selected, 100), 25);
+      expect(fixture.viewer, same(selected));
+      fixture.filmstrip.clear();
+      await fixture.transition.publish((anchor) async {
+        expect(anchor?.requestedLocationId, selected.locationId);
+        return LibraryQueryUpdateOutcome.applied;
+      });
+    },
+  );
+
   test(
     "leaving organization restores the saved ordinary anchor and fractions",
     () async {
@@ -317,6 +349,7 @@ class _Fixture {
       readState: () => state,
       capturePosition: (_) => position,
       readViewerAnchor: () => viewer,
+      readViewerBrowseAnchor: filmstrip.read,
       reconcileViewer: () async {
         reconciles += 1;
         await pendingReconciliation?.future;
@@ -328,6 +361,7 @@ class _Fixture {
 
   LibraryState state = _state(revision: 1, resolved: false);
   LibraryAsset? viewer;
+  final filmstrip = LibraryFilmstripPosition();
   final position = LibraryGalleryVisiblePosition(
     queryId: "query",
     revision: BigInt.one,

@@ -13,6 +13,106 @@ import "package:flutter_test/flutter_test.dart";
 import "../../../support/application_test_bindings.dart";
 
 void main() {
+  for (final previous in [false, true]) {
+    testWidgets(
+      "an unchanged edge stops paging and retries inline; previous=$previous",
+      (tester) async {
+        final assets = List.generate(20, (index) => _asset(100 + index));
+        final controller = _EdgeFilmstripController();
+        final cursor = LibraryCatalogCursor(
+          revision: BigInt.one,
+          queryId: "strip",
+          primaryMissing: false,
+          primaryText: "",
+          primaryNumber: 0,
+          rootId: "root",
+          locationId: previous
+              ? assets.first.locationId
+              : assets.last.locationId,
+        );
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: applicationTestOverrides([
+              libraryControllerProvider.overrideWith(() => controller),
+              initialLibraryStateProvider.overrideWithValue(
+                LibraryState(
+                  assets: assets,
+                  windowStartItemOffset: 100,
+                  previousCursor: previous ? cursor : null,
+                  nextCursor: previous ? null : cursor,
+                ),
+              ),
+            ]),
+            child: MaterialApp(
+              theme: ThemeData(platform: TargetPlatform.windows),
+              home: Scaffold(
+                body: Center(
+                  child: SizedBox(
+                    width: 700,
+                    height: 104,
+                    child: LibraryViewerFilmstrip(
+                      selection: assets[10],
+                      onSelected: (_) {},
+                      loadPrevious: controller.loadNextPage,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final strip = find.byKey(const Key("viewer-filmstrip"));
+        final scroll = tester.widget<ListView>(strip).controller!;
+        scroll.jumpTo(previous ? 0 : scroll.position.maxScrollExtent);
+        await tester.pump();
+        await tester.pump();
+        expect(controller.requests, 1);
+        final card = find.byKey(const Key("viewer-filmstrip-paging"));
+        final spinner = find.byType(CircularProgressIndicator);
+        if (previous) {
+          expect(
+            tester.getRect(card).right,
+            lessThanOrEqualTo(tester.getRect(strip).left),
+          );
+        } else {
+          expect(
+            tester.getRect(card).left,
+            greaterThanOrEqualTo(tester.getRect(strip).right),
+          );
+        }
+        expect(
+          tester.getCenter(spinner),
+          tester.getCenter(
+            find.descendant(of: card, matching: find.byType(DecoratedBox)),
+          ),
+        );
+        controller.complete();
+        await tester.pumpAndSettle();
+        expect(spinner, findsNothing);
+        expect(find.text("重新加载缩略图"), findsOneWidget);
+        await tester.pump(const Duration(seconds: 2));
+        expect(controller.requests, 1);
+        await tester.tap(find.text("重新加载缩略图"));
+        await tester.pump();
+        expect(controller.requests, 2);
+        final nextStart = previous ? 80 : 100;
+        controller.complete(
+          assets: List.generate(40, (index) => _asset(nextStart + index)),
+          windowStart: nextStart,
+        );
+        await tester.pumpAndSettle();
+        expect(card, findsNothing);
+        expect(controller.requests, 2);
+        expect(
+          previous ? scroll.position.extentBefore : scroll.position.extentAfter,
+          greaterThan(1000),
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   for (final nextStart in [80, 120]) {
     testWidgets("held thumb survives window rebasing to $nextStart", (
       tester,
@@ -468,6 +568,27 @@ class _PagingFilmstripController extends LibraryController {
       state = state.copyWith(queryActivity: const LibraryQueryIdle());
 
   void finishPaging() => state = state.copyWith(previousCursor: null);
+}
+
+class _EdgeFilmstripController extends LibraryController {
+  int requests = 0;
+  Completer<void>? _pending;
+
+  @override
+  Future<void> loadNextPage() {
+    requests += 1;
+    _pending = Completer<void>();
+    return _pending!.future;
+  }
+
+  void complete({List<LibraryAsset>? assets, int? windowStart}) {
+    if (assets != null)
+      state = state.copyWith(
+        assets: assets,
+        windowStartItemOffset: windowStart,
+      );
+    _pending!.complete();
+  }
 }
 
 class _RetainedFilmstripController extends LibraryController {

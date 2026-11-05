@@ -23,12 +23,15 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
     required this.reconcileViewer,
     required this.onPublished,
     required this.onFailed,
+    this.readViewerBrowseAnchor,
   });
 
   final LibraryState Function() readState;
   final LibraryGalleryVisiblePosition? Function(bool allowPreviousQueryIdentity)
   capturePosition;
   final LibraryAsset? Function() readViewerAnchor;
+  final LibraryQueryAnchor? Function(LibraryState, LibraryAsset)?
+  readViewerBrowseAnchor;
   final Future<void> Function() reconcileViewer;
   final void Function(LibraryGalleryQueryPublication) onPublished;
   final void Function() onFailed;
@@ -140,18 +143,23 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
                 asset.assetId == viewer.assetId &&
                 asset.locationId == viewer.locationId,
           );
-    final anchor = locationId == null
+    final viewerBrowseAnchor = viewer == null
         ? null
-        : LibraryQueryAnchor(
-            requestedLocationId: locationId,
-            assetId:
-                viewer?.assetId ??
-                frozen?.assetId ??
-                _assetAt(before, locationId)?.assetId,
-            fallbackGlobalItemIndex: viewerIndex >= 0
-                ? before.windowStartItemOffset + viewerIndex
-                : frozen?.globalItemIndex ?? 0,
-          );
+        : readViewerBrowseAnchor?.call(before, viewer);
+    final anchor =
+        viewerBrowseAnchor ??
+        (locationId == null
+            ? null
+            : LibraryQueryAnchor(
+                requestedLocationId: locationId,
+                assetId:
+                    viewer?.assetId ??
+                    frozen?.assetId ??
+                    _assetAt(before, locationId)?.assetId,
+                fallbackGlobalItemIndex: viewerIndex >= 0
+                    ? before.windowStartItemOffset + viewerIndex
+                    : frozen?.globalItemIndex ?? 0,
+              ));
     final LibraryQueryUpdateOutcome outcome;
     try {
       outcome = await publication(anchor);

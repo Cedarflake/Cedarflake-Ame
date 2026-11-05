@@ -43,6 +43,7 @@ import "../library_conflict_notifications.dart";
 import "../coordination/library_gallery_dimension_publication.dart";
 import "../coordination/library_gallery_layout_continuity.dart";
 import "../coordination/library_gallery_query_transition.dart";
+import "../coordination/library_filmstrip_position.dart";
 import "../library_gallery_title.dart";
 import "../library_model_installation_notifications.dart";
 import "../coordination/library_organization_mode.dart";
@@ -130,6 +131,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   LibraryGalleryLayoutTransition? _galleryLayoutTransition;
   final _galleryLayoutContinuity = LibraryGalleryLayoutContinuity();
   late final LibraryGalleryQueryTransition _queryTransition;
+  final _filmstripPosition = LibraryFilmstripPosition();
   late final LibraryReviewQueryTransition _reviewQueryTransition;
   late final LibraryQueryProjectionRegistration _queryProjection;
   final LibraryGalleryPositionResolver _galleryPositionResolver =
@@ -223,6 +225,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             allowPreviousQueryIdentity: allowPreviousQueryIdentity,
           ),
       readViewerAnchor: _readViewerQueryAnchor,
+      readViewerBrowseAnchor: _filmstripPosition.read,
       reconcileViewer: _viewer.reconcile,
       onPublished: _publishQueryPosition,
       onFailed: _dimensionPublication.schedulePublication,
@@ -558,6 +561,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                               }
                             },
                             filmstrip: LibraryViewerFilmstrip(
+                              position: _filmstripPosition,
+                              onScrollActivityChanged:
+                                  _handleDimensionScrollActivity,
                               selection: viewerAsset,
                               onSelected: _openAsset,
                               loadPrevious: () =>

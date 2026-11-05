@@ -44,8 +44,9 @@ class _LibraryAnalysisActivityState
     _analysis = ref.read(libraryExactAnalysisControllerProvider);
     _publication = LibraryExactAnalysisPublication(
       _analysis,
-      canRefresh: () =>
-          LibraryBrowseAdmission(ref.read(libraryControllerProvider)).canBrowse,
+      canRefresh: () => LibraryBrowseAdmission(
+        ref.read(libraryControllerProvider),
+      ).canReadPage,
       refresh: () =>
           ref.read(libraryControllerProvider.notifier).refreshCurrentQuery(),
     );

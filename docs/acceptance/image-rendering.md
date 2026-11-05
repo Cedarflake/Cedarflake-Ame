@@ -107,8 +107,10 @@ generation and cancelling that request. Exact-analysis publication now retains i
 until the existing browse admission allows it. Its disposal cancels the scheduled retry. All nine
 publication cases pass, including blocked browsing, subsequent admission and disposal while waiting.
 The real ordinary gallery subsequently reached January 2025 and retained that position through later
-background updates. Temporary tracing was removed and the clean Debug client rebuilt. Smart-album
-interaction and exact-commit hosted checks remain pending.
+background updates. Temporary tracing was removed and the clean Debug client rebuilt. Subsequent
+smart-album checks reached a later date but also reproduced a jump returning to the former position
+while classification continued. The user independently observed that return. This remains open;
+admission before refresh alone has not closed every in-flight publication path. Hosted checks remain pending.
 
 ## Filmstrip page continuity — 2026-11-05
 
@@ -125,3 +127,23 @@ favorites, manual albums and smart albums. Duplicate review reuses the thumbnail
 cards do not own a filmstrip drag. Paging limits, preview fade/retention and source identity remain
 unchanged. Rebuilt-client interactions and exact-commit hosted checks remain pending.
 The strip has 299 production lines, no inline tests; its dedicated interaction file has 542 lines.
+
+## Filmstrip boundary paging — 2026-11-05
+
+The live client displayed repeated loading at the retained-window edge. The strip treated an
+unchanged page as success and immediately requested it again. Background exact-analysis and
+synchronization refresh could also retire a page read; their admission now waits for page reads.
+The existing query transition previously anchored an open viewer to its main image even after the
+strip had been independently scrolled. It now accepts the visible strip's stable anchor, preserving
+its fractional offset while keeping the main-image selection and underlying gallery position separate.
+
+`LibraryFilmstripPaging` owns request retirement, progress validation and retry. No-progress results
+stop automatic demand. `LibraryFilmstripPosition` owns the strip anchor through refresh; native
+Scrollbar input and layout correction remain in use. Loading/retry occupies a separate card on the
+requested side, outside image bounds. Eleven strip cases, eighteen query-transition cases and eleven
+refresh cases pass, including left/right retry, held-thumb paging, viewer independence and deferred
+publication. The clean Windows Debug client rebuilt successfully. In a real smart album, dragging
+to either edge displayed the loading card on that side, published another page and retired the
+indicator; the main image remained unchanged through repeated classification updates. Hosted results
+remain pending. The strip, paging and position owners contain 339, 105 and 50 production lines,
+with no inline tests; the strip interaction file contains 663 dedicated test lines.
