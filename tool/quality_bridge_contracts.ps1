@@ -106,10 +106,12 @@ function Assert-AmeAsyncBridgeContract {
     $wireStem = if ($Contract.Owner) { "$($Contract.Owner)_$($Contract.RustName)" } else { $Contract.RustName }
     $wireName = "wire__crate__api__$($Contract.Module)__$($wireStem)_impl"
     $wire = Get-AmeBridgeMethod $GeneratedRustCode $wireName RustWire
-    if ($wire.Body -notmatch '^\{\s*FLUTTER_RUST_BRIDGE_HANDLER\s*\.\s*wrap_normal\s*::' -or
-        [regex]::Matches($wire.Body, '\bwrap_normal\s*::').Count -ne 1 -or
+    $expectedHandler = if ($rust.Signature -match '\basync\s+fn\b') { "wrap_async" } else { "wrap_normal" }
+    $handlerPattern = '^\{\s*FLUTTER_RUST_BRIDGE_HANDLER\s*\.\s*' + [regex]::Escape($expectedHandler) + '\s*::'
+    if ($wire.Body -notmatch $handlerPattern -or
+        [regex]::Matches($wire.Body, '\bwrap_(?:normal|async|sync)\s*::').Count -ne 1 -or
         [regex]::Matches($wire.Body, '\bFfiCallMode\s*::\s*Normal\b').Count -ne 1 -or
         $wire.Body -match '\b(?:wrap_sync|FfiCallMode\s*::\s*Sync)\b') {
-        throw "Generated Rust method is not exclusively FfiCallMode::Normal for $wireName"
+        throw "Generated Rust method must use only $expectedHandler with FfiCallMode::Normal for $wireName"
     }
 }

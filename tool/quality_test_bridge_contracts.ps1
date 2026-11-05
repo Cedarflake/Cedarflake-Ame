@@ -107,6 +107,26 @@ Assert-Rejected "opaque implementation replaces the lease after an argument" Dar
     $parameterized.DartGenerated.Replace("categoryId: categoryId", "categoryId: categoryId, that: other")
 )
 
+$fixture = $opaque
+Assert-Rejected "ordinary Rust method uses an async wire" RustGenerated (
+    $opaque.RustGenerated.Replace("wrap_normal", "wrap_async")
+)
+$asyncOpaque = $opaque.Clone()
+$asyncOpaque.RustApi = $opaque.RustApi.Replace("pub fn", "pub async fn")
+$asyncOpaque.RustGenerated = $opaque.RustGenerated.Replace("wrap_normal", "wrap_async")
+Assert-Fixture $asyncOpaque
+$fixture = $asyncOpaque
+Assert-Rejected "async Rust method uses a normal wire" RustGenerated $opaque.RustGenerated
+Assert-Rejected "async Rust method uses a sync wire" RustGenerated (
+    $asyncOpaque.RustGenerated.Replace("wrap_async", "wrap_sync")
+)
+Assert-Rejected "async Rust wire uses sync call mode" RustGenerated (
+    $asyncOpaque.RustGenerated.Replace("FfiCallMode::Normal", "FfiCallMode::Sync")
+)
+Assert-Rejected "async Rust wire contains another handler" RustGenerated (
+    $asyncOpaque.RustGenerated.Replace("|| {}", "|| { FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<Codec>(); }")
+)
+
 $rustLiteral = @'
 pub fn test<'a>(value: &'a str) { let brace = '}'; let text = r##" } /* literal */ "##; /* outer /* nested */ comment */ }
 '@

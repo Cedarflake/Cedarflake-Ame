@@ -17,9 +17,10 @@ deployed-service behavior disclosed accurately. See
 `./tool/quality_verify_bridge_contracts.ps1` is the read-only bridge contract entrypoint used by
 Daily's static component. It checks matching content hashes and exact Rust, Dart API, generated
 Dart, and Rust-wire method boundaries for catalog reads, retained cancellation, storage commands,
-and original-image source acquisition and lease methods. Comments, literals, and another method's
-normal execution cannot satisfy a contract. `./tool/quality_test_bridge_contracts.ps1` runs the
-compiler-free in-memory rejection fixtures in lint. Neither command generates bridge files or
+and original-image source acquisition and lease methods. Rust wires must use `wrap_normal` for
+`pub fn` or `wrap_async` for `pub async fn`, both with `FfiCallMode::Normal`. Comments, literals,
+and another method's normal execution cannot satisfy a contract. `./tool/quality_test_bridge_contracts.ps1`
+runs the compiler-free in-memory rejection fixtures in lint. Neither command generates bridge files or
 replaces the native DLL integration and Release smoke.
 
 `./tool/integration_test_windows.ps1` runs the controlled scan workflow inside an owned Windows
