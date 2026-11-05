@@ -24,9 +24,14 @@ on:
         default: ""
         type: string
       expected_broker_publisher:
-        description: Exact Authenticode publisher required by the release gate
+        description: Exact Authenticode publisher for the optional signed channel
         required: false
         default: ""
+        type: string
+      release_signing_mode:
+        description: Release distribution channel
+        required: false
+        default: unsigned
         type: string
       trusted_workflow_commit:
         description: Protected-main commit that owns the calling release workflow
@@ -37,9 +42,12 @@ on:
       signed_bundle_artifact:
         description: Immutable signed Windows bundle artifact produced by the release gate
         value: ${{ jobs.release_verify_windows.outputs.signed_bundle_artifact }}
+      verified_bundle_artifact:
+        description: Immutable candidate verified for the chosen release channel
+        value: ${{ jobs.release_verify_unsigned_windows.outputs.unsigned_bundle_artifact || jobs.release_verify_windows.outputs.signed_bundle_artifact }}
       source_commit:
-        description: Immutable source commit bound into the verified signed artifact
-        value: ${{ jobs.release_verify_windows.outputs.source_commit }}
+        description: Immutable source commit bound into the verified candidate
+        value: ${{ jobs.release_verify_unsigned_windows.outputs.source_commit || jobs.release_verify_windows.outputs.source_commit }}
 
 permissions:
   contents: read
@@ -86,6 +94,7 @@ jobs:
         shell: pwsh
         env:
           AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher }}
+          AME_RELEASE_SIGNING_MODE: ${{ inputs.release_signing_mode }}
           AME_RELEASE_TAG: ${{ inputs.release_tag }}
           AME_TRUSTED_WORKFLOW_COMMIT: ${{ inputs.trusted_workflow_commit }}
         run: |
@@ -101,8 +110,20 @@ jobs:
           if ($env:AME_RELEASE_TAG -cnotmatch $tagPattern) {
             throw "Release gate requires one strict v-prefixed semantic-version tag"
           }
-          if ([string]::IsNullOrWhiteSpace($env:AME_EXPECTED_PUBLISHER)) {
-            throw "Release gate requires the exact Windows Authenticode publisher"
+          if ($env:AME_RELEASE_SIGNING_MODE -cnotin @("unsigned", "signed")) {
+            throw "Unsupported Windows release signing mode"
+          }
+          if (
+            $env:AME_RELEASE_SIGNING_MODE -ceq "signed" -and
+            [string]::IsNullOrWhiteSpace($env:AME_EXPECTED_PUBLISHER)
+          ) {
+            throw "Signed release requires the exact Windows Authenticode publisher"
+          }
+          if (
+            $env:AME_RELEASE_SIGNING_MODE -ceq "unsigned" -and
+            -not [string]::IsNullOrWhiteSpace($env:AME_EXPECTED_PUBLISHER)
+          ) {
+            throw "Unsigned release must not carry a signed publisher requirement"
           }
           if ($env:AME_TRUSTED_WORKFLOW_COMMIT -cnotmatch '^[0-9a-f]{40}$') {
             throw "Release gate requires one immutable protected-workflow commit"
@@ -341,6 +362,7 @@ jobs:
     needs: release_unsigned_windows
     if: >-
       inputs.gate_mode == 'release' &&
+      inputs.release_signing_mode == 'signed' &&
       github.event_name == 'workflow_dispatch' &&
       github.ref == 'refs/heads/main' &&
       github.ref_protected
@@ -676,6 +698,7 @@ jobs:
       - release_sign_windows
     if: >-
       inputs.gate_mode == 'release' &&
+      inputs.release_signing_mode == 'signed' &&
       github.event_name == 'workflow_dispatch' &&
       github.ref == 'refs/heads/main' &&
       github.ref_protected
@@ -996,6 +1019,7 @@ jobs:
       - quality_synthetic_windows
       - quality_unsigned_windows
       - release_verify_windows
+      - release_verify_unsigned_windows
     runs-on: windows-2025
     timeout-minutes: 5
     env:
@@ -1003,7 +1027,9 @@ jobs:
       AME_SYNTHETIC_RESULT: ${{ needs.quality_synthetic_windows.result }}
       AME_UNSIGNED_RESULT: ${{ needs.quality_unsigned_windows.result }}
       AME_GATE_MODE: ${{ inputs.gate_mode }}
+      AME_RELEASE_SIGNING_MODE: ${{ inputs.release_signing_mode }}
       AME_RELEASE_RESULT: ${{ needs.release_verify_windows.result }}
+      AME_RELEASE_UNSIGNED_RESULT: ${{ needs.release_verify_unsigned_windows.result }}
     steps:
       - name: Verify requested gate succeeded
         shell: pwsh
@@ -1017,9 +1043,18 @@ jobs:
             return
           }
           if ($env:AME_GATE_MODE -eq "release") {
-            if ($env:AME_RELEASE_RESULT -ne "success") {
-              throw "The release candidate gate failed"
+            if ($env:AME_RELEASE_SIGNING_MODE -eq "unsigned") {
+              if ($env:AME_RELEASE_UNSIGNED_RESULT -ne "success") {
+                throw "The unsigned release candidate gate failed"
+              }
+              return
             }
-            return
+            if ($env:AME_RELEASE_SIGNING_MODE -eq "signed") {
+              if ($env:AME_RELEASE_RESULT -ne "success") {
+                throw "The signed release candidate gate failed"
+              }
+              return
+            }
+            throw "Unsupported release signing mode"
           }
           throw "Unsupported gate mode: $env:AME_GATE_MODE"
