@@ -219,6 +219,12 @@ Actions variable `AME_WINDOWS_EXPECTED_PUBLISHER`, while `workflow_dispatch` rem
 entry point. Repository protection must require the exact `Windows Gate / Windows Gate` status
 context. A structural ZIP check alone is not release identity evidence.
 
+## Unsigned GitHub distribution
+
+Code signing is optional. A separate manually dispatched workflow, `.github/workflows/release_unsigned_portable_windows.yml`, verifies an immutable version tag from protected `main`, runs daily quality and unsigned payload and bridge checks, and publishes the portable ZIP without a signing certificate. The publishing job does not check out or execute repository code; it checks source identity, the ZIP digest, and existing release assets. The signed distribution channel remains available separately.
+
+The unsigned ZIP may trigger Windows publisher or reputation warnings. Broker installation remains a separate workflow.
+
 ## Deferred decisions
 
 Later release-maturity work outside ADR 0024 owns the following work:
