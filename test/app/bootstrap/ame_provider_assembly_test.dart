@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:cedarflake_ame/app/bootstrap/ame_application_mount.dart";
 import "package:cedarflake_ame/app/bootstrap/ame_provider_assembly.dart";
 import "package:cedarflake_ame/app/bootstrap/library_platform_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/settings_bindings.dart";
@@ -18,6 +19,7 @@ import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:cedarflake_ame/features/storage/adapters/platform/storage_directory_picker.dart";
 import "package:cedarflake_ame/features/storage/adapters/rust/rust_storage_settings_gateway.dart";
 import "package:cedarflake_ame/features/storage/application/storage_settings.dart";
+import "package:flutter/widgets.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart";
@@ -107,16 +109,27 @@ void main() {
     },
   );
 
-  test(
-    "background retirement can still read providers before container disposal",
-    () async {
+  testWidgets(
+    "background work and mounted consumers retire before container disposal",
+    (tester) async {
       final shutdown = AmeShutdownCoordinator();
-      final assembly = AmeProviderAssembly(shutdown: shutdown);
-      final resource = Provider((ref) => Object());
+      final applicationMount = AmeApplicationMount();
+      await applicationMount.unmount();
+      final assembly = AmeProviderAssembly(
+        shutdown: shutdown,
+        unmountApplication: applicationMount.unmount,
+      );
+      final events = <String>[];
+      final resource = Provider((ref) {
+        ref.onDispose(() => events.add("provider"));
+        return Object();
+      });
       late final ProviderContainer container;
       Object? observedDuringRetirement;
+      Object? observedDuringUnmount;
       shutdown.register(() {
         observedDuringRetirement = container.read(resource);
+        events.add("background");
       });
       container = await acquireAmeApplication(
         shutdown: shutdown,
@@ -124,17 +137,41 @@ void main() {
             assembly.assemble(overrides: [], requirements: [resource]),
       );
       final original = container.read(resource);
+      applicationMount.mount(
+        UncontrolledProviderScope(
+          container: container,
+          child: _RetirementProbe(
+            onDispose: () {
+              observedDuringUnmount = container.read(resource);
+              events.add("presentation");
+            },
+            child: Consumer(
+              builder: (_, ref, _) {
+                ref.watch(resource);
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
       expect(
         () => assembly.assemble(overrides: [], requirements: []),
         throwsStateError,
       );
-      await shutdown.shutdown();
+      final closing = shutdown.shutdown();
+      await tester.pumpAndSettle();
+      await closing;
       expect(observedDuringRetirement, same(original));
+      expect(observedDuringUnmount, same(original));
+      expect(events, ["background", "presentation", "provider"]);
       expect(() => container.read(resource), throwsStateError);
       expect(
         () => assembly.assemble(overrides: [], requirements: []),
         throwsStateError,
       );
+      await shutdown.shutdown();
+      expect(events, ["background", "presentation", "provider"]);
     },
   );
 
@@ -234,4 +271,25 @@ void main() {
       expect(released, isTrue);
     },
   );
+}
+
+class _RetirementProbe extends StatefulWidget {
+  const _RetirementProbe({required this.onDispose, required this.child});
+
+  final VoidCallback onDispose;
+  final Widget child;
+
+  @override
+  State<_RetirementProbe> createState() => _RetirementProbeState();
+}
+
+class _RetirementProbeState extends State<_RetirementProbe> {
+  @override
+  void dispose() {
+    widget.onDispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
