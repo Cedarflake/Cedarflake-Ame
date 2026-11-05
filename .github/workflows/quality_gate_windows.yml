@@ -69,14 +69,14 @@ jobs:
       checkout_ref: ${{ inputs.checkout_ref || github.sha }}
 
   quality_unsigned_windows:
-    name: Unsigned Release
+    name: Build Verification
     if: inputs.gate_mode == 'daily'
     uses: ./.github/workflows/quality_gate_unsigned_windows.yml
     with:
       checkout_ref: ${{ inputs.checkout_ref || github.sha }}
 
   release_unsigned_windows:
-    name: Release / Unsigned Build
+    name: Release / Build Release Candidate
     if: >-
       inputs.gate_mode == 'release' &&
       github.event_name == 'workflow_dispatch' &&
@@ -1012,7 +1012,7 @@ jobs:
           "source_commit=$env:AME_SOURCE_COMMIT" >> $env:GITHUB_OUTPUT
 
   release_verify_unsigned_windows:
-    name: Release / Unsigned Verification
+    name: Release / Verify Unsigned Candidate
     needs: release_unsigned_windows
     if: >-
       inputs.gate_mode == 'release' &&
@@ -1155,7 +1155,7 @@ jobs:
             if ($env:AME_DAILY_RESULT -ne "success" -or
                 $env:AME_SYNTHETIC_RESULT -ne "success" -or
                 $env:AME_UNSIGNED_RESULT -ne "success") {
-              throw "Daily, synthetic workloads, and unsigned Release must all succeed"
+              throw "Daily, synthetic workloads, and Windows build verification must all succeed"
             }
             return
           }

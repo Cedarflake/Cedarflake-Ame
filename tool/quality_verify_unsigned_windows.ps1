@@ -95,7 +95,7 @@ try {
     $evidence['completedUtc'] = [DateTime]::UtcNow.ToString('o')
     Assert-AmeUnsignedBuildPath $evidencePath
     [System.IO.File]::WriteAllText($evidencePath, ($evidence | ConvertTo-Json -Depth 8))
-    Write-Host "Unsigned Windows x64 Release build and catalog-free bridge smoke passed"
+    Write-Host "Windows production bundle and catalog-free bridge smoke passed"
 } catch {
     if ($null -ne $evidence) {
         $evidence['status'] = 'failed'

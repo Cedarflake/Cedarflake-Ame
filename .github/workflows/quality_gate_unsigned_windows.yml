@@ -1,4 +1,4 @@
-name: Quality / Unsigned Windows Release
+name: Quality / Windows Build Verification
 
 on:
   workflow_call:
@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   quality_unsigned_windows:
-    name: Unsigned Windows x64 Release
+    name: Windows Build Verification
     runs-on: windows-2025
     timeout-minutes: 120
     env:
@@ -46,11 +46,11 @@ jobs:
         shell: pwsh
         run: ./tool/quality_test_unsigned_windows_payload.ps1
 
-      - name: Build and verify unsigned Windows Release
+      - name: Build and verify Windows production bundle
         shell: pwsh
         run: ./tool/quality_verify_unsigned_windows.ps1
 
-      - name: Preserve unsigned build evidence
+      - name: Preserve build verification evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
