@@ -101,7 +101,7 @@ class LibrarySimilarMemberCard extends StatelessWidget {
           key: ValueKey("similar-locations-${member.asset.locationId}"),
           style: LibraryDuplicateReviewMetrics.iconActionStyle,
           onPressed: onLocations,
-          icon: const Icon(Symbols.stacks_rounded),
+          icon: const Icon(Symbols.photo_library_rounded),
         ),
       ),
       LibraryDuplicateRevealAction(

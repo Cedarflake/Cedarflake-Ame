@@ -383,5 +383,12 @@ A group equality predicate alone still allowed unrelated-fingerprint growth: add
 increased a two-member read from 2,043 to 92,155 SQLite instructions. The regression measures the
 production member read rather than asserting a particular query-plan string or wall-clock limit.
 The final join order passed that bound and both existing review cases locally: three cases passed,
-covering choices, stale sources, exclusions, paging and seeks. Client verification and hosted checks
-remain pending for this change.
+covering choices, stale sources, exclusions, paging and seeks. The rebuilt Debug client displayed
+two- and three-member groups at the first observation after entry, and returning to the list then
+opening another group remained usable. This verifies the real interaction without assigning the
+SQL timing to the complete UI. Exact-commit hosted checks remain pending.
+
+The similar-member location action now uses the same `photo_library_rounded` symbol as the gallery
+duplicate badge. Its existing tooltip, enabled state and location-sheet action remain unchanged.
+Both member lists displayed the shared symbol in the rebuilt client; no new interaction test was
+needed for this symbol-only change.
