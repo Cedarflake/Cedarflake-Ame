@@ -15,10 +15,12 @@ import "../../../support/application_test_bindings.dart";
 void main() {
   for (final previous in [false, true]) {
     testWidgets(
-      "edge feedback scrolls with thumbnails and retries without progress; previous=$previous",
+      "edge paging retains feedback and position across selection; previous=$previous",
       (tester) async {
         final assets = List.generate(20, (index) => _asset(100 + index));
         final controller = _EdgeFilmstripController();
+        final selection = ValueNotifier(assets[10]);
+        addTearDown(selection.dispose);
         final cursor = LibraryCatalogCursor(
           revision: BigInt.one,
           queryId: "strip",
@@ -50,10 +52,13 @@ void main() {
                   child: SizedBox(
                     width: 700,
                     height: 104,
-                    child: LibraryViewerFilmstrip(
-                      selection: assets[10],
-                      onSelected: (_) {},
-                      loadPrevious: controller.loadNextPage,
+                    child: ValueListenableBuilder(
+                      valueListenable: selection,
+                      builder: (context, selected, _) => LibraryViewerFilmstrip(
+                        selection: selected,
+                        onSelected: (asset) => selection.value = asset,
+                        loadPrevious: controller.loadNextPage,
+                      ),
                     ),
                   ),
                 ),
@@ -112,23 +117,45 @@ void main() {
         );
         scroll.jumpTo(previous ? 0 : scroll.position.maxScrollExtent);
         await tester.pump();
+        final beforeSelection = tester.getRect(retained);
+        final loadingBounds = tester.getRect(card);
+        await tester.tap(retained);
+        await tester.pump();
+        await tester.pump();
+        expect(
+          selection.value.locationId,
+          assets[previous ? 2 : 17].locationId,
+        );
+        expect(card, findsOneWidget);
+        expect(tester.getRect(card), loadingBounds);
+        expect(tester.getRect(retained), beforeSelection);
+        expect(controller.requests, 1);
         controller.complete();
         await tester.pumpAndSettle();
         expect(spinner, findsNothing);
         expect(find.text("重新加载缩略图"), findsOneWidget);
         await tester.pump(const Duration(seconds: 2));
         expect(controller.requests, 1);
+        selection.value = assets[previous ? 3 : 16];
+        await tester.pump();
+        expect(find.text("重新加载缩略图"), findsOneWidget);
+        expect(controller.requests, 1);
         await tester.tap(find.text("重新加载缩略图"));
         await tester.pump();
         expect(controller.requests, 2);
+        final beforePublication = tester.getRect(retained);
+        expect(tester.getRect(card), loadingBounds);
+        expect(scroll.offset, greaterThanOrEqualTo(0));
         final nextStart = previous ? 80 : 100;
         controller.complete(
           assets: List.generate(40, (index) => _asset(nextStart + index)),
           windowStart: nextStart,
+          queryId: "renewed-cursor",
         );
         await tester.pumpAndSettle();
         expect(card, findsNothing);
         expect(controller.requests, 2);
+        expect(tester.getRect(retained), beforePublication);
         expect(
           previous ? scroll.position.extentBefore : scroll.position.extentAfter,
           greaterThan(1000),
@@ -615,11 +642,16 @@ class _EdgeFilmstripController extends LibraryController {
     return _pending!.future;
   }
 
-  void complete({List<LibraryAsset>? assets, int? windowStart}) {
+  void complete({
+    List<LibraryAsset>? assets,
+    int? windowStart,
+    String? queryId,
+  }) {
     if (assets != null) {
       state = state.copyWith(
         assets: assets,
         windowStartItemOffset: windowStart,
+        queryId: queryId,
       );
     }
     _pending!.complete();

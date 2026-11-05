@@ -155,16 +155,27 @@ without shrinking the viewport. The leading slot participates in anchor restorat
 preview bounds; a missing selection reveals its inline feedback after the lazy list publishes the
 extended scroll range. The native track and both end buttons retain the full strip width.
 
-All eleven strip cases pass, including both directions of card movement, retained thumbnail and
-end-button bounds, no-progress retry, held-thumb paging and missing-selection feedback. Formatting
-and strict analysis of the three changed Dart files pass. Earlier eighteen query-transition and
+Selection changes retain edge-page requests and their failure feedback; only a selection-location
+request is retired by a new selection. The visible anchor survives selection changes and renewed
+catalog cursors. Retry admits the replacement request before clearing its failure, keeping the same
+card slot; removing that slot for one frame previously produced a negative left offset and rebound.
+
+All eleven strip cases pass, including both directions of card movement, selection during pending
+paging and failed-page feedback, exact thumbnail bounds through cursor renewal and retry, held-thumb
+paging and missing-selection feedback. The extended existing cases failed before the repair on a
+missing right loading card and duplicate left-page requests. Formatting and strict analysis of the
+three changed Dart files pass. Earlier eighteen query-transition and
 eleven refresh cases retain their scope. In the live ordinary-gallery client, native-thumb dragging
 displayed the inline card at each loading edge and published another page; scrolling away showed
-the full-width thumbnail list, and the main image remained unchanged. The separately reported
+the full-width thumbnail list, and the main image remained unchanged. After rebuilding the client,
+selecting a visible thumbnail during right and left paging retained its screen position through
+page publication in the ordinary gallery. The manga smart album retained the selected thumbnail
+through right paging and loaded the subsequent previews. Automatic synchronization remained healthy.
+The separately reported
 development-output interruption is covered by the [native diagnostic repair](desktop-lifecycle-continuity.md#disconnected-development-diagnostics--2026-11-05).
-The strip, paging and position
-owners contain 363, 105 and 57 production lines, with no inline tests; the strip interaction file
-contains 698 dedicated test lines. Current-head hosted checks remain separate.
+The strip, paging and position owners contain 372, 108 and 57 production lines, with no inline tests;
+the strip interaction file contains 730 dedicated test lines. Current-head hosted checks remain
+separate.
 
 Hosted run `42001105569` at `feaf501c` passed Flutter, native and release workloads but failed Static
 on a missing conditional block in the strip fixture. Adding that block preserves the test behavior;

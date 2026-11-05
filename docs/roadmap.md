@@ -66,6 +66,10 @@ The generic `其他` category has been removed from browsing. Similarity paramet
 remain unchanged. Hosted CI remains the outstanding integration check; these repairs do not reopen
 R6 or start R7.
 
+Follow-up native diagnostic-output and filmstrip continuity repairs are on
+`codex/native-log-resilience`, with affected client checks recorded in the same acceptance owners;
+branch integration and hosted verification remain pending.
+
 Project organization O1–O7 was merged into `main` on 2026-11-04 through
 [PR 46](https://github.com/Cedarflake/Cedarflake-Ame/pull/46). The
 [handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04) maps the

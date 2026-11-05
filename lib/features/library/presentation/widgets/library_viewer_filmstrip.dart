@@ -92,8 +92,8 @@ class _LibraryViewerFilmstripState
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selection.locationId != widget.selection.locationId) {
       _revealSelection = true;
-      _position.clear();
-      _paging.reset();
+      _handleScroll();
+      _paging.selectionChanged();
     }
   }
 
@@ -212,8 +212,8 @@ class _LibraryViewerFilmstripState
     child: _paging.hasFailure
         ? FilledButton.tonal(
             onPressed: () {
-              setState(_paging.retry);
-              _scheduleDemand();
+              final page = _paging.page;
+              if (page != null) unawaited(_loadPage(page, retry: true));
             },
             style: FilledButton.styleFrom(padding: const EdgeInsets.all(8)),
             child: const Text("重新加载缩略图"),
@@ -225,21 +225,21 @@ class _LibraryViewerFilmstripState
   );
 
   void _synchronizeWindow(LibraryState state, int leadingItems) {
+    final retainedOffset = _position.offsetIn(
+      state,
+      widget.selection,
+      _extent,
+      leadingItems: leadingItems,
+    );
     if (_queryId != state.queryId) {
-      _centerSelection = true;
-      _paging.retry();
+      _centerSelection = retainedOffset == null;
+      _paging.clearFailure();
     }
     final previousStart = _windowStart;
     final nextStart = state.windowStartItemOffset - leadingItems;
     if (!_centerSelection && previousStart != null && _scroll.hasClients) {
       // Correct during layout so retained tiles never paint at the old page
       // offset. Unlike jumpTo, this preserves the native scrollbar's drag.
-      final retainedOffset = _position.offsetIn(
-        state,
-        widget.selection,
-        _extent,
-        leadingItems: leadingItems,
-      );
       _scroll.position.correctBy(
         retainedOffset == null
             ? (previousStart - nextStart) * _extent
@@ -343,13 +343,22 @@ class _LibraryViewerFilmstripState
     final LibraryFilmstripPage page;
     if (locateSelection) {
       page = LibraryFilmstripPage.selection;
-      _revealSelection = true;
     } else if (previous) {
       page = LibraryFilmstripPage.previous;
     } else {
       page = LibraryFilmstripPage.next;
     }
-    final located = await _paging.load(page);
+    await _loadPage(page);
+  }
+
+  Future<void> _loadPage(
+    LibraryFilmstripPage page, {
+    bool retry = false,
+  }) async {
+    final state = ref.read(libraryControllerProvider);
+    final locateSelection = page == LibraryFilmstripPage.selection;
+    if (locateSelection) _revealSelection = true;
+    final located = await _paging.load(page, retry: retry);
     if (!mounted) return;
     if (locateSelection &&
         ref.read(libraryControllerProvider).query == state.query) {

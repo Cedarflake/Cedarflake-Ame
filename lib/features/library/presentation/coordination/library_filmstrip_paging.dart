@@ -27,31 +27,34 @@ class LibraryFilmstripPaging extends ChangeNotifier {
 
   bool get isLoading => _request != null;
 
-  void retry() => hasFailure = false;
+  void clearFailure() => hasFailure = false;
 
-  void reset() {
+  void selectionChanged() {
+    if (page != LibraryFilmstripPage.selection) return;
     _request = null;
     hasFailure = false;
   }
 
-  Future<bool> load(LibraryFilmstripPage page) async {
+  Future<bool> load(LibraryFilmstripPage page, {bool retry = false}) async {
     final before = readState();
     if (_isDisposed ||
         isLoading ||
-        hasFailure ||
+        (hasFailure && !retry) ||
         !LibraryBrowseAdmission(before).canReadPage) {
       return false;
     }
     final request = Object();
     final selected = readSelection();
     _request = request;
+    hasFailure = false;
     this.page = page;
     notifyListeners();
     bool isCurrent() =>
         !_isDisposed &&
         identical(_request, request) &&
         readState().query == before.query &&
-        readSelection().locationId == selected.locationId;
+        (page != LibraryFilmstripPage.selection ||
+            readSelection().locationId == selected.locationId);
     try {
       switch (page) {
         case LibraryFilmstripPage.selection:
