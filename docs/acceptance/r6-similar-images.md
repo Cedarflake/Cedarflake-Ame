@@ -130,8 +130,8 @@ binding behavior; the existing real SQLite evidence owns durability and stale-wr
 The query/write owners have 315 production lines, the native adapter has 211, and their dedicated
 cases/support have 274 lines with no inline tests. Dependency verification passed for 509 modules.
 
-Actual desktop interaction, real-library accuracy, constrained-client resource measurements and the
-complete R6 user workflow retain their acceptance scope in the roadmap.
+Actual desktop interaction, local-library accuracy and the complete R6 user workflow retain their
+acceptance scope in the roadmap.
 
 ## Browsing and comparison integration — 2026-11-04
 
@@ -231,11 +231,11 @@ its saved preference remained selected and temporary checks stayed clear. Normal
 code 0 after 164.949 seconds, at a 191-MiB peak working set. All 51 reusable fixture hashes remained
 unchanged, both moved-copy hashes matched their source, and scratch retirement completed.
 
-The [8ca02227 CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41886576513) passed all
+The [4c35a993 CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41897593393) passed all
 14 applicable verification jobs and the aggregate Windows Gate. Three release-only jobs were skipped.
 Completed logs include passing similarity adapter, migration rollback, prior-choice preservation,
 stale/cancelled publication, persistent paging and non-transitive membership cases. Existing manual
 performance, real-library and helper cases retain their separate execution owners. The earlier
 Static missing-brace failures are corrected. The automated title-bar drag observation remains
 unverified; its shared drag region and native window-manager path are unchanged from `main`.
-Constrained-client measurements remain pending under R6-04.
+Cloud-primary measurement is deferred outside R6; the local evidence does not qualify that client.

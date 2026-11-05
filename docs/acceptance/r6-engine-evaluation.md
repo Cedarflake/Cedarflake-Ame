@@ -232,9 +232,9 @@ whole-library precision estimate. The earlier same-image resize checks remain se
 
 There were 26 revision-change skips and two source-guard failures. The retained baseline SHA-256
 and all 17 source-sample hashes were unchanged. SQLite quick-check passed with zero foreign-key
-issues; the child exited with code 0 and the scratch catalog was retired. Constrained-client
-measurement remains pending; the existing 2-core, 8-GiB host and retained catalog were read-only
-preflighted without changing its checkout, installed SDK or source media.
+issues; the child exited with code 0 and the scratch catalog was retired. Only a read-only preflight
+was performed on cloud-primary; no R6 measurement package was transferred or executed there.
+Cloud-primary runs and constrained-client measurement are deferred outside the current R6 scope.
 
 ## Provenance and remaining integration
 
@@ -261,5 +261,6 @@ first normalization build was removed; the final build and execution were warnin
 
 The [integration evidence](r6-similar-images.md) owns production source admission, persistence,
 bounded matching, durable choices and desktop interaction. The paired-engine verification above
-supersedes the initial 64-bit quality choice; broader-library and constrained-client measurements
-remain in R6-04. Hosted CI covers each actual source commit separately.
+supersedes the initial 64-bit quality choice. The retained-library check above supplies local growth
+evidence; cloud-primary measurements are outside R6. Hosted CI covers each actual source commit
+separately.

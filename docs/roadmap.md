@@ -63,7 +63,7 @@ R6-02's production evidence, bounded analysis and durable choices are connected;
 [integration record](acceptance/r6-similar-images.md) owns their checks and limits. R6-03's browsing,
 comparison, durable choices, navigation reset and automatic source updates are connected and checked
 in the Windows application; the record retains the unresolved automated title-bar drag observation.
-R6-04 is active for real-library and constrained-client acceptance and current-commit hosted gates.
+R6-04 is active for local real-library acceptance and current-commit hosted gates.
 The [engine evaluation](acceptance/r6-engine-evaluation.md)
 owns R6-01's selection evidence. Sketch iteration has ended; notifications and styling are refined
 in the actual application.
@@ -71,10 +71,10 @@ in the actual application.
 The observed unrelated matches are resolved by
 [paired detail confirmation](acceptance/r6-engine-evaluation.md#paired-engine-native-verification---2026-11-05).
 The [expanded retained-library check](acceptance/r6-engine-evaluation.md#retained-library-growth-and-sampled-matches---2026-11-05)
-records persistent-query growth and the remaining visual-layout matching limits. Constrained-client
-measurement awaits transfer authorization for the current guarded measurement package. Implementation
-checks passed at `8ca02227`; the [integration record](acceptance/r6-similar-images.md) retains the
-exact hosted run and remaining verification limits.
+records persistent-query growth and the remaining visual-layout matching limits. Cloud-primary runs,
+constrained-client measurements and optimization are deferred outside R6; they do not block local
+acceptance. Implementation checks passed at `4c35a993`; the
+[integration record](acceptance/r6-similar-images.md) retains the exact hosted run and verification limits.
 
 The historical pause timeout remains an accepted observation with a
 [recurrence-based follow-up](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04).

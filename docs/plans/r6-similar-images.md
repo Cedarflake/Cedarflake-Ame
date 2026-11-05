@@ -105,9 +105,9 @@ Add only meaningful missing coverage under the [test-design standard](../develop
 - Exercise admitted transformations and representative false positives through the production engine.
 - Verify source changes, unavailable files, placeholders, restart, cancellation and retained choices,
   including exclusions after compatible reanalysis and changes of similarity degree.
-- Check large-library candidate bounds and responsiveness on the established constrained client.
-  Constrained-client optimization is deferred; retain measurements and limitations without reopening
-  the separately deferred rendering work.
+- Check large-library candidate bounds and responsiveness on local-primary. Cloud-primary runs,
+  constrained-client measurements and optimization are deferred outside R6 and are not exit conditions.
+  Retain local measurements and their limits without reopening the deferred rendering work.
 - Browse groups, inspect exact-copy locations, switch views, change degree, compare images, set a
   preference and ignore/restore in the actual Windows application. Cover
   removal of a selected/preferred member and a group falling below two members. Verify automatic
