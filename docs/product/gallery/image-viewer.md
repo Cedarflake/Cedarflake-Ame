@@ -89,6 +89,9 @@ centering. Selection changes while the strip remains open only scroll
 when needed to bring the thumbnail fully into view. Manual strip scrolling leaves the main image
 unchanged.
 
+Paging preserves the visible thumbnails before the next frame is painted and keeps a held scrollbar
+drag active. Layout correction must not restart the gesture or briefly expose a different page.
+
 Completed preview metadata and verified sizes each keep at most 256 recently used entries beyond
 their immediate request lifetime. They reuse compatible results when returning to an image; source
 generation changes and root/cache invalidation retire incompatible evidence. Decoded pixels remain

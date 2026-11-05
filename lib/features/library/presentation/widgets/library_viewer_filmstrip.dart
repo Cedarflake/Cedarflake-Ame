@@ -95,6 +95,7 @@ class _LibraryViewerFilmstripState
       child: LayoutBuilder(
         builder: (context, constraints) {
           _width = constraints.maxWidth;
+          _synchronizeWindow(state);
           _scheduleDemand();
           return Stack(
             children: [
@@ -159,6 +160,25 @@ class _LibraryViewerFilmstripState
     );
   }
 
+  void _synchronizeWindow(LibraryState state) {
+    if (_queryId != state.queryId) {
+      _centerSelection = true;
+      _pagingFailed = false;
+    }
+    final previousStart = _windowStart;
+    final nextStart = state.windowStartItemOffset;
+    if (!_centerSelection &&
+        previousStart != null &&
+        previousStart != nextStart &&
+        _scroll.hasClients) {
+      // Correct during layout so retained tiles never paint at the old page
+      // offset. Unlike jumpTo, this preserves the native scrollbar's drag.
+      _scroll.position.correctBy((previousStart - nextStart) * _extent);
+    }
+    _queryId = state.queryId;
+    _windowStart = nextStart;
+  }
+
   void _scheduleDemand() {
     if (_frameScheduled || !_isActive) return;
     _frameScheduled = true;
@@ -166,13 +186,6 @@ class _LibraryViewerFilmstripState
       _frameScheduled = false;
       if (!mounted || !_isActive || !_scroll.hasClients) return;
       final state = ref.read(libraryControllerProvider);
-      if (_queryId != state.queryId) {
-        _centerSelection = true;
-        _pagingFailed = false;
-      }
-      _queryId = state.queryId;
-      final previousStart = _windowStart;
-      _windowStart = state.windowStartItemOffset;
       if (_centerSelection) {
         final index = state.assets.indexWhere(
           (asset) => asset.locationId == widget.selection.locationId,
@@ -181,9 +194,6 @@ class _LibraryViewerFilmstripState
           _centerSelection = false;
           _jump((index + 0.5) * _extent - _width / 2);
         }
-      } else if (previousStart != null && previousStart != _windowStart) {
-        // Prepending or retiring a page preserves the same global strip position.
-        _jump(_scroll.offset + (previousStart - _windowStart!) * _extent);
       }
       if (_revealSelection) {
         final index = state.assets.indexWhere(

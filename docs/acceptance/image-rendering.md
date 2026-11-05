@@ -101,3 +101,19 @@ cases and 21 date-publication/input-lifetime cases pass. The screen remains the 
 changes its reuse condition without adding a navigation policy. Smart-album and ordinary-gallery
 client verification after rebuilding, and exact-commit hosted checks, remain pending.
 The affected screen has 1,904 production lines, no inline tests; its dedicated timeline file has 649 lines.
+
+## Filmstrip page continuity — 2026-11-05
+
+Prepending and trimming the retained window previously painted one frame at the wrong local offset;
+the following `jumpTo` cancelled the native scrollbar drag. The shared filmstrip now rebases through
+`ScrollPosition.correctBy` inside its `LayoutBuilder`, before the child viewport lays out. The pinned
+SDK performs this correction without notifying listeners or retiring the drag; Material still owns
+the thumb, keyboard, wheel and touchpad interaction. Two Windows pointer regressions fail on the old
+code and retain the same tile rectangle on the first published frame with the fix, then continue
+scrolling without releasing the mouse. All 16 affected filmstrip, preview-frame and scrollbar cases pass.
+
+The only scrolling-strip composition is the shared gallery viewer, covering the ordinary library,
+favorites, manual albums and smart albums. Duplicate review reuses the thumbnail only; its static
+cards do not own a filmstrip drag. Paging limits, preview fade/retention and source identity remain
+unchanged. Rebuilt-client interactions and exact-commit hosted checks remain pending.
+The strip has 299 production lines, no inline tests; its dedicated interaction file has 542 lines.

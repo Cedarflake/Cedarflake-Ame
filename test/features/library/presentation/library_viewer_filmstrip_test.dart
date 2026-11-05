@@ -5,6 +5,7 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_filmstrip.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_filmstrip_slot.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -12,6 +13,78 @@ import "package:flutter_test/flutter_test.dart";
 import "../../../support/application_test_bindings.dart";
 
 void main() {
+  for (final nextStart in [80, 120]) {
+    testWidgets("held thumb survives window rebasing to $nextStart", (
+      tester,
+    ) async {
+      final assets = List.generate(60, (index) => _asset(100 + index));
+      final controller = _RetainedFilmstripController();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: applicationTestOverrides([
+            libraryControllerProvider.overrideWith(() => controller),
+            initialLibraryStateProvider.overrideWithValue(
+              LibraryState(assets: assets, windowStartItemOffset: 100),
+            ),
+          ]),
+          child: MaterialApp(
+            theme: ThemeData(platform: TargetPlatform.windows),
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  height: 104,
+                  width: 700,
+                  child: LibraryViewerFilmstrip(
+                    selection: assets[30],
+                    onSelected: (_) {},
+                    loadPrevious: () async {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final strip = find.byKey(const Key("viewer-filmstrip"));
+      final scroll = tester.widget<ListView>(strip).controller!;
+      final bounds = tester.getRect(strip);
+      final trackWidth = bounds.width - 48;
+      final thumbWidth = trackWidth * bounds.width / (assets.length * 100);
+      final thumbLeft =
+          bounds.left +
+          24 +
+          scroll.offset /
+              scroll.position.maxScrollExtent *
+              (trackWidth - thumbWidth);
+      final mouse = await tester.startGesture(
+        Offset(thumbLeft + thumbWidth / 2, bounds.bottom - 12),
+        kind: PointerDeviceKind.mouse,
+      );
+      await mouse.moveBy(const Offset(30, 0));
+      await tester.pump();
+      expect(scroll.position.isScrollingNotifier.value, isTrue);
+      final visibleId = 100 + (scroll.offset / 100).floor() + 2;
+      final retained = find.byKey(ValueKey("location-$visibleId"));
+      final beforeBounds = tester.getRect(retained);
+      controller.replaceAssets(
+        List.generate(160 - nextStart, (index) => _asset(nextStart + index)),
+        windowStart: nextStart,
+      );
+      await tester.pump();
+      expect(tester.getRect(retained), beforeBounds);
+      expect(scroll.position.isScrollingNotifier.value, isTrue);
+      final rebasedOffset = scroll.offset;
+      await mouse.moveBy(const Offset(30, 0));
+      await tester.pump();
+      expect(scroll.offset, greaterThan(rebasedOffset));
+      await mouse.up();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
   for (final findsSelection in [true, false]) {
     testWidgets(
       "selection outside the retained page resolves once; found=$findsSelection",
@@ -401,8 +474,8 @@ class _RetainedFilmstripController extends LibraryController {
   int demands = 0;
   int releases = 0;
 
-  void replaceAssets(List<LibraryAsset> assets) =>
-      state = state.copyWith(assets: assets);
+  void replaceAssets(List<LibraryAsset> assets, {int? windowStart}) => state =
+      state.copyWith(assets: assets, windowStartItemOffset: windowStart);
 
   @override
   void updateFilmstripPreviewDemand(
