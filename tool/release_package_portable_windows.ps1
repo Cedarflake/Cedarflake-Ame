@@ -6,8 +6,8 @@ param(
     [string]$OutputDirectory,
     [string]$PubspecPath,
     [string]$CargoManifestPath,
-    [Parameter(Mandatory = $true)]
-    [string]$ExpectedBrokerPublisher
+    [AllowEmptyString()]
+    [string]$ExpectedBrokerPublisher = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -68,12 +68,23 @@ Assert-AmeClassificationRuntimeDirectory `
     (Join-Path $resolvedReleaseRoot $runtimeManifest.bundleDirectory) $runtimeManifest
 $brokerSourcePath = Join-Path $resolvedReleaseRoot (Get-AmeBrokerServicePlan).BinaryName
 $applicationSourcePath = Join-Path $resolvedReleaseRoot $script:AmeApplicationBinaryName
-Assert-AmeSignedX64Binary `
-    -Path $applicationSourcePath `
-    -ExpectedPublisher $ExpectedBrokerPublisher | Out-Null
-Assert-AmeBrokerBinary `
-    -Path $brokerSourcePath `
-    -ExpectedPublisher $ExpectedBrokerPublisher | Out-Null
+if ([string]::IsNullOrWhiteSpace($ExpectedBrokerPublisher)) {
+    Assert-AmeBrokerPayload -Path $applicationSourcePath | Out-Null
+    Assert-AmeBrokerBinary -Path $brokerSourcePath | Out-Null
+    foreach ($target in @($applicationSourcePath, $brokerSourcePath)) {
+        $signature = Get-AuthenticodeSignature -LiteralPath $target
+        if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
+            throw "Unsigned portable packaging rejects an unexpectedly signed executable"
+        }
+    }
+} else {
+    Assert-AmeSignedX64Binary `
+        -Path $applicationSourcePath `
+        -ExpectedPublisher $ExpectedBrokerPublisher | Out-Null
+    Assert-AmeBrokerBinary `
+        -Path $brokerSourcePath `
+        -ExpectedPublisher $ExpectedBrokerPublisher | Out-Null
+}
 
 $buildRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot "build"))
 $scratchRoot = [System.IO.Path]::GetFullPath(
@@ -115,12 +126,20 @@ try {
         $false
     )
 
-    & (Join-Path $PSScriptRoot "release_verify_portable_signatures.ps1") `
-        -ArchivePath $archivePath `
-        -Tag $Tag `
-        -ExpectedBrokerPublisher $ExpectedBrokerPublisher `
-        -PubspecPath $PubspecPath `
-        -CargoManifestPath $CargoManifestPath
+    if ([string]::IsNullOrWhiteSpace($ExpectedBrokerPublisher)) {
+        & (Join-Path $PSScriptRoot "release_verify_portable_unsigned.ps1") `
+            -ArchivePath $archivePath `
+            -Tag $Tag `
+            -PubspecPath $PubspecPath `
+            -CargoManifestPath $CargoManifestPath
+    } else {
+        & (Join-Path $PSScriptRoot "release_verify_portable_signatures.ps1") `
+            -ArchivePath $archivePath `
+            -Tag $Tag `
+            -ExpectedBrokerPublisher $ExpectedBrokerPublisher `
+            -PubspecPath $PubspecPath `
+            -CargoManifestPath $CargoManifestPath
+    }
 } finally {
     if (Test-Path -LiteralPath $scratchRoot) {
         Remove-Item -LiteralPath $scratchRoot -Recurse -Force
