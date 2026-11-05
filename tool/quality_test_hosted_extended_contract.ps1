@@ -34,7 +34,7 @@ function Assert-AmeHostedExtendedContract {
     $aggregate = Get-AmeHostedJobSource $Gate "quality_windows"
     foreach ($job in @(
         "daily_components", "quality_synthetic_windows", "quality_unsigned_windows",
-        "release_verify_windows"
+        "release_verify_windows", "release_verify_unsigned_windows"
     )) {
         if ($aggregate -notmatch ('(?m)^      - ' + $job + '\r?$')) {
             throw "The aggregate gate does not depend on $job"
@@ -75,6 +75,7 @@ $aggregate = Assert-AmeHostedExtendedContract $gate $synthetic
 foreach ($mutation in @(
     @{ Gate = $gate.Replace("      - quality_synthetic_windows", ""); Synthetic = $synthetic },
     @{ Gate = $gate.Replace("      - quality_unsigned_windows", ""); Synthetic = $synthetic },
+    @{ Gate = $gate.Replace("      - release_verify_unsigned_windows", ""); Synthetic = $synthetic },
     @{ Gate = $gate; Synthetic = $synthetic.Replace("          - case: usn", "          - case: skipped") },
     @{ Gate = $gate; Synthetic = $synthetic.Replace("          - case: media", "          - case: skipped") },
     @{ Gate = $gate; Synthetic = $synthetic.Replace("          - case: media", "          - case: jpeg") },
@@ -97,7 +98,9 @@ $verify = [scriptblock]::Create(
     [regex]::Replace($inline.Groups["script"].Value, '(?m)^          ', '')
 )
 $resultNames = @("AME_DAILY_RESULT", "AME_SYNTHETIC_RESULT", "AME_UNSIGNED_RESULT")
-$environmentNames = $resultNames + @("AME_GATE_MODE", "AME_RELEASE_RESULT")
+$environmentNames = $resultNames + @(
+    "AME_GATE_MODE", "AME_RELEASE_RESULT", "AME_RELEASE_UNSIGNED_RESULT", "AME_RELEASE_SIGNING_MODE"
+)
 $saved = @{}
 foreach ($name in $environmentNames) { $saved[$name] = [Environment]::GetEnvironmentVariable($name) }
 try {
@@ -116,14 +119,25 @@ try {
     }
     $env:AME_GATE_MODE = "release"
     foreach ($name in $resultNames) { [Environment]::SetEnvironmentVariable($name, "skipped") }
-    $env:AME_RELEASE_RESULT = "success"
-    & $verify
-    foreach ($failure in @("failure", "cancelled", "skipped", "")) {
-        [Environment]::SetEnvironmentVariable("AME_RELEASE_RESULT", $failure)
-        $rejected = $false
-        try { & $verify } catch { $rejected = $true }
-        if (-not $rejected) { throw "Aggregate accepted release=$failure" }
+    foreach ($mode in @("signed", "unsigned")) {
+        $env:AME_RELEASE_SIGNING_MODE = $mode
+        $resultName = if ($mode -eq "signed") { "AME_RELEASE_RESULT" } else { "AME_RELEASE_UNSIGNED_RESULT" }
+        $env:AME_RELEASE_RESULT = "skipped"
+        $env:AME_RELEASE_UNSIGNED_RESULT = "skipped"
+        [Environment]::SetEnvironmentVariable($resultName, "success")
+        & $verify
+        foreach ($failure in @("failure", "cancelled", "skipped", "")) {
+            [Environment]::SetEnvironmentVariable($resultName, $failure)
+            $rejected = $false
+            try { & $verify } catch { $rejected = $true }
+            if (-not $rejected) { throw "Aggregate accepted $mode release=$failure" }
+        }
     }
+    $env:AME_RELEASE_SIGNING_MODE = "invalid"
+    $env:AME_RELEASE_UNSIGNED_RESULT = "success"
+    $rejected = $false
+    try { & $verify } catch { $rejected = $true }
+    if (-not $rejected) { throw "Aggregate accepted an unsupported release channel" }
     $env:AME_GATE_MODE = "unsupported"
     $rejected = $false
     try { & $verify } catch { $rejected = $true }
