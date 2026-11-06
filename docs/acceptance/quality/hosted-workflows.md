@@ -91,6 +91,9 @@ Release Daily reuses the same eight component jobs after candidate construction,
 candidate's manifest-bound source commit. It runs alongside the independent candidate runtime and
 synthetic-performance verification; packaging waits for both to succeed. Hosted candidate verifiers
 do not repeat the serial workstation Daily gate inside their 90-minute runtime-verification budget.
+Their scan benchmark uses `performance_run_synthetic.ps1 -Case scan`, preserving the optimized
+Release build, exact workload admission, process ownership, memory limits and performance assertions
+used by ordinary synthetic CI.
 
 Static and each Rust partition retain a 90-minute total budget; the other Daily components retain
 60 minutes. Each budget includes its own toolchain setup and compilation. Product-workflow and test

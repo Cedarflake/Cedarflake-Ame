@@ -45,7 +45,7 @@ function Assert-AmeHostedExtendedContract {
     foreach ($job in @("release_verify_windows", "release_verify_unsigned_windows")) {
         $verifier = Get-AmeHostedJobSource $Gate $job
         if (-not $verifier.Contains("./tool/release_verify_windows.ps1") -or
-            -not $verifier.Contains("./tool/performance_benchmark_synthetic_library.ps1") -or
+            -not $verifier.Contains("./tool/performance_run_synthetic.ps1 -Case scan") -or
             $verifier -match 'quality_verify_daily\.ps1|release_verify_candidate\.ps1') {
             throw "Candidate verification must retain runtime and performance checks without serial Daily"
         }
@@ -105,6 +105,13 @@ foreach ($mutation in @(
     @{ Gate = $gate.Replace("      - quality_unsigned_windows", ""); Synthetic = $synthetic },
     @{ Gate = $gate.Replace("      - release_verify_unsigned_windows", ""); Synthetic = $synthetic },
     @{ Gate = $gate.Replace("      - release_daily_components", ""); Synthetic = $synthetic },
+    @{
+        Gate = $gate.Replace(
+            "./tool/performance_run_synthetic.ps1 -Case scan",
+            "./tool/performance_benchmark_synthetic_library.ps1"
+        )
+        Synthetic = $synthetic
+    },
     @{
         Gate = $gate.Replace(
             'checkout_ref: ${{ needs.release_unsigned_windows.outputs.source_commit }}',

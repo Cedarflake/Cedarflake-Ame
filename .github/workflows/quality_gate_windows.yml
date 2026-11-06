@@ -1000,7 +1000,7 @@ jobs:
             -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER `
             -SignedBrokerBinaryPath $brokerPath `
             -SignedApplicationBundlePath $releaseRoot
-          ./tool/performance_benchmark_synthetic_library.ps1
+          ./tool/performance_run_synthetic.ps1 -Case scan
 
       - name: Check committed whitespace
         shell: pwsh
@@ -1115,7 +1115,7 @@ jobs:
           ./tool/release_verify_windows.ps1 -SigningMode unsigned -SignedApplicationBundlePath (
             [System.IO.Path]::GetFullPath("build\unsigned-candidate\payload")
           )
-          ./tool/performance_benchmark_synthetic_library.ps1
+          ./tool/performance_run_synthetic.ps1 -Case scan
 
       - name: Check committed whitespace
         shell: pwsh
