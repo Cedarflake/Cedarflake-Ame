@@ -185,6 +185,12 @@ bound together by the SCM-protected `AMEJBID2` manifest using protocol/max-frame
 path, binary SHA-256 values and the configured optional publisher/certificate policy validated by
 the installer.
 
+Hosted Daily checks reuse the eight isolated component jobs at the candidate's manifest-bound source
+commit. The release aggregate requires these jobs and the selected candidate verifier to succeed
+before packaging. This preserves complete Daily coverage without placing the serial workstation gate
+inside a 90-minute candidate-verification job; runtime and synthetic-performance checks stay in that
+independent verifier. The local full-release entrypoint remains serial.
+
 Hosted release verification consumes one immutable manifest-bound Application bundle without
 rebuilding or copying over it after admission. The main dispatch commit is the trusted
 workflow commit. Before checkout, the workflow accepts only a strict `v`-prefixed SemVer tag; checkout
