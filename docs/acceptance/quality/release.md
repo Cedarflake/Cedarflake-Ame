@@ -23,7 +23,7 @@ packager and the no-checkout, write-authorized GitHub Release publisher.
 For independent unsigned-candidate validation:
 
 ```powershell
-./tool/release_verify_unsigned_candidate.ps1 `
+./tool/release_verify_windows_candidate.ps1 `
   -CandidateRoot "<downloaded candidate directory containing manifest.json and payload>" `
   -Tag "v0.1.0" `
   -SourceCommit "<exact 40-character release source commit>"
@@ -38,11 +38,18 @@ publisher parameter:
   -ReleaseRoot "<verified unsigned Windows Release directory>"
 ```
 
-An MSI accompanies the ZIP using the installer command in the
-[command reference](commands.md#repository-command-reference). A supplemental MSI for an existing
-release uses the same verified candidate source and payload. Check its actual database and installed
-behavior, retain its receipt and SHA-256, and upload only the missing installer asset; do not replace
-the ZIP or move the version tag. Candidate runtime results remain reusable for identical bytes.
+Every release must contain both the portable ZIP and MSI. The read-only
+`release_package_windows.yml` workflow creates both from the same verified candidate; the MSI
+includes the pinned offline models. It validates the installer database and emits one immutable
+artifact containing the two packages and their separate SHA-256 outputs. Neither package is optional.
+`release_publish_windows.yml` creates a draft, uploads both files, and verifies both remote digests
+before publishing it. A failed upload leaves a new release in draft. Existing matching attachments
+are retained; conflicting attachments are never overwritten.
+
+The [command reference](commands.md#repository-command-reference) retains local installer commands.
+A supplemental installer uses the same verified candidate source and payload, actual installer
+checks and a retained receipt; it must preserve existing assets and the version tag. Candidate
+runtime results remain reusable for identical bytes.
 
 An optional `signed` channel remains available. It requires an exact
 `expected_broker_publisher`, the protected `windows-production-signing` Environment, an
@@ -63,9 +70,11 @@ under the same caller/root-access policy.
 
 Publication remains manual and main-only. The version tag must resolve to the
 manifest-bound source, which must be an ancestor of the workflow definition's commit.
-The publisher has no checkout or repository-script execution; it rechecks the ZIP SHA-256 and
+The publisher has no checkout or repository-script execution; it rechecks both package SHA-256 values and
 refuses conflicting or unprovable existing assets. After publication, the reusable verifier
-downloads the exact ZIP, validates archive paths and bounded expansion, then rechecks unsigned
+downloads both exact assets and checks their API digests against the packager outputs. Its package
+pair verifier comes from the immutable workflow commit so older release tags remain verifiable.
+It validates ZIP paths and bounded expansion, then rechecks unsigned
 executable identity or, in the signed channel, both signatures and the exact publisher. It also
 checks the broker protocol and removes extraction scratch storage.
 

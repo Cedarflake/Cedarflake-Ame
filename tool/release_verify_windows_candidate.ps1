@@ -2,12 +2,19 @@
 param(
     [Parameter(Mandatory = $true)][string]$CandidateRoot,
     [Parameter(Mandatory = $true)][string]$Tag,
-    [Parameter(Mandatory = $true)][string]$SourceCommit
+    [Parameter(Mandatory = $true)][string]$SourceCommit,
+    [ValidateSet('unsigned', 'signed')][string]$SigningMode = 'unsigned',
+    [string]$ExpectedBrokerPublisher = ''
 )
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "release_journal_broker_common.ps1")
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
+
+if (($SigningMode -ceq 'signed' -and [string]::IsNullOrWhiteSpace($ExpectedBrokerPublisher)) -or
+    ($SigningMode -ceq 'unsigned' -and -not [string]::IsNullOrWhiteSpace($ExpectedBrokerPublisher))) {
+    throw 'Candidate signing mode and publisher must agree'
+}
 
 $root = [System.IO.Path]::GetFullPath($CandidateRoot)
 $payloadRoot = Join-Path $root "payload"
@@ -35,7 +42,7 @@ $actualProperties = @($manifest.PSObject.Properties.Name)
 if (
     $actualProperties.Count -ne $expectedProperties.Count -or
     @($expectedProperties | Where-Object { $actualProperties -cnotcontains $_ }).Count -ne 0 -or
-    $manifest.format -cne "cedarflake-ame-unsigned-v1" -or
+    $manifest.format -cne "cedarflake-ame-$SigningMode-v1" -or
     $manifest.tag -cne $Tag -or
     $SourceCommit -cnotmatch '^[0-9a-f]{40}$' -or
     $manifest.sourceCommit -cne $SourceCommit
@@ -137,11 +144,14 @@ if (@($files | Where-Object {
 }
 foreach ($target in $fixedTargets) {
     $path = Join-Path $payloadRoot $target
-    Assert-AmeBrokerPayload -Path $path | Out-Null
-    $signature = Get-AuthenticodeSignature -LiteralPath $path
-    if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
-        throw "Unsigned candidate executable unexpectedly carries a signature: $target"
+    Assert-AmeBrokerPayload -Path $path -ExpectedPublisher $ExpectedBrokerPublisher | Out-Null
+    if ($SigningMode -ceq 'unsigned') {
+        $signature = Get-AuthenticodeSignature -LiteralPath $path
+        if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
+            throw "Unsigned candidate executable unexpectedly carries a signature: $target"
+        }
     }
 }
-Assert-AmeBrokerBinary -Path (Join-Path $payloadRoot $fixedTargets[1]) | Out-Null
-Write-Output "unsigned_candidate_verified"
+Assert-AmeBrokerBinary -Path (Join-Path $payloadRoot $fixedTargets[1]) `
+    -ExpectedPublisher $ExpectedBrokerPublisher | Out-Null
+Write-Output "${SigningMode}_candidate_verified"

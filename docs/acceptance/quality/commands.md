@@ -48,6 +48,9 @@ Supply the bootstrapper inputs through `-WixBootstrapperPackagePath` and `-WixBo
 For a completed release-candidate gate, replace `-BundlePath` and `-UnsignedEvidencePath` with
 `-CandidateRoot <manifest-and-payload-directory>` and `-SourceCommit <verified-source-sha>`.
 The builder reverifies that immutable candidate before packaging; the input modes cannot be mixed.
+Signed candidates additionally use `-SigningMode signed -ExpectedBrokerPublisher <subject>`.
+`./tool/release_prepare_installer_toolchain.ps1 -OutputDirectory <repository-build-directory>`
+acquires and verifies the pinned WiX packages and returns the builder's toolchain arguments.
 The application version must match the tag and include a positive numeric Flutter build suffix.
 The MSI upgrade number follows [ADR 0027](../../architecture/0027-windows-installer-lifecycle.md).
 It also runs the rejecting database-policy cases against modified in-memory models.
@@ -262,12 +265,13 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   as a versioned portable ZIP after release verification.
 - `./tool/release_verify_portable_archive.ps1` verifies the portable ZIP filename, single-root
   layout, safe entry paths, and required Flutter and Rust runtime payload without extracting it.
-- `./tool/release_test_portable_publication.ps1` tests the workflow-owned attachment identity
-  decision using controlled API fixtures: missing attachments may upload, matching SHA-256 digests
-  skip publication, and conflicting, unprovable, or failed lookups fail closed. It runs in lint
-  without network access or publication permission.
-- `./tool/release_verify_unsigned_candidate.ps1` checks the immutable unsigned artifact manifest,
-  tag/source commit, exact bounded payload, file hashes, unsigned x64 binaries and broker protocol.
+- `./tool/release_test_windows_publication.ps1` executes the workflow-owned publication transaction
+  against controlled API fixtures: missing attachments may upload, matching digests are retained,
+  conflicts fail before mutation, and failed uploads leave new releases as drafts. It also rejects
+  incomplete or changed published downloads, without network access or publication permission.
+- `./tool/release_verify_windows_candidate.ps1` checks the immutable candidate manifest, tag/source
+  commit, exact bounded payload, file hashes, x64 binaries and broker protocol. It defaults to
+  unsigned; `-SigningMode signed -ExpectedBrokerPublisher <subject>` requires matching signatures.
 - `./tool/release_verify_portable_unsigned.ps1` validates an extracted unsigned portable ZIP,
   including x64 application and broker protocol, then confirms scratch cleanup.
 - `./tool/release_verify_portable_signatures.ps1` is the optional signed-channel verifier and

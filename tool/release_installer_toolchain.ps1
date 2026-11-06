@@ -1,6 +1,12 @@
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
+$script:AmeInstallerWixPackages = [ordered]@{
+    Sdk = @{ Id = 'wixtoolset.sdk'; Sha256 = 'AF8F72FB2550E9C2CF00B6EAF5E3ED811514AA2B3F344DFA342540AF39676979' }
+    Ui = @{ Id = 'wixtoolset.ui.wixext'; Sha256 = '1716C2CBED4613A7291B5775630CF4D0DCA597568BA1128CEC5FDA1903F05BD1' }
+    Bootstrapper = @{ Id = 'wixtoolset.bal.wixext'; Sha256 = '0F30C29F9E53A6C6ACDEA2CE0D1F0833153883FA3D16ED8DFF75005EDD7FE876' }
+}
+
 function Assert-AmeInstallerWixPackage {
     param(
         [Parameter(Mandatory = $true)][string]$PackagePath,
@@ -52,7 +58,7 @@ function Get-AmeInstallerWixTool {
     )
 
     Assert-AmeInstallerWixPackage -PackagePath $PackagePath -Directory $SdkDirectory `
-        -ExpectedHash "AF8F72FB2550E9C2CF00B6EAF5E3ED811514AA2B3F344DFA342540AF39676979"
+        -ExpectedHash $script:AmeInstallerWixPackages.Sdk.Sha256
     $executable = Join-Path $SdkDirectory "tools/net472/x64/wix.exe"
     $version = @(& $executable --version)
     if ($LASTEXITCODE -ne 0 -or $version.Count -ne 1 -or $version[0] -cne "7.0.0+b8977d6") {
@@ -68,7 +74,7 @@ function Get-AmeInstallerWixUi {
     )
 
     Assert-AmeInstallerWixPackage -PackagePath $PackagePath -Directory $Directory `
-        -ExpectedHash "1716C2CBED4613A7291B5775630CF4D0DCA597568BA1128CEC5FDA1903F05BD1"
+        -ExpectedHash $script:AmeInstallerWixPackages.Ui.Sha256
     return Join-Path $Directory "wixext7/WixToolset.UI.wixext.dll"
 }
 
@@ -79,6 +85,6 @@ function Get-AmeInstallerWixBootstrapper {
     )
 
     Assert-AmeInstallerWixPackage -PackagePath $PackagePath -Directory $Directory `
-        -ExpectedHash "0F30C29F9E53A6C6ACDEA2CE0D1F0833153883FA3D16ED8DFF75005EDD7FE876"
+        -ExpectedHash $script:AmeInstallerWixPackages.Bootstrapper.Sha256
     return Join-Path $Directory "wixext7/WixToolset.BootstrapperApplications.wixext.dll"
 }

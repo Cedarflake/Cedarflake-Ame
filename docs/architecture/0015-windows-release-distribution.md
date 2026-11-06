@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-11
-- Last amended: 2026-11-06
+- Last amended: 2026-11-07
 
 ## Context
 
@@ -68,7 +68,7 @@ Only Windows 11 x64 is supported and published. ARM packages are not produced or
 `windows-2025` Windows Server runner supplies reproducible build and release checks, but it does not
 replace the separately authorized Windows 11 client acceptance evidence.
 
-Provide the MSI installer alongside the portable ZIP under the same release tag. Its product
+Every release provides the MSI installer and portable ZIP under the same release tag. Its product
 version, embedded model payload and installation lifecycle follow [ADR 0027](0027-windows-installer-lifecycle.md).
 An additional installer may reuse the completed candidate's immutable application files and runtime
 evidence; reverify that manifest, validate the installer itself and preserve existing release assets.
@@ -213,20 +213,25 @@ content; it admits an ephemeral PFX with exact publisher and code-signing usage,
 fixed executables, clears secrets, preserves the source identity, and uploads a signed manifest.
 The signed verifier independently checks the complete manifest and both signatures before release.
 
-A read-only packaging job consumes the verified artifact in the selected channel, binds its
-manifest to the same source commit, packages it, and exports the ZIP name and SHA-256 through an
-immutable workflow artifact. The only `contents: write` job checks out no repository content and executes no repository
-script. Immediately before publication it resolves lightweight or annotated tag objects through the
+A read-only packaging workflow consumes the verified artifact in the selected channel, binds its
+manifest to the same source commit, and produces both ZIP and MSI. The MSI uses pinned WiX tooling
+and embeds the independently verified classification models. It exports both names and SHA-256
+values with one immutable two-file artifact. The only `contents: write` job checks out no repository
+content and executes no repository script. Immediately before publication it resolves lightweight or annotated tag objects through the
 GitHub API and requires the resulting commit to equal the manifest-bound source commit, then
-rechecks the ZIP hash. For an existing release it lists every asset page through the authenticated
-GitHub API. A same-name asset must be uploaded and have an API-provided SHA-256 digest matching the
-verified ZIP; that identity is retained without another upload. A different, missing, or malformed
-digest fails closed. Only a missing attachment may be uploaded, without overwrite permission.
+rechecks both package hashes. A new release remains a draft until both uploaded assets have matching
+API digests. Upload failure cannot expose a new release with only one package. For an existing
+release it lists every asset page through the authenticated GitHub API. A same-name asset must be
+uploaded and have an API-provided SHA-256 digest matching the corresponding verified package; that
+identity is retained without another upload. A different, missing, or malformed digest fails closed.
+Only a missing attachment may be uploaded, without overwrite permission.
 A release lookup's explicit HTTP 404 permits creation; transport errors and other unsuccessful
 release or asset lookups never count as absence. The publisher rechecks the tag immediately before
 mutation; GitHub does not make tag resolution and release-asset mutation one transaction. Post-publication
-verification enforces safe ZIP paths and bounded expansion, extracts into fresh repository scratch
-storage, validates x64 payload and broker protocol, and checks either both unsigned executable states
+verification downloads and checks both assets against their API digests and the packager's hashes.
+Its pair verifier is read from the immutable workflow commit; application verification remains bound
+to the release source. ZIP verification enforces safe paths and bounded expansion, extracts into
+fresh repository scratch storage, validates x64 payload and broker protocol, and checks both unsigned executable states
 or the selected signatures/publisher before cleanup. The candidate workflow calls this reusable
 verifier directly after publication. Externally created `release: published` events use the default
 unsigned channel unless the repository Actions variable `AME_WINDOWS_RELEASE_SIGNING_MODE` explicitly
@@ -262,23 +267,24 @@ them as disposable cache.
   authority or protected client identity, so the portable application remains `LiveOnly`.
 - GitHub Release publication has write permission only after the read-only candidate and packaging
   gates succeed, and that job has no repository checkout.
-- A workflow rerun retains an existing same-name attachment only after proving the same immutable
-  source commit and ZIP identity; it never replaces an attachment.
+- A workflow rerun retains existing attachments only after proving the same immutable source
+  commit and both package identities; it never replaces an attachment.
 
 ## Validation evidence
 
 - `tool/release_package_portable_windows.ps1` copies and archives the complete Release directory.
 - `tool/release_verify_portable_archive.ps1` validates identity, structure, and required runtime
   entries without extracting the archive.
-- `tool/release_verify_unsigned_candidate.ps1` checks the exact candidate manifest, file
-  lengths/hashes, required runtime, x64 executables and broker protocol without signing secrets.
+- `tool/release_verify_windows_candidate.ps1` checks the exact candidate manifest, file
+  lengths/hashes, required runtime, x64 executables and broker protocol; the selected channel
+  requires unsigned executables or valid signatures from the expected publisher.
 - `tool/release_verify_portable_unsigned.ps1` safely extracts and verifies unsigned application
   and broker identity, while `tool/release_verify_portable_signatures.ps1` retains the corresponding
   publisher and Authenticode checks for an explicitly signed release.
 - `tool/release_test_portable_archive.ps1` proves a valid fixture passes and incomplete or
   traversal-bearing archives fail, including a broker-missing archive.
-- `tool/release_test_portable_publication.ps1` exercises the exact workflow-owned publication
-  decision with missing, matching, conflicting, digest-less, paginated, and failed-lookup fixtures.
+- `tool/release_test_windows_publication.ps1` exercises the workflow-owned publication transaction
+  with missing, matching, conflicting, digest-less, paginated, failed-lookup and partial-upload fixtures.
   It performs no remote requests and supplies no executable artifact to the write-permission job.
 - `tool/release_test_journal_broker_installer_guardrails.ps1` proves the Windows/x64, publisher,
   service account, service SID, privilege, DACL, fixed-destination, interrupted-transaction,

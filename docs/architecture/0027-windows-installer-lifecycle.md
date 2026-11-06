@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-12
-- Last amended: 2026-11-06
+- Last amended: 2026-11-07
 
 ## Context and decision drivers
 
@@ -38,10 +38,12 @@ The product code is stable for an exact version and changes for an upgrade; comp
 are stable for their installed paths. The package embeds its complete bounded payload.
 
 The smart-album model payload follows ADR 0034's pinned three artifacts and two attribution files.
-The installer builder composes those independently verified files with the passing unsigned
+The installer builder composes those independently verified files with the passing
 application manifest and records the combined payload in its receipt. It can also consume an
 immutable release-candidate manifest after its runtime gate has passed; it reverifies its exact
-tag, source, files and executable identities without rebuilding the application. The existing component and
+tag, source, files and executable identities in the selected unsigned or signed channel without
+rebuilding the application. Every hosted release builds this MSI alongside the portable ZIP; both
+packages must pass before publication. The existing component and
 ACL generator owns every model file; no installer-time network request or model custom action is
 added. Installed clients verify and read the models in place. Portable builds may omit this separate
 payload and retain explicit managed download with restart recovery.

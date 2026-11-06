@@ -9,13 +9,16 @@ function Get-AmeInstallerSource {
         [Parameter(Mandatory = $true, ParameterSetName = 'Quality')][string]$UnsignedEvidencePath,
         [Parameter(Mandatory = $true, ParameterSetName = 'Candidate')][string]$CandidateRoot,
         [Parameter(Mandatory = $true, ParameterSetName = 'Candidate')][string]$Tag,
-        [Parameter(Mandatory = $true, ParameterSetName = 'Candidate')][string]$SourceCommit
+        [Parameter(Mandatory = $true, ParameterSetName = 'Candidate')][string]$SourceCommit,
+        [Parameter(ParameterSetName = 'Candidate')][ValidateSet('unsigned', 'signed')][string]$SigningMode = 'unsigned',
+        [Parameter(ParameterSetName = 'Candidate')][string]$ExpectedBrokerPublisher = ''
     )
 
     if ($PSCmdlet.ParameterSetName -ceq 'Candidate') {
         Assert-AmeUnsignedBuildPath $CandidateRoot
-        & (Join-Path $PSScriptRoot 'release_verify_unsigned_candidate.ps1') `
-            -CandidateRoot $CandidateRoot -Tag $Tag -SourceCommit $SourceCommit | Out-Host
+        & (Join-Path $PSScriptRoot 'release_verify_windows_candidate.ps1') `
+            -CandidateRoot $CandidateRoot -Tag $Tag -SourceCommit $SourceCommit `
+            -SigningMode $SigningMode -ExpectedBrokerPublisher $ExpectedBrokerPublisher | Out-Host
         $manifest = Get-Content -LiteralPath (Join-Path $CandidateRoot 'manifest.json') `
             -Raw -Encoding utf8 | ConvertFrom-Json
         return [pscustomobject]@{

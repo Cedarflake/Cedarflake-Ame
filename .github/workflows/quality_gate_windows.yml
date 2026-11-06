@@ -1087,7 +1087,7 @@ jobs:
           AME_RELEASE_TAG: ${{ inputs.release_tag }}
           AME_SOURCE_COMMIT: ${{ needs.release_unsigned_windows.outputs.source_commit }}
         run: |
-          ./tool/release_verify_unsigned_candidate.ps1 -CandidateRoot (
+          ./tool/release_verify_windows_candidate.ps1 -CandidateRoot (
             [System.IO.Path]::GetFullPath("build\unsigned-candidate")
           ) -Tag $env:AME_RELEASE_TAG -SourceCommit $env:AME_SOURCE_COMMIT
 

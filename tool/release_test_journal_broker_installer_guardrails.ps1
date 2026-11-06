@@ -1497,6 +1497,10 @@ $candidateWorkflowText = [System.IO.File]::ReadAllText(
     (Join-Path $repositoryRoot ".github\workflows\release_candidate_windows.yml"),
     [System.Text.Encoding]::UTF8
 )
+$packageWorkflowText = [System.IO.File]::ReadAllText(
+    (Join-Path $repositoryRoot ".github\workflows\release_package_windows.yml"),
+    [System.Text.Encoding]::UTF8
+)
 $publishedWorkflowText = [System.IO.File]::ReadAllText(
     (Join-Path $repositoryRoot ".github\workflows\release_verify_published.yml"),
     [System.Text.Encoding]::UTF8
@@ -1505,24 +1509,7 @@ $releaseArchitectureText = [System.IO.File]::ReadAllText(
     (Join-Path $repositoryRoot "docs\architecture\0015-windows-release-distribution.md"),
     [System.Text.Encoding]::UTF8
 )
-function Get-AmeWorkflowJobBlock {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$WorkflowText,
-        [Parameter(Mandatory = $true)]
-        [string]$JobName
-    )
-
-    $match = [regex]::Match(
-        $WorkflowText,
-        ('(?ms)^  {0}:\r?\n.*?(?=^  [a-zA-Z0-9_]+:\r?\n|\z)' -f
-            [regex]::Escape($JobName))
-    )
-    if (-not $match.Success) {
-        throw "Hosted release workflow is missing the $JobName job"
-    }
-    return $match.Value
-}
+. (Join-Path $PSScriptRoot 'quality_workflow_contract.ps1')
 
 $unsignedBuildJob = Get-AmeWorkflowJobBlock `
     -WorkflowText $qualityWorkflowText `
@@ -1536,16 +1523,6 @@ $signedVerificationJob = Get-AmeWorkflowJobBlock `
 $releaseRequestJob = Get-AmeWorkflowJobBlock `
     -WorkflowText $candidateWorkflowText `
     -JobName "release_request"
-$portablePackageJob = Get-AmeWorkflowJobBlock `
-    -WorkflowText $candidateWorkflowText `
-    -JobName "package_portable"
-$portablePublishJob = Get-AmeWorkflowJobBlock `
-    -WorkflowText $candidateWorkflowText `
-    -JobName "publish_portable"
-$publishedVerificationCallJob = Get-AmeWorkflowJobBlock `
-    -WorkflowText $candidateWorkflowText `
-    -JobName "verify_published"
-
 foreach ($requiredReleaseContract in @(
     "cedarflake-ame-unsigned-v1",
     "cedarflake-ame-signed-v1",
@@ -1807,8 +1784,8 @@ foreach ($workflowProof in @(
         ExpectedCount = 3
     },
     @{
-        Name = "portable publication"
-        Text = $candidateWorkflowText
+        Name = "Windows packaging"
+        Text = $packageWorkflowText
         ExpectedCount = 1
     },
     @{
@@ -1832,8 +1809,8 @@ foreach ($workflowProof in @(
 }
 foreach ($requiredTagNamespaceContract in @(
     @{
-        Text = $candidateWorkflowText
-        Token = 'ref: ${{ needs.release_windows.outputs.source_commit }}'
+        Text = $packageWorkflowText
+        Token = 'ref: ${{ inputs.source_commit }}'
     },
     @{
         Text = $publishedWorkflowText
@@ -1849,7 +1826,7 @@ foreach ($requiredTagNamespaceContract in @(
 }
 if (
     $qualityWorkflowText -notmatch 'Release tag commit does not match checked-out HEAD' -or
-    $candidateWorkflowText -notmatch 'Package HEAD, release tag, and verified source commit do not match' -or
+    $packageWorkflowText -notmatch 'Package HEAD, release tag, and verified source commit do not match' -or
     $publishedWorkflowText -notmatch 'Release tag commit does not match checked-out HEAD'
 ) {
     throw "Release workflows do not fail closed on source/tag/HEAD disagreement"
@@ -1895,145 +1872,8 @@ foreach ($requiredReusableTrustContract in @(
         throw "Reusable release gate is missing $requiredReusableTrustContract"
     }
 }
-foreach ($requiredSourceChainContract in @(
-    'trusted_workflow_commit: ${{ needs.release_request.outputs.trusted_workflow_commit }}',
-    'AME_SOURCE_COMMIT: ${{ needs.release_windows.outputs.source_commit }}',
-    'AME_TRUSTED_WORKFLOW_COMMIT: ${{ needs.release_request.outputs.trusted_workflow_commit }}'
-)) {
-    if ($candidateWorkflowText.IndexOf(
-            $requiredSourceChainContract,
-            [System.StringComparison]::Ordinal
-        ) -lt 0) {
-        throw "Candidate publication lost the immutable source chain"
-    }
-}
-foreach ($requiredPackageContract in @(
-    "permissions:",
-    "contents: read",
-    'ref: ${{ needs.release_windows.outputs.source_commit }}',
-    "Bind candidate manifest to the package source",
-    'manifest.sourceCommit -cne $env:AME_SOURCE_COMMIT',
-    "cedarflake-ame-signed-v1",
-    "Assert-AmeApplicationBundleSource",
-    "Assert-AmeBrokerBinary",
-    "release_package_portable_windows.ps1",
-    "archive_sha256",
-    "Upload immutable portable ZIP"
-)) {
-    if ($portablePackageJob.IndexOf(
-            $requiredPackageContract,
-            [System.StringComparison]::Ordinal
-        ) -lt 0) {
-        throw "Read-only portable packager is missing $requiredPackageContract"
-    }
-}
-foreach ($forbiddenPackageContract in @(
-    "contents: write",
-    "AME_SIGNING_PFX",
-    "Set-AuthenticodeSignature",
-    "gh release "
-)) {
-    if ($portablePackageJob.IndexOf(
-            $forbiddenPackageContract,
-            [System.StringComparison]::OrdinalIgnoreCase
-        ) -ge 0) {
-        throw "Read-only portable packager received forbidden capability"
-    }
-}
-foreach ($requiredPublishContract in @(
-    "contents: write",
-    "Download immutable portable ZIP",
-    'needs.package_portable.outputs.archive_artifact',
-    'needs.package_portable.outputs.archive_sha256',
-    'needs.release_windows.outputs.source_commit',
-    "Publication artifact allowlist is not one exact portable ZIP",
-    'repos/$env:GITHUB_REPOSITORY/git/ref/tags/$env:AME_RELEASE_TAG',
-    'repos/$env:GITHUB_REPOSITORY/git/tags/$objectSha',
-    'if ($tagCommit -cne $env:AME_SOURCE_COMMIT)',
-    "GitHub release tag moved after candidate verification",
-    "Portable ZIP changed immediately before publication",
-    "gh release upload",
-    "gh `$arguments"
-)) {
-    if ($portablePublishJob.IndexOf(
-            $requiredPublishContract,
-            [System.StringComparison]::Ordinal
-        ) -lt 0) {
-        throw "Minimal write publisher is missing $requiredPublishContract"
-    }
-}
-foreach ($forbiddenPublishContract in @(
-    "actions/checkout@",
-    "./tool/",
-    ". ./tool/",
-    ".\\tool\\",
-    "git ",
-    "flutter ",
-    "dart ",
-    "cargo ",
-    "Assert-Ame",
-    "Set-AuthenticodeSignature",
-    "AME_SIGNING_PFX"
-)) {
-    if ($portablePublishJob.IndexOf(
-            $forbiddenPublishContract,
-            [System.StringComparison]::OrdinalIgnoreCase
-        ) -ge 0) {
-        throw "Minimal write publisher executes forbidden repository work: $forbiddenPublishContract"
-    }
-}
-if (([regex]::Matches(
-            $candidateWorkflowText,
-            '(?m)^\s+contents: write\s*$'
-        )).Count -ne 1) {
-    throw "Exactly one candidate job may receive repository-content write permission"
-}
-foreach ($requiredPublishedEntry in @(
-    "release:",
-    "workflow_call:",
-    "workflow_dispatch:",
-    'release_tag:',
-    'expected_broker_publisher:',
-    'AME_RELEASE_TAG: ${{ inputs.release_tag || github.event.release.tag_name }}',
-    'AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher || vars.AME_WINDOWS_EXPECTED_PUBLISHER }}'
-)) {
-    if ($publishedWorkflowText.IndexOf(
-            $requiredPublishedEntry,
-            [System.StringComparison]::Ordinal
-        ) -lt 0) {
-        throw "Published verification is missing its reusable entry contract: $requiredPublishedEntry"
-    }
-}
-foreach ($requiredPublishedCallContract in @(
-    "needs: publish_portable",
-    "permissions:",
-    "contents: read",
-    "uses: ./.github/workflows/release_verify_published.yml",
-    'release_tag: ${{ inputs.release_tag }}',
-    'expected_broker_publisher: ${{ inputs.expected_broker_publisher }}'
-)) {
-    if ($publishedVerificationCallJob.IndexOf(
-            $requiredPublishedCallContract,
-            [System.StringComparison]::Ordinal
-        ) -lt 0) {
-        throw "Candidate publication does not directly invoke published verification: $requiredPublishedCallContract"
-    }
-}
-foreach ($forbiddenPublishedCallContract in @(
-    "contents: write",
-    "runs-on:",
-    "steps:",
-    "secrets:",
-    "actions: write",
-    "GH_TOKEN"
-)) {
-    if ($publishedVerificationCallJob.IndexOf(
-            $forbiddenPublishedCallContract,
-            [System.StringComparison]::OrdinalIgnoreCase
-        ) -ge 0) {
-        throw "Published verification caller received forbidden capability: $forbiddenPublishedCallContract"
-    }
-}
+& (Join-Path $PSScriptRoot 'release_test_windows_publication_contract.ps1')
+
 foreach ($requiredConfigurationContract in @(
     'Environment, which must require a reviewer and restrict',
     'deployment branches and tags to `main`'

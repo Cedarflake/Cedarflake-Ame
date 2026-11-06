@@ -5,6 +5,8 @@ param(
     [Parameter(Mandatory = $true, ParameterSetName = 'Quality')][string]$UnsignedEvidencePath,
     [Parameter(Mandatory = $true, ParameterSetName = 'Candidate')][string]$CandidateRoot,
     [Parameter(Mandatory = $true, ParameterSetName = 'Candidate')][string]$SourceCommit,
+    [Parameter(ParameterSetName = 'Candidate')][ValidateSet('unsigned', 'signed')][string]$SigningMode = 'unsigned',
+    [Parameter(ParameterSetName = 'Candidate')][string]$ExpectedBrokerPublisher = '',
     [Parameter(Mandatory = $true)][string]$WixSdkPackagePath,
     [Parameter(Mandatory = $true)][string]$WixSdkDirectory,
     [Parameter(Mandatory = $true)][string]$WixUiPackagePath,
@@ -40,7 +42,10 @@ $applicationVersion = [regex]::Match(
 ).Groups['version'].Value
 $version = Get-AmeInstallerVersion -Tag $Tag -ApplicationVersion $applicationVersion
 $sourceArguments = if ($PSCmdlet.ParameterSetName -ceq 'Candidate') {
-    @{ CandidateRoot = $CandidateRoot; Tag = $Tag; SourceCommit = $SourceCommit }
+    @{
+        CandidateRoot = $CandidateRoot; Tag = $Tag; SourceCommit = $SourceCommit
+        SigningMode = $SigningMode; ExpectedBrokerPublisher = $ExpectedBrokerPublisher
+    }
 } else {
     @{ BundlePath = $BundlePath; UnsignedEvidencePath = $UnsignedEvidencePath }
 }

@@ -1,0 +1,214 @@
+name: Release / Package Windows
+
+on:
+  workflow_call:
+    inputs:
+      release_tag:
+        required: true
+        type: string
+      source_commit:
+        required: true
+        type: string
+      trusted_workflow_commit:
+        required: true
+        type: string
+      verified_bundle_artifact:
+        required: true
+        type: string
+      release_signing_mode:
+        required: true
+        type: string
+      expected_broker_publisher:
+        default: ""
+        type: string
+    outputs:
+      package_artifact:
+        value: ${{ jobs.package_windows.outputs.package_artifact }}
+      archive_name:
+        value: ${{ jobs.package_windows.outputs.archive_name }}
+      archive_sha256:
+        value: ${{ jobs.package_windows.outputs.archive_sha256 }}
+      installer_name:
+        value: ${{ jobs.package_windows.outputs.installer_name }}
+      installer_sha256:
+        value: ${{ jobs.package_windows.outputs.installer_sha256 }}
+
+permissions:
+  contents: read
+
+jobs:
+  package_windows:
+    name: Windows ZIP and MSI Packages
+    runs-on: windows-2025
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      CI: "true"
+      AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher }}
+      AME_RELEASE_SIGNING_MODE: ${{ inputs.release_signing_mode }}
+      AME_RELEASE_TAG: ${{ inputs.release_tag }}
+      AME_SOURCE_COMMIT: ${{ inputs.source_commit }}
+      AME_TRUSTED_WORKFLOW_COMMIT: ${{ inputs.trusted_workflow_commit }}
+    outputs:
+      package_artifact: ${{ steps.portable_identity.outputs.artifact_name }}
+      archive_name: ${{ steps.portable_identity.outputs.archive_name }}
+      archive_sha256: ${{ steps.portable_identity.outputs.archive_sha256 }}
+      installer_name: ${{ steps.installer_identity.outputs.installer_name }}
+      installer_sha256: ${{ steps.installer_identity.outputs.installer_sha256 }}
+    steps:
+      - name: Check out immutable release source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ inputs.source_commit }}
+
+      - name: Prove package source and tag identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          if (
+            $env:AME_SOURCE_COMMIT -cnotmatch '^[0-9a-f]{40}$' -or
+            $env:AME_TRUSTED_WORKFLOW_COMMIT -cnotmatch '^[0-9a-f]{40}$'
+          ) {
+            throw "Portable packaging requires immutable source and workflow commits"
+          }
+          $tagRef = "refs/tags/$env:AME_RELEASE_TAG"
+          $tagObject = (git show-ref --verify --hash $tagRef).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagObject)) {
+            throw "The exact publication tag ref does not exist: $tagRef"
+          }
+          $tagCommit = (git rev-parse --verify "$tagRef^{commit}").Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagCommit)) {
+            throw "The exact publication tag does not resolve to a commit: $tagRef"
+          }
+          $headCommit = (git rev-parse --verify HEAD).Trim()
+          if (
+            $LASTEXITCODE -ne 0 -or
+            $headCommit -cne $tagCommit -or
+            $headCommit -cne $env:AME_SOURCE_COMMIT
+          ) {
+            throw "Package HEAD, release tag, and verified source commit do not match"
+          }
+          git cat-file -e "$env:AME_TRUSTED_WORKFLOW_COMMIT^{commit}"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Trusted release-workflow commit is unavailable to the packager"
+          }
+          git merge-base --is-ancestor $headCommit $env:AME_TRUSTED_WORKFLOW_COMMIT
+          if ($LASTEXITCODE -ne 0) {
+            throw "Package source is not an ancestor of the trusted workflow commit"
+          }
+
+      - name: Download immutable verified Windows bundle
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: ${{ inputs.verified_bundle_artifact }}
+          path: build/release-candidate
+
+      - name: Bind candidate manifest to the package source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $candidateRoot = [System.IO.Path]::GetFullPath("build\release-candidate")
+          $manifestPath = Join-Path $candidateRoot "manifest.json"
+          if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+            throw "Candidate manifest is missing from the package input"
+          }
+          $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 |
+            ConvertFrom-Json
+          $expectedFormat = if ($env:AME_RELEASE_SIGNING_MODE -ceq "signed") {
+            "cedarflake-ame-signed-v1"
+          } else {
+            "cedarflake-ame-unsigned-v1"
+          }
+          if (
+            $manifest.format -cne $expectedFormat -or
+            $manifest.tag -cne $env:AME_RELEASE_TAG -or
+            $manifest.sourceCommit -cne $env:AME_SOURCE_COMMIT
+          ) {
+            throw "Candidate manifest mode, tag or source commit does not match"
+          }
+
+      - name: Reverify downloaded Windows candidate
+        shell: pwsh
+        run: |
+          ./tool/release_verify_windows_candidate.ps1 `
+            -CandidateRoot ([IO.Path]::GetFullPath('build/release-candidate')) `
+            -Tag $env:AME_RELEASE_TAG -SourceCommit $env:AME_SOURCE_COMMIT `
+            -SigningMode $env:AME_RELEASE_SIGNING_MODE `
+            -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER
+
+      - name: Package portable ZIP
+        id: portable_identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $archivePath = (
+            ./tool/release_package_portable_windows.ps1 `
+              -Tag $env:AME_RELEASE_TAG `
+              -ReleaseRoot ([System.IO.Path]::GetFullPath("build\release-candidate\payload")) `
+              -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER |
+              Select-Object -Last 1
+          )
+          $archive = Get-Item -LiteralPath $archivePath -Force
+          $expectedName = (
+            "Cedarflake-Ame-$env:AME_RELEASE_TAG-windows-x64-portable.zip"
+          )
+          if (
+            $archive.PSIsContainer -or
+            $archive.Name -cne $expectedName -or
+            ($archive.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0
+          ) {
+            throw "Portable package output identity is invalid"
+          }
+          $archiveHash = (
+            Get-FileHash -LiteralPath $archive.FullName -Algorithm SHA256
+          ).Hash.ToLowerInvariant()
+          $artifactName = (
+            "Cedarflake-Ame-$env:AME_RELEASE_TAG-windows-" +
+            "$env:AME_SOURCE_COMMIT-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          )
+          "archive_name=$expectedName" >> $env:GITHUB_OUTPUT
+          "archive_path=$($archive.FullName)" >> $env:GITHUB_OUTPUT
+          "archive_sha256=$archiveHash" >> $env:GITHUB_OUTPUT
+          "artifact_name=$artifactName" >> $env:GITHUB_OUTPUT
+
+      - name: Package MSI with offline models
+        id: installer_identity
+        shell: pwsh
+        env:
+          AME_PORTABLE_ARCHIVE: ${{ steps.portable_identity.outputs.archive_path }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $toolchain = ./tool/release_prepare_installer_toolchain.ps1 `
+            -OutputDirectory (Join-Path $PWD 'build/installer-toolchain')
+          $output = Join-Path $PWD 'build/release-installer'
+          ./tool/release_package_installer_windows.ps1 @toolchain `
+            -Tag $env:AME_RELEASE_TAG -SourceCommit $env:AME_SOURCE_COMMIT `
+            -CandidateRoot (Join-Path $PWD 'build/release-candidate') `
+            -SigningMode $env:AME_RELEASE_SIGNING_MODE `
+            -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER `
+            -CMakePath (Get-Command cmake -CommandType Application).Source `
+            -OutputDirectory $output -AcceptWixBinaryEula
+          $receipt = Get-Content -LiteralPath (Join-Path $output 'package.json') `
+            -Raw -Encoding utf8 | ConvertFrom-Json
+          $name = "Cedarflake-Ame-$env:AME_RELEASE_TAG-windows-x64.msi"
+          $package = Join-Path $output $name
+          $hash = (Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($receipt.databasePolicy -cne 'passed' -or $receipt.sourceCommit -cne $env:AME_SOURCE_COMMIT -or
+              $receipt.packageSha256 -ine $hash) { throw 'Installer receipt does not match the verified package' }
+          $staging = Join-Path $PWD 'build/release-packages'
+          [void][IO.Directory]::CreateDirectory($staging)
+          Copy-Item -LiteralPath $env:AME_PORTABLE_ARCHIVE -Destination $staging
+          Copy-Item -LiteralPath $package -Destination $staging
+          "installer_name=$name" >> $env:GITHUB_OUTPUT
+          "installer_sha256=$hash" >> $env:GITHUB_OUTPUT
+
+      - name: Upload immutable ZIP and MSI
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: ${{ steps.portable_identity.outputs.artifact_name }}
+          path: build/release-packages/*
+          if-no-files-found: error
+          retention-days: 1

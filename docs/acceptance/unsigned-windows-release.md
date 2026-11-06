@@ -57,3 +57,25 @@ the receipt. Uninstall removed the service, product registration and installatio
 All 20 existing catalog/model data files retained their paths, lengths and SHA-256 hashes. No
 source-media access was needed. This run qualifies the supplemental package's install/repair/remove
 path; historical upgrade and rollback coverage is not replayed or relabeled as a new result.
+
+## Mandatory hosted ZIP and MSI — 2026-11-07
+
+Release orchestration now requires one read-only packaging workflow to emit both ZIP and MSI from
+the verified candidate. The installer retains its pinned models and selected signature channel.
+The publisher admits exactly those two files, creates new releases as drafts and makes them public
+only after both remote digests match. Published verification downloads and checks both attachments.
+
+The actual publisher script passed isolated transaction fixtures in PowerShell 7 and Windows
+PowerShell 5.1, including a missing MSI, conflicting or absent digest, partial upload, failed lookup,
+paginated assets and repeated publication. Partial upload retained a draft; conflicting or missing
+inputs produced no release mutation. Published-download checks rejected a missing or changed MSI.
+The complete installer guardrails and pinned actionlint 1.7.12 passed. The downloaded Alpha candidate
+also passed the generalized unsigned verifier. Pinned WiX acquisition was exercised from retained
+NuGet packages through extraction, digest checks, compiler identity and builder argument binding.
+
+The candidate entry is 155 lines; packaging and publication own 214 and 202 lines respectively.
+The affected dedicated checks contain 183 publication-transaction lines and 86 workflow-contract
+lines. Moving the publication contract reduced the pre-existing installer guardrail to 1,915 lines;
+unrelated portions were retained. These owners contain no inline test code. No application rebuild,
+service installation, tag change or replacement of the existing Alpha assets was needed for these
+orchestration checks. Hosted execution for the new commit remains to be checked after submission.

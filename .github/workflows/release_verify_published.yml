@@ -20,6 +20,12 @@ on:
         required: false
         default: unsigned
         type: string
+      archive_sha256:
+        default: ""
+        type: string
+      installer_sha256:
+        default: ""
+        type: string
   workflow_dispatch:
     inputs:
       release_tag:
@@ -49,7 +55,7 @@ concurrency:
 
 jobs:
   release_windows:
-    name: Windows Published ZIP
+    name: Windows Published ZIP and MSI
     runs-on: windows-2025
     timeout-minutes: 15
     permissions:
@@ -58,6 +64,9 @@ jobs:
       AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher || vars.AME_WINDOWS_EXPECTED_PUBLISHER }}
       AME_RELEASE_SIGNING_MODE: ${{ inputs.release_signing_mode || vars.AME_WINDOWS_RELEASE_SIGNING_MODE || 'unsigned' }}
       AME_RELEASE_TAG: ${{ inputs.release_tag || github.event.release.tag_name }}
+      AME_ARCHIVE_SHA256: ${{ inputs.archive_sha256 }}
+      AME_INSTALLER_SHA256: ${{ inputs.installer_sha256 }}
+      AME_VERIFIER_COMMIT: ${{ github.workflow_sha }}
     steps:
       - name: Validate published-verification request
         shell: pwsh
@@ -114,23 +123,34 @@ jobs:
         run: |
           ./tool/release_validate_version.ps1 -Tag $env:AME_RELEASE_TAG
 
-      - name: Download published portable ZIP
+      - name: Download published ZIP and MSI
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $artifactName = (
-            "Cedarflake-Ame-$env:AME_RELEASE_TAG-windows-x64-portable.zip"
-          )
+          $ErrorActionPreference = 'Stop'
+          $artifactName = "Cedarflake-Ame-$env:AME_RELEASE_TAG-windows-x64-portable.zip"
+          $installerName = "Cedarflake-Ame-$env:AME_RELEASE_TAG-windows-x64.msi"
           $artifactDirectory = Join-Path $PWD "build\published-release"
           New-Item -ItemType Directory -Path $artifactDirectory -Force | Out-Null
           gh release download $env:AME_RELEASE_TAG `
             --repo $env:GITHUB_REPOSITORY `
             --pattern $artifactName `
+            --pattern $installerName `
             --dir $artifactDirectory
           if ($LASTEXITCODE -ne 0) {
-            throw "Published portable ZIP download failed"
+            throw "Published ZIP and MSI download failed"
           }
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:AME_RELEASE_TAG" |
+            ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Published package metadata lookup failed' }
+          if ($env:AME_VERIFIER_COMMIT -cnotmatch '^[0-9a-f]{40}$') { throw 'Published verifier commit is invalid' }
+          $verifier = git show "${env:AME_VERIFIER_COMMIT}:tool/release_published_packages.ps1"
+          if ($LASTEXITCODE -ne 0) { throw 'Trusted package verifier is unavailable' }
+          . ([scriptblock]::Create(($verifier -join "`n")))
+          Assert-AmePublishedPackages -Release $release -Tag $env:AME_RELEASE_TAG `
+            -Directory $artifactDirectory -ExpectedArchiveSha256 $env:AME_ARCHIVE_SHA256 `
+            -ExpectedInstallerSha256 $env:AME_INSTALLER_SHA256
           "AME_PORTABLE_ARCHIVE=$(Join-Path $artifactDirectory $artifactName)" >> `
             $env:GITHUB_ENV
 
