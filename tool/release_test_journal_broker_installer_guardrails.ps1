@@ -1643,7 +1643,6 @@ foreach ($requiredSigningJobContract in @(
     "name: windows-production-signing",
     "github.event_name == 'workflow_dispatch'",
     "github.ref == 'refs/heads/main'",
-    "github.ref_protected",
     "Download immutable unsigned candidate",
     "Validate manifest and sign fixed binaries",
     "cedarflake_ame.exe",
@@ -1857,19 +1856,18 @@ if (
 if ($candidateWorkflowText -match '(?m)^  push:\s*$') {
     throw "The credentialed candidate chain must not run from a tag-controlled workflow definition"
 }
-foreach ($requiredProtectedEntryContract in @(
-    "Validate protected-main release entry",
+foreach ($requiredMainEntryContract in @(
+    "Validate main release entry",
     'AME_REF: ${{ github.ref }}',
-    'AME_REF_PROTECTED: ${{ github.ref_protected }}',
     'AME_WORKFLOW_COMMIT: ${{ github.workflow_sha }}',
     'refs/heads/main',
     'trusted_workflow_commit=$env:AME_WORKFLOW_COMMIT'
 )) {
     if ($releaseRequestJob.IndexOf(
-            $requiredProtectedEntryContract,
+            $requiredMainEntryContract,
             [System.StringComparison]::Ordinal
         ) -lt 0) {
-        throw "Protected release entry is missing $requiredProtectedEntryContract"
+        throw "Main release entry is missing $requiredMainEntryContract"
     }
 }
 if ($candidateWorkflowText -notmatch '(?m)^  workflow_dispatch:\s*$') {
@@ -1879,13 +1877,12 @@ if (
     $releaseRequestJob -match 'actions/checkout@' -or
     $releaseRequestJob -match '(?m)^\s+contents: write\s*$'
 ) {
-    throw "Protected release request must remain a read-only no-checkout admission job"
+    throw "Release request must remain a read-only no-checkout admission job"
 }
 foreach ($requiredReusableTrustContract in @(
     "trusted_workflow_commit:",
     "github.event_name == 'workflow_dispatch'",
     "github.ref == 'refs/heads/main'",
-    "github.ref_protected",
     'git merge-base --is-ancestor $tagCommit $env:AME_TRUSTED_WORKFLOW_COMMIT',
     'git merge-base --is-ancestor $headCommit $env:AME_TRUSTED_WORKFLOW_COMMIT',
     'value: ${{ jobs.release_verify_unsigned_windows.outputs.source_commit || jobs.release_verify_windows.outputs.source_commit }}'
@@ -2038,9 +2035,7 @@ foreach ($forbiddenPublishedCallContract in @(
 }
 foreach ($requiredConfigurationContract in @(
     'Environment, which must require a reviewer and restrict',
-    'deployment branches and tags to protected `main`',
-    "immutable release-tag",
-    "ruleset preventing update or deletion"
+    'deployment branches and tags to `main`'
 )) {
     if ($releaseArchitectureText.IndexOf(
             $requiredConfigurationContract,

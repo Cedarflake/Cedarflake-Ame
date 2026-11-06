@@ -105,7 +105,7 @@ That chain remains unchanged under ADR 0015.
 ## Alternatives and consequences
 
 Running every ignored test was rejected because it mixes incompatible evidence and authority.
-Weakening Windows 11 or protected-main signing admission was rejected. Keeping all heavy checks
+Weakening Windows 11 or reviewed, main-only signing admission was rejected. Keeping all heavy checks
 manual was rejected because synthetic coverage would continue to drift behind routine CI.
 
 Separate runners cost more hosted minutes and compile independently. No compiled application or

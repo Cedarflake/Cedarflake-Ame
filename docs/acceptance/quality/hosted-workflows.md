@@ -12,7 +12,7 @@ The hosted Windows gate is implemented once in
 
 - `quality_ci.yml` runs Daily plus the synthetic and unsigned-build gates for pushes to `main`, pull
   requests targeting `main`, merge queue checks, and manual dispatches;
-- `release_candidate_windows.yml` is manually dispatched from protected `main` for one existing
+- `release_candidate_windows.yml` is manually dispatched from `main` for one existing
   strict-SemVer tag, then publishes the verified portable ZIP;
 - `release_verify_published.yml` downloads the exact published ZIP and independently verifies its
   identity and archive structure.
@@ -46,7 +46,7 @@ with an explicitly supplied executable.
 authorized Windows 11 x64 client acceptance gates named below.
 
 The release-candidate chain begins with a no-checkout admission job that requires
-`workflow_dispatch`, `refs/heads/main`, `github.ref_protected`, and equality between the event SHA
+`workflow_dispatch`, `refs/heads/main`, and equality between the event SHA
 and the workflow-definition SHA. The reusable gate receives that trusted workflow commit. Its
 unsigned job checks out only the full `refs/tags/<tag>` ref, proves that the tag exists, that `HEAD`
 equals `tag^{commit}`, and that the source is an ancestor of the trusted workflow commit, then builds
@@ -62,7 +62,7 @@ application/broker state and broker protocol, then runs the release quality, pac
 and synthetic performance checks. No publisher variable or signing secret is required.
 
 Only the optional `signed` release channel enters the `windows-production-signing` Environment,
-which requires a reviewer and restricts deployment to protected `main`. Its PFX and password remain
+which requires a reviewer and restricts deployment to `main`. Its PFX and password remain
 Environment secrets. The signer checks out no source, has no `GITHUB_TOKEN` authority, signs only the
 two fixed executables, scrubs ephemeral key material and uploads an immutable signed artifact. Its
 independent verifier rechecks the signed manifest and publisher before release.
@@ -72,8 +72,7 @@ manifest to that SHA and the still-current tag, reverifies the bundle, and uploa
 plus its SHA-256 as another immutable artifact. The sole `contents: write` publisher downloads only
 that ZIP, checks out no repository and executes no repository script. Immediately before GitHub
 Release mutation it peels the current tag through the GitHub API, requires the resolved commit to
-equal the verified source, and rechecks the ZIP hash. Repository configuration must additionally prevent update or
-deletion of admitted version tags; no workflow can make a tag lookup and release mutation atomic.
+equal the verified source, and rechecks the ZIP hash.
 
 For hosted Daily runs, the shared gate calls `quality_gate_daily_windows.yml` for eight isolated
 `windows-2025` jobs: static verification, four Rust partitions, Flutter widget tests, the controlled
@@ -81,9 +80,7 @@ Windows scan integration, and the native Windows accessibility integration. It a
 `quality_gate_synthetic_windows.yml` for five separately
 isolated workload jobs and `quality_gate_unsigned_windows.yml` for optimized application/broker
 verification. A stable `Windows Gate` aggregation job succeeds only when every Daily, synthetic,
-and unsigned-build job succeeds; skipped or cancelled requirements fail. Once repository branch
-protection is provisioned, its required status context
-must be the exact GitHub check name `Windows Gate / Windows Gate`. Matrix fail-fast is disabled so
+and unsigned-build job succeeds; skipped or cancelled requirements fail. Matrix fail-fast is disabled so
 one failure does not hide results from the other components. Jobs do not exchange
 compiled artifacts or build directories; only dependency caches may be reused. This reduces
 wall-clock latency at the cost of additional hosted runner minutes. Release candidate jobs remain
@@ -119,9 +116,9 @@ current gate.
 
 GitHub-hosted workflows never receive real-library paths or authorization tokens and never run the
 real-library gate. Ordinary PR CI runs the five synthetic cases without release permission; retained
-real-library verification remains a separately prepared workstation action. Protected release jobs
+real-library verification remains a separately prepared workstation action. Release jobs
 may still show as skipped in a PR: the independent unsigned quality job supplies compilation evidence
-without relaxing their protected-main admission.
+without changing their manual main-only admission.
 
 Read-only verification of known real-library roots is covered by the repository's standing policy
 and does not require a separate confirmation for each run. Record explicit roots, read scope,

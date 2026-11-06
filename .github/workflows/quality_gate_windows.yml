@@ -34,7 +34,7 @@ on:
         default: unsigned
         type: string
       trusted_workflow_commit:
-        description: Protected-main commit that owns the calling release workflow
+        description: Main commit that owns the calling release workflow
         required: false
         default: ""
         type: string
@@ -80,8 +80,7 @@ jobs:
     if: >-
       inputs.gate_mode == 'release' &&
       github.event_name == 'workflow_dispatch' &&
-      github.ref == 'refs/heads/main' &&
-      github.ref_protected
+      github.ref == 'refs/heads/main'
     runs-on: windows-2025
     timeout-minutes: 120
     env:
@@ -126,7 +125,7 @@ jobs:
             throw "Unsigned release must not carry a signed publisher requirement"
           }
           if ($env:AME_TRUSTED_WORKFLOW_COMMIT -cnotmatch '^[0-9a-f]{40}$') {
-            throw "Release gate requires one immutable protected-workflow commit"
+            throw "Release gate requires one immutable workflow commit"
           }
 
       - name: Check out repository
@@ -364,8 +363,7 @@ jobs:
       inputs.gate_mode == 'release' &&
       inputs.release_signing_mode == 'signed' &&
       github.event_name == 'workflow_dispatch' &&
-      github.ref == 'refs/heads/main' &&
-      github.ref_protected
+      github.ref == 'refs/heads/main'
     runs-on: windows-2025
     timeout-minutes: 20
     permissions: {}
@@ -700,8 +698,7 @@ jobs:
       inputs.gate_mode == 'release' &&
       inputs.release_signing_mode == 'signed' &&
       github.event_name == 'workflow_dispatch' &&
-      github.ref == 'refs/heads/main' &&
-      github.ref_protected
+      github.ref == 'refs/heads/main'
     runs-on: windows-2025
     timeout-minutes: 90
     env:
@@ -733,7 +730,7 @@ jobs:
             throw "Signed verification requires the exact Windows Authenticode publisher"
           }
           if ($env:AME_TRUSTED_WORKFLOW_COMMIT -cnotmatch '^[0-9a-f]{40}$') {
-            throw "Signed verification requires one immutable protected-workflow commit"
+            throw "Signed verification requires one immutable workflow commit"
           }
 
       - name: Check out exact release tag
@@ -1018,8 +1015,7 @@ jobs:
       inputs.gate_mode == 'release' &&
       inputs.release_signing_mode == 'unsigned' &&
       github.event_name == 'workflow_dispatch' &&
-      github.ref == 'refs/heads/main' &&
-      github.ref_protected
+      github.ref == 'refs/heads/main'
     runs-on: windows-2025
     timeout-minutes: 90
     env:

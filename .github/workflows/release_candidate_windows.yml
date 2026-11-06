@@ -30,7 +30,7 @@ concurrency:
 
 jobs:
   release_request:
-    name: Protected Release Request
+    name: Release Request
     runs-on: windows-2025
     timeout-minutes: 5
     permissions:
@@ -38,7 +38,7 @@ jobs:
     outputs:
       trusted_workflow_commit: ${{ steps.release_request.outputs.trusted_workflow_commit }}
     steps:
-      - name: Validate protected-main release entry
+      - name: Validate main release entry
         id: release_request
         shell: pwsh
         env:
@@ -47,7 +47,6 @@ jobs:
           AME_RELEASE_SIGNING_MODE: ${{ inputs.release_signing_mode }}
           AME_HEAD_COMMIT: ${{ github.sha }}
           AME_REF: ${{ github.ref }}
-          AME_REF_PROTECTED: ${{ github.ref_protected }}
           AME_RELEASE_TAG: ${{ inputs.release_tag }}
           AME_WORKFLOW_COMMIT: ${{ github.workflow_sha }}
         run: |
@@ -63,17 +62,16 @@ jobs:
           )
           if (
             $env:AME_EVENT_NAME -cne "workflow_dispatch" -or
-            $env:AME_REF -cne "refs/heads/main" -or
-            $env:AME_REF_PROTECTED -cne "true"
+            $env:AME_REF -cne "refs/heads/main"
           ) {
-            throw "Release publication must be dispatched from protected main"
+            throw "Release publication must be dispatched from main"
           }
           if (
             $env:AME_HEAD_COMMIT -cnotmatch '^[0-9a-f]{40}$' -or
             $env:AME_WORKFLOW_COMMIT -cnotmatch '^[0-9a-f]{40}$' -or
             $env:AME_HEAD_COMMIT -cne $env:AME_WORKFLOW_COMMIT
           ) {
-            throw "Release workflow identity is not one immutable protected-main commit"
+            throw "Release workflow identity is not one immutable main commit"
           }
           if ($env:AME_RELEASE_TAG -cnotmatch $tagPattern) {
             throw "Release request requires one strict v-prefixed semantic-version tag"

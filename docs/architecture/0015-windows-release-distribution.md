@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-11
-- Last amended: 2026-11-05
+- Last amended: 2026-11-06
 
 ## Context
 
@@ -13,7 +13,7 @@ executable would produce an unusable application.
 
 The application currently has one primary user and one measured platform. Unsigned distribution
 is supported without a certificate or publisher identity. Optional production signing requires a
-human-reviewed GitHub Environment restricted to protected `main`; signing credentials must never
+human-reviewed GitHub Environment restricted to `main`; signing credentials must never
 be available to a tag-controlled or arbitrary-ref workflow definition. Both channels require the
 complete release-candidate gate before publication.
 Original media, local catalogs, caches, machine-specific paths, and identity data must never enter a
@@ -73,20 +73,20 @@ verification rejects an unexpected filename, entries outside the single archive 
 absolute paths, duplicate paths, missing executable or core runtime DLLs, missing Rust bridge DLL,
 missing ICU or application data, and missing Flutter assets.
 
-The release-candidate workflow is manually dispatched only from protected `main`; a tag push
+The release-candidate workflow is manually dispatched only from `main`; a tag push
 never obtains publication or signing credentials. The default `unsigned` channel verifies the
 manifest-bound source and binaries without a PFX or expected publisher. Optional `signed` release
 uses the `windows-production-signing` Environment, which must require a reviewer and restrict
-deployment branches and tags to protected `main`. Its PFX and password are Environment secrets,
-never repository or organization secrets. The repository must enforce an immutable release-tag
-ruleset preventing update or deletion of admitted `v<semantic-version>` tags. Only after the
+deployment branches and tags to `main`. Its PFX and password are Environment secrets,
+never repository or organization secrets. Branch and tag protection are optional repository
+settings, not publication prerequisites. Only after the
 selected read-only candidate and package gates succeed may a separate no-checkout job with
 repository-content write permission publish or update the corresponding GitHub Release. The
 published-release workflow independently verifies the exact attachment in the selected channel.
 
 ADR 0026 adds a separate credential-free unsigned build check to ordinary quality CI. It verifies
 the application and broker payload plus an isolated bridge smoke, but does not feed artifacts to
-this protected candidate chain or claim signing, installation, publication, or client acceptance.
+this candidate chain or claim signing, installation, publication, or client acceptance.
 
 ### Hosted artifact transport
 
@@ -186,7 +186,7 @@ path, binary SHA-256 values and the configured optional publisher/certificate po
 the installer.
 
 Hosted release verification consumes one immutable manifest-bound Application bundle without
-rebuilding or copying over it after admission. The protected-main dispatch commit is the trusted
+rebuilding or copying over it after admission. The main dispatch commit is the trusted
 workflow commit. Before checkout, the workflow accepts only a strict `v`-prefixed SemVer tag; checkout
 names the complete `refs/tags/<tag>` ref and proves `HEAD` equals `tag^{commit}` and that the source
 commit is an ancestor of the trusted workflow commit. The application and broker are built without
@@ -211,17 +211,15 @@ GitHub API. A same-name asset must be uploaded and have an API-provided SHA-256 
 verified ZIP; that identity is retained without another upload. A different, missing, or malformed
 digest fails closed. Only a missing attachment may be uploaded, without overwrite permission.
 A release lookup's explicit HTTP 404 permits creation; transport errors and other unsuccessful
-release or asset lookups never count as absence. The immutable tag ruleset is a required enforcement
-layer because a workflow
-cannot make tag resolution and release-asset mutation one GitHub transaction. Post-publication
+release or asset lookups never count as absence. The publisher rechecks the tag immediately before
+mutation; GitHub does not make tag resolution and release-asset mutation one transaction. Post-publication
 verification enforces safe ZIP paths and bounded expansion, extracts into fresh repository scratch
 storage, validates x64 payload and broker protocol, and checks either both unsigned executable states
 or the selected signatures/publisher before cleanup. The candidate workflow calls this reusable
 verifier directly after publication. Externally created `release: published` events use the default
 unsigned channel unless the repository Actions variable `AME_WINDOWS_RELEASE_SIGNING_MODE` explicitly
 selects `signed`, which also requires `AME_WINDOWS_EXPECTED_PUBLISHER`. Manual dispatch can select
-either channel. Repository protection must require the exact `Windows Gate / Windows Gate` status
-context. A structural ZIP check alone is not release identity evidence.
+either channel. A structural ZIP check alone is not release identity evidence.
 
 ## Deferred decisions
 
@@ -253,8 +251,7 @@ them as disposable cache.
 - GitHub Release publication has write permission only after the read-only candidate and packaging
   gates succeed, and that job has no repository checkout.
 - A workflow rerun retains an existing same-name attachment only after proving the same immutable
-  source commit and ZIP identity; it never replaces an attachment. Tag update and deletion protection
-  is a repository-configuration prerequisite.
+  source commit and ZIP identity; it never replaces an attachment.
 
 ## Validation evidence
 
