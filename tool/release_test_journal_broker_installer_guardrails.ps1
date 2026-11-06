@@ -1693,7 +1693,8 @@ foreach ($requiredVerificationJobContract in @(
     'ref: refs/tags/${{ inputs.release_tag }}',
     "Download immutable signed candidate",
     "Verify signed manifest and fixed binaries",
-    "./tool/release_verify_candidate.ps1",
+    "./tool/release_verify_windows.ps1",
+    "./tool/performance_benchmark_synthetic_library.ps1",
     "SignedApplicationBundlePath",
     "Expose verified immutable artifact"
 )) {

@@ -75,6 +75,15 @@ jobs:
     with:
       checkout_ref: ${{ inputs.checkout_ref || github.sha }}
 
+  release_daily_components:
+    name: Release / Daily
+    needs: release_unsigned_windows
+    if: inputs.gate_mode == 'release'
+    uses: ./.github/workflows/quality_gate_daily_windows.yml
+    with:
+      checkout_ref: ${{ needs.release_unsigned_windows.outputs.source_commit }}
+      base_revision: ${{ inputs.base_revision }}
+
   release_unsigned_windows:
     name: Release / Build Release Candidate
     if: >-
@@ -987,10 +996,11 @@ jobs:
         run: |
           $releaseRoot = [System.IO.Path]::GetFullPath("build\signed-candidate\payload")
           $brokerPath = Join-Path $releaseRoot "cedarflake_ame_journal_broker.exe"
-          ./tool/release_verify_candidate.ps1 `
+          ./tool/release_verify_windows.ps1 `
             -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER `
             -SignedBrokerBinaryPath $brokerPath `
             -SignedApplicationBundlePath $releaseRoot
+          ./tool/performance_benchmark_synthetic_library.ps1
 
       - name: Check committed whitespace
         shell: pwsh
@@ -1099,10 +1109,9 @@ jobs:
           AME_RELEASE_TAG: ${{ inputs.release_tag }}
         run: ./tool/release_validate_version.ps1 -Tag $env:AME_RELEASE_TAG
 
-      - name: Run complete unsigned release acceptance
+      - name: Verify unsigned runtime and synthetic performance
         shell: pwsh
         run: |
-          ./tool/quality_verify_daily.ps1
           ./tool/release_verify_windows.ps1 -SigningMode unsigned -SignedApplicationBundlePath (
             [System.IO.Path]::GetFullPath("build\unsigned-candidate\payload")
           )
@@ -1131,6 +1140,7 @@ jobs:
       - daily_components
       - quality_synthetic_windows
       - quality_unsigned_windows
+      - release_daily_components
       - release_verify_windows
       - release_verify_unsigned_windows
     runs-on: windows-2025
@@ -1139,6 +1149,7 @@ jobs:
       AME_DAILY_RESULT: ${{ needs.daily_components.result }}
       AME_SYNTHETIC_RESULT: ${{ needs.quality_synthetic_windows.result }}
       AME_UNSIGNED_RESULT: ${{ needs.quality_unsigned_windows.result }}
+      AME_RELEASE_DAILY_RESULT: ${{ needs.release_daily_components.result }}
       AME_GATE_MODE: ${{ inputs.gate_mode }}
       AME_RELEASE_SIGNING_MODE: ${{ inputs.release_signing_mode }}
       AME_RELEASE_RESULT: ${{ needs.release_verify_windows.result }}
@@ -1156,6 +1167,9 @@ jobs:
             return
           }
           if ($env:AME_GATE_MODE -eq "release") {
+            if ($env:AME_RELEASE_DAILY_RESULT -ne "success") {
+              throw "Every Daily component for the release source must succeed"
+            }
             if ($env:AME_RELEASE_SIGNING_MODE -eq "unsigned") {
               if ($env:AME_RELEASE_UNSIGNED_RESULT -ne "success") {
                 throw "The unsigned release candidate gate failed"

@@ -87,6 +87,11 @@ wall-clock latency at the cost of additional hosted runner minutes. Release cand
 ordered by immutable artifacts because build, protected signing, credential-free verification, and
 publication form distinct trust boundaries.
 
+Release Daily reuses the same eight component jobs after candidate construction, checking out the
+candidate's manifest-bound source commit. It runs alongside the independent candidate runtime and
+synthetic-performance verification; packaging waits for both to succeed. Hosted candidate verifiers
+do not repeat the serial workstation Daily gate inside their 90-minute runtime-verification budget.
+
 Static and each Rust partition retain a 90-minute total budget; the other Daily components retain
 60 minutes. Each budget includes its own toolchain setup and compilation. Product-workflow and test
 deadlines, workload sizes, assertions and case-level serial execution remain unchanged.

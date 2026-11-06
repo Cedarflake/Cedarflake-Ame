@@ -15,8 +15,9 @@ The default GitHub release channel is **unsigned**. Manually run
 The reusable gate builds the application and broker without signing, stages one immutable
 manifest-bound Windows x64 bundle, and independently verifies its complete file list, lengths,
 SHA-256 hashes, source commit, tag ancestry, executable architecture and broker protocol.
-The release gate also runs Daily checks, packaged process ownership/restart and bridge smoke, and
-synthetic performance acceptance. Only a passing candidate proceeds to the read-only portable
+The release gate runs Daily's eight existing components against that same source commit, alongside
+packaged process ownership/restart, bridge smoke and synthetic performance acceptance. All components
+and candidate checks must pass before the candidate proceeds to the read-only portable
 packager and the no-checkout, write-authorized GitHub Release publisher.
 
 For independent unsigned-candidate validation:

@@ -31,10 +31,29 @@ function Assert-AmeHostedExtendedContract {
             }
         }
     }
+    $releaseDaily = Get-AmeHostedJobSource $Gate "release_daily_components"
+    foreach ($required in @(
+        "    needs: release_unsigned_windows",
+        "    if: inputs.gate_mode == 'release'",
+        "    uses: ./.github/workflows/quality_gate_daily_windows.yml",
+        '      checkout_ref: ${{ needs.release_unsigned_windows.outputs.source_commit }}'
+    )) {
+        if (-not $releaseDaily.Contains($required)) {
+            throw "Release Daily must cover the candidate's immutable source through existing components"
+        }
+    }
+    foreach ($job in @("release_verify_windows", "release_verify_unsigned_windows")) {
+        $verifier = Get-AmeHostedJobSource $Gate $job
+        if (-not $verifier.Contains("./tool/release_verify_windows.ps1") -or
+            -not $verifier.Contains("./tool/performance_benchmark_synthetic_library.ps1") -or
+            $verifier -match 'quality_verify_daily\.ps1|release_verify_candidate\.ps1') {
+            throw "Candidate verification must retain runtime and performance checks without serial Daily"
+        }
+    }
     $aggregate = Get-AmeHostedJobSource $Gate "quality_windows"
     foreach ($job in @(
         "daily_components", "quality_synthetic_windows", "quality_unsigned_windows",
-        "release_verify_windows", "release_verify_unsigned_windows"
+        "release_daily_components", "release_verify_windows", "release_verify_unsigned_windows"
     )) {
         if ($aggregate -notmatch ('(?m)^      - ' + $job + '\r?$')) {
             throw "The aggregate gate does not depend on $job"
@@ -85,6 +104,14 @@ foreach ($mutation in @(
     @{ Gate = $gate.Replace("      - quality_synthetic_windows", ""); Synthetic = $synthetic },
     @{ Gate = $gate.Replace("      - quality_unsigned_windows", ""); Synthetic = $synthetic },
     @{ Gate = $gate.Replace("      - release_verify_unsigned_windows", ""); Synthetic = $synthetic },
+    @{ Gate = $gate.Replace("      - release_daily_components", ""); Synthetic = $synthetic },
+    @{
+        Gate = $gate.Replace(
+            'checkout_ref: ${{ needs.release_unsigned_windows.outputs.source_commit }}',
+            'checkout_ref: ${{ github.sha }}'
+        )
+        Synthetic = $synthetic
+    },
     @{
         Gate = $gate.Replace(
             'unsigned_bundle_artifact: ${{ steps.verified_artifact.outputs.name }}',
@@ -122,7 +149,8 @@ $verify = [scriptblock]::Create(
 )
 $resultNames = @("AME_DAILY_RESULT", "AME_SYNTHETIC_RESULT", "AME_UNSIGNED_RESULT")
 $environmentNames = $resultNames + @(
-    "AME_GATE_MODE", "AME_RELEASE_RESULT", "AME_RELEASE_UNSIGNED_RESULT", "AME_RELEASE_SIGNING_MODE"
+    "AME_GATE_MODE", "AME_RELEASE_RESULT", "AME_RELEASE_UNSIGNED_RESULT", "AME_RELEASE_SIGNING_MODE",
+    "AME_RELEASE_DAILY_RESULT"
 )
 $saved = @{}
 foreach ($name in $environmentNames) { $saved[$name] = [Environment]::GetEnvironmentVariable($name) }
@@ -130,6 +158,7 @@ try {
     foreach ($name in $resultNames) { [Environment]::SetEnvironmentVariable($name, "success") }
     $env:AME_GATE_MODE = "daily"
     $env:AME_RELEASE_RESULT = "skipped"
+    $env:AME_RELEASE_DAILY_RESULT = "skipped"
     & $verify
     foreach ($name in $resultNames) {
         foreach ($failure in @("failure", "cancelled", "skipped", "")) {
@@ -147,13 +176,17 @@ try {
         $resultName = if ($mode -eq "signed") { "AME_RELEASE_RESULT" } else { "AME_RELEASE_UNSIGNED_RESULT" }
         $env:AME_RELEASE_RESULT = "skipped"
         $env:AME_RELEASE_UNSIGNED_RESULT = "skipped"
+        $env:AME_RELEASE_DAILY_RESULT = "success"
         [Environment]::SetEnvironmentVariable($resultName, "success")
         & $verify
-        foreach ($failure in @("failure", "cancelled", "skipped", "")) {
-            [Environment]::SetEnvironmentVariable($resultName, $failure)
-            $rejected = $false
-            try { & $verify } catch { $rejected = $true }
-            if (-not $rejected) { throw "Aggregate accepted $mode release=$failure" }
+        foreach ($requiredResult in @($resultName, "AME_RELEASE_DAILY_RESULT")) {
+            foreach ($failure in @("failure", "cancelled", "skipped", "")) {
+                [Environment]::SetEnvironmentVariable($requiredResult, $failure)
+                $rejected = $false
+                try { & $verify } catch { $rejected = $true }
+                if (-not $rejected) { throw "Aggregate accepted $mode $requiredResult=$failure" }
+            }
+            [Environment]::SetEnvironmentVariable($requiredResult, "success")
         }
     }
     $env:AME_RELEASE_SIGNING_MODE = "invalid"
