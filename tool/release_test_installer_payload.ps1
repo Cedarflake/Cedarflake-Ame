@@ -8,11 +8,27 @@ function Assert-InstallerRejected {
     if (-not $rejected) { throw "Unsafe installer fixture was admitted" }
 }
 
-foreach ($tag in @("v0.1.0", "v255.255.65535")) {
-    if ((Get-AmeInstallerVersion $tag) -cne $tag.Substring(1)) { throw "MSI version changed" }
+foreach ($case in @(
+        @('v0.1.0-alpha.1', '0.1.0-alpha.1+1', '0.1.1'),
+        @('v0.1.0-alpha.2', '0.1.0-alpha.2+2', '0.1.2'),
+        @('v0.1.0', '0.1.0+3', '0.1.3'),
+        @('v0.1.1', '0.1.1+4', '0.1.4'),
+        @('v255.255.0-rc.1', '255.255.0-rc.1+65535', '255.255.65535')
+    )) {
+    if ((Get-AmeInstallerVersion -Tag $case[0] -ApplicationVersion $case[1]) -cne $case[2]) {
+        throw "MSI upgrade version changed for $($case[0])"
+    }
 }
-foreach ($tag in @("v0.1.0.1", "v0.1.0-rc.1", "v0.1.0+2", "v256.0.0", "v0.0.65536", "v01.2.3", "0.1.0")) {
-    Assert-InstallerRejected { Get-AmeInstallerVersion $tag }
+foreach ($case in @(
+        @('v0.1.0.1', '0.1.0.1+1'), @('v0.1.0-rc.01', '0.1.0-rc.01+1'),
+        @('v0.1.0+2', '0.1.0+2'), @('v256.0.0', '256.0.0+1'),
+        @('v0.256.0', '0.256.0+1'), @('v0.1.0', '0.1.0+65536'),
+        @('v01.2.3', '01.2.3+1'), @('0.1.0', '0.1.0+1'),
+        @('v0.1.0', '0.1.0'), @('v0.1.0', '0.1.0+0'),
+        @('v0.1.0', '0.1.0+01'), @('v0.1.0', '0.1.0+build.1'),
+        @('v0.1.0-alpha.1', '0.1.0+1')
+    )) {
+    Assert-InstallerRejected { Get-AmeInstallerVersion -Tag $case[0] -ApplicationVersion $case[1] }
 }
 $firstProduct = Get-AmeInstallerGuid "product/0.1.0"
 if ($firstProduct -cne (Get-AmeInstallerGuid "product/0.1.0") -or

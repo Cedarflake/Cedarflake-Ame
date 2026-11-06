@@ -21,6 +21,8 @@ function Test-AmeInstallerPolicyRegressions {
         optional_broker = { param($value) ($value.Feature | Where-Object Feature -CEQ 'Ame').Attributes = '0' }
         wrong_native_module = { param($value) $value.AdmissionHash = '0' * 64 }
         detached_payload = { param($value) $value.Media[0].Cabinet = 'external.cab' }
+        detached_last_cabinet = { param($value) $value.Media[-1].Cabinet = 'external.cab' }
+        missing_payload = { param($value) $value.Media = @() }
         missing_maintenance = { param($value) ($value.Dialog | Where-Object Dialog -CEQ 'MaintenanceTypeDlg').Dialog = 'Missing' }
         mandatory_desktop_shortcut = { param($value) ($value.Feature | Where-Object Feature -CEQ 'AmeDesktopFeature').Attributes = '24' }
         foreign_registry_write = { param($value) $value.Registry[0].Key = 'SOFTWARE\OtherProduct' }

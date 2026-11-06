@@ -38,6 +38,12 @@ publisher parameter:
   -ReleaseRoot "<verified unsigned Windows Release directory>"
 ```
 
+An MSI accompanies the ZIP using the installer command in the
+[command reference](commands.md#repository-command-reference). A supplemental MSI for an existing
+release uses the same verified candidate source and payload. Check its actual database and installed
+behavior, retain its receipt and SHA-256, and upload only the missing installer asset; do not replace
+the ZIP or move the version tag. Candidate runtime results remain reusable for identical bytes.
+
 An optional `signed` channel remains available. It requires an exact
 `expected_broker_publisher`, the protected `windows-production-signing` Environment, an
 authorized reviewer and production PFX secrets. Its original Authenticode admission and signed

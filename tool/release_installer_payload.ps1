@@ -2,29 +2,12 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
 . (Join-Path $PSScriptRoot "release_classification_models.ps1")
+. (Join-Path $PSScriptRoot "release_installer_version.ps1")
 
 $script:AmeInstallerUpgradeCode = "C284E6B0-1484-4926-A94B-C3EC3840DBBD"
 $script:AmeInstallerNamespace = "http://wixtoolset.org/schemas/v4/wxs"
 $script:AmeInstallerDirectorySddl = "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200A9;;;BU)"
 $script:AmeInstallerFileSddl = "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;0x1200A9;;;BU)"
-
-function Get-AmeInstallerVersion {
-    param([Parameter(Mandatory = $true)][string]$Tag)
-
-    $match = [regex]::Match($Tag, '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$')
-    if (-not $match.Success) {
-        throw "MSI requires a v-prefixed three-part release version without prerelease or build metadata"
-    }
-    $bounds = @(255, 255, 65535)
-    for ($index = 0; $index -lt 3; $index++) {
-        $number = 0L
-        if (-not [long]::TryParse($match.Groups[$index + 1].Value, [ref]$number) -or
-            $number -gt $bounds[$index]) {
-            throw "Release version exceeds Windows Installer version limits"
-        }
-    }
-    return $Tag.Substring(1)
-}
 
 function Get-AmeInstallerGuid {
     param([Parameter(Mandatory = $true)][string]$Name)

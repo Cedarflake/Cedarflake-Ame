@@ -91,7 +91,10 @@ function Assert-AmeInstallerLayout {
             $entry.Name -ceq $expected[0] -and $entry.Value -ceq $expected[1] -and
             $components[$entry.Component_].KeyPath -ceq $entry.Registry) 'installation setting differs from exact ownership'
     }
-    Require ($Model.Media.Count -eq 1 -and $Model.Media[0].Cabinet.StartsWith('#')) 'payload must be embedded'
+    Require ($Model.Media.Count -gt 0 -and $Model.Media.Count -le $Model.File.Count) 'payload must be embedded'
+    foreach ($media in $Model.Media) {
+        Require ($media.Cabinet.Length -gt 1 -and $media.Cabinet.StartsWith('#')) 'payload must be embedded'
+    }
 
     $directoryAcl = 'O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200A9;;;BU)'
     $fileAcl = 'O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;0x1200A9;;;BU)'

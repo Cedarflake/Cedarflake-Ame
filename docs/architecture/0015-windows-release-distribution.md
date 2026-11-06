@@ -68,6 +68,12 @@ Only Windows 11 x64 is supported and published. ARM packages are not produced or
 `windows-2025` Windows Server runner supplies reproducible build and release checks, but it does not
 replace the separately authorized Windows 11 client acceptance evidence.
 
+Provide the MSI installer alongside the portable ZIP under the same release tag. Its product
+version, embedded model payload and installation lifecycle follow [ADR 0027](0027-windows-installer-lifecycle.md).
+An additional installer may reuse the completed candidate's immutable application files and runtime
+evidence; reverify that manifest, validate the installer itself and preserve existing release assets.
+Installer packaging must not rebuild or substitute the already published application payload.
+
 The portable archive contains the complete repository-built Flutter Release directory. Archive
 verification rejects an unexpected filename, entries outside the single archive root, traversal or
 absolute paths, duplicate paths, missing executable or core runtime DLLs, missing Rust bridge DLL,

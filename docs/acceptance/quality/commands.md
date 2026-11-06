@@ -45,6 +45,11 @@ admission module with warnings denied, verifies the emitted MSI's native service
 upgrade, action-ordering, native options and maintenance-dialog tables, and emits one embedded-payload
 MSI plus its receipt, and a Burn setup executable that opens the MSI interface after early elevation.
 Supply the bootstrapper inputs through `-WixBootstrapperPackagePath` and `-WixBootstrapperDirectory`.
+For a completed release-candidate gate, replace `-BundlePath` and `-UnsignedEvidencePath` with
+`-CandidateRoot <manifest-and-payload-directory>` and `-SourceCommit <verified-source-sha>`.
+The builder reverifies that immutable candidate before packaging; the input modes cannot be mixed.
+The application version must match the tag and include a positive numeric Flutter build suffix.
+The MSI upgrade number follows [ADR 0027](../../architecture/0027-windows-installer-lifecycle.md).
 It also runs the rejecting database-policy cases against modified in-memory models.
 `./tool/release_test_installer_ui.ps1 -PackagePath <msi> -DtfAssemblyPath <pinned-dtf-assembly>`
 uses isolated MSI sessions for costing, exact property initialization and native condition evaluation

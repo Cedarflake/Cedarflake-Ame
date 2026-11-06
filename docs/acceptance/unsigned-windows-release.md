@@ -29,3 +29,31 @@ Checks used repository locking and leased scratch storage. They did not install 
 real-library sources, sign binaries or publish a release. Full hosted candidate execution and
 post-publication verification remain the release workflow's responsibility; no release was
 dispatched during this review. The user's merge instruction permits integration before CI finishes.
+
+## Alpha MSI supplement — 2026-11-06
+
+The supplemental `v0.1.0-alpha.1` MSI uses the exact application payload from successful
+[release run 42210989286](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42210989286),
+source `ab9146fdfbe2eb44436394dbcc36a31dea14e273`. Candidate admission rechecked the tag, source,
+complete file manifest and executable identities. Application runtime evidence remains that run's
+evidence; this supplement does not rebuild or relaunch the application against the real catalog.
+
+The MSI contains 41 files, including the pinned classification models, tokenizer and notices.
+Its size is 369,717,248 bytes; SHA-256 is
+`bda9182efd714d1437d7edec6d071c15728c1754da08ff1dbac049ef8c0f1dfb`.
+Application version `0.1.0-alpha.1+1` maps to MSI `ProductVersion` `0.1.1` under
+[ADR 0027](../architecture/0027-windows-installer-lifecycle.md). The existing portable asset and
+version tag remain unchanged.
+
+Version-admission regressions passed in PowerShell 7 and Windows PowerShell 5.1. Native installer
+policy, actual MSI database validation, 28 rejecting mutations and 16 native option transitions
+passed. The model-bearing package has four embedded cabinets; the layout guard now verifies every
+cabinet rather than incorrectly requiring exactly one, and rejects missing or detached payloads.
+
+Explicitly authorized Windows 11 host acceptance completed fresh installation, forced repair and
+uninstall with exit code 0 for all three operations. Installed and repaired payload hashes, model
+files, registered version, running service identity, restricted SID and required privileges matched
+the receipt. Uninstall removed the service, product registration and installation directory.
+All 20 existing catalog/model data files retained their paths, lengths and SHA-256 hashes. No
+source-media access was needed. This run qualifies the supplemental package's install/repair/remove
+path; historical upgrade and rollback coverage is not replayed or relabeled as a new result.

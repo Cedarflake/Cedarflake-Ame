@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-12
-- Last amended: 2026-11-02
+- Last amended: 2026-11-06
 
 ## Context and decision drivers
 
@@ -15,7 +15,8 @@ local builds, retain user data and restore the preceding installation if an upgr
 
 Use an x64, per-machine MSI built with WiX Toolset 7.0.0. Windows Installer owns file components,
 product registration, service installation/configuration/control and transactional rollback.
-Distribute it in one native WiX Burn executable using `WixInternalUIBootstrapperApplication`.
+Distribute the MSI alongside the portable ZIP. A native WiX Burn executable using
+`WixInternalUIBootstrapperApplication` remains available for early elevation and cached maintenance.
 The standard bootstrapper detects, plans and applies the per-machine chain before displaying the
 MSI's internal interface, requesting elevation at the start. Burn owns package caching and bundle
 maintenance; the MSI remains the sole owner of installed files and service registration.
@@ -24,16 +25,23 @@ of the desktop application. Native actions validate protected destinations and e
 then own one bounded service-start/readiness operation and its paired rollback stop. They do not
 implement a second installation transaction engine.
 
-The upgrade identity is `C284E6B0-1484-4926-A94B-C3EC3840DBBD`. Release MSI versions are exactly
-the three numeric components shared by Cargo, Flutter and the release tag. Reject prerelease
-suffixes, a fourth numeric component and values outside MSI's 255/255/65535 limits rather than
-silently collapsing distinct versions. Increment that version for each distributed change.
+The upgrade identity is `C284E6B0-1484-4926-A94B-C3EC3840DBBD`. The release tag and application
+retain their full semantic version, including prerelease identifiers. MSI `ProductVersion` uses
+`major.minor.build`, with the positive numeric build suffix from Flutter's `pubspec.yaml` as its
+third component. For example, `0.1.0-alpha.1+1` produces MSI version `0.1.1`. Increment the build
+number for every distributed revision within a major/minor line, including the transition from
+prerelease to stable; patch changes must not reset it. MSI filenames and receipts retain the full
+release tag. Reject mismatched versions, missing/non-numeric build numbers and values outside
+MSI's 255/255/65535 limits. This replaces stable-only admission so prereleases have distinct,
+ordered upgrade identities instead of losing their suffix during conversion.
 The product code is stable for an exact version and changes for an upgrade; component identities
 are stable for their installed paths. The package embeds its complete bounded payload.
 
 The smart-album model payload follows ADR 0034's pinned three artifacts and two attribution files.
 The installer builder composes those independently verified files with the passing unsigned
-application manifest and records the combined payload in its receipt. The existing component and
+application manifest and records the combined payload in its receipt. It can also consume an
+immutable release-candidate manifest after its runtime gate has passed; it reverifies its exact
+tag, source, files and executable identities without rebuilding the application. The existing component and
 ACL generator owns every model file; no installer-time network request or model custom action is
 added. Installed clients verify and read the models in place. Portable builds may omit this separate
 payload and retain explicit managed download with restart recovery.

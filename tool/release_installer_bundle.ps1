@@ -7,12 +7,13 @@ function New-AmeInstallerBundle {
         [Parameter(Mandatory = $true)][string]$BootstrapperExtension,
         [Parameter(Mandatory = $true)][string]$PackagePath,
         [Parameter(Mandatory = $true)][string]$Version,
+        [Parameter(Mandatory = $true)][string]$Tag,
         [Parameter(Mandatory = $true)][string]$OutputDirectory,
         [Parameter(Mandatory = $true)][string]$Repository
     )
 
     $iconPath = Join-Path $Repository "windows/runner/resources/app_icon.ico"
-    $setup = Join-Path $OutputDirectory "Cedarflake-Ame-v$Version-windows-x64-setup.exe"
+    $setup = Join-Path $OutputDirectory "Cedarflake-Ame-$Tag-windows-x64-setup.exe"
     if (Test-Path -LiteralPath $setup) { throw "Preserve the existing setup executable" }
     Invoke-AmeChecked $Wix @("-acceptEula", "wix7", "build", "-arch", "x64", "-wx", "-ct", "1",
         "-ext", $BootstrapperExtension, "-d", "ProductVersion=$Version", "-d", "PackagePath=$PackagePath",
