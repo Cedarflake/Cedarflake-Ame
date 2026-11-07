@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [string[]]$TestPath = @("test"),
+    [string]$AffectedSince,
     [switch]$NoPub
 )
 
@@ -13,6 +14,19 @@ $toolLock = Enter-AmeRepositoryToolLock
 
 Push-Location $repositoryRoot
 try {
+    if ($AffectedSince) {
+        if ($PSBoundParameters.ContainsKey("TestPath")) {
+            throw "Choose explicit test paths or an affected comparison, not both"
+        }
+        if ($AffectedSince -cnotmatch '^[0-9a-f]{40}$') {
+            throw "Flutter test selection requires an immutable base commit"
+        }
+        $selectedJson = & $toolchain.Dart run tool/dependency-boundaries/affected_tests.dart $AffectedSince
+        if ($LASTEXITCODE -ne 0) { throw "Could not determine affected Flutter tests" }
+        $TestPath = @($selectedJson | ConvertFrom-Json)
+        Write-Host "Affected Flutter test files: $($TestPath.Count)"
+        if ($TestPath.Count -eq 0) { return }
+    }
     $candidateTestFiles = @(
         foreach ($path in $TestPath) {
             if (Test-Path -LiteralPath $path -PathType Container) {

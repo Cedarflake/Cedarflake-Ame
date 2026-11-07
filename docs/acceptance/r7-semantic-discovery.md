@@ -79,7 +79,7 @@ Removed the incidental version/text assertions and unrelated domain roster/visib
 Migration data, download authority, device switching, the availability call closure, protected DTO
 loading and dangerous alternate-loader checks remain. Local focused results: one migration and
 11 availability cases passed; seven Flutter cases across three suites passed in one invocation
-(runner-reported test duration: three seconds). The complete hosted duration still needs measurement.
+(runner-reported test duration: three seconds).
 
 Quick/full/extended selection and aggregate failure propagation passed their focused checks;
 actionlint and PowerShell syntax checks passed. Presentation changes select two main jobs, critical
@@ -87,3 +87,19 @@ or unknown changes select nine, and nightly/extended runs select fourteen. Relea
 the candidate source and no longer duplicate the scan benchmark inside the runtime verifier.
 Changed large owner counts: `local_files.rs` 2,603 production / 3,351 inline-test lines; dedicated
 topology tests 458 lines. No source-reading production behavior changed.
+
+Run [42356744377](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42356744377) at `2c039388`
+completed all 1,783 Flutter cases in four batches / 260 files; invocation-to-completion time was
+13 minutes 27 seconds. The earlier run spent approximately 24 minutes before its stale assertion
+failed. Rust Remaining passed 1,232 cases in 1,160 seconds; runner variation prevents attributing the
+entire timing difference to pruning. Windows build, scan, accessibility and synchronization also passed.
+Static exposed a duplicate assertion tying a scan benchmark to the old verification job; `d2dd220d`
+removes it while the independent release workload remains required. Its existing guardrail passed
+under PowerShell 7 and Windows PowerShell 5.1. Remaining hosted results retain that run's revision.
+
+The quick path additionally avoids unrelated native compilation/packaging checks and selects Flutter
+suites through the existing Dart parser. Bounded selection probes covered direct/transitive imports,
+conditional exports, parts, removed targets, cycles and runner configuration. The actual R7 filter
+comparison selected 203 of 260 suites and included its filter/draft cases; that broad change includes
+a shared domain type and therefore still selects full CI. No new permanent test matrix or changes to
+`testing.md` were added for this refinement. Its hosted quick-path duration remains unmeasured.

@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       quick:
-        description: Run static checks and Flutter tests for presentation-only changes
+        description: Run Dart checks and affected Flutter tests for presentation-only changes
         required: false
         default: false
         type: boolean
@@ -52,7 +52,7 @@ jobs:
           ref: ${{ inputs.checkout_ref || github.sha }}
 
       - name: Install pinned actionlint
-        if: matrix.component == 'static'
+        if: matrix.component == 'static' && !inputs.quick
         id: actionlint
         shell: pwsh
         run: |
@@ -77,7 +77,7 @@ jobs:
           "path=$installPath\actionlint.exe" >> $env:GITHUB_OUTPUT
 
       - name: Lint GitHub Actions workflows
-        if: matrix.component == 'static'
+        if: matrix.component == 'static' && !inputs.quick
         shell: pwsh
         env:
           AME_ACTIONLINT_PATH: ${{ steps.actionlint.outputs.path }}
@@ -104,7 +104,7 @@ jobs:
         run: flutter pub get --enforce-lockfile
 
       - name: Run Windows PowerShell platform compatibility probes
-        if: matrix.component == 'static'
+        if: matrix.component == 'static' && !inputs.quick
         shell: powershell
         run: |
           ./tool/quality_test_windows_powershell_compatibility.ps1
@@ -149,13 +149,20 @@ jobs:
         shell: pwsh
         env:
           AME_DAILY_COMPONENT: ${{ matrix.component }}
+          AME_PRESENTATION_ONLY: ${{ inputs.quick }}
+          AME_BASE_REVISION: ${{ inputs.base_revision }}
         run: |
           if ($env:AME_DAILY_COMPONENT.StartsWith("rust_", [StringComparison]::Ordinal)) {
             $env:CEDARFLAKE_AME_ORDINARY_JOURNAL_PARENT = [IO.Path]::GetTempPath()
             $env:TEMP = $env:RUNNER_TEMP
             $env:TMP = $env:RUNNER_TEMP
           }
-          ./tool/quality_verify_daily.ps1 -Component $env:AME_DAILY_COMPONENT
+          if ($env:AME_PRESENTATION_ONLY -eq "true") {
+            ./tool/quality_verify_daily.ps1 -Component $env:AME_DAILY_COMPONENT `
+              -PresentationOnly -AffectedSince $env:AME_BASE_REVISION
+          } else {
+            ./tool/quality_verify_daily.ps1 -Component $env:AME_DAILY_COMPONENT
+          }
 
       - name: Check committed whitespace
         if: matrix.component == 'static'

@@ -34,7 +34,7 @@ checks the run, deadline, failure-precedence, and environment-restoration protoc
 
 | Gate | Entry point | Included evidence | When to run |
 | --- | --- | --- | --- |
-| Hosted CI | `.github/workflows/quality_ci.yml` | Documentation checks for Markdown-only edits; Static/Flutter for presentation/test edits; full regression and build for critical or unknown changes | Push to `main`, pull request or merge queue; manual full/extended run |
+| Hosted CI | `.github/workflows/quality_ci.yml` | Documentation checks for Markdown-only edits; Dart checks and affected Flutter suites for presentation/test edits; full regression and build for critical or unknown changes | Push to `main`, pull request or merge queue; manual full/extended run |
 | Hosted synthetic workloads | `./tool/performance_run_synthetic.ps1` | Exact JPEG, 10,000-image scan, million-record parser, seven-format cold/warm preview, and 50,000-identity concurrent publication cases | Nightly, extended manual or release runs; explicit serial workstation invocation |
 | Windows build verification | `./tool/quality_verify_unsigned_windows.ps1` | Fresh unsigned x64 Release application/broker, payload and dependency identity, native window lifecycle, isolated bridge smoke; no catalog or signing | Full and release CI; explicit local packaging verification |
 | Native window lifecycle | `./tool/integration_test_windows_runner.ps1` | Three engine-free hidden-HWND cases plus two real Debug-engine explicit/scope retirement cases using the production window owner | Native runner lifecycle changes; mandatory in unsigned hosted verification |

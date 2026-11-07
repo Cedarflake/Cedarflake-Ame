@@ -25,7 +25,10 @@ must remain explicit. This decision does not remove runtime caller validation or
 or publication authority.
 
 Use change-scoped verification. Markdown-only changes check documentation encoding and whitespace.
-Presentation and Flutter-test changes run Static and Flutter tests. Native, domain/application,
+Presentation and Flutter-test changes run Dart formatting, analysis and dependency checks plus
+existing tests reached through imports, exports, conditional imports and parts. Test selection uses
+the parsed dependency graph, not a maintained filename-to-test roster; changed runner configuration
+selects all Flutter tests. Native, domain/application,
 persistence, lifecycle, dependency, build, workflow
 and unknown paths run every Daily component plus the credential-free Windows Release build.
 Missing change-range evidence selects the full run. The nightly run adds all five synthetic

@@ -79,7 +79,10 @@ For full runs, the shared gate calls `quality_gate_daily_windows.yml` for eight 
 `windows-2025` jobs: static verification, four Rust partitions, Flutter widget tests, the controlled
 Windows scan integration, and the native Windows accessibility integration, plus
 `quality_gate_unsigned_windows.yml` for optimized application/broker verification. Quick runs select
-only Static and Flutter from the same component owner; Markdown-only edits use a document check
+only Static and Flutter from the same component owner. Quick Static checks Dart formatting, analysis,
+dependencies and bridge contracts; quick Flutter selects existing suites through their transitive
+import graph. Unrelated Rust compilation and packaging probes remain in full Static.
+Markdown-only edits use a document check
 without SDK setup or product tests. Nightly/extended runs add five isolated
 synthetic jobs. The stable `Windows Gate` succeeds only when every selected requirement succeeds;
 skipped or cancelled requirements and failed scope selection fail. Matrix fail-fast is disabled so

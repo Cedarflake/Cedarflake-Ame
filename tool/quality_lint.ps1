@@ -1,3 +1,6 @@
+[CmdletBinding()]
+param([switch]$PresentationOnly)
+
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 
@@ -7,6 +10,15 @@ $toolLock = Enter-AmeRepositoryToolLock
 
 Push-Location $repositoryRoot
 try {
+    if ($PresentationOnly) {
+        Invoke-AmeChecked $toolchain.Dart @(
+            "format", "--output=none", "--set-exit-if-changed",
+            "lib", "test", "integration_test", "tool/dependency-boundaries"
+        )
+        & (Join-Path $PSScriptRoot "quality_verify_dependencies.ps1")
+        Invoke-AmeChecked $toolchain.Dart @("analyze", "--fatal-infos", "--fatal-warnings")
+        return
+    }
     $powerShellFiles = @(Get-ChildItem -LiteralPath "tool" -Filter "*.ps1" -File)
     Assert-AmeToolScriptNames (
         $powerShellFiles | Select-Object -ExpandProperty Name
