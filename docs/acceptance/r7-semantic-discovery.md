@@ -349,3 +349,8 @@ right edge caused by deriving the width cap from the animated inset. The follow-
 and Debug compilation; the native client verified both sidebar states and remains open for inspection.
 No new tests were added. Production / inline-test lines: screen composition 1,975 / 0, workbench
 325 / 0, sidebar transition 156 / 0 and global bar 174 / 0; the existing shell suite has 356 lines.
+
+The shared viewer-notice follow-up to `4cd0a94c` gives actionless messages symmetric 14-pixel
+horizontal padding. Eleven existing feedback-template and organization-feedback cases, changed-file
+analysis and Debug compilation passed. The user verified the rebuilt native client's appearance.
+The optional-action layout and its existing dismissal and undo behavior remain unchanged.

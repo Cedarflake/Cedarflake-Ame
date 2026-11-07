@@ -33,7 +33,10 @@ class LibraryViewerNotice extends StatelessWidget {
           liveRegion: true,
           child: AmeFeedbackSurface(
             child: Padding(
-              padding: const EdgeInsets.only(left: 14, right: 6),
+              padding: EdgeInsets.only(
+                left: 14,
+                right: actionLabel == null ? 14 : 6,
+              ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
