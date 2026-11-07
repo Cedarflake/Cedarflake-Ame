@@ -56,8 +56,20 @@ preference was enabled. This verifies the actual setting, runtime and persistenc
 extend the retained retrieval experiment into a general classification-accuracy claim. The subsequent
 copy adjustment adds `当前` to the selected-device and CPU descriptions without changing behavior.
 
-Hosted CI remains pending. Physical adapters from other vendors and a device-removal event have
-not been exercised on this workstation; runtime errors retain the existing explicit failure path.
+Physical adapters from other vendors and a device-removal event have not been exercised on this
+workstation; runtime errors retain the existing explicit failure path.
+
+## Integration disposition — 2026-11-07
+
+[PR 52](https://github.com/Cedarflake/Cedarflake-Ame/pull/52) integrated implementation `e93e9fdd`
+into `main` at `8125b804`. Source review covered device/configuration lifetimes, preference migration,
+pipeline/cache separation, precision promotion, artifact admission and package composition; no
+blocking defect was found in that scope. The local checks above were reused without another broad run.
+
+The user authorized merging after review without waiting for hosted CI. The
+[exact-head run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42341238484) was still
+running at merge; this disposition does not record a hosted pass. The local and remote feature
+branches were deleted after confirming that `main` contained the reviewed implementation.
 
 ## Physical ownership
 

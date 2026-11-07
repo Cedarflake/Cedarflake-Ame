@@ -56,9 +56,10 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-GPU analysis acceleration is the active maintenance scope: a default-enabled Settings option and
-an admitted GPU path for the existing smart-album encoder. Follow the
-[execution plan](plans/gpu-analysis-acceleration.md); this does not start R7 search implementation.
+GPU analysis acceleration was merged into `main` on 2026-11-07 through
+[PR 52](https://github.com/Cedarflake/Cedarflake-Ame/pull/52). The
+[evidence](acceptance/gpu-analysis-acceleration.md#integration-disposition--2026-11-07) retains local
+verification, review scope and the authorized merge before CI completion. R7 implementation has not started.
 
 Post-R6 maintenance is integrated into `main`. The owning records retain the local regression and
 rebuilt-client evidence for [similarity throughput](acceptance/r6-similar-images.md#development-analysis-throughput--2026-11-05),

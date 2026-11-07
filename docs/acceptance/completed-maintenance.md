@@ -15,6 +15,7 @@ does not reopen completed work or establish current-head acceptance.
 | R4 organization and recovery | [Merge verification](r4-organization.md#r4-merge-verification---2026-10-30), including retained-scale checks and failures |
 | R5 automatic smart albums | [Integrated evidence](r5-closeout.md) and [authorized early merge](r5-closeout.md#r5-merge--2026-11-03); hosted state remains separate |
 | Model delivery and restart recovery | [Installer payload and recovery](r5-desktop-classification.md#model-restart-recovery-and-installer-payload--2026-11-02) |
+| Default-enabled GPU analysis | [GPU integration](gpu-analysis-acceleration.md#integration-disposition--2026-11-07); merged through PR #52 before hosted CI completion |
 | Finite curated naming | [Category discovery](r5-category-discovery.md); open-ended naming was superseded, not left as an expansion requirement |
 | Shared notification templates | [Notification feedback](notification-feedback.md) |
 | Sidebar source status and leaf expansion | [Library sidebar](library-sidebar.md); import/synchronization remains separate from duplicate analysis |
