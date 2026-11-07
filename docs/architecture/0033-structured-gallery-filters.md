@@ -27,12 +27,18 @@ not classification or album decisions. Portable archive version 4 appends the pa
 scope; readers of versions 1 through 3 supply empty metadata conditions. Restoration preserves an
 existing local bookmark and imports the archived conditions atomically with a newly restored one.
 
-The desktop condition form was withdrawn on 2026-11-02 in favor of the original descendant and
-duplicate-display choices. Native predicates and versioned archive payloads remain compatible.
+The original desktop form was withdrawn on 2026-11-02 because its custom presentation did not fit
+the shared controls. R7 restores composed conditions through a standard Material dialog, retaining
+the descendant and duplicate-display shortcuts. A presentation-owned draft validates input without
+changing the applied query; Apply publishes all conditions together, Cancel preserves them, and
+visible summaries permit individual removal. Clear affects metadata conditions only. The
+[gallery controls contract](../product/gallery/header-and-controls.md#filter-and-exact-duplicate-behavior)
+owns the interaction.
+
 When continuation supplies a current query, its metadata conditions take precedence before choosing
-the saved or next image, alongside its existing sort precedence. Ordinary desktop queries supply
-empty conditions, preventing hidden restrictions after the form's removal. Reads without a current
-query retain the saved payload for compatibility; this change does not rewrite bookmarks or decisions.
+the saved or next image, alongside its existing sort precedence. Reads without a current query
+retain the saved payload for compatibility. Reconnecting the editor needs no migration and does
+not rewrite bookmarks or decisions.
 
 ## Alternatives and consequences
 
@@ -46,7 +52,7 @@ Existing SQLite and serde dependencies suffice; licensing and runtime packaging 
 
 Verify compound/null/boundary predicates, invalid dates and ranges, literal special characters,
 group representative selection, page/count/layout/selection agreement, query identity, migration
-rollback, restart continuation with current conditions, and the shared four-choice menu. Preserve source
+rollback, restart continuation with current conditions, and the shared filter menu/editor. Preserve source
 hashes. Native persistence and query modules own separate focused tests under ADR 0025.
 
 A later forward migration can replace the bounded scope payload while preserving its versioned

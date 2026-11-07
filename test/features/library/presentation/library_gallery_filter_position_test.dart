@@ -26,7 +26,7 @@ void main() {
         _scroll(tester).jumpTo(_scroll(tester).maxScrollExtent * 0.43);
         await tester.pumpAndSettle();
         final originalPixels = _scroll(tester).pixels;
-        await _filter(tester, filter);
+        await _filter(tester, filter, metadata: filter == "one");
         final original = catalog.requests.first!;
         if (filter == "one") {
           expect(_scroll(tester).pixels, 0);
@@ -49,7 +49,7 @@ void main() {
             closeTo(wall.top, 0.01),
           );
         }
-        await _filter(tester, "");
+        await _filter(tester, "", metadata: filter == "one");
         expect(
           catalog.requests.last?.requestedLocationId,
           original.requestedLocationId,
@@ -90,11 +90,21 @@ ScrollPosition _scroll(WidgetTester tester) => tester
     )
     .position;
 
-Future<void> _filter(WidgetTester tester, String text) async {
+Future<void> _filter(
+  WidgetTester tester,
+  String text, {
+  bool metadata = false,
+}) async {
   final filter = tester.widget<LibraryGalleryFilter>(
     find.byType(LibraryGalleryFilter),
   );
-  filter.onChanged(filter.query.copyWith(searchText: text));
+  filter.onChanged(
+    metadata
+        ? filter.query.copyWith(
+            metadataFilter: LibraryMetadataFilter(extension: text),
+          )
+        : filter.query.copyWith(searchText: text),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -139,7 +149,10 @@ class _Catalog with LibraryQuerySnapshotFixture implements LibraryCatalog {
     final retained = assets.where(
       (asset) => asset.locationId == anchor?.requestedLocationId,
     );
-    final filtered = switch (query.searchText) {
+    final condition = query.metadataFilter.isActive
+        ? query.metadataFilter.extension
+        : query.searchText;
+    final filtered = switch (condition) {
       "one" => retained.toList(),
       "bottom" => [...assets.take(24), ...retained],
       "excluded" => assets.take(24).toList(),
@@ -149,7 +162,7 @@ class _Catalog with LibraryQuerySnapshotFixture implements LibraryCatalog {
     final index = filtered.indexWhere(
       (asset) => asset.locationId == anchor?.requestedLocationId,
     );
-    final queryId = "filter-${query.searchText}";
+    final queryId = "filter-$condition";
     return LibraryQuerySnapshot(
       snapshot: LibrarySnapshot(
         catalogPath: "controlled.sqlite3",

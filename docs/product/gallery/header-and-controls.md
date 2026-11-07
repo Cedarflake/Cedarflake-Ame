@@ -169,6 +169,8 @@ The gallery Filter menu retains two independent single-choice groups:
 ────────────────
 全部图片
 合并重复图片
+────────────────
+更多筛选
 ```
 
 The source group controls descendants of the current folder. The duplicate group controls whether
@@ -181,11 +183,19 @@ choices remain visible and disabled. Manual albums, smart albums and organizatio
 merged groups: their duplicate choices remain visible and disabled, with `合并重复图片` selected.
 Library and Favorites retain their supported duplicate-display choices.
 
-The menu applies each choice directly. The metadata-condition entry and form were withdrawn on
-2026-11-02; do not replace them with another panel or menu. Ordinary desktop queries have no metadata
-conditions, and organization continuation uses the current query's conditions rather than restoring
-hidden restrictions from an older bookmark. Historical payloads remain readable for archive
-compatibility without erasing organization progress.
+The descendant and duplicate choices apply directly. `更多筛选` opens a compact desktop Material
+dialog with date, file properties and dimensions; camera information is a secondary expandable
+section. Use standard date pickers, dropdowns, text fields and buttons with the shared theme and
+scrolling. The custom form withdrawn on 2026-11-02 is superseded by this framework composition.
+Draft edits leave the gallery unchanged until `应用`; invalid dates, bounds or text stay editable
+with field errors. `取消` and dismissal preserve the applied conditions. `清除筛选` clears metadata
+conditions while retaining the folder/collection, search and duplicate-display choices.
+
+Applied conditions appear below the gallery header as removable summaries. Removing one condition
+retains the others. An editor opened for a retired query cannot publish into a different query.
+Organization continuation uses the current query's conditions, preserving compatibility with saved
+payloads without erasing organization progress. [ADR 0033](../../architecture/0033-structured-gallery-filters.md)
+owns field meaning and shared query behavior.
 
 Consecutive filter/search changes retain the original visible image and its fractional viewport
 position. A missing image, empty result or automatic clamp to an edge does not replace that intent;

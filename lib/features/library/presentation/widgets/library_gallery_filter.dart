@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
@@ -6,10 +8,12 @@ import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_models.dart";
 import "../library_duplicate_strings.dart";
+import "../library_filter_strings.dart";
+import "library_metadata_filter_dialog.dart";
 
-enum _FilterChoice { descendants, folderOnly, all, merged }
+enum _FilterChoice { descendants, folderOnly, all, merged, metadata }
 
-class LibraryGalleryFilter extends StatelessWidget {
+class LibraryGalleryFilter extends StatefulWidget {
   const LibraryGalleryFilter({
     required this.query,
     required this.onChanged,
@@ -20,6 +24,25 @@ class LibraryGalleryFilter extends StatelessWidget {
   final ValueChanged<LibraryGalleryQuery> onChanged;
 
   @override
+  State<LibraryGalleryFilter> createState() => _LibraryGalleryFilterState();
+}
+
+class _LibraryGalleryFilterState extends State<LibraryGalleryFilter> {
+  LibraryGalleryQuery get query => widget.query;
+
+  Future<void> _editMetadata() async {
+    final openingQuery = query;
+    final filter = await showLibraryMetadataFilterDialog(
+      context,
+      query.metadataFilter,
+    );
+    if (!mounted || filter == null || query != openingQuery) return;
+    if (filter != query.metadataFilter) {
+      widget.onChanged(query.copyWith(metadataFilter: filter));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AmePopupMenuButton<_FilterChoice>(
       labels: const [
@@ -27,6 +50,7 @@ class LibraryGalleryFilter extends StatelessWidget {
         LibraryDuplicateStrings.hideDescendants,
         LibraryDuplicateStrings.allImages,
         LibraryDuplicateStrings.mergeDuplicates,
+        LibraryFilterStrings.more,
       ],
       hasContentIcon: false,
       leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
@@ -56,9 +80,25 @@ class LibraryGalleryFilter extends StatelessWidget {
           query.foldsDuplicates,
           enabled: !query.requiresMergedDuplicates,
         ),
+        const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
+        const PopupMenuItem(
+          value: _FilterChoice.metadata,
+          child: Padding(
+            padding: EdgeInsets.only(
+              left:
+                  AmeMenuMetrics.selectionIndicatorSlotWidth +
+                  AmeMenuMetrics.iconLabelGap,
+            ),
+            child: Text(LibraryFilterStrings.more),
+          ),
+        ),
       ],
       onSelected: (choice) {
-        onChanged(switch (choice) {
+        if (choice == _FilterChoice.metadata) {
+          unawaited(_editMetadata());
+          return;
+        }
+        widget.onChanged(switch (choice) {
           _FilterChoice.descendants => query.copyWith(includeDescendants: true),
           _FilterChoice.folderOnly => query.copyWith(includeDescendants: false),
           _FilterChoice.all => query.copyWith(
@@ -67,6 +107,7 @@ class LibraryGalleryFilter extends StatelessWidget {
           _FilterChoice.merged => query.copyWith(
             duplicateMode: LibraryGalleryDuplicateMode.merged,
           ),
+          _FilterChoice.metadata => query,
         });
       },
       builder: (context, openMenu) => AmeTooltip(

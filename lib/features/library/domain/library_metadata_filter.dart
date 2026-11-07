@@ -55,6 +55,22 @@ class LibraryMetadataFilter {
   final LibraryDateRange date;
   final String cameraText;
 
+  LibraryMetadataFilter copyWith({
+    String? extension,
+    LibraryNumberRange? bytes,
+    LibraryNumberRange? width,
+    LibraryNumberRange? height,
+    LibraryDateRange? date,
+    String? cameraText,
+  }) => LibraryMetadataFilter(
+    extension: extension ?? this.extension,
+    bytes: bytes ?? this.bytes,
+    width: width ?? this.width,
+    height: height ?? this.height,
+    date: date ?? this.date,
+    cameraText: cameraText ?? this.cameraText,
+  );
+
   LibraryMetadataFilter get normalized => LibraryMetadataFilter(
     extension: extension.trim().replaceFirst(RegExp(r"^\.+"), "").toLowerCase(),
     bytes: bytes,

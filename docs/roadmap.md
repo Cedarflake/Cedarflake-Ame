@@ -127,7 +127,9 @@ schedules no additional broad split.
 ## R7 implementation sequence
 
 The [R7 plan](plans/r7-semantic-discovery.md#implementation-slices) owns slice definitions and planned
-interaction. R7-01 is in progress; R7-02 through R7-05 follow in order. Completion requires composed
+interaction. R7-01 is implemented on the R7 branch with focused and native-client
+[filter evidence](acceptance/r7-semantic-discovery.md); hosted verification is pending.
+R7-02 through R7-05 follow in order. Completion requires composed
 search/filter behavior in the running desktop, durable bounded indexing, stable gallery/viewer
 results, source safety and the plan's quality/performance evidence. No R7 slice is accepted yet.
 
