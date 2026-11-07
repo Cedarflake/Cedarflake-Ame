@@ -32,9 +32,29 @@ class LibraryOrganizationTarget {
 enum LibraryOrganizationDisposition { pending, deferred, organized, ignored }
 
 class LibraryOrganizationAlbum {
-  const LibraryOrganizationAlbum(this.id, this.name);
+  const LibraryOrganizationAlbum(
+    this.id,
+    this.name, {
+    this.icon = LibraryAlbumIcon.album,
+  });
   final String id;
   final String name;
+  final LibraryAlbumIcon icon;
+}
+
+enum LibraryAlbumIcon {
+  album,
+  travel,
+  nature,
+  pets,
+  people,
+  food,
+  art,
+  work,
+  study,
+  games,
+  music,
+  memories,
 }
 
 class LibraryOrganizationAlbumPage {

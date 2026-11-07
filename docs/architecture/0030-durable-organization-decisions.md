@@ -67,6 +67,12 @@ Album deletion retires its definition and moves assigned records to ignored in t
 The retired definition remains outside ordinary album queries so version-checked undo can restore
 its name and assignments without inventing another album identity.
 
+Schema 78 stores an Ame-owned icon identifier by album identity, separately from membership and
+undo authority. Creation saves the name and icon atomically. Changing only the icon is an idempotent
+metadata write against an active album; it publishes a catalog revision without changing the album's
+organization revision or undo history. Missing icon rows mean the default album icon, preserving
+existing albums and older backups. Retiring and restoring an album retains its current icon.
+
 Explicit source removal forgets that root's organization ownership in the catalog removal
 transaction. Retire all lineage records of groups with no surviving configured source, while
 preserving a shared group's records and choices. Ordinary loss of derived locations is not this

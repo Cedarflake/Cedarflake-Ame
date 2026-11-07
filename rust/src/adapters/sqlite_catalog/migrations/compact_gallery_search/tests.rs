@@ -20,7 +20,7 @@ fn prior() -> (tempfile::TempDir, SqliteCatalog) {
         .unwrap()
         .organization_revision;
     catalog
-        .create_organization_album("create", revision, "Retained")
+        .create_organization_album("create", revision, "Retained", Default::default())
         .unwrap();
     catalog
         .connection

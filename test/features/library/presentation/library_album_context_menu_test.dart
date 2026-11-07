@@ -29,6 +29,7 @@ void main() {
     );
     await tester.tap(find.text("Album"), buttons: kSecondaryMouseButton);
     await tester.pumpAndSettle();
+    expect(find.text("更改图标"), findsOneWidget);
     expect(selected, isFalse);
     expect(find.text("删除相册"), findsOneWidget);
     await tester.tap(find.text("重命名"));

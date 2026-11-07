@@ -9,6 +9,7 @@ import "../../application/library_organization_actions.dart";
 import "../../application/library_organization_requests.dart";
 import "../../application/library_progress_request.dart";
 import "../../domain/library_organization.dart";
+import "library_album_icon.dart";
 import "../../domain/library_review.dart";
 import "../library_organization_messages.dart";
 import "../library_progress_controls.dart";
@@ -281,11 +282,22 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
                                                   key: ValueKey(
                                                     "album-choice-${album.id}",
                                                   ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
                                                   value:
                                                       _selected?.id == album.id,
                                                   controlAffinity:
                                                       ListTileControlAffinity
-                                                          .leading,
+                                                          .trailing,
+                                                  secondary: Icon(
+                                                    libraryAlbumIcon(
+                                                      album.icon,
+                                                    ),
+                                                  ),
                                                   onChanged: busy
                                                       ? null
                                                       : (checked) => setState(

@@ -8,7 +8,7 @@ fn upgrade_preserves_r4_decisions_and_has_no_initial_model() {
     let directory = tempfile::tempdir().unwrap();
     let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     catalog
-        .create_organization_album("retained-album", 0, "Retained")
+        .create_organization_album("retained-album", 0, "Retained", Default::default())
         .unwrap();
     downgrade_to_v64_for_test(&catalog.connection);
     migrate(&mut catalog.connection).unwrap();

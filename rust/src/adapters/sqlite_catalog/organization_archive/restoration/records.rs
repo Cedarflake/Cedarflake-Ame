@@ -35,6 +35,13 @@ pub(super) fn decisions(
          CROSS JOIN recovery.archive_album AS album USING(album_id)", [revision_base],
     ).map_err(database_error)?;
     connection
+        .execute_batch(
+            "INSERT INTO organization_album_icons
+         SELECT icon.album_id, icon.icon FROM temp.organization_restore_new_albums AS selected
+         JOIN recovery.archive_album_icon AS icon USING(album_id)",
+        )
+        .map_err(database_error)?;
+    connection
         .execute(
             "INSERT INTO organization_album_retirements
          SELECT retired.album_id, ?1 + retired.revision, retired.retired_unix_ms

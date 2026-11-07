@@ -34,6 +34,48 @@ fn proposal(
     }
 }
 
+#[test]
+fn album_icons_restore_with_new_albums_and_preserve_existing_choices() {
+    use crate::domain::organization::OrganizationAlbumIcon;
+    let directory = tempfile::tempdir().unwrap();
+    let mut source = SqliteCatalog::open(directory.path().join("source.sqlite3")).unwrap();
+    let created = source
+        .create_organization_album("create", 0, "旅行", OrganizationAlbumIcon::Nature)
+        .unwrap();
+    let archive = directory.path().join("icons.ame-backup");
+    source
+        .export_organization_archive(&archive, &mut |_| true)
+        .unwrap();
+    let mut target = SqliteCatalog::open(directory.path().join("target.sqlite3")).unwrap();
+    let request = proposal(&target, &archive, "restore");
+    target
+        .restore_organization_archive(&archive, &request, &mut |_| true)
+        .unwrap();
+    assert_eq!(
+        target
+            .find_organization_album(&created.album_id)
+            .unwrap()
+            .unwrap()
+            .icon,
+        OrganizationAlbumIcon::Nature
+    );
+    target
+        .change_organization_album_icon(&created.album_id, OrganizationAlbumIcon::Pets)
+        .unwrap();
+    let request = proposal(&target, &archive, "restore-again");
+    target
+        .restore_organization_archive(&archive, &request, &mut |_| true)
+        .unwrap();
+    assert_eq!(
+        target
+            .find_organization_album(&created.album_id)
+            .unwrap()
+            .unwrap()
+            .icon,
+        OrganizationAlbumIcon::Pets
+    );
+}
+
 fn state(catalog: &SqliteCatalog) -> (i64, i64, i64, i64, i64) {
     catalog.connection.query_row(
         "SELECT catalog_state.revision, organization_state.revision,
@@ -89,7 +131,7 @@ fn organization_archive_restore_commits_reopens_and_replays_without_reapplying_d
 fn organization_archive_restore_retires_cursor_without_importing_an_unproven_undo_chain() {
     let (directory, path, mut target) = exported();
     target
-        .create_organization_album("local-album", 0, "Local")
+        .create_organization_album("local-album", 0, "Local", Default::default())
         .unwrap();
     assert!(
         target

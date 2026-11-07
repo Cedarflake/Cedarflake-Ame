@@ -30,6 +30,7 @@ pub(super) fn kind_count(version: u32) -> usize {
     match version {
         1..=4 => 20,
         5 => 30,
+        6..=7 => 31,
         _ => KINDS.len(),
     }
 }
@@ -232,5 +233,9 @@ pub(super) const KINDS: &[RecordKind] = &[
         query: "SELECT category_id, concept_id, purpose_category_id, operation_id, admitted_label,
                        admitted_semantic_revision, protected
                 FROM classification_managed_categories ORDER BY category_id",
+    },
+    RecordKind {
+        name: "album_icon", fields: &[T, T],
+        query: "SELECT album_id, icon FROM organization_album_icons ORDER BY album_id",
     },
 ];

@@ -47,7 +47,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 154780744;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 756197839;
 
 // Section: executor
 
@@ -2008,6 +2008,44 @@ fn wire__crate__api__organization__change_organization_impl(
         },
     )
 }
+fn wire__crate__api__organization__change_organization_album_icon_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "change_organization_album_icon",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_album_id = <String>::sse_decode(&mut deserializer);
+            let api_icon =
+                <crate::domain::organization::OrganizationAlbumIcon>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::organization::change_organization_album_icon(
+                        api_album_id,
+                        api_icon,
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__organization_review__checkpoint_organization_review_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2185,6 +2223,8 @@ fn wire__crate__api__organization__create_organization_album_impl(
             let api_operation_id = <String>::sse_decode(&mut deserializer);
             let api_expected_revision = <u64>::sse_decode(&mut deserializer);
             let api_name = <String>::sse_decode(&mut deserializer);
+            let api_icon =
+                <crate::domain::organization::OrganizationAlbumIcon>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::domain::ScanError>((move || {
@@ -2192,6 +2232,7 @@ fn wire__crate__api__organization__create_organization_album_impl(
                         api_operation_id,
                         api_expected_revision,
                         api_name,
+                        api_icon,
                     )?;
                     Ok(output_ok)
                 })())
@@ -8021,10 +8062,35 @@ impl SseDecode for crate::domain::organization::OrganizationAlbum {
         let mut var_albumId = <String>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_revision = <u64>::sse_decode(deserializer);
+        let mut var_icon =
+            <crate::domain::organization::OrganizationAlbumIcon>::sse_decode(deserializer);
         return crate::domain::organization::OrganizationAlbum {
             album_id: var_albumId,
             name: var_name,
             revision: var_revision,
+            icon: var_icon,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::organization::OrganizationAlbumIcon {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::organization::OrganizationAlbumIcon::Album,
+            1 => crate::domain::organization::OrganizationAlbumIcon::Travel,
+            2 => crate::domain::organization::OrganizationAlbumIcon::Nature,
+            3 => crate::domain::organization::OrganizationAlbumIcon::Pets,
+            4 => crate::domain::organization::OrganizationAlbumIcon::People,
+            5 => crate::domain::organization::OrganizationAlbumIcon::Food,
+            6 => crate::domain::organization::OrganizationAlbumIcon::Art,
+            7 => crate::domain::organization::OrganizationAlbumIcon::Work,
+            8 => crate::domain::organization::OrganizationAlbumIcon::Study,
+            9 => crate::domain::organization::OrganizationAlbumIcon::Games,
+            10 => crate::domain::organization::OrganizationAlbumIcon::Music,
+            11 => crate::domain::organization::OrganizationAlbumIcon::Memories,
+            _ => unreachable!("Invalid variant for OrganizationAlbumIcon: {}", inner),
         };
     }
 }
@@ -9647,89 +9713,90 @@ fn pde_ffi_dispatcher_primary_impl(
 40 => wire__crate__api__classification_settings__change_classification_control_impl(port, ptr, rust_vec_len, data_len),
 41 => wire__crate__api__organization_review__change_current_organization_review_impl(port, ptr, rust_vec_len, data_len),
 42 => wire__crate__api__organization__change_organization_impl(port, ptr, rust_vec_len, data_len),
-43 => wire__crate__api__organization_review__checkpoint_organization_review_impl(port, ptr, rust_vec_len, data_len),
-44 => wire__crate__api__storage__clear_preview_cache_impl(port, ptr, rust_vec_len, data_len),
-45 => wire__crate__api__storage__clear_retired_preview_cache_impl(port, ptr, rust_vec_len, data_len),
-47 => wire__crate__api__organization__create_organization_album_impl(port, ptr, rust_vec_len, data_len),
-50 => wire__crate__api__organization__delete_organization_album_impl(port, ptr, rust_vec_len, data_len),
-51 => wire__crate__api__organization_review__end_organization_review_impl(port, ptr, rust_vec_len, data_len),
-52 => wire__crate__api__similar_image_review__exclude_similar_member_impl(port, ptr, rust_vec_len, data_len),
-53 => wire__crate__api__organization_archive__export_organization_archive_impl(port, ptr, rust_vec_len, data_len),
-54 => wire__crate__api__organization__find_organization_album_impl(port, ptr, rust_vec_len, data_len),
-55 => wire__crate__api__initialization__init_app_impl(port, ptr, rust_vec_len, data_len),
-56 => wire__crate__api__classification_settings__initial_classification_categories_impl(port, ptr, rust_vec_len, data_len),
-57 => wire__crate__api__organization_archive__inspect_organization_archive_impl(port, ptr, rust_vec_len, data_len),
-58 => wire__crate__api__organization_cleanup__inspect_organization_cleanup_impl(port, ptr, rust_vec_len, data_len),
-59 => wire__crate__api__organization__inspect_organization_selection_impl(port, ptr, rust_vec_len, data_len),
-60 => wire__crate__api__storage__load_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
-61 => wire__crate__api__classification_settings__load_classification_acceleration_impl(port, ptr, rust_vec_len, data_len),
-62 => wire__crate__api__classification_review__load_classification_annotations_impl(port, ptr, rust_vec_len, data_len),
-63 => wire__crate__api__classification_review__load_classification_items_impl(port, ptr, rust_vec_len, data_len),
-64 => wire__crate__api__classification_settings__load_classification_navigation_impl(port, ptr, rust_vec_len, data_len),
-65 => wire__crate__api__classification_settings__load_classification_settings_impl(port, ptr, rust_vec_len, data_len),
-66 => wire__crate__api__exact_duplicates__load_exact_duplicate_groups_impl(port, ptr, rust_vec_len, data_len),
-67 => wire__crate__api__exact_duplicates__load_exact_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
-68 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
-69 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locations_impl(port, ptr, rust_vec_len, data_len),
-70 => wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
-71 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(port, ptr, rust_vec_len, data_len),
-72 => wire__crate__api__catalog__load_library_asset_by_id_impl(port, ptr, rust_vec_len, data_len),
-73 => wire__crate__api__catalog__load_library_catalog_impl(port, ptr, rust_vec_len, data_len),
-74 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(port, ptr, rust_vec_len, data_len),
-75 => wire__crate__api__catalog__load_library_catalog_around_location_impl(port, ptr, rust_vec_len, data_len),
-76 => wire__crate__api__catalog__load_library_catalog_at_time_impl(port, ptr, rust_vec_len, data_len),
-77 => wire__crate__api__catalog__load_library_folder_page_impl(port, ptr, rust_vec_len, data_len),
-78 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(port, ptr, rust_vec_len, data_len),
-79 => wire__crate__api__catalog__load_library_gallery_timeline_impl(port, ptr, rust_vec_len, data_len),
-80 => wire__crate__api__catalog__load_library_query_snapshot_impl(port, ptr, rust_vec_len, data_len),
-81 => wire__crate__api__catalog__load_library_time_snapshot_impl(port, ptr, rust_vec_len, data_len),
-82 => wire__crate__api__organization_review__load_organization_admission_boundary_impl(port, ptr, rust_vec_len, data_len),
-83 => wire__crate__api__organization__load_organization_albums_impl(port, ptr, rust_vec_len, data_len),
-84 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(port, ptr, rust_vec_len, data_len),
-85 => wire__crate__api__organization_conflicts__load_organization_conflict_annotations_impl(port, ptr, rust_vec_len, data_len),
-86 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(port, ptr, rust_vec_len, data_len),
-87 => wire__crate__api__organization_review__load_organization_continuation_impl(port, ptr, rust_vec_len, data_len),
-88 => wire__crate__api__organization__load_organization_history_impl(port, ptr, rust_vec_len, data_len),
-89 => wire__crate__api__catalog__load_paused_library_scan_impl(port, ptr, rust_vec_len, data_len),
-90 => wire__crate__api__catalog__load_recoverable_library_scan_impl(port, ptr, rust_vec_len, data_len),
-91 => wire__crate__api__similar_image_review__load_similar_groups_impl(port, ptr, rust_vec_len, data_len),
-92 => wire__crate__api__similar_image_review__load_similar_members_impl(port, ptr, rust_vec_len, data_len),
-93 => wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len),
-94 => wire__crate__api__preview__materialize_library_preview_impl(port, ptr, rust_vec_len, data_len),
-95 => wire__crate__api__classification__open_classification_session_impl(port, ptr, rust_vec_len, data_len),
-96 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(port, ptr, rust_vec_len, data_len),
-97 => wire__crate__api__similar_images__open_similar_image_analysis_impl(port, ptr, rust_vec_len, data_len),
-99 => wire__crate__api__synchronization__poll_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-100 => wire__crate__api__organization__prepare_organization_selection_impl(port, ptr, rust_vec_len, data_len),
-101 => wire__crate__api__semantic_search__prepare_semantic_search_impl(port, ptr, rust_vec_len, data_len),
-102 => wire__crate__api__classification_installation__recover_model_installation_impl(port, ptr, rust_vec_len, data_len),
-103 => wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len),
-104 => wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len),
-105 => wire__crate__api__organization__rename_organization_album_impl(port, ptr, rust_vec_len, data_len),
-106 => wire__crate__api__sidebar_order__reorder_sidebar_entry_impl(port, ptr, rust_vec_len, data_len),
-109 => wire__crate__api__organization_archive__restore_organization_archive_impl(port, ptr, rust_vec_len, data_len),
-110 => wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len),
-111 => wire__crate__api__classification_retry__retry_failed_classification_impl(port, ptr, rust_vec_len, data_len),
-112 => wire__crate__api__semantic_search__retry_semantic_index_impl(port, ptr, rust_vec_len, data_len),
-113 => wire__crate__api__classification_settings__save_classification_acceleration_impl(port, ptr, rust_vec_len, data_len),
-114 => wire__crate__api__classification_settings__save_classification_settings_impl(port, ptr, rust_vec_len, data_len),
-115 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-116 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
-117 => wire__crate__api__similar_image_review__seek_similar_groups_impl(port, ptr, rust_vec_len, data_len),
-118 => wire__crate__api__classification__select_classification_installation_impl(port, ptr, rust_vec_len, data_len),
-119 => wire__crate__api__semantic_search__semantic_index_status_impl(port, ptr, rust_vec_len, data_len),
-120 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(port, ptr, rust_vec_len, data_len),
-121 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(port, ptr, rust_vec_len, data_len),
-122 => wire__crate__api__organization__set_organization_favorite_impl(port, ptr, rust_vec_len, data_len),
-123 => wire__crate__api__similar_image_review__set_similar_ignored_impl(port, ptr, rust_vec_len, data_len),
-124 => wire__crate__api__similar_image_review__set_similar_preference_impl(port, ptr, rust_vec_len, data_len),
-125 => wire__crate__api__storage__start_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
-126 => wire__crate__api__synchronization__start_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-127 => wire__crate__api__organization__step_organization_history_impl(port, ptr, rust_vec_len, data_len),
-128 => wire__crate__api__synchronization__stop_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-130 => wire__crate__api__organization__undo_organization_operation_impl(port, ptr, rust_vec_len, data_len),
-131 => wire__crate__api__similar_image_review__undo_similar_exclusion_impl(port, ptr, rust_vec_len, data_len),
-132 => wire__crate__api__storage__update_storage_settings_impl(port, ptr, rust_vec_len, data_len),
+43 => wire__crate__api__organization__change_organization_album_icon_impl(port, ptr, rust_vec_len, data_len),
+44 => wire__crate__api__organization_review__checkpoint_organization_review_impl(port, ptr, rust_vec_len, data_len),
+45 => wire__crate__api__storage__clear_preview_cache_impl(port, ptr, rust_vec_len, data_len),
+46 => wire__crate__api__storage__clear_retired_preview_cache_impl(port, ptr, rust_vec_len, data_len),
+48 => wire__crate__api__organization__create_organization_album_impl(port, ptr, rust_vec_len, data_len),
+51 => wire__crate__api__organization__delete_organization_album_impl(port, ptr, rust_vec_len, data_len),
+52 => wire__crate__api__organization_review__end_organization_review_impl(port, ptr, rust_vec_len, data_len),
+53 => wire__crate__api__similar_image_review__exclude_similar_member_impl(port, ptr, rust_vec_len, data_len),
+54 => wire__crate__api__organization_archive__export_organization_archive_impl(port, ptr, rust_vec_len, data_len),
+55 => wire__crate__api__organization__find_organization_album_impl(port, ptr, rust_vec_len, data_len),
+56 => wire__crate__api__initialization__init_app_impl(port, ptr, rust_vec_len, data_len),
+57 => wire__crate__api__classification_settings__initial_classification_categories_impl(port, ptr, rust_vec_len, data_len),
+58 => wire__crate__api__organization_archive__inspect_organization_archive_impl(port, ptr, rust_vec_len, data_len),
+59 => wire__crate__api__organization_cleanup__inspect_organization_cleanup_impl(port, ptr, rust_vec_len, data_len),
+60 => wire__crate__api__organization__inspect_organization_selection_impl(port, ptr, rust_vec_len, data_len),
+61 => wire__crate__api__storage__load_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
+62 => wire__crate__api__classification_settings__load_classification_acceleration_impl(port, ptr, rust_vec_len, data_len),
+63 => wire__crate__api__classification_review__load_classification_annotations_impl(port, ptr, rust_vec_len, data_len),
+64 => wire__crate__api__classification_review__load_classification_items_impl(port, ptr, rust_vec_len, data_len),
+65 => wire__crate__api__classification_settings__load_classification_navigation_impl(port, ptr, rust_vec_len, data_len),
+66 => wire__crate__api__classification_settings__load_classification_settings_impl(port, ptr, rust_vec_len, data_len),
+67 => wire__crate__api__exact_duplicates__load_exact_duplicate_groups_impl(port, ptr, rust_vec_len, data_len),
+68 => wire__crate__api__exact_duplicates__load_exact_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
+69 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
+70 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locations_impl(port, ptr, rust_vec_len, data_len),
+71 => wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
+72 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(port, ptr, rust_vec_len, data_len),
+73 => wire__crate__api__catalog__load_library_asset_by_id_impl(port, ptr, rust_vec_len, data_len),
+74 => wire__crate__api__catalog__load_library_catalog_impl(port, ptr, rust_vec_len, data_len),
+75 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(port, ptr, rust_vec_len, data_len),
+76 => wire__crate__api__catalog__load_library_catalog_around_location_impl(port, ptr, rust_vec_len, data_len),
+77 => wire__crate__api__catalog__load_library_catalog_at_time_impl(port, ptr, rust_vec_len, data_len),
+78 => wire__crate__api__catalog__load_library_folder_page_impl(port, ptr, rust_vec_len, data_len),
+79 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(port, ptr, rust_vec_len, data_len),
+80 => wire__crate__api__catalog__load_library_gallery_timeline_impl(port, ptr, rust_vec_len, data_len),
+81 => wire__crate__api__catalog__load_library_query_snapshot_impl(port, ptr, rust_vec_len, data_len),
+82 => wire__crate__api__catalog__load_library_time_snapshot_impl(port, ptr, rust_vec_len, data_len),
+83 => wire__crate__api__organization_review__load_organization_admission_boundary_impl(port, ptr, rust_vec_len, data_len),
+84 => wire__crate__api__organization__load_organization_albums_impl(port, ptr, rust_vec_len, data_len),
+85 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(port, ptr, rust_vec_len, data_len),
+86 => wire__crate__api__organization_conflicts__load_organization_conflict_annotations_impl(port, ptr, rust_vec_len, data_len),
+87 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(port, ptr, rust_vec_len, data_len),
+88 => wire__crate__api__organization_review__load_organization_continuation_impl(port, ptr, rust_vec_len, data_len),
+89 => wire__crate__api__organization__load_organization_history_impl(port, ptr, rust_vec_len, data_len),
+90 => wire__crate__api__catalog__load_paused_library_scan_impl(port, ptr, rust_vec_len, data_len),
+91 => wire__crate__api__catalog__load_recoverable_library_scan_impl(port, ptr, rust_vec_len, data_len),
+92 => wire__crate__api__similar_image_review__load_similar_groups_impl(port, ptr, rust_vec_len, data_len),
+93 => wire__crate__api__similar_image_review__load_similar_members_impl(port, ptr, rust_vec_len, data_len),
+94 => wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len),
+95 => wire__crate__api__preview__materialize_library_preview_impl(port, ptr, rust_vec_len, data_len),
+96 => wire__crate__api__classification__open_classification_session_impl(port, ptr, rust_vec_len, data_len),
+97 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(port, ptr, rust_vec_len, data_len),
+98 => wire__crate__api__similar_images__open_similar_image_analysis_impl(port, ptr, rust_vec_len, data_len),
+100 => wire__crate__api__synchronization__poll_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+101 => wire__crate__api__organization__prepare_organization_selection_impl(port, ptr, rust_vec_len, data_len),
+102 => wire__crate__api__semantic_search__prepare_semantic_search_impl(port, ptr, rust_vec_len, data_len),
+103 => wire__crate__api__classification_installation__recover_model_installation_impl(port, ptr, rust_vec_len, data_len),
+104 => wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len),
+105 => wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len),
+106 => wire__crate__api__organization__rename_organization_album_impl(port, ptr, rust_vec_len, data_len),
+107 => wire__crate__api__sidebar_order__reorder_sidebar_entry_impl(port, ptr, rust_vec_len, data_len),
+110 => wire__crate__api__organization_archive__restore_organization_archive_impl(port, ptr, rust_vec_len, data_len),
+111 => wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len),
+112 => wire__crate__api__classification_retry__retry_failed_classification_impl(port, ptr, rust_vec_len, data_len),
+113 => wire__crate__api__semantic_search__retry_semantic_index_impl(port, ptr, rust_vec_len, data_len),
+114 => wire__crate__api__classification_settings__save_classification_acceleration_impl(port, ptr, rust_vec_len, data_len),
+115 => wire__crate__api__classification_settings__save_classification_settings_impl(port, ptr, rust_vec_len, data_len),
+116 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+117 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
+118 => wire__crate__api__similar_image_review__seek_similar_groups_impl(port, ptr, rust_vec_len, data_len),
+119 => wire__crate__api__classification__select_classification_installation_impl(port, ptr, rust_vec_len, data_len),
+120 => wire__crate__api__semantic_search__semantic_index_status_impl(port, ptr, rust_vec_len, data_len),
+121 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(port, ptr, rust_vec_len, data_len),
+122 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(port, ptr, rust_vec_len, data_len),
+123 => wire__crate__api__organization__set_organization_favorite_impl(port, ptr, rust_vec_len, data_len),
+124 => wire__crate__api__similar_image_review__set_similar_ignored_impl(port, ptr, rust_vec_len, data_len),
+125 => wire__crate__api__similar_image_review__set_similar_preference_impl(port, ptr, rust_vec_len, data_len),
+126 => wire__crate__api__storage__start_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
+127 => wire__crate__api__synchronization__start_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+128 => wire__crate__api__organization__step_organization_history_impl(port, ptr, rust_vec_len, data_len),
+129 => wire__crate__api__synchronization__stop_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+131 => wire__crate__api__organization__undo_organization_operation_impl(port, ptr, rust_vec_len, data_len),
+132 => wire__crate__api__similar_image_review__undo_similar_exclusion_impl(port, ptr, rust_vec_len, data_len),
+133 => wire__crate__api__storage__update_storage_settings_impl(port, ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
 }
@@ -9757,13 +9824,13 @@ fn pde_ffi_dispatcher_sync_impl(
 28 => wire__crate__api__similar_images__SimilarImageAnalysis_suspend_impl(ptr, rust_vec_len, data_len),
 37 => wire__crate__api__catalog__cancel_library_scan_impl(ptr, rust_vec_len, data_len),
 38 => wire__crate__api__storage__cancel_preview_cache_cleanup_impl(ptr, rust_vec_len, data_len),
-46 => wire__crate__api__classification_installation__create_model_installation_impl(ptr, rust_vec_len, data_len),
-48 => wire__crate__api__organization_archive__create_organization_archive_task_impl(ptr, rust_vec_len, data_len),
-49 => wire__crate__api__organization_cleanup__create_organization_cleanup_task_impl(ptr, rust_vec_len, data_len),
-98 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-107 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(ptr, rust_vec_len, data_len),
-108 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(ptr, rust_vec_len, data_len),
-129 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+47 => wire__crate__api__classification_installation__create_model_installation_impl(ptr, rust_vec_len, data_len),
+49 => wire__crate__api__organization_archive__create_organization_archive_task_impl(ptr, rust_vec_len, data_len),
+50 => wire__crate__api__organization_cleanup__create_organization_cleanup_task_impl(ptr, rust_vec_len, data_len),
+99 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
+108 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(ptr, rust_vec_len, data_len),
+109 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(ptr, rust_vec_len, data_len),
+130 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
 }
@@ -12094,6 +12161,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::organization::Organization
             self.album_id.into_into_dart().into_dart(),
             self.name.into_into_dart().into_dart(),
             self.revision.into_into_dart().into_dart(),
+            self.icon.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -12106,6 +12174,37 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::organization::Organization
     for crate::domain::organization::OrganizationAlbum
 {
     fn into_into_dart(self) -> crate::domain::organization::OrganizationAlbum {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::organization::OrganizationAlbumIcon {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Album => 0.into_dart(),
+            Self::Travel => 1.into_dart(),
+            Self::Nature => 2.into_dart(),
+            Self::Pets => 3.into_dart(),
+            Self::People => 4.into_dart(),
+            Self::Food => 5.into_dart(),
+            Self::Art => 6.into_dart(),
+            Self::Work => 7.into_dart(),
+            Self::Study => 8.into_dart(),
+            Self::Games => 9.into_dart(),
+            Self::Music => 10.into_dart(),
+            Self::Memories => 11.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::organization::OrganizationAlbumIcon
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::organization::OrganizationAlbumIcon>
+    for crate::domain::organization::OrganizationAlbumIcon
+{
+    fn into_into_dart(self) -> crate::domain::organization::OrganizationAlbumIcon {
         self
     }
 }
@@ -16387,6 +16486,33 @@ impl SseEncode for crate::domain::organization::OrganizationAlbum {
         <String>::sse_encode(self.album_id, serializer);
         <String>::sse_encode(self.name, serializer);
         <u64>::sse_encode(self.revision, serializer);
+        <crate::domain::organization::OrganizationAlbumIcon>::sse_encode(self.icon, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::organization::OrganizationAlbumIcon {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::organization::OrganizationAlbumIcon::Album => 0,
+                crate::domain::organization::OrganizationAlbumIcon::Travel => 1,
+                crate::domain::organization::OrganizationAlbumIcon::Nature => 2,
+                crate::domain::organization::OrganizationAlbumIcon::Pets => 3,
+                crate::domain::organization::OrganizationAlbumIcon::People => 4,
+                crate::domain::organization::OrganizationAlbumIcon::Food => 5,
+                crate::domain::organization::OrganizationAlbumIcon::Art => 6,
+                crate::domain::organization::OrganizationAlbumIcon::Work => 7,
+                crate::domain::organization::OrganizationAlbumIcon::Study => 8,
+                crate::domain::organization::OrganizationAlbumIcon::Games => 9,
+                crate::domain::organization::OrganizationAlbumIcon::Music => 10,
+                crate::domain::organization::OrganizationAlbumIcon::Memories => 11,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
     }
 }
 

@@ -3,6 +3,7 @@ import "../../../../src/rust/domain.dart" as rust;
 import "../../../../src/rust/domain/organization.dart" as organization;
 import "../../../../src/rust/domain/organization_batch.dart" as dto;
 import "../../domain/library_organization.dart";
+import "rust_library_album.dart";
 import "../../domain/library_organization_batch.dart";
 import "library_gallery_query_mapping.dart";
 import "rust_library_review.dart";
@@ -114,9 +115,6 @@ class _RustBatch implements LibraryOrganizationBatch {
         conflicts: value.conflictingCount.toInt(),
         commonAlbum: value.commonAlbum == null
             ? null
-            : LibraryOrganizationAlbum(
-                value.commonAlbum!.albumId,
-                value.commonAlbum!.name,
-              ),
+            : libraryAlbum(value.commonAlbum!),
       );
 }

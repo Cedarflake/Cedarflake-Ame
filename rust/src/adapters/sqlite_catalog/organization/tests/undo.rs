@@ -196,7 +196,12 @@ fn undo_album_metadata_checks_later_names_and_keeps_creation_idempotent() {
         .rename_organization_album("rename", revision(&catalog), &album, "Renamed")
         .unwrap();
     let collision = catalog
-        .create_organization_album("name-collision", revision(&catalog), "Original")
+        .create_organization_album(
+            "name-collision",
+            revision(&catalog),
+            "Original",
+            Default::default(),
+        )
         .unwrap()
         .album_id;
     assert_eq!(

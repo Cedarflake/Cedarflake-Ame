@@ -7,7 +7,7 @@ fn prior() -> (tempfile::TempDir, SqliteCatalog, String) {
     let directory = tempfile::tempdir().unwrap();
     let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     let album = catalog
-        .create_organization_album("create", 0, "Retained")
+        .create_organization_album("create", 0, "Retained", Default::default())
         .unwrap()
         .album_id;
     downgrade_to_v55_for_test(&catalog.connection);
@@ -41,7 +41,7 @@ fn history_upgrade_preserves_existing_decisions_and_receipts_without_inventing_o
     assert_eq!(after, before);
     assert_eq!(
         catalog
-            .create_organization_album("create", 0, "Retained")
+            .create_organization_album("create", 0, "Retained", Default::default())
             .unwrap()
             .album_id,
         album

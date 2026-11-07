@@ -20,7 +20,7 @@ fn prior() -> (tempfile::TempDir, SqliteCatalog) {
          UPDATE organization_state SET revision = 1;",
     ).unwrap();
     catalog
-        .create_organization_album("create", 1, "Retained")
+        .create_organization_album("create", 1, "Retained", Default::default())
         .unwrap();
     downgrade_to_v59_for_test(&catalog.connection);
     (directory, catalog)

@@ -72,6 +72,7 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
 
 #[cfg(test)]
 pub(super) fn downgrade_for_test(connection: &Connection) {
+    super::album_icons::downgrade_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() != 77 {
         return;
     }

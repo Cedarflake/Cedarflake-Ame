@@ -303,3 +303,24 @@ screen assembly 1977 / 0, filter dialog 316 / 0 and range choices 125 / 0. Dedic
 contain 214 lines, coordinator tests 164 lines, relevance tests 46 lines and filter interaction tests
 267 lines. New search
 widgets reuse the existing Material search bar, menus, notification controller, gallery and viewer.
+
+## Album icon follow-up — 2026-11-08
+
+The album changes based on `26fe6d14` add schema 78 icon metadata and archive version 8 without
+adding icon changes to undo history. Nine focused Rust cases passed for migration rollback,
+create/replay/edit/reopen, history isolation, archive compatibility and retained album operations.
+Initial compiler hosts failed under experimental memory caps, and system temporary storage rejected
+fixture creation; the same checks completed under the existing system-headroom monitor and leased
+repository scratch storage. Thirteen existing album Flutter cases, changed-file analysis, Dart
+dependency boundaries and bridge contracts passed. Layout follow-ups reused six album cases.
+
+The isolated native Debug client verified icon selection before name entry, saved sidebar icons,
+context-menu editing, retained selection when reopening and feedback without an icon Undo action.
+The user verified the album-selection surface and requested its rounded interaction shape and
+`更改 12 的图标` title format. The selection row retains its single-album behavior with the icon/name
+on the left and checkbox on the right. A completed isolated run exited normally with all 368
+retained preview hashes unchanged; later preview sessions remain independently scoped.
+
+Production / inline-test lines: migration dispatcher 4,132 / 2,349; album persistence 259 / 0;
+album picker 435 / 0; album editor 169 / 0. Dedicated icon migration and persistence tests contain
+41 and 81 lines. The dispatcher only registers the new typed migration owner.

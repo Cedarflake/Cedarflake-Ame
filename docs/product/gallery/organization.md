@@ -7,6 +7,12 @@ shared principles; the roadmap owns current delivery order and acceptance status
 
 ## Review workflow
 
+Manual albums have a saved built-in icon. Creating an album and `更改图标` in its context menu use
+the same icon picker; the sidebar and album-selection sheet display that icon. Selection-sheet
+rows place the icon and album name on the left and the selection checkbox on the right. Changing
+an icon does not enter organization undo history or alter album membership. Existing albums use
+the default album icon until changed.
+
 R4 uses the existing desktop gallery and image viewer. Ordinary browsing is the default. Only the
 Library workspace's upper-right `更多` menu contains `整理模式`: Library covers every configured
 source, while a source or folder selection restricts the queues and counts to that scope, including

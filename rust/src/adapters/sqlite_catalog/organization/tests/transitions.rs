@@ -6,7 +6,12 @@ pub(super) fn create_album(catalog: &mut SqliteCatalog, name: &str) -> String {
         .unwrap()
         .organization_revision;
     catalog
-        .create_organization_album(&format!("create-{name}"), revision, name)
+        .create_organization_album(
+            &format!("create-{name}"),
+            revision,
+            name,
+            Default::default(),
+        )
         .unwrap()
         .album_id
 }
@@ -172,17 +177,22 @@ fn deleting_an_album_ignores_its_groups_and_keeps_independent_favorites() {
 fn album_names_retries_and_paging_are_bounded_and_durable() {
     let (_directory, mut catalog) = fixture();
     let first = catalog
-        .create_organization_album("create", 0, "  风景  ")
+        .create_organization_album("create", 0, "  风景  ", Default::default())
         .unwrap();
     assert_eq!(
         catalog
-            .create_organization_album("create", 0, "风景")
+            .create_organization_album("create", 0, "风景", Default::default())
             .unwrap(),
         first
     );
     assert_eq!(
         catalog
-            .create_organization_album("different", first.operation.organization_revision, "风景")
+            .create_organization_album(
+                "different",
+                first.operation.organization_revision,
+                "风景",
+                Default::default()
+            )
             .unwrap_err()
             .code,
         "organization_album_name_exists"

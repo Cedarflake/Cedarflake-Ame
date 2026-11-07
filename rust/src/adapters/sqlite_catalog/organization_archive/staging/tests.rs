@@ -239,6 +239,29 @@ fn organization_archive_inspection_upgrades_legacy_filters_and_rejects_invalid_p
         .unwrap();
     let original = entries(&archive);
     let mut old = original.clone();
+    old[0]["header"]["version"] = json!(7);
+    write_archive(&archive, &old);
+    let version_seven = read(&archive, directory.path(), &mut |_| true).unwrap();
+    assert_eq!(
+        version_seven
+            .connection
+            .query_row(
+                "SELECT name FROM archive_album WHERE album_id = 'album-a'",
+                [],
+                |row| row.get::<_, String>(0)
+            )
+            .unwrap(),
+        "风景🌲"
+    );
+    assert_eq!(
+        version_seven
+            .connection
+            .query_row("SELECT COUNT(*) FROM archive_album_icon", [], |row| row
+                .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+    drop(version_seven);
     old[0]["header"]["version"] = json!(3);
     old.iter_mut()
         .find(|row| row["kind"] == "review_scope")

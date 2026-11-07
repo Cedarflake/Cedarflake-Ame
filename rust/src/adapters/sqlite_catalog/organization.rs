@@ -1,9 +1,10 @@
 use crate::domain::ScanError;
 use crate::domain::organization::{
-    OrganizationAction, OrganizationAlbum, OrganizationAlbumPage, OrganizationAlbumReceipt,
-    OrganizationHistory, OrganizationHistoryDirection, OrganizationHistoryReceipt,
-    OrganizationInspection, OrganizationPreparedSelection, OrganizationSelection,
-    OrganizationWriteReceipt, normalize_album_name, validate_identifier, validate_selections,
+    OrganizationAction, OrganizationAlbum, OrganizationAlbumIcon, OrganizationAlbumPage,
+    OrganizationAlbumReceipt, OrganizationHistory, OrganizationHistoryDirection,
+    OrganizationHistoryReceipt, OrganizationInspection, OrganizationPreparedSelection,
+    OrganizationSelection, OrganizationWriteReceipt, normalize_album_name, validate_identifier,
+    validate_selections,
 };
 use crate::ports::organization::OrganizationRepository;
 
@@ -11,6 +12,7 @@ use super::{SqliteCatalog, database_error};
 
 pub(super) mod admission;
 pub(super) mod admission_boundary;
+mod album_icons;
 mod album_membership;
 mod albums;
 pub(super) mod association_lifetime;
@@ -162,11 +164,24 @@ impl OrganizationRepository for SqliteCatalog {
         operation_id: &str,
         expected_revision: u64,
         name: &str,
+        icon: OrganizationAlbumIcon,
     ) -> Result<OrganizationAlbumReceipt, ScanError> {
         validate_identifier(operation_id)?;
         let name = normalize_album_name(name)?;
         let transaction = self.begin_user_interactive_write()?;
-        let receipt = albums::create(&transaction, operation_id, expected_revision, &name)?;
+        let receipt = albums::create(&transaction, operation_id, expected_revision, &name, icon)?;
+        transaction.commit().map_err(database_error)?;
+        Ok(receipt)
+    }
+
+    fn change_organization_album_icon(
+        &mut self,
+        album_id: &str,
+        icon: OrganizationAlbumIcon,
+    ) -> Result<OrganizationAlbum, ScanError> {
+        validate_identifier(album_id)?;
+        let transaction = self.begin_user_interactive_write()?;
+        let receipt = album_icons::change(&transaction, album_id, icon)?;
         transaction.commit().map_err(database_error)?;
         Ok(receipt)
     }

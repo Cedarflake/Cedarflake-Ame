@@ -1,9 +1,9 @@
 use crate::domain::ScanError;
 use crate::domain::organization::{
-    OrganizationAction, OrganizationAlbum, OrganizationAlbumPage, OrganizationAlbumReceipt,
-    OrganizationHistory, OrganizationHistoryDirection, OrganizationHistoryReceipt,
-    OrganizationInspection, OrganizationPreparedSelection, OrganizationSelection,
-    OrganizationWriteReceipt,
+    OrganizationAction, OrganizationAlbum, OrganizationAlbumIcon, OrganizationAlbumPage,
+    OrganizationAlbumReceipt, OrganizationHistory, OrganizationHistoryDirection,
+    OrganizationHistoryReceipt, OrganizationInspection, OrganizationPreparedSelection,
+    OrganizationSelection, OrganizationWriteReceipt,
 };
 
 pub fn inspect_organization_selection(
@@ -72,8 +72,16 @@ pub fn create_organization_album(
     operation_id: String,
     expected_revision: u64,
     name: String,
+    icon: OrganizationAlbumIcon,
 ) -> Result<OrganizationAlbumReceipt, ScanError> {
-    crate::application::organization::create_album(operation_id, expected_revision, name)
+    crate::application::organization::create_album(operation_id, expected_revision, name, icon)
+}
+
+pub fn change_organization_album_icon(
+    album_id: String,
+    icon: OrganizationAlbumIcon,
+) -> Result<OrganizationAlbum, ScanError> {
+    crate::application::organization::change_album_icon(album_id, icon)
 }
 
 pub fn rename_organization_album(

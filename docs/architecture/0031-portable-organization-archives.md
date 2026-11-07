@@ -53,6 +53,11 @@ stored association evidence for subsequent reconciliation; they cannot identify 
 by themselves. Active review sessions and their save authority are not restored. Source files,
 previews, models and unrelated derived catalog records are excluded.
 
+Version 8 adds album icon records with validated Ame identifiers. Versions 1–7 retain their original
+record kinds and footer counts and use the default icon for restored albums. Icon restoration follows
+album-definition ownership: imported new albums receive their saved icons; an existing local album's
+icon is preserved. Icon changes carry no undo records.
+
 Take a committed SQLite online snapshot in owned derived storage using bounded page steps, then
 release the live catalog copy before streaming records. Export reads no source media. The temporary
 snapshot can be larger than the resulting archive; expose copy progress, support cancellation and

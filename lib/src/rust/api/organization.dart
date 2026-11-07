@@ -79,10 +79,20 @@ Future<OrganizationAlbumReceipt> createOrganizationAlbum({
   required String operationId,
   required BigInt expectedRevision,
   required String name,
+  required OrganizationAlbumIcon icon,
 }) => RustLib.instance.api.crateApiOrganizationCreateOrganizationAlbum(
   operationId: operationId,
   expectedRevision: expectedRevision,
   name: name,
+  icon: icon,
+);
+
+Future<OrganizationAlbum> changeOrganizationAlbumIcon({
+  required String albumId,
+  required OrganizationAlbumIcon icon,
+}) => RustLib.instance.api.crateApiOrganizationChangeOrganizationAlbumIcon(
+  albumId: albumId,
+  icon: icon,
 );
 
 Future<OrganizationAlbumReceipt> renameOrganizationAlbum({
