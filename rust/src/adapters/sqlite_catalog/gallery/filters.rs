@@ -52,6 +52,27 @@ pub(in crate::adapters::sqlite_catalog) fn push_gallery_filters(
     }
 }
 
+pub(in crate::adapters::sqlite_catalog) fn semantic_candidate_source(
+    query: &GalleryQuery,
+    parameters: &mut Vec<Value>,
+) -> String {
+    let prefix = if let Some(condition) = organization::presence_condition(query, parameters) {
+        format!(
+            "FROM (SELECT 1 FROM organization_records AS record WHERE {condition} LIMIT 1)
+             AS organization_presence CROSS JOIN"
+        )
+    } else {
+        "FROM".to_owned()
+    };
+    // Discovery walks every candidate in location order. Keep the location index
+    // outermost so each bounded page does not sort all remaining active sources.
+    format!(
+        "{prefix} asset_locations AS locations
+         CROSS JOIN library_roots AS roots
+           ON roots.id = locations.root_id AND roots.active_scan_id = locations.scan_id"
+    )
+}
+
 pub(super) fn push_source_filters(
     query: &GalleryQuery,
     clauses: &mut Vec<String>,

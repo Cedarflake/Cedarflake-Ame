@@ -1,4 +1,4 @@
-use rusqlite::{Transaction, params_from_iter, types::Value};
+use rusqlite::{Row, Transaction, params_from_iter, types::Value};
 
 use crate::domain::exact_duplicates::EXACT_FINGERPRINT_SCHEME;
 use crate::domain::organization::OrganizationSelection;
@@ -31,6 +31,36 @@ impl<'a> Snapshot<'a> {
             revision,
         })
     }
+
+    fn read_windows(
+        &self,
+        query: &GalleryQuery,
+        after_location: Option<&str>,
+        consume: &mut dyn FnMut(Vec<SemanticCandidate>) -> Result<(), ScanError>,
+    ) -> Result<u64, ScanError> {
+        let query = candidate_query(query, after_location)?;
+        let mut statement = self
+            .transaction
+            .prepare(&query.sql)
+            .map_err(database_error)?;
+        let mut rows = statement
+            .query(params_from_iter(query.parameters))
+            .map_err(database_error)?;
+        let mut window = Vec::with_capacity(SEMANTIC_CANDIDATE_WINDOW);
+        while let Some(row) = rows.next().map_err(database_error)? {
+            window.push(read_candidate(row)?);
+            if window.len() == SEMANTIC_CANDIDATE_WINDOW {
+                consume(std::mem::replace(
+                    &mut window,
+                    Vec::with_capacity(SEMANTIC_CANDIDATE_WINDOW),
+                ))?;
+            }
+        }
+        if !window.is_empty() {
+            consume(window)?;
+        }
+        Ok(self.revision)
+    }
 }
 
 impl SemanticCatalogSnapshot for Snapshot<'_> {
@@ -39,15 +69,51 @@ impl SemanticCatalogSnapshot for Snapshot<'_> {
         query: &GalleryQuery,
         after_location: &str,
     ) -> Result<SemanticCandidateWindow, ScanError> {
-        gallery::validate_gallery_query(query)?;
-        let mut clauses = Vec::new();
-        let mut parameters = Vec::new();
-        let source = gallery::gallery_source(query, &mut parameters);
-        gallery::push_gallery_filters(query, &mut clauses, &mut parameters);
+        let mut candidates = Vec::new();
+        self.read_windows(query, Some(after_location), &mut |window| {
+            candidates = window;
+            Ok(())
+        })?;
+        Ok(SemanticCandidateWindow {
+            revision: self.revision,
+            candidates,
+        })
+    }
+
+    fn scan(
+        &self,
+        query: &GalleryQuery,
+        consume: &mut dyn FnMut(Vec<SemanticCandidate>) -> Result<(), ScanError>,
+    ) -> Result<u64, ScanError> {
+        // Keep one SQLite cursor so grouped scope is evaluated once per search.
+        self.read_windows(query, None, consume)
+    }
+}
+
+fn candidate_query(
+    query: &GalleryQuery,
+    after_location: Option<&str>,
+) -> Result<gallery::BuiltGalleryQuery, ScanError> {
+    gallery::validate_gallery_query(query)?;
+    let mut clauses = Vec::new();
+    let mut parameters = Vec::new();
+    let source = gallery::semantic_candidate_source(query, &mut parameters);
+    gallery::push_gallery_filters(query, &mut clauses, &mut parameters);
+    let limit = if let Some(after) = after_location {
         clauses.push("locations.location_id > ?".to_owned());
-        parameters.push(Value::Text(after_location.to_owned()));
+        parameters.push(Value::Text(after.to_owned()));
         parameters.push(Value::Integer(SEMANTIC_CANDIDATE_WINDOW as i64));
-        let sql = format!(
+        "LIMIT ?"
+    } else {
+        ""
+    };
+    let predicate = if clauses.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", clauses.join(" AND "))
+    };
+    Ok(gallery::BuiltGalleryQuery {
+        sql: format!(
             "SELECT locations.asset_id, locations.location_id, locations.source_generation,
                     evidence.digest, evidence.byte_length
              {source}
@@ -61,49 +127,35 @@ impl SemanticCatalogSnapshot for Snapshot<'_> {
               AND EXISTS (SELECT 1 FROM gallery_content_fingerprints AS published
                   WHERE published.source_generation = evidence.source_generation
                     AND published.scheme = evidence.scheme)
-             WHERE {} ORDER BY locations.location_id LIMIT ?",
-            clauses.join(" AND ")
-        );
-        let mut statement = self.transaction.prepare(&sql).map_err(database_error)?;
-        let candidates = statement
-            .query_map(params_from_iter(parameters), |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, i64>(2)?,
-                    row.get::<_, Option<String>>(3)?,
-                    row.get::<_, Option<i64>>(4)?,
-                ))
-            })
-            .map_err(database_error)?
-            .map(|row| {
-                let (asset_id, location_id, generation, digest, bytes) =
-                    row.map_err(database_error)?;
-                let content = digest
-                    .zip(bytes)
-                    .map(|(digest, bytes)| {
-                        let hash = blake3::Hash::from_hex(&digest).map_err(|_| changed())?;
-                        ImageContentIdentity::new(
-                            EXACT_FINGERPRINT_SCHEME.to_owned(),
-                            *hash.as_bytes(),
-                            sqlite_unsigned(bytes, "content length")?,
-                        )
-                    })
-                    .transpose()?;
-                Ok(SemanticCandidate {
-                    source: OrganizationSelection {
-                        asset_id,
-                        location_id,
-                        source_generation: sqlite_unsigned(generation, "source generation")?,
-                    },
-                    content,
-                })
-            })
-            .collect::<Result<Vec<_>, ScanError>>()?;
-        drop(statement);
-        Ok(SemanticCandidateWindow {
-            revision: self.revision,
-            candidates,
+             {predicate} ORDER BY locations.location_id {limit}"
+        ),
+        parameters,
+    })
+}
+
+fn read_candidate(row: &Row<'_>) -> Result<SemanticCandidate, ScanError> {
+    let digest: Option<String> = row.get(3).map_err(database_error)?;
+    let bytes: Option<i64> = row.get(4).map_err(database_error)?;
+    let content = digest
+        .zip(bytes)
+        .map(|(digest, bytes)| {
+            let hash = blake3::Hash::from_hex(&digest).map_err(|_| changed())?;
+            ImageContentIdentity::new(
+                EXACT_FINGERPRINT_SCHEME.to_owned(),
+                *hash.as_bytes(),
+                sqlite_unsigned(bytes, "content length")?,
+            )
         })
-    }
+        .transpose()?;
+    Ok(SemanticCandidate {
+        source: OrganizationSelection {
+            asset_id: row.get(0).map_err(database_error)?,
+            location_id: row.get(1).map_err(database_error)?,
+            source_generation: sqlite_unsigned(
+                row.get(2).map_err(database_error)?,
+                "source generation",
+            )?,
+        },
+        content,
+    })
 }

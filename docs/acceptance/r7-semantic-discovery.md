@@ -390,3 +390,46 @@ older arrival could otherwise replace the newer native request. Five search-coor
 including delayed preparation, stale replies, IME/Enter, scope changes and failure acknowledgement.
 Affected-file analysis passed. The session owner has 75 production lines and no inline tests; the
 coordinator suite has 292 lines. Native desktop continuation retains its separate verification scope.
+
+## Large-library retrieval — 2026-11-08
+
+The follow-up to `3244947a` keeps a single SQLite candidate cursor for each search and feeds bounded
+256-item batches to exact scoring. Location-ordered access avoids repeatedly sorting the remaining
+library; the single cursor computes scoped duplicate representatives once. Background indexing keeps
+its bounded keyset pages. Scope predicates, preferred representatives, feature-generation admission,
+the fixed catalog snapshot and the 500-result cap remain unchanged.
+
+The production Dart/native path used a leased online backup of local-primary: 63,121 active locations,
+a 482.8-MiB catalog and a 90.4-MiB classification cache. The baseline spent 25.7–27.9 seconds on warm
+unfiltered queries after twelve minutes of indexing. Fixing location order alone reduced those
+queries to about one second, but merged mode exceeded the 120-second deadline. The complete cursor
+change produced these results with the same source population and a 90-second indexing budget:
+
+| Operation | Time | Eligible / indexed locations |
+| --- | --- | --- |
+| First Chinese query, cold text worker | 2,989 ms | 63,121 / 0 |
+| Warm unfiltered queries | 894–1,079 ms | 63,121 / 891–944 |
+| Chinese query with merged duplicates | 2,741 ms | 47,877 / 655 |
+| PNG-restricted flower query | 649 ms | 16,526 / 382 |
+| Cancellation acknowledgement | 7.3 ms | Active request retired |
+| Joined runtime shutdown / healthy-store reopen | 352 / 26 ms | Existing features retained |
+| Cached query after reopen | 805 ms | 63,121 / 985 |
+
+Reference search excluded its own location and returned 165 results from 63,120 eligible locations.
+The first English query after worker inactivity took 2,731 ms. The baseline reached 8,515 indexed
+locations; the shorter final run reached 985 and did not finish indexing. These are partial-coverage
+latency measurements, not full-index throughput or semantic-quality comparisons.
+
+The complete run exited successfully in 135 seconds, with at most two model workers. Peak client
+private memory was 124.7 MiB; combined worker private memory was 1,375.5 MiB. Physical/commit headroom
+stayed above 3,574 / 3,981 MiB. The semantic database reached 2.75 MiB and the entire derived profile
+1,078.7 MiB. All workers joined; all 63,121 source metadata records, 64 sampled source hashes and the
+original catalog/cache hashes were unchanged. The leased snapshot was removed afterward.
+
+The optimized Debug DLL retained debug assertions and isolated-storage admission; its SHA-256 was
+`EFC1F39B23EBADD04B5FC160F088925CD7B277213075D173D6227A708F63B358`.
+The existing snapshot regression now checks streaming across a concurrent publication; a focused
+instruction-budget regression rejects whole-library sorting for a 256-item page. Execution of these
+Rust cases remains assigned to hosted CI. Native compilation, affected formatting and diff checks
+passed. Production / inline-test lines: filter owner 161 / 0, snapshot 161 / 0, retrieval 146 / 0;
+the dedicated semantic catalog suite contains 214 lines.

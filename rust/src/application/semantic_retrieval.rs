@@ -58,19 +58,13 @@ pub(crate) fn retrieve(
     }
     let storage = features.storage()?;
     let snapshot = catalog.semantic_snapshot()?;
-    let mut cursor = String::new();
     let mut eligible_items = 0;
     let mut indexed_items = 0;
     let mut ranked = Vec::with_capacity(SEMANTIC_RESULT_LIMIT + SEMANTIC_CANDIDATE_WINDOW);
-    let revision = loop {
+    check_cancelled(cancelled)?;
+    let revision = snapshot.scan(query.scope, &mut |window| {
         check_cancelled(cancelled)?;
-        let window = snapshot.candidates(query.scope, &cursor)?;
-        let finished = window.candidates.len() < SEMANTIC_CANDIDATE_WINDOW;
-        if let Some(last) = window.candidates.last() {
-            cursor = last.source.location_id.clone();
-        }
         let candidates: Vec<_> = window
-            .candidates
             .into_iter()
             .filter(|candidate| query.exclude != Some(&candidate.source))
             .collect();
@@ -112,10 +106,8 @@ pub(crate) fn retrieve(
                 .then_with(|| left.1.cmp(&right.1))
         });
         ranked.truncate(SEMANTIC_RESULT_LIMIT);
-        if finished {
-            break window.revision;
-        }
-    };
+        Ok(())
+    })?;
     check_cancelled(cancelled)?;
     query.relevance.retain(&mut ranked);
     let items: Vec<_> = ranked.into_iter().map(|(_, source)| source).collect();

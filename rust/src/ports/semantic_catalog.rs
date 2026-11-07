@@ -18,6 +18,14 @@ pub(crate) trait SemanticCatalogSnapshot {
         query: &GalleryQuery,
         after_location: &str,
     ) -> Result<SemanticCandidateWindow, ScanError>;
+
+    /// Supplies at most SEMANTIC_CANDIDATE_WINDOW candidates per batch and returns
+    /// the fixed catalog revision. A consumer error stops the scan immediately.
+    fn scan(
+        &self,
+        query: &GalleryQuery,
+        consume: &mut dyn FnMut(Vec<SemanticCandidate>) -> Result<(), ScanError>,
+    ) -> Result<u64, ScanError>;
 }
 
 pub(crate) trait SemanticCatalog {

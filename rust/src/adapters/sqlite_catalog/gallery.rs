@@ -25,7 +25,7 @@ mod timeline;
 pub(super) use timeline::load_gallery_timeline;
 
 use filters::push_source_filters;
-pub(super) use filters::{gallery_source, push_gallery_filters};
+pub(super) use filters::{gallery_source, push_gallery_filters, semantic_candidate_source};
 
 pub(super) use location_anchor::{
     GalleryAssetAnchor, resolve_gallery_asset_anchor, resolve_gallery_location_anchor,

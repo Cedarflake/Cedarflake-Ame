@@ -5,6 +5,58 @@ use crate::ports::semantic_catalog::SemanticCatalog;
 use super::support::publish_gallery_query_fixture;
 
 #[test]
+fn semantic_candidate_window_does_not_sort_the_remaining_library() {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    let directory = tempfile::tempdir().unwrap();
+    let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
+    for root in 0..2 {
+        let ids: Vec<_> = (0..2048)
+            .map(|index| format!("image-{index:04}-{root}.png"))
+            .collect();
+        let locations: Vec<_> = ids
+            .iter()
+            .map(|id| (id.as_str(), id.as_str(), None, None, 1))
+            .collect();
+        publish_gallery_query_fixture(
+            &mut catalog,
+            &format!("scan-{root}"),
+            &format!("root-{root}"),
+            &format!("C:/Fixture/{root}"),
+            &locations,
+        );
+    }
+    let steps = Arc::new(AtomicUsize::new(0));
+    let observed = Arc::clone(&steps);
+    catalog
+        .connection
+        .progress_handler(
+            1000,
+            Some(move || {
+                observed.fetch_add(1000, Ordering::Relaxed);
+                false
+            }),
+        )
+        .unwrap();
+    let page = catalog
+        .semantic_candidates(&GalleryQuery::default(), "")
+        .unwrap();
+    catalog
+        .connection
+        .progress_handler(0, None::<fn() -> bool>)
+        .unwrap();
+    assert_eq!(page.candidates.len(), 256);
+    assert_eq!(page.candidates[0].source.location_id, "image-0000-0.png");
+    assert_eq!(page.candidates[255].source.location_id, "image-0127-1.png");
+    let work = steps.load(Ordering::Relaxed);
+    assert!(
+        work < 50_000,
+        "A 256-item page must not sort 4096 candidates: {work}"
+    );
+}
+
+#[test]
 fn semantic_gallery_pages_and_position_seeks_keep_relevance_order() {
     use crate::domain::semantic_results::SemanticResultManifest;
     use crate::domain::{GallerySortKey, GalleryTimeAnchor};
@@ -135,6 +187,22 @@ fn semantic_snapshot_keeps_its_scope_while_background_publication_advances() {
     assert_eq!(last.revision, first.revision);
     assert_eq!(last.candidates.len(), 1);
     assert_eq!(last.candidates[0].source.location_id, "image-256.png");
+    let mut streamed = Vec::new();
+    let mut sizes = Vec::new();
+    let revision = snapshot
+        .scan(&GalleryQuery::default(), &mut |window| {
+            sizes.push(window.len());
+            streamed.extend(
+                window
+                    .into_iter()
+                    .map(|candidate| candidate.source.location_id),
+            );
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(sizes, [256, 1]);
+    assert_eq!(streamed, ids);
+    assert_eq!(revision, first.revision);
     drop(snapshot);
 
     let current = catalog
