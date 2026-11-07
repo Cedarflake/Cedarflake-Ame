@@ -106,6 +106,9 @@ pub(crate) fn analyze<F: ClassificationEncoderFactory, C: ResidencyClock>(
     if !repository.classification_analysis_is_current(lease, cancelled)? {
         return Ok(interrupted(cancelled));
     }
+    if !used_cached_feature {
+        cache.store_image_feature(run.model(), content, &feature)?;
+    }
     let result = classifier.classify(&feature).map_err(|_| incompatible())?;
     let identity = ClassificationRevision::derive(
         "ame.classification.work-prediction.v1",
@@ -128,9 +131,6 @@ pub(crate) fn analyze<F: ClassificationEncoderFactory, C: ResidencyClock>(
     let evidence = result
         .into_evidence(prediction_id, run.clone(), content.clone())
         .map_err(|_| incompatible())?;
-    if !used_cached_feature {
-        cache.store_image_feature(run.model(), content, &feature)?;
-    }
     if cancelled.load(Ordering::Acquire) {
         return Ok(ClassificationAnalysisResult::Cancelled);
     }

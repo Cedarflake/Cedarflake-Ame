@@ -2,8 +2,8 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use crate::adapters::SqliteClassificationFeatureCache;
 use crate::adapters::classification_runtime::LocalClassificationEncoderFactory;
+use crate::adapters::{SqliteClassificationFeatureCache, SqliteSemanticFeatureStore};
 use crate::domain::ScanError;
 use crate::domain::classification::ClassificationAnalysisSetup;
 use crate::domain::classification::work::{
@@ -20,6 +20,7 @@ use super::super::classification_residency::{
 };
 use super::super::classification_screening::ScreeningClassifier;
 use super::super::classification_verification::verify_classification_source;
+use super::super::image_feature_reuse::SharedImageFeatures;
 use super::admitted_text::AdmittedTextFactory;
 use super::{ClassificationRuntimePaths, setup};
 
@@ -28,15 +29,18 @@ type NativeEncoderResidency = ClassificationEncoderResidency<
     MonotonicResidencyClock,
 >;
 
+type NativeFeatureRepository =
+    SharedImageFeatures<SqliteClassificationFeatureCache, SqliteSemanticFeatureStore>;
+
 pub(super) struct FeatureResources<'a> {
-    pub cache: &'a mut SqliteClassificationFeatureCache,
+    pub cache: &'a mut NativeFeatureRepository,
     pub residency: &'a mut NativeEncoderResidency,
 }
 
 pub(super) struct NativeExecutor {
     database: PathBuf,
     cache_directory: PathBuf,
-    cache: Option<SqliteClassificationFeatureCache>,
+    cache: Option<NativeFeatureRepository>,
     setup: ClassificationAnalysisSetup,
     classifier: Option<ScreeningClassifier>,
     residency: NativeEncoderResidency,
@@ -68,9 +72,7 @@ impl NativeExecutor {
 
     pub(super) fn feature_resources(&mut self) -> Result<FeatureResources<'_>, ScanError> {
         if self.cache.is_none() {
-            self.cache = Some(SqliteClassificationFeatureCache::open(
-                &self.cache_directory,
-            )?);
+            self.cache = Some(self.open_features()?);
         }
         Ok(FeatureResources {
             cache: self.cache.as_mut().expect("the feature cache is owned"),
@@ -84,9 +86,7 @@ impl NativeExecutor {
         cancelled: &AtomicBool,
     ) -> Result<ClassificationAnalysisResult, ScanError> {
         if self.cache.is_none() {
-            self.cache = Some(SqliteClassificationFeatureCache::open(
-                &self.cache_directory,
-            )?);
+            self.cache = Some(self.open_features()?);
         }
         let cache = self.cache.as_mut().expect("the feature cache is owned");
         if self.classifier.is_none() {
@@ -105,6 +105,14 @@ impl NativeExecutor {
             cache,
             cancelled,
         )
+    }
+    fn open_features(&self) -> Result<NativeFeatureRepository, ScanError> {
+        Ok(SharedImageFeatures::new(
+            SqliteClassificationFeatureCache::open(&self.cache_directory)?,
+            SqliteSemanticFeatureStore::open(
+                &self.cache_directory.with_file_name("semantic-features"),
+            )?,
+        ))
     }
 }
 

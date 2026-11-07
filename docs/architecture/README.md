@@ -54,3 +54,4 @@ Recorded decisions:
 - [ADR 0037: Feature module dependencies and production composition](0037-feature-module-dependency-boundaries.md)
 - [ADR 0038: Bounded perceptual similarity over admitted content](0038-bounded-perceptual-similarity.md)
 - [ADR 0039: Default-enabled GPU image classification](0039-gpu-classification-execution.md)
+- [ADR 0040: Durable shared image features for discovery](0040-durable-discovery-features.md)

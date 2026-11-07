@@ -169,13 +169,13 @@ fn rejects_invalid_vectors_before_they_enter_matching() {
     ] {
         assert_eq!(
             Embedding::normalized(values),
-            Err(ClassificationError::InvalidEmbedding)
+            Err(crate::domain::image_features::InvalidEmbedding)
         );
     }
     let first = Embedding::normalized(vec![1.0, 0.0]).unwrap();
     let second = Embedding::normalized(vec![1.0]).unwrap();
     assert_eq!(
         first.cosine(&second),
-        Err(ClassificationError::InvalidEmbedding)
+        Err(crate::domain::image_features::InvalidEmbedding)
     );
 }

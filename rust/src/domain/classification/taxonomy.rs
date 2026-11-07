@@ -1,35 +1,9 @@
 use std::collections::BTreeSet;
 
-use super::ClassificationError;
+use super::{ClassificationError, ClassificationRevision};
 
 pub(super) const MAX_CATEGORIES: usize = 256;
 const MAX_DESCRIPTIONS: usize = 8;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ClassificationRevision([u8; 32]);
-
-impl ClassificationRevision {
-    pub fn from_bytes(bytes: [u8; 32]) -> Self {
-        Self(bytes)
-    }
-
-    pub fn bytes(&self) -> &[u8; 32] {
-        &self.0
-    }
-
-    pub(crate) fn derive<'a>(context: &str, fields: impl IntoIterator<Item = &'a [u8]>) -> Self {
-        let mut hasher = blake3::Hasher::new_derive_key(context);
-        for field in fields {
-            hasher.update(&(field.len() as u64).to_le_bytes());
-            hasher.update(field);
-        }
-        Self(*hasher.finalize().as_bytes())
-    }
-
-    pub fn description(text: &str) -> Self {
-        Self::derive("ame.classification.description.v1", [text.as_bytes()])
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CategoryId(String);

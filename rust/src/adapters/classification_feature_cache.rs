@@ -8,6 +8,7 @@ use crate::domain::classification::{
     ClassificationContent, ClassificationRevision, Embedding, FeatureIdentity, ImageFeature,
     ModelCompatibility, TextFeature,
 };
+use crate::domain::image_features::image_feature_key;
 use crate::ports::classification_features::{
     ClassificationFeatureCacheStats, ClassificationFeatureRepository, validate_text_feature_window,
 };
@@ -213,17 +214,11 @@ fn validate_feature(
 }
 
 fn image_key(model: ModelCompatibility, content: &ClassificationContent) -> ClassificationRevision {
-    let identity = model.image_identity();
-    ClassificationRevision::derive(
-        "ame.classification.image-cache.v1",
-        [
-            identity.embedding_space.bytes().as_slice(),
-            identity.pipeline.bytes(),
-            &(model.dimensions() as u64).to_le_bytes(),
-            content.scheme.as_str().as_bytes(),
-            &content.digest,
-            &content.byte_length.to_le_bytes(),
-        ],
+    image_feature_key(
+        model,
+        content.scheme.as_str(),
+        &content.digest,
+        content.byte_length,
     )
 }
 

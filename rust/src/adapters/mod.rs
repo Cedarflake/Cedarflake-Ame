@@ -3,6 +3,8 @@ mod analysis_source;
 mod catalog_capacity;
 pub(crate) use catalog_capacity::LocalCatalogCapacity;
 mod classification_feature_cache;
+mod semantic_feature_store;
+pub(crate) use semantic_feature_store::SqliteSemanticFeatureStore;
 #[cfg(all(windows, any(feature = "classification-worker", test)))]
 pub(crate) mod classification_image_input;
 #[cfg(any(all(windows, feature = "classification-worker"), test))]

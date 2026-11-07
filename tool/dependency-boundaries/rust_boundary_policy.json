@@ -107,7 +107,9 @@
       "coverage": [
         "rust/src/application/classification_runtime/ownership.rs",
         "rust/src/application/classification_runtime/tests.rs",
-        "rust/src/application/classification_residency/tests.rs"
+        "rust/src/application/classification_residency/tests.rs",
+        "rust/src/application/image_feature_reuse.rs",
+        "rust/src/adapters/semantic_feature_store/tests.rs"
       ]
     },
     "classification-source-composition": {
@@ -639,7 +641,7 @@
       "owner": "classification-execution-composition",
       "dependency": {
         "source": "rust/src/application/classification_runtime/executor.rs",
-        "symbol": "crate::application::classification_runtime::executor::FeatureResources",
+        "symbol": "crate::application::classification_runtime::executor::NativeFeatureRepository",
         "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
         "rule": "concrete-adapter"
       }
@@ -659,8 +661,8 @@
       "owner": "classification-execution-composition",
       "dependency": {
         "source": "rust/src/application/classification_runtime/executor.rs",
-        "symbol": "crate::application::classification_runtime::executor::NativeExecutor",
-        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "symbol": "crate::application::classification_runtime::executor::NativeFeatureRepository",
+        "target": "crate::adapters::semantic_feature_store::SqliteSemanticFeatureStore",
         "rule": "concrete-adapter"
       }
     },
@@ -669,7 +671,7 @@
       "owner": "classification-execution-composition",
       "dependency": {
         "source": "rust/src/application/classification_runtime/executor.rs",
-        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::analyze",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::open_features",
         "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
         "rule": "concrete-adapter"
       }
@@ -679,8 +681,8 @@
       "owner": "classification-execution-composition",
       "dependency": {
         "source": "rust/src/application/classification_runtime/executor.rs",
-        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::feature_resources",
-        "target": "crate::adapters::classification_feature_cache::SqliteClassificationFeatureCache",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::open_features",
+        "target": "crate::adapters::semantic_feature_store::SqliteSemanticFeatureStore",
         "rule": "concrete-adapter"
       }
     },

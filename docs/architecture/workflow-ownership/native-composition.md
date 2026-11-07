@@ -112,7 +112,11 @@ authority; stored access paths remain intact. Its existing string contract needs
 
 `NativeClassificationRuntime` owns one dispatcher, its catalog connection, executor and process
 ownership token. `NativeExecutor` and its registered residency/resource types own the feature cache,
-prepared matcher and native encoder factory. Cache acquisition is lazy; constructing the runtime
+durable image-feature store, prepared matcher and native encoder factory. `open_features` selects
+both repositories behind `SharedImageFeatures`; the port-based owner coordinates compatible reuse
+and publication under [ADR 0040](../0040-durable-discovery-features.md). Replacing storage changes this
+factory and its resource alias while preserving the two independent budgets and lifetimes.
+Cache acquisition is lazy; constructing the runtime
 does not start an encoder. The existing [residency contract](../0034-versioned-classification-contracts.md#worker-ownership-and-protocol)
 owns demand loading, cancellation, idle retirement and replacement. Closing the host retires the
 executor before releasing process ownership; unproven retirement prevents another runtime.

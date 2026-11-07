@@ -32,7 +32,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R4 | Favorites, albums and durable organization progress | Merged into `main` on 2026-10-30 |
 | R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
 | R6 | Perceptual similarity review | Merged into `main` on 2026-11-05 |
-| R7 | Structured and semantic discovery | Active; R7-01 implementation |
+| R7 | Structured and semantic discovery | Active; R7-02 shared features and indexing |
 | R8 | Immutable physical-organization dry-run | Planned after R7 |
 | R9 | Freshly authorized physical operations and recovery | Planned after R8 |
 | R10 | Large-library maturity and release readiness | Later work; infrastructure may support earlier stages |
@@ -81,9 +81,9 @@ R7-01 composed filters, then shared feature/index coverage, text retrieval, rela
 and desktop acceptance. Reuse SigLIP 2 and the existing default-enabled GPU image runtime;
 multi-model selection and the larger FG-CLIP 2 evaluation are outside this scope.
 
-Before R7-02, finish the requested CI reduction: remove incidental assertions, batch Flutter suites,
-and deliver quick/full/nightly-release selection under [ADR 0026](architecture/0026-hosted-synthetic-and-unsigned-build-gates.md).
-Verify the changed selection and failure propagation, then resume the R7 slices in order.
+The requested CI reduction is implemented: quick/full/nightly-release selection, affected Flutter
+suites and removal of incidental assertions. [CI evidence](acceptance/r7-semantic-discovery.md#ci-reduction--2026-11-07)
+retains its measured results and revision limits. Continue R7-02 without another broad test-cleanup project.
 
 R6 retains the paired engine with accepted visual-layout discrimination and heavier-crop limits.
 Cloud-primary runs, constrained-client measurements and optimization remain deferred outside R6.
@@ -131,10 +131,10 @@ schedules no additional broad split.
 ## R7 implementation sequence
 
 The [R7 plan](plans/r7-semantic-discovery.md#implementation-slices) owns slice definitions and planned
-interaction. R7-01 is implemented on the R7 branch with focused and native-client
-[filter evidence](acceptance/r7-semantic-discovery.md); hosted verification exposed stale GPU tests
-and is being repaired alongside the requested CI reduction.
-R7-02 through R7-05 follow in order. Completion requires composed
+interaction. R7-01 is implemented on the R7 branch with focused, native-client and hosted
+[filter evidence](acceptance/r7-semantic-discovery.md). R7-02 has shared durable feature storage;
+independent indexing, current-library coverage and retrieval remain in progress.
+R7-03 through R7-05 follow in order. Completion requires composed
 search/filter behavior in the running desktop, durable bounded indexing, stable gallery/viewer
 results, source safety and the plan's quality/performance evidence. No R7 slice is accepted yet.
 

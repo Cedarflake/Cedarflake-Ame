@@ -29,6 +29,7 @@ mod directory_synchronization;
 pub(crate) mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
 pub(crate) mod gallery_duplicates;
+mod image_feature_reuse;
 mod incremental_library_changes;
 #[cfg(windows)]
 pub(crate) mod indexed_startup;

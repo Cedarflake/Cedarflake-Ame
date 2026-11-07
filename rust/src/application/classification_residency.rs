@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use crate::domain::ScanError;
-use crate::domain::classification::{ImageFeature, ModelCompatibility, TextFeature};
+use crate::domain::image_features::{ImageFeature, ModelCompatibility, TextFeature};
 use crate::ports::classification_encoder::{
     ClassificationEncoder, ClassificationEncoderFactory, ClassificationEncoderKind,
 };

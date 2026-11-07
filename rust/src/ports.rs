@@ -53,6 +53,7 @@ pub(crate) mod scan_publication;
 pub(crate) mod scan_recovery;
 pub(crate) mod scan_staging;
 pub(crate) mod search_index;
+pub(crate) mod semantic_features;
 pub(crate) mod sidebar_order;
 pub(crate) mod similar_images;
 pub(crate) mod source_identity;

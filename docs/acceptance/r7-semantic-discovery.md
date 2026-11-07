@@ -1,7 +1,7 @@
 # R7 implementation evidence
 
 Date: 2026-11-07
-Scope: R7-01 composed filters on `codex/r7-semantic-discovery`.
+Scope: composed filters, CI reduction and shared-feature foundations on `codex/r7-semantic-discovery`.
 The [roadmap](../roadmap.md#r7-implementation-sequence) owns disposition and the
 [plan](../plans/r7-semantic-discovery.md) owns remaining slices.
 
@@ -92,7 +92,7 @@ Run [42356744377](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/4235
 completed all 1,783 Flutter cases in four batches / 260 files; invocation-to-completion time was
 13 minutes 27 seconds. The earlier run spent approximately 24 minutes before its stale assertion
 failed. Rust Remaining passed 1,232 cases in 1,160 seconds; runner variation prevents attributing the
-entire timing difference to pruning. Windows build, scan, accessibility and synchronization also passed.
+entire timing difference to pruning. All four Rust partitions, Windows build, scan and accessibility passed.
 Static exposed a duplicate assertion tying a scan benchmark to the old verification job; `d2dd220d`
 removes it while the independent release workload remains required. Its existing guardrail passed
 under PowerShell 7 and Windows PowerShell 5.1. Remaining hosted results retain that run's revision.
@@ -103,3 +103,36 @@ conditional exports, parts, removed targets, cycles and runner configuration. Th
 comparison selected 203 of 260 suites and included its filter/draft cases; that broad change includes
 a shared domain type and therefore still selects full CI. No new permanent test matrix or changes to
 `testing.md` were added for this refinement. Its hosted quick-path duration remains unmeasured.
+
+## Shared-feature foundation
+
+[ADR 0040](../architecture/0040-durable-discovery-features.md) owns common feature identity and the
+independent SQLite store. Classification now reuses compatible durable features and promotes LRU
+hits; clearing its LRU retains discovery features. Newly encoded features publish after source and
+catalog revalidation, before category evidence. Original F32 values and existing key hashes remain
+unchanged. No new model, inference worker or production retrieval dependency was added.
+
+Rustfmt and all-feature library Clippy passed. Five real-SQLite store cases cover reopening, model
+separation, budget retention, atomic rollback, corruption and foreign-database rejection. One shared
+repository case covers cache promotion and LRU cleanup. The six existing analysis, ten domain and
+eleven cache regressions also passed. The fixed dependency inventory check passed with updated
+symbol-scoped composition registrations; no legacy exception was added.
+
+Production / inline-test lines: store facade 193 / 0, storage admission 107 / 0, shared repository
+92 / 42, common features 171 / 0, native executor 212 / 0. Dedicated store tests contain 154 lines.
+Independent semantic backlog, retrieval, current-library coverage and desktop search are not yet
+connected; these checks establish the persistence foundation only.
+
+## Retrieval evaluation
+
+An ignored Windows x64 release probe used USearch 2.26.6 with default features disabled and the
+retained 368 image / 48 text-query F32 embeddings (768 dimensions). No model download or source
+image read was needed. Exact F64 cosine supplied the comparison; scopes selected all candidates,
+every third candidate and every seventeenth candidate before ranking.
+
+Search expansion 128 recovered 479/480 exact top-ten results in the full scope. Expansion 512
+recovered 480/480 in each scope. Full-scope median/p95 retrieval was 0.098/0.150 ms; build time was
+19.2 ms. Serialized size was 1,232,948 bytes and engine-reported memory 16,783,168 bytes, excluding
+process overhead. Save/load, mapped-view agreement, removal and a Unicode path passed. Native
+search has no observed cancellation callback, so integration would need bounded work windows.
+These small-corpus measurements do not establish full-library latency, recall or resident memory.
