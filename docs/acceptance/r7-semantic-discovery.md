@@ -454,7 +454,7 @@ the available native automation did not deliver composition or Chinese text to t
 input limitation is not recorded as a product failure or a completed native IME check. The
 [`60778542` full run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42414123566) passed
 Static, Flutter, Windows accessibility, Windows scan, production-bundle build, Rust Remaining and
-Rust Synchronization and Scan. Catalog is still running. The shared-choice cases now locate visible
+Rust Synchronization and Scan. The shared-choice cases now locate visible
 Material controls instead of a removed component type and menu key; existing behavior and native
 accessibility assertions remain. Seven affected widget cases also passed locally.
 
@@ -474,3 +474,11 @@ new defaults. Rollback, receipts and organization-history checks remain. Formatt
 passed; execution of the corrected fixtures remains assigned to hosted CI. Dedicated test lines:
 camera metadata 130, compact search 224, search 201, admission clock 101, history 118, queue index 203;
 this correction changes no production or inline-test code.
+
+Catalog passed 928 cases, failed two and retained seven explicitly manual/profile cases as ignored.
+Idle maintenance had the same directory-existence assumption; both maintenance lifecycle cases now
+check zero cached features while retaining absent-model/source fixtures. The export fixture now
+assigns an album icon before requiring that record family in the archive. The existing icon
+export/restore/retained-choice case passed in this run. These test corrections passed formatting and
+diff checks and await hosted execution; their dedicated suites contain 304 and 217 lines, with no
+production or inline-test changes.
