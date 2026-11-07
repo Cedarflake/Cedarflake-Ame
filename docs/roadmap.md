@@ -32,7 +32,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R4 | Favorites, albums and durable organization progress | Merged into `main` on 2026-10-30 |
 | R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
 | R6 | Perceptual similarity review | Merged into `main` on 2026-11-05 |
-| R7 | Structured and semantic discovery | Planned after R6 |
+| R7 | Structured and semantic discovery | Active; R7-01 implementation |
 | R8 | Immutable physical-organization dry-run | Planned after R7 |
 | R9 | Freshly authorized physical operations and recovery | Planned after R8 |
 | R10 | Large-library maturity and release readiness | Later work; infrastructure may support earlier stages |
@@ -59,7 +59,7 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 GPU analysis acceleration was merged into `main` on 2026-11-07 through
 [PR 52](https://github.com/Cedarflake/Cedarflake-Ame/pull/52). The
 [evidence](acceptance/gpu-analysis-acceleration.md#integration-disposition--2026-11-07) retains local
-verification, review scope and the authorized merge before CI completion. R7 implementation has not started.
+verification, review scope and the authorized merge before CI completion.
 
 Post-R6 maintenance is integrated into `main`. The owning records retain the local regression and
 rebuilt-client evidence for [similarity throughput](acceptance/r6-similar-images.md#development-analysis-throughput--2026-11-05),
@@ -76,8 +76,10 @@ Project organization O1–O7 was merged into `main` on 2026-11-04 through
 [handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04) maps the
 delivered scope to evidence.
 
-R7 is the next planned stage; implementation has not started. Its scope remains in the
-[organization workflows](product/organization-workflows.md).
+R7 is active under the [semantic-discovery plan](plans/r7-semantic-discovery.md). Start with
+R7-01 composed filters, then shared feature/index coverage, text retrieval, related-image discovery
+and desktop acceptance. Reuse SigLIP 2 and the existing default-enabled GPU image runtime;
+multi-model selection and the larger FG-CLIP 2 evaluation are outside this scope.
 
 R6 retains the paired engine with accepted visual-layout discrimination and heavier-crop limits.
 Cloud-primary runs, constrained-client measurements and optimization remain deferred outside R6.
@@ -121,6 +123,13 @@ any affected extension. Existing extractions are regression boundaries, not task
 multi-responsibility extension must first establish its typed owner; record only an actual unfinished
 larger split here, with affected scope and resume condition. This documentation reorganization
 schedules no additional broad split.
+
+## R7 implementation sequence
+
+The [R7 plan](plans/r7-semantic-discovery.md#implementation-slices) owns slice definitions and planned
+interaction. R7-01 is in progress; R7-02 through R7-05 follow in order. Completion requires composed
+search/filter behavior in the running desktop, durable bounded indexing, stable gallery/viewer
+results, source safety and the plan's quality/performance evidence. No R7 slice is accepted yet.
 
 ## R4 implementation sequence
 
