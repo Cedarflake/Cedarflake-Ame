@@ -50,6 +50,15 @@ class AmeSelectionCheckbox extends StatelessWidget {
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   checkColor: Colors.transparent,
                   splashRadius: tapTargetSize / scale / 2,
+                  // Keep the state layer visible over photos after the hover
+                  // animation settles, without obscuring the image underneath.
+                  overlayColor: isOutlined
+                      ? null
+                      : WidgetStatePropertyAll(
+                          colors.surfaceContainerHighest.withValues(
+                            alpha: 0.32,
+                          ),
+                        ),
                   fillColor: WidgetStateProperty.resolveWith((states) {
                     if (isOutlined) return Colors.transparent;
                     if (states.contains(WidgetState.selected) ||
