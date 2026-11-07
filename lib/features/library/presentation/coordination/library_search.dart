@@ -267,6 +267,17 @@ class LibrarySearch extends ChangeNotifier {
     unawaited(submit());
   }
 
+  Future<void> dismissFailure(Object failure) async {
+    if (_disposed ||
+        loading ||
+        !related ||
+        !identical(error, failure) ||
+        failure is LibrarySemanticIndexFailure) {
+      return;
+    }
+    await clear();
+  }
+
   Future<void> clear() async {
     cancelPending();
     final generation = _generation;

@@ -17,11 +17,13 @@ class LibraryBottomFeedback extends ConsumerWidget {
   const LibraryBottomFeedback({
     required this.onRetryPrimary,
     required this.onNotificationAction,
+    this.onNotificationAcknowledged,
     super.key,
   });
 
   final Future<void> Function() onRetryPrimary;
   final ValueChanged<AmeNotificationEntry> onNotificationAction;
+  final ValueChanged<AmeNotificationEntry>? onNotificationAcknowledged;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,6 +47,7 @@ class LibraryBottomFeedback extends ConsumerWidget {
         notification: notification,
         onAction: onNotificationAction,
         onDismiss: (id) {
+          onNotificationAcknowledged?.call(notification);
           ref.read(ameNotificationControllerProvider.notifier).dismiss(id);
           ref.read(libraryOrganizationOutcomeProvider.notifier).dismiss(id);
         },

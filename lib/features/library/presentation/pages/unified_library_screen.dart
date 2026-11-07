@@ -110,6 +110,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   late final LibrarySynchronizationNotifications _synchronizationNotifications;
   late final TextEditingController _searchController;
   late final LibrarySearch _search;
+  late final LibrarySearchNotifications _searchNotifications;
   late GallerySelection _selection;
   late String _selectionStableQueryId;
   late GalleryLayoutShape _layoutShape;
@@ -242,13 +243,14 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
       updateQuery: _libraryController.updateQuery,
       positionTransition: _queryTransition,
     );
+    _searchNotifications = LibrarySearchNotifications(_notificationController);
     _search = LibrarySearch(
       text: _searchController,
       readQuery: () => library.query,
       publish: _publishSearchQuery,
       supersedePublication: _libraryController.supersedeQueryRequests,
       allowContent: () => !_review.isActive,
-      onFailure: LibrarySearchNotifications(_notificationController).setFailure,
+      onFailure: _searchNotifications.setFailure,
       initialMode: viewPreferences.searchMode,
       onModeChanged: (_) => unawaited(_persistViewPreferences()),
       service: ref.read(librarySemanticSearchProvider),
@@ -621,6 +623,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                 LibraryBottomFeedback(
                   onRetryPrimary: _retryLibraryTask,
                   onNotificationAction: _handleNotificationAction,
+                  onNotificationAcknowledged: (notification) => unawaited(
+                    _searchNotifications.acknowledge(notification, _search),
+                  ),
                 ),
             ],
           ),

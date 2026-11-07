@@ -324,3 +324,14 @@ retained preview hashes unchanged; later preview sessions remain independently s
 Production / inline-test lines: migration dispatcher 4,132 / 2,349; album persistence 259 / 0;
 album picker 435 / 0; album editor 169 / 0. Dedicated icon migration and persistence tests contain
 41 and 81 lines. The dispatcher only registers the new typed migration owner.
+
+## Failed related-search acknowledgement — 2026-11-08
+
+The follow-up to `29af2ebe` connects acknowledgement to the current failed reference search.
+It clears the reference and restores browsing with the existing scope and filters. Notification
+identity and failure admission reject an old acknowledgement during or after a newer retry;
+partial-result index failures retain their results. Retry keeps its existing search target.
+Three search-coordinator cases passed, including the failed-reference and stale-notification
+regression. Changed-file analysis and the rebuilt native Debug client passed; the user confirmed
+the remaining desktop interactions. Production / inline-test lines: search coordinator 349 / 0,
+screen composition 1,975 / 0; the dedicated coordinator suite contains 229 lines.
