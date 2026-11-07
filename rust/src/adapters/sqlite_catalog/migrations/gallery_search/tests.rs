@@ -32,13 +32,13 @@ fn upgrade_indexes_existing_paths_without_changing_decisions_and_reopens() {
     let history = catalog.load_organization_history().unwrap();
     migrate(&mut catalog.connection).unwrap();
     current_schema::validate_schema_version(&catalog.connection, 61).unwrap();
-    assert_eq!(catalog.load_organization_history().unwrap(), history);
-    assert_eq!(
-        catalog.load_organization_albums(None).unwrap().albums[0].name,
-        "Retained"
-    );
     drop(catalog);
     let mut reopened = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
+    assert_eq!(reopened.load_organization_history().unwrap(), history);
+    assert_eq!(
+        reopened.load_organization_albums(None).unwrap().albums[0].name,
+        "Retained"
+    );
     let page = reopened
         .load_snapshot(
             10,

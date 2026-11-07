@@ -451,17 +451,26 @@ interaction evidence remains applicable to these unchanged surfaces.
 
 The existing composition/Enter regression passed, but actual Windows IME observation remains open:
 the available native automation did not deliver composition or Chinese text to the field. That
-input limitation is not recorded as a product failure or a completed native IME check. The exact
-product-revision [full CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42411950375)
-passed Windows scan integration. Static analysis, Flutter tests and Windows accessibility exposed
-three stale test locators after the shared-choice extraction: two referenced the removed component
-type and one referenced a retired menu key. The follow-up locates the visible Material controls;
-all existing behavior and native-accessibility assertions remain. Seven affected widget cases and
-analysis of the three changed suites passed locally.
+input limitation is not recorded as a product failure or a completed native IME check. The
+[`60778542` full run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42414123566) passed
+Static, Flutter, Windows accessibility, Windows scan, production-bundle build, Rust Remaining and
+Rust Synchronization and Scan. Catalog is still running. The shared-choice cases now locate visible
+Material controls instead of a removed component type and menu key; existing behavior and native
+accessibility assertions remain. Seven affected widget cases also passed locally.
 
 Rust Remaining exposed the same roster coupling for unrelated adapter modules and a paused-startup
 assertion that equated an absent cache directory with no model work. The boundary guard now admits
 ordinary sibling declarations while retaining protected modules, exact call closure and alternate-
 loader rejection. The paused-session case retains its absent-model fixture and joined lifecycle,
-and checks zero cached features. These Rust changes await hosted execution; production behavior is
-unchanged. The Windows production-bundle build passed at `8141d463`.
+and checks zero cached features. Rust Remaining passed with these corrections; production behavior
+is unchanged.
+
+Schema and Queue passed 403 cases and failed seven migration fixtures. Six called current album
+queries on deliberately old schemas before the icon table existed; they now verify historical
+state directly where necessary and reopen through normal upgrades before using current APIs.
+The v33 preservation case no longer enumerates every later migration's new tables: it still compares
+all original rows and sequence values across two reopenings, while dedicated migrations own their
+new defaults. Rollback, receipts and organization-history checks remain. Formatting and diff checks
+passed; execution of the corrected fixtures remains assigned to hosted CI. Dedicated test lines:
+camera metadata 130, compact search 224, search 201, admission clock 101, history 118, queue index 203;
+this correction changes no production or inline-test code.

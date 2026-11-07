@@ -31,6 +31,9 @@ fn camera_metadata_upgrade_preserves_catalog_decisions_and_unknown_evidence() {
     let (directory, mut catalog) = prior();
     let history = catalog.load_organization_history().unwrap();
     migrate(&mut catalog.connection).unwrap();
+    current_schema::validate_schema_version(&catalog.connection, 62).unwrap();
+    drop(catalog);
+    let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     assert_eq!(catalog.load_organization_history().unwrap(), history);
     assert_eq!(
         catalog.load_organization_albums(None).unwrap().albums[0].name,
@@ -45,8 +48,6 @@ fn camera_metadata_upgrade_preserves_catalog_decisions_and_unknown_evidence() {
         snapshot.assets[0].capture_time.as_ref().unwrap().local_time,
         "2026-10-30T12:00:00"
     );
-    drop(catalog);
-    SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
 }
 
 #[test]
