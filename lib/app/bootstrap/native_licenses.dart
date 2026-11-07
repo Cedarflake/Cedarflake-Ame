@@ -7,5 +7,9 @@ void registerNativeLicenses() {
       "assets/licenses/similarity.txt",
     );
     yield LicenseEntryWithLineBreaks(["Ame similarity engine"], notices);
+    final classification = await rootBundle.loadString(
+      "assets/licenses/classification_schema.txt",
+    );
+    yield LicenseEntryWithLineBreaks(["ONNX", "prost", "half"], classification);
   });
 }

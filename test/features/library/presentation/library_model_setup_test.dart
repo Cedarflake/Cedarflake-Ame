@@ -379,6 +379,15 @@ class _Inactive implements LibraryClassification {
 }
 
 class _Configuration implements LibraryClassificationConfigurationService {
+  @override
+  Future<LibraryClassificationAcceleration> loadAcceleration() async =>
+      const LibraryClassificationAcceleration(gpuEnabled: true);
+
+  @override
+  Future<void> saveAcceleration({required bool gpuEnabled}) async {
+    throw UnsupportedError("Acceleration is outside this fixture");
+  }
+
   bool configured = false;
   bool retainedCategories = false;
   bool fail = false;

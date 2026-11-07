@@ -10,7 +10,7 @@ use super::encoder::valid_description;
 use super::manifest;
 use super::protocol::{self, Frame, Request, Response};
 use super::transport::Transport;
-use super::{EncoderKind, RuntimeError};
+use super::{EncoderBackend, EncoderKind, RuntimeError};
 
 static NEXT_SESSION: AtomicU64 = AtomicU64::new(1);
 
@@ -19,6 +19,7 @@ pub struct WorkerConfiguration {
     pub model_directory: PathBuf,
     pub runtime_directory: PathBuf,
     pub encoder: EncoderKind,
+    pub backend: EncoderBackend,
 }
 
 pub struct WorkerSession {
@@ -26,6 +27,7 @@ pub struct WorkerSession {
     session: u64,
     next_request: u64,
     encoder: EncoderKind,
+    backend: EncoderBackend,
 }
 
 impl WorkerSession {
@@ -51,6 +53,7 @@ impl WorkerSession {
             session,
             next_request: 1,
             encoder: configuration.encoder,
+            backend: configuration.backend,
         })
     }
 
@@ -64,6 +67,7 @@ impl WorkerSession {
                 version: protocol::VERSION,
                 session: self.session,
                 encoder: configuration.encoder,
+                backend: configuration.backend,
                 models: configuration.model_directory,
                 runtime: configuration.runtime_directory,
             },
@@ -75,7 +79,7 @@ impl WorkerSession {
     }
 
     pub fn compatibility(&self) -> ModelCompatibility {
-        manifest::compatibility()
+        manifest::compatibility_for(self.backend)
     }
 
     pub fn process_id(&self) -> u32 {

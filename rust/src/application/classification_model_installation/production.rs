@@ -1,12 +1,14 @@
 use std::path::PathBuf;
 
 use crate::domain::ScanError;
+use crate::ports::classification_acceleration::ClassificationAccelerationRepository;
 use crate::ports::classification_installation::ClassificationInstallationRepository;
 use crate::ports::classification_model_package::ClassificationModelPackage;
 
 use super::path_error;
 
-pub(crate) fn installation_repository() -> impl ClassificationInstallationRepository {
+pub(crate) fn installation_repository()
+-> impl ClassificationInstallationRepository + ClassificationAccelerationRepository {
     crate::adapters::ClassificationInstallationStore
 }
 

@@ -28,6 +28,8 @@ const generatedBridgeFiles = <String>{
   "lib/src/rust/domain/classification/installation.dart",
   "lib/src/rust/domain/classification/work.dart",
   "lib/src/rust/domain/classification_catalog.dart",
+  "lib/src/rust/domain/classification_acceleration.dart",
+  "lib/src/rust/domain/classification_acceleration.freezed.dart",
   "lib/src/rust/domain/classification_configuration.dart",
   "lib/src/rust/domain/classification_review.dart",
   "lib/src/rust/domain/classification_selection.dart",

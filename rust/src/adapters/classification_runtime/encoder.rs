@@ -8,7 +8,7 @@ use crate::domain::classification::Embedding;
 use super::artifacts::ArtifactSet;
 use super::dll_search::RuntimeDllDirectory;
 use super::manifest::{EMBEDDING_VALUES, IMAGE_VALUES, TOKENS};
-use super::{EncoderKind, RuntimeError};
+use super::{EncoderBackend, EncoderKind, RuntimeError};
 
 pub(super) struct Encoder {
     session: Session,
@@ -19,7 +19,11 @@ pub(super) struct Encoder {
 }
 
 impl Encoder {
-    pub fn load(artifacts: ArtifactSet, kind: EncoderKind) -> Result<Self, RuntimeError> {
+    pub fn load(
+        artifacts: ArtifactSet,
+        kind: EncoderKind,
+        backend: EncoderBackend,
+    ) -> Result<Self, RuntimeError> {
         if std::env::var("ORT_DISABLE_TELEMETRY").as_deref() != Ok("1")
             || std::env::var("TOKENIZERS_PARALLELISM").as_deref() != Ok("false")
         {
@@ -41,16 +45,41 @@ impl Encoder {
             EncoderKind::Image => GraphOptimizationLevel::Level1,
             EncoderKind::Text => GraphOptimizationLevel::Level3,
         };
-        let session = (|| -> ort::Result<Session> {
-            Session::builder(&environment)?
+        let mut builder = (|| -> ort::Result<_> {
+            let mut builder = Session::builder(&environment)?
                 .with_intra_threads(1)?
                 .with_inter_threads(1)?
                 .with_parallel_execution(false)?
                 .with_optimization_level(level)?
                 .with_config_entry("session.intra_op.allow_spinning", "0")?
-                .with_config_entry("session.inter_op.allow_spinning", "0")?
-                .commit_from_file(&artifacts.graph)
+                .with_config_entry("session.inter_op.allow_spinning", "0")?;
+            if let EncoderBackend::DirectMl { device_id } = backend {
+                builder = builder
+                    .with_memory_pattern(false)?
+                    .with_execution_providers([ort::ep::DirectML::default()
+                        .with_device_id(device_id)
+                        .build()
+                        .error_on_failure()])?
+                    .with_config_entry("session.disable_cpu_ep_fallback", "1")?;
+                for (name, size) in [
+                    ("batch_size", 1),
+                    ("num_channels", 3),
+                    ("height", 224),
+                    ("width", 224),
+                ] {
+                    builder = builder.with_dimension_override(name, size)?;
+                }
+            }
+            Ok(builder)
         })()
+        .map_err(|_| RuntimeError::RuntimeUnavailable)?;
+        let session = match backend {
+            EncoderBackend::Cpu => builder.commit_from_file(&artifacts.graph),
+            EncoderBackend::DirectMl { .. } => {
+                let graph = super::precision::image_graph(&artifacts.graph)?;
+                builder.commit_from_memory(&graph)
+            }
+        }
         .map_err(|_| RuntimeError::RuntimeUnavailable)?;
         let tokenizer = artifacts
             .tokenizer

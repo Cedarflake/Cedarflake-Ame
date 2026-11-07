@@ -52,6 +52,8 @@ void main() {
     addTearDown(foreground.dispose);
     var client = ClassificationClient(foreground);
     addTearDown(() => client.close());
+    expect((await client.configuration.loadAcceleration()).gpuEnabled, isTrue);
+    await client.configuration.changeAcceleration(gpuEnabled: false);
     var settings = await client.configuration.load();
     expect(settings.mode, LibraryClassificationMode.disabled);
     final categories = await const RustLibraryClassificationConfiguration()

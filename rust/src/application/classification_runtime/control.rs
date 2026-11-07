@@ -1,4 +1,7 @@
+use super::device::ClassificationDeviceState;
+use crate::domain::classification_acceleration::ClassificationDeviceStatus;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use crate::domain::classification::ClassificationRecordId;
 use crate::domain::classification::work::{
@@ -18,6 +21,7 @@ pub struct ClassificationRuntimeControl {
     database: PathBuf,
     session: ClassificationRecordId,
     signals: ClassificationDispatchSignals,
+    device: Arc<ClassificationDeviceState>,
 }
 
 impl ClassificationRuntimeControl {
@@ -25,16 +29,22 @@ impl ClassificationRuntimeControl {
         database: PathBuf,
         session: ClassificationRecordId,
         signals: ClassificationDispatchSignals,
+        device: Arc<ClassificationDeviceState>,
     ) -> Self {
         Self {
             database,
             session,
             signals,
+            device,
         }
     }
 
     pub fn signals(&self) -> ClassificationDispatchSignals {
         self.signals.clone()
+    }
+
+    pub(crate) fn device_status(&self) -> Result<Option<ClassificationDeviceStatus>, ScanError> {
+        self.device.snapshot()
     }
 
     pub fn change(

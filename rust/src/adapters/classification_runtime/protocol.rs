@@ -4,9 +4,9 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 use super::manifest::{EMBEDDING_VALUES, IMAGE_VALUES};
-use super::{EncoderKind, RuntimeError};
+use super::{EncoderBackend, EncoderKind, RuntimeError};
 
-pub(super) const VERSION: u32 = 1;
+pub(super) const VERSION: u32 = 2;
 const MAX_CONTROL_BYTES: usize = 32 * 1024;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -16,6 +16,7 @@ pub(super) enum Request {
         version: u32,
         session: u64,
         encoder: EncoderKind,
+        backend: EncoderBackend,
         models: PathBuf,
         runtime: PathBuf,
     },
@@ -36,7 +37,7 @@ pub(super) enum Request {
 
 #[derive(Clone, Copy)]
 pub(super) enum ExpectedResponse {
-    Ready,
+    Ready(EncoderBackend),
     Encoded(u64),
     Stopped(u64),
 }
@@ -44,7 +45,7 @@ pub(super) enum ExpectedResponse {
 impl Request {
     pub fn expected_response(&self) -> ExpectedResponse {
         match self {
-            Self::Start { .. } => ExpectedResponse::Ready,
+            Self::Start { backend, .. } => ExpectedResponse::Ready(*backend),
             Self::Image { request, .. } | Self::Text { request, .. } => {
                 ExpectedResponse::Encoded(*request)
             }
@@ -122,10 +123,10 @@ impl Response {
                     session: incoming,
                     contract,
                 },
-                ExpectedResponse::Ready,
+                ExpectedResponse::Ready(backend),
             ) if *version == VERSION
                 && *incoming == session
-                && *contract == super::manifest::contract_revision() =>
+                && *contract == super::manifest::contract_revision(backend) =>
             {
                 Ok(())
             }
@@ -152,7 +153,7 @@ impl Response {
                 expected,
             ) if *incoming == session => {
                 let expected_request = match expected {
-                    ExpectedResponse::Ready => None,
+                    ExpectedResponse::Ready(_) => None,
                     ExpectedResponse::Encoded(request) | ExpectedResponse::Stopped(request) => {
                         Some(request)
                     }

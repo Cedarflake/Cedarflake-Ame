@@ -2,6 +2,16 @@
   "activeExceptions": [],
   "publicFeatureEdges": [
     {
+      "source": "lib/features/settings/presentation/widgets/analysis_settings_section.dart",
+      "target": "lib/features/library/application/library_classification_configuration.dart",
+      "contract": "Persisted acceleration preference through the joined classification configuration lifecycle"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/analysis_settings_section.dart",
+      "target": "lib/features/library/domain/library_classification_configuration.dart",
+      "contract": "LibraryClassificationAcceleration preference and selected device"
+    },
+    {
       "source": "lib/features/library/application/library_album_proposal.dart",
       "target": "lib/features/settings/domain/album_preferences.dart",
       "contract": "AlbumPreferences"

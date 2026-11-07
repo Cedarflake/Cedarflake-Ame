@@ -357,6 +357,7 @@ fn native_restart_restores_paused_setup_without_starting_a_worker() {
             worker: directory.path().join("unavailable-worker.exe"),
             models: directory.path().join("unavailable-models"),
             runtime: directory.path().join("unavailable-runtime"),
+            gpu_enabled: true,
         };
         let mut runtime = NativeClassificationRuntime::open(
             paths,

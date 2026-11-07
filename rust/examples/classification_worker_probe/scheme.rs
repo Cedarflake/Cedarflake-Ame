@@ -138,6 +138,8 @@ fn model() -> ModelCompatibility {
         executable: Default::default(),
         model_directory: Default::default(),
         runtime_directory: Default::default(),
+        backend: Default::default(),
+        ..Default::default()
     }
     .compatibility()
 }

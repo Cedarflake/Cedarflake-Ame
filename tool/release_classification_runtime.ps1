@@ -2,14 +2,18 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 function Get-AmeClassificationRuntimeManifest {
-    $path = Join-Path (Split-Path -Parent $PSScriptRoot) "rust/src/adapters/classification_runtime/distribution.json"
+    param([switch]$Accelerator)
+    $name = if ($Accelerator) { "accelerator_distribution.json" } else { "distribution.json" }
+    $path = Join-Path (Split-Path -Parent $PSScriptRoot) "rust/src/adapters/classification_runtime/$name"
     return [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8) | ConvertFrom-Json
 }
 
 function Get-AmeClassificationRuntimePayloadNames {
-    $manifest = Get-AmeClassificationRuntimeManifest
-    foreach ($file in $manifest.files) {
-        "$($manifest.bundleDirectory)/$($file.name)"
+    foreach ($accelerator in @($false, $true)) {
+        $manifest = Get-AmeClassificationRuntimeManifest -Accelerator:$accelerator
+        foreach ($file in $manifest.files) {
+            "$($manifest.bundleDirectory)/$($file.name)"
+        }
     }
 }
 

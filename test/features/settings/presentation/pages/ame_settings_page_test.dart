@@ -72,7 +72,8 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.text("个性化"), findsOneWidget);
     expect(find.text("浏览"), findsOneWidget);
-    expect(find.text("智能相册"), findsNothing);
+    expect(find.text("智能相册"), findsOneWidget);
+    expect(find.text("GPU 加速"), findsOneWidget);
     expect(find.text("本地分析"), findsNothing);
     expect(find.text("在本机分析图片，自动生成分类"), findsNothing);
     expect(find.text("缩略图加载速度"), findsOneWidget);

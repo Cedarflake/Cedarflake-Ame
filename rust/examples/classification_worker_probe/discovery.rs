@@ -214,6 +214,8 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
         executable: arguments[0].clone().into(),
         model_directory: arguments[1].clone().into(),
         runtime_directory: arguments[2].clone().into(),
+        backend: Default::default(),
+        ..Default::default()
     };
     let model = factory.compatibility();
     let mut samples = BTreeMap::new();

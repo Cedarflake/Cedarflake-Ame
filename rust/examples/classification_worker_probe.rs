@@ -34,7 +34,8 @@ mod verification {
     use std::time::{Duration, Instant};
 
     use rust_lib_cedarflake_ame::classification_worker::{
-        EncoderKind, RuntimeError, WorkerConfiguration, WorkerSession, prepared_image_length,
+        EncoderBackend, EncoderKind, RuntimeError, WorkerConfiguration, WorkerSession,
+        prepared_image_length,
     };
     use serde_json::json;
 
@@ -62,13 +63,24 @@ mod verification {
         if arguments.len() == 5 && arguments[4] == "--residency" {
             return super::residency::run(&arguments[..4]);
         }
-        if arguments.len() != 4 {
+        let image_backend = if arguments.len() == 6 && arguments[4] == "--directml" {
+            EncoderBackend::DirectMl {
+                device_id: arguments[5].to_str().ok_or("Invalid GPU index")?.parse()?,
+            }
+        } else if arguments.len() == 4 {
+            EncoderBackend::Cpu
+        } else {
             return Err("Expected worker executable, model directory, runtime directory and cached fixture directory".into());
-        }
+        };
         let configuration = |encoder| WorkerConfiguration {
             executable: arguments[0].clone().into(),
             model_directory: arguments[1].clone().into(),
             runtime_directory: arguments[2].clone().into(),
+            backend: if encoder == EncoderKind::Image {
+                image_backend
+            } else {
+                EncoderBackend::Cpu
+            },
             encoder,
         };
         let fixtures = Path::new(&arguments[3]);
@@ -122,8 +134,13 @@ mod verification {
         let mut image = WorkerSession::start(configuration(EncoderKind::Image), &cancelled)?;
         let cancelled = Arc::new(AtomicBool::new(false));
         let flag = Arc::clone(&cancelled);
+        let cancel_delay = if image_backend == EncoderBackend::Cpu {
+            20
+        } else {
+            1
+        };
         let timer = std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_millis(20));
+            std::thread::sleep(Duration::from_millis(cancel_delay));
             flag.store(true, Ordering::Release);
         });
         let started = Instant::now();
@@ -132,13 +149,19 @@ mod verification {
         if !matches!(result, Err(RuntimeError::Cancelled)) || !image.is_retired() {
             return Err("Cancellation did not retire the native worker".into());
         }
-        if image_cosine < 0.999999 || text_cosine < 0.999999 {
+        let image_threshold = if image_backend == EncoderBackend::Cpu {
+            0.999999
+        } else {
+            0.9999
+        };
+        if image_cosine < image_threshold || text_cosine < 0.999999 {
             return Err("The supervised worker differs from the admitted encoder fixture".into());
         }
         println!(
             "{}",
             json!({
                 "stage":"verified", "images":32, "descriptions":24,
+                "image_backend": image_backend,
                 "image_minimum_cosine":image_cosine, "text_minimum_cosine":text_cosine,
                 "image_load_ms":image_load_ms, "text_load_ms":text_load_ms,
                 "image_shutdown_ms":image_shutdown_ms,

@@ -1,5 +1,9 @@
 #[cfg(windows)]
 mod artifacts;
+mod backend;
+pub use backend::EncoderBackend;
+#[cfg(windows)]
+mod device;
 #[cfg(test)]
 mod distribution_tests;
 #[cfg(windows)]
@@ -15,6 +19,8 @@ mod manifest;
 mod package;
 #[cfg(windows)]
 pub(crate) use package::LocalClassificationModelPackage;
+#[cfg(windows)]
+mod precision;
 #[cfg(windows)]
 mod process;
 mod protocol;

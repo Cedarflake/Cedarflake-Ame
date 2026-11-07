@@ -97,6 +97,10 @@ added or renamed, update its callers, repository instructions, and documentation
 change. Do not retain an undocumented alias that creates two canonical entrypoints.
 
 - `./tool/quality_format.ps1` applies `rustfmt` and `dart format` to repository-owned Rust and Dart trees.
+- `./tool/bridge_generate_onnx_schema.ps1 -PythonPath <python>` regenerates the admitted ONNX
+  types using a uv-managed Python environment containing `onnx==1.20.1` and `protobuf==7.36.2`.
+  It verifies the descriptor digest before running the locked prost generator; model files are
+  neither inputs nor outputs. The generated Rust is formatted by the repository's rustfmt.
 - `./tool/quality_format.ps1 -Check` is the non-mutating formatting gate.
 - `./tool/quality_generate_library_synchronization_policy.ps1` reads the canonical positive-decimal
   poll interval from `tool/library_synchronization_poll_interval_ms.txt` and deterministically writes

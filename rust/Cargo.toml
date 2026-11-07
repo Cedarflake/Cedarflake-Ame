@@ -9,7 +9,7 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 [features]
 default = ["classification-worker"]
 broker-acceptance-client = []
-classification-worker = ["dep:ort", "dep:reqwest", "dep:sha2", "dep:tokenizers"]
+classification-worker = ["dep:half", "dep:ort", "dep:prost", "dep:reqwest", "dep:sha2", "dep:tokenizers"]
 
 [[bin]]
 name = "cedarflake_ame_classification_worker"
@@ -25,11 +25,13 @@ required-features = ["broker-acceptance-client"]
 blake3 = "=1.8.6"
 directories = "6.0.0"
 flutter_rust_bridge = "=2.12.0"
+half = { version = "=2.7.1", optional = true, default-features = false, features = ["std"] }
 image = { version = "=0.25.10", default-features = false, features = ["bmp", "gif", "ico", "jpeg", "png", "tiff", "webp"] }
 image_hasher = { version = "=3.1.1", default-features = false }
 jpeg-decoder = { version = "=0.3.2", default-features = false }
 kamadak-exif = "=0.6.1"
-ort = { version = "=2.0.0-rc.15", optional = true, default-features = false, features = ["std", "load-dynamic", "api-31"] }
+ort = { version = "=2.0.0-rc.15", optional = true, default-features = false, features = ["std", "load-dynamic", "api-24", "directml"] }
+prost = { version = "=0.14.3", optional = true }
 rusqlite = { version = "0.40.1", features = ["backup", "bundled", "hooks"] }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.154"
@@ -49,7 +51,7 @@ todo = "deny"
 
 [target."cfg(windows)".dependencies]
 reqwest = { version = "=0.13.5", optional = true, default-features = false, features = ["blocking", "native-tls-no-alpn", "system-proxy"] }
-windows = { version = "=0.62.2", features = ["Win32_System_Com", "Win32_System_Ole", "Win32_System_Search", "Win32_System_Variant", "Win32_Storage_IndexServer", "Win32_UI_Shell"] }
+windows = { version = "=0.62.2", features = ["Win32_Graphics_Direct3D", "Win32_Graphics_Direct3D12", "Win32_Graphics_Dxgi", "Win32_Graphics_Dxgi_Common", "Win32_System_Com", "Win32_System_Ole", "Win32_System_Search", "Win32_System_Variant", "Win32_Storage_IndexServer", "Win32_UI_Shell"] }
 notify = { version = "=8.2.0", default-features = false }
 windows-sys = { version = "0.61.2", features = [
   "Wdk_Foundation",

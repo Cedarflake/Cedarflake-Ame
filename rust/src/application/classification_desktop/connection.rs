@@ -13,6 +13,19 @@ use super::maintenance::ClassificationDesktopMaintenance;
 
 static CONNECTION: Mutex<Weak<Connection>> = Mutex::new(Weak::new());
 
+pub(crate) fn current_device()
+-> Result<Option<crate::domain::classification_acceleration::ClassificationDeviceStatus>, ScanError>
+{
+    let current = CONNECTION.lock().map_err(|_| unavailable())?;
+    let Some(connection) = current.upgrade() else {
+        return Ok(None);
+    };
+    if connection.control.signals().is_closed()? {
+        return Ok(None);
+    }
+    connection.control.device_status()
+}
+
 type Completion = Result<Option<ClassificationDesktopMaintenance>, ScanError>;
 
 struct State {

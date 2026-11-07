@@ -4,6 +4,15 @@ enum LibraryClassificationConfigurationAction { save, enable }
 
 enum LibraryClassificationControl { pause, resume, disable, stop }
 
+class LibraryClassificationAcceleration {
+  const LibraryClassificationAcceleration({
+    required this.gpuEnabled,
+    this.deviceName,
+  });
+  final bool gpuEnabled;
+  final String? deviceName;
+}
+
 class LibraryClassificationCategory {
   const LibraryClassificationCategory({
     required this.id,

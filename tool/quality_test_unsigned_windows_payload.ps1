@@ -35,7 +35,8 @@ $ownedFiles = @(
 ) + @($nativeNames | ForEach-Object { Join-Path $bundle $_ }) +
     @(Get-AmeClassificationRuntimePayloadNames | ForEach-Object { Join-Path $bundle $_ })
 $runtimeRoot = Join-Path $bundle (Get-AmeClassificationRuntimeManifest).bundleDirectory
-$ownedDirectories = @($runtimeRoot, $assetRoot, (Join-Path $bundle 'data'), $bundle, $sourceRoot, $scratch)
+$acceleratorRoot = Join-Path $bundle (Get-AmeClassificationRuntimeManifest -Accelerator).bundleDirectory
+$ownedDirectories = @($runtimeRoot, $acceleratorRoot, $assetRoot, (Join-Path $bundle 'data'), $bundle, $sourceRoot, $scratch)
 $pe = [byte[]]::new(128)
 $pe[0] = 0x4D; $pe[1] = 0x5A; $pe[0x3C] = 64
 $pe[64] = 0x50; $pe[65] = 0x45
@@ -53,12 +54,12 @@ $broker = Join-Path $bundle 'cedarflake_ame_journal_broker.exe'
 $asset = Join-Path $assetRoot 'AssetManifest.bin'
 $dependencyRule = $builtLibrary.Replace(' ', '\ ') + ': ' + $source.Replace(' ', '\ ') + "`n"
 try {
-    New-Item -ItemType Directory -Path $assetRoot, $sourceRoot, $runtimeRoot | Out-Null
+    New-Item -ItemType Directory -Path $assetRoot, $sourceRoot, $runtimeRoot, $acceleratorRoot | Out-Null
     foreach ($file in $ownedFiles) { [System.IO.File]::WriteAllBytes($file, $pe) }
     [System.IO.File]::WriteAllText($dependencies, $dependencyRule)
     [System.IO.File]::SetLastWriteTimeUtc($source, [DateTime]::UtcNow.AddMinutes(-1))
     $facts = Get-AmeUnsignedWindowsPayloadFacts @arguments
-    if ($facts.machine -cne 'windows-x64' -or $facts.fileCount -ne 15 -or $facts.rustDependencyCount -ne 1) {
+    if ($facts.machine -cne 'windows-x64' -or $facts.fileCount -ne 24 -or $facts.rustDependencyCount -ne 1) {
         throw "Valid unsigned Release fixture was not completely described"
     }
     if (@($facts.files | Where-Object { [System.IO.Path]::IsPathRooted($_.relativePath) }).Count -ne 0) {

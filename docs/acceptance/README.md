@@ -18,6 +18,7 @@ recorded local checkpoint does not establish that the current product source pas
 | [R6 similarity integration](r6-similar-images.md) | Persistent identities, production analysis, durable choices and desktop workflow evidence |
 | [R5 exploratory model comparison](r5-model-evaluation.md) | Provisional local candidate comparison, source/provenance boundaries and remaining admission evidence |
 | [R5 inference runtime](r5-runtime-admission.md) | Pinned artifact provenance, isolated local/cloud resource observations and feature-compatibility evidence |
+| [GPU analysis acceleration](gpu-analysis-acceleration.md) | Default-enabled preference, CPU/GPU compatibility, isolated worker measurements and device-switching evidence |
 | [R5 category discovery](r5-category-discovery.md) | Retained-feature grouping, bounded naming probes and category-maintenance admission gaps |
 | [R5 screening calibration](r5-calibration.md) | Purpose-aware reference labels, separated calibration/holdout evidence and bounded re-screening policy |
 | [R5 classification decisions](r5-classification-decisions.md) | Immutable evidence and legacy human precedence, commands, and portable recovery compatibility |

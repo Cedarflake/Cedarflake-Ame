@@ -18,6 +18,18 @@ class LibraryClassificationConfiguration {
 
   Future<LibraryClassificationSettings> load() => _load(_service.load);
 
+  Future<LibraryClassificationAcceleration> loadAcceleration() =>
+      _service.loadAcceleration();
+
+  Future<LibraryClassificationAcceleration> changeAcceleration({
+    required bool gpuEnabled,
+  }) async {
+    await _lifecycle.changeConfiguration(
+      () => _service.saveAcceleration(gpuEnabled: gpuEnabled),
+    );
+    return _service.loadAcceleration();
+  }
+
   Future<LibraryClassificationSettings> loadNavigation() =>
       _load(_service.loadNavigation);
 

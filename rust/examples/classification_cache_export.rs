@@ -38,6 +38,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         executable: "unused-cache-export-worker".into(),
         model_directory: "unused-cache-export-models".into(),
         runtime_directory: "unused-cache-export-runtime".into(),
+        backend: Default::default(),
+        ..Default::default()
     };
     let model = factory.compatibility();
     let mut cache = SqliteClassificationFeatureCache::open(Path::new(&arguments[1]))?;
