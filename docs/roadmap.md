@@ -136,8 +136,9 @@ independent indexing, resource-aware scheduling, text search and related-image r
 existing gallery and viewer. [Implementation evidence](acceptance/r7-semantic-discovery.md#connected-scheduling-and-search)
 retains the scoped native-client checks and fixed-corpus retrieval measurements.
 [Derived-index recovery](acceptance/r7-semantic-discovery.md#derived-index-recovery--2026-11-08)
-has connected native and desktop evidence. Finish large-library retrieval measurements and the
-remaining R7-05 desktop lifecycle checks, then inspect hosted checks for the delivered revision.
+has connected native and desktop evidence. [Local-primary retrieval measurements](acceptance/r7-semantic-discovery.md#large-library-retrieval--2026-11-08)
+and [desktop restart/scope checks](acceptance/r7-semantic-discovery.md#desktop-continuation--2026-11-08)
+are recorded. Finish the native IME observation and inspect hosted checks for the delivered revision.
 No R7 slice is accepted yet.
 
 ## R4 implementation sequence

@@ -433,3 +433,29 @@ instruction-budget regression rejects whole-library sorting for a 256-item page.
 Rust cases remains assigned to hosted CI. Native compilation, affected formatting and diff checks
 passed. Production / inline-test lines: filter owner 161 / 0, snapshot 161 / 0, retrieval 146 / 0;
 the dedicated semantic catalog suite contains 214 lines.
+
+## Desktop continuation — 2026-11-08
+
+The isolated desktop at `8141d463` completed two normal launches using the real Windows preference
+serializer redirected into the leased profile. Content search initially showed partial coverage;
+`fox` returned two matches after indexing. Selecting the 128-image folder narrowed the effective
+scope; `整个图库` restored the 368-image scope and its two matches. Rapid character input, replacement,
+Enter submission and clearing kept the current query's result. Relevance results exposed generic
+scroll position rather than date seeking. File-name mode returned only `B142.jpg` for `b142`.
+
+After clearing and closing, the second launch restored the selected file-name mode with an empty
+field. Switching back to content search reused all 368 indexed locations and returned the same two
+`fox` matches. Both launches exited with code zero, joined their workers and preserved all 368
+preview hashes; the leased profile was removed afterward. Earlier viewer, filter and reference-image
+interaction evidence remains applicable to these unchanged surfaces.
+
+The existing composition/Enter regression passed, but actual Windows IME observation remains open:
+the available native automation did not deliver composition or Chinese text to the field. That
+input limitation is not recorded as a product failure or a completed native IME check. The exact
+product-revision [full CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42411950375)
+passed Windows scan integration. Static analysis, Flutter tests and Windows accessibility exposed
+three stale test locators after the shared-choice extraction: two referenced the removed component
+type and one referenced a retired menu key. The follow-up locates the visible Material controls;
+all existing behavior and native-accessibility assertions remain. Seven affected widget cases and
+analysis of the three changed suites passed locally. Hosted accessibility and the remaining native
+checks retain their own execution results.

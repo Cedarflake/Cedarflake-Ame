@@ -162,7 +162,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key("settings-cleanup-age")));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey("settings-choice-option-0")));
+    await tester.tap(find.widgetWithText(CheckedPopupMenuItem<int>, "全部未关联记录"));
     await tester.pump();
     expect(service.tasks, hasLength(2));
     expect(service.tasks.last.cutoffUnixMs, isNull);
