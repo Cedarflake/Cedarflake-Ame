@@ -3,6 +3,11 @@ name: Quality / Windows Gate
 on:
   workflow_call:
     inputs:
+      extended:
+        description: Include synthetic workloads in a non-release full run
+        required: false
+        default: false
+        type: boolean
       gate_mode:
         description: Repository gate to execute
         required: false
@@ -53,17 +58,47 @@ permissions:
   contents: read
 
 jobs:
+  documentation:
+    name: Documentation
+    if: inputs.gate_mode == 'documentation'
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ inputs.checkout_ref || github.sha }}
+      - name: Verify documentation encoding and whitespace
+        shell: pwsh
+        env:
+          AME_BASE_REVISION: ${{ inputs.base_revision }}
+        run: |
+          if ($env:AME_BASE_REVISION -cnotmatch '^[0-9a-f]{40}$') {
+            throw "Documentation checks require an immutable comparison base"
+          }
+          git diff --check $env:AME_BASE_REVISION HEAD --
+          if ($LASTEXITCODE -ne 0) { throw "Documentation whitespace check failed" }
+          $files = @(git -c core.quotepath=false ls-files -- '*.md')
+          if ($LASTEXITCODE -ne 0) { throw "Could not list tracked documentation" }
+          $utf8 = [Text.UTF8Encoding]::new($false, $true)
+          foreach ($file in $files) {
+            $null = $utf8.GetString([IO.File]::ReadAllBytes((Join-Path $PWD $file)))
+          }
+
   daily_components:
-    name: Daily
-    if: inputs.gate_mode == 'daily'
+    name: ${{ inputs.gate_mode == 'quick' && 'Quick' || 'Full' }}
+    if: inputs.gate_mode == 'daily' || inputs.gate_mode == 'quick'
     uses: ./.github/workflows/quality_gate_daily_windows.yml
     with:
+      quick: ${{ inputs.gate_mode == 'quick' }}
       checkout_ref: ${{ inputs.checkout_ref || github.sha }}
       base_revision: ${{ inputs.base_revision }}
 
   quality_synthetic_windows:
     name: Synthetic Workloads
-    if: inputs.gate_mode == 'daily'
+    if: inputs.gate_mode == 'daily' && inputs.extended
     uses: ./.github/workflows/quality_gate_synthetic_windows.yml
     with:
       checkout_ref: ${{ inputs.checkout_ref || github.sha }}
@@ -83,6 +118,14 @@ jobs:
     with:
       checkout_ref: ${{ needs.release_unsigned_windows.outputs.source_commit }}
       base_revision: ${{ inputs.base_revision }}
+
+  release_synthetic_windows:
+    name: Release / Synthetic Workloads
+    needs: release_unsigned_windows
+    if: inputs.gate_mode == 'release'
+    uses: ./.github/workflows/quality_gate_synthetic_windows.yml
+    with:
+      checkout_ref: ${{ needs.release_unsigned_windows.outputs.source_commit }}
 
   release_unsigned_windows:
     name: Release / Build Release Candidate
@@ -1000,7 +1043,6 @@ jobs:
             -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER `
             -SignedBrokerBinaryPath $brokerPath `
             -SignedApplicationBundlePath $releaseRoot
-          ./tool/performance_run_synthetic.ps1 -Case scan
 
       - name: Check committed whitespace
         shell: pwsh
@@ -1109,13 +1151,12 @@ jobs:
           AME_RELEASE_TAG: ${{ inputs.release_tag }}
         run: ./tool/release_validate_version.ps1 -Tag $env:AME_RELEASE_TAG
 
-      - name: Verify unsigned runtime and synthetic performance
+      - name: Verify unsigned runtime
         shell: pwsh
         run: |
           ./tool/release_verify_windows.ps1 -SigningMode unsigned -SignedApplicationBundlePath (
             [System.IO.Path]::GetFullPath("build\unsigned-candidate\payload")
           )
-          ./tool/performance_run_synthetic.ps1 -Case scan
 
       - name: Check committed whitespace
         shell: pwsh
@@ -1137,19 +1178,24 @@ jobs:
     name: Windows Gate
     if: always()
     needs:
+      - documentation
       - daily_components
       - quality_synthetic_windows
       - quality_unsigned_windows
       - release_daily_components
+      - release_synthetic_windows
       - release_verify_windows
       - release_verify_unsigned_windows
     runs-on: windows-2025
     timeout-minutes: 5
     env:
+      AME_DOCUMENTATION_RESULT: ${{ needs.documentation.result }}
       AME_DAILY_RESULT: ${{ needs.daily_components.result }}
       AME_SYNTHETIC_RESULT: ${{ needs.quality_synthetic_windows.result }}
       AME_UNSIGNED_RESULT: ${{ needs.quality_unsigned_windows.result }}
       AME_RELEASE_DAILY_RESULT: ${{ needs.release_daily_components.result }}
+      AME_RELEASE_SYNTHETIC_RESULT: ${{ needs.release_synthetic_windows.result }}
+      AME_EXTENDED: ${{ inputs.extended }}
       AME_GATE_MODE: ${{ inputs.gate_mode }}
       AME_RELEASE_SIGNING_MODE: ${{ inputs.release_signing_mode }}
       AME_RELEASE_RESULT: ${{ needs.release_verify_windows.result }}
@@ -1158,17 +1204,34 @@ jobs:
       - name: Verify requested gate succeeded
         shell: pwsh
         run: |
+          if ($env:AME_GATE_MODE -eq "documentation") {
+            if ($env:AME_DOCUMENTATION_RESULT -ne "success") {
+              throw "Documentation checks must succeed"
+            }
+            return
+          }
+          if ($env:AME_GATE_MODE -eq "quick") {
+            if ($env:AME_DAILY_RESULT -ne "success") {
+              throw "Every quick component must succeed"
+            }
+            return
+          }
           if ($env:AME_GATE_MODE -eq "daily") {
             if ($env:AME_DAILY_RESULT -ne "success" -or
-                $env:AME_SYNTHETIC_RESULT -ne "success" -or
                 $env:AME_UNSIGNED_RESULT -ne "success") {
-              throw "Daily, synthetic workloads, and Windows build verification must all succeed"
+              throw "Full regression and Windows build verification must succeed"
+            }
+            if ($env:AME_EXTENDED -eq "true" -and $env:AME_SYNTHETIC_RESULT -ne "success") {
+              throw "Requested synthetic workloads must succeed"
             }
             return
           }
           if ($env:AME_GATE_MODE -eq "release") {
             if ($env:AME_RELEASE_DAILY_RESULT -ne "success") {
               throw "Every Daily component for the release source must succeed"
+            }
+            if ($env:AME_RELEASE_SYNTHETIC_RESULT -ne "success") {
+              throw "Every synthetic workload for the release source must succeed"
             }
             if ($env:AME_RELEASE_SIGNING_MODE -eq "unsigned") {
               if ($env:AME_RELEASE_UNSIGNED_RESULT -ne "success") {

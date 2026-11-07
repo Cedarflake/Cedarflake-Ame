@@ -11,6 +11,16 @@ on:
     types:
       - checks_requested
   workflow_dispatch:
+    inputs:
+      checks:
+        description: Full regression or regression with synthetic workloads
+        type: choice
+        options:
+          - full
+          - extended
+        default: full
+  schedule:
+    - cron: "30 18 * * *"
 
 permissions:
   contents: read
@@ -20,11 +30,35 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  scope:
+    name: Select checks
+    runs-on: windows-2025
+    timeout-minutes: 5
+    outputs:
+      mode: ${{ steps.scope.outputs.mode }}
+      extended: ${{ steps.scope.outputs.extended }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select verification scope
+        id: scope
+        shell: pwsh
+        env:
+          AME_BASE_REVISION: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before || '' }}
+          AME_REQUESTED_CHECKS: ${{ github.event_name == 'schedule' && 'extended' || inputs.checks || 'auto' }}
+        run: ./tool/quality_select_ci.ps1 -BaseRevision $env:AME_BASE_REVISION -Requested $env:AME_REQUESTED_CHECKS
+
   quality_windows:
     name: Windows Gate
+    needs: scope
+    if: always()
     permissions:
       contents: read
     uses: ./.github/workflows/quality_gate_windows.yml
     with:
-      gate_mode: daily
+      gate_mode: ${{ needs.scope.outputs.mode || 'invalid' }}
+      extended: ${{ needs.scope.outputs.extended == 'true' }}
       base_revision: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before || '' }}

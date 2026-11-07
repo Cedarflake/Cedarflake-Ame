@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
-- Last amended: 2026-10-10
+- Last amended: 2026-11-07
 
 ## Context
 
@@ -24,11 +24,19 @@ An unsigned build alone does not establish those behaviors, and unexecuted deplo
 must remain explicit. This decision does not remove runtime caller validation or grant installation
 or publication authority.
 
-Ordinary PR, main-push, merge-queue, and manual quality runs require five independent synthetic
-workloads and a credential-free unsigned Windows x64 Release build alongside every Daily component.
-The stable Windows Gate aggregate fails if any required job fails, is cancelled, or is skipped.
-Workloads run in parallel on separate runners; cases within one workload remain serial. Workstation
-Daily stays serial and does not start these expensive jobs implicitly.
+Use change-scoped verification. Markdown-only changes check documentation encoding and whitespace.
+Presentation and Flutter-test changes run Static and Flutter tests. Native, domain/application,
+persistence, lifecycle, dependency, build, workflow
+and unknown paths run every Daily component plus the credential-free Windows Release build.
+Missing change-range evidence selects the full run. The nightly run adds all five synthetic
+workloads; manual dispatch offers full or extended checks. Release candidates require full
+regression and all five workloads at the candidate's immutable source commit.
+
+The stable Windows Gate fails when a selected requirement fails, is cancelled or is skipped.
+Scope-selection failure also fails that gate. Workloads run on separate runners; cases within a
+workload remain serial. Local Daily stays serial. The previous always-full-plus-synthetic PR policy
+is replaced because ordinary presentation edits repeatedly paid for unrelated native benchmarks.
+Source safety, transactions, recovery and cancellation retain their existing full-suite coverage.
 
 The synthetic entrypoint admits exactly five named cases: a generated high-resolution JPEG,
 10,000 temporary images with scan/pause/resume/cancel checks, one million generated USN records
@@ -106,7 +114,7 @@ That chain remains unchanged under ADR 0015.
 
 Running every ignored test was rejected because it mixes incompatible evidence and authority.
 Weakening Windows 11 or reviewed, main-only signing admission was rejected. Keeping all heavy checks
-manual was rejected because synthetic coverage would continue to drift behind routine CI.
+manual was rejected because synthetic coverage would drift; the nightly and release owners retain it.
 
 Separate runners cost more hosted minutes and compile independently. No compiled application or
 library output is restored as trusted evidence. The new workflows compose existing owners instead
@@ -120,7 +128,7 @@ Focused guardrails prove exact admission, empty or malformed result rejection, f
 output/resource supervision, and payload identity/freshness. Hosted checks must execute the new
 jobs on the current revision; code existence alone is not completion. Independent review covers
 process ownership, source safety, artifact authority, and the stable aggregate. Rollback removes the
-two added reusable workflow calls and their requirements together without changing application
+change-scope selection and restores the full workload requirement without changing application
 behavior or weakening the signed release chain.
 
 ## References

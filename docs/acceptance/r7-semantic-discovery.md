@@ -61,8 +61,29 @@ Production / inline-test lines: screen assembly 1919 / 0, filter draft 188 / 0, 
 summary 95 / 0. The screen adds composition only; editing and validation remain separate owners.
 Dedicated affected test files contain 244, 61 and 256 lines respectively.
 
-Hosted checks are not implied by these local results. Branch pushes alone do not trigger the current
-CI workflow; its PR, main-push or manual-dispatch execution remains the hosted verification owner.
+Branch pushes alone do not trigger the CI workflow; its PR, main-push or manual-dispatch execution
+remains the hosted verification owner.
 Semantic indexing, text search and related-image search are subsequent R7 slices and are not covered
 by this filter evidence. The stage's real-library search quality and performance acceptance remains
 in R7-05.
+
+## CI reduction — 2026-11-07
+
+Run [42348844763](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42348844763) at `ee63a1c8`
+passed Static, Windows build/integration and the five synthetic jobs. Flutter failed on an obsolete
+CPU sentence; Rust Remaining failed on a fixed settings-version assertion and two unrelated domain
+module-roster assertions. Its 1,228 passing Rust tests took 1,556 seconds; the Flutter wrapper started
+about 240 separate commands before reaching its failure.
+
+Removed the incidental version/text assertions and unrelated domain roster/visibility mutations.
+Migration data, download authority, device switching, the availability call closure, protected DTO
+loading and dangerous alternate-loader checks remain. Local focused results: one migration and
+11 availability cases passed; seven Flutter cases across three suites passed in one invocation
+(runner-reported test duration: three seconds). The complete hosted duration still needs measurement.
+
+Quick/full/extended selection and aggregate failure propagation passed their focused checks;
+actionlint and PowerShell syntax checks passed. Presentation changes select two main jobs, critical
+or unknown changes select nine, and nightly/extended runs select fourteen. Release workloads bind
+the candidate source and no longer duplicate the scan benchmark inside the runtime verifier.
+Changed large owner counts: `local_files.rs` 2,603 production / 3,351 inline-test lines; dedicated
+topology tests 458 lines. No source-reading production behavior changed.

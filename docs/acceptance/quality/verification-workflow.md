@@ -28,6 +28,12 @@ that purpose as necessary. Keep any diagnostic local test focused on the specifi
 question. Do not repeat the full checks assigned to CI on the workstation or require a local Daily
 run before committing and pushing.
 
+Hosted execution follows the change-scoped [gate selection](gate-selection.md): ordinary
+presentation changes do not require native performance workloads. Full-suite and release owners
+retain data-safety, migration, recovery and cancellation checks. Do not manually dispatch extended
+workloads after each intermediate commit; request them for affected performance evidence or use the
+nightly/release owner.
+
 After pushing, check the Actions results for that exact commit under the
 [required engineering workflow](#required-engineering-workflow). A result for an earlier commit does
 not cover uncommitted or changed inputs. Verify the affected real user path and

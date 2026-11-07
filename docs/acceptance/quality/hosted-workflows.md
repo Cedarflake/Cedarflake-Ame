@@ -10,8 +10,9 @@ execution safeguards; the roadmap owns current delivery order and acceptance sta
 The hosted Windows gate is implemented once in
 `.github/workflows/quality_gate_windows.yml` and called by category-owned trigger workflows:
 
-- `quality_ci.yml` runs Daily plus the synthetic and unsigned-build gates for pushes to `main`, pull
-  requests targeting `main`, merge queue checks, and manual dispatches;
+- `quality_ci.yml` selects quick or full checks for pushes to `main`, pull requests and merge queues;
+  its nightly schedule runs full checks and synthetic workloads. Manual dispatch selects full or
+  extended checks. The scope and fallback policy is owned by [ADR 0026](../../architecture/0026-hosted-synthetic-and-unsigned-build-gates.md#decision);
 - `release_candidate_windows.yml` is manually dispatched from `main` for one existing
   strict-SemVer tag, then publishes the verified portable ZIP;
 - `release_verify_published.yml` downloads the exact published ZIP and independently verifies its
@@ -74,13 +75,14 @@ that ZIP, checks out no repository and executes no repository script. Immediatel
 Release mutation it peels the current tag through the GitHub API, requires the resolved commit to
 equal the verified source, and rechecks the ZIP hash.
 
-For hosted Daily runs, the shared gate calls `quality_gate_daily_windows.yml` for eight isolated
+For full runs, the shared gate calls `quality_gate_daily_windows.yml` for eight isolated
 `windows-2025` jobs: static verification, four Rust partitions, Flutter widget tests, the controlled
-Windows scan integration, and the native Windows accessibility integration. It also calls
-`quality_gate_synthetic_windows.yml` for five separately
-isolated workload jobs and `quality_gate_unsigned_windows.yml` for optimized application/broker
-verification. A stable `Windows Gate` aggregation job succeeds only when every Daily, synthetic,
-and unsigned-build job succeeds; skipped or cancelled requirements fail. Matrix fail-fast is disabled so
+Windows scan integration, and the native Windows accessibility integration, plus
+`quality_gate_unsigned_windows.yml` for optimized application/broker verification. Quick runs select
+only Static and Flutter from the same component owner; Markdown-only edits use a document check
+without SDK setup or product tests. Nightly/extended runs add five isolated
+synthetic jobs. The stable `Windows Gate` succeeds only when every selected requirement succeeds;
+skipped or cancelled requirements and failed scope selection fail. Matrix fail-fast is disabled so
 one failure does not hide results from the other components. Jobs do not exchange
 compiled artifacts or build directories; only dependency caches may be reused. This reduces
 wall-clock latency at the cost of additional hosted runner minutes. Release candidate jobs remain
@@ -88,12 +90,10 @@ ordered by immutable artifacts because build, protected signing, credential-free
 publication form distinct trust boundaries.
 
 Release Daily reuses the same eight component jobs after candidate construction, checking out the
-candidate's manifest-bound source commit. It runs alongside the independent candidate runtime and
-synthetic-performance verification; packaging waits for both to succeed. Hosted candidate verifiers
-do not repeat the serial workstation Daily gate inside their 90-minute runtime-verification budget.
-Their scan benchmark uses `performance_run_synthetic.ps1 -Case scan`, preserving the optimized
-Release build, exact workload admission, process ownership, memory limits and performance assertions
-used by ordinary synthetic CI.
+candidate's manifest-bound source commit. It runs alongside the independent candidate runtime checks
+and all five synthetic workloads; packaging waits for these to succeed. Candidate verifiers do not
+repeat Daily or the scan benchmark inside their runtime-verification budget. The synthetic owner
+retains the optimized build, workload admission, process ownership, limits and assertions.
 
 Static and each Rust partition retain a 90-minute total budget; the other Daily components retain
 60 minutes. Each budget includes its own toolchain setup and compilation. Product-workflow and test
@@ -123,9 +123,9 @@ Provenance and independent checksums remain deferred supply-chain work rather th
 current gate.
 
 GitHub-hosted workflows never receive real-library paths or authorization tokens and never run the
-real-library gate. Ordinary PR CI runs the five synthetic cases without release permission; retained
+real-library gate. Nightly and release CI run the five synthetic cases; retained
 real-library verification remains a separately prepared workstation action. Release jobs
-may still show as skipped in a PR: the independent unsigned quality job supplies compilation evidence
+may still show as skipped in a PR: full runs use the independent unsigned quality job for build evidence
 without changing their manual main-only admission.
 
 Read-only verification of known real-library roots is covered by the repository's standing policy

@@ -31,7 +31,7 @@ try {
         throw "No Flutter test files were found"
     }
 
-    $isFirstTest = $true
+    $relativePaths = [System.Collections.Generic.List[string]]::new()
     foreach ($testFile in $testFiles) {
         $resolvedTestFile = [System.IO.Path]::GetFullPath($testFile)
         $repositoryPrefix = "$repositoryRoot$([System.IO.Path]::DirectorySeparatorChar)"
@@ -42,18 +42,36 @@ try {
             throw "Flutter test files must remain inside the repository: $testFile"
         }
         $relativePath = $resolvedTestFile.Substring($repositoryPrefix.Length)
-        Write-Host "Flutter test: $relativePath"
+        $relativePaths.Add($relativePath)
+    }
+
+    # Reuse Flutter's compiler between files; its runner still isolates each suite.
+    # Bounded batches stay below cmd.exe's command-line limit on Windows.
+    $isFirstBatch = $true
+    $offset = 0
+    while ($offset -lt $relativePaths.Count) {
+        $batch = [System.Collections.Generic.List[string]]::new()
+        $characters = 0
+        while ($offset -lt $relativePaths.Count) {
+            $path = $relativePaths[$offset]
+            if ($path.Length + 3 -gt 6000) { throw "Flutter test path is too long: $path" }
+            if ($characters + $path.Length + 3 -gt 6000) { break }
+            $batch.Add($path)
+            $characters += $path.Length + 3
+            $offset++
+        }
+        Write-Host "Flutter tests: $($batch.Count) files"
         $arguments = @(
             "test",
             "--concurrency=1",
             "--reporter=expanded"
         )
-        if ($NoPub -or -not $isFirstTest) {
+        if ($NoPub -or -not $isFirstBatch) {
             $arguments += "--no-pub"
         }
-        $arguments += $resolvedTestFile
+        $arguments += $batch.ToArray()
         Invoke-AmeChecked $toolchain.Flutter $arguments
-        $isFirstTest = $false
+        $isFirstBatch = $false
     }
 } finally {
     Pop-Location

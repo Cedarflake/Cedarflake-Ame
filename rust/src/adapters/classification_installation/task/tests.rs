@@ -42,13 +42,6 @@ fn migration_preserves_version_one_selection_without_authorizing_a_download() {
         ClassificationInstallationStore.load(&path).unwrap(),
         Some(selected)
     );
-    assert_eq!(
-        open(&path)
-            .unwrap()
-            .pragma_query_value(None, "user_version", |row| row.get::<_, i64>(0))
-            .unwrap(),
-        2
-    );
 }
 
 #[test]

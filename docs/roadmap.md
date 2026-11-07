@@ -81,6 +81,10 @@ R7-01 composed filters, then shared feature/index coverage, text retrieval, rela
 and desktop acceptance. Reuse SigLIP 2 and the existing default-enabled GPU image runtime;
 multi-model selection and the larger FG-CLIP 2 evaluation are outside this scope.
 
+Before R7-02, finish the requested CI reduction: remove incidental assertions, batch Flutter suites,
+and deliver quick/full/nightly-release selection under [ADR 0026](architecture/0026-hosted-synthetic-and-unsigned-build-gates.md).
+Verify the changed selection and failure propagation, then resume the R7 slices in order.
+
 R6 retains the paired engine with accepted visual-layout discrimination and heavier-crop limits.
 Cloud-primary runs, constrained-client measurements and optimization remain deferred outside R6.
 The [closeout record](acceptance/r6-similar-images.md#r6-closeout) retains their evidence and disposition.
@@ -128,7 +132,8 @@ schedules no additional broad split.
 
 The [R7 plan](plans/r7-semantic-discovery.md#implementation-slices) owns slice definitions and planned
 interaction. R7-01 is implemented on the R7 branch with focused and native-client
-[filter evidence](acceptance/r7-semantic-discovery.md); hosted verification is pending.
+[filter evidence](acceptance/r7-semantic-discovery.md); hosted verification exposed stale GPU tests
+and is being repaired alongside the requested CI reduction.
 R7-02 through R7-05 follow in order. Completion requires composed
 search/filter behavior in the running desktop, durable bounded indexing, stable gallery/viewer
 results, source safety and the plan's quality/performance evidence. No R7 slice is accepted yet.
