@@ -50,6 +50,12 @@ class AmeSelectionCheckbox extends StatelessWidget {
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   checkColor: Colors.transparent,
                   splashRadius: tapTargetSize / scale / 2,
+                  // Dark-theme onSurface ink fades into light photos. Change
+                  // only hover; Checkbox retains its press and focus colors.
+                  hoverColor:
+                      !isOutlined && colors.brightness == Brightness.dark
+                      ? colors.outline.withValues(alpha: 0.16)
+                      : null,
                   fillColor: WidgetStateProperty.resolveWith((states) {
                     if (isOutlined) return Colors.transparent;
                     if (states.contains(WidgetState.selected) ||
