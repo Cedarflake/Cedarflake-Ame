@@ -57,6 +57,7 @@ pub(in crate::adapters::sqlite_catalog::migrations) fn migrate_transaction(
 
 #[cfg(test)]
 pub(super) fn downgrade_for_test(connection: &Connection) {
+    super::super::multiple_metadata_formats::downgrade_for_test(connection);
     if super::super::schema_shape::schema_version(connection).unwrap() != 76 {
         return;
     }

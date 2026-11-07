@@ -5,7 +5,7 @@ import "package:flutter_test/flutter_test.dart";
 void main() {
   test("editing preserves exact stored bytes and explicit date meaning", () {
     const filter = LibraryMetadataFilter(
-      extension: "png",
+      extensions: ["jpg", "png"],
       bytes: LibraryNumberRange(
         minimum: 9007199254740993,
         maximum: 9223372036854775807,

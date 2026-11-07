@@ -183,17 +183,28 @@ choices remain visible and disabled. Manual albums, smart albums and organizatio
 merged groups: their duplicate choices remain visible and disabled, with `合并重复图片` selected.
 Library and Favorites retain their supported duplicate-display choices.
 
-The descendant and duplicate choices apply directly. `更多筛选` opens a compact desktop Material
-dialog with date, file properties and dimensions; camera information is a secondary expandable
-section. Use Material choice chips for common format/range choices, segmented date/unit controls
-and date-picker chips; custom ranges reveal their numeric fields on demand. Keep the shared theme
-and scrolling. The custom form withdrawn on 2026-11-02 is superseded by this framework composition.
+The descendant and duplicate choices apply directly. `更多筛选` opens the standard Material bottom
+sheet centered at the bottom of the window, using the same opening behavior and theme width as the
+album picker. Content scrolls within the bounded sheet; its title and action row remain visible.
+Formats use multi-select `FilterChip` controls; selecting JPG and PNG includes either format.
+Each section title sits above its controls. Content-sized format chips occupy one horizontal row
+with compact gaps. Arrange format, date, dimensions, file size and camera sections vertically.
+Group the date-type dropdown with two calendar fields. Width, height and file
+size expose minimum/maximum numeric fields directly, without presets; retain the size-unit dropdown.
+Camera has its own section. Chips, outlined fields and buttons use the application theme and standard
+component shapes, with no separate fills, rounding or fixed-width chip cells. Reuse shared scrolling,
+with hover/pressed feedback following each control's shape. The custom form withdrawn on
+2026-11-02 is superseded by this framework composition.
 Draft edits leave the gallery unchanged until `应用`; invalid dates, bounds or text stay editable
-with field errors. `取消` and dismissal preserve the applied conditions. `清除筛选` clears metadata
+with field errors. `取消`, Close and Escape preserve the applied conditions. `清除筛选` clears metadata
 conditions while retaining the folder/collection, search and duplicate-display choices.
 
-Applied conditions appear below the gallery header as removable summaries. Removing one condition
-retains the others. An editor opened for a retired query cannot publish into a different query.
+Place Clear at the tray's bottom left and Cancel/Apply at its bottom right. Applied conditions
+give the toolbar filter button an active state; its tooltip summarizes them and its menu places
+`清除筛选` immediately after `更多筛选`, followed by individually removable conditions. Keep the gallery
+title area free of condition chips. Removing one
+condition retains the others. An editor or removal menu opened for a retired query cannot publish
+into a different query.
 Organization continuation uses the current query's conditions, preserving compatibility with saved
 payloads without erasing organization progress. [ADR 0033](../../architecture/0033-structured-gallery-filters.md)
 owns field meaning and shared query behavior.

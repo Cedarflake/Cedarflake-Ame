@@ -46,7 +46,7 @@ class LibraryMetadataFilterDraft {
         value == null ? "" : (value ~/ divisor).toString();
     return LibraryMetadataFilterDraft(
       values: {
-        LibraryFilterField.extension: filter.extension,
+        LibraryFilterField.extension: filter.extensions.join(", "),
         LibraryFilterField.minimumBytes: number(
           filter.bytes.minimum,
           unit.multiplier,
@@ -127,10 +127,20 @@ class LibraryMetadataFilterDraft {
       return value;
     }
 
-    final extension = text(
-      LibraryFilterField.extension,
-    ).replaceFirst(RegExp(r"^\.+"), "").toLowerCase();
-    if (!RegExp(r"^[a-z0-9]{0,16}$").hasMatch(extension)) {
+    final extensions =
+        text(LibraryFilterField.extension)
+            .split(RegExp(r"[,，、\s]+"))
+            .where((value) => value.isNotEmpty)
+            .map(
+              (value) => value.replaceFirst(RegExp(r"^\.+"), "").toLowerCase(),
+            )
+            .toSet()
+            .toList()
+          ..sort();
+    if (extensions.length > 16 ||
+        extensions.any(
+          (value) => !RegExp(r"^[a-z0-9]{1,16}$").hasMatch(value),
+        )) {
       errors[LibraryFilterField.extension] =
           LibraryFilterStrings.invalidExtension;
     }
@@ -149,7 +159,7 @@ class LibraryMetadataFilterDraft {
       errors[LibraryFilterField.dateEnd] = LibraryFilterStrings.reversedDates;
     }
     final filter = LibraryMetadataFilter(
-      extension: extension,
+      extensions: extensions,
       bytes: range(
         LibraryFilterField.minimumBytes,
         LibraryFilterField.maximumBytes,

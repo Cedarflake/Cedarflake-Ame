@@ -101,7 +101,7 @@ Future<void> _filter(
   filter.onChanged(
     metadata
         ? filter.query.copyWith(
-            metadataFilter: LibraryMetadataFilter(extension: text),
+            metadataFilter: LibraryMetadataFilter(extensions: [text]),
           )
         : filter.query.copyWith(searchText: text),
   );
@@ -150,7 +150,7 @@ class _Catalog with LibraryQuerySnapshotFixture implements LibraryCatalog {
       (asset) => asset.locationId == anchor?.requestedLocationId,
     );
     final condition = query.metadataFilter.isActive
-        ? query.metadataFilter.extension
+        ? query.metadataFilter.extensions.join(",")
         : query.searchText;
     final filtered = switch (condition) {
       "one" => retained.toList(),

@@ -6677,7 +6677,7 @@ impl SseDecode for crate::domain::GalleryLocationAnchorResolution {
 impl SseDecode for crate::domain::gallery_metadata_filter::GalleryMetadataFilter {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_extension_ = <String>::sse_decode(deserializer);
+        let mut var_extensions = <Vec<String>>::sse_decode(deserializer);
         let mut var_bytes =
             <crate::domain::gallery_metadata_filter::GalleryNumberRange>::sse_decode(deserializer);
         let mut var_width =
@@ -6688,7 +6688,7 @@ impl SseDecode for crate::domain::gallery_metadata_filter::GalleryMetadataFilter
             <crate::domain::gallery_metadata_filter::GalleryDateRange>::sse_decode(deserializer);
         let mut var_cameraText = <String>::sse_decode(deserializer);
         return crate::domain::gallery_metadata_filter::GalleryMetadataFilter {
-            extension: var_extension_,
+            extensions: var_extensions,
             bytes: var_bytes,
             width: var_width,
             height: var_height,
@@ -11383,7 +11383,7 @@ impl flutter_rust_bridge::IntoDart
 {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.extension.into_into_dart().into_dart(),
+            self.extensions.into_into_dart().into_dart(),
             self.bytes.into_into_dart().into_dart(),
             self.width.into_into_dart().into_dart(),
             self.height.into_into_dart().into_dart(),
@@ -15298,7 +15298,7 @@ impl SseEncode for crate::domain::GalleryLocationAnchorResolution {
 impl SseEncode for crate::domain::gallery_metadata_filter::GalleryMetadataFilter {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.extension, serializer);
+        <Vec<String>>::sse_encode(self.extensions, serializer);
         <crate::domain::gallery_metadata_filter::GalleryNumberRange>::sse_encode(
             self.bytes, serializer,
         );

@@ -55,7 +55,7 @@ fn compound_filters_share_counts_layout_pages_and_scope() {
         sort_key: GallerySortKey::FileName,
         sort_direction: GallerySortDirection::Ascending,
         metadata_filter: GalleryMetadataFilter {
-            extension: "jpg".into(),
+            extensions: vec!["jpg".into(), "png".into()],
             camera_text: "%_one model".into(),
             bytes: GalleryNumberRange {
                 minimum: Some(100),
@@ -164,11 +164,21 @@ fn unknown_metadata_and_literal_camera_characters_are_not_wildcards() {
         ids(
             &mut catalog,
             GalleryMetadataFilter {
-                extension: "png".into(),
+                extensions: vec!["png".into()],
                 ..Default::default()
             }
         ),
         ["c"]
+    );
+    assert_eq!(
+        ids(
+            &mut catalog,
+            GalleryMetadataFilter {
+                extensions: vec!["jpg".into(), "png".into()],
+                ..Default::default()
+            }
+        ),
+        ["a", "b", "c"]
     );
     assert!(
         ids(

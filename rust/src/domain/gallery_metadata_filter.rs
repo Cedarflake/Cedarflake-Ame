@@ -28,7 +28,7 @@ pub struct GalleryDateRange {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GalleryMetadataFilter {
-    pub extension: String,
+    pub extensions: Vec<String>,
     pub bytes: GalleryNumberRange,
     pub width: GalleryNumberRange,
     pub height: GalleryNumberRange,
@@ -38,11 +38,19 @@ pub struct GalleryMetadataFilter {
 
 impl GalleryMetadataFilter {
     pub(crate) fn normalize(&mut self) {
-        self.extension = self
-            .extension
-            .trim()
-            .trim_start_matches('.')
-            .to_ascii_lowercase();
+        self.extensions = self
+            .extensions
+            .iter()
+            .map(|extension| {
+                extension
+                    .trim()
+                    .trim_start_matches('.')
+                    .to_ascii_lowercase()
+            })
+            .filter(|extension| !extension.is_empty())
+            .collect();
+        self.extensions.sort_unstable();
+        self.extensions.dedup();
         self.camera_text = self.camera_text.trim().to_owned();
         if self.date.start.is_none() && self.date.end.is_none() {
             self.date.field = GalleryDateField::Capture;
@@ -50,11 +58,12 @@ impl GalleryMetadataFilter {
     }
 
     pub(crate) fn validate(&self) -> Result<(), ScanError> {
-        if self.extension.len() > 16
-            || !self
-                .extension
-                .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric())
+        if self.extensions.len() > 16
+            || self.extensions.iter().any(|extension| {
+                extension.is_empty()
+                    || extension.len() > 16
+                    || !extension.bytes().all(|byte| byte.is_ascii_alphanumeric())
+            })
             || self.camera_text.chars().count() > 128
             || self.camera_text.chars().any(char::is_control)
         {

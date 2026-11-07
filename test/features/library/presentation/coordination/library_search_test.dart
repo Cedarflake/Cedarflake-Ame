@@ -58,7 +58,7 @@ void main() {
         expect(fixture.preservePosition, isFalse);
         final refinement = fixture.search.changeFilters(
           fixture.query.copyWith(
-            metadataFilter: const LibraryMetadataFilter(extension: "png"),
+            metadataFilter: const LibraryMetadataFilter(extensions: ["png"]),
           ),
         );
         await tester.pump();

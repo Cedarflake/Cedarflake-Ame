@@ -11,12 +11,14 @@ The [roadmap](../roadmap.md#r7-implementation-sequence) owns disposition and the
 The existing filter menu retains its four quick choices and adds `更多筛选`. A typed presentation
 draft validates extensions, exact byte conversions, dimensions, explicit calendar dates and camera
 text. Applying publishes one existing metadata query; cancelling preserves it. A retired opening
-query cannot receive the editor result. Invalid fields are brought into view, including a collapsed
-camera section. Header summaries remove one condition or clear metadata without changing scope,
+query cannot receive the editor result. Invalid custom fields are revealed and brought into view.
+Filter-menu summaries remove one condition or clear metadata without changing scope,
 literal search or duplicate display.
 
-No schema, bridge, model package or source-write behavior changes. Native shared predicates,
-query-generation handling and gallery position retention remain the existing owners.
+The revised editor supports multiple formats through the existing shared native predicate. Schema
+77 and archive version 7 retain old single-format scopes through the typed compatibility owner.
+No model package or source-write behavior changes; query generation and gallery position retention
+remain the existing owners.
 
 ## Component admission
 
@@ -25,13 +27,15 @@ Flutter 3.47.8 / Dart 3.13.7 implementation; the hosted Windows workflows pin th
 
 | Purpose | Framework capability and choice |
 | --- | --- |
-| Draft editing | `AlertDialog` and `ChoiceChip` expose common format/range options. `Form` and `TextFormField` appear for custom values; `validateGranularly` identifies an invalid field to reveal through framework scrolling. |
-| Date field and size unit | `SegmentedButton` supplies mutually exclusive typed choices in the installed SDK. |
-| Calendar | `InputChip` opens `showDatePicker`, a compact desktop dialog. Two independent bounds support an open-ended interval and individual clearing. |
-| Secondary camera field | `ExpansionTile` with its framework controller; invalid hidden input expands before scrolling into view. |
-| Applied conditions | `InputChip` supplies deletion and accessibility. `TextButton` clears conditions. No custom input, menu, picker, scrolling or chip primitive was introduced. |
+| Draft editing | `showModalBottomSheet` uses the album picker's standard centered placement and theme width. Multi-select `FilterChip`, `Form` and `TextFormField` retain the application theme. `Scrollbar` exposes scrolling; `validateGranularly` reveals invalid fields through framework scrolling. |
+| Date field, ranges and size unit | The shared `AmeChoice`, extracted from the settings selector, opens date and unit choices through `AmePopupMenuButton` and its 200-ms transition. `DropdownMenu` does not expose that route transition and is excluded under ADR 0009. Direct minimum/maximum fields replace range presets. |
+| Calendar | Read-only `TextFormField` opens `showDatePicker`, a compact desktop dialog. Two independent bounds support an open-ended interval and individual clearing. |
+| Camera and control shapes | Outlined `TextFormField` under its section title. Fields use the framework's standard outline; chips and menus retain the application theme without local shape overrides. |
+| Applied conditions | The shared popup-menu owner exposes removable conditions and Clear; the existing tooltip summarizes active conditions. No custom input, menu, picker, scrolling or chip primitive was introduced. |
 
 ## Verification
+
+Initial single-format editor evidence, before the compact multi-format revision:
 
 - Focused Flutter checks: 16 passed across the filter editor, draft validation and existing position
   regressions. Coverage includes cancel, clear, individual removal, retired query authority, exact
@@ -56,17 +60,54 @@ Flutter 3.47.8 / Dart 3.13.7 implementation; the hosted Windows workflows pin th
 The client exited normally, all 51 source SHA-256 hashes remained unchanged, and the scratch profile
 was removed by its lease owner. No client overflow or exception was observed in the run logs.
 
+### Compact multi-format revision
+
+Replaced single-format selection with a normalized multi-format set shared by predicates, query
+identity, the generated bridge and saved scopes. The editor puts section titles above controls, uses
+one row of compact format chips and direct numeric ranges in a centered bottom sheet. The toolbar
+menu replaces the header's format chips and permits individual removal without shifting gallery content.
+
+The 18 affected Flutter cases passed across draft editing, query coordination and both gallery
+layouts. Rapid consecutive format taps initially exposed an overwrite from a stale child snapshot;
+selection toggles now use the draft owner's current set. Changed-file Dart analysis passed.
+The 40 focused Rust cases passed: OR formats with other AND conditions, count/page/layout/selection
+agreement, identity, saved continuation, transactional migration rollback, legacy upgrade and archive
+staging/restoration. Initial fixture creation failed because the system temporary directory denied
+access; the same compiled tests passed with `TEMP`/`TMP` redirected into the leased repository scratch.
+The scratch owner removed the temporary catalogs after completion.
+
+The final centered-sheet revision passed the four existing editor cases and changed-file analysis.
+The ten position and four duplicate-display regressions also passed during this revision; no additional
+cosmetic test suite was added. The native Windows client used 368 retained JPG previews in an isolated
+catalog: JPG plus PNG returned 368, removing JPG returned zero, Escape discarded a draft change while
+preserving PNG, and Clear restored 368. The sheet used the album picker's centered Material placement;
+scrolling reached the file-size and camera fields while its title and action row remained visible.
+The client exited with code 0, all 368 preview hashes remained unchanged, and the scratch lease was
+removed. No model worker ran. Maximum client private memory was 477.1 MiB; minimum available system
+memory was 4174 MiB during the client check and 4192 MiB during the guarded, single-job build.
+Subsequent rebuilt-client checks confirmed that Clear follows More filters before the removable
+conditions, and the sheet's right-side content inset separates fields from the scrollbar.
+The shared-choice extraction passed the 19 existing filter/settings cases and changed-file analysis;
+the retained settings case covers selected values, keyboard activation, disabled state, semantics
+and the shared opening/closing transition durations.
+The user confirmed matching unit-selector and numeric-field heights in the rebuilt Windows preview.
+
 ## Reviewability and remaining evidence
 
 Original filter-slice production / inline-test lines: screen assembly 1919 / 0, filter draft 188 / 0,
 dialog 292 / 0, summary 95 / 0. Dedicated affected tests contained 244, 61 and 256 lines respectively.
-Current connected-slice counts appear below; editing and validation remain separate owners.
+Current filter production / inline-test lines: screen assembly 1970 / 0, draft 198 / 0, sheet 380 / 0,
+range fields 50 / 0, format choices 75 / 0, menu 207 / 0 and summary 84 / 0. The editor regression has
+268 dedicated test lines. Editing, parsing and applied-condition summaries remain separate owners;
+the gallery page only connects the existing query transition.
+The promoted shared choice contains 144 production / 0 inline-test lines; settings section, page,
+storage and cleanup consumers contain 98, 271, 738 and 155 production lines with no inline tests.
+The existing settings suite retains its assertions in 1231 dedicated test lines.
 
 Branch pushes alone do not trigger the CI workflow; its PR, main-push or manual-dispatch execution
 remains the hosted verification owner.
-Semantic indexing, text search and related-image search are subsequent R7 slices and are not covered
-by this filter evidence. The stage's real-library search quality and performance acceptance remains
-in R7-05.
+Semantic indexing, text search and related-image search have separate evidence below. The stage's
+real-library search quality and performance acceptance remains in R7-05.
 
 ## CI reduction — 2026-11-07
 

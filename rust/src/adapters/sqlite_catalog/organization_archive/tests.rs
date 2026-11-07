@@ -50,7 +50,7 @@ pub(super) fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
         &crate::domain::gallery_metadata_filter::GalleryMetadataFilter::default(),
     )
     .unwrap();
-    catalog.connection.execute("INSERT INTO organization_review_filters SELECT slot, 1, ?1 FROM organization_review_scopes", [empty_filter]).unwrap();
+    catalog.connection.execute("INSERT INTO organization_review_filters SELECT slot, 2, ?1 FROM organization_review_scopes", [empty_filter]).unwrap();
     (directory, catalog)
 }
 

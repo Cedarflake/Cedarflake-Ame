@@ -3,6 +3,7 @@ use crate::domain::{GalleryQuery, organization_queue::OrganizationQueue};
 use crate::ports::organization_review::OrganizationReviewRepository;
 
 use super::*;
+use crate::domain::gallery_metadata_filter::GalleryMetadataFilter;
 
 fn prior() -> (tempfile::TempDir, SqliteCatalog) {
     let directory = tempfile::tempdir().unwrap();
@@ -27,7 +28,7 @@ fn upgrade_supplies_empty_filters_without_widening_existing_scope() {
     ).unwrap();
     assert_eq!(search, "Retained");
     assert_eq!(
-        serde_json::from_str::<GalleryMetadataFilter>(&payload).unwrap(),
+        metadata_filter_payload::decode(&payload, 1).unwrap(),
         GalleryMetadataFilter::default()
     );
     drop(catalog);

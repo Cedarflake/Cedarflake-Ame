@@ -12,7 +12,6 @@ class LibraryGalleryViewport extends StatelessWidget {
     required this.isLoading,
     this.failure,
     this.notice,
-    this.filterSummary,
     this.loadingDelay = Duration.zero,
     super.key,
   });
@@ -21,7 +20,6 @@ class LibraryGalleryViewport extends StatelessWidget {
   final Widget body;
   final Widget? failure;
   final Widget? notice;
-  final Widget? filterSummary;
   final bool isEmpty;
   final bool isLoading;
   final Duration loadingDelay;
@@ -44,7 +42,6 @@ class LibraryGalleryViewport extends StatelessWidget {
         Column(
           children: [
             Semantics(sortKey: const OrdinalSortKey(0), child: header),
-            ?filterSummary,
             ?failure,
             Expanded(
               child: LibraryGalleryLoadingRegion(

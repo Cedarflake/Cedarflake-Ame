@@ -105,7 +105,10 @@ fn update_metadata_identity(
     filter: &crate::domain::gallery_metadata_filter::GalleryMetadataFilter,
 ) {
     use crate::domain::gallery_metadata_filter::GalleryDateField;
-    update_query_identity(hasher, &filter.extension);
+    hasher.update(&(filter.extensions.len() as u64).to_le_bytes());
+    for extension in &filter.extensions {
+        update_query_identity(hasher, extension);
+    }
     update_query_identity(hasher, &filter.camera_text);
     for range in [&filter.bytes, &filter.width, &filter.height] {
         for value in [range.minimum, range.maximum] {
@@ -158,7 +161,11 @@ mod tests {
         let base = GalleryQuery::default();
         let mut filters = vec![GalleryMetadataFilter::default()];
         filters.push(GalleryMetadataFilter {
-            extension: "jpg".into(),
+            extensions: vec!["jpg".into()],
+            ..Default::default()
+        });
+        filters.push(GalleryMetadataFilter {
+            extensions: vec!["jpg".into(), "png".into()],
             ..Default::default()
         });
         filters.push(GalleryMetadataFilter {

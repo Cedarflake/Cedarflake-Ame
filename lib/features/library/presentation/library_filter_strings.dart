@@ -22,7 +22,7 @@ abstract final class LibraryFilterStrings {
   static const minimum = "最小值";
   static const maximum = "最大值";
   static const extension = "扩展名";
-  static const extensionHint = "例如 jpg、png";
+  static const extensionHint = "例如 tif、bmp，用逗号分隔";
   static const minimumBytes = "最小文件大小";
   static const maximumBytes = "最大文件大小";
   static const unit = "单位";
@@ -33,7 +33,7 @@ abstract final class LibraryFilterStrings {
   static const maximumHeight = "最大高度";
   static const camera = "相机信息";
   static const cameraHint = "品牌或型号";
-  static const invalidExtension = "请输入不超过 16 位的字母或数字";
+  static const invalidExtension = "最多选择 16 种格式，每种限 16 位字母或数字";
   static const invalidNumber = "请输入有效的非负数";
   static const invalidInteger = "请输入有效的非负整数";
   static const fractionalBytes = "换算后的大小需为整数字节";

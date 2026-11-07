@@ -4,7 +4,7 @@ import "../../domain/library_metadata_filter.dart";
 rust.GalleryMetadataFilter mapLibraryMetadataFilter(
   LibraryMetadataFilter filter,
 ) => rust.GalleryMetadataFilter(
-  extension_: filter.extension,
+  extensions: filter.extensions,
   bytes: _toRange(filter.bytes),
   width: _toRange(filter.width),
   height: _toRange(filter.height),
@@ -23,7 +23,7 @@ rust.GalleryMetadataFilter mapLibraryMetadataFilter(
 LibraryMetadataFilter mapRustMetadataFilter(
   rust.GalleryMetadataFilter filter,
 ) => LibraryMetadataFilter(
-  extension: filter.extension_,
+  extensions: filter.extensions,
   bytes: _fromRange(filter.bytes),
   width: _fromRange(filter.width),
   height: _fromRange(filter.height),

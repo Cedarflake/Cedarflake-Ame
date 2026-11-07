@@ -7190,7 +7190,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     if (arr.length != 6)
       throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return GalleryMetadataFilter(
-      extension_: dco_decode_String(arr[0]),
+      extensions: dco_decode_list_String(arr[0]),
       bytes: dco_decode_gallery_number_range(arr[1]),
       width: dco_decode_gallery_number_range(arr[2]),
       height: dco_decode_gallery_number_range(arr[3]),
@@ -11006,14 +11006,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_extension_ = sse_decode_String(deserializer);
+    var var_extensions = sse_decode_list_String(deserializer);
     var var_bytes = sse_decode_gallery_number_range(deserializer);
     var var_width = sse_decode_gallery_number_range(deserializer);
     var var_height = sse_decode_gallery_number_range(deserializer);
     var var_date = sse_decode_gallery_date_range(deserializer);
     var var_cameraText = sse_decode_String(deserializer);
     return GalleryMetadataFilter(
-      extension_: var_extension_,
+      extensions: var_extensions,
       bytes: var_bytes,
       width: var_width,
       height: var_height,
@@ -15404,7 +15404,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.extension_, serializer);
+    sse_encode_list_String(self.extensions, serializer);
     sse_encode_gallery_number_range(self.bytes, serializer);
     sse_encode_gallery_number_range(self.width, serializer);
     sse_encode_gallery_number_range(self.height, serializer);

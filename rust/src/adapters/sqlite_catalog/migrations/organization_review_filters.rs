@@ -1,11 +1,11 @@
 use rusqlite::{Connection, Transaction, TransactionBehavior};
 
+use super::super::metadata_filter_payload;
 use crate::domain::ScanError;
-use crate::domain::gallery_metadata_filter::GalleryMetadataFilter;
 
 use super::{current_schema, database_error, schema_shape};
 
-const TABLE: &str = "CREATE TABLE organization_review_filters (
+pub(super) const TABLE: &str = "CREATE TABLE organization_review_filters (
     scope_slot TEXT PRIMARY KEY NOT NULL REFERENCES organization_review_scopes(slot) ON DELETE CASCADE,
     version INTEGER NOT NULL CHECK(version = 1),
     payload TEXT NOT NULL CHECK(length(CAST(payload AS BLOB)) <= 4096 AND json_valid(payload))
@@ -22,10 +22,9 @@ pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
 pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     current_schema::validate_schema_version(transaction, 63)?;
     transaction.execute_batch(TABLE).map_err(database_error)?;
-    let empty = serde_json::to_string(&GalleryMetadataFilter::default()).map_err(|_| invalid())?;
     transaction.execute(
         "INSERT INTO organization_review_filters SELECT slot, 1, ?1 FROM organization_review_scopes",
-        [empty],
+        [metadata_filter_payload::LEGACY_EMPTY],
     ).map_err(database_error)?;
     transaction
         .execute_batch("UPDATE schema_info SET version = 64; PRAGMA user_version = 64;")
@@ -60,15 +59,16 @@ pub(super) fn validate_rows(connection: &Connection) -> Result<(), ScanError> {
         return Err(invalid());
     }
     let mut statement = connection
-        .prepare("SELECT payload FROM organization_review_filters")
+        .prepare("SELECT version, payload FROM organization_review_filters")
         .map_err(database_error)?;
     let rows = statement
-        .query_map([], |row| row.get::<_, String>(0))
+        .query_map([], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        })
         .map_err(database_error)?;
-    for payload in rows {
-        let filter: GalleryMetadataFilter =
-            serde_json::from_str(&payload.map_err(database_error)?).map_err(|_| invalid())?;
-        filter.validate()?;
+    for row in rows {
+        let (version, payload) = row.map_err(database_error)?;
+        metadata_filter_payload::decode(&payload, version)?;
     }
     Ok(())
 }

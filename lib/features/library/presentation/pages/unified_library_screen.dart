@@ -75,7 +75,6 @@ import "../widgets/library_gallery_viewport.dart";
 import "../widgets/library_gallery_wall.dart";
 import "../widgets/library_global_bar.dart";
 import "../widgets/library_image_viewer.dart";
-import "../widgets/library_metadata_filter_summary.dart";
 import "../widgets/library_navigation.dart";
 import "../widgets/library_query_failure_banner.dart";
 import "../widgets/library_review_mode_notice.dart";
@@ -919,12 +918,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             onSortKeyChanged: (value) => _changeSortKey(state, value),
             onSortDirectionChanged: (value) =>
                 _changeSortDirection(state, value),
-          ),
-          filterSummary: LibraryMetadataFilterSummary(
-            filter: state.query.metadataFilter,
-            onChanged: (filter) => _changeGalleryFilter(
-              state.query.copyWith(metadataFilter: filter),
-            ),
           ),
           failure: switch (state.queryActivity) {
             LibraryQueryFailed failure => LibraryQueryFailureBanner(

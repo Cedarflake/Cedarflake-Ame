@@ -247,7 +247,9 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 62 {
         super::camera_metadata::validate(connection)?;
     }
-    if schema_version >= 64 {
+    if schema_version >= 77 {
+        super::multiple_metadata_formats::validate(connection)?;
+    } else if schema_version >= 64 {
         super::organization_review_filters::validate(connection)?;
     }
     if schema_version >= 65 {

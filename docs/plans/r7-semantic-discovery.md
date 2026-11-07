@@ -40,16 +40,23 @@ Replace the superseded desktop-filter withdrawal in its ADR when that surface is
 - Add `查找相关图片` to an existing library-image action menu. A library image is the reference;
   exclude that reference from its own results and retain existing exact-duplicate display policy.
   Do not add another navigation destination or another image-viewer implementation.
-- Keep the filter menu's descendant and duplicate-display shortcuts. `更多筛选` opens a compact
-  desktop dialog composed from existing Material controls and application theme tokens.
-- Group conditions by date, file properties and image dimensions; keep camera text secondary.
-  Use the retained date-field, extension, byte-range, width/height-range and camera contracts.
-  Use Material choice chips for common formats and numeric ranges, segmented date/unit choices,
-  and date-picker chips. Expand numeric/text entry only for custom values. Unset fields add no
-  restriction. Conditions compose with each other and either search mode.
+- Keep the filter menu's descendant and duplicate-display shortcuts. `更多筛选` opens the standard
+  Material bottom sheet centered at the window's bottom, like the existing album picker.
+- Put each section title above its controls. Use multi-select Material `FilterChip` controls in one
+  horizontal row with content-sized chips and compact gaps. Keep the date-type dropdown beside two
+  calendar fields in one group. Arrange format, date, dimensions, file size and camera sections
+  vertically; overflow scrolls within the sheet while its actions remain visible.
+  Dimensions and file size use direct minimum/maximum fields without presets; retain the size-unit
+  dropdown. Use standard Material chips, fields and buttons with the existing application theme,
+  without local shape or color overrides. Selected
+  formats combine with OR; different conditions combine with AND and either search mode.
+  Unset fields add no restriction. Preserve old single-format scopes and backups through migration.
 - Edit a draft and publish it once with `应用`. Cancel or dismiss preserves the applied conditions.
   `清除筛选` clears metadata restrictions while preserving the selected folder and duplicate display.
-  Show concise applied-condition summaries above results with individual removal actions.
+  Keep Clear at the bottom left and Cancel/Apply at the bottom right. Close or Escape discards the
+  draft; an editor opened for a retired query cannot apply to its replacement. An active toolbar filter
+  button exposes summaries in its tooltip and menu, with individual removal and clearing actions.
+  Do not add a separate condition row beneath the gallery title.
 - Use the existing feedback owners for preparation, partial coverage, failure and retry. A search
   with incomplete indexing remains usable and identifies the affected coverage. Background index
   growth cannot reorder an active result list; expose an intentional update action when needed.
@@ -62,7 +69,7 @@ Replace the superseded desktop-filter withdrawal in its ADR when that surface is
 
 Reconnect the retained typed metadata filters through the existing query path. A presentation-owned
 draft editor owns parsing, field errors, commit/cancel and summary labels; the page only connects
-the result to the existing query transition. Reuse framework dialog, menu, text, date and chip controls.
+the result to the existing query transition. Reuse framework bottom-sheet, menu, text, date and chip controls.
 Do not extend the large screen with a second form or query state machine.
 
 Prove combined predicates, invalid input, cancellation, clearing/removing conditions, current-scope

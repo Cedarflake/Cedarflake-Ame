@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_choice.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/notifications/ame_notification_strings.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
@@ -61,18 +62,18 @@ class AmeSettingsPage extends ConsumerWidget {
                               icon: Symbols.palette_rounded,
                               title: "应用主题",
                               subtitle: const Text("选择明暗外观，主题色跟随 Windows"),
-                              trailing: SettingsChoice<AmeThemePreference>(
+                              trailing: AmeChoice<AmeThemePreference>(
                                 value: preferences.theme,
                                 entries: const [
-                                  SettingsChoiceEntry(
+                                  AmeChoiceEntry(
                                     value: AmeThemePreference.system,
                                     label: "跟随系统",
                                   ),
-                                  SettingsChoiceEntry(
+                                  AmeChoiceEntry(
                                     value: AmeThemePreference.light,
                                     label: "浅色",
                                   ),
-                                  SettingsChoiceEntry(
+                                  AmeChoiceEntry(
                                     value: AmeThemePreference.dark,
                                     label: "深色",
                                   ),
@@ -99,50 +100,49 @@ class AmeSettingsPage extends ConsumerWidget {
                               icon: Symbols.mouse_rounded,
                               title: "鼠标滚轮",
                               subtitle: const Text("查看单张图片时滚动滚轮的行为"),
-                              trailing:
-                                  SettingsChoice<ImageViewerWheelBehavior>(
-                                    value: preferences.viewerWheelBehavior,
-                                    entries: const [
-                                      SettingsChoiceEntry(
-                                        value: ImageViewerWheelBehavior.zoom,
-                                        label: "放大或缩小",
-                                      ),
-                                      SettingsChoiceEntry(
-                                        value: ImageViewerWheelBehavior
-                                            .previousOrNext,
-                                        label: "上一张或下一张",
-                                      ),
-                                    ],
-                                    onSelected: (value) {
-                                      if (value != null) {
-                                        unawaited(
-                                          _savePreferences(
-                                            ref,
-                                            preferences.copyWith(
-                                              viewerWheelBehavior: value,
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    },
+                              trailing: AmeChoice<ImageViewerWheelBehavior>(
+                                value: preferences.viewerWheelBehavior,
+                                entries: const [
+                                  AmeChoiceEntry(
+                                    value: ImageViewerWheelBehavior.zoom,
+                                    label: "放大或缩小",
                                   ),
+                                  AmeChoiceEntry(
+                                    value:
+                                        ImageViewerWheelBehavior.previousOrNext,
+                                    label: "上一张或下一张",
+                                  ),
+                                ],
+                                onSelected: (value) {
+                                  if (value != null) {
+                                    unawaited(
+                                      _savePreferences(
+                                        ref,
+                                        preferences.copyWith(
+                                          viewerWheelBehavior: value,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
                             ),
                             SettingsRow(
                               icon: Symbols.image_rounded,
                               title: "打开图片",
                               subtitle: const Text("自动模式缩小大图，小图保持实际大小"),
-                              trailing: SettingsChoice<ImageViewerOpenBehavior>(
+                              trailing: AmeChoice<ImageViewerOpenBehavior>(
                                 value: preferences.viewerOpenBehavior,
                                 entries: const [
-                                  SettingsChoiceEntry(
+                                  AmeChoiceEntry(
                                     value: ImageViewerOpenBehavior.automatic,
                                     label: "自动",
                                   ),
-                                  SettingsChoiceEntry(
+                                  AmeChoiceEntry(
                                     value: ImageViewerOpenBehavior.fitWindow,
                                     label: "适应窗口",
                                   ),
-                                  SettingsChoiceEntry(
+                                  AmeChoiceEntry(
                                     value: ImageViewerOpenBehavior.actualSize,
                                     label: "实际大小",
                                   ),
@@ -166,18 +166,18 @@ class AmeSettingsPage extends ConsumerWidget {
                               icon: Symbols.speed_rounded,
                               title: "缩略图加载速度",
                               subtitle: const Text("档位越大，同时加载越多，占用资源也越高"),
-                              trailing: SettingsChoice<PreviewLoadingSpeed>(
+                              trailing: AmeChoice<PreviewLoadingSpeed>(
                                 value: preferences.previewLoadingSpeed,
                                 entries: const [
-                                  SettingsChoiceEntry(
+                                  AmeChoiceEntry(
                                     value: PreviewLoadingSpeed.small,
                                     label: "小",
                                   ),
-                                  SettingsChoiceEntry(
+                                  AmeChoiceEntry(
                                     value: PreviewLoadingSpeed.medium,
                                     label: "中",
                                   ),
-                                  SettingsChoiceEntry(
+                                  AmeChoiceEntry(
                                     value: PreviewLoadingSpeed.large,
                                     label: "大",
                                   ),

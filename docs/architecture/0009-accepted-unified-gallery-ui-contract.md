@@ -357,9 +357,10 @@ positioning, selection callbacks, disabled items, focus traversal, and configura
 `AnimationStyle`. Its `DropdownMenu` was also evaluated, but it constructs an internal
 `MenuAnchor`/`OverlayPortal` and does not expose the route-level transition contract used elsewhere
 in Ame. It is therefore not retained as a settings exception on Windows 11 x64. The
-repository-owned `SettingsChoice` composes the first-party button and checked popup items through
-`AmePopupMenuButton`; preview loading speed and preview-cache budget reuse that control with their
-existing widths, current-value rendering, disabled state, keyboard behavior, and semantics.
+shared `AmeChoice` composes the first-party button and checked popup items through
+`AmePopupMenuButton`; settings choices and gallery-filter date/unit choices reuse that control with
+their existing widths, current-value rendering, disabled state, keyboard behavior, and semantics.
+An optional framework `InputDecorator` preserves a visible field label without owning menu motion.
 
 The official Material 3 Dialog and Checkbox catalogs remain the basis of multi-root library update
 selection. The repository-pinned Flutter 3.44.9 SDK provides `showDialog`, `AlertDialog`, and

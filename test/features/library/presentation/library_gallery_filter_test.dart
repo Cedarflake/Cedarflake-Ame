@@ -1,6 +1,6 @@
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_filter.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_metadata_filter_summary.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_metadata_filter_sheet.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -115,16 +115,7 @@ void main() {
                   query = value;
                   changes++;
                 });
-                return Column(
-                  children: [
-                    LibraryGalleryFilter(query: query, onChanged: change),
-                    LibraryMetadataFilterSummary(
-                      filter: query.metadataFilter,
-                      onChanged: (value) =>
-                          change(query.copyWith(metadataFilter: value)),
-                    ),
-                  ],
-                );
+                return LibraryGalleryFilter(query: query, onChanged: change);
               },
             ),
           ),
@@ -132,10 +123,9 @@ void main() {
       );
       await _edit(tester);
       await _date(tester, "dateStart", "02/29/2024");
-      await tester.tap(find.text("PNG"));
-      await _custom(tester, "minimumBytes");
+      await tester.tap(find.widgetWithText(FilterChip, "PNG"));
+      await tester.tap(find.widgetWithText(FilterChip, "JPG"));
       await _enter(tester, "minimumBytes", "1.5");
-      await _custom(tester, "minimumWidth");
       await _enter(tester, "minimumWidth", "2000");
       await _enter(tester, "maximumWidth", "1000");
       expect(changes, 0);
@@ -150,11 +140,16 @@ void main() {
       expect(
         query.metadataFilter,
         const LibraryMetadataFilter(
-          extension: "png",
+          extensions: ["jpg", "png"],
           bytes: LibraryNumberRange(minimum: 1572864),
           width: LibraryNumberRange(minimum: 2000, maximum: 3000),
           date: LibraryDateRange(start: "2024-02-29"),
         ),
+        reason:
+            "formats=${query.metadataFilter.extensions}, "
+            "bytes=${query.metadataFilter.bytes.minimum}, "
+            "width=${query.metadataFilter.width.minimum}–${query.metadataFilter.width.maximum}, "
+            "date=${query.metadataFilter.date.start}",
       );
       expect(query.rootId, "root");
       expect(query.folderRelativePath, "photos");
@@ -163,31 +158,26 @@ void main() {
       expect(query.sortKey, LibraryGallerySortKey.fileName);
 
       await _edit(tester);
-      await tester.tap(find.text("JPG"));
+      await tester.tap(find.widgetWithText(FilterChip, "JPG"));
       await tester.tap(find.text("取消"));
       await tester.pumpAndSettle();
       expect(changes, 1);
-      expect(query.metadataFilter.extension, "png");
-      await tester.tap(find.byTooltip("移除扩展名：png"));
+      expect(query.metadataFilter.extensions, ["jpg", "png"]);
+      await _open(tester);
+      await tester.tap(find.text("格式：PNG"));
       await tester.pumpAndSettle();
-      expect(query.metadataFilter.extension, isEmpty);
+      expect(query.metadataFilter.extensions, ["jpg"]);
       expect(query.metadataFilter.width.minimum, 2000);
       expect(query.metadataFilter.bytes.minimum, 1572864);
       expect(changes, 2);
 
-      await _edit(tester);
-      await tester.tap(
-        find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.text("清除筛选"),
-        ),
-      );
+      await _open(tester);
+      await tester.tap(find.text("清除筛选"));
       await tester.pumpAndSettle();
       expect(query.metadataFilter.isActive, isFalse);
       expect(query.folderRelativePath, "photos");
       expect(query.searchText, "sunset");
       expect(query.duplicateMode, LibraryGalleryDuplicateMode.all);
-      expect(find.byKey(const Key("library-filter-summary")), findsNothing);
       expect(changes, 3);
     },
   );
@@ -195,7 +185,10 @@ void main() {
   testWidgets("an editor from a retired query cannot change the new scope", (
     tester,
   ) async {
-    var query = const LibraryGalleryQuery(rootId: "original");
+    var query = const LibraryGalleryQuery(
+      rootId: "original",
+      metadataFilter: LibraryMetadataFilter(extensions: ["png"]),
+    );
     var changes = 0;
     late StateSetter update;
     await tester.pumpWidget(
@@ -214,14 +207,29 @@ void main() {
       ),
     );
     await _edit(tester);
-    await tester.tap(find.text("PNG"));
+    await tester.tap(find.widgetWithText(FilterChip, "PNG"));
     update(() => query = const LibraryGalleryQuery(rootId: "replacement"));
     await tester.pump();
     await tester.tap(find.text("应用"));
     await tester.pumpAndSettle();
     expect(changes, 0);
     expect(query.rootId, "replacement");
-    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(LibraryMetadataFilterSheet), findsNothing);
+
+    update(
+      () => query = const LibraryGalleryQuery(
+        rootId: "original",
+        metadataFilter: LibraryMetadataFilter(extensions: ["png"]),
+      ),
+    );
+    await tester.pump();
+    await _open(tester);
+    update(() => query = const LibraryGalleryQuery(rootId: "replacement"));
+    await tester.pump();
+    await tester.tap(find.text("格式：PNG"));
+    await tester.pumpAndSettle();
+    expect(changes, 0);
+    expect(query.rootId, "replacement");
   });
 }
 
@@ -241,13 +249,6 @@ Future<void> _enter(WidgetTester tester, String field, String text) async {
   await tester.ensureVisible(input);
   await tester.enterText(input, text);
   await tester.pump();
-}
-
-Future<void> _custom(WidgetTester tester, String minimum) async {
-  final choice = find.byKey(ValueKey("library-filter-custom-$minimum"));
-  await tester.ensureVisible(choice);
-  await tester.tap(choice);
-  await tester.pumpAndSettle();
 }
 
 Future<void> _date(WidgetTester tester, String field, String value) async {
