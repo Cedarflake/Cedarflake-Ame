@@ -5597,11 +5597,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
         }
         for (name, declarations) in &modules {
             if !expected.contains_key(name.as_str()) {
-                // Unrelated domain modules cannot enter the separately checked call closure.
-                // Still reject alternate loaders and duplicate declarations in its parent file.
-                if source_key == "domain"
+                // Unrelated sibling modules cannot enter the separately checked call closure.
+                // Conditional declarations are ordinary loading; path overrides are not.
+                if matches!(source_key, "domain" | "adapters-parent")
                     && matches!(declarations.as_slice(), [module]
-                        if module.content.is_none() && module.attrs.is_empty())
+                        if module.content.is_none()
+                            && module.attrs.iter().all(|attribute| attribute.path().is_ident("cfg")))
                 {
                     continue;
                 }

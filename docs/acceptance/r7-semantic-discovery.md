@@ -457,5 +457,11 @@ passed Windows scan integration. Static analysis, Flutter tests and Windows acce
 three stale test locators after the shared-choice extraction: two referenced the removed component
 type and one referenced a retired menu key. The follow-up locates the visible Material controls;
 all existing behavior and native-accessibility assertions remain. Seven affected widget cases and
-analysis of the three changed suites passed locally. Hosted accessibility and the remaining native
-checks retain their own execution results.
+analysis of the three changed suites passed locally.
+
+Rust Remaining exposed the same roster coupling for unrelated adapter modules and a paused-startup
+assertion that equated an absent cache directory with no model work. The boundary guard now admits
+ordinary sibling declarations while retaining protected modules, exact call closure and alternate-
+loader rejection. The paused-session case retains its absent-model fixture and joined lifecycle,
+and checks zero cached features. These Rust changes await hosted execution; production behavior is
+unchanged. The Windows production-bundle build passed at `8141d463`.

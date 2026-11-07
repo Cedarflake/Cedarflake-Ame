@@ -10,22 +10,29 @@ const ADAPTERS_SOURCE: &str = include_str!("../../mod.rs");
 const CRATE_SOURCE: &str = include_str!("../../../lib.rs");
 
 #[test]
-fn root_availability_allows_unrelated_domain_modules_without_alternate_loaders() {
-    let source = syn::parse_file("pub mod future_feature; mod private_feature;").unwrap();
-    let mut errors = Vec::new();
-    super::validate_availability_module_topology("domain", &source, &[], &mut errors);
-    assert!(errors.is_empty(), "{errors:?}");
-
-    for source in [
-        "pub mod future_feature; pub mod future_feature;",
-        "#[path = \"alternate.rs\"] pub mod future_feature;",
-        "#[cfg_attr(test, path = \"alternate.rs\")] pub mod future_feature;",
-        "pub mod future_feature { include!(\"alternate.rs\"); }",
-    ] {
-        let source = syn::parse_file(source).unwrap();
+fn root_availability_allows_unrelated_sibling_modules_without_alternate_loaders() {
+    for parent in ["domain", "adapters-parent"] {
+        let source = syn::parse_file(
+            "pub mod future_feature; mod private_feature;
+             #[cfg(windows)] pub(crate) mod platform_feature;",
+        )
+        .unwrap();
         let mut errors = Vec::new();
-        super::validate_availability_module_topology("domain", &source, &[], &mut errors);
-        assert!(!errors.is_empty());
+        super::validate_availability_module_topology(parent, &source, &[], &mut errors);
+        assert!(errors.is_empty(), "{parent}: {errors:?}");
+
+        for source in [
+            "pub mod future_feature; pub mod future_feature;",
+            "#[path = \"alternate.rs\"] pub mod future_feature;",
+            "#[cfg_attr(test, path = \"alternate.rs\")] pub mod future_feature;",
+            "#[adversarial_loader] pub mod future_feature;",
+            "pub mod future_feature { include!(\"alternate.rs\"); }",
+        ] {
+            let source = syn::parse_file(source).unwrap();
+            let mut errors = Vec::new();
+            super::validate_availability_module_topology(parent, &source, &[], &mut errors);
+            assert!(!errors.is_empty(), "{parent}");
+        }
     }
 }
 

@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use crate::adapters::SqliteCatalog;
+use crate::adapters::{SqliteCatalog, SqliteClassificationFeatureCache};
 use crate::domain::classification::work::ClassificationDispatchCommand;
 use crate::domain::classification::*;
 use crate::ports::classification::ClassificationRepository;
+use crate::ports::classification_features::ClassificationFeatureRepository;
 use crate::ports::classification_setup::ClassificationSetupRepository;
 
 use super::*;
@@ -71,12 +72,13 @@ fn paused_startup_close_before_run_and_joined_shutdown_preserve_intent_without_l
         catalog.classification_dispatch_state().unwrap().mode,
         ClassificationDispatchMode::Paused
     );
-    assert!(
-        !storage
+    let cache = SqliteClassificationFeatureCache::open(
+        &storage
             .catalog_path
-            .with_file_name("classification-features")
-            .exists()
-    );
+            .with_file_name("classification-features"),
+    )
+    .unwrap();
+    assert_eq!(cache.feature_cache_stats().unwrap().entries, 0);
 }
 
 pub(super) fn paused_catalog(storage: &StoragePaths) -> SqliteCatalog {
