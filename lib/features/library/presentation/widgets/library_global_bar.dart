@@ -16,7 +16,8 @@ class LibraryGlobalBar extends StatelessWidget {
   const LibraryGlobalBar({
     required this.isSearchEnabled,
     required this.searchController,
-    required this.contentLeading,
+    required this.sidebarWidth,
+    required this.sidebarExpansion,
     this.onSearchChanged,
     this.discovery,
     required this.notifications,
@@ -27,7 +28,8 @@ class LibraryGlobalBar extends StatelessWidget {
 
   final bool isSearchEnabled;
   final TextEditingController searchController;
-  final double contentLeading;
+  final double sidebarWidth;
+  final double sidebarExpansion;
   final ValueChanged<String>? onSearchChanged;
   final LibrarySearch? discovery;
   final AmeNotificationState notifications;
@@ -44,6 +46,11 @@ class LibraryGlobalBar extends StatelessWidget {
         height: 64,
         child: LayoutBuilder(
           builder: (context, constraints) {
+            const collapsedLeading =
+                LibraryWorkbenchMetrics.railWidth +
+                LibraryWorkbenchMetrics.galleryHeadingInset;
+            final contentLeading =
+                collapsedLeading + sidebarWidth * sidebarExpansion;
             final leadingWidth = (contentLeading - 16).clamp(
               LibraryWorkbenchMetrics.railWidth,
               244.0,
@@ -52,15 +59,32 @@ class LibraryGlobalBar extends StatelessWidget {
             const captionWidth = 48.0 * 3 + 8;
             const notificationWidth = 48.0;
             const notificationGap = 8.0;
+            const collapsedSearchGap = 16.0;
+            const expandedSearchGap = 32.0;
             const trailingWidth =
                 captionWidth + notificationWidth + notificationGap;
-            final searchWidth = math.min(
+            final collapsedSearchWidth = math.max(
+              0.0,
+              constraints.maxWidth -
+                  collapsedLeading -
+                  trailingWidth -
+                  collapsedSearchGap,
+            );
+            final expandedSearchWidth = math.min(
               720.0,
               math.max(
                 0.0,
-                constraints.maxWidth - contentLeading - trailingWidth - 16,
+                constraints.maxWidth -
+                    collapsedLeading -
+                    sidebarWidth -
+                    trailingWidth -
+                    expandedSearchGap,
               ),
             );
+            // Fixed endpoints keep the right edge from reversing mid-transition.
+            final searchWidth =
+                collapsedSearchWidth +
+                (expandedSearchWidth - collapsedSearchWidth) * sidebarExpansion;
             return Stack(
               fit: StackFit.expand,
               children: [

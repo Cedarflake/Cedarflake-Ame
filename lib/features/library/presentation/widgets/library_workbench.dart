@@ -41,7 +41,8 @@ class LibraryWorkbench extends ConsumerStatefulWidget {
   final void Function(String title, Object error) onPreferenceError;
   final ValueChanged<LibraryWorkspace>? onWorkspaceSelected;
   final Widget? albumLanding;
-  final Widget Function(double contentLeading)? globalBarBuilder;
+  final Widget Function(double sidebarWidth, double sidebarExpansion)?
+  globalBarBuilder;
 
   @override
   ConsumerState<LibraryWorkbench> createState() => _LibraryWorkbenchState();
@@ -215,11 +216,7 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
             if (globalBarBuilder == null) return body;
             return Column(
               children: [
-                globalBarBuilder(
-                  LibraryWorkbenchMetrics.railWidth +
-                      extent +
-                      LibraryWorkbenchMetrics.galleryHeadingInset,
-                ),
+                globalBarBuilder(sidebarWidth, extent / sidebarWidth),
                 Expanded(child: body),
               ],
             );

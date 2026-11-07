@@ -340,7 +340,12 @@ screen composition 1,975 / 0; the dedicated coordinator suite contains 229 lines
 
 The follow-up to `fe501efb` aligns the search field with the gallery heading using the existing
 sidebar transition and live resize width. The native Debug client retained alignment when collapsing,
-expanding, resizing from 260 to 340 pixels and resetting the sidebar; the preview remains open.
-Changed-file analysis and twenty existing shell, sidebar-motion and search-focus cases passed.
-No new tests were added. Production / inline-test lines: screen composition 1,972 / 0, workbench
-328 / 0, sidebar transition 156 / 0 and global bar 150 / 0; the existing shell suite has 356 lines.
+expanding, resizing from 260 to 340 pixels and resetting the sidebar. Changed-file analysis and twenty
+existing shell, sidebar-motion and search-focus cases passed for that alignment change.
+
+The spacing follow-up to `35377206` reserves 32 pixels beside the expanded search field and lets the
+collapsed field stretch with a 16-pixel gap. Interpolating fixed endpoint widths removes the reversing
+right edge caused by deriving the width cap from the animated inset. The follow-up passed analysis
+and Debug compilation; the native client verified both sidebar states and remains open for inspection.
+No new tests were added. Production / inline-test lines: screen composition 1,975 / 0, workbench
+325 / 0, sidebar transition 156 / 0 and global bar 174 / 0; the existing shell suite has 356 lines.
