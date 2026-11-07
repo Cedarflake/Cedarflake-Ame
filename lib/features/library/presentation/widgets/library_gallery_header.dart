@@ -10,6 +10,7 @@ import "../gallery_view_options.dart";
 import "../library_strings.dart";
 import "library_gallery_header_actions.dart";
 import "library_sidebar_content.dart";
+import "library_workbench_metrics.dart";
 
 class LibraryGalleryHeader extends StatelessWidget {
   const LibraryGalleryHeader({
@@ -87,7 +88,12 @@ class LibraryGalleryHeader extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 104),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 18, 20, 16),
+          padding: const EdgeInsets.fromLTRB(
+            LibraryWorkbenchMetrics.galleryHeadingInset,
+            18,
+            20,
+            16,
+          ),
           child: Builder(
             builder: (context) {
               final titleText = Wrap(

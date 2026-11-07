@@ -335,3 +335,12 @@ Three search-coordinator cases passed, including the failed-reference and stale-
 regression. Changed-file analysis and the rebuilt native Debug client passed; the user confirmed
 the remaining desktop interactions. Production / inline-test lines: search coordinator 349 / 0,
 screen composition 1,975 / 0; the dedicated coordinator suite contains 229 lines.
+
+## Search alignment follow-up — 2026-11-08
+
+The follow-up to `fe501efb` aligns the search field with the gallery heading using the existing
+sidebar transition and live resize width. The native Debug client retained alignment when collapsing,
+expanding, resizing from 260 to 340 pixels and resetting the sidebar; the preview remains open.
+Changed-file analysis and twenty existing shell, sidebar-motion and search-focus cases passed.
+No new tests were added. Production / inline-test lines: screen composition 1,972 / 0, workbench
+328 / 0, sidebar transition 156 / 0 and global bar 150 / 0; the existing shell suite has 356 lines.

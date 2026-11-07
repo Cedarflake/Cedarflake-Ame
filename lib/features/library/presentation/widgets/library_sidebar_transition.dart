@@ -12,6 +12,7 @@ class LibrarySidebarTransition extends StatefulWidget {
     required this.sidebar,
     required this.gallery,
     required this.resizeHandle,
+    this.frameBuilder,
     super.key,
   });
 
@@ -20,6 +21,8 @@ class LibrarySidebarTransition extends StatefulWidget {
   final Widget sidebar;
   final Widget gallery;
   final Widget resizeHandle;
+  final Widget Function(BuildContext context, double extent, Widget panels)?
+  frameBuilder;
 
   @override
   State<LibrarySidebarTransition> createState() =>
@@ -75,20 +78,21 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
   }
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final galleryWidth =
-          constraints.maxWidth - (widget.expanded ? widget.sidebarWidth : 0);
-      return AnimatedBuilder(
-        animation: _progress,
-        child: LibrarySidebarMotion(
-          progress: _progress,
-          sidebarWidth: widget.sidebarWidth,
-          expanded: widget.expanded,
-          child: RepaintBoundary(child: widget.gallery),
-        ),
-        builder: (context, gallery) {
-          final extent = widget.sidebarWidth * _progress.value;
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _progress,
+    child: LibrarySidebarMotion(
+      progress: _progress,
+      sidebarWidth: widget.sidebarWidth,
+      expanded: widget.expanded,
+      child: RepaintBoundary(child: widget.gallery),
+    ),
+    builder: (context, gallery) {
+      final extent = widget.sidebarWidth * _progress.value;
+      final panels = LayoutBuilder(
+        builder: (context, constraints) {
+          final galleryWidth =
+              constraints.maxWidth -
+              (widget.expanded ? widget.sidebarWidth : 0);
           return Stack(
             fit: StackFit.expand,
             children: [
@@ -146,6 +150,7 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
           );
         },
       );
+      return widget.frameBuilder?.call(context, extent, panels) ?? panels;
     },
   );
 }

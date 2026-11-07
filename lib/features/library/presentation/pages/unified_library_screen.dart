@@ -524,32 +524,27 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
               LibraryViewerTransition(
                 gallery: LibraryViewerGalleryViewport(
                   isViewerOpen: viewerCatalogAsset != null,
-                  child: Column(
-                    children: [
-                      LibraryGlobalBar(
-                        isSearchEnabled:
-                            workspace.isBrowsing &&
-                            (workspace != LibraryWorkspace.albums ||
-                                state.query.collection
-                                    is! LibraryAllCollection) &&
-                            canEditLibrarySearch(state),
-                        searchController: _searchController,
-                        discovery: _search,
-                        notifications: notifications,
-                        onNotificationsOpened:
-                            _notificationController.markAllRead,
-                        onNotificationSelected: _showNotificationDetails,
-                      ),
-                      Expanded(
-                        child: _buildLibrary(
-                          context,
-                          state,
-                          controller,
-                          updateState,
-                          layoutManifest,
-                        ),
-                      ),
-                    ],
+                  child: _buildLibrary(
+                    context,
+                    state,
+                    controller,
+                    updateState,
+                    layoutManifest,
+                    globalBarBuilder: (contentLeading) => LibraryGlobalBar(
+                      contentLeading: contentLeading,
+                      isSearchEnabled:
+                          workspace.isBrowsing &&
+                          (workspace != LibraryWorkspace.albums ||
+                              state.query.collection
+                                  is! LibraryAllCollection) &&
+                          canEditLibrarySearch(state),
+                      searchController: _searchController,
+                      discovery: _search,
+                      notifications: notifications,
+                      onNotificationsOpened:
+                          _notificationController.markAllRead,
+                      onNotificationSelected: _showNotificationDetails,
+                    ),
                   ),
                 ),
                 viewer: viewerCatalogAsset == null
@@ -695,8 +690,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     LibraryState state,
     LibraryController controller,
     LibraryUpdateState updateState,
-    LibraryGalleryLayoutManifest? layoutManifest,
-  ) {
+    LibraryGalleryLayoutManifest? layoutManifest, {
+    required Widget Function(double contentLeading) globalBarBuilder,
+  }) {
     final folderTree = ref.watch(libraryFolderControllerProvider);
     final workspace = ref.watch(libraryWorkbenchControllerProvider);
     final selection = _selection;
@@ -731,6 +727,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           )
         : null;
     return LibraryWorkbench(
+      globalBarBuilder: globalBarBuilder,
       onWorkspaceSelected: (workspace) {
         unawaited(_selectWorkspace(workspace));
       },

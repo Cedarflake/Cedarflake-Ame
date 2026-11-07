@@ -16,6 +16,7 @@ class LibraryGlobalBar extends StatelessWidget {
   const LibraryGlobalBar({
     required this.isSearchEnabled,
     required this.searchController,
+    required this.contentLeading,
     this.onSearchChanged,
     this.discovery,
     required this.notifications,
@@ -26,6 +27,7 @@ class LibraryGlobalBar extends StatelessWidget {
 
   final bool isSearchEnabled;
   final TextEditingController searchController;
+  final double contentLeading;
   final ValueChanged<String>? onSearchChanged;
   final LibrarySearch? discovery;
   final AmeNotificationState notifications;
@@ -42,19 +44,22 @@ class LibraryGlobalBar extends StatelessWidget {
         height: 64,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final isCompact = constraints.maxWidth < 980;
-            final leadingWidth = isCompact
-                ? LibraryWorkbenchMetrics.railWidth
-                : 244.0;
+            final leadingWidth = (contentLeading - 16).clamp(
+              LibraryWorkbenchMetrics.railWidth,
+              244.0,
+            );
+            final isCompact = leadingWidth < 244;
             const captionWidth = 48.0 * 3 + 8;
             const notificationWidth = 48.0;
             const notificationGap = 8.0;
             const trailingWidth =
                 captionWidth + notificationWidth + notificationGap;
-            final edgeReserve = math.max(leadingWidth, trailingWidth);
             final searchWidth = math.min(
               720.0,
-              math.max(360.0, constraints.maxWidth - edgeReserve * 2 - 32),
+              math.max(
+                0.0,
+                constraints.maxWidth - contentLeading - trailingWidth - 16,
+              ),
             );
             return Stack(
               fit: StackFit.expand,
@@ -102,7 +107,10 @@ class LibraryGlobalBar extends StatelessWidget {
                     ),
                   ),
                 ),
-                Align(
+                Positioned(
+                  left: contentLeading,
+                  top: 0,
+                  bottom: 0,
                   child: SizedBox(
                     width: searchWidth,
                     child: Align(
