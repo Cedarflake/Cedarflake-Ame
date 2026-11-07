@@ -136,3 +136,50 @@ recovered 480/480 in each scope. Full-scope median/p95 retrieval was 0.098/0.150
 process overhead. Save/load, mapped-view agreement, removal and a Unicode path passed. Native
 search has no observed cancellation callback, so integration would need bounded work windows.
 These small-corpus measurements do not establish full-library latency, recall or resident memory.
+
+## Parallel-worker evaluation — 2026-11-07
+
+The local-primary comparison used the production Profile worker, protocol 2, the unchanged admitted
+SigLIP 2 artifacts, ORT CPU 1.31.1 and DirectML 1.24.4 / 1.15.4. Worker SHA-256:
+`3f06854bd9d5e218f22b88256a036691e09eec5cc879178532f4edd9f6ee3f63`.
+The host has an i7-13620H, 10 physical / 16 logical processors, 15.80 GiB usable RAM and an RTX 4050
+Laptop GPU. CPU-only results below disable GPU inference on this host; they do not characterize a
+low-core or low-memory machine.
+
+GPU runs used all 368 retained previews and 48 bilingual descriptions. CPU-only runs used 64 evenly
+spaced previews from that corpus and the same 48 descriptions. The harness prepared bounded image
+tensors and drove the actual native protocol, with one below-normal-priority worker per encoder,
+one inference thread per worker and the existing one-process / 2-GiB Windows Job limits. It opened
+no originals or catalogs. The application scheduler, decoder and semantic retrieval were outside
+this experiment. Each paired configuration ran sequential, parallel, parallel, sequential batches;
+sequential batches retained both workers to distinguish concurrent execution from model reloads.
+
+| Paired configuration | Sequential image median | Parallel image median | Sequential text median | Parallel text median | Peak combined private commit |
+| --- | --- | --- | --- | --- | --- |
+| GPU image + CPU text | 13.07 ms | 13.11 ms | 63.50 ms | 52.53 ms | 1,375 MiB |
+| CPU image + CPU text | 363.37 ms | 368.80 ms | 37.40 ms | 42.60 ms | 1,644 MiB |
+
+Medians pool both runs of each mode. GPU-run text timing varied substantially: per-run medians were
+36–136 ms sequential and 38–150 ms parallel, so the pooled difference does not establish faster text
+encoding. The two GPU image batches took 5.27 / 4.81 seconds sequential and 5.28 / 5.06 parallel.
+CPU image batches took 23.42 / 23.31 seconds sequential and 25.72 / 23.33 parallel. Every produced
+embedding matched its retained same-backend reference exactly, including concurrent execution.
+
+The isolated image workers used approximately 1,006 MiB private commit on GPU and 1,277 MiB on CPU;
+the additional text worker used approximately 368 MiB during steady execution. A separate cold-load
+measurement observed a 702-MiB text private-commit peak and a 1,339-MiB GPU-image peak. Their sum is an
+upper bound from individual process peaks, not a measured simultaneous peak. Working-set trimming
+occurred during the runs; private commit and physical resident memory are distinct measurements.
+
+Starting text while the GPU image worker continued required 1.79 seconds through the first query.
+Serial image retirement plus text startup/query took 1.62–1.71 seconds; retiring text and recreating
+the GPU worker through its first image took another 1.70–1.86 seconds. Parallelism therefore avoids
+background interruption and image-worker replacement, while first text use retains cold-start cost.
+Terminating the owned text worker during a separate 64-image GPU pass left all image outputs valid;
+this establishes process isolation, not application cancellation/restart acceptance.
+
+Per-item encoding gains do not justify hardware-tier and load-adaptation machinery in this stage.
+Retain serial admission and bounded text reuse; revisit parallel workers against an observed desktop
+responsiveness problem. All owned processes retired, leased scratch directories were removed and
+all 368 retained preview hashes remained unchanged. Raw timings and exploratory harnesses remain
+under ignored `build/r7-semantic-eval`; no new permanent CI workload was added.

@@ -93,6 +93,15 @@ for a bounded search session and release it after inactivity or shutdown; measur
 separately from warm queries. Interactive work has priority over background indexing at existing
 admission boundaries. Existing GPU preference and runtime-failure behavior remain authoritative.
 
+Retain the supervised serial model scheduler for this stage. The
+[paired-worker evaluation](../acceptance/r7-semantic-discovery.md#parallel-worker-evaluation--2026-11-07)
+found similar per-item encoding speed with additional memory use; parallel execution mainly preserves
+background progress during a search session. Concurrent image/text workers and automatic hardware
+tiers are deferred. Preserve completed features and queued work when foreground search takes priority;
+resume background work after the bounded search session. A superseded search cannot cancel a newer
+request or clear its results. Revisit concurrency if actual desktop search waiting or repeated model
+replacement becomes a measured user-visible bottleneck.
+
 Apply catalog restrictions to candidate eligibility during retrieval. Do not narrow only an already
 truncated global top-K. Fix a bounded result manifest to the query identity, catalog/index generation,
 model contract and stable tie-break order. Gallery pages, counts, full-result selection and viewer
