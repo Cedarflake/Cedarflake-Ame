@@ -14,6 +14,7 @@ class LibrarySemanticSearchSession {
   LibrarySemanticSearchSession(this.service);
   final LibrarySemanticSearch service;
   LibrarySemanticSearchRequest? _active;
+  Future<void>? _preparing;
   int _generation = 0;
   bool _disposed = false;
 
@@ -23,7 +24,27 @@ class LibrarySemanticSearchSession {
   ) async {
     cancel();
     final generation = _generation;
-    final request = await service.prepare(scope, input);
+    // Native preparation replaces its pending request on arrival. Admit handles
+    // in order so an older bridge call cannot cancel a newer search.
+    await _preparing;
+    if (_disposed || generation != _generation) return null;
+    final preparation = Future<LibrarySemanticSearchRequest>.sync(
+      () => service.prepare(scope, input),
+    );
+    final settled = preparation.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    _preparing = settled;
+    late final LibrarySemanticSearchRequest request;
+    try {
+      request = await preparation;
+    } on Object {
+      if (_disposed || generation != _generation) return null;
+      rethrow;
+    } finally {
+      if (identical(_preparing, settled)) _preparing = null;
+    }
     if (_disposed || generation != _generation) {
       request.cancel();
       request.dispose();

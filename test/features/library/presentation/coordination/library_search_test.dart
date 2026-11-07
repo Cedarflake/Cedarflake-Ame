@@ -114,6 +114,36 @@ void main() {
     },
   );
 
+  testWidgets("late native preparation cannot cancel the current search", (
+    tester,
+  ) async {
+    final fixture = _Fixture();
+    final preparation = Completer<void>();
+    fixture.service.nextPreparation = preparation;
+    try {
+      fixture.text.text = "红色的伞";
+      await tester.pump(const Duration(milliseconds: 250));
+      fixture.text.text = "蓝天";
+      await tester.pump(const Duration(milliseconds: 250));
+      preparation.complete();
+      await tester.pump();
+      final current = fixture.service.requests.singleWhere(
+        (request) => !request.disposed,
+      );
+      current.result.complete(_results("current"));
+      await tester.pump();
+      expect(fixture.query.semanticResults?.id, "current");
+      expect(fixture.search.loading, isFalse);
+      expect(fixture.errors.whereType<LibrarySemanticFailure>(), isEmpty);
+      expect(
+        fixture.service.requests.every((request) => request.disposed),
+        isTrue,
+      );
+    } finally {
+      fixture.dispose();
+    }
+  });
+
   testWidgets(
     "committed input and explicit scope compose with remembered mode",
     (tester) async {
@@ -216,6 +246,7 @@ class _Service implements LibrarySemanticSearch {
   final requests = <_Request>[];
   final scopes = <LibraryGalleryQuery>[];
   Completer<void>? retryGate;
+  Completer<void>? nextPreparation;
   int retries = 0;
   @override
   Future<LibrarySemanticSearchRequest> prepare(
@@ -223,6 +254,12 @@ class _Service implements LibrarySemanticSearch {
     LibrarySemanticInput input,
   ) async {
     scopes.add(scope);
+    final preparation = nextPreparation;
+    nextPreparation = null;
+    await preparation?.future;
+    for (final previous in requests) {
+      previous.cancel();
+    }
     final request = _Request();
     requests.add(request);
     return request;
@@ -242,7 +279,12 @@ class _Request implements LibrarySemanticSearchRequest {
   bool cancelled = false;
   bool disposed = false;
   @override
-  Future<LibrarySemanticResults> run() => result.future;
+  Future<LibrarySemanticResults> run() async {
+    final value = await result.future;
+    if (cancelled) throw const LibrarySemanticFailure("semantic_cancelled");
+    return value;
+  }
+
   @override
   void cancel() => cancelled = true;
   @override

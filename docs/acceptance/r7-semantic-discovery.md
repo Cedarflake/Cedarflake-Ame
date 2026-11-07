@@ -383,3 +383,10 @@ execution of those cases remains assigned to hosted CI. This is not large-librar
 Production / inline-test lines: recovery facade 47 / 0, lifecycle 76 / 0, session lifetime 143 / 0,
 search coordinator 365 / 0, feature-store facade 216 / 0, ownership receipt 77 / 0 and storage recovery
 139 / 0. Dedicated lifecycle, search and storage-recovery suites contain 884, 250 and 118 lines.
+
+The request-order follow-up to `dd70397c` serializes native handle preparation while allowing a new
+query to cancel active retrieval. The bridge dispatches preparation through a thread pool; a delayed
+older arrival could otherwise replace the newer native request. Five search-coordinator cases passed,
+including delayed preparation, stale replies, IME/Enter, scope changes and failure acknowledgement.
+Affected-file analysis passed. The session owner has 75 production lines and no inline tests; the
+coordinator suite has 292 lines. Native desktop continuation retains its separate verification scope.
