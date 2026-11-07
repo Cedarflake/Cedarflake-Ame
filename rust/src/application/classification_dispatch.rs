@@ -11,10 +11,9 @@ use crate::ports::classification_work::ClassificationWorkRepository;
 
 mod maintenance;
 mod signals;
-#[cfg(test)]
 pub use maintenance::ClassificationDispatchEvent;
 pub use maintenance::{ClassificationMaintenance, ClassificationMaintenanceStep};
-use signals::Admission;
+pub(crate) use signals::Admission;
 pub use signals::{
     ClassificationDispatchClock, ClassificationDispatchSignals, ClassificationForegroundState,
     MonotonicDispatchClock,
@@ -64,6 +63,10 @@ impl<R: ClassificationWorkRepository, E: ClassificationWorkExecutor, C: Classifi
 
     pub fn retire(&mut self) -> Result<(), ScanError> {
         self.executor.retire()
+    }
+
+    pub(crate) fn resources(&mut self) -> (&mut R, &mut E) {
+        (&mut self.repository, &mut self.executor)
     }
 
     fn run_until_closed(&mut self) -> Result<(), ScanError> {

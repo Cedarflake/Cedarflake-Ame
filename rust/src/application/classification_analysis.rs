@@ -8,18 +8,17 @@ use crate::domain::classification::{ClassificationRecordId, ClassificationRevisi
 use crate::ports::classification_analysis::{
     ClassificationAnalysisRepository, ClassificationImageLease, ClassificationImageReader,
 };
-use crate::ports::classification_encoder::ClassificationEncoderFactory;
 use crate::ports::classification_features::ClassificationFeatureRepository;
+use crate::ports::image_feature_encoding::ImageFeatureEncoding;
 
-use super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
 use super::classification_screening::ScreeningClassifier;
 
 #[cfg(all(windows, feature = "classification-worker"))]
-pub fn analyze_classification_content<F: ClassificationEncoderFactory, C: ResidencyClock>(
+pub fn analyze_classification_content<E: ImageFeatureEncoding>(
     database_path: &std::path::Path,
     lease: &ClassificationWorkLease,
     classifier: &ScreeningClassifier,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<ClassificationAnalysisResult, ScanError> {
@@ -44,12 +43,12 @@ pub fn analyze_classification_content<F: ClassificationEncoderFactory, C: Reside
     )
 }
 
-pub(crate) fn analyze<F: ClassificationEncoderFactory, C: ResidencyClock>(
+pub(crate) fn analyze<E: ImageFeatureEncoding>(
     repository: &mut impl ClassificationAnalysisRepository,
     reader: &impl ClassificationImageReader,
     lease: &ClassificationWorkLease,
     classifier: &ScreeningClassifier,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<ClassificationAnalysisResult, ScanError> {

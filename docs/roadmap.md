@@ -32,7 +32,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R4 | Favorites, albums and durable organization progress | Merged into `main` on 2026-10-30 |
 | R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
 | R6 | Perceptual similarity review | Merged into `main` on 2026-11-05 |
-| R7 | Structured and semantic discovery | Active; R7-02 shared features and indexing |
+| R7 | Structured and semantic discovery | Active; connected search and desktop acceptance |
 | R8 | Immutable physical-organization dry-run | Planned after R7 |
 | R9 | Freshly authorized physical operations and recovery | Planned after R8 |
 | R10 | Large-library maturity and release readiness | Later work; infrastructure may support earlier stages |
@@ -83,7 +83,7 @@ multi-model selection and the larger FG-CLIP 2 evaluation are outside this scope
 
 The requested CI reduction is implemented: quick/full/nightly-release selection, affected Flutter
 suites and removal of incidental assertions. [CI evidence](acceptance/r7-semantic-discovery.md#ci-reduction--2026-11-07)
-retains its measured results and revision limits. Continue R7-02 without another broad test-cleanup project.
+retains its measured results and revision limits. Continue R7 without another broad test-cleanup project.
 
 R6 retains the paired engine with accepted visual-layout discrimination and heavier-crop limits.
 Cloud-primary runs, constrained-client measurements and optimization remain deferred outside R6.
@@ -131,12 +131,12 @@ schedules no additional broad split.
 ## R7 implementation sequence
 
 The [R7 plan](plans/r7-semantic-discovery.md#implementation-slices) owns slice definitions and planned
-interaction. R7-01 is implemented on the R7 branch with focused, native-client and hosted
-[filter evidence](acceptance/r7-semantic-discovery.md). R7-02 has shared durable feature storage;
-independent indexing, current-library coverage and retrieval remain in progress.
-R7-03 through R7-05 follow in order. Completion requires composed
-search/filter behavior in the running desktop, durable bounded indexing, stable gallery/viewer
-results, source safety and the plan's quality/performance evidence. No R7 slice is accepted yet.
+interaction. R7-01 through R7-04 are connected on the R7 branch: composed filters, durable features,
+independent indexing, resource-aware scheduling, text search and related-image results share the
+existing gallery and viewer. [Implementation evidence](acceptance/r7-semantic-discovery.md#connected-scheduling-and-search)
+retains the scoped native-client checks and fixed-corpus retrieval measurements.
+Finish derived-index recovery, large-library retrieval measurements and the remaining R7-05 desktop
+lifecycle checks, then inspect hosted checks for the delivered revision. No R7 slice is accepted yet.
 
 ## R4 implementation sequence
 

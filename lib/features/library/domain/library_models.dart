@@ -4,6 +4,7 @@ import "library_gallery_collection.dart";
 import "library_organization_queue.dart";
 import "library_root_consolidation.dart";
 import "library_scroll_section.dart";
+import "library_semantic_search.dart";
 
 export "library_asset.dart";
 export "library_metadata_filter.dart";
@@ -123,6 +124,7 @@ class LibraryGalleryQuery {
     this.folderRelativePath,
     this.includeDescendants = true,
     this.searchText = "",
+    this.semanticResults,
     this.metadataFilter = const LibraryMetadataFilter(),
     this.sortKey = LibraryGallerySortKey.captureTime,
     this.sortDirection = LibraryGallerySortDirection.descending,
@@ -138,12 +140,14 @@ class LibraryGalleryQuery {
   final String? folderRelativePath;
   final bool includeDescendants;
   final String searchText;
+  final LibrarySemanticResults? semanticResults;
   final LibraryMetadataFilter metadataFilter;
   final LibraryGallerySortKey sortKey;
   final LibraryGallerySortDirection sortDirection;
   final LibraryGalleryDuplicateMode duplicateMode;
 
   bool get isChronological =>
+      semanticResults == null &&
       sortKey != LibraryGallerySortKey.fileName &&
       sortKey != LibraryGallerySortKey.libraryAdmission;
 
@@ -164,6 +168,7 @@ class LibraryGalleryQuery {
     Object? folderRelativePath = _unchanged,
     bool? includeDescendants,
     String? searchText,
+    Object? semanticResults = _unchanged,
     LibraryMetadataFilter? metadataFilter,
     LibraryGallerySortKey? sortKey,
     LibraryGallerySortDirection? sortDirection,
@@ -183,6 +188,9 @@ class LibraryGalleryQuery {
           : folderRelativePath as String?,
       includeDescendants: includeDescendants ?? this.includeDescendants,
       searchText: searchText ?? this.searchText,
+      semanticResults: semanticResults == _unchanged
+          ? this.semanticResults
+          : semanticResults as LibrarySemanticResults?,
       metadataFilter: metadataFilter ?? this.metadataFilter,
       sortKey: sortKey ?? this.sortKey,
       sortDirection: sortDirection ?? this.sortDirection,
@@ -199,6 +207,7 @@ class LibraryGalleryQuery {
     folderRelativePath,
     includeDescendants,
     searchText,
+    semanticResults,
     metadataFilter,
     sortKey,
     sortDirection,
@@ -216,6 +225,7 @@ class LibraryGalleryQuery {
             folderRelativePath == other.folderRelativePath &&
             includeDescendants == other.includeDescendants &&
             searchText == other.searchText &&
+            semanticResults == other.semanticResults &&
             metadataFilter == other.metadataFilter &&
             sortKey == other.sortKey &&
             sortDirection == other.sortDirection &&

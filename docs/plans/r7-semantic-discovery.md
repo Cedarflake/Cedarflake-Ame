@@ -27,11 +27,14 @@ Replace the superseded desktop-filter withdrawal in its ADR when that surface is
   default once available; save the last selected mode. Preserve the existing literal path predicate
   and punctuation handling in filename/path mode.
 - Search the current folder, album or smart-album scope, and offer an explicit `整个图库` scope.
-  Show the effective scope. Clearing the query returns to that scope's ordinary gallery.
+  Mark the effective scope inside the search menu; omit trailing scope text in the search bar.
+  Clearing the query returns to that scope's ordinary gallery.
 - Debounce committed input and support immediate Enter submission. IME composition does not submit.
   A superseding request cancels or retires old work; only the current request can publish or clear
   its loading state. Keep usable results visible during replacement.
 - Semantic results use relevance order and the shared gallery, selection, preview and filmstrip.
+  Exclude low-relevance candidates before publishing the list; the result limit is a cap, never a
+  requirement to fill it. No matching candidates produces an empty search result.
   Hide date-position navigation when order is relevance-based. Returning from the viewer retains
   the searched image and gallery position.
 - Add `查找相关图片` to an existing library-image action menu. A library image is the reference;
@@ -41,13 +44,17 @@ Replace the superseded desktop-filter withdrawal in its ADR when that surface is
   desktop dialog composed from existing Material controls and application theme tokens.
 - Group conditions by date, file properties and image dimensions; keep camera text secondary.
   Use the retained date-field, extension, byte-range, width/height-range and camera contracts.
-  Unset fields add no restriction. Conditions compose with each other and either search mode.
+  Use Material choice chips for common formats and numeric ranges, segmented date/unit choices,
+  and date-picker chips. Expand numeric/text entry only for custom values. Unset fields add no
+  restriction. Conditions compose with each other and either search mode.
 - Edit a draft and publish it once with `应用`. Cancel or dismiss preserves the applied conditions.
   `清除筛选` clears metadata restrictions while preserving the selected folder and duplicate display.
   Show concise applied-condition summaries above results with individual removal actions.
 - Use the existing feedback owners for preparation, partial coverage, failure and retry. A search
   with incomplete indexing remains usable and identifies the affected coverage. Background index
   growth cannot reorder an active result list; expose an intentional update action when needed.
+  Keep the gallery subtitle to result counts and a short partial/limited-result marker when needed;
+  put coverage and ordering details in its tooltip instead of a permanent explanatory sentence.
 
 ## Implementation slices
 
@@ -93,14 +100,14 @@ for a bounded search session and release it after inactivity or shutdown; measur
 separately from warm queries. Interactive work has priority over background indexing at existing
 admission boundaries. Existing GPU preference and runtime-failure behavior remain authoritative.
 
-Retain the supervised serial model scheduler for this stage. The
-[paired-worker evaluation](../acceptance/r7-semantic-discovery.md#parallel-worker-evaluation--2026-11-07)
-found similar per-item encoding speed with additional memory use; parallel execution mainly preserves
-background progress during a search session. Concurrent image/text workers and automatic hardware
-tiers are deferred. Preserve completed features and queued work when foreground search takes priority;
-resume background work after the bounded search session. A superseded search cannot cancel a newer
-request or clear its results. Revisit concurrency if actual desktop search waiting or repeated model
-replacement becomes a measured user-visible bottleneck.
+Use the [resource-aware scheduler](../architecture/0041-resource-aware-analysis-scheduling.md) to
+preserve background progress during interactive search when CPU and memory capacity permit.
+The [paired-worker evaluation](../acceptance/r7-semantic-discovery.md#parallel-worker-evaluation--2026-11-07)
+establishes runtime compatibility and costs; desktop responsiveness remains an integration check.
+Admit at most one image worker and one text worker. Resource-constrained devices use serial execution
+with foreground priority; completed features and queued work survive mode changes. Retain the existing
+GPU preference, introduce no manual device tiers, and use hysteresis to avoid repeated model reloads.
+A superseded search cannot cancel unrelated background work, a newer request or its published results.
 
 Apply catalog restrictions to candidate eligibility during retrieval. Do not narrow only an already
 truncated global top-K. Fix a bounded result manifest to the query identity, catalog/index generation,

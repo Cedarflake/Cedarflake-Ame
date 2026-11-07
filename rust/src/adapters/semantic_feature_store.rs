@@ -14,6 +14,7 @@ use crate::ports::semantic_features::SemanticFeatureRepository;
 
 use super::PreviewCacheNamespace;
 
+mod batch;
 mod storage;
 
 const DEFAULT_BUDGET: u64 = 1024 * 1024 * 1024;
@@ -48,6 +49,15 @@ impl SqliteSemanticFeatureStore {
 }
 
 impl SemanticFeatureRepository for SqliteSemanticFeatureStore {
+    fn load_images(
+        &self,
+        model: ModelCompatibility,
+        content: &[ImageContentIdentity],
+        generation: u64,
+    ) -> Result<Vec<Option<ImageFeature>>, ScanError> {
+        batch::load(self, model, content, generation)
+    }
+
     fn load_image(
         &self,
         model: ModelCompatibility,

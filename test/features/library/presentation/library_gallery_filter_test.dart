@@ -131,18 +131,18 @@ void main() {
         ),
       );
       await _edit(tester);
-      await _enter(tester, "dateStart", "2025-02-29");
-      await _enter(tester, "extension", ".PNG");
+      await _date(tester, "dateStart", "02/29/2024");
+      await tester.tap(find.text("PNG"));
+      await _custom(tester, "minimumBytes");
       await _enter(tester, "minimumBytes", "1.5");
+      await _custom(tester, "minimumWidth");
       await _enter(tester, "minimumWidth", "2000");
       await _enter(tester, "maximumWidth", "1000");
       expect(changes, 0);
       await tester.tap(find.text("应用"));
       await tester.pumpAndSettle();
       expect(find.text("最大值不能小于最小值"), findsOneWidget);
-      expect(find.text("请输入有效日期，如 2026-01-31").hitTestable(), findsOneWidget);
       expect(changes, 0);
-      await _enter(tester, "dateStart", "2024-02-29");
       await _enter(tester, "maximumWidth", "3000");
       await tester.tap(find.text("应用"));
       await tester.pumpAndSettle();
@@ -163,7 +163,7 @@ void main() {
       expect(query.sortKey, LibraryGallerySortKey.fileName);
 
       await _edit(tester);
-      await _enter(tester, "extension", "jpg");
+      await tester.tap(find.text("JPG"));
       await tester.tap(find.text("取消"));
       await tester.pumpAndSettle();
       expect(changes, 1);
@@ -214,7 +214,7 @@ void main() {
       ),
     );
     await _edit(tester);
-    await _enter(tester, "extension", "png");
+    await tester.tap(find.text("PNG"));
     update(() => query = const LibraryGalleryQuery(rootId: "replacement"));
     await tester.pump();
     await tester.tap(find.text("应用"));
@@ -241,4 +241,27 @@ Future<void> _enter(WidgetTester tester, String field, String text) async {
   await tester.ensureVisible(input);
   await tester.enterText(input, text);
   await tester.pump();
+}
+
+Future<void> _custom(WidgetTester tester, String minimum) async {
+  final choice = find.byKey(ValueKey("library-filter-custom-$minimum"));
+  await tester.ensureVisible(choice);
+  await tester.tap(choice);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _date(WidgetTester tester, String field, String value) async {
+  await tester.tap(find.byKey(ValueKey("library-filter-$field")));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byIcon(Icons.edit_outlined));
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.descendant(
+      of: find.byType(DatePickerDialog),
+      matching: find.byType(TextField),
+    ),
+    value,
+  );
+  await tester.tap(find.text("OK"));
+  await tester.pumpAndSettle();
 }

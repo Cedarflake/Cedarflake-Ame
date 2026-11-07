@@ -5,6 +5,13 @@ use crate::domain::semantic_discovery::{
 };
 
 pub trait SemanticFeatureRepository {
+    fn load_images(
+        &self,
+        model: ModelCompatibility,
+        content: &[ImageContentIdentity],
+        generation: u64,
+    ) -> Result<Vec<Option<ImageFeature>>, ScanError>;
+
     fn load_image(
         &self,
         model: ModelCompatibility,

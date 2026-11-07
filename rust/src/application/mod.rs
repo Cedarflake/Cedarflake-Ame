@@ -54,6 +54,11 @@ mod preview_performance_acceptance;
 mod preview_reclamation;
 mod preview_recovery;
 mod scan_library;
+#[cfg(all(windows, feature = "classification-worker"))]
+mod semantic_image;
+#[cfg(all(windows, feature = "classification-worker"))]
+pub(crate) mod semantic_requests;
+mod semantic_retrieval;
 pub(crate) mod sidebar_order;
 pub(crate) mod similar_images;
 mod storage;
@@ -150,3 +155,4 @@ pub(crate) fn media_metadata_is_invalidated(location: &crate::domain::AssetLocat
     location.metadata_engine_id == INVALIDATED_MEDIA_METADATA_ENGINE_ID
         && location.metadata_engine_version == INVALIDATED_MEDIA_METADATA_ENGINE_VERSION
 }
+pub(crate) mod analysis_scheduling;

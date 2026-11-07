@@ -13,15 +13,18 @@ use super::classification_dispatch::{
     ClassificationDispatchSignals, ClassificationDispatchStep, ClassificationDispatcher,
 };
 
-mod admitted_text;
 mod control;
 mod device;
 mod discovery;
 mod executor;
+mod indexing;
+mod interactive;
 mod maintenance;
 mod model_transition;
 mod ownership;
 mod production;
+mod scheduling;
+mod semantic;
 mod setup;
 pub use control::ClassificationRuntimeControl;
 use executor::NativeExecutor;
@@ -82,7 +85,12 @@ impl NativeClassificationRuntime {
             signals.clone(),
             device,
         );
-        let executor = NativeExecutor::new(&paths, setup, factory);
+        let scheduler = production::analysis_scheduler(factory, signals.clone());
+        let executor = NativeExecutor::new(
+            &paths,
+            setup,
+            scheduler.client(super::analysis_scheduling::Priority::Background),
+        );
         let dispatcher = ClassificationDispatcher::open(catalog, executor, session, signals)?;
         Ok(Self {
             dispatcher,
@@ -98,8 +106,7 @@ impl NativeClassificationRuntime {
         self.dispatcher.run()
     }
     pub fn run_until_maintenance(&mut self) -> Result<Option<CategoryMaintenancePlan>, ScanError> {
-        let mut maintenance = discovery::CategoryDiscovery::new(production::vocabulary);
-        self.dispatcher.run_with_maintenance(&mut maintenance)
+        scheduling::run(self)
     }
     pub fn step(&mut self) -> Result<ClassificationDispatchStep, ScanError> {
         self.dispatcher.step()
@@ -108,9 +115,10 @@ impl NativeClassificationRuntime {
 
 impl Drop for NativeClassificationRuntime {
     fn drop(&mut self) {
+        self.control.search.close();
         self.ownership.require_retirement();
         let _ = self.control.signals().close();
-        if self.dispatcher.retire().is_ok() {
+        if self.dispatcher.resources().1.scheduler().retire().is_ok() {
             self.ownership.confirm_retirement();
         }
     }

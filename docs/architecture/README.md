@@ -55,3 +55,4 @@ Recorded decisions:
 - [ADR 0038: Bounded perceptual similarity over admitted content](0038-bounded-perceptual-similarity.md)
 - [ADR 0039: Default-enabled GPU image classification](0039-gpu-classification-execution.md)
 - [ADR 0040: Durable shared image features for discovery](0040-durable-discovery-features.md)
+- [ADR 0041: Resource-aware image and text scheduling](0041-resource-aware-analysis-scheduling.md)

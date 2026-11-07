@@ -22,14 +22,14 @@ pub(super) struct Transport {
 }
 
 impl Transport {
-    pub fn start(executable: &Path) -> Result<Self, RuntimeError> {
+    pub fn start(executable: &Path, memory_limit: usize) -> Result<Self, RuntimeError> {
         if !executable.is_absolute() {
             return Err(RuntimeError::Configuration);
         }
-        Self::launch(Command::new(executable))
+        Self::launch(Command::new(executable), memory_limit)
     }
 
-    fn launch(mut command: Command) -> Result<Self, RuntimeError> {
+    fn launch(mut command: Command, memory_limit: usize) -> Result<Self, RuntimeError> {
         let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -38,7 +38,7 @@ impl Transport {
             .env("TOKENIZERS_PARALLELISM", "false")
             .creation_flags(CREATE_NO_WINDOW | BELOW_NORMAL_PRIORITY_CLASS)
             .spawn()?;
-        let job = match WorkerJob::attach(&child) {
+        let job = match WorkerJob::attach(&child, memory_limit) {
             Ok(job) => job,
             Err(error) => {
                 let _ = child.kill();

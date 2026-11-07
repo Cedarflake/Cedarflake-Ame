@@ -3,17 +3,16 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::domain::ScanError;
 use crate::domain::classification::{ClassificationRevision, Taxonomy, TextFeature};
-use crate::ports::classification_encoder::ClassificationEncoderFactory;
 use crate::ports::classification_features::{
     ClassificationFeatureRepository, TEXT_FEATURE_WINDOW, validate_text_feature_window,
 };
+use crate::ports::image_feature_encoding::ImageFeatureEncoding;
 
 use super::classification_matching::CategoryMatcher;
-use super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
 
-pub fn prepare_classification_matcher<F: ClassificationEncoderFactory, C: ResidencyClock>(
+pub fn prepare_classification_matcher<E: ImageFeatureEncoding>(
     taxonomy: Taxonomy,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<CategoryMatcher, ScanError> {
@@ -22,9 +21,9 @@ pub fn prepare_classification_matcher<F: ClassificationEncoderFactory, C: Reside
     result
 }
 
-fn prepare<F: ClassificationEncoderFactory, C: ResidencyClock>(
+fn prepare<E: ImageFeatureEncoding>(
     taxonomy: Taxonomy,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<CategoryMatcher, ScanError> {
@@ -57,9 +56,9 @@ fn prepare<F: ClassificationEncoderFactory, C: ResidencyClock>(
         .map_err(|error| ScanError::new("classification_feature_mismatch", error.to_string()))
 }
 
-pub(crate) fn load_or_encode_descriptions<F: ClassificationEncoderFactory, C: ResidencyClock>(
+pub(crate) fn load_or_encode_descriptions<E: ImageFeatureEncoding>(
     descriptions: &[&str],
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<BTreeMap<ClassificationRevision, TextFeature>, ScanError> {

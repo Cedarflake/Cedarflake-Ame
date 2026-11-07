@@ -185,8 +185,9 @@ Library and Favorites retain their supported duplicate-display choices.
 
 The descendant and duplicate choices apply directly. `更多筛选` opens a compact desktop Material
 dialog with date, file properties and dimensions; camera information is a secondary expandable
-section. Use standard date pickers, dropdowns, text fields and buttons with the shared theme and
-scrolling. The custom form withdrawn on 2026-11-02 is superseded by this framework composition.
+section. Use Material choice chips for common format/range choices, segmented date/unit controls
+and date-picker chips; custom ranges reveal their numeric fields on demand. Keep the shared theme
+and scrolling. The custom form withdrawn on 2026-11-02 is superseded by this framework composition.
 Draft edits leave the gallery unchanged until `应用`; invalid dates, bounds or text stay editable
 with field errors. `取消` and dismissal preserve the applied conditions. `清除筛选` clears metadata
 conditions while retaining the folder/collection, search and duplicate-display choices.
@@ -197,12 +198,18 @@ Organization continuation uses the current query's conditions, preserving compat
 payloads without erasing organization progress. [ADR 0033](../../architecture/0033-structured-gallery-filters.md)
 owns field meaning and shared query behavior.
 
-Consecutive filter/search changes retain the original visible image and its fractional viewport
+Consecutive metadata-filter and literal-search changes retain the original visible image and its fractional viewport
 position. A missing image, empty result or automatic clamp to an edge does not replace that intent;
 when conditions include the image again, restore it within the available scroll range. Actual
 scrolling, timeline navigation, source/folder selection or a changed ordering establishes a new
 browsing context. Passive catalog refresh preserves the currently displayed result and leaves the
 latent filter intent available for the next explicit filter change.
+Starting a new semantic description or reference establishes a new relevance order and opens its
+first result. Refining filters or explicitly updating the same semantic search preserves position;
+entering and returning from the shared viewer retains the current result.
+Semantic search displays candidates admitted by its relevance rule, ordered by relevance. The result
+limit never pads the list with unrelated candidates. An empty search explains that no matches were
+found and retains the current scope/filter controls for refinement.
 
 The Duplicates workspace owns duplicate-only results and group review. A top-left icon in merged
 gallery mode opens every known current location of that group, including relevant availability

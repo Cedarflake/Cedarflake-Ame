@@ -49,6 +49,7 @@ class LibraryGalleryWall extends StatelessWidget {
     required this.onViewInformation,
     required this.onCopyPath,
     required this.onRevealFile,
+    this.onFindRelated,
     required this.onVisiblePositionChanged,
     this.onVisibleRangeChanged,
     required this.onLoadPrevious,
@@ -74,6 +75,7 @@ class LibraryGalleryWall extends StatelessWidget {
   final ValueChanged<LibraryAsset> onViewInformation;
   final ValueChanged<LibraryAsset> onCopyPath;
   final ValueChanged<LibraryAsset> onRevealFile;
+  final ValueChanged<LibraryAsset>? onFindRelated;
   final ValueChanged<LibraryGalleryVisiblePosition> onVisiblePositionChanged;
   final ValueChanged<LibraryGalleryVisibleRange>? onVisibleRangeChanged;
   final Future<void> Function() onLoadPrevious;
@@ -129,6 +131,7 @@ class LibraryGalleryWall extends StatelessWidget {
         onViewInformation: onViewInformation,
         onCopyPath: onCopyPath,
         onRevealFile: onRevealFile,
+        onFindRelated: onFindRelated,
         onVisiblePositionChanged: onVisiblePositionChanged,
         onVisibleRangeChanged: onVisibleRangeChanged,
         onLoadPrevious: onLoadPrevious,
@@ -419,6 +422,7 @@ class LibraryGalleryWall extends StatelessWidget {
                                   onViewInformation: onViewInformation,
                                   onCopyPath: onCopyPath,
                                   onRevealFile: onRevealFile,
+                                  onFindRelated: onFindRelated,
                                 );
                               },
                             );
@@ -737,6 +741,7 @@ class _ManifestLibraryGalleryWall extends StatefulWidget {
     required this.onViewInformation,
     required this.onCopyPath,
     required this.onRevealFile,
+    this.onFindRelated,
     required this.onVisiblePositionChanged,
     this.onVisibleRangeChanged,
     required this.onLoadPrevious,
@@ -761,6 +766,7 @@ class _ManifestLibraryGalleryWall extends StatefulWidget {
   final ValueChanged<LibraryAsset> onViewInformation;
   final ValueChanged<LibraryAsset> onCopyPath;
   final ValueChanged<LibraryAsset> onRevealFile;
+  final ValueChanged<LibraryAsset>? onFindRelated;
   final ValueChanged<LibraryGalleryVisiblePosition> onVisiblePositionChanged;
   final ValueChanged<LibraryGalleryVisibleRange>? onVisibleRangeChanged;
   final Future<void> Function() onLoadPrevious;
@@ -1485,6 +1491,7 @@ class _ManifestLibraryGalleryWallState
       onViewInformation: widget.onViewInformation,
       onCopyPath: widget.onCopyPath,
       onRevealFile: widget.onRevealFile,
+      onFindRelated: widget.onFindRelated,
     );
   }
 

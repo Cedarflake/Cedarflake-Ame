@@ -6,13 +6,10 @@ use crate::domain::classification::discovery::{
     CategoryNaming, ConceptId, ConceptNamingScope, DiscoveryCohort, VocabularyConcept,
 };
 use crate::domain::classification::{CategoryScore, ClassificationRevision};
-use crate::ports::classification_encoder::ClassificationEncoderFactory;
 use crate::ports::classification_features::{ClassificationFeatureRepository, TEXT_FEATURE_WINDOW};
+use crate::ports::image_feature_encoding::ImageFeatureEncoding;
 
 use super::super::super::classification_features::load_or_encode_descriptions;
-use super::super::super::classification_residency::{
-    ClassificationEncoderResidency, ResidencyClock,
-};
 use super::super::competition::{self, CompetitionRequest};
 use super::super::context_graph::ResolvedContexts;
 use super::super::{
@@ -40,9 +37,9 @@ pub(super) struct ContextEvaluation {
     pub limit_reached: bool,
 }
 
-pub(super) fn evaluate<F: ClassificationEncoderFactory, C: ResidencyClock>(
+pub(super) fn evaluate<E: ImageFeatureEncoding>(
     request: ContextEvaluationRequest<'_>,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<ContextEvaluation, ScanError> {

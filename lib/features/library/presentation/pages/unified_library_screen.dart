@@ -22,6 +22,7 @@ import "../../application/library_organization_publication.dart";
 import "../../application/library_platform_actions.dart";
 import "../../application/library_query_projection.dart";
 import "../../application/library_review.dart";
+import "../../application/library_semantic_search.dart";
 import "../../application/library_sidebar_order.dart";
 import "../../application/library_synchronization.dart";
 import "../../application/library_update_controller.dart";
@@ -50,6 +51,9 @@ import "../coordination/library_organization_mode.dart";
 import "../library_pending_source.dart";
 import "../coordination/library_review_query_transition.dart";
 import "../library_search_availability.dart";
+import "../coordination/library_search.dart";
+import "../library_search_notifications.dart";
+import "../library_search_strings.dart";
 import "../library_strings.dart";
 import "../library_synchronization_notifications.dart";
 import "../coordination/library_synchronization_refresh.dart";
@@ -106,6 +110,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   late final AmeNotificationController _notificationController;
   late final LibrarySynchronizationNotifications _synchronizationNotifications;
   late final TextEditingController _searchController;
+  late final LibrarySearch _search;
   late GallerySelection _selection;
   late String _selectionStableQueryId;
   late GalleryLayoutShape _layoutShape;
@@ -138,7 +143,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   final LibraryGalleryPositionResolver _galleryPositionResolver =
       LibraryGalleryPositionResolver();
   int _galleryLayoutTransitionGeneration = 0;
-  Timer? _searchDebounce;
   late final LibraryGalleryDimensionPublication _dimensionPublication;
   StreamSubscription<LibraryGalleryLayoutDimensionUpdate>?
   _layoutDimensionSubscription;
@@ -239,6 +243,17 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
       updateQuery: _libraryController.updateQuery,
       positionTransition: _queryTransition,
     );
+    _search = LibrarySearch(
+      text: _searchController,
+      readQuery: () => library.query,
+      publish: _publishSearchQuery,
+      supersedePublication: _libraryController.supersedeQueryRequests,
+      allowContent: () => !_review.isActive,
+      onFailure: LibrarySearchNotifications(_notificationController).setFailure,
+      initialMode: viewPreferences.searchMode,
+      onModeChanged: (_) => unawaited(_persistViewPreferences()),
+      service: ref.read(librarySemanticSearchProvider),
+    )..addListener(_handleViewerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _synchronizationNotifications.accept(_synchronizationSnapshot);
@@ -262,7 +277,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     _browseWorkspaces.dispose();
     _review.dispose();
     _viewer.dispose();
-    _searchDebounce?.cancel();
+    _search.removeListener(_handleViewerChanged);
+    _search.dispose();
     _dimensionPublication.dispose();
     _synchronizationRefresh.dispose();
     unawaited(_layoutDimensionSubscription?.cancel());
@@ -296,6 +312,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   }
 
   void _handleNotificationAction(AmeNotificationEntry notification) {
+    if (notification.actionId == LibrarySearchNotifications.retryAction) {
+      unawaited(_search.retry());
+      return;
+    }
     if (handleLibraryModelInstallationNotification(
       context,
       ref,
@@ -513,7 +533,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                                     is! LibraryAllCollection) &&
                             canEditLibrarySearch(state),
                         searchController: _searchController,
-                        onSearchChanged: _onSearchChanged,
+                        discovery: _search,
                         notifications: notifications,
                         onNotificationsOpened:
                             _notificationController.markAllRead,
@@ -708,8 +728,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         : null;
     return LibraryWorkbench(
       onWorkspaceSelected: (workspace) {
-        _searchDebounce?.cancel();
-        unawaited(_browseWorkspaces.select(workspace));
+        unawaited(_selectWorkspace(workspace));
       },
       albumLanding: collection is LibraryAllCollection
           ? const LibraryAlbumsLanding()
@@ -834,6 +853,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             onToggleReview:
                 _destination != LibraryWorkspace.gallery ||
                     !_review.canEnter ||
+                    (_search.active &&
+                        _search.mode == LibrarySearchMode.content) ||
+                    _search.related ||
                     _review.busy ||
                     !LibraryBrowseAdmission(state).canBrowse
                 ? null
@@ -866,7 +888,15 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
               albumName: albumName,
               categoryName: categoryName,
             ),
-            totalItems: collection is LibrarySmartAlbumCollection
+            semanticSummary: state.query.semanticResults == null
+                ? null
+                : LibrarySearchStrings.coverage(state.query.semanticResults!),
+            semanticNotice: state.query.semanticResults == null
+                ? null
+                : LibrarySearchStrings.notice(state.query.semanticResults!),
+            totalItems:
+                collection is LibrarySmartAlbumCollection ||
+                    state.query.semanticResults != null
                 ? _totalItems(state)
                 : state.timeline?.totalSourceItems ?? _totalItems(state),
             mergedItems:
@@ -969,6 +999,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         onViewInformation: _showAssetInformation,
         onCopyPath: _copyAssetPath,
         onRevealFile: _revealAsset,
+        onFindRelated: _search.available ? _search.findRelated : null,
         onVisiblePositionChanged: (position) {
           if (_galleryLayoutTransition == null &&
               _queryTransition.pendingPosition == null) {
@@ -1056,7 +1087,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
       position: position,
     );
     if (!mounted || !applied) return false;
-    _searchController.text = query.searchText;
+    _search.adopt(query);
     return true;
   }
 
@@ -1132,15 +1163,30 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     });
   }
 
-  void _onSearchChanged(String value) {
-    _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 250), () {
-      if (!mounted) {
-        return;
-      }
-      final state = ref.read(libraryControllerProvider);
-      _applyQuery(state.query.copyWith(searchText: value));
-    });
+  Future<void> _selectWorkspace(LibraryWorkspace workspace) async {
+    if (workspace != _destination &&
+        (_search.related ||
+            (_search.active && _search.mode == LibrarySearchMode.content))) {
+      await _search.clear();
+      if (!mounted) return;
+    }
+    _search.cancelPending();
+    await _browseWorkspaces.select(workspace);
+  }
+
+  Future<LibraryQueryUpdateOutcome> _publishSearchQuery(
+    LibraryGalleryQuery query, {
+    required bool preservePosition,
+  }) async {
+    if (_review.isActive) {
+      return await _review.changeQuery(query)
+          ? LibraryQueryUpdateOutcome.applied
+          : LibraryQueryUpdateOutcome.failed;
+    }
+    return _publishGalleryQuery(
+      query,
+      preserveGalleryPosition: preservePosition,
+    );
   }
 
   Future<LibraryQueryUpdateOutcome> _applyQuery(
@@ -1153,6 +1199,13 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           ? LibraryQueryUpdateOutcome.applied
           : LibraryQueryUpdateOutcome.failed;
     }
+    if (_search.active) return _search.changeScope(query);
+    final current = ref.read(libraryControllerProvider).query;
+    if (current.collection != query.collection ||
+        current.rootId != query.rootId ||
+        current.folderRelativePath != query.folderRelativePath) {
+      _search.adopt(query);
+    }
     return _publishGalleryQuery(
       query,
       preserveGalleryPosition: preserveGalleryPosition,
@@ -1161,7 +1214,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   }
 
   void _changeGalleryFilter(LibraryGalleryQuery query) {
-    unawaited(_applyQuery(query));
+    unawaited(
+      _search.active && !_review.isActive
+          ? _search.changeFilters(query)
+          : _applyQuery(query),
+    );
     unawaited(_persistViewPreferences(query: query));
   }
 
@@ -1428,6 +1485,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
               sortKey: currentQuery.sortKey,
               sortDirection: currentQuery.sortDirection,
               duplicateMode: currentQuery.duplicateMode,
+              searchMode: _search.selectedMode,
             ),
           );
     } on Object catch (error) {

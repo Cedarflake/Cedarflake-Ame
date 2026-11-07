@@ -129,6 +129,22 @@ impl<C: ClassificationDispatchClock> ClassificationDispatchSignals<C> {
         Ok(())
     }
 
+    pub(crate) fn request_interactive(&self) -> Result<(), ScanError> {
+        let mut state = self.shared.state.lock().map_err(|_| unavailable())?;
+        self.notify(&mut state);
+        Ok(())
+    }
+
+    pub(crate) fn memory_pressure(&self) -> Result<bool, ScanError> {
+        Ok(self
+            .shared
+            .state
+            .lock()
+            .map_err(|_| unavailable())?
+            .foreground
+            .memory_pressure)
+    }
+
     pub fn close(&self) -> Result<(), ScanError> {
         let mut state = self.shared.state.lock().map_err(|_| unavailable())?;
         state.closed = true;
@@ -155,7 +171,7 @@ impl<C: ClassificationDispatchClock> ClassificationDispatchSignals<C> {
         self.shared.changed.notify_all();
     }
 
-    pub(super) fn admission(&self, automatic: bool) -> Result<Admission<C>, ScanError> {
+    pub(crate) fn admission(&self, automatic: bool) -> Result<Admission<C>, ScanError> {
         let mut state = self.shared.state.lock().map_err(|_| unavailable())?;
         if state.closed {
             return Ok(Admission::Closed);
@@ -199,7 +215,7 @@ impl<C: ClassificationDispatchClock> ClassificationDispatchSignals<C> {
         Ok(())
     }
 
-    pub(super) fn notification(&self) -> Result<u64, ScanError> {
+    pub(crate) fn notification(&self) -> Result<u64, ScanError> {
         Ok(self
             .shared
             .state
@@ -208,7 +224,7 @@ impl<C: ClassificationDispatchClock> ClassificationDispatchSignals<C> {
             .notification)
     }
 
-    pub(super) fn wait(&self, observed: u64, delay: Option<Duration>) -> Result<(), ScanError> {
+    pub(crate) fn wait(&self, observed: u64, delay: Option<Duration>) -> Result<(), ScanError> {
         let state = self.shared.state.lock().map_err(|_| unavailable())?;
         if state.notification != observed || state.closed {
             return Ok(());
@@ -234,7 +250,7 @@ impl<C: ClassificationDispatchClock> ClassificationDispatchSignals<C> {
     }
 }
 
-pub(super) enum Admission<C: ClassificationDispatchClock> {
+pub(crate) enum Admission<C: ClassificationDispatchClock> {
     Closed,
     Wait {
         delay: Option<Duration>,
@@ -243,7 +259,7 @@ pub(super) enum Admission<C: ClassificationDispatchClock> {
     Ready(ActiveWork<C>),
 }
 
-pub(super) struct ActiveWork<C: ClassificationDispatchClock> {
+pub(crate) struct ActiveWork<C: ClassificationDispatchClock> {
     pub cancelled: Arc<AtomicBool>,
     pub catalog_revision: u64,
     signals: ClassificationDispatchSignals<C>,

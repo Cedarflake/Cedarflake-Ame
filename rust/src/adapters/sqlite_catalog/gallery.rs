@@ -18,12 +18,14 @@ mod scroll_sections;
 mod search;
 pub(super) mod selection;
 pub(super) mod selection_staging;
+mod semantic;
 mod time_anchor;
 mod timeline;
 
 pub(super) use timeline::load_gallery_timeline;
 
-use filters::{gallery_source, push_gallery_filters, push_source_filters};
+use filters::push_source_filters;
+pub(super) use filters::{gallery_source, push_gallery_filters};
 
 pub(super) use location_anchor::{
     GalleryAssetAnchor, resolve_gallery_asset_anchor, resolve_gallery_location_anchor,
@@ -32,7 +34,7 @@ pub(super) use location_anchor::{
 pub(super) use time_anchor::resolve_gallery_anchor_cursor;
 
 use rusqlite::types::Value;
-use rusqlite::{OptionalExtension, Transaction, params};
+use rusqlite::{OptionalExtension, Transaction};
 
 use ordering::{GalleryOrderExpressions, gallery_order_expressions};
 
@@ -52,6 +54,9 @@ pub(super) struct BuiltGalleryQuery {
 
 pub(super) fn validate_gallery_query(query: &GalleryQuery) -> Result<(), ScanError> {
     classification::validate(query)?;
+    if let Some(manifest) = &query.semantic_results {
+        manifest.validate()?;
+    }
     query.metadata_filter.validate()?;
     if let Some(boundary) = query.new_since_admission {
         super::sqlite_integer(boundary, "new-arrival boundary")?;
@@ -239,19 +244,23 @@ pub(super) fn gallery_cursor_for_asset(
     asset: &AssetLocationView,
 ) -> Result<CatalogCursor, ScanError> {
     let order = gallery_order_expressions(query);
+    let mut parameters = Vec::new();
+    let source = gallery_source(query, &mut parameters);
+    parameters.extend([
+        Value::Text(asset.root_id.clone()),
+        Value::Text(asset.location_id.clone()),
+    ]);
     let sql = format!(
         "SELECT {missing}, {text}, {number}
-         FROM library_roots AS roots
-         JOIN asset_locations AS locations
-           ON locations.scan_id = roots.active_scan_id
-         WHERE locations.root_id = ?1 AND locations.location_id = ?2
+         {source}
+         WHERE locations.root_id = ? AND locations.location_id = ?
          LIMIT 1",
         missing = order.missing,
         text = order.text,
         number = order.number,
     );
     let (primary_missing, primary_text, primary_number) = transaction
-        .query_row(&sql, params![asset.root_id, asset.location_id], |row| {
+        .query_row(&sql, rusqlite::params_from_iter(parameters), |row| {
             Ok((
                 row.get::<_, i64>(0)? != 0,
                 row.get::<_, String>(1)?,
@@ -312,6 +321,9 @@ fn push_time_anchor_filter(
     clauses: &mut Vec<String>,
     parameters: &mut Vec<Value>,
 ) -> Result<(), ScanError> {
+    if query.semantic_results.is_some() && anchor.month_key.is_none() {
+        return Ok(());
+    }
     let Some(month_expression) = order.month else {
         return Err(ScanError::new(
             "catalog_time_anchor_unavailable",

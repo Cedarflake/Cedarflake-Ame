@@ -10,7 +10,9 @@ import '../domain/gallery_query_snapshot.dart';
 import '../domain/gallery_scroll_section.dart';
 import '../domain/gallery_time_snapshot.dart';
 import '../domain/media_metadata.dart';
+import '../domain/organization.dart';
 import '../domain/organization_queue.dart';
+import '../domain/semantic_results.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 

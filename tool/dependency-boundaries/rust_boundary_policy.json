@@ -99,15 +99,17 @@
       ]
     },
     "classification-execution-composition": {
-      "responsibility": "Own the native dispatcher, lazily acquired feature cache and encoder residency resources",
+      "responsibility": "Compose foreground/background analysis with shared encoder scheduling and bounded feature repositories",
       "reason": "These exact host types and acquisition methods connect the existing repository, encoder and execution ports without owning SQL or native inference protocols.",
-      "lifetime": "One process runtime retains its catalog and executor; feature/matcher acquisition is lazy, borrowed resources stay inside that host, and failed retirement prevents replacement.",
+      "lifetime": "One runtime retains both execution threads, their catalog/cache connections and shared image/text workers; shutdown joins both threads and encoders before replacement.",
       "replacement": "Replace the host concrete resource types and native factory together while retaining dispatcher, feature, encoder, source and retirement contracts.",
       "decision": "docs/architecture/workflow-ownership/native-composition.md#classification-execution-resources",
       "coverage": [
         "rust/src/application/classification_runtime/ownership.rs",
         "rust/src/application/classification_runtime/tests.rs",
         "rust/src/application/classification_residency/tests.rs",
+        "rust/src/application/analysis_scheduling/tests.rs",
+        "rust/src/domain/analysis_capacity/tests.rs",
         "rust/src/application/image_feature_reuse.rs",
         "rust/src/adapters/semantic_feature_store/tests.rs"
       ]
@@ -687,11 +689,11 @@
       }
     },
     {
-      "id": "classification-executor-construction",
+      "id": "classification-shared-encoder-owner",
       "owner": "classification-execution-composition",
       "dependency": {
         "source": "rust/src/application/classification_runtime/executor.rs",
-        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::new",
+        "symbol": "crate::application::classification_runtime::executor::NativeExecutor::scheduler",
         "target": "crate::adapters::classification_runtime::factory::LocalClassificationEncoderFactory",
         "rule": "concrete-adapter"
       }
@@ -713,6 +715,56 @@
         "source": "rust/src/application/classification_runtime/production.rs",
         "symbol": "crate::application::classification_runtime::production::encoder_factory",
         "target": "crate::adapters::classification_runtime::factory::LocalClassificationEncoderFactory",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "analysis-scheduler-factory",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/production.rs",
+        "symbol": "crate::application::classification_runtime::production::analysis_scheduler",
+        "target": "crate::adapters::classification_runtime::factory::LocalClassificationEncoderFactory",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "analysis-scheduler-backend",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/production.rs",
+        "symbol": "crate::application::classification_runtime::production::analysis_scheduler",
+        "target": "crate::adapters::classification_runtime::backend::EncoderBackend",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "analysis-capacity-provider",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/production.rs",
+        "symbol": "crate::application::classification_runtime::production::NativeCapacity::capacity",
+        "target": "crate::adapters::analysis_capacity::current_capacity",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "semantic-source-image",
+      "owner": "classification-source-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/production.rs",
+        "symbol": "crate::application::classification_runtime::production::semantic_readers",
+        "target": "crate::adapters::classification_image_input::GuardedClassificationImageReader",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "semantic-source-fingerprint",
+      "owner": "classification-source-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/production.rs",
+        "symbol": "crate::application::classification_runtime::production::semantic_readers",
+        "target": "crate::adapters::exact_content_reader::GuardedExactContentReader",
         "rule": "concrete-adapter"
       }
     },

@@ -25,6 +25,8 @@ mod connection;
 mod maintenance;
 pub(crate) use connection::ClassificationDesktopSession;
 pub(crate) use connection::current_device;
+pub(crate) use connection::search;
+pub(crate) use connection::{retry_semantic_index, semantic_status};
 pub(crate) use maintenance::ClassificationDesktopMaintenance;
 
 pub(crate) fn save_installation(models: String, runtime: String) -> Result<(), ScanError> {

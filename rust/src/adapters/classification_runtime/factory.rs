@@ -16,7 +16,7 @@ use super::{
     EncoderBackend, EncoderKind, RuntimeError, WorkerConfiguration, WorkerSession, manifest,
 };
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct LocalClassificationEncoderFactory {
     pub executable: PathBuf,
     pub model_directory: PathBuf,

@@ -16,6 +16,10 @@ impl<C, S> SharedImageFeatures<C, S> {
     pub(crate) fn new(cache: C, semantic: S) -> Self {
         Self { cache, semantic }
     }
+
+    pub(crate) fn semantic(&self) -> &S {
+        &self.semantic
+    }
 }
 
 impl<C: ClassificationFeatureRepository, S: SemanticFeatureRepository>

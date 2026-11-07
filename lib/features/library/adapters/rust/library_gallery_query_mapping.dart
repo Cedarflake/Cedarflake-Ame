@@ -3,6 +3,7 @@ import "../../../../src/rust/domain/organization_queue.dart" as queue;
 import "../../domain/library_models.dart";
 import "library_gallery_collection_mapping.dart";
 import "library_metadata_filter_mapping.dart";
+import "library_semantic_mapping.dart";
 
 LibraryGalleryQuery mapRustGalleryQuery(rust.GalleryQuery value) =>
     LibraryGalleryQuery(
@@ -18,6 +19,9 @@ LibraryGalleryQuery mapRustGalleryQuery(rust.GalleryQuery value) =>
       folderRelativePath: value.folderRelativePath,
       includeDescendants: value.includeDescendants,
       searchText: value.searchText,
+      semanticResults: value.semanticResults == null
+          ? null
+          : mapSemanticResults(value.semanticResults!),
       metadataFilter: mapRustMetadataFilter(value.metadataFilter),
       sortKey: switch (value.sortKey) {
         rust.GallerySortKey.captureTime => LibraryGallerySortKey.captureTime,
@@ -49,6 +53,9 @@ rust.GalleryQuery mapLibraryGalleryQueryToRust(LibraryGalleryQuery query) {
     folderRelativePath: query.folderRelativePath,
     includeDescendants: query.includeDescendants,
     searchText: query.searchText,
+    semanticResults: query.semanticResults == null
+        ? null
+        : mapSemanticResultsToRust(query.semanticResults!),
     metadataFilter: mapLibraryMetadataFilter(query.metadataFilter),
     sortKey: switch (query.sortKey) {
       LibraryGallerySortKey.captureTime => rust.GallerySortKey.captureTime,

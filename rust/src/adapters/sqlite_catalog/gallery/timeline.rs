@@ -20,25 +20,30 @@ pub(crate) fn load_gallery_timeline(
     query_id: &str,
     revision: u64,
 ) -> Result<GalleryTimeline, ScanError> {
-    let (scroll_sections, section_source_items) = match query.sort_key {
-        GallerySortKey::FileName => {
-            let names = super::scroll_sections::load_name_sections(transaction, query)?;
-            (names.sections, names.total_source_items)
+    let (scroll_sections, section_source_items) = if query.semantic_results.is_some() {
+        (Vec::new(), None)
+    } else {
+        match query.sort_key {
+            GallerySortKey::FileName => {
+                let names = super::scroll_sections::load_name_sections(transaction, query)?;
+                (names.sections, names.total_source_items)
+            }
+            GallerySortKey::LibraryAdmission => (
+                super::scroll_sections::load_arrival_sections(transaction, query)?,
+                None,
+            ),
+            _ => (Vec::new(), None),
         }
-        GallerySortKey::LibraryAdmission => (
-            super::scroll_sections::load_arrival_sections(transaction, query)?,
-            None,
-        ),
-        _ => (Vec::new(), None),
     };
     let TimelineBuckets {
         buckets,
         total_items,
         total_source_items,
-    } = if matches!(
-        query.sort_key,
-        GallerySortKey::FileName | GallerySortKey::LibraryAdmission
-    ) {
+    } = if query.semantic_results.is_none()
+        && matches!(
+            query.sort_key,
+            GallerySortKey::FileName | GallerySortKey::LibraryAdmission
+        ) {
         TimelineBuckets {
             buckets: Vec::new(),
             total_items: scroll_sections

@@ -1,7 +1,8 @@
 # R7 implementation evidence
 
 Date: 2026-11-07
-Scope: composed filters, CI reduction and shared-feature foundations on `codex/r7-semantic-discovery`.
+Scope: filters, shared features, semantic retrieval and resource-aware scheduling on
+`codex/r7-semantic-discovery`.
 The [roadmap](../roadmap.md#r7-implementation-sequence) owns disposition and the
 [plan](../plans/r7-semantic-discovery.md) owns remaining slices.
 
@@ -24,9 +25,9 @@ Flutter 3.47.8 / Dart 3.13.7 implementation; the hosted Windows workflows pin th
 
 | Purpose | Framework capability and choice |
 | --- | --- |
-| Draft editing | `AlertDialog`, `Form` and `TextFormField`; framework dismissal, focus traversal and field validation. `validateGranularly` identifies the field to reveal through framework scrolling. |
-| Date field and size unit | `DropdownMenu` supports typed entries and `selectOnly` in the installed SDK. Existing menu and semantics boundaries remain shared. |
-| Calendar | `showDatePicker` supplies a compact desktop dialog. A fullscreen date-range picker would not fit this interaction. Two independent bounds also support an open-ended interval. |
+| Draft editing | `AlertDialog` and `ChoiceChip` expose common format/range options. `Form` and `TextFormField` appear for custom values; `validateGranularly` identifies an invalid field to reveal through framework scrolling. |
+| Date field and size unit | `SegmentedButton` supplies mutually exclusive typed choices in the installed SDK. |
+| Calendar | `InputChip` opens `showDatePicker`, a compact desktop dialog. Two independent bounds support an open-ended interval and individual clearing. |
 | Secondary camera field | `ExpansionTile` with its framework controller; invalid hidden input expands before scrolling into view. |
 | Applied conditions | `InputChip` supplies deletion and accessibility. `TextButton` clears conditions. No custom input, menu, picker, scrolling or chip primitive was introduced. |
 
@@ -57,9 +58,9 @@ was removed by its lease owner. No client overflow or exception was observed in 
 
 ## Reviewability and remaining evidence
 
-Production / inline-test lines: screen assembly 1919 / 0, filter draft 188 / 0, dialog 292 / 0,
-summary 95 / 0. The screen adds composition only; editing and validation remain separate owners.
-Dedicated affected test files contain 244, 61 and 256 lines respectively.
+Original filter-slice production / inline-test lines: screen assembly 1919 / 0, filter draft 188 / 0,
+dialog 292 / 0, summary 95 / 0. Dedicated affected tests contained 244, 61 and 256 lines respectively.
+Current connected-slice counts appear below; editing and validation remain separate owners.
 
 Branch pushes alone do not trigger the CI workflow; its PR, main-push or manual-dispatch execution
 remains the hosted verification owner.
@@ -120,8 +121,8 @@ symbol-scoped composition registrations; no legacy exception was added.
 
 Production / inline-test lines: store facade 193 / 0, storage admission 107 / 0, shared repository
 92 / 42, common features 171 / 0, native executor 212 / 0. Dedicated store tests contain 154 lines.
-Independent semantic backlog, retrieval, current-library coverage and desktop search are not yet
-connected; these checks establish the persistence foundation only.
+These checks establish the persistence foundation. The connected search and scheduling checks below
+retain their separate scope.
 
 ## Retrieval evaluation
 
@@ -178,8 +179,86 @@ background interruption and image-worker replacement, while first text use retai
 Terminating the owned text worker during a separate 64-image GPU pass left all image outputs valid;
 this establishes process isolation, not application cancellation/restart acceptance.
 
-Per-item encoding gains do not justify hardware-tier and load-adaptation machinery in this stage.
-Retain serial admission and bounded text reuse; revisit parallel workers against an observed desktop
-responsiveness problem. All owned processes retired, leased scratch directories were removed and
+The measured benefit of parallel workers is background continuity and avoided image-worker reloads,
+rather than faster individual inference. [ADR 0041](../architecture/0041-resource-aware-analysis-scheduling.md)
+admits bounded concurrency when device resources permit and serial execution otherwise. These process
+measurements do not yet verify that scheduler's foreground latency or mode transitions in Ame.
+All owned processes retired, leased scratch directories were removed and
 all 368 retained preview hashes remained unchanged. Raw timings and exploratory harnesses remain
 under ignored `build/r7-semantic-eval`; no new permanent CI workload was added.
+
+## Connected scheduling and search
+
+The application now owns independent foreground search and background indexing behind the same
+two-encoder scheduler. Cancellation remains request-specific. Low capacity uses serial admission;
+memory pressure closes parallel admission, with delayed recovery. Cached text queries do not extend
+the serial model-retention interval. Source-image preparation retains its file lease through final
+reference revalidation. Retrieval reads a fixed catalog snapshot and feature generation in bounded
+windows, so background publication cannot invalidate or reorder an active result manifest.
+
+Eleven focused Rust cases passed across scheduler concurrency/retirement, capacity hysteresis and
+dispatch cancellation. A real SQLite two-connection case additionally passed: a background catalog
+publication commits while the reader finishes its original 257-item snapshot; a fresh reader sees
+the replacement. All-feature library Clippy and the fixed dependency inventory passed. Dart analysis,
+two search-coordinator cases, three retained search-focus cases and six search-availability cases
+passed. The coordinator cases cover stale replies/errors, IME composition, Enter submission and
+scope/mode continuity; they do not establish native desktop acceptance.
+
+The native text worker also completed 48 bilingual descriptions and the maximum 512-character input
+under the new 1-GiB Windows Job limit while a GPU worker processed 32 retained previews. Text private
+commit peaked at 702.2 MiB, with a 33.5-ms median warm query. Both encoders matched their retained
+reference vectors exactly. Both processes retired and all 368 retained preview hashes were unchanged.
+This run validates the worker limit; connected desktop scheduling is verified separately.
+
+An isolated optimized native desktop run indexed all 368 retained previews while servicing searches.
+Repeated cached queries took 10–41 ms as coverage advanced; the first query, including model startup,
+took 4.54 seconds. The connected 48-query bilingual run retained the earlier fixed-target results:
+Chinese top-one/top-five 15/20 of 24, English 19/23 of 24. Median query latency was 72.40 ms and p95
+105.18 ms; one cold text-worker restart took 2.41 seconds. A root-restricted query counted 128 eligible
+images, and reference-image retrieval excluded its source and returned the other 367 images.
+These measurements describe the retained preview corpus, not whole-library latency. This initial
+run ranked all eligible candidates; the subsequent relevance admission below changes returned counts.
+
+The process sampler observed at most two model workers, peaking at 1,603 MiB combined private commit.
+Idle workers retired, normal window close exited successfully, all owned workers joined, disposable
+storage was removed and all 368 source hashes remained unchanged. Native search input and relevance
+results were exercised in the window. This pass exposed inherited gallery positioning and rejected
+position seeks on relevance results; the affected regression now verifies ordered pages and seeks
+for capture/name/modification settings against a fixed shuffled SQLite fixture.
+
+The rebuilt desktop verified the revised Material format/range chips and date picker. Applying PNG
+returned zero results in the all-JPEG corpus; removing that condition restored 368. The header showed
+only the count and the search bar omitted trailing scope text. A new `fox` query started at position
+0%; dragging to 56% loaded the selected result window and dragging back restored the first result.
+Opening that image, moving to the next and returning retained relevance order and the gallery
+position. `查找相关图片` switched to 367 results at position 0%, excluding its reference. Normal close
+returned exit code zero, all owned workers retired, scratch storage was removed and all 368 preview
+hashes remained unchanged. This pass does not cover restart recovery or large-library latency.
+
+### Relevance admission
+
+The initial connected search ranked every indexed candidate, so small libraries returned the entire
+library. The relevance rule in [ADR 0040](../architecture/0040-durable-discovery-features.md#relevance-admission)
+removes the weak tail and permits an empty result. Reusing the frozen F32 vectors, it retains the
+fixed target for 21/24 Chinese and 24/24 English descriptions. Their existing top-five target counts
+remain 20/24 and 23/24. Median returned counts are 5.5 and 1; these fixed-target measurements do not
+label every returned image as relevant.
+
+Six short-term probes and ten additional descriptions used the same admitted native text worker.
+`fox` selects two of 368 images; the Chinese equivalent selects ten. Eight of the ten additional
+descriptions produce no matches, including both language versions of a red helicopter in snow,
+microscope bacteria and a coral reef with a diver. Chinese rocket-launch and circuit-board queries
+still return candidates. The heuristic reduces irrelevant tails but retains the model's semantic
+errors; no probability or universal accuracy claim follows from these cosine cutoffs.
+
+The rebuilt native client returned only `B142.jpg` and `B143.jpg` for `fox`. The complete description
+`a red helicopter parked in snow` returned zero with `没有找到匹配的图片`; clearing restored all 368
+images. Normal close succeeded and all retained preview hashes were unchanged. Two focused policy
+regressions, changed-file Dart analysis and all-feature library Clippy passed.
+
+Production / inline-test lines: scheduler 184 / 0, admission 245 / 0, search execution 119 / 0,
+index pass 174 / 0, retrieval 154 / 0, image preparation 126 / 0, presentation coordinator 338 / 0,
+screen assembly 1977 / 0, filter dialog 316 / 0 and range choices 125 / 0. Dedicated scheduler tests
+contain 214 lines, coordinator tests 164 lines, relevance tests 46 lines and filter interaction tests
+267 lines. New search
+widgets reuse the existing Material search bar, menus, notification controller, gallery and viewer.

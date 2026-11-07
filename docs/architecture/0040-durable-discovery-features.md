@@ -53,6 +53,20 @@ the retrieval port. The evaluation does not add USearch to the application depen
 its approximate result count the coverage authority. The [R7 evidence](../acceptance/r7-semantic-discovery.md)
 owns measurements and production admission evidence.
 
+## Relevance admission
+
+Search publishes matching candidates rather than every indexed item sorted by distance. For the
+admitted SigLIP 2 package, description results require cosine at least 0.09 and no more than 0.025
+below the best eligible candidate. Reference-image results require at least 0.65 and no more than
+0.08 below the best non-reference candidate. Apply this rule after scoped retrieval and before
+publishing the bounded manifest; never pad an empty or short result. Manifest identity versions the
+policy. Indexed coverage continues to count analyzed candidates, including rejected matches.
+
+These are initial relevance heuristics checked against the retained bilingual corpus, not confidence
+percentages or a guarantee of semantic correctness. Text and image similarities have different
+distributions. Model/pipeline replacement requires recalibration; do not silently reuse these values.
+The evidence owner records known misses and unrelated-query results alongside retained target ranks.
+
 ## Consequences, validation and replacement
 
 Discovery uses additional disk space to retain features that an LRU cache could discard. Its budget

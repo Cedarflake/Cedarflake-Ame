@@ -707,7 +707,7 @@ application-managed category discovery or determine the product's permanent outp
 
 The candidate is the pinned SigLIP 2 Base/16-224 FP16-image/INT8-text export documented in the
 [runtime evidence](../acceptance/r5-runtime-admission.md). Preserve both encoders. The initial CPU
-configuration is one supervised process, one inference thread, sequential execution, disabled
+configuration is one supervised process per encoder, one inference thread, sequential execution, disabled
 spinning and one image or description per batch. Encode descriptions individually; appending an
 unrelated description must not change another description's quantization context.
 
@@ -842,8 +842,9 @@ not load an inference runtime. The worker accepts one encoder for its
 entire lifetime; replacing image with text inference requires retiring that process first. Ame's
 supervisor starts it below normal priority, attaches a Windows Job before sending initialization,
 and bounds the job to one process and 2 GiB of committed process memory. Closing the job kills its
-worker. Source admission, publication and the application's single-worker scheduling remain outside
-this adapter.
+worker. [ADR 0041](0041-resource-aware-analysis-scheduling.md) owns application-wide image/text
+concurrency and the lower text-worker memory limit. Source admission, publication and resource-aware
+scheduling remain outside this adapter.
 
 Anonymous standard-input/output pipes carry versioned, length-prefixed JSON control records and
 fixed-size little-endian F32 tensors. Control records are bounded to 32 KiB, image input to one
@@ -896,7 +897,7 @@ exercise invalid artifacts, held namespaces, malformed frames, process exit and 
 model process check verifies the same pinned tensors and tokenizer used for admission. These native
 operations do not add privilege or execute in the catalog/domain layers.
 
-The application owns single-worker admission, source admission, immutable runs, cancellation fences
+The application owns bounded encoder admission, source admission, immutable runs, cancellation fences
 and publication. The worker never opens the catalog or changes a human decision. Native runtime
 errors become structured per-work outcomes. The supervisor joins process and pipe-thread retirement
 before reporting cancellation. Complete retirement precedes replacement; a timeout cannot authorize

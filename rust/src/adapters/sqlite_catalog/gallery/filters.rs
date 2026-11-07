@@ -7,7 +7,13 @@ use super::{
     duplicates, normalize_relative_folder, organization, organization_groups, organization_queue,
 };
 
-pub(super) fn gallery_source(query: &GalleryQuery, parameters: &mut Vec<Value>) -> String {
+pub(in crate::adapters::sqlite_catalog) fn gallery_source(
+    query: &GalleryQuery,
+    parameters: &mut Vec<Value>,
+) -> String {
+    if let Some(manifest) = &query.semantic_results {
+        return super::semantic::source(manifest, parameters).to_owned();
+    }
     if query.organization_queue.is_some() || query.collection != GalleryCollection::Library {
         let roots = if let Some(condition) = organization::presence_condition(query, parameters) {
             // An empty decision scope needs no location or group work.
@@ -32,7 +38,7 @@ pub(super) fn gallery_source(query: &GalleryQuery, parameters: &mut Vec<Value>) 
     }
 }
 
-pub(super) fn push_gallery_filters(
+pub(in crate::adapters::sqlite_catalog) fn push_gallery_filters(
     query: &GalleryQuery,
     clauses: &mut Vec<String>,
     parameters: &mut Vec<Value>,

@@ -22,6 +22,7 @@ import 'api/organization_cleanup.dart';
 import 'api/organization_conflicts.dart';
 import 'api/organization_review.dart';
 import 'api/preview.dart';
+import 'api/semantic_search.dart';
 import 'api/sidebar_order.dart';
 import 'api/similar_image_review.dart';
 import 'api/similar_images.dart';
@@ -56,6 +57,7 @@ import 'domain/organization_conflicts.dart';
 import 'domain/organization_queue.dart';
 import 'domain/organization_review.dart';
 import 'domain/persistent_journal.dart';
+import 'domain/semantic_results.dart';
 import 'domain/sidebar_order.dart';
 import 'domain/similar_images.dart';
 import 'domain/similar_images/analysis.dart';
@@ -94,6 +96,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_PreparedClassificationMaintenancePtr => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_SemanticSearchRequestPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_SimilarImageAnalysisPtr => wire
@@ -139,6 +145,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   PreparedClassificationMaintenance
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    dynamic raw,
+  );
+
+  @protected
+  SemanticSearchRequest
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
     dynamic raw,
   );
 
@@ -191,6 +203,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  SemanticSearchRequest
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
+    dynamic raw,
+  );
+
+  @protected
   SimilarImageAnalysis
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
     dynamic raw,
@@ -235,6 +253,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   PreparedClassificationMaintenance
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    dynamic raw,
+  );
+
+  @protected
+  SemanticSearchRequest
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
     dynamic raw,
   );
 
@@ -453,6 +477,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ScanRequest dco_decode_box_autoadd_scan_request(dynamic raw);
+
+  @protected
+  SemanticIndexStatus dco_decode_box_autoadd_semantic_index_status(dynamic raw);
+
+  @protected
+  SemanticResultManifest dco_decode_box_autoadd_semantic_result_manifest(
+    dynamic raw,
+  );
+
+  @protected
+  SemanticSearchInput dco_decode_box_autoadd_semantic_search_input(dynamic raw);
 
   @protected
   SimilarContentKey dco_decode_box_autoadd_similar_content_key(dynamic raw);
@@ -1026,6 +1061,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RecoverableScan? dco_decode_opt_box_autoadd_recoverable_scan(dynamic raw);
 
   @protected
+  SemanticIndexStatus? dco_decode_opt_box_autoadd_semantic_index_status(
+    dynamic raw,
+  );
+
+  @protected
+  SemanticResultManifest? dco_decode_opt_box_autoadd_semantic_result_manifest(
+    dynamic raw,
+  );
+
+  @protected
   SimilarContentKey? dco_decode_opt_box_autoadd_similar_content_key(
     dynamic raw,
   );
@@ -1236,6 +1281,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ScanRequest dco_decode_scan_request(dynamic raw);
 
   @protected
+  SemanticIndexStatus dco_decode_semantic_index_status(dynamic raw);
+
+  @protected
+  SemanticResultManifest dco_decode_semantic_result_manifest(dynamic raw);
+
+  @protected
+  SemanticSearchInput dco_decode_semantic_search_input(dynamic raw);
+
+  @protected
   SidebarOrderKind dco_decode_sidebar_order_kind(dynamic raw);
 
   @protected
@@ -1356,6 +1410,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  SemanticSearchRequest
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   SimilarImageAnalysis
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
     SseDeserializer deserializer,
@@ -1404,6 +1464,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  SemanticSearchRequest
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   SimilarImageAnalysis
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
     SseDeserializer deserializer,
@@ -1448,6 +1514,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   PreparedClassificationMaintenance
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SemanticSearchRequest
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
     SseDeserializer deserializer,
   );
 
@@ -1734,6 +1806,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ScanRequest sse_decode_box_autoadd_scan_request(SseDeserializer deserializer);
+
+  @protected
+  SemanticIndexStatus sse_decode_box_autoadd_semantic_index_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SemanticResultManifest sse_decode_box_autoadd_semantic_result_manifest(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SemanticSearchInput sse_decode_box_autoadd_semantic_search_input(
+    SseDeserializer deserializer,
+  );
 
   @protected
   SimilarContentKey sse_decode_box_autoadd_similar_content_key(
@@ -2441,6 +2528,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  SemanticIndexStatus? sse_decode_opt_box_autoadd_semantic_index_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SemanticResultManifest? sse_decode_opt_box_autoadd_semantic_result_manifest(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   SimilarContentKey? sse_decode_opt_box_autoadd_similar_content_key(
     SseDeserializer deserializer,
   );
@@ -2701,6 +2798,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ScanRequest sse_decode_scan_request(SseDeserializer deserializer);
 
   @protected
+  SemanticIndexStatus sse_decode_semantic_index_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SemanticResultManifest sse_decode_semantic_result_manifest(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SemanticSearchInput sse_decode_semantic_search_input(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   SidebarOrderKind sse_decode_sidebar_order_kind(SseDeserializer deserializer);
 
   @protected
@@ -2867,6 +2979,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
+    SemanticSearchRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
     SimilarImageAnalysis self,
     SseSerializer serializer,
@@ -2923,6 +3042,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
+    SemanticSearchRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
     SimilarImageAnalysis self,
     SseSerializer serializer,
@@ -2974,6 +3100,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
     PreparedClassificationMaintenance self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
+    SemanticSearchRequest self,
     SseSerializer serializer,
   );
 
@@ -3300,6 +3433,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_scan_request(
     ScanRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_semantic_index_status(
+    SemanticIndexStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_semantic_result_manifest(
+    SemanticResultManifest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_semantic_search_input(
+    SemanticSearchInput self,
     SseSerializer serializer,
   );
 
@@ -4165,6 +4316,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_semantic_index_status(
+    SemanticIndexStatus? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_semantic_result_manifest(
+    SemanticResultManifest? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_similar_content_key(
     SimilarContentKey? self,
     SseSerializer serializer,
@@ -4486,6 +4649,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_scan_request(ScanRequest self, SseSerializer serializer);
 
   @protected
+  void sse_encode_semantic_index_status(
+    SemanticIndexStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_semantic_result_manifest(
+    SemanticResultManifest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_semantic_search_input(
+    SemanticSearchInput self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_sidebar_order_kind(
     SidebarOrderKind self,
     SseSerializer serializer,
@@ -4729,6 +4910,22 @@ class RustLibWire implements BaseWire {
       );
 
   void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
+        ptr,
+      );
+
+  void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSimilarImageAnalysis(
     int ptr,
   ) => wasmModule
@@ -4824,6 +5021,16 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
 
   external void
   rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSemanticSearchRequest(
     int ptr,
   );
 

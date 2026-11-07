@@ -16,6 +16,15 @@ pub(in super::super) fn resolve_gallery_anchor_cursor(
     query_id: &str,
     anchor: &GalleryTimeAnchor,
 ) -> Result<CatalogCursor, ScanError> {
+    if query.semantic_results.is_some() && anchor.month_key.is_none() {
+        return super::semantic::resolve_predecessor(
+            transaction,
+            revision,
+            query,
+            query_id,
+            anchor.item_offset,
+        );
+    }
     let order = gallery_order_expressions(query);
     let Some(month_expression) = order.month else {
         return Err(ScanError::new(

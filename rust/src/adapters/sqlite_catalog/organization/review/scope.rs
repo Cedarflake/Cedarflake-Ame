@@ -12,6 +12,7 @@ pub(super) fn validate(connection: &Connection, query: &GalleryQuery) -> Result<
     gallery::validate_gallery_query(query)?;
     gallery::organization::validate_collection(connection, query)?;
     if query.organization_queue.is_none()
+        || query.semantic_results.is_some()
         || query.root_id.is_none() && query.folder_relative_path.is_some()
     {
         return Err(invalid());
@@ -117,6 +118,7 @@ pub(in super::super::super) fn load(
                     folder_relative_path: row.get(3)?,
                     include_descendants: row.get(4)?,
                     search_text: row.get(5)?,
+                    semantic_results: None,
                     metadata_filter: Default::default(),
                     sort_key: GallerySortKey::ModifiedTime,
                     sort_direction: GallerySortDirection::Descending,

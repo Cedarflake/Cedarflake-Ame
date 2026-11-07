@@ -98,6 +98,7 @@ fn location_anchor_bounds_preserve_filtered_order_and_missing_dates() {
                     duplicate_mode: GalleryDuplicateMode::All,
                     sort_key: sort_key.clone(),
                     sort_direction: sort_direction.clone(),
+                    ..Default::default()
                 };
                 let complete = catalog
                     .load_snapshot(4096, &query, TEST_QUERY_ID, None, None, None)

@@ -4,11 +4,10 @@ use std::sync::atomic::AtomicBool;
 use crate::domain::ScanError;
 use crate::domain::classification::discovery::{ConceptId, DiscoveryCohort, VocabularyConcept};
 use crate::domain::classification::{ClassificationContent, ClassificationRevision};
-use crate::ports::classification_encoder::ClassificationEncoderFactory;
 use crate::ports::classification_features::{ClassificationFeatureRepository, TEXT_FEATURE_WINDOW};
+use crate::ports::image_feature_encoding::ImageFeatureEncoding;
 
 use super::super::classification_features::load_or_encode_descriptions;
-use super::super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
 use super::{ConsolidatedConcept, check_cancelled};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -58,10 +57,10 @@ pub(super) struct CompetitionRequest<'a> {
     pub minimum_relatedness: f32,
 }
 
-pub(super) fn retain<F: ClassificationEncoderFactory, C: ResidencyClock>(
+pub(super) fn retain<E: ImageFeatureEncoding>(
     request: CompetitionRequest<'_>,
     candidates: &mut [ConsolidatedConcept],
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<(), ScanError> {

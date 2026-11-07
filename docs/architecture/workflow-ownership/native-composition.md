@@ -110,16 +110,19 @@ authority; stored access paths remain intact. Its existing string contract needs
 
 ## Classification execution resources
 
-`NativeClassificationRuntime` owns one dispatcher, its catalog connection, executor and process
-ownership token. `NativeExecutor` and its registered residency/resource types own the feature cache,
-durable image-feature store, prepared matcher and native encoder factory. `open_features` selects
+`NativeClassificationRuntime` owns the background dispatcher, foreground search thread, their catalog
+connections and the process-ownership token. `NativeExecutor` and its registered resource types own
+the feature repositories and prepared matcher; both executors borrow the same image/text scheduler.
+`open_features` selects
 both repositories behind `SharedImageFeatures`; the port-based owner coordinates compatible reuse
 and publication under [ADR 0040](../0040-durable-discovery-features.md). Replacing storage changes this
 factory and its resource alias while preserving the two independent budgets and lifetimes.
 Cache acquisition is lazy; constructing the runtime
 does not start an encoder. The existing [residency contract](../0034-versioned-classification-contracts.md#worker-ownership-and-protocol)
-owns demand loading, cancellation, idle retirement and replacement. Closing the host retires the
-executor before releasing process ownership; unproven retirement prevents another runtime.
+owns per-worker demand loading, cancellation, idle retirement and replacement.
+[ADR 0041](../0041-resource-aware-analysis-scheduling.md) owns shared encoder admission. Closing the
+host cancels and joins foreground/background work, then retires both encoders before releasing process
+ownership; unproven retirement prevents another runtime.
 
 `classification_runtime/production::encoder_factory` selects the CPU or DirectML adapter from the
 persisted preference and available hardware. Its device observer exposes only Ame-owned status.
@@ -127,11 +130,18 @@ persisted preference and available hardware. Its device observer exposes only Am
 transaction before dispatcher startup. [ADR 0039](../0039-gpu-classification-execution.md) owns
 device admission, precision, feature identities and installation migration.
 
+`production::analysis_scheduler` selects the native encoder factory and capacity provider.
+`NativeCapacity::capacity` reads Windows capacity, while its pressure input comes from existing
+foreground signals. Domain policy chooses concurrency; the generic application scheduler owns leases
+and worker residency. Replacing capacity measurement changes this provider without moving admission
+policy into the platform adapter. `production::semantic_readers` supplies the existing guarded
+fingerprint/image readers through their ports; the semantic use case retains publication authority.
+
 `analyze_classification_content` and `verify_classification_source` are source-resource entrypoints:
 they select the guarded image or exact reader and the existing catalog/background admission, then
 invoke use cases through Ame ports. The [dispatch contract](../0036-durable-classification-dispatch.md#durable-execution-and-compatibility)
 owns acquisition order and publication. Held source/namespace leases outlive publication or rollback;
-text work retains its separate per-request admission without double-admitting image execution.
+text work uses the shared encoder scheduler without double-admitting image source reads.
 
 Replacing the native selections preserves those lifetimes and the existing use-case contracts.
 SQL, inference protocols and engine types remain outside domain/ports/bridge. Only the registered

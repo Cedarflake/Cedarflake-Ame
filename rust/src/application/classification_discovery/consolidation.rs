@@ -6,12 +6,11 @@ use crate::domain::classification::discovery::{
     CategoryNaming, ConceptId, ConceptMemberSimilarity, DiscoveryCohort,
 };
 use crate::domain::classification::{ClassificationRevision, ModelCompatibility};
-use crate::ports::classification_encoder::ClassificationEncoderFactory;
 use crate::ports::classification_features::ClassificationFeatureRepository;
 use crate::ports::classification_vocabulary::ClassificationVocabulary;
+use crate::ports::image_feature_encoding::ImageFeatureEncoding;
 
 use super::super::classification_features::load_or_encode_descriptions;
-use super::super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
 use super::context_graph::{self, limit_error};
 use super::{
     ConceptMatch, ConceptSearchLimits, ContextComparison, ContextComparisonPolicy,
@@ -57,10 +56,10 @@ pub struct ConceptConsolidation {
     pub visited_edges: usize,
 }
 
-pub fn consolidate_classification_concepts<F: ClassificationEncoderFactory, C: ResidencyClock>(
+pub fn consolidate_classification_concepts<E: ImageFeatureEncoding>(
     request: ConceptConsolidationRequest<'_>,
     vocabulary: &mut impl ClassificationVocabulary,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<ConceptConsolidation, ScanError> {
@@ -69,10 +68,10 @@ pub fn consolidate_classification_concepts<F: ClassificationEncoderFactory, C: R
     result
 }
 
-fn consolidate<F: ClassificationEncoderFactory, C: ResidencyClock>(
+fn consolidate<E: ImageFeatureEncoding>(
     request: ConceptConsolidationRequest<'_>,
     vocabulary: &mut impl ClassificationVocabulary,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<ConceptConsolidation, ScanError> {

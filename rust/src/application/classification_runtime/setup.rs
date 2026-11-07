@@ -1,16 +1,15 @@
 use crate::domain::ScanError;
 use crate::domain::classification::ClassificationAnalysisSetup;
-use crate::ports::classification_encoder::ClassificationEncoderFactory;
 use crate::ports::classification_features::ClassificationFeatureRepository;
+use crate::ports::image_feature_encoding::ImageFeatureEncoding;
 use std::sync::atomic::AtomicBool;
 
 use super::super::classification_features::prepare_classification_matcher;
-use super::super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
 use super::super::classification_screening::ScreeningClassifier;
 
-pub(super) fn prepare<F: ClassificationEncoderFactory, C: ResidencyClock>(
+pub(super) fn prepare<E: ImageFeatureEncoding>(
     setup: &ClassificationAnalysisSetup,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<ScreeningClassifier, ScanError> {

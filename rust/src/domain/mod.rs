@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+pub(crate) mod analysis_capacity;
 pub mod classification;
 pub mod classification_acceleration;
 pub mod classification_catalog;
@@ -11,6 +12,7 @@ pub(crate) mod exact_duplicates;
 pub mod image_features;
 mod path_display;
 pub(crate) mod semantic_discovery;
+pub mod semantic_results;
 pub(crate) use path_display::user_visible_path;
 pub mod media_metadata;
 pub use media_metadata::CameraMetadata;
@@ -499,6 +501,7 @@ pub struct GalleryQuery {
     pub folder_relative_path: Option<String>,
     pub include_descendants: bool,
     pub search_text: String,
+    pub semantic_results: Option<semantic_results::SemanticResultManifest>,
     pub metadata_filter: gallery_metadata_filter::GalleryMetadataFilter,
     pub sort_key: GallerySortKey,
     pub sort_direction: GallerySortDirection,
@@ -515,6 +518,7 @@ impl Default for GalleryQuery {
             folder_relative_path: None,
             include_descendants: true,
             search_text: String::new(),
+            semantic_results: None,
             metadata_filter: gallery_metadata_filter::GalleryMetadataFilter::default(),
             sort_key: GallerySortKey::CaptureTime,
             sort_direction: GallerySortDirection::Descending,
@@ -534,7 +538,9 @@ impl GalleryQuery {
     }
 
     pub(crate) fn order_direction(&self) -> &GallerySortDirection {
-        if self.sort_key == GallerySortKey::LibraryAdmission {
+        if self.semantic_results.is_some() {
+            &GallerySortDirection::Ascending
+        } else if self.sort_key == GallerySortKey::LibraryAdmission {
             &GallerySortDirection::Descending
         } else {
             &self.sort_direction

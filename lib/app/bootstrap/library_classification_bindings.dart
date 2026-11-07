@@ -1,6 +1,9 @@
 import "package:flutter_riverpod/misc.dart";
 
 import "../../features/library/adapters/rust/rust_library_classification.dart";
+import "../../features/library/adapters/rust/rust_library_semantic_search.dart";
+import "../../features/library/application/library_semantic_search.dart";
+import "../../features/library/application/ports/library_semantic_search.dart";
 import "../../features/library/adapters/rust/rust_library_classification_configuration.dart";
 import "../../features/library/adapters/rust/rust_library_classification_review.dart";
 import "../../features/library/adapters/rust/rust_library_model_installation.dart";
@@ -22,20 +25,24 @@ class LibraryClassificationServices {
     required this.configuration,
     required this.review,
     required this.installation,
+    this.search,
   });
 
   const LibraryClassificationServices.production()
     : classification = const RustLibraryClassification(),
       configuration = const RustLibraryClassificationConfiguration(),
       review = const RustLibraryClassificationReview(),
-      installation = const RustLibraryModelInstallation();
+      installation = const RustLibraryModelInstallation(),
+      search = const RustLibrarySemanticSearch();
 
   final LibraryClassification classification;
   final LibraryClassificationConfigurationService configuration;
   final LibraryClassificationReviewService review;
   final LibraryModelInstallationService installation;
+  final LibrarySemanticSearch? search;
 
   List<Override> get overrides => [
+    librarySemanticSearchProvider.overrideWithValue(search),
     libraryClassificationReviewServiceProvider.overrideWithValue(review),
   ];
 }
@@ -76,6 +83,7 @@ class LibraryClassificationBindings {
 }
 
 final libraryClassificationRequirements = <ProviderListenable<Object?>>[
+  librarySemanticSearchProvider,
   libraryClassificationReviewServiceProvider,
   libraryClassificationLifecycleProvider,
   libraryClassificationConfigurationProvider,

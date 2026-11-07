@@ -3,11 +3,11 @@ import "dart:async";
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
-import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_metadata_filter.dart";
 import "../coordination/library_metadata_filter_draft.dart";
 import "../library_filter_strings.dart";
+import "library_filter_range_choices.dart";
 
 Future<LibraryMetadataFilter?> showLibraryMetadataFilterDialog(
   BuildContext context,
@@ -28,6 +28,7 @@ class _LibraryMetadataFilterDialog extends StatefulWidget {
 
 class _LibraryMetadataFilterDialogState
     extends State<_LibraryMetadataFilterDialog> {
+  static const _formats = ["jpg", "png", "webp", "gif", "avif"];
   final _form = GlobalKey<FormState>();
   final _cameraExpansion = ExpansibleController();
   late final _initial = LibraryMetadataFilterDraft.fromFilter(widget.filter);
@@ -37,6 +38,9 @@ class _LibraryMetadataFilterDialogState
   };
   late var _sizeUnit = _initial.sizeUnit;
   late var _dateField = _initial.dateField;
+  late var _customFormat =
+      widget.filter.extension.isNotEmpty &&
+      !_formats.contains(widget.filter.extension);
   Map<LibraryFilterField, String> _errors = {};
 
   @override
@@ -48,6 +52,8 @@ class _LibraryMetadataFilterDialogState
     super.dispose();
   }
 
+  void _changed() => setState(() => _errors = {});
+
   void _apply() {
     final result = LibraryMetadataFilterDraft(
       values: {
@@ -56,19 +62,20 @@ class _LibraryMetadataFilterDialogState
       sizeUnit: _sizeUnit,
       dateField: _dateField,
     ).parse();
-    _errors = result.errors;
-    final invalid = _form.currentState!.validateGranularly();
-    if (invalid.isEmpty && result.filter != null) {
-      Navigator.of(context).pop(result.filter);
+    if (result.filter case final filter?) {
+      Navigator.of(context).pop(filter);
       return;
     }
+    setState(() => _errors = result.errors);
     if (_errors.containsKey(LibraryFilterField.camera)) {
       _cameraExpansion.expand();
     }
-    if (invalid.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !invalid.first.mounted) return;
-      unawaited(Scrollable.ensureVisible(invalid.first.context));
+      if (!mounted) return;
+      final invalid = _form.currentState?.validateGranularly();
+      if (invalid != null && invalid.isNotEmpty) {
+        unawaited(Scrollable.ensureVisible(invalid.first.context));
+      }
     });
   }
 
@@ -83,7 +90,7 @@ class _LibraryMetadataFilterDialogState
       lastDate: DateTime(9999, 12, 31),
     );
     if (mounted && date != null) {
-      controller.text = formatLibraryFilterDate(date);
+      setState(() => controller.text = formatLibraryFilterDate(date));
     }
   }
 
@@ -92,7 +99,7 @@ class _LibraryMetadataFilterDialogState
     key: const Key("library-metadata-filter-dialog"),
     title: const Text(LibraryFilterStrings.title),
     content: SizedBox(
-      width: 600,
+      width: 520,
       child: AmeScrollMotion(
         child: SingleChildScrollView(
           child: Form(
@@ -101,101 +108,130 @@ class _LibraryMetadataFilterDialogState
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _heading(LibraryFilterStrings.date),
-                AmeOverlayTraversalBoundary(
-                  child: DropdownMenu<LibraryDateField>(
-                    key: const Key("library-filter-date-field"),
-                    label: const Text(LibraryFilterStrings.dateField),
-                    initialSelection: _dateField,
-                    selectOnly: true,
-                    dropdownMenuEntries: [
-                      for (final field in LibraryDateField.values)
-                        DropdownMenuEntry(
-                          value: field,
-                          label: LibraryFilterStrings.dateFieldName(field),
+                Text(
+                  LibraryFilterStrings.fileFormat,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final format in ["", ..._formats])
+                      ChoiceChip(
+                        label: Text(
+                          format.isEmpty
+                              ? LibraryFilterStrings.any
+                              : format.toUpperCase(),
                         ),
+                        selected:
+                            !_customFormat &&
+                            _fields[LibraryFilterField.extension]!.text ==
+                                format,
+                        onSelected: (_) => setState(() {
+                          _customFormat = false;
+                          _fields[LibraryFilterField.extension]!.text = format;
+                        }),
+                      ),
+                    ChoiceChip(
+                      label: const Text(LibraryFilterStrings.otherFormat),
+                      selected: _customFormat,
+                      onSelected: (_) => setState(() => _customFormat = true),
+                    ),
+                  ],
+                ),
+                if (_customFormat) ...[
+                  const SizedBox(height: 8),
+                  _text(
+                    LibraryFilterField.extension,
+                    LibraryFilterStrings.extension,
+                    hint: LibraryFilterStrings.extensionHint,
+                  ),
+                ],
+                const SizedBox(height: 18),
+                Text(
+                  LibraryFilterStrings.date,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                SegmentedButton<LibraryDateField>(
+                  segments: [
+                    for (final field in LibraryDateField.values)
+                      ButtonSegment(
+                        value: field,
+                        label: Text(LibraryFilterStrings.dateFieldName(field)),
+                      ),
+                  ],
+                  selected: {_dateField},
+                  onSelectionChanged: (value) =>
+                      setState(() => _dateField = value.single),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    _date(
+                      LibraryFilterField.dateStart,
+                      LibraryFilterStrings.dateStart,
+                    ),
+                    _date(
+                      LibraryFilterField.dateEnd,
+                      LibraryFilterStrings.dateEnd,
+                    ),
+                  ],
+                ),
+                if (_errors[LibraryFilterField.dateEnd] case final error?)
+                  Text(
+                    error,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                const SizedBox(height: 18),
+                LibraryFilterRangeChoices(
+                  label: LibraryFilterStrings.fileSize,
+                  minimum: LibraryFilterField.minimumBytes,
+                  maximum: LibraryFilterField.maximumBytes,
+                  controllers: _fields,
+                  errors: _errors,
+                  presets: const [
+                    (label: LibraryFilterStrings.any, minimum: "", maximum: ""),
+                    (label: "≤ 1 MB", minimum: "", maximum: "1"),
+                    (label: "1–10 MB", minimum: "1", maximum: "10"),
+                    (label: "≥ 10 MB", minimum: "10", maximum: ""),
+                  ],
+                  unit: _sizeUnit.label,
+                  presetUnitMatches:
+                      _sizeUnit == LibraryFilterSizeUnit.megabytes,
+                  onPresetSelected: () =>
+                      _sizeUnit = LibraryFilterSizeUnit.megabytes,
+                  onChanged: _changed,
+                  unitPicker: SegmentedButton<LibraryFilterSizeUnit>(
+                    segments: [
+                      for (final unit in LibraryFilterSizeUnit.values)
+                        ButtonSegment(value: unit, label: Text(unit.label)),
                     ],
-                    onSelected: (value) {
-                      if (value != null) _dateField = value;
-                    },
+                    selected: {_sizeUnit},
+                    onSelectionChanged: (value) =>
+                        setState(() => _sizeUnit = value.single),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _date(
-                        LibraryFilterField.dateStart,
-                        LibraryFilterStrings.dateStart,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _date(
-                        LibraryFilterField.dateEnd,
-                        LibraryFilterStrings.dateEnd,
-                      ),
-                    ),
-                  ],
-                ),
-                _heading(LibraryFilterStrings.file),
-                _text(
-                  LibraryFilterField.extension,
-                  LibraryFilterStrings.extension,
-                  hint: LibraryFilterStrings.extensionHint,
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _text(
-                        LibraryFilterField.minimumBytes,
-                        LibraryFilterStrings.minimumBytes,
-                        number: true,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _text(
-                        LibraryFilterField.maximumBytes,
-                        LibraryFilterStrings.maximumBytes,
-                        number: true,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    AmeOverlayTraversalBoundary(
-                      child: DropdownMenu<LibraryFilterSizeUnit>(
-                        key: const Key("library-filter-size-unit"),
-                        width: 100,
-                        label: const Text(LibraryFilterStrings.unit),
-                        initialSelection: _sizeUnit,
-                        selectOnly: true,
-                        dropdownMenuEntries: [
-                          for (final unit in LibraryFilterSizeUnit.values)
-                            DropdownMenuEntry(value: unit, label: unit.label),
-                        ],
-                        onSelected: (value) {
-                          if (value != null) _sizeUnit = value;
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                _heading(LibraryFilterStrings.dimensions),
-                _dimensions(
+                const SizedBox(height: 18),
+                _dimension(
+                  LibraryFilterStrings.width,
                   LibraryFilterField.minimumWidth,
                   LibraryFilterField.maximumWidth,
-                  LibraryFilterStrings.minimumWidth,
-                  LibraryFilterStrings.maximumWidth,
+                  1920,
+                  3840,
                 ),
-                const SizedBox(height: 16),
-                _dimensions(
+                const SizedBox(height: 18),
+                _dimension(
+                  LibraryFilterStrings.height,
                   LibraryFilterField.minimumHeight,
                   LibraryFilterField.maximumHeight,
-                  LibraryFilterStrings.minimumHeight,
-                  LibraryFilterStrings.maximumHeight,
+                  1080,
+                  2160,
                 ),
                 const SizedBox(height: 8),
                 ExpansionTile(
@@ -235,58 +271,46 @@ class _LibraryMetadataFilterDialogState
     ],
   );
 
-  Widget _heading(String label) => Padding(
-    padding: const EdgeInsets.only(top: 16, bottom: 12),
-    child: Text(label, style: Theme.of(context).textTheme.titleSmall),
-  );
-
-  Widget _date(LibraryFilterField field, String label) => _text(
-    field,
-    label,
-    hint: LibraryFilterStrings.dateHint,
-    suffix: AmeTooltip(
-      message: "选择$label",
-      child: IconButton(
-        onPressed: () => _pickDate(field, label),
-        icon: const Icon(Symbols.calendar_month_rounded),
-      ),
-    ),
-  );
-
-  Widget _dimensions(
+  Widget _dimension(
+    String label,
     LibraryFilterField minimum,
     LibraryFilterField maximum,
-    String minimumLabel,
-    String maximumLabel,
-  ) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Expanded(child: _text(minimum, minimumLabel, number: true, unit: "px")),
-      const SizedBox(width: 16),
-      Expanded(child: _text(maximum, maximumLabel, number: true, unit: "px")),
+    int lower,
+    int upper,
+  ) => LibraryFilterRangeChoices(
+    label: label,
+    minimum: minimum,
+    maximum: maximum,
+    controllers: _fields,
+    errors: _errors,
+    presets: [
+      (label: LibraryFilterStrings.any, minimum: "", maximum: ""),
+      (label: "≥ $lower px", minimum: "$lower", maximum: ""),
+      (label: "≥ $upper px", minimum: "$upper", maximum: ""),
     ],
+    onChanged: _changed,
   );
 
-  Widget _text(
-    LibraryFilterField field,
-    String label, {
-    String? hint,
-    bool number = false,
-    String? unit,
-    Widget? suffix,
-  }) => TextFormField(
-    key: ValueKey("library-filter-${field.name}"),
-    controller: _fields[field],
-    keyboardType: number
-        ? const TextInputType.numberWithOptions(decimal: true)
-        : null,
-    textInputAction: TextInputAction.next,
-    decoration: InputDecoration(
-      labelText: label,
-      hintText: hint,
-      suffixText: unit,
-      suffixIcon: suffix,
-    ),
-    validator: (_) => _errors[field],
-  );
+  Widget _date(LibraryFilterField field, String label) {
+    final value = _fields[field]!.text;
+    return InputChip(
+      key: ValueKey("library-filter-${field.name}"),
+      avatar: const Icon(Symbols.calendar_month_rounded, size: 18),
+      label: Text(value.isEmpty ? label : "$label $value"),
+      onPressed: () => _pickDate(field, label),
+      onDeleted: value.isEmpty
+          ? null
+          : () => setState(() => _fields[field]!.clear()),
+      deleteButtonTooltipMessage: "清除$label",
+    );
+  }
+
+  Widget _text(LibraryFilterField field, String label, {String? hint}) =>
+      TextFormField(
+        key: ValueKey("library-filter-${field.name}"),
+        controller: _fields[field],
+        textInputAction: TextInputAction.next,
+        decoration: InputDecoration(labelText: label, hintText: hint),
+        validator: (_) => _errors[field],
+      );
 }

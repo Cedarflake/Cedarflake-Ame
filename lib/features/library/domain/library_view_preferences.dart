@@ -1,5 +1,7 @@
 import "library_models.dart";
 
+enum LibrarySearchMode { content, fileName }
+
 enum GalleryLayoutShape { equalHeight, square }
 
 enum GalleryThumbnailSize { small, medium, large }
@@ -11,6 +13,7 @@ class LibraryViewPreferences {
     this.sortKey = LibraryGallerySortKey.captureTime,
     this.sortDirection = LibraryGallerySortDirection.descending,
     this.duplicateMode = LibraryGalleryDuplicateMode.merged,
+    this.searchMode = LibrarySearchMode.content,
   });
 
   final GalleryLayoutShape layoutShape;
@@ -18,6 +21,7 @@ class LibraryViewPreferences {
   final LibraryGallerySortKey sortKey;
   final LibraryGallerySortDirection sortDirection;
   final LibraryGalleryDuplicateMode duplicateMode;
+  final LibrarySearchMode searchMode;
 
   LibraryViewPreferences copyWith({
     GalleryLayoutShape? layoutShape,
@@ -25,6 +29,7 @@ class LibraryViewPreferences {
     LibraryGallerySortKey? sortKey,
     LibraryGallerySortDirection? sortDirection,
     LibraryGalleryDuplicateMode? duplicateMode,
+    LibrarySearchMode? searchMode,
   }) {
     return LibraryViewPreferences(
       layoutShape: layoutShape ?? this.layoutShape,
@@ -32,6 +37,7 @@ class LibraryViewPreferences {
       sortKey: sortKey ?? this.sortKey,
       sortDirection: sortDirection ?? this.sortDirection,
       duplicateMode: duplicateMode ?? this.duplicateMode,
+      searchMode: searchMode ?? this.searchMode,
     );
   }
 }

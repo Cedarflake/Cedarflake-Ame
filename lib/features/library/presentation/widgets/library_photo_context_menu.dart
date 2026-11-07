@@ -10,6 +10,7 @@ import "../../application/library_organization.dart";
 import "../../application/library_organization_actions.dart";
 import "../../domain/library_organization.dart";
 import "../library_strings.dart";
+import "../library_search_strings.dart";
 import "library_album_picker.dart";
 
 class LibraryPhotoContextMenu {
@@ -32,6 +33,7 @@ class LibraryPhotoContextMenu {
     required VoidCallback onInformation,
     required VoidCallback onCopyPath,
     required VoidCallback onReveal,
+    VoidCallback? onFindRelated,
   }) async {
     if (_disposed || _isOpen) return;
     _isOpen = true;
@@ -68,7 +70,7 @@ class LibraryPhotoContextMenu {
             .resolve("photo-menu-inspection");
       }
       final busy = ref.read(libraryOrganizationActionsProvider).saving;
-      final entries = _entries(decision);
+      final entries = _entries(decision, onFindRelated != null);
       final action = await showAmePopupMenu<_PhotoAction>(
         context: context,
         position: position,
@@ -96,6 +98,8 @@ class LibraryPhotoContextMenu {
           onCopyPath();
         case _PhotoAction.reveal:
           onReveal();
+        case _PhotoAction.related:
+          onFindRelated?.call();
         case _PhotoAction.favorite:
           await commands.favorite(target, !decision!.favorite);
         case _PhotoAction.removeAlbum:
@@ -127,12 +131,21 @@ class LibraryPhotoContextMenu {
     }
   }
 
-  List<_PhotoEntry> _entries(LibraryOrganizationDecision? decision) => [
+  List<_PhotoEntry> _entries(
+    LibraryOrganizationDecision? decision,
+    bool canFindRelated,
+  ) => [
     const _PhotoEntry(
       _PhotoAction.open,
       LibraryStrings.open,
       Symbols.open_in_full_rounded,
     ),
+    if (canFindRelated)
+      const _PhotoEntry(
+        _PhotoAction.related,
+        LibrarySearchStrings.related,
+        Symbols.image_search_rounded,
+      ),
     if (decision != null) ...[
       _PhotoEntry(
         _PhotoAction.favorite,
@@ -181,6 +194,7 @@ class LibraryPhotoContextMenu {
 
 enum _PhotoAction {
   open,
+  related,
   favorite,
   album,
   removeAlbum,

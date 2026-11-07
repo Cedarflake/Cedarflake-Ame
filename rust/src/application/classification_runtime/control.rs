@@ -22,6 +22,7 @@ pub struct ClassificationRuntimeControl {
     session: ClassificationRecordId,
     signals: ClassificationDispatchSignals,
     device: Arc<ClassificationDeviceState>,
+    pub(crate) search: super::super::semantic_requests::SearchRequests,
 }
 
 impl ClassificationRuntimeControl {
@@ -36,6 +37,7 @@ impl ClassificationRuntimeControl {
             session,
             signals,
             device,
+            search: super::super::semantic_requests::SearchRequests::default(),
         }
     }
 

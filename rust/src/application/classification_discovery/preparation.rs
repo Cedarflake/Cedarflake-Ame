@@ -7,12 +7,11 @@ use crate::domain::classification::maintenance::CategoryExpansionPlan;
 use crate::ports::classification_configuration::{
     CategoryCoverageRepository, CategoryExpansionRepository,
 };
-use crate::ports::classification_encoder::ClassificationEncoderFactory;
 use crate::ports::classification_features::ClassificationFeatureRepository;
 use crate::ports::classification_vocabulary::ClassificationVocabulary;
+use crate::ports::image_feature_encoding::ImageFeatureEncoding;
 
 use super::super::classification_features::prepare_classification_matcher;
-use super::super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
 use super::{
     CategoryAdmissionPolicy, CategoryExpansionBudget, CategoryExpansionRequest,
     ConceptConsolidationLimits, ConceptNominationRequest, ConceptSearchLimits,
@@ -48,11 +47,11 @@ pub struct PreparedDiscoveryWindow {
     pub expansion: Option<CategoryExpansionPlan>,
 }
 
-pub fn prepare_discovery_window<F: ClassificationEncoderFactory, C: ResidencyClock>(
+pub fn prepare_discovery_window<E: ImageFeatureEncoding>(
     request: DiscoveryPreparationRequest<'_>,
     repository: &(impl CategoryCoverageRepository + CategoryExpansionRepository),
     vocabulary: &mut impl ClassificationVocabulary,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &Arc<AtomicBool>,
 ) -> Result<PreparedDiscoveryWindow, ScanError> {
