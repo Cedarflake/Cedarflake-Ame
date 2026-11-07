@@ -24,7 +24,11 @@ abstract final class LibrarySearchStrings {
     LibrarySemanticFailure(code: "semantic_source_changed") =>
       "这张图片已变化或无法读取，请重新选择。",
     LibrarySemanticFailure(code: "semantic_session_unavailable") =>
-      "图片分析正在重新连接，请稍后重试。",
+      "图片分析当前不可用，请重试搜索。",
+    LibrarySemanticFailure(code: "semantic_storage_invalid") =>
+      "搜索数据已损坏，请重试以重新建立。",
+    LibrarySemanticFailure(code: "semantic_storage_failed") =>
+      "暂时无法读写搜索数据，请重试。",
     _ => "暂时无法搜索，已保留原来的图片列表。请重试。",
   };
 

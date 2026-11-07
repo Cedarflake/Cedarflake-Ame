@@ -8,8 +8,8 @@ use rusqlite::{Connection, OpenFlags};
 use super::{ScanError, database_error, invalid};
 use crate::adapters::PreviewCacheNamespace;
 
-const APPLICATION_ID: u32 = 0x414D5346;
-const SCHEMA_VERSION: u32 = 1;
+pub(super) const APPLICATION_ID: u32 = 0x414D5346;
+pub(super) const SCHEMA_VERSION: u32 = 1;
 pub(super) const FILE_NAME: &str = "semantic-features.sqlite3";
 
 pub(super) fn open(
@@ -81,6 +81,19 @@ fn initialize(root: &Path, destination: &Path) -> Result<(), ScanError> {
         .tempfile_in(root)
         .map_err(|error| invalid(error.to_string()))?;
     let mut connection = Connection::open(staged.path()).map_err(database_error)?;
+    initialize_schema(&mut connection)?;
+    drop(connection);
+    match staged.persist_noclobber(destination) {
+        Ok(_) => Ok(()),
+        Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
+        Err(error) => Err(invalid(format!(
+            "Could not create semantic features: {}",
+            error.error
+        ))),
+    }
+}
+
+pub(super) fn initialize_schema(connection: &mut Connection) -> Result<(), ScanError> {
     connection
         .execute_batch("PRAGMA page_size = 4096;")
         .map_err(database_error)?;
@@ -94,14 +107,5 @@ fn initialize(root: &Path, destination: &Path) -> Result<(), ScanError> {
     transaction
         .pragma_update(None, "user_version", SCHEMA_VERSION)
         .map_err(database_error)?;
-    transaction.commit().map_err(database_error)?;
-    drop(connection);
-    match staged.persist_noclobber(destination) {
-        Ok(_) => Ok(()),
-        Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
-        Err(error) => Err(invalid(format!(
-            "Could not create semantic features: {}",
-            error.error
-        ))),
-    }
+    transaction.commit().map_err(database_error)
 }

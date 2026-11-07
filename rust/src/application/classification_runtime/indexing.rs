@@ -20,7 +20,6 @@ pub(super) struct SemanticIndexPass {
     cursor: String,
     pending: VecDeque<SemanticCandidate>,
     completed_revision: Option<u64>,
-    retry: u64,
     status: SemanticIndexStatus,
 }
 
@@ -33,15 +32,6 @@ impl SemanticIndexPass {
         signals: &ClassificationDispatchSignals,
         requests: &SearchRequests,
     ) -> Result<bool, ScanError> {
-        let retry = requests.retry_revision()?;
-        if retry != self.retry {
-            self.retry = retry;
-            self.cursor.clear();
-            self.pending.clear();
-            self.completed_revision = None;
-            self.status.blocked = false;
-            self.status.issue_code = None;
-        }
         if self.status.blocked {
             return Ok(false);
         }

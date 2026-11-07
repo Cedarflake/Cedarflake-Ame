@@ -45,6 +45,10 @@ pub(super) fn semantic_readers() -> (
     )
 }
 
+pub(super) fn recover_semantic_features(directory: &std::path::Path) -> Result<(), ScanError> {
+    crate::adapters::SqliteSemanticFeatureStore::recover(directory)
+}
+
 pub(super) fn encoder_factory(
     paths: &ClassificationRuntimePaths,
     observer: Arc<ClassificationDeviceState>,

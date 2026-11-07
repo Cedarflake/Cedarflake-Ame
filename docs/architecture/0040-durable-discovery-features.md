@@ -40,6 +40,14 @@ saved decisions, source images or model installation. No media read or model exe
 a storage transaction is held. Classification's source lease and publication revalidation remain
 in their existing application owners.
 
+Search retry retires and joins the analysis runtime before checking the feature store. A separate
+ownership receipt binds a successfully admitted store to its physical file identity. Recovery may
+reset a corrupt store only while retaining its namespace, file and receipt guards; a substituted or
+unrecognized file is rejected. SQLite owns reset locking and journaling. Missing stores are recreated,
+healthy features are retained, and busy or I/O failures remain errors. An interrupted reset can be
+completed from the same ownership proof. Restarted indexing reuses compatible classification-cache
+entries and resumes normal source admission for missing features.
+
 ## Retrieval engine evaluation
 
 USearch 2.26.6, Apache-2.0, was evaluated with default features disabled on Windows x64. The retained

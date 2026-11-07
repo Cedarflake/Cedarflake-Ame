@@ -21,16 +21,6 @@ pub(crate) fn semantic_status()
         .transpose()
 }
 
-pub(crate) fn retry_semantic_index() -> Result<(), ScanError> {
-    let connection = CONNECTION
-        .lock()
-        .map_err(|_| unavailable())?
-        .upgrade()
-        .ok_or_else(unavailable)?;
-    connection.control.search.retry_index()?;
-    connection.control.signals().catalog_changed()
-}
-
 pub(crate) fn search(
     scope: crate::domain::GalleryQuery,
     input: crate::domain::semantic_results::SemanticSearchInput,
@@ -41,8 +31,8 @@ pub(crate) fn search(
         .upgrade()
         .ok_or_else(|| {
             ScanError::new(
-                "semantic_model_unavailable",
-                "Install the analysis model before searching",
+                "semantic_session_unavailable",
+                "Image analysis is not running",
             )
         })?;
     if connection.control.signals().is_closed()? {

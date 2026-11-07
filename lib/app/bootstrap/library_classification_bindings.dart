@@ -3,6 +3,7 @@ import "package:flutter_riverpod/misc.dart";
 import "../../features/library/adapters/rust/rust_library_classification.dart";
 import "../../features/library/adapters/rust/rust_library_semantic_search.dart";
 import "../../features/library/application/library_semantic_search.dart";
+import "../../features/library/application/library_semantic_recovery.dart";
 import "../../features/library/application/ports/library_semantic_search.dart";
 import "../../features/library/adapters/rust/rust_library_classification_configuration.dart";
 import "../../features/library/adapters/rust/rust_library_classification_review.dart";
@@ -72,7 +73,13 @@ class LibraryClassificationBindings {
   late final LibraryModelInstallation modelInstallation;
 
   List<Override> get overrides => [
-    ..._services.overrides,
+    libraryClassificationReviewServiceProvider.overrideWithValue(
+      _services.review,
+    ),
+    librarySemanticSearchProvider.overrideWithValue(switch (_services.search) {
+      final service? => LibrarySemanticRecovery(service, lifecycle),
+      null => null,
+    }),
     libraryClassificationLifecycleProvider.overrideWith((ref) => lifecycle),
     libraryClassificationConfigurationProvider.overrideWithValue(configuration),
     libraryModelInstallationProvider.overrideWith((ref) => modelInstallation),

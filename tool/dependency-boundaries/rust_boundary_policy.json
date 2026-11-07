@@ -689,6 +689,16 @@
       }
     },
     {
+      "id": "semantic-feature-recovery",
+      "owner": "classification-execution-composition",
+      "dependency": {
+        "source": "rust/src/application/classification_runtime/production.rs",
+        "symbol": "crate::application::classification_runtime::production::recover_semantic_features",
+        "target": "crate::adapters::semantic_feature_store::SqliteSemanticFeatureStore",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
       "id": "classification-shared-encoder-owner",
       "owner": "classification-execution-composition",
       "dependency": {

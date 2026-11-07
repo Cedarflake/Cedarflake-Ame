@@ -354,3 +354,32 @@ The shared viewer-notice follow-up to `4cd0a94c` gives actionless messages symme
 horizontal padding. Eleven existing feedback-template and organization-feedback cases, changed-file
 analysis and Debug compilation passed. The user verified the rebuilt native client's appearance.
 The optional-action layout and its existing dismissal and undo behavior remain unchanged.
+
+## Derived-index recovery — 2026-11-08
+
+The follow-up based on `529eac58` replaces the index retry counter with joined analysis retirement,
+owned-store recovery and reopening under [ADR 0040](../architecture/0040-durable-discovery-features.md).
+Actual corrupted storage terminated analysis after opening; the disconnected search path incorrectly
+reported an absent model. Search now preserves startup and runtime causes. Acknowledgement clears
+the current failed text or reference query; stale notifications and partial-result index failures
+cannot clear another request.
+
+Eight native API scenarios covered missing and healthy stores, damaged vectors and headers,
+interrupted reset, exclusive locking, foreign substitution and recreation after removal. Healthy
+features, the catalog sentinel and the foreign substitute remained unchanged; locking and substitution
+were rejected. These checks reused the optimized Debug DLL with isolated-storage assertions.
+
+The actual production Dart bindings and native runtime recovered a damaged header in 117 ms and
+indexed all 368 retained previews within 34.3 seconds. `fox` returned the two known matches;
+warm queries during recovery took 6–19 ms. The normal desktop separately showed the storage-damage
+message, cleared text on `知道了`, and recovered through `重试搜索` and `更新搜索结果`. Both runs
+closed successfully, joined their workers, cleaned temporary profiles and preserved all source hashes.
+
+Twenty-six lifecycle cases and four search-coordinator cases passed, along with affected-file Dart
+analysis. Earlier all-feature Rust checking and the fixed dependency inventory cover the unchanged
+native recovery boundary. Local Rust unit-test compilation hit the system memory safeguard;
+execution of those cases remains assigned to hosted CI. This is not large-library latency evidence.
+
+Production / inline-test lines: recovery facade 47 / 0, lifecycle 76 / 0, session lifetime 143 / 0,
+search coordinator 365 / 0, feature-store facade 216 / 0, ownership receipt 77 / 0 and storage recovery
+139 / 0. Dedicated lifecycle, search and storage-recovery suites contain 884, 250 and 118 lines.

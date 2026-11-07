@@ -1,5 +1,8 @@
 use super::*;
 
+#[cfg(windows)]
+mod recovery;
+
 fn model(pipeline: u8) -> ModelCompatibility {
     ModelCompatibility::new(
         AnalysisRevision::from_bytes([1; 32]),

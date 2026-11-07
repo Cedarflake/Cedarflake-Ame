@@ -24,9 +24,7 @@ class LibraryClassificationSessionLifetime {
   bool _isClosing = false;
   bool _isChangingConfiguration = false;
 
-  Future<void> waitUntilOpened() async {
-    await _opening;
-  }
+  Future<bool> waitUntilOpened() async => await _opening != null;
 
   void startInBackground() {
     if (_lifetime != null || _isClosing || _isChangingConfiguration) {

@@ -124,6 +124,12 @@ owns per-worker demand loading, cancellation, idle retirement and replacement.
 host cancels and joins foreground/background work, then retires both encoders before releasing process
 ownership; unproven retirement prevents another runtime.
 
+`production::recover_semantic_features` selects the derived-store recovery adapter after
+`while_retired` acquires that same ownership token. The desktop lifecycle joins both executors before
+maintenance and reopens them afterward. Replacing storage preserves healthy data, rejects unproven
+file ownership and retains SQLite's locked-file behavior; recovery never acquires catalog write or
+source-media mutation authority.
+
 `classification_runtime/production::encoder_factory` selects the CPU or DirectML adapter from the
 persisted preference and available hardware. Its device observer exposes only Ame-owned status.
 `model_transition` replaces an incompatible known pipeline through the existing configuration

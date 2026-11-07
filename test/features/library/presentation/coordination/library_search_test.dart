@@ -15,62 +15,78 @@ import "package:cedarflake_ame/features/library/presentation/library_search_noti
 import "../support/library_screen_fixture.dart";
 
 void main() {
-  testWidgets(
-    "acknowledging a failed related search clears only its current request",
-    (tester) async {
-      final container = ProviderContainer();
-      final feedback = LibrarySearchNotifications(
-        container.read(ameNotificationControllerProvider.notifier),
-      );
-      final fixture = _Fixture(onFailure: feedback.setFailure);
-      try {
-        fixture.query = fixture.query.copyWith(
-          metadataFilter: const LibraryMetadataFilter(extensions: ["png"]),
+  for (final related in [false, true]) {
+    testWidgets(
+      "acknowledging a failed ${related ? 'related' : 'text'} search clears only its current request",
+      (tester) async {
+        final container = ProviderContainer();
+        final feedback = LibrarySearchNotifications(
+          container.read(ameNotificationControllerProvider.notifier),
         );
-        fixture.search.findRelated(
-          galleryAsset(
-            id: "reference",
-            captureLocalTime: "2026-11-08T10:00:00",
-          ),
-        );
-        await tester.pump();
-        const failure = LibrarySemanticFailure("semantic_model_unavailable");
-        fixture.service.requests.single.result.completeError(failure);
-        await tester.pump();
-        final old = container.read(ameNotificationControllerProvider).current!;
-        expect(fixture.search.related, isTrue);
+        final fixture = _Fixture(onFailure: feedback.setFailure);
+        try {
+          fixture.query = fixture.query.copyWith(
+            metadataFilter: const LibraryMetadataFilter(extensions: ["png"]),
+          );
+          if (related) {
+            fixture.search.findRelated(
+              galleryAsset(
+                id: "reference",
+                captureLocalTime: "2026-11-08T10:00:00",
+              ),
+            );
+          } else {
+            fixture.text.text = "fox";
+          }
+          await tester.pump(const Duration(milliseconds: 250));
+          const failure = LibrarySemanticFailure("semantic_model_unavailable");
+          fixture.service.requests.single.result.completeError(failure);
+          await tester.pump();
+          final old = container
+              .read(ameNotificationControllerProvider)
+              .current!;
+          expect(fixture.search.active, isTrue);
 
-        final retry = fixture.search.retry();
-        await tester.pump();
-        await feedback.acknowledge(old, fixture.search);
-        expect(fixture.search.related, isTrue);
-        expect(fixture.search.loading, isTrue);
-        fixture.service.requests.last.result.completeError(failure);
-        await retry;
-        await feedback.acknowledge(old, fixture.search);
-        expect(fixture.search.related, isTrue);
+          fixture.service.retryGate = Completer<void>();
+          final retry = fixture.search.retry();
+          await tester.pump();
+          expect(fixture.search.loading, isTrue);
+          await fixture.search.retry();
+          expect(fixture.service.retries, 1);
+          expect(fixture.service.requests, hasLength(1));
+          fixture.service.retryGate!.complete();
+          await tester.pump();
+          await feedback.acknowledge(old, fixture.search);
+          expect(fixture.search.active, isTrue);
+          expect(fixture.search.loading, isTrue);
+          fixture.service.requests.last.result.completeError(failure);
+          await retry;
+          await feedback.acknowledge(old, fixture.search);
+          expect(fixture.search.active, isTrue);
 
-        final current = container
-            .read(ameNotificationControllerProvider)
-            .current!;
-        await feedback.acknowledge(current, fixture.search);
-        expect(fixture.search.active, isFalse);
-        expect(fixture.search.referenceName, isNull);
-        expect(fixture.search.error, isNull);
-        expect(fixture.query.semanticResults, isNull);
-        expect(fixture.query.rootId, "root-a");
-        expect(fixture.query.folderRelativePath, "animals");
-        expect(fixture.query.metadataFilter.extensions, ["png"]);
-        expect(
-          container.read(ameNotificationControllerProvider).current,
-          isNull,
-        );
-      } finally {
-        fixture.dispose();
-        container.dispose();
-      }
-    },
-  );
+          final current = container
+              .read(ameNotificationControllerProvider)
+              .current!;
+          await feedback.acknowledge(current, fixture.search);
+          expect(fixture.search.active, isFalse);
+          expect(fixture.text.text, isEmpty);
+          expect(fixture.search.referenceName, isNull);
+          expect(fixture.search.error, isNull);
+          expect(fixture.query.semanticResults, isNull);
+          expect(fixture.query.rootId, "root-a");
+          expect(fixture.query.folderRelativePath, "animals");
+          expect(fixture.query.metadataFilter.extensions, ["png"]);
+          expect(
+            container.read(ameNotificationControllerProvider).current,
+            isNull,
+          );
+        } finally {
+          fixture.dispose();
+          container.dispose();
+        }
+      },
+    );
+  }
 
   testWidgets(
     "superseded search cannot replace results or report an old error",
@@ -199,6 +215,8 @@ class _Fixture {
 class _Service implements LibrarySemanticSearch {
   final requests = <_Request>[];
   final scopes = <LibraryGalleryQuery>[];
+  Completer<void>? retryGate;
+  int retries = 0;
   @override
   Future<LibrarySemanticSearchRequest> prepare(
     LibraryGalleryQuery scope,
@@ -213,7 +231,10 @@ class _Service implements LibrarySemanticSearch {
   @override
   Future<LibrarySemanticIndexStatus?> indexStatus() async => null;
   @override
-  Future<void> retryIndex() async {}
+  Future<void> retryIndex() async {
+    retries += 1;
+    await retryGate?.future;
+  }
 }
 
 class _Request implements LibrarySemanticSearchRequest {

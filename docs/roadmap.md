@@ -135,8 +135,10 @@ interaction. R7-01 through R7-04 are connected on the R7 branch: composed filter
 independent indexing, resource-aware scheduling, text search and related-image results share the
 existing gallery and viewer. [Implementation evidence](acceptance/r7-semantic-discovery.md#connected-scheduling-and-search)
 retains the scoped native-client checks and fixed-corpus retrieval measurements.
-Finish derived-index recovery, large-library retrieval measurements and the remaining R7-05 desktop
-lifecycle checks, then inspect hosted checks for the delivered revision. No R7 slice is accepted yet.
+[Derived-index recovery](acceptance/r7-semantic-discovery.md#derived-index-recovery--2026-11-08)
+has connected native and desktop evidence. Finish large-library retrieval measurements and the
+remaining R7-05 desktop lifecycle checks, then inspect hosted checks for the delivered revision.
+No R7 slice is accepted yet.
 
 ## R4 implementation sequence
 

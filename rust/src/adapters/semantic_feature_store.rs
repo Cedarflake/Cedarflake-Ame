@@ -15,6 +15,10 @@ use crate::ports::semantic_features::SemanticFeatureRepository;
 use super::PreviewCacheNamespace;
 
 mod batch;
+#[cfg(windows)]
+mod ownership;
+#[cfg(windows)]
+mod recovery;
 mod storage;
 
 const DEFAULT_BUDGET: u64 = 1024 * 1024 * 1024;
@@ -32,6 +36,11 @@ impl SqliteSemanticFeatureStore {
         Self::open_with_budget(directory, DEFAULT_BUDGET)
     }
 
+    #[cfg(windows)]
+    pub(crate) fn recover(directory: &Path) -> Result<(), ScanError> {
+        recovery::recover(directory)
+    }
+
     fn open_with_budget(directory: &Path, budget: u64) -> Result<Self, ScanError> {
         if !(ENTRY_ALLOWANCE + 4..=DEFAULT_BUDGET).contains(&budget) {
             return Err(invalid("The semantic feature budget is invalid"));
@@ -44,6 +53,8 @@ impl SqliteSemanticFeatureStore {
             _namespace: namespace,
         };
         store.storage()?;
+        #[cfg(windows)]
+        ownership::record(&store._namespace, &store._file)?;
         Ok(store)
     }
 }

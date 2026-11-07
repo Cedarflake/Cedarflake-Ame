@@ -30,7 +30,6 @@ struct State {
     active: Option<Arc<AtomicBool>>,
     closed: bool,
     index: SemanticIndexStatus,
-    retry: u64,
 }
 
 #[derive(Clone, Default)]
@@ -47,16 +46,6 @@ impl SearchRequests {
     pub(crate) fn publish_index(&self, status: SemanticIndexStatus) -> Result<(), ScanError> {
         self.0.lock().map_err(|_| unavailable())?.index = status;
         Ok(())
-    }
-
-    pub(crate) fn retry_index(&self) -> Result<(), ScanError> {
-        let mut state = self.0.lock().map_err(|_| unavailable())?;
-        state.retry = state.retry.checked_add(1).ok_or_else(unavailable)?;
-        Ok(())
-    }
-
-    pub(crate) fn retry_revision(&self) -> Result<u64, ScanError> {
-        Ok(self.0.lock().map_err(|_| unavailable())?.retry)
     }
 
     pub(crate) fn submit(

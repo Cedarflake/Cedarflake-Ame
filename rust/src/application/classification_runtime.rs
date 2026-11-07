@@ -37,6 +37,10 @@ pub(crate) fn while_retired<T>(
     change()
 }
 
+pub(crate) fn recover_semantic_index(directory: &std::path::Path) -> Result<(), ScanError> {
+    while_retired(|| production::recover_semantic_features(directory))
+}
+
 pub struct ClassificationRuntimePaths {
     pub database: PathBuf,
     pub feature_cache_directory: PathBuf,

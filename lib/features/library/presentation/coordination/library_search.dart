@@ -67,6 +67,8 @@ class LibrarySearch extends ChangeNotifier {
   void _edited() {
     _debounce?.cancel();
     cancelPending();
+    error = null;
+    onFailure(null);
     notifyListeners();
     if (_disposed ||
         (text.value.composing.isValid && !text.value.composing.isCollapsed)) {
@@ -270,7 +272,7 @@ class LibrarySearch extends ChangeNotifier {
   Future<void> dismissFailure(Object failure) async {
     if (_disposed ||
         loading ||
-        !related ||
+        !active ||
         !identical(error, failure) ||
         failure is LibrarySemanticIndexFailure) {
       return;
@@ -315,9 +317,18 @@ class LibrarySearch extends ChangeNotifier {
   }
 
   Future<void> retry() async {
+    if (_disposed || loading) return;
+    final recoverIndex =
+        error != null && (mode == LibrarySearchMode.content || related);
+    cancelPending();
     final generation = _generation;
+    error = null;
+    loading = true;
+    hasUpdates = false;
+    onFailure(null);
+    notifyListeners();
     try {
-      if (error != null && (mode == LibrarySearchMode.content || related)) {
+      if (recoverIndex) {
         await _session?.service.retryIndex();
       }
       if (_disposed || generation != _generation) return;
@@ -326,6 +337,11 @@ class LibrarySearch extends ChangeNotifier {
       if (!_disposed && generation == _generation) {
         error = failure;
         onFailure(failure);
+        notifyListeners();
+      }
+    } finally {
+      if (!_disposed && generation == _generation) {
+        loading = false;
         notifyListeners();
       }
     }

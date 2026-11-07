@@ -3,6 +3,11 @@ import "dart:async";
 import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_lifecycle.dart";
 import "package:cedarflake_ame/features/library/application/library_foreground_reads.dart";
+import "package:cedarflake_ame/features/library/application/library_semantic_recovery.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_semantic_search.dart";
+import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/features/library/domain/library_semantic_search.dart";
+import "package:cedarflake_ame/features/library/domain/library_classification_review.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_classification.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/domain/library_classification_configuration.dart";
@@ -97,6 +102,23 @@ void main() {
     fixture.owner.startInBackground();
     fixture.service.opened.complete(null);
     await tester.pump();
+    final search = LibrarySemanticRecovery(
+      _SearchRecovery(() async {}),
+      fixture.owner,
+    );
+    await expectLater(
+      search.prepare(
+        const LibraryGalleryQuery(),
+        const LibrarySemanticDescription("fox"),
+      ),
+      throwsA(
+        isA<LibrarySemanticFailure>().having(
+          (failure) => failure.code,
+          "code",
+          "semantic_model_unavailable",
+        ),
+      ),
+    );
     await fixture.owner.close();
     expect(fixture.service.opens, 1);
     expect(fixture.session.runs, 0);
@@ -218,7 +240,7 @@ void main() {
     fixture.dispose();
   });
 
-  testWidgets("configuration waits for execution and handle retirement", (
+  testWidgets("search retry waits for execution and handle retirement", (
     tester,
   ) async {
     final fixture = _Fixture();
@@ -229,25 +251,110 @@ void main() {
     await tester.pump();
     var saved = false;
     var retiredAtSave = false;
-    final change = fixture.owner.changeConfiguration(() async {
+    final service = _SearchRecovery(() async {
       retiredAtSave = fixture.session.closed;
       saved = true;
     });
+    final recovery = LibrarySemanticRecovery(service, fixture.owner);
+    final change = recovery.retryIndex();
+    expect(identical(recovery.retryIndex(), change), isTrue);
+    final query = recovery.prepare(
+      const LibraryGalleryQuery(),
+      const LibrarySemanticDescription(""),
+    );
+    final rejected = expectLater(
+      query,
+      throwsA(
+        isA<LibrarySemanticFailure>().having(
+          (error) => error.code,
+          "code",
+          "semantic_query_invalid",
+        ),
+      ),
+    );
     await tester.pump();
     expect(fixture.session.closeRequested, isTrue);
     expect(saved, isFalse);
+    expect(service.preparations, 0);
     fixture.session.finished.complete();
     await tester.pump();
     expect(saved, isFalse);
     fixture.session.closeGate!.complete();
-    fixture.service.reopened.complete(null);
+    await tester.pump();
+    expect(saved, isTrue);
+    expect(service.preparations, 0);
+    fixture.service.reopened.complete(_Session());
     await tester.pump();
     await change;
+    await rejected;
     expect(saved, isTrue);
     expect(retiredAtSave, isTrue);
+    expect(fixture.service.opens, 2);
+    expect(service.preparations, 1);
     await fixture.owner.close();
     fixture.dispose();
   });
+
+  for (final failedDuringRun in [false, true]) {
+    testWidgets(
+      "search preserves ${failedDuringRun ? 'runtime' : 'startup'} failure and recovers through the lifecycle",
+      (tester) async {
+        final fixture = _Fixture();
+        final service = _SearchRecovery(() async {});
+        final search = LibrarySemanticRecovery(service, fixture.owner);
+        fixture.owner.startInBackground();
+        const failure = LibraryClassificationFailure(
+          "semantic_storage_invalid",
+          "Damaged search data",
+        );
+        if (failedDuringRun) {
+          service.prepareFailure = "semantic_session_unavailable";
+          fixture.service.opened.complete(fixture.session);
+          await tester.pump();
+          fixture.session.finished.completeError(failure);
+        } else {
+          fixture.service.opened.completeError(failure);
+        }
+        await tester.pump();
+        await expectLater(
+          search.prepare(
+            const LibraryGalleryQuery(),
+            const LibrarySemanticDescription("fox"),
+          ),
+          throwsA(
+            isA<LibrarySemanticFailure>().having(
+              (failure) => failure.code,
+              "code",
+              "semantic_storage_invalid",
+            ),
+          ),
+        );
+        expect(service.preparations, failedDuringRun ? 1 : 0);
+        final retry = search.retryIndex();
+        fixture.service.reopened.complete(_Session());
+        await tester.pump();
+        await retry;
+        expect(fixture.owner.error, isNull);
+        service.prepareFailure = "semantic_query_invalid";
+        await expectLater(
+          search.prepare(
+            const LibraryGalleryQuery(),
+            const LibrarySemanticDescription(""),
+          ),
+          throwsA(
+            isA<LibrarySemanticFailure>().having(
+              (failure) => failure.code,
+              "code",
+              "semantic_query_invalid",
+            ),
+          ),
+        );
+        expect(service.preparations, failedDuringRun ? 2 : 1);
+        await fixture.owner.close();
+        fixture.dispose();
+      },
+    );
+  }
 
   testWidgets(
     "managed installation commits after retirement and preserves observed settings",
@@ -592,6 +699,26 @@ class _Maintenance implements LibraryClassificationMaintenance {
   void cancel() => cancelled = true;
   @override
   void dispose() => disposed = true;
+}
+
+class _SearchRecovery implements LibrarySemanticSearch {
+  _SearchRecovery(this.recover);
+  final Future<void> Function() recover;
+  int preparations = 0;
+  String prepareFailure = "semantic_query_invalid";
+
+  @override
+  Future<void> retryIndex() => recover();
+  @override
+  Future<LibrarySemanticIndexStatus?> indexStatus() async => null;
+  @override
+  Future<LibrarySemanticSearchRequest> prepare(
+    LibraryGalleryQuery scope,
+    LibrarySemanticInput input,
+  ) async {
+    preparations += 1;
+    throw LibrarySemanticFailure(prepareFailure);
+  }
 }
 
 class _SetupConfiguration implements LibraryClassificationConfigurationService {
