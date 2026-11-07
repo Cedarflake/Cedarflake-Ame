@@ -46,6 +46,7 @@ impl NativeExecutor {
     pub(super) fn new(
         paths: &ClassificationRuntimePaths,
         setup: ClassificationAnalysisSetup,
+        factory: LocalClassificationEncoderFactory,
     ) -> Self {
         Self {
             database: paths.database.clone(),
@@ -54,11 +55,7 @@ impl NativeExecutor {
             setup,
             classifier: None,
             residency: ClassificationEncoderResidency::new(
-                AdmittedTextFactory(LocalClassificationEncoderFactory {
-                    executable: paths.worker.clone(),
-                    model_directory: paths.models.clone(),
-                    runtime_directory: paths.runtime.clone(),
-                }),
+                AdmittedTextFactory(factory),
                 MonotonicResidencyClock::default(),
                 Duration::from_secs(60),
             ),

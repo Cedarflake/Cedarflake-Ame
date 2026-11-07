@@ -12,7 +12,7 @@ use windows_sys::Win32::Storage::FileSystem::{
 };
 
 use super::manifest::{self, Artifact};
-use super::{EncoderKind, RuntimeError};
+use super::{EncoderBackend, EncoderKind, RuntimeError, backend};
 
 pub(super) struct ArtifactSet {
     pub runtime: PathBuf,
@@ -23,9 +23,37 @@ pub(super) struct ArtifactSet {
 
 impl ArtifactSet {
     pub fn open(models: &Path, runtime: &Path, kind: EncoderKind) -> Result<Self, RuntimeError> {
+        Self::open_for(models, runtime, kind, EncoderBackend::Cpu)
+    }
+
+    pub fn open_for(
+        models: &Path,
+        runtime: &Path,
+        kind: EncoderKind,
+        backend: EncoderBackend,
+    ) -> Result<Self, RuntimeError> {
         let mut guards = pin_directory(models)?;
-        guards.extend(pin_directory(runtime)?);
-        for artifact in [&manifest::RUNTIME, &manifest::PROVIDER] {
+        let (runtime, runtime_files) = match backend {
+            EncoderBackend::Cpu => (
+                runtime.to_path_buf(),
+                vec![&manifest::RUNTIME, &manifest::PROVIDER],
+            ),
+            EncoderBackend::DirectMl { device_id }
+                if kind == EncoderKind::Image && device_id >= 0 =>
+            {
+                (
+                    runtime.with_file_name("classification-accelerator"),
+                    vec![
+                        &backend::GPU_RUNTIME,
+                        &backend::GPU_PROVIDER,
+                        &backend::DIRECTML,
+                    ],
+                )
+            }
+            _ => return Err(RuntimeError::Configuration),
+        };
+        guards.extend(pin_directory(&runtime)?);
+        for artifact in runtime_files {
             guards.push(verify_file(&runtime.join(artifact.name), artifact)?);
         }
         let graph = match kind {

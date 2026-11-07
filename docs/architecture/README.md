@@ -53,3 +53,4 @@ Recorded decisions:
 - [ADR 0036: Durable classification dispatch and publication authority](0036-durable-classification-dispatch.md)
 - [ADR 0037: Feature module dependencies and production composition](0037-feature-module-dependency-boundaries.md)
 - [ADR 0038: Bounded perceptual similarity over admitted content](0038-bounded-perceptual-similarity.md)
+- [ADR 0039: Default-enabled GPU image classification](0039-gpu-classification-execution.md)

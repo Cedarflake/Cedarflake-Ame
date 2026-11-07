@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$OutputDirectory,
-    [string]$ArchivePath
+    [string]$ArchivePath,
+    [switch]$Accelerator,
+    [string]$DirectMLArchivePath
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,8 +13,9 @@ trap {
     throw
 }
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
+. (Join-Path $PSScriptRoot "release_download_classification_runtime.ps1")
 
-$manifest = Get-AmeClassificationRuntimeManifest
+$manifest = Get-AmeClassificationRuntimeManifest -Accelerator:$Accelerator
 $output = [IO.Path]::GetFullPath($OutputDirectory).TrimEnd('\', '/')
 $build = [IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $PSScriptRoot) "build"))
 if (-not $output.StartsWith("$build\", [StringComparison]::OrdinalIgnoreCase)) {
@@ -21,7 +24,7 @@ if (-not $output.StartsWith("$build\", [StringComparison]::OrdinalIgnoreCase)) {
 Assert-AmeClassificationRuntimeLocalPath $output
 if (Test-Path -LiteralPath $output) {
     Assert-AmeClassificationRuntimeDirectory $output $manifest
-    Write-Host "Verified bundled ONNX Runtime $($manifest.version)"
+    Write-Host "Verified bundled classification runtime: $($manifest.bundleDirectory)"
     return
 }
 
@@ -29,58 +32,51 @@ $parent = [IO.Path]::GetDirectoryName($output)
 [void][IO.Directory]::CreateDirectory($parent)
 $scratch = Join-Path $parent (".classification-runtime-" + [Guid]::NewGuid().ToString("N"))
 [void][IO.Directory]::CreateDirectory($scratch)
-$download = Join-Path $scratch "runtime.zip"
 $prepared = Join-Path $scratch "prepared"
-try {
-    if ([string]::IsNullOrWhiteSpace($ArchivePath)) {
-        Add-Type -AssemblyName System.Net.Http
-        $client = [Net.Http.HttpClient]::new()
-        $client.DefaultRequestHeaders.UserAgent.ParseAdd("Cedarflake-Ame-build/1.0")
-        $timeout = [Threading.CancellationTokenSource]::new([TimeSpan]::FromMinutes(5))
-        $response = $null
-        try {
-            $response = $client.GetAsync(
-                $manifest.archive.url, [Net.Http.HttpCompletionOption]::ResponseHeadersRead, $timeout.Token
-            ).GetAwaiter().GetResult()
-            [void]$response.EnsureSuccessStatusCode()
-            if ($response.Content.Headers.ContentLength -gt $manifest.archive.length) {
-                throw "Runtime download exceeds its admitted size"
-            }
-            $source = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
-            $destination = [IO.File]::Open($download, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write)
-            try {
-                $buffer = [byte[]]::new(65536)
-                $total = 0L
-                while (($read = $source.ReadAsync($buffer, 0, $buffer.Length, $timeout.Token).GetAwaiter().GetResult()) -gt 0) {
-                    $total += $read
-                    if ($total -gt $manifest.archive.length) { throw "Runtime download exceeds its admitted size" }
-                    $destination.Write($buffer, 0, $read)
-                }
-            } finally {
-                $destination.Dispose()
-                $source.Dispose()
-            }
-        } finally {
-            if ($null -ne $response) { $response.Dispose() }
-            $timeout.Dispose()
-            $client.Dispose()
+[void][IO.Directory]::CreateDirectory($prepared)
+$parts = @(if ($Accelerator) {
+    @($manifest.archives | ForEach-Object {
+        $sourceArchive = $_
+        [pscustomobject]@{
+            archive = $sourceArchive
+            files = @($manifest.files | Where-Object archive -CEQ $sourceArchive.id)
         }
-        $ArchivePath = $download
+    })
+} else { $manifest })
+$ownedFiles = [Collections.Generic.List[string]]::new()
+$ownedDirectories = [Collections.Generic.List[string]]::new()
+try {
+    for ($index = 0; $index -lt $parts.Count; $index++) {
+        $part = $parts[$index]
+        $download = Join-Path $scratch "$index.zip"
+        $extracted = Join-Path $scratch "$index"
+        $ownedFiles.Add($download)
+        $ownedDirectories.Add($extracted)
+        foreach ($file in $part.files) { $ownedFiles.Add((Join-Path $extracted $file.name)) }
+        $archive = if ($index -eq 0) { $ArchivePath } else { $DirectMLArchivePath }
+        if ([string]::IsNullOrWhiteSpace($archive)) {
+            Receive-AmeClassificationRuntimeArchive $part.archive $download
+            $archive = $download
+        }
+        Expand-AmeClassificationRuntimeArchive $archive $extracted $part
+        foreach ($file in $part.files) {
+            [IO.File]::Move((Join-Path $extracted $file.name), (Join-Path $prepared $file.name))
+        }
     }
-    Expand-AmeClassificationRuntimeArchive $ArchivePath $prepared $manifest
+    Assert-AmeClassificationRuntimeDirectory $prepared $manifest
     Assert-AmeClassificationRuntimeLocalPath $output
     [IO.Directory]::Move($prepared, $output)
-    Write-Host "Prepared bundled ONNX Runtime $($manifest.version)"
+    Write-Host "Prepared bundled classification runtime: $($manifest.bundleDirectory)"
 } finally {
-    # Only this invocation's flat extraction and download are disposable.
-    foreach ($file in $manifest.files) {
-        $path = Join-Path $prepared $file.name
+    # Only this invocation's verified flat extraction and downloads are disposable.
+    foreach ($file in $manifest.files) { $ownedFiles.Add((Join-Path $prepared $file.name)) }
+    foreach ($path in $ownedFiles) {
         if (Test-Path -LiteralPath $path) {
             Assert-AmeClassificationRuntimeLocalPath $path
             Remove-Item -LiteralPath $path -Force
         }
     }
-    if (Test-Path -LiteralPath $prepared) { [IO.Directory]::Delete($prepared, $false) }
-    if (Test-Path -LiteralPath $download) { Remove-Item -LiteralPath $download -Force }
-    [IO.Directory]::Delete($scratch, $false)
+    foreach ($path in $ownedDirectories.ToArray() + @($prepared, $scratch)) {
+        if (Test-Path -LiteralPath $path) { [IO.Directory]::Delete($path, $false) }
+    }
 }

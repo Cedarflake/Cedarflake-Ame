@@ -5,9 +5,20 @@
 
 import '../domain.dart';
 import '../domain/classification/work.dart';
+import '../domain/classification_acceleration.dart';
 import '../domain/classification_configuration.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+
+Future<ClassificationAccelerationSettings> loadClassificationAcceleration() =>
+    RustLib.instance.api
+        .crateApiClassificationSettingsLoadClassificationAcceleration();
+
+Future<void> saveClassificationAcceleration({required bool gpuEnabled}) =>
+    RustLib.instance.api
+        .crateApiClassificationSettingsSaveClassificationAcceleration(
+          gpuEnabled: gpuEnabled,
+        );
 
 Future<ClassificationSettings> loadClassificationSettings() => RustLib
     .instance

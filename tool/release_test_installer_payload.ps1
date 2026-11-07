@@ -72,11 +72,11 @@ try {
             throw 'Model installer components must bind the separately verified model payload'
         }
     }
-    if ($entries.Count -ne 19 -or
+    if ($entries.Count -ne 28 -or
         @($entries | Where-Object { $_.Source -like "*cedarflake_ame_journal_broker.exe" }).Count -ne 0 -or
         $source.SelectNodes("//w:Shortcut", $namespaces).Count -ne 2 -or
-        $source.SelectNodes("//w:ComponentRef", $namespaces).Count -ne 27 -or
-        $source.SelectNodes("//w:PermissionEx", $namespaces).Count -ne 25) {
+        $source.SelectNodes("//w:ComponentRef", $namespaces).Count -ne 37 -or
+        $source.SelectNodes("//w:PermissionEx", $namespaces).Count -ne 35) {
         throw "MSI generated component, broker exclusion, shortcut or ACL ownership is incomplete"
     }
     foreach ($name in @('AmeStartMenu', 'AmeDesktop')) {

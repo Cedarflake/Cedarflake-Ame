@@ -18,7 +18,7 @@ pub(super) fn open(path: &Path) -> Result<Connection, ScanError> {
     let version: u32 = transaction
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .map_err(storage_error)?;
-    if version > 2 {
+    if version > 3 {
         return Err(storage_error(
             "The classification installation format is newer than supported",
         ));
@@ -44,6 +44,18 @@ pub(super) fn open(path: &Path) -> Result<Connection, ScanError> {
                 pending INTEGER NOT NULL CHECK(pending IN (0, 1))
             ) STRICT;
             PRAGMA user_version = 2;",
+            )
+            .map_err(storage_error)?;
+    }
+    if version < 3 {
+        transaction
+            .execute_batch(
+                "CREATE TABLE acceleration (
+                id INTEGER PRIMARY KEY CHECK(id = 1),
+                gpu_enabled INTEGER NOT NULL CHECK(gpu_enabled IN (0, 1))
+            ) STRICT;
+            INSERT INTO acceleration VALUES (1, 1);
+            PRAGMA user_version = 3;",
             )
             .map_err(storage_error)?;
     }

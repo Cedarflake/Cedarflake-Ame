@@ -23,6 +23,7 @@ fn serve(input: &mut impl Read, output: &mut impl Write) -> Result<(), RuntimeEr
         version,
         session,
         encoder: kind,
+        backend,
         models,
         runtime,
     } = start.message
@@ -32,8 +33,8 @@ fn serve(input: &mut impl Read, output: &mut impl Write) -> Result<(), RuntimeEr
     if version != protocol::VERSION || session == 0 {
         return Err(RuntimeError::Protocol);
     }
-    let loaded = ArtifactSet::open(&models, &runtime, kind)
-        .and_then(|artifacts| Encoder::load(artifacts, kind));
+    let loaded = ArtifactSet::open_for(&models, &runtime, kind, backend)
+        .and_then(|artifacts| Encoder::load(artifacts, kind, backend));
     let mut encoder = match loaded {
         Ok(encoder) => encoder,
         Err(error) => {
@@ -46,7 +47,7 @@ fn serve(input: &mut impl Read, output: &mut impl Write) -> Result<(), RuntimeEr
         &Response::Ready {
             version,
             session,
-            contract: super::manifest::contract_revision(),
+            contract: super::manifest::contract_revision(backend),
         },
         &[],
     )?;

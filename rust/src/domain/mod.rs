@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 pub mod classification;
+pub mod classification_acceleration;
 pub mod classification_catalog;
 pub mod classification_configuration;
 pub mod classification_review;

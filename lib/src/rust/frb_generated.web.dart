@@ -34,6 +34,7 @@ import 'dart:convert';
 import 'domain.dart';
 import 'domain/classification/installation.dart';
 import 'domain/classification/work.dart';
+import 'domain/classification_acceleration.dart';
 import 'domain/classification_configuration.dart';
 import 'domain/classification_review.dart';
 import 'domain/classification_selection.dart';
@@ -313,6 +314,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationDeviceStatus
+  dco_decode_box_autoadd_classification_device_status(dynamic raw);
+
+  @protected
   ClassificationReviewReason
   dco_decode_box_autoadd_classification_review_reason(dynamic raw);
 
@@ -527,10 +532,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CatalogSnapshot dco_decode_catalog_snapshot(dynamic raw);
 
   @protected
+  ClassificationAccelerationSettings
+  dco_decode_classification_acceleration_settings(dynamic raw);
+
+  @protected
   ClassificationAnnotation dco_decode_classification_annotation(dynamic raw);
 
   @protected
   ClassificationCategoryInput dco_decode_classification_category_input(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationComputeDevice dco_decode_classification_compute_device(
     dynamic raw,
   );
 
@@ -540,6 +554,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ClassificationControlAction dco_decode_classification_control_action(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationDeviceStatus dco_decode_classification_device_status(
     dynamic raw,
   );
 
@@ -929,6 +948,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   CatalogReadRetryDetails?
   dco_decode_opt_box_autoadd_catalog_read_retry_details(dynamic raw);
+
+  @protected
+  ClassificationDeviceStatus?
+  dco_decode_opt_box_autoadd_classification_device_status(dynamic raw);
 
   @protected
   ClassificationReviewReason?
@@ -1522,6 +1545,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationDeviceStatus
+  sse_decode_box_autoadd_classification_device_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ClassificationReviewReason
   sse_decode_box_autoadd_classification_review_reason(
     SseDeserializer deserializer,
@@ -1802,6 +1831,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CatalogSnapshot sse_decode_catalog_snapshot(SseDeserializer deserializer);
 
   @protected
+  ClassificationAccelerationSettings
+  sse_decode_classification_acceleration_settings(SseDeserializer deserializer);
+
+  @protected
   ClassificationAnnotation sse_decode_classification_annotation(
     SseDeserializer deserializer,
   );
@@ -1812,11 +1845,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationComputeDevice sse_decode_classification_compute_device(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ClassificationConfigurationAction
   sse_decode_classification_configuration_action(SseDeserializer deserializer);
 
   @protected
   ClassificationControlAction sse_decode_classification_control_action(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationDeviceStatus sse_decode_classification_device_status(
     SseDeserializer deserializer,
   );
 
@@ -2296,6 +2339,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   CatalogReadRetryDetails?
   sse_decode_opt_box_autoadd_catalog_read_retry_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationDeviceStatus?
+  sse_decode_opt_box_autoadd_classification_device_status(
     SseDeserializer deserializer,
   );
 
@@ -3036,6 +3085,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_classification_device_status(
+    ClassificationDeviceStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_classification_review_reason(
     ClassificationReviewReason self,
     SseSerializer serializer,
@@ -3366,6 +3421,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_classification_acceleration_settings(
+    ClassificationAccelerationSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_classification_annotation(
     ClassificationAnnotation self,
     SseSerializer serializer,
@@ -3378,6 +3439,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_classification_compute_device(
+    ClassificationComputeDevice self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_classification_configuration_action(
     ClassificationConfigurationAction self,
     SseSerializer serializer,
@@ -3386,6 +3453,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_classification_control_action(
     ClassificationControlAction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_device_status(
+    ClassificationDeviceStatus self,
     SseSerializer serializer,
   );
 
@@ -3977,6 +4050,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_catalog_read_retry_details(
     CatalogReadRetryDetails? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_classification_device_status(
+    ClassificationDeviceStatus? self,
     SseSerializer serializer,
   );
 

@@ -1,25 +1,77 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::domain::ScanError;
 use crate::domain::classification::{ImageFeature, ModelCompatibility, TextFeature};
+use crate::domain::classification_acceleration::{
+    ClassificationComputeDevice, ClassificationDeviceStatus,
+};
+use crate::ports::classification_acceleration::ClassificationDeviceObserver;
 use crate::ports::classification_encoder::{
     ClassificationEncoder, ClassificationEncoderFactory, ClassificationEncoderKind,
 };
 
-use super::{EncoderKind, RuntimeError, WorkerConfiguration, WorkerSession, manifest};
+use super::{
+    EncoderBackend, EncoderKind, RuntimeError, WorkerConfiguration, WorkerSession, manifest,
+};
 
+#[derive(Default)]
 pub struct LocalClassificationEncoderFactory {
     pub executable: PathBuf,
     pub model_directory: PathBuf,
     pub runtime_directory: PathBuf,
+    pub backend: EncoderBackend,
+    pub observer: Option<Arc<dyn ClassificationDeviceObserver>>,
+    pub device_name: Option<String>,
+}
+
+impl LocalClassificationEncoderFactory {
+    pub fn recognizes_model(&self, model: ModelCompatibility) -> bool {
+        model == manifest::compatibility()
+            || model == manifest::compatibility_for(EncoderBackend::DirectMl { device_id: 0 })
+    }
+
+    pub fn with_gpu_preference(mut self, enabled: bool) -> Self {
+        self.backend = EncoderBackend::Cpu;
+        self.device_name = None;
+        let runtime = self
+            .runtime_directory
+            .with_file_name("classification-accelerator");
+        if enabled
+            && runtime.join(super::backend::GPU_RUNTIME.name).is_file()
+            && runtime.join(super::backend::DIRECTML.name).is_file()
+            && let Some(device) = super::device::preferred_gpu()
+        {
+            self.backend = EncoderBackend::DirectMl {
+                device_id: device.index,
+            };
+            self.device_name = Some(device.name);
+        }
+        if let Some(observer) = &self.observer {
+            observer.device_changed(ClassificationDeviceStatus {
+                device: self.device(),
+                active: false,
+            });
+        }
+        self
+    }
+
+    fn device(&self) -> ClassificationComputeDevice {
+        match self.backend {
+            EncoderBackend::Cpu => ClassificationComputeDevice::Cpu,
+            EncoderBackend::DirectMl { .. } => ClassificationComputeDevice::Gpu {
+                name: self.device_name.clone().unwrap_or_else(|| "GPU".into()),
+            },
+        }
+    }
 }
 
 impl ClassificationEncoderFactory for LocalClassificationEncoderFactory {
     type Encoder = LocalClassificationEncoder;
 
     fn compatibility(&self) -> ModelCompatibility {
-        manifest::compatibility()
+        manifest::compatibility_for(self.backend)
     }
 
     fn create(
@@ -31,12 +83,23 @@ impl ClassificationEncoderFactory for LocalClassificationEncoderFactory {
                 executable: self.executable.clone(),
                 model_directory: self.model_directory.clone(),
                 runtime_directory: self.runtime_directory.clone(),
+                backend: if kind == ClassificationEncoderKind::Image {
+                    self.backend
+                } else {
+                    EncoderBackend::Cpu
+                },
                 encoder: match kind {
                     ClassificationEncoderKind::Image => EncoderKind::Image,
                     ClassificationEncoderKind::Text => EncoderKind::Text,
                 },
             }),
             session: None,
+            observer: if kind == ClassificationEncoderKind::Image {
+                self.observer.clone()
+            } else {
+                None
+            },
+            device: self.device(),
         })
     }
 }
@@ -44,6 +107,8 @@ impl ClassificationEncoderFactory for LocalClassificationEncoderFactory {
 pub struct LocalClassificationEncoder {
     configuration: Option<WorkerConfiguration>,
     session: Option<WorkerSession>,
+    observer: Option<Arc<dyn ClassificationDeviceObserver>>,
+    device: ClassificationComputeDevice,
 }
 
 impl ClassificationEncoder for LocalClassificationEncoder {
@@ -60,7 +125,14 @@ impl ClassificationEncoder for LocalClassificationEncoder {
             .as_mut()
             .expect("the process is owned before initialization")
             .initialize(configuration, cancelled)
-            .map_err(runtime_error)
+            .map_err(runtime_error)?;
+        if let Some(observer) = &self.observer {
+            observer.device_changed(ClassificationDeviceStatus {
+                device: self.device.clone(),
+                active: true,
+            });
+        }
+        Ok(())
     }
 
     fn encode_prepared_image(
@@ -90,6 +162,12 @@ impl ClassificationEncoder for LocalClassificationEncoder {
     fn retire(&mut self) -> Result<(), ScanError> {
         if let Some(session) = &mut self.session {
             session.retire_process().map_err(runtime_error)?;
+        }
+        if let Some(observer) = &self.observer {
+            observer.device_changed(ClassificationDeviceStatus {
+                device: self.device.clone(),
+                active: false,
+            });
         }
         Ok(())
     }

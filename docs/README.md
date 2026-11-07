@@ -17,6 +17,7 @@ only the contracts, execution details, and evidence that own the task.
 | How should the accepted gallery and controls behave, and why? | [Gallery UI contract and rationale](product/gallery-ui.md#design-principles-and-rationale), under the accepted UI ADRs |
 | Which shared UI owner, regression and client path apply to a change? | [UI verification map](acceptance/quality/ui-verification.md#ui-workflow-verification) |
 | Where does current maintenance resume? | [Current queue](roadmap.md#current-execution-queue) and its linked active plan |
+| How is GPU smart-album analysis selected and verified? | [GPU execution decision](architecture/0039-gpu-classification-execution.md), [settings contract](product/gallery/settings.md) and [GPU evidence](acceptance/gpu-analysis-acceleration.md) |
 | Where are completed maintenance outcomes and deferred observations? | [Completed maintenance index](acceptance/completed-maintenance.md), linking the owning evidence |
 | Where is the completed R3 delivery recorded? | [R3 exact duplicate implementation](plans/r3-exact-duplicates.md) and its linked verification; the roadmap selects subsequent work |
 | Where is the frozen R2c execution history? | [R2c closeout execution](plans/r2c-closeout.md), with its final checkpoint and historical coverage |

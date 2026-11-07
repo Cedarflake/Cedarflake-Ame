@@ -1,0 +1,10 @@
+[package]
+name = "ame-onnx-schema-generation"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+prost = "=0.14.3"
+prost-types = "=0.14.3"
+prost-build = "=0.14.3"

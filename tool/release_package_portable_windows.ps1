@@ -63,9 +63,11 @@ foreach ($requiredSourcePath in $requiredSourcePaths) {
         throw "Windows Release directory is incomplete: $requiredSourcePath"
     }
 }
-$runtimeManifest = Get-AmeClassificationRuntimeManifest
-Assert-AmeClassificationRuntimeDirectory `
-    (Join-Path $resolvedReleaseRoot $runtimeManifest.bundleDirectory) $runtimeManifest
+foreach ($accelerator in @($false, $true)) {
+    $runtimeManifest = Get-AmeClassificationRuntimeManifest -Accelerator:$accelerator
+    Assert-AmeClassificationRuntimeDirectory `
+        (Join-Path $resolvedReleaseRoot $runtimeManifest.bundleDirectory) $runtimeManifest
+}
 $brokerSourcePath = Join-Path $resolvedReleaseRoot (Get-AmeBrokerServicePlan).BinaryName
 $applicationSourcePath = Join-Path $resolvedReleaseRoot $script:AmeApplicationBinaryName
 if ([string]::IsNullOrWhiteSpace($ExpectedBrokerPublisher)) {

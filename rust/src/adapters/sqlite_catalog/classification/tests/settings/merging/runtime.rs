@@ -24,6 +24,7 @@ fn idle_runtime_reconciles_the_curated_catalog_without_model_or_source_access() 
             worker: directory.path().join("absent-worker.exe"),
             models: directory.path().join("absent-models"),
             runtime: directory.path().join("absent-runtime"),
+            gpu_enabled: true,
         },
         id("idle-maintenance"),
         ClassificationDispatchSignals::new(MonotonicDispatchClock::default()),
@@ -79,6 +80,7 @@ fn runtime_retirement_precedes_maintenance_and_reopening_uses_the_committed_setu
         worker: directory.path().join("absent-worker.exe"),
         models: directory.path().join("absent-models"),
         runtime: directory.path().join("absent-runtime"),
+        gpu_enabled: true,
     };
     let mut runtime =
         NativeClassificationRuntime::open(paths(), id("before-maintenance"), signals).unwrap();
@@ -205,6 +207,7 @@ fn desktop_handoff_preserves_retirement_errors_and_committed_replay() {
             worker: directory.path().join("absent-worker.exe"),
             models: directory.path().join("absent-models"),
             runtime: directory.path().join("absent-runtime"),
+            gpu_enabled: true,
         },
         id("desktop-handoff"),
         signals,

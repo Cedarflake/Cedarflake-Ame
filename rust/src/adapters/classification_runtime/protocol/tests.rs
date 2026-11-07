@@ -4,6 +4,21 @@ use super::*;
 
 #[test]
 fn superseded_session_request_phase_and_version_are_rejected() {
+    let ready = Response::Ready {
+        version: VERSION,
+        session: 7,
+        contract: super::super::manifest::contract_revision(EncoderBackend::Cpu),
+    };
+    ready
+        .validate(7, ExpectedResponse::Ready(EncoderBackend::Cpu))
+        .unwrap();
+    assert!(matches!(
+        ready.validate(
+            7,
+            ExpectedResponse::Ready(EncoderBackend::DirectMl { device_id: 0 })
+        ),
+        Err(RuntimeError::Protocol)
+    ));
     let encoded = Response::Encoded {
         session: 7,
         request: 19,
@@ -13,7 +28,7 @@ fn superseded_session_request_phase_and_version_are_rejected() {
         (8, ExpectedResponse::Encoded(19)),
         (7, ExpectedResponse::Encoded(18)),
         (7, ExpectedResponse::Stopped(19)),
-        (7, ExpectedResponse::Ready),
+        (7, ExpectedResponse::Ready(EncoderBackend::Cpu)),
     ] {
         assert!(matches!(
             encoded.validate(session, expected),
@@ -24,9 +39,9 @@ fn superseded_session_request_phase_and_version_are_rejected() {
         Response::Ready {
             version: VERSION + 1,
             session: 7,
-            contract: super::super::manifest::contract_revision(),
+            contract: super::super::manifest::contract_revision(EncoderBackend::Cpu),
         }
-        .validate(7, ExpectedResponse::Ready),
+        .validate(7, ExpectedResponse::Ready(EncoderBackend::Cpu)),
         Err(RuntimeError::Protocol)
     ));
     let stale_failure = Response::Failed {
@@ -44,7 +59,7 @@ fn superseded_session_request_phase_and_version_are_rejected() {
             session: 7,
             contract: [0; 32]
         }
-        .validate(7, ExpectedResponse::Ready),
+        .validate(7, ExpectedResponse::Ready(EncoderBackend::Cpu)),
         Err(RuntimeError::Protocol)
     ));
 }

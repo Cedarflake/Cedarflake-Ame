@@ -39,14 +39,14 @@ fn an_unknown_storage_version_is_preserved_and_rejected() {
     let path = directory.path().join("classification.sqlite3");
     let connection = Connection::open(&path).unwrap();
     connection
-        .execute_batch("PRAGMA user_version = 3;")
+        .execute_batch("PRAGMA user_version = 4;")
         .unwrap();
     assert!(ClassificationInstallationStore.load(&path).is_err());
     assert_eq!(
         connection
             .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
             .unwrap(),
-        3
+        4
     );
 }
 

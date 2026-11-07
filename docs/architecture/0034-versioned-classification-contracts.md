@@ -826,6 +826,8 @@ configuration revisions so a download cannot silently overwrite a later pause or
 This adds no catalog migration or new encoder identity. Replacing the HTTP adapter must preserve
 fixed artifact admission, bounded streaming, cancellation, complete-file reuse and atomic selection.
 Model or runtime revision changes retain the original admission and feature-compatibility rules.
+The optional, default-enabled GPU image backend, its distinct pipeline and preference migration
+follow [ADR 0039](0039-gpu-classification-execution.md). CPU text encoding retains this contract.
 
 ### Worker ownership and protocol
 

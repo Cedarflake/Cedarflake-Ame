@@ -7,6 +7,8 @@ pub(crate) mod catalog_reader;
 pub(crate) mod catalog_session;
 pub(crate) mod classification;
 #[cfg(any(all(windows, feature = "classification-worker"), test))]
+pub(crate) mod classification_acceleration;
+#[cfg(any(all(windows, feature = "classification-worker"), test))]
 pub(crate) mod classification_analysis;
 pub(crate) mod classification_availability;
 pub(crate) mod classification_configuration;

@@ -595,6 +595,15 @@ class _Maintenance implements LibraryClassificationMaintenance {
 }
 
 class _SetupConfiguration implements LibraryClassificationConfigurationService {
+  @override
+  Future<LibraryClassificationAcceleration> loadAcceleration() async =>
+      const LibraryClassificationAcceleration(gpuEnabled: true);
+
+  @override
+  Future<void> saveAcceleration({required bool gpuEnabled}) async {
+    throw UnsupportedError("Acceleration is outside this fixture");
+  }
+
   _SetupConfiguration({this.configured = true});
   final bool configured;
   final actions = <String>[];

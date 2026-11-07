@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "platform": "windows-x64",
+  "bundleDirectory": "data/classification-accelerator",
+  "archives": [
+    {
+      "id": "onnxruntime",
+      "version": "1.24.4",
+      "url": "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime.directml/1.24.4/microsoft.ml.onnxruntime.directml.1.24.4.nupkg",
+      "length": 12458649,
+      "sha256": "57e9f11b73437bef7a309496135d4c1f96b1a8e9ddba60013fa27bfc1d788681",
+      "prefix": ""
+    },
+    {
+      "id": "directml",
+      "version": "1.15.4",
+      "url": "https://api.nuget.org/v3-flatcontainer/microsoft.ai.directml/1.15.4/microsoft.ai.directml.1.15.4.nupkg",
+      "length": 202292617,
+      "sha256": "4e7cb7ddce8cf837a7a75dc029209b520ca0101470fcdf275c1f49736a3615b9",
+      "prefix": ""
+    }
+  ],
+  "files": [
+    {
+      "archive": "onnxruntime",
+      "entry": "runtimes/win-x64/native/onnxruntime.dll",
+      "name": "onnxruntime.dll",
+      "length": 17328152,
+      "sha256": "e7eedec6a6f26dc39dc948276a75ef6d2bee3fff944d874ceed0bbd3b97bff40"
+    },
+    {
+      "archive": "onnxruntime",
+      "entry": "runtimes/win-x64/native/onnxruntime_providers_shared.dll",
+      "name": "onnxruntime_providers_shared.dll",
+      "length": 22040,
+      "sha256": "265c8daf29637cb259cac8be9f08f2cd45f3883f0f0e4949cbfddd5b4cbec3b6"
+    },
+    {
+      "archive": "onnxruntime",
+      "entry": "LICENSE",
+      "name": "LICENSE-ONNXRuntime.txt",
+      "length": 1094,
+      "sha256": "c250d6278f0b47a6439fb7592b08b58a55eb9f535aa49a1db63211c3f982b674"
+    },
+    {
+      "archive": "onnxruntime",
+      "entry": "Privacy.md",
+      "name": "Privacy.md",
+      "length": 2490,
+      "sha256": "bfb7712b075f3f07e3ebee5dc2a296d1de32dbf71ad28663f73d1538cb6c3b08"
+    },
+    {
+      "archive": "onnxruntime",
+      "entry": "ThirdPartyNotices.txt",
+      "name": "ThirdPartyNotices-ONNXRuntime.txt",
+      "length": 331175,
+      "sha256": "fb0af774b4d7cffc5b9d046f2aaeade2f37df2f80abf8033c95dfffcc77a8866"
+    },
+    {
+      "archive": "directml",
+      "entry": "bin/x64-win/DirectML.dll",
+      "name": "DirectML.dll",
+      "length": 18527776,
+      "sha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"
+    },
+    {
+      "archive": "directml",
+      "entry": "LICENSE.txt",
+      "name": "LICENSE-DirectML.txt",
+      "length": 10439,
+      "sha256": "a05138e3a085ff60a44881eedfa58dccb03ecc1d7b1f6ae888418e8c2fec4b8d"
+    },
+    {
+      "archive": "directml",
+      "entry": "LICENSE-CODE.txt",
+      "name": "LICENSE-CODE-DirectML.txt",
+      "length": 1093,
+      "sha256": "903df5512f7d02609fed0c780a9b704f5a3eeb6e4d84ebe42a29845c81899a3c"
+    },
+    {
+      "archive": "directml",
+      "entry": "ThirdPartyNotices.txt",
+      "name": "ThirdPartyNotices-DirectML.txt",
+      "length": 4577,
+      "sha256": "2c95795c13ff48a58b6ed916f37901c23d964b5d9d601af422f17ad2172e7950"
+    }
+  ]
+}

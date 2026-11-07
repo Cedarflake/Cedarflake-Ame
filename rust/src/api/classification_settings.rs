@@ -1,4 +1,5 @@
 use crate::domain::ScanError;
+use crate::domain::classification_acceleration::ClassificationAccelerationSettings;
 use crate::domain::classification_configuration::{
     ClassificationCategoryInput, ClassificationConfigurationAction, ClassificationControlAction,
     ClassificationSettings,
@@ -7,6 +8,28 @@ use crate::domain::classification_configuration::{
 #[cfg(all(windows, feature = "classification-worker"))]
 use crate::application::classification_configuration;
 
+pub fn load_classification_acceleration() -> Result<ClassificationAccelerationSettings, ScanError> {
+    #[cfg(all(windows, feature = "classification-worker"))]
+    {
+        crate::application::classification_acceleration::load()
+    }
+    #[cfg(not(all(windows, feature = "classification-worker")))]
+    {
+        Err(super::classification::unsupported())
+    }
+}
+
+pub fn save_classification_acceleration(gpu_enabled: bool) -> Result<(), ScanError> {
+    #[cfg(all(windows, feature = "classification-worker"))]
+    {
+        crate::application::classification_acceleration::save(gpu_enabled)
+    }
+    #[cfg(not(all(windows, feature = "classification-worker")))]
+    {
+        let _ = gpu_enabled;
+        Err(super::classification::unsupported())
+    }
+}
 pub fn load_classification_settings() -> Result<ClassificationSettings, ScanError> {
     #[cfg(all(windows, feature = "classification-worker"))]
     {

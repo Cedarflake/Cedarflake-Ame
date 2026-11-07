@@ -28,6 +28,9 @@ Initial settings are limited to behavior that is understandable and connected en
   加入相册前询问           开 / 关
   默认加入的相册           未设置 / 用户创建的相册
 
+智能相册
+  GPU 加速                开（默认） / 关
+
 整理记录（R4 接通后）
   导出整理记录             导出
   恢复整理记录             选择文件
@@ -100,3 +103,10 @@ from the reference application are not copied unless Ame later owns those capabi
 
 Only functional settings appear in the production page. R2a fixtures may demonstrate this confirmed
 page, but unavailable rows remain absent from the production shell until connected.
+
+`GPU 加速` applies to automatic smart-album image analysis. It defaults to on, prefers a supported
+local GPU and persists across restarts; turning it off selects CPU. Device switching retires the
+previous analysis process before replacing it, while the row retains its position and disables the
+switch during the change. The description names the selected device when available and does not
+claim that an idle worker is currently computing. Existing categories and legacy classification
+decisions remain stored; no manual classification controls are restored.

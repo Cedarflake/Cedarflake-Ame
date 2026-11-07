@@ -7,6 +7,7 @@ use crate::domain::ScanError;
 use crate::domain::classification::installation::{ClassificationInstallation, DownloadIntent};
 use crate::ports::classification_installation::ClassificationInstallationRepository;
 
+mod acceleration;
 mod schema;
 mod task;
 use schema::open;

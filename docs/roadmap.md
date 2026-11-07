@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-05
+Last planning update: 2026-11-07
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -55,6 +55,10 @@ archive compatibility and authorized model-installation recovery. The
 Reuse completed acceptance when its inputs are unchanged; new behavior receives its affected checks.
 
 ## Current execution queue
+
+GPU analysis acceleration is the active maintenance scope: a default-enabled Settings option and
+an admitted GPU path for the existing smart-album encoder. Follow the
+[execution plan](plans/gpu-analysis-acceleration.md); this does not start R7 search implementation.
 
 Post-R6 maintenance is integrated into `main`. The owning records retain the local regression and
 rebuilt-client evidence for [similarity throughput](acceptance/r6-similar-images.md#development-analysis-throughput--2026-11-05),

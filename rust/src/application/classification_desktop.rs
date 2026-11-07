@@ -5,6 +5,7 @@ use crate::domain::classification::ClassificationRecordId;
 use crate::domain::classification::installation::ClassificationInstallation;
 use crate::domain::classification::work::ClassificationDispatchMode;
 use crate::domain::{LibraryChangeLane, ScanError};
+use crate::ports::classification_acceleration::ClassificationAccelerationRepository;
 use crate::ports::classification_installation::ClassificationInstallationRepository;
 use crate::ports::classification_model_package::ClassificationModelPackage;
 use crate::ports::classification_work::ClassificationWorkRepository;
@@ -23,6 +24,7 @@ static SESSION_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 mod connection;
 mod maintenance;
 pub(crate) use connection::ClassificationDesktopSession;
+pub(crate) use connection::current_device;
 pub(crate) use maintenance::ClassificationDesktopMaintenance;
 
 pub(crate) fn save_installation(models: String, runtime: String) -> Result<(), ScanError> {
@@ -99,6 +101,7 @@ fn open_runtime(
             worker,
             models: installation.models,
             runtime: installation.runtime,
+            gpu_enabled: installation_repository().gpu_enabled(&installation_path(storage))?,
         },
         session,
         signals,

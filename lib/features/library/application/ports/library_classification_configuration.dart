@@ -1,6 +1,8 @@
 import "../../domain/library_classification_configuration.dart";
 
 abstract interface class LibraryClassificationConfigurationService {
+  Future<LibraryClassificationAcceleration> loadAcceleration();
+  Future<void> saveAcceleration({required bool gpuEnabled});
   Future<LibraryClassificationSettings> load();
   Future<LibraryClassificationSettings> loadNavigation();
   Future<List<LibraryClassificationCategory>> initialCategories();

@@ -71,6 +71,10 @@ state and submits intents without owning task handles or publication. Album pref
 live in `tool/dependency-boundaries/dart_boundary_policy.json`; this admits no other library internals
 or cross-feature widget imports.
 
+The Settings analysis row consumes `libraryClassificationConfigurationProvider` and
+`LibraryClassificationAcceleration`. The library application owns retirement, preference saving and
+replacement; Settings only renders the selected preference/device and submits the requested change.
+
 Cross-feature assembly belongs in application bootstrap. A business workflow spanning features
 still has one application owner and narrow collaborators. Promote a component to shared ownership
 only when independent consumers need the same stable behavior; shared visual primitives cannot

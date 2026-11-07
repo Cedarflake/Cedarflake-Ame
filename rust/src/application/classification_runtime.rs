@@ -1,9 +1,11 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use crate::adapters::SqliteCatalog;
 use crate::domain::classification::ClassificationRecordId;
 use crate::domain::classification::maintenance::CategoryMaintenancePlan;
 use crate::domain::{LibraryChangeLane, ScanError};
+use crate::ports::classification_encoder::ClassificationEncoderFactory;
 use crate::ports::classification_setup::ClassificationSetupRepository;
 use crate::ports::classification_work::ClassificationWorkRepository;
 
@@ -13,9 +15,11 @@ use super::classification_dispatch::{
 
 mod admitted_text;
 mod control;
+mod device;
 mod discovery;
 mod executor;
 mod maintenance;
+mod model_transition;
 mod ownership;
 mod production;
 mod setup;
@@ -36,6 +40,7 @@ pub struct ClassificationRuntimePaths {
     pub worker: PathBuf,
     pub models: PathBuf,
     pub runtime: PathBuf,
+    pub gpu_enabled: bool,
 }
 
 pub struct NativeClassificationRuntime {
@@ -51,22 +56,33 @@ impl NativeClassificationRuntime {
         signals: ClassificationDispatchSignals,
     ) -> Result<Self, ScanError> {
         let ownership = ownership::acquire()?;
-        let catalog =
+        let mut catalog =
             super::catalog_session::open_catalog(&paths.database, LibraryChangeLane::Recovery)?;
         let state = catalog.classification_dispatch_state()?;
         let run_id = state.run_id.as_ref().ok_or_else(setup::mismatch)?;
-        let setup = catalog.load_classification_setup(run_id)?.ok_or_else(|| {
+        let mut setup = catalog.load_classification_setup(run_id)?.ok_or_else(|| {
             ScanError::new(
                 "classification_setup_missing",
                 "The saved analysis settings are incomplete; choose an analysis configuration",
             )
         })?;
+        let device = Arc::new(device::ClassificationDeviceState::default());
+        let factory = production::encoder_factory(&paths, device.clone());
+        if factory.recognizes_model(setup.run().model()) {
+            setup = model_transition::replace_model(
+                &mut catalog,
+                setup,
+                factory.compatibility(),
+                &session,
+            )?;
+        }
         let control = ClassificationRuntimeControl::new(
             paths.database.clone(),
             session.clone(),
             signals.clone(),
+            device,
         );
-        let executor = NativeExecutor::new(&paths, setup);
+        let executor = NativeExecutor::new(&paths, setup, factory);
         let dispatcher = ClassificationDispatcher::open(catalog, executor, session, signals)?;
         Ok(Self {
             dispatcher,

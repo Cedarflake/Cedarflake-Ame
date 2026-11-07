@@ -117,6 +117,12 @@ does not start an encoder. The existing [residency contract](../0034-versioned-c
 owns demand loading, cancellation, idle retirement and replacement. Closing the host retires the
 executor before releasing process ownership; unproven retirement prevents another runtime.
 
+`classification_runtime/production::encoder_factory` selects the CPU or DirectML adapter from the
+persisted preference and available hardware. Its device observer exposes only Ame-owned status.
+`model_transition` replaces an incompatible known pipeline through the existing configuration
+transaction before dispatcher startup. [ADR 0039](../0039-gpu-classification-execution.md) owns
+device admission, precision, feature identities and installation migration.
+
 `analyze_classification_content` and `verify_classification_source` are source-resource entrypoints:
 they select the guarded image or exact reader and the existing catalog/background admission, then
 invoke use cases through Ame ports. The [dispatch contract](../0036-durable-classification-dispatch.md#durable-execution-and-compatibility)

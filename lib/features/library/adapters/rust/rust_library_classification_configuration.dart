@@ -1,4 +1,6 @@
 import "../../../../src/rust/api/classification_settings.dart" as native;
+import "../../../../src/rust/domain/classification_acceleration.dart"
+    as acceleration;
 import "../../../../src/rust/domain/classification/work.dart" as work;
 import "../../../../src/rust/domain/classification_configuration.dart"
     as contract;
@@ -9,6 +11,26 @@ import "library_classification_failure.dart";
 class RustLibraryClassificationConfiguration
     implements LibraryClassificationConfigurationService {
   const RustLibraryClassificationConfiguration();
+
+  @override
+  Future<LibraryClassificationAcceleration> loadAcceleration() =>
+      invokeClassificationBridge(() async {
+        final settings = await native.loadClassificationAcceleration();
+        return LibraryClassificationAcceleration(
+          gpuEnabled: settings.gpuEnabled,
+          deviceName: switch (settings.status?.device) {
+            acceleration.ClassificationComputeDevice_Gpu(:final name) => name,
+            acceleration.ClassificationComputeDevice_Cpu() => "CPU",
+            null => null,
+          },
+        );
+      });
+
+  @override
+  Future<void> saveAcceleration({required bool gpuEnabled}) =>
+      invokeClassificationBridge(
+        () => native.saveClassificationAcceleration(gpuEnabled: gpuEnabled),
+      );
 
   @override
   Future<LibraryClassificationSettings> load() => invokeClassificationBridge(

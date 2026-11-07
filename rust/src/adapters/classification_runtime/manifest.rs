@@ -37,12 +37,16 @@ pub(super) const PROVIDER: Artifact = Artifact {
 };
 
 pub(crate) fn compatibility() -> ModelCompatibility {
+    compatibility_for(super::EncoderBackend::Cpu)
+}
+
+pub(crate) fn compatibility_for(backend: super::EncoderBackend) -> ModelCompatibility {
     let space = ClassificationRevision::derive(
         "ame.classification.embedding-space.v1",
         [IMAGE.digest.as_bytes(), TEXT.digest.as_bytes()],
     );
     let execution = b"ort-2.0.0-rc.15;cpu-1.31.1;sequential;threads-1;batch-1;no-spinning";
-    let image = ClassificationRevision::derive(
+    let cpu_image = ClassificationRevision::derive(
         "ame.classification.image-pipeline.v1",
         [
             IMAGE.digest.as_bytes(),
@@ -51,6 +55,18 @@ pub(crate) fn compatibility() -> ModelCompatibility {
             b"image-0.25.10;first-frame;oriented-rgb8;triangle-whole-224;f32-nchw;mean-0.5;std-0.5;level-1;l2-f64",
         ],
     );
+    let image = match backend {
+        super::EncoderBackend::Cpu => cpu_image,
+        super::EncoderBackend::DirectMl { .. } => ClassificationRevision::derive(
+            "ame.classification.directml-image-pipeline.v1",
+            [
+                cpu_image.bytes().as_slice(),
+                super::backend::GPU_RUNTIME.digest.as_bytes(),
+                super::backend::DIRECTML.digest.as_bytes(),
+                b"ort-2.0.0-rc.15;dml-1.24.4;fp32-from-fp16-v1;fixed-1x3x224x224;no-cpu-fallback",
+            ],
+        ),
+    };
     let text = ClassificationRevision::derive(
         "ame.classification.text-pipeline.v1",
         [
@@ -65,8 +81,8 @@ pub(crate) fn compatibility() -> ModelCompatibility {
         .expect("the admitted model has 768 dimensions")
 }
 
-pub(super) fn contract_revision() -> [u8; 32] {
-    let model = compatibility();
+pub(super) fn contract_revision(backend: super::EncoderBackend) -> [u8; 32] {
+    let model = compatibility_for(backend);
     *ClassificationRevision::derive(
         "ame.classification.worker-contract.v1",
         [
