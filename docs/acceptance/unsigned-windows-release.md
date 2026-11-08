@@ -119,4 +119,18 @@ and rejects ambiguous matching releases. Faithful draft responses reproduced the
 existing transaction fixture; the corrected workflow passed it in PowerShell 7 and Windows
 PowerShell 5.1, including existing drafts, later release pages and duplicate-tag rejection.
 The publisher contains 252 production lines and its transaction fixture 233 dedicated test lines,
-with no inline tests. Publication recovery reuses this run's immutable packages and completed gates.
+with no inline tests. Fix `953b58f3` retains every package and source-identity check.
+
+Alpha 2 is [public](https://github.com/Cedarflake/Cedarflake-Ame/releases/tag/v0.1.0-alpha.2).
+After authorized removal of the accidental empty duplicate, publication resumed from the original
+draft and its existing CI-uploaded attachments. The corrected production lookup rechecked both
+remote digests and the unchanged source tag against the successful candidate and packaging jobs;
+no application rebuild, package replacement or new upload occurred. The original run retains its
+publication failure. The independent
+[published-download verification](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42535241863)
+passed, and the public body matches `docs/releases/v0.1.0-alpha.2.md` after line-ending normalization.
+
+| Asset | Bytes | SHA-256 |
+| --- | --- | --- |
+| Portable ZIP | 47,395,283 | `f832aec57f7fd3f0fc096f7403d8e58a3d8d9eb77f34225cd5f19f39d4b8a373` |
+| MSI | 383,852,544 | `69245cd49430b75daa5ab5f04c66812636b9dd765d10799fcad570867735dd4e` |
