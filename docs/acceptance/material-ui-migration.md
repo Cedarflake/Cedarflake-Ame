@@ -62,5 +62,16 @@ retired its scratch profile and preserved all 368 retained preview hashes, with 
 Native image-panning input did not produce an observable displacement in the automation tool. The
 existing gesture/bounds test passed; sustained desktop image dragging remains unconfirmed.
 
-Hosted full regression remains the integration gate for this dependency migration. Its current
-commit's Actions results own that outcome; the local checks do not replace a fresh Windows build.
+## Integration disposition
+
+[PR 54](https://github.com/Cedarflake/Cedarflake-Ame/pull/54) integrated reviewed head `da113d4d`
+into `main` as `f907b033` on 2026-11-08 after explicit authorization to merge before CI completion.
+The merged file tree exactly matches the reviewed head. Review against `27bde80b` found no confirmed
+new defect; the desktop panning verification limit above remains.
+
+At merge, the [implementation run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42448216115)
+at `ab512fd8` had passed Static, Flutter Tests, Windows Scan and Windows Accessibility; Windows Build
+Verification and all four Rust groups were still running. The
+[PR run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42449217822) at `da113d4d` was also
+running. Only acceptance documentation differs between these heads. Their Actions results retain
+the eventual hosted outcome; local native-output reuse does not establish a fresh Windows build.

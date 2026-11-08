@@ -56,10 +56,11 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-The standalone Material migration is implemented on `codex/material-ui-migration`; hosted regression
-and integration remain. [ADR 0001](architecture/0001-flutter-rust-desktop-stack.md#standalone-material-library)
+The standalone Material migration was integrated on 2026-11-08 through
+[PR 54](https://github.com/Cedarflake/Cedarflake-Ame/pull/54).
+[ADR 0001](architecture/0001-flutter-rust-desktop-stack.md#standalone-material-library)
 owns package compatibility and preserved desktop behavior; the [evidence record](acceptance/material-ui-migration.md)
-owns verification. This work does not start R8.
+owns verification and the authorized merge before CI completion. R8 remains planned and has not started.
 
 GPU analysis acceleration was merged into `main` on 2026-11-07 through
 [PR 52](https://github.com/Cedarflake/Cedarflake-Ame/pull/52). The
