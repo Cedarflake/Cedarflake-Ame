@@ -180,3 +180,13 @@ separate.
 Hosted run `42001105569` at `feaf501c` passed Flutter, native and release workloads but failed Static
 on a missing conditional block in the strip fixture. Adding that block preserves the test behavior;
 the affected file passes formatting and strict Dart analysis. Current-head CI remains separate.
+
+## Viewing controls and rotation — 2026-11-08
+
+The rebuilt Debug client displays the image-action group at the upper right, with a short divider
+before the window controls. Organization mode also displays the current image's category. The
+existing viewer regression run passed twelve cases, including action continuity through full screen
+and rotation with navigation. Desktop rotation preserved 100% actual size, adapted automatic fit
+to the oriented image, and reset when changing images. The checked original image retained its
+SHA-256. The final toolbar uses the installed Material Symbols 90-degree clockwise rotation icon;
+the rebuilt client displays it and the updated organization-mode controls.

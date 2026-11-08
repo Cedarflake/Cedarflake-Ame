@@ -64,12 +64,13 @@ The count includes the image unit and is separated from file metadata by a thin 
 The bottom More menu opens upward from its fixed lower edge above the button and closes toward
 that same edge. Its placement and animation leave the triggering button unobscured.
 The top bar retains the filename, back action and window controls. Favorite, album and organization
-actions form one icon-only group directly after the fixed-width filename region on the left.
-Long filenames elide without moving these actions. The filename and remaining blank header space
-are draggable; action buttons remain outside drag regions. Hover tooltips and accessible names
-describe each action and its current state;
+actions form one icon-only group on the right, separated from the window controls by a short vertical
+divider. The current image's classification appears in both ordinary viewing and organization mode.
+The flexible filename region remains draggable, and long filenames elide without moving these
+actions. Action buttons remain outside drag regions. Hover tooltips and accessible names describe
+each action and its current state;
 defer and ignore use labeled entries with icons inside the organization More menu. Album-conflict
-actions also use icons. Full screen keeps these actions at the upper left while hiding the filename
+actions also use icons. Full screen keeps these actions at the upper right while hiding the filename
 and window controls, preserving any in-flight action across the placement change. Both sides of the
 bottom toolbar use the same icon size and text style.
 Clockwise rotation, zoom mode, percentage, zoom slider and full-screen

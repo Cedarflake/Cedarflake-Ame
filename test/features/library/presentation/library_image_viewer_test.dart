@@ -89,7 +89,7 @@ void main() {
       );
       expect(actionRect.center.dy, minimizeRect.center.dy);
       expect(actionRect.right, lessThan(minimizeRect.left));
-      expect(actionRect.right, lessThanOrEqualTo(dragRect.left));
+      expect(actionRect.left, greaterThanOrEqualTo(dragRect.right));
       await tester.tap(organizationAction);
       expect(organizationActions, 1);
       await tester.tap(find.byKey(const Key("viewer-zoom-mode")));
@@ -113,7 +113,7 @@ void main() {
       expect(find.text("100%"), findsOneWidget);
       expect(tester.element(organizationAction), same(organizationElement));
       expect(tester.getRect(organizationAction).top, lessThan(64));
-      expect(tester.getRect(organizationAction).left, closeTo(20, .1));
+      expect(tester.getRect(organizationAction).right, closeTo(980, .1));
       await tester.tap(organizationAction);
       expect(organizationActions, 2);
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);

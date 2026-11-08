@@ -101,6 +101,8 @@ Connect copy, move, rename and move-to-Recycle-Bin actions to existing gallery s
 menus through the application owner. Distinguish selected image groups from affected physical
 files; unresolved duplicate-location choices require an explicit selection. Use existing destination
 selection, menus, feedback and bounded record surfaces rather than a preview page or task center.
+In the image viewer, place the move-to-Recycle-Bin button beside Favorite and Add to Album in the
+upper-right image-action group, before the window controls.
 
 Show real progress, partial results, cancellation and supported retry/restore actions. Keep gallery,
 viewer, albums, duplicates and search coherent after each verified change. Exit with the complete

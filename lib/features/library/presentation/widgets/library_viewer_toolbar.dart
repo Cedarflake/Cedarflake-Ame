@@ -158,7 +158,7 @@ class LibraryViewerToolbar extends StatelessWidget {
                 LibraryViewerToolbarButton(
                   id: "viewer-rotate-clockwise",
                   label: "顺时针旋转 90°",
-                  icon: Symbols.rotate_right_rounded,
+                  icon: Symbols.rotate_90_degrees_cw_rounded,
                   onPressed: onRotate,
                 ),
               LibraryViewerToolbarButton(
