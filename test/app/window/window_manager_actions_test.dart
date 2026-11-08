@@ -3,7 +3,7 @@ import "dart:async";
 import "package:cedarflake_ame/app/window/ame_shutdown_coordinator.dart";
 import "package:cedarflake_ame/app/window/ame_window_placement.dart";
 import "package:cedarflake_ame/app/window/window_manager_actions.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:window_manager/window_manager.dart";
 

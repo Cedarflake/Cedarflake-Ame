@@ -6,7 +6,7 @@ import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_pending_source.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_task_surface.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../support/primary_scan_control_fixture.dart";

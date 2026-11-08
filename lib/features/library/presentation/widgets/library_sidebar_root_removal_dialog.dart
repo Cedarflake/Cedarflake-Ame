@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 
 import "../../application/library_controller.dart";
 import "../../application/library_sidebar_root_removal.dart";

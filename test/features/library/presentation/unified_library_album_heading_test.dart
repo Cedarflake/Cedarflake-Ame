@@ -9,7 +9,7 @@ import "package:cedarflake_ame/features/library/application/library_scanner.dart
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_header.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 

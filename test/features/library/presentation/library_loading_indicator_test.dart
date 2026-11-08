@@ -1,5 +1,5 @@
 import "package:cedarflake_ame/features/library/presentation/widgets/library_loading_indicator.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {

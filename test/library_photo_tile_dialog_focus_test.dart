@@ -10,7 +10,7 @@ import "package:cedarflake_ame/features/library/presentation/library_strings.dar
 import "package:cedarflake_ame/features/library/presentation/widgets/library_asset_information_sheet.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:flutter/gestures.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";

@@ -13,7 +13,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_nav
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_navigation_tile.dart";
 import "package:flutter/gestures.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";

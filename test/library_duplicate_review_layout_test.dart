@@ -12,7 +12,7 @@ import "package:cedarflake_ame/features/library/presentation/pages/library_dupli
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_review_cards.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_review_grid.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_message.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 

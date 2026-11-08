@@ -5,13 +5,15 @@ import "package:cedarflake_ame/app/notifications/ame_notification_controller.dar
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
+
 import "../../../support/inert_library_synchronization.dart";
+
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/library_synchronization_feedback.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 

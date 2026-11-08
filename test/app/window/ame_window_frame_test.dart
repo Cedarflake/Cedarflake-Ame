@@ -2,7 +2,7 @@ import "package:cedarflake_ame/app/presentation/ame_brand_mark.dart";
 import "package:cedarflake_ame/app/window/ame_window_frame.dart";
 import "package:cedarflake_ame/app/window/ame_window_actions.dart";
 import "package:flutter/foundation.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";

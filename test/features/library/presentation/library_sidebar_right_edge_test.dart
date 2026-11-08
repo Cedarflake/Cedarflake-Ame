@@ -4,7 +4,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/annotated_t
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_header.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_sidebar_transition.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_sidebar_content.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {

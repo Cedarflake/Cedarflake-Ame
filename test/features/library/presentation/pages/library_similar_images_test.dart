@@ -22,7 +22,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_ima
 import "package:cedarflake_ame/features/library/presentation/widgets/library_similar_review_cards.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_scope.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";

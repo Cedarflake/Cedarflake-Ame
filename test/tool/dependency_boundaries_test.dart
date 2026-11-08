@@ -128,7 +128,9 @@ const text = "export 'ignored.dart';";
       _page:
           "import '../../application/query.dart'; import '../widgets/tile.dart';",
       _widget:
-          "import '../../domain/value.dart'; import 'package:flutter/material.dart';",
+          "import '../../domain/value.dart';"
+          "import 'package:material_ui/material_ui.dart';"
+          "import 'package:cupertino_ui/cupertino_ui.dart';",
       "lib/app/bootstrap/library_bindings.dart":
           "import '../../features/library/adapters/rust/catalog.dart';",
     });
@@ -136,19 +138,22 @@ const text = "export 'ignored.dart';";
   });
 
   test(
-    "rejects domain UI, Provider ports, application widgets and presentation I/O",
+    "rejects UI in core layers and adapters, Provider ports and presentation I/O",
     () {
       final modules = _graph({
         _domain: "import 'package:flutter/material.dart';",
         _port: "import 'package:flutter_riverpod/flutter_riverpod.dart';",
         _application: "import 'package:flutter/widgets.dart';",
+        _adapter:
+            "import 'package:material_ui/material_ui.dart';"
+            "import 'package:cupertino_ui/src/button.dart';",
         _widget: "import 'dart:io';",
       });
       expect(
         checkDartBoundaries(modules).map((entry) => entry.rule),
         everyElement("external-layer"),
       );
-      expect(checkDartBoundaries(modules), hasLength(4));
+      expect(checkDartBoundaries(modules), hasLength(6));
     },
   );
 
