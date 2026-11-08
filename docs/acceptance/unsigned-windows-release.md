@@ -79,3 +79,16 @@ lines. Moving the publication contract reduced the pre-existing installer guardr
 unrelated portions were retained. These owners contain no inline test code. No application rebuild,
 service installation, tag change or replacement of the existing Alpha assets was needed for these
 orchestration checks. Hosted execution for the new commit remains to be checked after submission.
+
+## Versioned release notes — 2026-11-09
+
+The publisher now reads `docs/releases/<tag>.md` from the dispatch's immutable workflow commit.
+The actual workflow script passed isolated publication fixtures in PowerShell 7 and Windows
+PowerShell 5.1: Markdown and Chinese text survived unchanged, repeated publication updated the
+body without replacing either package, and missing, empty or mismatched notes stopped all writes.
+The publication contract and pinned actionlint 1.7.12 also passed. These checks made no remote writes.
+
+The candidate and publisher contain 157 and 231 production lines; their dedicated publication
+and wiring checks contain 213 and 89 lines, with no inline tests. Alpha 2 was dispatched before
+this change, so its existing run retains the earlier publisher; its final body will be synchronized
+from the versioned document without rebuilding or changing the source tag.

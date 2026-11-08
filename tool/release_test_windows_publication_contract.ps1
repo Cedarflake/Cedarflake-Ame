@@ -44,15 +44,18 @@ Require-Text $packageJob @(
     'archive_sha256:', 'installer_sha256:', 'Upload immutable ZIP and MSI'
 ) @('contents: write', 'AME_SIGNING_PFX', 'Set-AuthenticodeSignature', 'gh release ')
 Require-Text $publishCall @(
-    '- release_windows', '- package_windows', 'contents: write',
+    '- release_request', '- release_windows', '- package_windows', 'contents: write',
     'uses: ./.github/workflows/release_publish_windows.yml',
     'source_commit: ${{ needs.release_windows.outputs.source_commit }}',
+    'trusted_workflow_commit: ${{ needs.release_request.outputs.trusted_workflow_commit }}',
     'package_artifact: ${{ needs.package_windows.outputs.package_artifact }}',
     'archive_sha256: ${{ needs.package_windows.outputs.archive_sha256 }}',
     'installer_sha256: ${{ needs.package_windows.outputs.installer_sha256 }}'
 ) @('secrets:', 'steps:')
 Require-Text $publishJob @(
     'contents: write', 'Download immutable ZIP and MSI',
+    'AME_NOTES_COMMIT: ${{ inputs.trusted_workflow_commit }}',
+    'Read versioned release notes', '--notes-file',
     'Publication requires exactly one ZIP and one MSI',
     'repos/$env:GITHUB_REPOSITORY/git/ref/tags/$env:AME_RELEASE_TAG',
     'repos/$env:GITHUB_REPOSITORY/git/tags/$objectSha',

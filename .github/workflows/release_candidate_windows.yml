@@ -125,6 +125,7 @@ jobs:
   publish_windows:
     name: Publish Windows Packages
     needs:
+      - release_request
       - release_windows
       - package_windows
     permissions:
@@ -133,6 +134,7 @@ jobs:
     with:
       release_tag: ${{ inputs.release_tag }}
       source_commit: ${{ needs.release_windows.outputs.source_commit }}
+      trusted_workflow_commit: ${{ needs.release_request.outputs.trusted_workflow_commit }}
       package_artifact: ${{ needs.package_windows.outputs.package_artifact }}
       archive_name: ${{ needs.package_windows.outputs.archive_name }}
       archive_sha256: ${{ needs.package_windows.outputs.archive_sha256 }}

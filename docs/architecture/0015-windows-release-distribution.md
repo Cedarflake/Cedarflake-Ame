@@ -90,6 +90,12 @@ selected read-only candidate and package gates succeed may a separate no-checkou
 repository-content write permission publish or update the corresponding GitHub Release. The
 published-release workflow independently verifies the exact attachment in the selected channel.
 
+Release text comes from `docs/releases/<tag>.md` at the immutable trusted workflow commit.
+A separate admission step retrieves that file as data through the GitHub API; the publisher still
+performs no repository checkout or script execution. It requires nonempty UTF-8 Markdown of at most
+64 KiB before any release mutation. Publication uses this text for new releases and synchronizes it
+on reruns without replacing verified package attachments. It never falls back to generated notes.
+
 ADR 0026 adds a separate credential-free unsigned build check to ordinary quality CI. It verifies
 the application and broker payload plus an isolated bridge smoke, but does not feed artifacts to
 this candidate chain or claim signing, installation, publication, or client acceptance.

@@ -12,6 +12,11 @@ The default GitHub release channel is **unsigned**. Manually run
 `v<semantic-version>` tag, choose `release_signing_mode: unsigned`, and leave
 `expected_broker_publisher` empty. No certificate, PFX secret or signing Environment is required.
 
+Before dispatch, commit `docs/releases/<tag>.md` to `main`, following the
+[release-note guide](../../releases/README.md). The publisher reads that version's Markdown from the
+dispatch's immutable workflow commit and uses it as the GitHub Release body. Missing or empty notes
+stop publication; reruns synchronize the body while preserving verified attachments.
+
 The reusable gate builds the application and broker without signing, stages one immutable
 manifest-bound Windows x64 bundle, and independently verifies its complete file list, lengths,
 SHA-256 hashes, source commit, tag ancestry, executable architecture and broker protocol.

@@ -9,6 +9,9 @@ on:
       source_commit:
         required: true
         type: string
+      trusted_workflow_commit:
+        required: true
+        type: string
       package_artifact:
         required: true
         type: string
@@ -42,6 +45,7 @@ jobs:
       AME_INSTALLER_SHA256: ${{ inputs.installer_sha256 }}
       AME_RELEASE_TAG: ${{ inputs.release_tag }}
       AME_SOURCE_COMMIT: ${{ inputs.source_commit }}
+      AME_NOTES_COMMIT: ${{ inputs.trusted_workflow_commit }}
     steps:
       - name: Download immutable ZIP and MSI
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
@@ -69,6 +73,31 @@ jobs:
               throw 'Publication artifact contains an unexpected entry'
             }
           }
+
+      - name: Read versioned release notes
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:AME_NOTES_COMMIT -cnotmatch '^[0-9a-f]{40}$') {
+            throw 'Release notes require the immutable workflow commit'
+          }
+          $notesPath = "docs/releases/$env:AME_RELEASE_TAG.md"
+          $tag = [Uri]::EscapeDataString($env:AME_RELEASE_TAG)
+          $record = gh api "repos/$env:GITHUB_REPOSITORY/contents/docs/releases/$tag.md?ref=$env:AME_NOTES_COMMIT" |
+            ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw "Could not read release notes: $notesPath" }
+          if ($record.type -cne 'file' -or $record.path -cne $notesPath -or
+              $record.encoding -cne 'base64' -or $record.size -le 0 -or $record.size -gt 65536) {
+            throw 'Release notes must be a nonempty Markdown file of at most 64 KiB'
+          }
+          $bytes = [Convert]::FromBase64String($record.content)
+          $text = [Text.UTF8Encoding]::new($false, $true).GetString($bytes)
+          if ($bytes.Length -ne $record.size -or [string]::IsNullOrWhiteSpace($text)) {
+            throw 'Release notes have invalid or empty content'
+          }
+          [IO.File]::WriteAllBytes((Join-Path $PWD 'build/release-notes.md'), $bytes)
 
       - name: Publish GitHub Release from the verified source commit
         shell: pwsh
@@ -179,7 +208,8 @@ jobs:
             -Artifacts $artifacts -Token $env:GH_TOKEN
           if ($plan.Create) {
             $arguments = @('release', 'create', $env:AME_RELEASE_TAG, '--repo', $env:GITHUB_REPOSITORY,
-              '--verify-tag', '--draft', '--title', "Cedarflake Ame $env:AME_RELEASE_TAG", '--generate-notes')
+              '--verify-tag', '--draft', '--title', "Cedarflake Ame $env:AME_RELEASE_TAG",
+              '--notes-file', (Join-Path $PWD 'build/release-notes.md'))
             if ($env:AME_RELEASE_TAG.Contains('-')) { $arguments += '--prerelease' }
             & gh $arguments
             if ($LASTEXITCODE -ne 0) { throw 'GitHub draft release creation failed' }
@@ -195,8 +225,7 @@ jobs:
           if ((Resolve-ReleaseTagCommit) -cne $env:AME_SOURCE_COMMIT) {
             throw 'GitHub release tag moved before publication'
           }
-          if ($verified.Draft) {
-            gh release edit $env:AME_RELEASE_TAG --repo $env:GITHUB_REPOSITORY --draft=false
-            if ($LASTEXITCODE -ne 0) { throw 'GitHub release publication failed' }
-          }
+          gh release edit $env:AME_RELEASE_TAG --repo $env:GITHUB_REPOSITORY --draft=false `
+            --notes-file (Join-Path $PWD 'build/release-notes.md')
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub release publication failed' }
           Write-Host 'Published release contains the verified ZIP and MSI'

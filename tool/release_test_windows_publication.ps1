@@ -16,9 +16,12 @@ function Get-PublicationStep([string]$Name) {
     [scriptblock]::Create(($lines -join "`n"))
 }
 $admission = Get-PublicationStep 'Validate immutable package pair'
+$readNotes = Get-PublicationStep 'Read versioned release notes'
 $publish = Get-PublicationStep 'Publish GitHub Release from the verified source commit'
 $fixtureTag = 'v1.2.3-alpha.1'
 $fixtureCommit = 'a' * 40
+$fixtureNotesCommit = 'c' * 40
+$fixtureNotes = "# Changes`n`n- $([char]0x66f4)$([char]0x65b0)`n"
 $script:publicationState = $null
 $script:fixtureArtifacts = @()
 
@@ -50,6 +53,15 @@ function gh {
     if ($Arguments[0] -ceq 'api' -and $Arguments[1] -ceq "repos/fixture/ame/git/ref/tags/$fixtureTag") {
         return (@{ object = @{ type = 'commit'; sha = $fixtureCommit } } | ConvertTo-Json -Compress)
     }
+    if ($Arguments[0] -ceq 'api' -and $Arguments[1] -ceq
+        "repos/fixture/ame/contents/docs/releases/$fixtureTag.md?ref=$fixtureNotesCommit") {
+        if ($state.NotesMissing) { $global:LASTEXITCODE = 1; return }
+        $text = if ($state.NotesEmpty) { " `n " } else { $fixtureNotes }
+        $bytes = [Text.Encoding]::UTF8.GetBytes($text)
+        $path = if ($state.NotesWrongVersion) { 'docs/releases/v9.9.9.md' } else { "docs/releases/$fixtureTag.md" }
+        return (@{ type = 'file'; path = $path; encoding = 'base64'; size = $bytes.Length
+            content = [Convert]::ToBase64String($bytes) } | ConvertTo-Json -Compress)
+    }
     if ($Arguments[0] -cne 'release' -or $Arguments -ccontains '--clobber') { throw 'Unexpected publication command' }
     switch ($Arguments[1]) {
         'create' {
@@ -58,6 +70,7 @@ function gh {
             }
             $state.Exists = $true
             $state.Draft = $true
+            $state.Body = Read-FixtureNotes $Arguments
             $state.Writes.Add('create-draft')
         }
         'upload' {
@@ -81,15 +94,24 @@ function gh {
                 throw 'Publication was attempted without both packages'
             }
             $state.Draft = $false
+            $state.Body = Read-FixtureNotes $Arguments
             $state.Writes.Add('publish')
         }
         default { throw 'Unexpected release mutation' }
     }
 }
 
+function Read-FixtureNotes([object[]]$Arguments) {
+    $index = [Array]::IndexOf($Arguments, '--notes-file')
+    if ($index -lt 0 -or $Arguments -ccontains '--generate-notes') { throw 'Versioned release notes were not supplied' }
+    $text = [IO.File]::ReadAllText([string]$Arguments[$index + 1], [Text.Encoding]::UTF8)
+    if ($text -cne $fixtureNotes) { throw 'Published release notes changed their Markdown or Unicode content' }
+    return $text
+}
+
 $savedEnvironment = @{}
 foreach ($name in @('AME_ARCHIVE_NAME', 'AME_ARCHIVE_SHA256', 'AME_INSTALLER_NAME', 'AME_INSTALLER_SHA256',
-        'AME_RELEASE_TAG', 'AME_SOURCE_COMMIT', 'GITHUB_REPOSITORY', 'GH_TOKEN')) {
+        'AME_RELEASE_TAG', 'AME_SOURCE_COMMIT', 'AME_NOTES_COMMIT', 'GITHUB_REPOSITORY', 'GH_TOKEN')) {
     $savedEnvironment[$name] = [Environment]::GetEnvironmentVariable($name)
 }
 try {
@@ -110,16 +132,22 @@ try {
         $env:AME_INSTALLER_SHA256 = $script:fixtureArtifacts[1].Sha256
         $env:AME_RELEASE_TAG = $fixtureTag
         $env:AME_SOURCE_COMMIT = $fixtureCommit
+        $env:AME_NOTES_COMMIT = $fixtureNotesCommit
         $env:GITHUB_REPOSITORY = 'fixture/ame'
         $env:GH_TOKEN = 'fixture-token'
         Push-Location $scratch
         try {
             foreach ($scenario in @('new', 'existing', 'missing-msi', 'failed-upload', 'conflicting-msi',
-                    'missing-digest', 'lookup-failure', 'paginated', 'missing-local-msi')) {
+                    'missing-digest', 'lookup-failure', 'paginated', 'missing-notes', 'empty-notes',
+                    'wrong-version-notes', 'missing-local-msi')) {
                 $state = @{
                     Exists = $scenario -notin @('new', 'failed-upload', 'missing-local-msi')
                     Draft = $false; FailMsi = ($scenario -ceq 'failed-upload')
                     LookupFailure = ($scenario -ceq 'lookup-failure')
+                    NotesMissing = ($scenario -ceq 'missing-notes')
+                    NotesEmpty = ($scenario -ceq 'empty-notes')
+                    NotesWrongVersion = ($scenario -ceq 'wrong-version-notes')
+                    Body = 'Previous release notes'
                     Assets = [Collections.Generic.List[object]]::new()
                     Writes = [Collections.Generic.List[string]]::new()
                     Pages = [Collections.Generic.List[int]]::new()
@@ -141,17 +169,19 @@ try {
                 $script:publicationState = $state
                 $failure = $null
                 if ($scenario -ceq 'missing-local-msi') { Remove-Item -LiteralPath (Join-Path $directory $env:AME_INSTALLER_NAME) }
-                try { & $admission; & $publish } catch { $failure = $_.Exception.Message }
+                try { & $admission; & $readNotes; & $publish } catch { $failure = $_.Exception.Message }
                 switch ($scenario) {
                     'failed-upload' {
                         if ($null -eq $failure -or -not $state.Draft -or $state.Writes -ccontains 'publish') { throw 'A partial upload exposed a public release' }
                     }
-                    { $_ -in @('conflicting-msi', 'missing-digest', 'lookup-failure', 'missing-local-msi') } {
+                    { $_ -in @('conflicting-msi', 'missing-digest', 'lookup-failure', 'missing-local-msi',
+                            'missing-notes', 'empty-notes', 'wrong-version-notes') } {
                         if ($null -eq $failure -or $state.Writes.Count -ne 0) { throw "Unsafe publication was not rejected before mutation: $scenario" }
                     }
                     default {
                         if ($null -ne $failure -or $state.Draft) { throw "Publication fixture failed: $scenario / $failure" }
-                        $expectedWrites = switch ($scenario) { 'new' { 4 }; 'missing-msi' { 1 }; default { 0 } }
+                        if ($state.Body -cne $fixtureNotes) { throw 'The release body does not match the versioned notes' }
+                        $expectedWrites = switch ($scenario) { 'new' { 4 }; 'missing-msi' { 2 }; default { 1 } }
                         if ($state.Writes.Count -ne $expectedWrites) { throw "Publication performed unintended writes: $scenario" }
                         if ($scenario -ceq 'paginated' -and $state.Pages -notcontains 2) { throw 'Publication ignored later asset pages' }
                         $release = [pscustomobject]@{ tag_name = $fixtureTag; draft = $false; assets = $state.Assets }

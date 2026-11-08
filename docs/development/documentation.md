@@ -12,6 +12,7 @@ Status: binding repository writing and ownership requirements
 | Accepted technical decisions and general ownership principles | `docs/architecture` ADRs | Delivery status, repeated review reports and unrelated implementation details |
 | Scoped steps, dependencies and rollback units | `docs/plans` | Competing stage status or copied product/architecture contracts |
 | Verification procedures, dated evidence, failures and provenance | `docs/acceptance` | Authority to expand scope, reopen a stage or override stable requirements |
+| Versioned user-facing changes, download guidance and known limits | `docs/releases` | Implementation diaries, CI logs and audit records |
 | Contributor workflows and repository/document layout | `docs/development` | Duplicate architecture decisions and delivery tracking |
 
 Give each rule or fact one canonical owner. Other documents link to its specific section and explain
