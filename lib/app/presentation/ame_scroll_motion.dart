@@ -38,6 +38,10 @@ class AmeScrollController extends ScrollController {
       position.stopWheelMotion();
     }
   }
+
+  bool get isUserScrolling => positions.whereType<_AmeScrollPosition>().any(
+    (position) => position.isUserScrolling,
+  );
 }
 
 /// Wrap one native scroll view. Omit [controller] to own its primary controller.
@@ -147,6 +151,12 @@ class _AmeScrollPosition extends ScrollPositionWithSingleContext {
   });
 
   bool animateNextPointerScroll = false;
+
+  // Layout clamping can start a ballistic activity without user navigation.
+  bool get isUserScrolling =>
+      isScrollingNotifier.value &&
+      (activity is DragScrollActivity ||
+          userScrollDirection != ScrollDirection.idle);
 
   void stopWheelMotion() {
     if (activity is _WheelScrollActivity) goIdle();

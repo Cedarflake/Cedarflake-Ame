@@ -68,20 +68,32 @@ class LibraryQueryRefreshCoordinator {
     return _start(attempt).completion.future;
   }
 
-  Future<bool> refreshCommitted(LibraryQueryAttempt attempt) async {
+  Future<bool> refreshCommitted(LibraryQueryAttempt attempt) =>
+      _refresh(attempt);
+
+  Future<bool> recoverCurrent(LibraryQueryAttempt attempt) =>
+      _refresh(attempt, intent: captureUserIntent());
+
+  Future<bool> _refresh(
+    LibraryQueryAttempt attempt, {
+    LibraryQueryIntent? intent,
+  }) async {
+    bool isCurrent() =>
+        !_isDisposed &&
+        (intent == null || intent._generation == _userGeneration);
     _committedRequests += 1;
     final previous = _committedTail;
     final released = Completer<void>();
     _committedTail = released.future;
     try {
       await previous;
-      while (!_isDisposed) {
+      while (isCurrent()) {
         final active = _active;
         if (active != null) {
           await active.completion.future;
           continue;
         }
-        if (!await _publications.waitUntilAvailable() || _isDisposed) {
+        if (!await _publications.waitUntilAvailable() || !isCurrent()) {
           return false;
         }
         if (_active != null || _publications.isReserved) {

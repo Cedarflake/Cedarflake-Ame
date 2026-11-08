@@ -10,6 +10,29 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/retained_scan_fixture.dart";
 
 void main() {
+  test("committed refresh waits for an explicit date navigation", () async {
+    final fixture = _Fixture();
+    addTearDown(fixture.dispose);
+    final pending = Completer<LibraryTimeSnapshot>();
+    fixture.catalog.pendingResolution = pending;
+    final navigation = fixture.viewport.jumpToTime(
+      fixture.historical,
+      itemOffset: 10,
+    );
+    await _drain();
+    final refresh = fixture.viewport.refreshCurrentQuery();
+    await _drain();
+    expect(fixture.catalog.firstLoads, 0);
+    expect(fixture.state.isLoadingTimeAnchor, isTrue);
+    pending.complete(
+      fixture.catalog.resolution(fixture.catalog.intents.single),
+    );
+    expect(await navigation, isTrue);
+    expect(await refresh, isTrue);
+    expect(fixture.catalog.firstLoads, 1);
+    expect(fixture.state.isLoadingTimeAnchor, isFalse);
+  });
+
   for (final isEmpty in [false, true]) {
     test(
       "removed month resolves to ${isEmpty ? 'empty results' : 'a surviving date'}",

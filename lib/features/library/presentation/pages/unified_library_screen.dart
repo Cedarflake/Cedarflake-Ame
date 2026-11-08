@@ -73,6 +73,7 @@ import "../widgets/library_gallery_scroll_surface.dart";
 import "../widgets/library_gallery_states.dart";
 import "../widgets/library_gallery_viewport.dart";
 import "../widgets/library_gallery_wall.dart";
+import "../widgets/library_gallery_reflow.dart";
 import "../widgets/library_global_bar.dart";
 import "../widgets/library_image_viewer.dart";
 import "../widgets/library_navigation.dart";
@@ -662,9 +663,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
 
   void _synchronizeGalleryScrollActivity() {
     _handleGalleryUserScrollActivityChanged(
-      _galleryScrollPositions.any(
-        (position) => position.isScrollingNotifier.value,
-      ),
+      _galleryScrollController.isUserScrolling,
     );
   }
 
@@ -1287,10 +1286,13 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     _previousWindowCompensation?.retire();
     _galleryLayoutContinuity.clear();
     final nextPosition = publication.position;
+    if (!publication.preservePosition) {
+      _resetGalleryScrollPositions();
+    }
     _galleryLayoutSnapshot.value = null;
     setState(() {
       _visibleGalleryPosition = nextPosition;
-      if (!publication.preservePosition || nextPosition == null) {
+      if (nextPosition == null) {
         _galleryLayoutTransition = null;
       } else {
         _galleryLayoutTransitionGeneration += 1;
@@ -1298,6 +1300,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           generation: _galleryLayoutTransitionGeneration,
           position: nextPosition,
           scrollPosition: _attachedGalleryScrollPosition,
+          scrollEdge: publication.preservePosition
+              ? null
+              : LibraryGalleryScrollEdge.start,
         );
       }
     });
@@ -1311,12 +1316,16 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
       if (!mounted || !_queryTransition.isCurrent(requestGeneration)) {
         return;
       }
-      for (final position in _galleryScrollPositions) {
-        if ((position.pixels - position.minScrollExtent).abs() >= 0.5) {
-          position.jumpTo(position.minScrollExtent);
-        }
-      }
+      _resetGalleryScrollPositions();
     });
+  }
+
+  void _resetGalleryScrollPositions() {
+    for (final position in _galleryScrollPositions) {
+      if ((position.pixels - position.minScrollExtent).abs() >= 0.5) {
+        position.jumpTo(position.minScrollExtent);
+      }
+    }
   }
 
   void _changeLayoutShape(GalleryLayoutShape value) {
@@ -1763,8 +1772,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   }
 
   void _beginTimelineNavigation() {
-    _queryTransition.clearFilterPosition();
+    _queryTransition.beginNavigation();
+    _libraryController.queryProjections.invalidatePosition();
     _galleryLayoutContinuity.clear();
+    setState(() => _galleryLayoutTransition = null);
     _previousWindowCompensation?.retire();
     _dimensionPublication.beginNavigation();
   }

@@ -106,6 +106,9 @@ factory neither replaces that path nor grants source-read authority.
   proven supersession, not after an arbitrary failure or unchanged busy result. Disposal settles
   every in-flight waiter, including replaced attempts. Catalog revision disagreement remains a
   genuine read failure, and retry cannot repeat the committed source scan.
+  Explicit date navigation shares user-query admission, so committed refresh waits for its result.
+  Paging and prefetch recovery retain the initiating user intent; a newer query or date request
+  retires that recovery without retrying it behind the request that is waiting for it to release.
   A deferred directory selection captures a separate user-intent generation. A newer user query,
   including A-B-A replacement, external authority invalidation or disposal retires it; passive
   refresh does not. A covered-directory result consumes that intent once and uses the existing

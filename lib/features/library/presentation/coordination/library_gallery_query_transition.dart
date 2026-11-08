@@ -78,9 +78,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
       return;
     }
     if (isScrolling) {
-      clearFilterPosition();
-      _generation += 1;
-      _pendingPosition = null;
+      beginNavigation();
       _scrollEnd ??= Completer<void>();
     } else {
       _scrollEnd?.complete();
@@ -115,6 +113,13 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
 
   void clearFilterPosition() {
     _filterPosition = null;
+  }
+
+  void beginNavigation() {
+    if (_isDisposed) return;
+    clearFilterPosition();
+    _generation += 1;
+    _pendingPosition = null;
   }
 
   Future<LibraryQueryUpdateOutcome> _run(

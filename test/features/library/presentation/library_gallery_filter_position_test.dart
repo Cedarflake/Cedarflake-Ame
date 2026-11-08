@@ -1,5 +1,9 @@
+import "dart:async";
+import "dart:typed_data";
+
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
@@ -7,8 +11,12 @@ import "package:cedarflake_ame/features/library/domain/library_view_preferences.
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/domain/library_classification_configuration.dart";
+import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_filter.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_smart_album_navigation.dart";
 import "package:material_ui/material_ui.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -17,6 +25,94 @@ import "../support/library_query_snapshot_fixture.dart";
 import "../../../support/application_test_bindings.dart";
 
 void main() {
+  testWidgets("timeline input retires an earlier position refresh", (
+    tester,
+  ) async {
+    final catalog = await _openGallery(
+      tester,
+      GalleryLayoutShape.equalHeight,
+      useManifest: true,
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(AmeApp)),
+    );
+    final read = Completer<void>();
+    catalog.pendingRead = read.future;
+    final refresh = container
+        .read(libraryControllerProvider.notifier)
+        .refreshCurrentQuery();
+    await tester.pump();
+    final track = tester.getRect(
+      find.byKey(const Key("timeline-track-background")),
+    );
+    await tester.tapAt(
+      Offset(track.center.dx, track.top + track.height * .75),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      _scroll(tester).pixels,
+      greaterThan(_scroll(tester).maxScrollExtent * .6),
+    );
+    await tester.tapAt(
+      Offset(track.center.dx, track.top + track.height * .4),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+    final targetPixels = _scroll(tester).pixels;
+    expect(
+      targetPixels,
+      inExclusiveRange(
+        _scroll(tester).maxScrollExtent * .25,
+        _scroll(tester).maxScrollExtent * .55,
+      ),
+    );
+    read.complete();
+    await tester.pumpAndSettle();
+    await refresh;
+    expect(_scroll(tester).pixels, closeTo(targetPixels, .01));
+  });
+
+  testWidgets("switching smart albums resets a middle position", (
+    tester,
+  ) async {
+    final catalog = await _openGallery(
+      tester,
+      GalleryLayoutShape.equalHeight,
+      useManifest: true,
+    );
+    await tester.tap(find.byKey(const Key("workbench-albums")));
+    await tester.pumpAndSettle();
+    void selectCategory(String id) {
+      tester
+          .widget<LibrarySmartAlbumNavigation>(
+            find.byType(LibrarySmartAlbumNavigation),
+          )
+          .onSelect(
+            LibraryClassificationCategory(
+              id: id,
+              label: id,
+              descriptions: const ["fixture"],
+            ),
+          );
+    }
+
+    selectCategory("drawing");
+    await tester.pumpAndSettle();
+    _scroll(tester).jumpTo(_scroll(tester).maxScrollExtent * .6);
+    await tester.pumpAndSettle();
+    expect(_scroll(tester).pixels, greaterThan(1000));
+    final manifest = Completer<void>();
+    catalog.pendingManifest = manifest.future;
+    selectCategory("photo");
+    await tester.pumpAndSettle();
+    expect(_scroll(tester).pixels, 0);
+    manifest.complete();
+    await tester.pumpAndSettle();
+    expect(_scroll(tester).pixels, 0);
+    expect(find.byKey(const ValueKey("location-150")), findsOneWidget);
+  });
+
   for (final shape in GalleryLayoutShape.values) {
     for (final filter in ["one", "bottom", "excluded", "empty"]) {
       testWidgets("$shape restores middle pixels after filter $filter", (
@@ -110,8 +206,9 @@ Future<void> _filter(
 
 Future<_Catalog> _openGallery(
   WidgetTester tester,
-  GalleryLayoutShape shape,
-) async {
+  GalleryLayoutShape shape, {
+  bool useManifest = false,
+}) async {
   tester.view.physicalSize = const Size(1280, 800);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
@@ -122,6 +219,14 @@ Future<_Catalog> _openGallery(
     ProviderScope(
       overrides: applicationTestOverrides([
         libraryCatalogProvider.overrideWithValue(catalog),
+        if (useManifest)
+          libraryGalleryLayoutManifestProvider.overrideWith((
+            ref,
+            request,
+          ) async {
+            await catalog.pendingManifest;
+            return catalog.manifest(request.query);
+          }),
         initialLibraryStateProvider.overrideWithValue(
           LibraryState.fromSnapshot(
             initial.snapshot,
@@ -141,6 +246,34 @@ Future<_Catalog> _openGallery(
 class _Catalog with LibraryQuerySnapshotFixture implements LibraryCatalog {
   final requests = <LibraryQueryAnchor?>[];
   final assets = List.generate(180, _asset);
+  Future<void>? pendingRead;
+  Future<void>? pendingManifest;
+
+  LibraryGalleryLayoutManifest manifest(LibraryGalleryQuery query) {
+    final result = snapshot(query).snapshot;
+    final count = result.assets.length;
+    final builder = LibraryGalleryLayoutManifestBuilder(
+      revision: result.revision,
+      queryId: result.queryId,
+      totalItems: count,
+    );
+    builder.append(
+      LibraryGalleryLayoutManifestChunk(
+        revision: result.revision,
+        queryId: result.queryId,
+        totalItems: count,
+        startOrdinal: 0,
+        locationIds: result.assets.map((asset) => asset.locationId).toList(),
+        aspectRatioMilli: Uint16List.fromList(List.filled(count, 1333)),
+        dateGroupIndices: Uint16List(count),
+        dateGroups: const ["2020-09-02"],
+        flags: Uint8List.fromList(
+          List.filled(count, libraryGalleryLayoutDimensionsKnownFlag),
+        ),
+      ),
+    );
+    return builder.build();
+  }
 
   LibraryQuerySnapshot snapshot(
     LibraryGalleryQuery query, [
@@ -152,7 +285,13 @@ class _Catalog with LibraryQuerySnapshotFixture implements LibraryCatalog {
     final condition = query.metadataFilter.isActive
         ? query.metadataFilter.extensions.join(",")
         : query.searchText;
-    final filtered = switch (condition) {
+    final collection = query.collection;
+    final category = collection is LibrarySmartAlbumCollection
+        ? collection.categoryId
+        : null;
+    final filtered = switch (category ?? condition) {
+      "drawing" => assets.take(150).toList(),
+      "photo" => assets.skip(150).toList(),
       "one" => retained.toList(),
       "bottom" => [...assets.take(24), ...retained],
       "excluded" => assets.take(24).toList(),
@@ -162,7 +301,7 @@ class _Catalog with LibraryQuerySnapshotFixture implements LibraryCatalog {
     final index = filtered.indexWhere(
       (asset) => asset.locationId == anchor?.requestedLocationId,
     );
-    final queryId = "filter-$condition";
+    final queryId = "filter-${category ?? condition}";
     return LibraryQuerySnapshot(
       snapshot: LibrarySnapshot(
         catalogPath: "controlled.sqlite3",
@@ -211,6 +350,7 @@ class _Catalog with LibraryQuerySnapshotFixture implements LibraryCatalog {
     LibraryQueryAnchor? anchor,
   }) async {
     requests.add(anchor);
+    await pendingRead;
     return snapshot(query, anchor);
   }
 

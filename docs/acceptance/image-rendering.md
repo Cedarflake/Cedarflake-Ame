@@ -190,3 +190,29 @@ and rotation with navigation. Desktop rotation preserved 100% actual size, adapt
 to the oriented image, and reset when changing images. The checked original image retained its
 SHA-256. The final toolbar uses the installed Material Symbols 90-degree clockwise rotation icon;
 the rebuilt client displays it and the updated organization-mode controls.
+
+## Gallery navigation ownership — 2026-11-08
+
+Explicit rail input now retires earlier query-position reads and pending layout restoration.
+Date loading shares user-query admission, so a committed background refresh waits for the date
+result. Paging and prefetch recovery remain bound to their original user intent and release when
+another query or date request replaces it. Native layout clamping is distinguished from user
+scrolling; selecting another collection resets the scroll position and retains the start edge
+through layout publication, including its first date heading.
+
+Three regressions cover an older refresh completing after consecutive mouse clicks, switching
+from the middle of a longer smart album to a shorter album with a delayed manifest, and a committed
+refresh arriving during explicit date resolution. Before repair, the first case restored the old
+position, the category case stopped at 1496 px, and live background refresh retired date reads.
+The twelve position cases, thirty-nine application scheduling/date cases and fifty-three existing
+scroll/query-transition/timeline cases passed in focused runs; no full local suite was required.
+
+The rebuilt Debug client on `local-primary` accepted its first rail click from November 2026 to
+April 2025. Consecutive date targets retained the final selection through background updates.
+Switching from the December 2025 portion of 8444 illustrations to the ten-item photo category
+displayed its complete first heading, June 25, 2026, with the marker at the start. Validation used
+the existing library and browsing operations only. Hosted checks remain scoped to the pushed commit.
+
+The refresh coordinator, viewport facade, query-position owner and screen contain 176, 1312, 289
+and 1986 production lines respectively, with no inline tests. The affected dedicated date and
+position test files contain 458 and 396 lines; orchestration changes reuse the existing owners.

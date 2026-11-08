@@ -529,7 +529,7 @@ class LibraryViewportController {
       }
       if (error.code == "catalog_cursor_stale") {
         try {
-          await _queryRefresh.refreshCommitted(
+          await _queryRefresh.recoverCurrent(
             () => _refreshCatalogProjection(generation),
           );
         } on Object catch (refreshError) {
@@ -609,7 +609,7 @@ class LibraryViewportController {
       }
       if (error.code == "catalog_cursor_stale") {
         try {
-          await _queryRefresh.refreshCommitted(
+          await _queryRefresh.recoverCurrent(
             () => _refreshCatalogProjection(generation),
           );
         } on Object catch (refreshError) {
@@ -638,12 +638,21 @@ class LibraryViewportController {
     }
   }
 
-  Future<bool> jumpToTime(LibraryTimeBucket bucket, {int itemOffset = 0}) {
-    return _requestTimeNavigation(
-      bucket,
-      itemOffset: itemOffset,
-      ownsVisibleRange: true,
-    );
+  Future<bool> jumpToTime(
+    LibraryTimeBucket bucket, {
+    int itemOffset = 0,
+  }) async {
+    final outcome = await _queryRefresh.runUser(() async {
+      final didNavigate = await _requestTimeNavigation(
+        bucket,
+        itemOffset: itemOffset,
+        ownsVisibleRange: true,
+      );
+      return didNavigate
+          ? LibraryQueryUpdateOutcome.applied
+          : LibraryQueryUpdateOutcome.superseded;
+    });
+    return outcome == LibraryQueryUpdateOutcome.applied;
   }
 
   Future<bool> prefetchTime(LibraryTimeBucket bucket, {int itemOffset = 0}) {
@@ -721,7 +730,7 @@ class LibraryViewportController {
         canPublish: () => _canPublishTimeNavigation(request, generation),
         ownsExplicitIntent: () => _timeNavigation.ownsExplicitIntent(request),
         recoverPassive: () async {
-          await _queryRefresh.refreshCommitted(
+          await _queryRefresh.recoverCurrent(
             () => _refreshCatalogProjection(
               generation,
               passiveTimeNavigation: request,
