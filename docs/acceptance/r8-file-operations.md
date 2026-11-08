@@ -29,8 +29,11 @@ their owned links without traversal before returning to scratch cleanup, which r
 
 ## Required outcomes
 
-Use the real filesystem adapter and persisted catalog/journal for execution checks. Fault injection
-supplies a reproducible interruption or error; assertions inspect persisted results after recovery.
+Use the real Windows operation adapter and persisted catalog/journal for execution checks. The
+[execution plan](../plans/r8-file-organization.md#windows-capability-admission) owns API admission.
+Fault injection supplies a reproducible interruption or error; assertions inspect persisted results
+after recovery. Test Ame's parameters, authority, result mapping and recovery rather than duplicating
+the system's internal copying algorithm.
 
 | Scenario | Required observation |
 | --- | --- |
@@ -40,13 +43,16 @@ supplies a reproducible interruption or error; assertions inspect persisted resu
 | Root replacement, path escape, reparse point or changed target | Execution stops before an unauthorized write; out-of-scope sentinel files stay unchanged |
 | Cross-volume move | A complete verified target is published before authorized source removal; a failed or interrupted copy retains the source |
 | Cancellation, database failure, process termination | Restart reconciles disk, journal and catalog without losing the sole valid copy, repeating a completed mutation, or reporting unfinished work as complete |
-| Supported recycle/quarantine and recovery | Only the run's fixture items are affected; unrelated recycle-bin contents and files are untouched |
+| Recycle and supported system restoration | Only the run's fixture items are affected; non-recyclable items fail before mutation; unrelated recycle-bin contents and files are untouched |
+| Native completion and progress callbacks | Overall success with aborted or failed items is not reported as full success; actual renamed destinations reach the catalog; estimates and stopping states remain accurate |
 | Cloud-only or changed source | No implicit hydration; stale or unavailable evidence cannot authorize mutation |
 
-Inject failures at meaningful durable boundaries: recorded intent, partial copy, verified target
-publication, source removal, and catalog reconciliation. Check interruption on both sides of a
-transition where recovery decisions differ; avoid multiplying equivalent combinations. Recovery
-preserves the original authorization scope and rechecks current files before further mutation.
+Inject failures at Ame-owned boundaries: durable intent, native submission, receipt of an item
+result, and catalog reconciliation. In native integration, also interrupt real transfer and exercise
+disk-full, collision, lock and cancellation behavior. Do not fabricate callbacks for undocumented
+Windows internal stages. A missing completion callback must leave a recoverable uncertain outcome.
+Check both sides of a durable transition only where recovery differs; avoid equivalent combinations.
+Recovery preserves the original authorization scope and rechecks files before further mutation.
 
 ## Windows integration and workload selection
 
@@ -63,9 +69,13 @@ Prepare a bounded disposable volume fixture there when implementing this workflo
 scoped to its created resources. Do not repartition or configure the workstation for these checks.
 
 Permission and disk-full errors can be injected for focused recovery tests; native guarantees still
-need their applicable Windows integration evidence. A missing runner capability remains an explicit
-verification gap for that action. Small fixtures establish correctness; large batches and sustained
-resource checks belong to affected performance acceptance or release qualification.
+need their applicable Windows integration evidence. Recycle-only safety includes a target that
+cannot recycle and must remain intact; observing permanent deletion after a callback is a failure,
+not a successful rejection. Test restoration through the admitted system route and restart Ame to
+verify its independent history, without relying on Explorer's undo stack. A missing runner capability
+needs a scoped equivalent Windows check or remains an explicit gap for that action. Small fixtures
+establish correctness; large batches and sustained resource checks belong to affected performance
+acceptance or release qualification.
 
 The existing scratch helper can be reused. The R8 executor, fault-injection points, operation tests
 and cross-volume fixture still need implementation; this procedure records their intended checks.

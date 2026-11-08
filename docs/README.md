@@ -13,7 +13,7 @@ only the contracts, execution details, and evidence that own the task.
 | Where are the delivered R5 slices defined? | [R5 implementation plan](plans/r5-classification.md) and [roadmap disposition](roadmap.md#r5-implementation-sequence) |
 | What is planned for similar images in Duplicates? | [R6 implementation plan](plans/r6-similar-images.md), including planned interaction; the roadmap owns activation. |
 | How are semantic search and composed filters implemented? | [R7 implementation plan](plans/r7-semantic-discovery.md); the [roadmap](roadmap.md#r7-implementation-sequence) owns current slice disposition. |
-| What does merged R8 cover, and how will file changes be verified? | [File organization and recovery](product/organization-workflows.md#r8---file-organization-and-recovery) and the [filesystem verification procedure](acceptance/r8-file-operations.md) |
+| How will R8 use Windows file operations and verify recovery? | [R8 execution plan](plans/r8-file-organization.md), [product scope](product/organization-workflows.md#r8---file-organization-and-recovery) and [filesystem verification](acceptance/r8-file-operations.md) |
 | How will project organization be refactored after R5? | [Organization execution plan](plans/project-organization.md), activated by the [roadmap](roadmap.md#project-organization-after-r5) |
 | Where are organization changes and their verification recorded? | [Initial, catalog, scan and preview evidence](acceptance/project-organization.md); [incremental and synchronization evidence](acceptance/project-organization-continuity.md) |
 | How should the accepted gallery and controls behave, and why? | [Gallery UI contract and rationale](product/gallery-ui.md#design-principles-and-rationale), under the accepted UI ADRs |

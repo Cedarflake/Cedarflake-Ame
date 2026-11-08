@@ -129,6 +129,11 @@ This combines the former R8 and R9 scopes. There is no organization-preview page
 before/after listing, saved-plan manager, or plan export. The action control identifies the affected
 scope and destination; conflict handling and execution feedback remain part of the operation.
 
+Windows capabilities perform file transfers, renames and recycling. Ame owns authorization,
+operation records, progress, catalog consistency and recovery coordination. Reuse the system
+Recycle Bin; a failed or unsupported recycle action never falls back to permanent deletion.
+The [execution plan](../plans/r8-file-organization.md) owns system-interface admission and rollout.
+
 Scope:
 
 - organization rules based on effective category, selected virtual albums, date, source, or explicit
@@ -150,19 +155,24 @@ Scope:
   authorization rather than modification of the earlier evidence;
 - immediate per-item revalidation of root generation, physical identity, source state, compatible
   fingerprint evidence, target state, available space, and permissions before mutation;
-- same-volume move or rename behavior with explicit overwrite policy and recoverable intermediate
-  state;
-- cross-volume copy to a temporary target, bounded content verification, atomic target publication,
-  catalog update, and only then the separately planned source recycle-bin or quarantine action;
+- system-backed same-volume move or rename with explicit overwrite policy and recoverable outcomes;
+- cross-volume transfer that establishes a complete, verified destination before authorized source
+  removal and preserves a valid copy through interruption; use native transfer semantics where they
+  satisfy these guarantees, otherwise compose native copy, bounded verification and source removal;
 - durable `OperationJournal` entries for intended action, before evidence, each state transition,
   verification, result, failure, compensation, and recovery decision;
 - idempotent restart recovery, cancellation at safe boundaries, retry, skip, and clear partial-
   failure reporting without presenting an incomplete run as success;
-- atomic or explicitly staged catalog reconciliation after verified physical changes;
+- atomic or explicitly staged catalog reconciliation after verified physical changes, using actual
+  system-reported destinations; preserve durable user decisions through moves and recovery;
 - source and target safety fixtures for Chinese and long paths, conflicts, locked files, unavailable
   roots, cloud placeholders, cross-volume interruption, database failure, and process termination;
 - permanent deletion remains unavailable by default and requires a separately accepted policy and
   explicit action-level authorization if ever introduced.
+
+System-backed execution replaces the earlier prescribed temporary-target publication sequence.
+Content preservation, explicit source-removal authority and recovery remain required outcomes;
+the system's internal copy algorithm and an Ame-specific quarantine are not product requirements.
 
 Preflight remains deterministic for the same trustworthy inputs and leaves source and target media
 unchanged. Execution changes only the authorized items, rejects stale evidence, and preserves

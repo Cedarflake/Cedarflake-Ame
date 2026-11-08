@@ -39,6 +39,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
 feature. R9 is no longer a separate stage; R10 keeps its identifier. The
 [merged scope](product/organization-workflows.md#r8---file-organization-and-recovery) owns behavior;
+the [execution plan](plans/r8-file-organization.md) defines Windows-backed implementation slices;
 the [verification procedure](acceptance/r8-file-operations.md) defines fixture-based checks without
 requiring Windows Sandbox. Implementation has not started.
 
@@ -137,6 +138,15 @@ any affected extension. Existing extractions are regression boundaries, not task
 multi-responsibility extension must first establish its typed owner; record only an actual unfinished
 larger split here, with affected scope and resume condition. This documentation reorganization
 schedules no additional broad split.
+
+## R8 implementation sequence
+
+R8 remains planned; its [execution plan](plans/r8-file-organization.md#implementation-slices) is ready
+for implementation. Execute R8-01 through R8-05 in order: admit Windows capabilities, connect durable
+execution and recovery, expose desktop actions, add organization rules, and complete integrated
+verification. Native behavior that cannot preserve the required source-safety guarantees blocks the
+affected action until resolved; it does not authorize a weaker fallback. Exit requires the connected
+workflow and scoped [verification](acceptance/r8-file-operations.md), without organization preview.
 
 ## R7 implementation sequence
 
