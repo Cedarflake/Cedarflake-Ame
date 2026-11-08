@@ -378,7 +378,8 @@ closed successfully, joined their workers, cleaned temporary profiles and preser
 Twenty-six lifecycle cases and four search-coordinator cases passed, along with affected-file Dart
 analysis. Earlier all-feature Rust checking and the fixed dependency inventory cover the unchanged
 native recovery boundary. Local Rust unit-test compilation hit the system memory safeguard;
-execution of those cases remains assigned to hosted CI. This is not large-library latency evidence.
+the native cases subsequently passed in the full hosted run recorded below. This is not large-library
+latency evidence.
 
 Production / inline-test lines: recovery facade 47 / 0, lifecycle 76 / 0, session lifetime 143 / 0,
 search coordinator 365 / 0, feature-store facade 216 / 0, ownership receipt 77 / 0 and storage recovery
@@ -429,9 +430,9 @@ original catalog/cache hashes were unchanged. The leased snapshot was removed af
 The optimized Debug DLL retained debug assertions and isolated-storage admission; its SHA-256 was
 `EFC1F39B23EBADD04B5FC160F088925CD7B277213075D173D6227A708F63B358`.
 The existing snapshot regression now checks streaming across a concurrent publication; a focused
-instruction-budget regression rejects whole-library sorting for a 256-item page. Execution of these
-Rust cases remains assigned to hosted CI. Native compilation, affected formatting and diff checks
-passed. Production / inline-test lines: filter owner 161 / 0, snapshot 161 / 0, retrieval 146 / 0;
+instruction-budget regression rejects whole-library sorting for a 256-item page. These Rust cases
+passed in the full hosted run recorded below. Native compilation, affected formatting and diff
+checks passed. Production / inline-test lines: filter owner 161 / 0, snapshot 161 / 0, retrieval 146 / 0;
 the dedicated semantic catalog suite contains 214 lines.
 
 ## Desktop continuation — 2026-11-08
@@ -449,9 +450,25 @@ field. Switching back to content search reused all 368 indexed locations and ret
 preview hashes; the leased profile was removed afterward. Earlier viewer, filter and reference-image
 interaction evidence remains applicable to these unchanged surfaces.
 
-The existing composition/Enter regression passed, but actual Windows IME observation remains open:
-the available native automation did not deliver composition or Chinese text to the field. That
-input limitation is not recorded as a product failure or a completed native IME check. The
+Native Microsoft Pinyin verification reused the same verified product binary; subsequent changes
+through `d9b69432` affect tests only. Underlined `hu` and `hua` stayed in composition with a visible
+candidate list, unchanged gallery and no search request. Selecting `花` committed the query; Escape
+cancelled a separate `hu` composition without searching. The isolated profile intentionally omitted
+the model installation, making the unavailable response an observable signal of query submission
+without model memory cost. This checks native input timing; the earlier installed-model retrieval
+evidence remains applicable. The client exited normally, used no model workers, peaked at 465.5 MiB
+private memory and preserved all 368 preview hashes. Its leased profile and temporary keyboard were
+closed and cleaned up; the input layout was restored.
+
+## Integrated verification — 2026-11-08
+
+The [`d9b69432` full run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42418380857)
+passed all nine main jobs and the final Windows Gate: Static, Flutter, Windows accessibility,
+Windows scan, production-bundle build and all four Rust partitions. Schema and Queue passed 410
+cases; Catalog passed 930, with seven retained manual/profile cases ignored. No new ignores were
+added. This closes execution of the recovery, streaming and fixture corrections recorded here.
+
+The preceding
 [`60778542` full run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42414123566) passed
 Static, Flutter, Windows accessibility, Windows scan, production-bundle build, Rust Remaining and
 Rust Synchronization and Scan. The shared-choice cases now locate visible
@@ -470,8 +487,8 @@ queries on deliberately old schemas before the icon table existed; they now veri
 state directly where necessary and reopen through normal upgrades before using current APIs.
 The v33 preservation case no longer enumerates every later migration's new tables: it still compares
 all original rows and sequence values across two reopenings, while dedicated migrations own their
-new defaults. Rollback, receipts and organization-history checks remain. Formatting and diff checks
-passed; execution of the corrected fixtures remains assigned to hosted CI. Dedicated test lines:
+new defaults. Rollback, receipts and organization-history checks remain. Formatting, diff checks
+and the corrected hosted fixtures passed. Dedicated test lines:
 camera metadata 130, compact search 224, search 201, admission clock 101, history 118, queue index 203;
 this correction changes no production or inline-test code.
 
@@ -479,6 +496,6 @@ Catalog passed 928 cases, failed two and retained seven explicitly manual/profil
 Idle maintenance had the same directory-existence assumption; both maintenance lifecycle cases now
 check zero cached features while retaining absent-model/source fixtures. The export fixture now
 assigns an album icon before requiring that record family in the archive. The existing icon
-export/restore/retained-choice case passed in this run. These test corrections passed formatting and
-diff checks and await hosted execution; their dedicated suites contain 304 and 217 lines, with no
+export/restore/retained-choice case passed in that run. These test corrections passed formatting,
+diff checks and hosted execution; their dedicated suites contain 304 and 217 lines, with no
 production or inline-test changes.
