@@ -34,6 +34,10 @@ class _LibraryGalleryScrollViewKey extends GlobalObjectKey {
   String toString() => "[<'library-photo-wall'>]";
 }
 
+class _LibraryGalleryInteractionKey extends GlobalObjectKey {
+  const _LibraryGalleryInteractionKey(super.value);
+}
+
 class LibraryGalleryWall extends StatelessWidget {
   const LibraryGalleryWall({
     required this.state,
@@ -325,6 +329,7 @@ class LibraryGalleryWall extends StatelessWidget {
           child: Stack(
             children: [
               LibraryGalleryInteraction(
+                key: _LibraryGalleryInteractionKey(scrollController),
                 state: state,
                 scrollController: scrollController,
                 geometry: virtualGeometry,
@@ -889,6 +894,7 @@ class _ManifestLibraryGalleryWallState
           child: Stack(
             children: [
               LibraryGalleryInteraction(
+                key: _LibraryGalleryInteractionKey(widget.scrollController),
                 state: widget.state,
                 scrollController: widget.scrollController,
                 geometry: virtualGeometry,

@@ -151,6 +151,11 @@ factory neither replaces that path nor grants source-read authority.
   the manifest overlay cache. Navigation and disposal cancel scheduled publication. The screen
   supplies position capture and pending-transition state, retains actual scroll objects, and
   composes the resulting layout transition. This owner grants no catalog-publication authority.
+- `library_gallery_page_demand.dart` retains directional edge demand while the current query is
+  busy and admits each available cursor/revision once. Moving away, changing direction or query,
+  and a page failure retire that demand. Gallery interaction checks the resulting scroll position
+  and keeps its lifetime across estimated/full layout replacement; application paging retains
+  read serialization, cursor validation and publication authority.
 - `LibrarySourceImage` composes the installed Flutter SDK's immutable-buffer and image-decoder
   primitives through the application-owned source-reader port. The scheduler owns bounded latest
   intent and read completion; the image provider owns source-lease cache identity and the native

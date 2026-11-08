@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter/scheduler.dart";
 
+import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "library_gallery_layout.dart";
@@ -64,7 +65,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   _LibraryTimelineSeekIntent? _pendingSeekIntent;
   bool _isPendingSeekFinal = false;
   bool _isDragging = false;
-  bool _didCancelForCurrentUserScroll = false;
+  bool _hasUserScrollIntent = false;
   bool _isFrameScheduled = false;
   final Set<int> _activeSeekGenerations = <int>{};
   LibraryTimeSeekAlignment? _navigationAlignment;
@@ -73,7 +74,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   DateTime? _lastSeekStartedAt;
   Timer? _seekTimer;
   Timer? _galleryScrollSettleTimer;
-  Timer? _userScrollCancellationResetTimer;
+  Timer? _userScrollIntentTimer;
   double? _pendingGalleryScrollValue;
   final _projectionCache = LibraryTimelineProjectionCache();
   LibraryGalleryLayoutMetrics? _stableLayoutMetrics;
@@ -119,7 +120,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       }
       _seekTimer?.cancel();
       _galleryScrollSettleTimer?.cancel();
-      _userScrollCancellationResetTimer?.cancel();
+      _userScrollIntentTimer?.cancel();
       _interactiveValue = null;
       _pendingFrameValue = null;
       _pendingSeekValue = null;
@@ -127,7 +128,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       _pendingGalleryScrollValue = null;
       _isPendingSeekFinal = false;
       _isDragging = false;
-      _didCancelForCurrentUserScroll = false;
+      _hasUserScrollIntent = false;
       _isFrameScheduled = false;
       _lastSeekStartedAt = null;
       _projectionCache.clear();
@@ -146,7 +147,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     _seekIntentGeneration += 1;
     _seekTimer?.cancel();
     _galleryScrollSettleTimer?.cancel();
-    _userScrollCancellationResetTimer?.cancel();
+    _userScrollIntentTimer?.cancel();
     _activeSeekGenerations.clear();
     widget.scrollController.removeListener(_handleGalleryScroll);
     super.dispose();
@@ -176,6 +177,9 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
             metrics.dateAnchors.isNotEmpty) {
           frame = LibraryTimeRailFrame(
             projection: globalProjection,
+            origin: _hasUserScrollIntent
+                ? LibraryTimeRailPositionOrigin.interaction
+                : LibraryTimeRailPositionOrigin.gallery,
             value: _valueFromGallery(
               globalProjection,
               position,
@@ -276,6 +280,9 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
 
   void _beginInteraction(double value) {
     _cancelGalleryScrollSettle();
+    _userScrollIntentTimer?.cancel();
+    _userScrollIntentTimer = null;
+    _hasUserScrollIntent = false;
     setState(() {
       _isDragging = true;
       _interactiveValue = value;
@@ -610,19 +617,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       return;
     }
     if (_isUserControlledScroll(position)) {
-      if (!_didCancelForCurrentUserScroll) {
-        _didCancelForCurrentUserScroll = true;
-        _cancelTimelineIntent();
-      }
-      _userScrollCancellationResetTimer?.cancel();
-      _userScrollCancellationResetTimer = Timer(_galleryScrollSettleDelay, () {
-        _userScrollCancellationResetTimer = null;
-        _didCancelForCurrentUserScroll = false;
-      });
-    } else {
-      _userScrollCancellationResetTimer?.cancel();
-      _userScrollCancellationResetTimer = null;
-      _didCancelForCurrentUserScroll = false;
+      _recordUserScrollIntent();
     }
     if (projection == null || metrics == null) {
       return;
@@ -672,8 +667,22 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   }
 
   bool _isUserControlledScroll(ScrollPosition position) {
-    return position.userScrollDirection != ScrollDirection.idle ||
-        position.isScrollingNotifier.value;
+    final controller = widget.scrollController;
+    return controller is AmeScrollController
+        ? controller.isUserScrolling
+        : position.userScrollDirection != ScrollDirection.idle;
+  }
+
+  void _recordUserScrollIntent() {
+    if (!_hasUserScrollIntent) {
+      _hasUserScrollIntent = true;
+      _cancelTimelineIntent();
+    }
+    _userScrollIntentTimer?.cancel();
+    _userScrollIntentTimer = Timer(_galleryScrollSettleDelay, () {
+      _userScrollIntentTimer = null;
+      _hasUserScrollIntent = false;
+    });
   }
 
   void _cancelTimelineIntent() {
@@ -797,7 +806,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     if (!widget.scrollController.hasClients || metrics.photoRowHeight <= 0) {
       return;
     }
-    _didCancelForCurrentUserScroll = true;
+    _recordUserScrollIntent();
     _cancelTimelineIntent();
     final position = widget.scrollController.position;
     if (!position.hasContentDimensions) {

@@ -216,3 +216,29 @@ the existing library and browsing operations only. Hosted checks remain scoped t
 The refresh coordinator, viewport facade, query-position owner and screen contain 176, 1312, 289
 and 1986 production lines respectively, with no inline tests. The affected dedicated date and
 position test files contain 458 and 396 lines; orchestration changes reuse the existing owners.
+
+### Manual scrolling during classification updates
+
+A retained complete rail rejected gallery-origin positions while a new revision used estimated
+layout. The reproduced wheel case moved content from 1800 to 2600 px while the marker remained at
+0.4091. Current user scrolling now carries interaction intent through that retained projection.
+Paging previously inspected the position before wheel movement and dropped demand during a busy
+read. The dedicated page-demand owner checks the resulting position, resumes after admission and
+limits attempts to one per cursor/revision; failures retain the existing explicit retry behavior.
+Its widget lifetime survives replacement between estimated and complete gallery layouts.
+
+The focused publication, input and integrated timeline run passed 49 cases. The added cases cover
+retained-marker movement, crossing a loading threshold in one wheel event, and continuation after
+busy paging or query refresh without another event or an unchanged-cursor retry loop. The rebuilt
+Debug client on `local-primary` followed manual scrolling from November 2026 through May and January
+2026 to December 2025 while the manga category grew from 2450 to over 3300 images. Subsequent page
+content appeared without extra input to trigger loading. The earliest-date click reached August
+2022, and subsequent upward scrolling moved the marker with the displayed earlier rows. Verification
+used browsing only.
+
+The page-demand owner, interaction widget, rail navigation and gallery wall contain 71, 160, 827 and
+1555 production lines, with no inline tests; the two affected dedicated test files contain 319 and
+556 lines. The wall change only preserves the interaction owner's key across its renderers.
+The preceding `c34a94d2` hosted run `42470075424` passed Flutter tests but encountered HTTP 504
+downloads in Static and the three Windows build/integration jobs. Current-head hosted results remain
+separate from that infrastructure failure and the local checks above.

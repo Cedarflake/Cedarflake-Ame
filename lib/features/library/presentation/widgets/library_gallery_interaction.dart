@@ -4,11 +4,13 @@ import "package:flutter/gestures.dart";
 import "package:flutter/widgets.dart";
 
 import "../../../../app/presentation/ame_scroll_motion.dart";
+import "../../application/library_page_operation.dart";
 import "../../domain/library_state.dart";
+import "../coordination/library_gallery_page_demand.dart";
 import "library_gallery_viewport_feedback.dart";
 import "library_virtual_gallery_geometry.dart";
 
-class LibraryGalleryInteraction extends StatelessWidget {
+class LibraryGalleryInteraction extends StatefulWidget {
   const LibraryGalleryInteraction({
     required this.state,
     required this.scrollController,
@@ -34,69 +36,60 @@ class LibraryGalleryInteraction extends StatelessWidget {
   onPositionChanged;
   final Widget child;
 
-  bool get _canLoadPrevious =>
-      state.hasPreviousAssets &&
-      !state.isLoadingPage &&
-      !state.isLoadingPreviousPage &&
-      state.previousPageErrorMessage == null;
+  @override
+  State<LibraryGalleryInteraction> createState() =>
+      _LibraryGalleryInteractionState();
+}
 
-  bool get _canLoadNext =>
-      state.hasMoreAssets &&
-      !state.isLoadingPage &&
-      !state.isLoadingPreviousPage &&
-      state.pageErrorMessage == null;
+class _LibraryGalleryInteractionState extends State<LibraryGalleryInteraction> {
+  final _pageDemand = LibraryGalleryPageDemand();
+  bool _isPageCheckScheduled = false;
+
+  @override
+  void didUpdateWidget(covariant LibraryGalleryInteraction oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.scrollController != widget.scrollController ||
+        oldWidget.state.query != widget.state.query) {
+      _pageDemand.clear();
+    }
+    _schedulePageRequest();
+  }
 
   bool _isNearLoadedStart(ScrollMetrics metrics) {
     return metrics.pixels >=
-            geometry.leadingExtent - metrics.viewportDimension &&
-        metrics.pixels <= geometry.leadingExtent + 900;
+            widget.geometry.leadingExtent - metrics.viewportDimension &&
+        metrics.pixels <= widget.geometry.leadingExtent + 900;
   }
 
   bool _isNearLoadedEnd(ScrollMetrics metrics) {
     final visibleBottom = metrics.pixels + metrics.viewportDimension;
-    return visibleBottom >= geometry.loadedEndExtent - 900 &&
-        metrics.pixels <= geometry.loadedEndExtent;
+    return visibleBottom >= widget.geometry.loadedEndExtent - 900 &&
+        metrics.pixels <= widget.geometry.loadedEndExtent;
   }
 
-  void _onPointerSignal(BuildContext context, PointerSignalEvent event) {
-    if (event is! PointerScrollEvent || !scrollController.hasClients) {
+  void _onPointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent || !widget.scrollController.hasClients) {
       return;
     }
-    final metrics = scrollController.position;
-    if (event.scrollDelta.dy < 0 &&
-        _isNearLoadedStart(metrics) &&
-        _canLoadPrevious) {
-      _deferPageRequest(context, onLoadPrevious);
-    } else if (event.scrollDelta.dy > 0 &&
-        _isNearLoadedEnd(metrics) &&
-        _canLoadNext) {
-      _deferPageRequest(context, onLoadNext);
-    }
+    _pageDemand.scroll(widget.state.query, event.scrollDelta.dy);
+    _schedulePageRequest();
   }
 
-  bool _onScrollNotification(
-    BuildContext context,
-    ScrollNotification notification,
-  ) {
+  bool _onScrollNotification(ScrollNotification notification) {
     if (notification is ScrollUpdateNotification ||
         notification is ScrollEndNotification) {
-      onPositionChanged(
+      widget.onPositionChanged(
         notification.metrics,
         _previewDirectionFor(notification),
       );
-      final isDirectDragUpdate =
-          notification is ScrollUpdateNotification &&
-          notification.dragDetails != null;
-      if (isDirectDragUpdate &&
-          _isNearLoadedStart(notification.metrics) &&
-          _canLoadPrevious) {
-        _deferPageRequest(context, onLoadPrevious);
+      final controller = widget.scrollController;
+      if (notification is ScrollUpdateNotification &&
+          (notification.dragDetails != null ||
+              controller is AmeScrollController &&
+                  controller.isUserScrolling)) {
+        _pageDemand.scroll(widget.state.query, notification.scrollDelta ?? 0);
       }
-      if (isDirectDragUpdate &&
-          _isNearLoadedEnd(notification.metrics) &&
-          _canLoadNext) {
-        _deferPageRequest(context, onLoadNext);
-      }
+      _schedulePageRequest();
     }
     return false;
   }
@@ -115,14 +108,32 @@ class LibraryGalleryInteraction extends StatelessWidget {
     return LibraryPreviewMovementDirection.idle;
   }
 
-  static void _deferPageRequest(
-    BuildContext context,
-    Future<void> Function() request,
-  ) {
+  void _schedulePageRequest() {
+    if (_isPageCheckScheduled || !_pageDemand.hasDemand) return;
+    _isPageCheckScheduled = true;
     unawaited(
       Future<void>(() async {
-        if (context.mounted) {
-          await request();
+        _isPageCheckScheduled = false;
+        if (!mounted ||
+            !widget.scrollController.hasClients ||
+            !TickerMode.getValuesNotifier(context).value.enabled) {
+          return;
+        }
+        final metrics = widget.scrollController.position;
+        if (!metrics.hasContentDimensions) return;
+        // Read the resulting position, after Scrollable has handled the signal.
+        final direction = _pageDemand.requestFor(
+          widget.state,
+          nearStart: _isNearLoadedStart(metrics),
+          nearEnd: _isNearLoadedEnd(metrics),
+        );
+        switch (direction) {
+          case LibraryPageDirection.previous:
+            await widget.onLoadPrevious();
+          case LibraryPageDirection.next:
+            await widget.onLoadNext();
+          case null:
+            break;
         }
       }),
     );
@@ -131,17 +142,17 @@ class LibraryGalleryInteraction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AmeScrollMotion(
-      controller: scrollController,
-      onPointerSignal: (event) => _onPointerSignal(context, event),
+      controller: widget.scrollController,
+      onPointerSignal: _onPointerSignal,
       child: NotificationListener<ScrollMetricsNotification>(
         onNotification: (notification) {
-          onMetricsChanged(notification.metrics);
+          widget.onMetricsChanged(notification.metrics);
+          _schedulePageRequest();
           return false;
         },
         child: NotificationListener<ScrollNotification>(
-          onNotification: (notification) =>
-              _onScrollNotification(context, notification),
-          child: child,
+          onNotification: _onScrollNotification,
+          child: widget.child,
         ),
       ),
     );

@@ -16,6 +16,74 @@ import "support/gallery_wall_fixture.dart";
 import "../../../support/application_test_bindings.dart";
 
 void main() {
+  testWidgets("one wheel movement can enter the next-page loading range", (
+    tester,
+  ) async {
+    final fixture = await _mountWall(
+      tester,
+      false,
+      GalleryLayoutShape.equalHeight,
+    );
+    fixture.scroll.jumpTo(
+      fixture.geometry.loadedEndExtent -
+          fixture.scroll.position.viewportDimension -
+          1000,
+    );
+    await tester.pump();
+    expect(fixture.controller.nextPageRequests, 0);
+
+    await _wheel(tester, 500);
+
+    expect(fixture.controller.nextPageRequests, 1);
+  });
+
+  for (final refreshingQuery in [false, true]) {
+    testWidgets(
+      "edge demand resumes after a busy read, query=$refreshingQuery",
+      (tester) async {
+        final ready = _state();
+        final fixture = await _mountWall(
+          tester,
+          false,
+          GalleryLayoutShape.equalHeight,
+          state: ready.copyWith(
+            isLoadingPage: !refreshingQuery,
+            queryActivity: refreshingQuery
+                ? LibraryQueryLoading(ready.query)
+                : const LibraryQueryIdle(),
+          ),
+        );
+        fixture.scroll.jumpTo(fixture.scroll.position.maxScrollExtent - 60);
+        await tester.pump();
+        await _wheel(tester, 60);
+        expect(fixture.controller.nextPageRequests, 0);
+
+        await _mountWall(
+          tester,
+          false,
+          GalleryLayoutShape.equalHeight,
+          state: ready,
+          existing: fixture,
+        );
+        await tester.pumpAndSettle();
+        expect(fixture.controller.nextPageRequests, 1);
+        await _mountWall(
+          tester,
+          false,
+          GalleryLayoutShape.equalHeight,
+          state: ready,
+          existing: fixture,
+        );
+        await tester.pumpAndSettle();
+        expect(
+          fixture.controller.nextPageRequests,
+          1,
+          reason: "An unchanged cursor cannot create a retry loop",
+        );
+      },
+    );
+  }
+
   for (final withManifest in [false, true]) {
     for (final shape in GalleryLayoutShape.values) {
       testWidgets(
@@ -196,10 +264,11 @@ Future<_WallFixture> _mountWall(
   GalleryLayoutShape shape, {
   LibraryState? state,
   bool showScrollbar = false,
+  _WallFixture? existing,
 }) async {
-  final fixture = _WallFixture();
+  final fixture = existing ?? _WallFixture();
   final currentState = state ?? _state();
-  addTearDown(fixture.scroll.dispose);
+  if (existing == null) addTearDown(fixture.scroll.dispose);
   await tester.pumpWidget(
     ProviderScope(
       overrides: applicationTestOverrides(),

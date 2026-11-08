@@ -68,6 +68,34 @@ void main() {
     );
   });
 
+  testWidgets(
+    "gallery scrolling moves retained ticks during a layout refresh",
+    (tester) async {
+      final fixture = _PublicationFixture(tester);
+      await fixture.show(isQueryWide: true);
+      await fixture.show(isQueryWide: true);
+      fixture.controller.jumpTo(1800);
+      await tester.pumpAndSettle();
+      final rail = find.byKey(const Key("library-time-rail"));
+      final before = tester.widget<AnnotatedTimeRail>(rail);
+
+      await fixture.show(revision: 2);
+      expect(tester.widget<AnnotatedTimeRail>(rail).value, before.value);
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          position: tester.getCenter(find.byType(ListView)),
+          scrollDelta: const Offset(0, 800),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(fixture.controller.offset, 2600);
+      final after = tester.widget<AnnotatedTimeRail>(rail);
+      expect(after.buckets, same(before.buckets));
+      expect(after.value, greaterThan(before.value));
+    },
+  );
+
   for (final replacement in ["missing", "estimated", "unsettled extent"]) {
     testWidgets("complete rail survives $replacement update geometry", (
       tester,
