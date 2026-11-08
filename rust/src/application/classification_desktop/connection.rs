@@ -13,6 +13,40 @@ use super::maintenance::ClassificationDesktopMaintenance;
 
 static CONNECTION: Mutex<Weak<Connection>> = Mutex::new(Weak::new());
 
+pub(crate) fn semantic_status()
+-> Result<Option<crate::domain::semantic_results::SemanticIndexStatus>, ScanError> {
+    let connection = CONNECTION.lock().map_err(|_| unavailable())?.upgrade();
+    connection
+        .map(|connection| connection.control.search.index_status())
+        .transpose()
+}
+
+pub(crate) fn search(
+    scope: crate::domain::GalleryQuery,
+    input: crate::domain::semantic_results::SemanticSearchInput,
+) -> Result<super::super::semantic_requests::SearchTicket, ScanError> {
+    let connection = CONNECTION
+        .lock()
+        .map_err(|_| unavailable())?
+        .upgrade()
+        .ok_or_else(|| {
+            ScanError::new(
+                "semantic_session_unavailable",
+                "Image analysis is not running",
+            )
+        })?;
+    if connection.control.signals().is_closed()? {
+        return Err(ScanError::new(
+            "semantic_session_unavailable",
+            "Image analysis is restarting",
+        ));
+    }
+    connection
+        .control
+        .search
+        .submit(&connection.control.signals(), scope, input)
+}
+
 pub(crate) fn current_device()
 -> Result<Option<crate::domain::classification_acceleration::ClassificationDeviceStatus>, ScanError>
 {
@@ -185,7 +219,10 @@ impl ClassificationDesktopSession {
     }
 
     pub fn request_close(&self) -> Result<(), ScanError> {
-        self.control(|control| control.signals().close())
+        self.control(|control| {
+            control.search.close();
+            control.signals().close()
+        })
     }
 
     pub fn close(&self) -> Result<(), ScanError> {
@@ -195,6 +232,7 @@ impl ClassificationDesktopSession {
                 return Ok(());
             }
             self.connection.control.signals().close()?;
+            self.connection.control.search.close();
             state.pending.take()
         };
         drop(pending);

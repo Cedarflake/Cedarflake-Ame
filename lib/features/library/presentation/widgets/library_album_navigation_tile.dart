@@ -10,6 +10,7 @@ import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../application/library_album_requests.dart";
 import "../../domain/library_organization.dart";
+import "library_album_icon.dart";
 import "library_sidebar_selection_icon.dart";
 
 class LibraryAlbumNavigationTile extends StatefulWidget {
@@ -65,11 +66,18 @@ class _LibraryAlbumNavigationTileState
       final action = await showAmePopupMenu<LibraryAlbumEditKind>(
         context: context,
         position: position,
-        labels: const ["重命名", "删除相册"],
+        labels: const ["重命名", "更改图标", "删除相册"],
         items: const [
           PopupMenuItem(
             value: LibraryAlbumEditKind.rename,
             child: AmeMenuItemContent(icon: Symbols.edit_rounded, label: "重命名"),
+          ),
+          PopupMenuItem(
+            value: LibraryAlbumEditKind.icon,
+            child: AmeMenuItemContent(
+              icon: Symbols.photo_album_rounded,
+              label: "更改图标",
+            ),
           ),
           PopupMenuItem(
             value: LibraryAlbumEditKind.delete,
@@ -121,7 +129,7 @@ class _LibraryAlbumNavigationTileState
         horizontalTitleGap: 4,
         leading: LibrarySidebarSelectionIcon(
           key: ValueKey("library-sidebar-select-album-${widget.album.id}"),
-          icon: Symbols.photo_album_rounded,
+          icon: libraryAlbumIcon(widget.album.icon),
           name: widget.album.name,
           selected: widget.checked,
           onPressed: widget.onToggleSelection,

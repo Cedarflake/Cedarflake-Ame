@@ -81,9 +81,10 @@ pub(super) fn inspect_group(
                     EXISTS(
                         SELECT 1 FROM organization_conflicts AS conflict
                         WHERE conflict.record_id = record.record_id
-                    ), record.organization_revision, record.favorite_revision
+                    ), record.organization_revision, record.favorite_revision, COALESCE(icon.icon, 'album')
              FROM organization_records AS record
              LEFT JOIN organization_albums AS album ON album.album_id = record.album_id
+             LEFT JOIN organization_album_icons AS icon ON icon.album_id = album.album_id
              WHERE record.record_id = ?1",
         )
         .map_err(database_error)?
@@ -100,6 +101,7 @@ pub(super) fn inspect_group(
                     album_id,
                     name: row.get(3)?,
                     revision: read_unsigned(row, 4)?,
+                    icon: super::album_icons::read(row, 8)?,
                 }),
                 None => None,
             };

@@ -4,14 +4,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::domain::ScanError;
 use crate::domain::classification::ClassificationRevision;
 use crate::domain::classification::discovery::DiscoveryCohort;
-use crate::ports::classification_encoder::ClassificationEncoderFactory;
 use crate::ports::classification_features::ClassificationFeatureRepository;
 use crate::ports::classification_vocabulary::{
     ClassificationVocabulary, ConceptNeighborhood, ConceptPage,
 };
+use crate::ports::image_feature_encoding::ImageFeatureEncoding;
 
 use super::classification_features::load_or_encode_descriptions;
-use super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
 
 mod admission;
 mod catalog_reconciliation;
@@ -79,11 +78,11 @@ pub use withdrawal::{
     assess_category_withdrawals,
 };
 
-pub fn retrieve_classification_concepts<F: ClassificationEncoderFactory, C: ResidencyClock>(
+pub fn retrieve_classification_concepts<E: ImageFeatureEncoding>(
     cohort: &DiscoveryCohort,
     vocabulary: &mut impl ClassificationVocabulary,
     limits: ConceptSearchLimits,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<DiscoveryCandidates, ScanError> {
@@ -92,11 +91,11 @@ pub fn retrieve_classification_concepts<F: ClassificationEncoderFactory, C: Resi
     result
 }
 
-fn retrieve<F: ClassificationEncoderFactory, C: ResidencyClock>(
+fn retrieve<E: ImageFeatureEncoding>(
     cohort: &DiscoveryCohort,
     vocabulary: &mut impl ClassificationVocabulary,
     limits: ConceptSearchLimits,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<DiscoveryCandidates, ScanError> {

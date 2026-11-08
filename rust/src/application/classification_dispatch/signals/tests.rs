@@ -174,3 +174,17 @@ fn notification_between_check_and_wait_is_not_lost() {
     signals.close().unwrap();
     signals.wait(observed, None).unwrap();
 }
+
+#[test]
+fn search_wakes_dispatch_without_cancelling_background_work() {
+    let clock = Clock::default();
+    let signals = ClassificationDispatchSignals::new(clock.clone());
+    clock.set(3_000);
+    let work = active(&signals);
+    let observed = signals.notification().unwrap();
+    signals.request_interactive().unwrap();
+    signals.wait(observed, None).unwrap();
+    assert!(!work.cancelled.load(Ordering::Acquire));
+    signals.close().unwrap();
+    assert!(work.cancelled.load(Ordering::Acquire));
+}

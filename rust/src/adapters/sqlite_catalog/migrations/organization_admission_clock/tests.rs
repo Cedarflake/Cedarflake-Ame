@@ -20,7 +20,7 @@ fn prior() -> (tempfile::TempDir, SqliteCatalog) {
          UPDATE organization_state SET revision = 1;",
     ).unwrap();
     catalog
-        .create_organization_album("create", 1, "Retained")
+        .create_organization_album("create", 1, "Retained", Default::default())
         .unwrap();
     downgrade_to_v59_for_test(&catalog.connection);
     (directory, catalog)
@@ -33,7 +33,6 @@ fn upgrade_preserves_admissions_decisions_and_history_and_reopens() {
     migrate(&mut catalog.connection).unwrap();
     current_schema::validate_schema_version(&catalog.connection, 60).unwrap();
     assert_eq!(catalog.load_organization_admission_boundary().unwrap(), 1);
-    assert_eq!(catalog.load_organization_history().unwrap(), history);
     let decision: (String, bool) = catalog
         .connection
         .query_row(
@@ -43,12 +42,13 @@ fn upgrade_preserves_admissions_decisions_and_history_and_reopens() {
         )
         .unwrap();
     assert_eq!(decision, ("ignored".into(), true));
-    assert_eq!(
-        catalog.load_organization_albums(None).unwrap().albums[0].name,
-        "Retained"
-    );
     drop(catalog);
     let reopened = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
+    assert_eq!(reopened.load_organization_history().unwrap(), history);
+    assert_eq!(
+        reopened.load_organization_albums(None).unwrap().albums[0].name,
+        "Retained"
+    );
     assert_eq!(reopened.load_organization_admission_boundary().unwrap(), 1);
 }
 

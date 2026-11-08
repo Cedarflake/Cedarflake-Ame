@@ -96,6 +96,9 @@ fn organization_archive_inspection_accepts_version_five_without_managed_origins(
     let mut rows = entries(&archive);
     rows[0]["header"]["version"] = json!(5);
     rows[0]["header"]["source_schema"] = json!(70);
+    rows.iter_mut()
+        .find(|row| row["kind"] == "review_scope")
+        .unwrap()["values"][9] = json!(super::super::super::metadata_filter_payload::LEGACY_EMPTY);
     write_archive(&archive, &rows);
     let before = fs::read(&archive).unwrap();
     let staged = read(&archive, directory.path(), &mut |_| true).unwrap();
@@ -227,7 +230,7 @@ fn organization_archive_inspection_upgrades_v2_ordering_without_rewriting_input(
 }
 
 #[test]
-fn organization_archive_inspection_upgrades_v3_filters_and_rejects_invalid_v4_payloads() {
+fn organization_archive_inspection_upgrades_legacy_filters_and_rejects_invalid_payloads() {
     use crate::domain::gallery_metadata_filter::GalleryMetadataFilter;
     let (directory, catalog) = fixture();
     let archive = directory.path().join("metadata.ame-backup");
@@ -236,6 +239,29 @@ fn organization_archive_inspection_upgrades_v3_filters_and_rejects_invalid_v4_pa
         .unwrap();
     let original = entries(&archive);
     let mut old = original.clone();
+    old[0]["header"]["version"] = json!(7);
+    write_archive(&archive, &old);
+    let version_seven = read(&archive, directory.path(), &mut |_| true).unwrap();
+    assert_eq!(
+        version_seven
+            .connection
+            .query_row(
+                "SELECT name FROM archive_album WHERE album_id = 'album-a'",
+                [],
+                |row| row.get::<_, String>(0)
+            )
+            .unwrap(),
+        "风景🌲"
+    );
+    assert_eq!(
+        version_seven
+            .connection
+            .query_row("SELECT COUNT(*) FROM archive_album_icon", [], |row| row
+                .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+    drop(version_seven);
     old[0]["header"]["version"] = json!(3);
     old.iter_mut()
         .find(|row| row["kind"] == "review_scope")
@@ -260,20 +286,53 @@ fn organization_archive_inspection_upgrades_v3_filters_and_rejects_invalid_v4_pa
     );
     assert_eq!(fs::read(&archive).unwrap(), before);
     drop(staged);
+    let retained = GalleryMetadataFilter {
+        extensions: vec!["png".into()],
+        camera_text: "Saved camera".into(),
+        ..Default::default()
+    };
+    let mut version_six = original.clone();
+    version_six[0]["header"]["version"] = json!(6);
+    version_six
+        .iter_mut()
+        .find(|row| row["kind"] == "review_scope")
+        .unwrap()["values"][9] = json!(
+        super::super::super::metadata_filter_payload::encode_legacy(&retained)
+    );
+    write_archive(&archive, &version_six);
+    let before = fs::read(&archive).unwrap();
+    let staged = read(&archive, directory.path(), &mut |_| true).unwrap();
+    let payload: String = staged
+        .connection
+        .query_row(
+            "SELECT metadata_filter FROM archive_review_scope",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        serde_json::from_str::<GalleryMetadataFilter>(&payload).unwrap(),
+        retained
+    );
+    assert_eq!(fs::read(&archive).unwrap(), before);
+    drop(staged);
     for payload in ["{}".to_owned(), "x".repeat(4097)] {
-        let mut invalid = original.clone();
-        invalid
-            .iter_mut()
-            .find(|row| row["kind"] == "review_scope")
-            .unwrap()["values"][9] = json!(payload);
-        write_archive(&archive, &invalid);
-        assert_eq!(
-            read(&archive, directory.path(), &mut |_| true)
-                .err()
-                .unwrap()
-                .code,
-            "organization_archive_records_invalid"
-        );
+        for version in [6, codec::VERSION] {
+            let mut invalid = original.clone();
+            invalid[0]["header"]["version"] = json!(version);
+            invalid
+                .iter_mut()
+                .find(|row| row["kind"] == "review_scope")
+                .unwrap()["values"][9] = json!(payload);
+            write_archive(&archive, &invalid);
+            assert_eq!(
+                read(&archive, directory.path(), &mut |_| true)
+                    .err()
+                    .unwrap()
+                    .code,
+                "organization_archive_records_invalid"
+            );
+        }
     }
 }
 

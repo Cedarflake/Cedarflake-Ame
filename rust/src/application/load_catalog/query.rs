@@ -1,7 +1,7 @@
 use crate::domain::organization_queue::OrganizationQueue;
 use crate::domain::{GalleryCollection, GalleryQuery, GallerySortDirection, GallerySortKey};
 
-pub(super) fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {
+pub(crate) fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {
     query.search_text = query.search_text.trim().to_owned();
     query.metadata_filter.normalize();
     if query.organization_queue.is_none() {
@@ -23,7 +23,7 @@ pub(super) fn normalize_relative_folder(folder: &str) -> String {
     folder.replace('\\', "/").trim_matches('/').to_owned()
 }
 
-pub(super) fn gallery_query_identity(query: &GalleryQuery) -> String {
+pub(crate) fn gallery_query_identity(query: &GalleryQuery) -> String {
     let mut hasher = blake3::Hasher::new();
     hasher.update(b"ame-gallery-query-v5\0");
     if let Some(boundary) = query.new_since_admission {
@@ -68,6 +68,14 @@ pub(super) fn gallery_query_identity(query: &GalleryQuery) -> String {
     );
     hasher.update(&[u8::from(query.include_descendants)]);
     update_query_identity(&mut hasher, &query.search_text);
+    if let Some(manifest) = &query.semantic_results {
+        update_query_identity(&mut hasher, &manifest.id);
+        for item in &manifest.items {
+            update_query_identity(&mut hasher, &item.asset_id);
+            update_query_identity(&mut hasher, &item.location_id);
+            hasher.update(&item.source_generation.to_le_bytes());
+        }
+    }
     update_metadata_identity(&mut hasher, &query.metadata_filter);
     hasher.update(&[match query.sort_key {
         GallerySortKey::CaptureTime => 0,
@@ -97,7 +105,10 @@ fn update_metadata_identity(
     filter: &crate::domain::gallery_metadata_filter::GalleryMetadataFilter,
 ) {
     use crate::domain::gallery_metadata_filter::GalleryDateField;
-    update_query_identity(hasher, &filter.extension);
+    hasher.update(&(filter.extensions.len() as u64).to_le_bytes());
+    for extension in &filter.extensions {
+        update_query_identity(hasher, extension);
+    }
     update_query_identity(hasher, &filter.camera_text);
     for range in [&filter.bytes, &filter.width, &filter.height] {
         for value in [range.minimum, range.maximum] {
@@ -150,7 +161,11 @@ mod tests {
         let base = GalleryQuery::default();
         let mut filters = vec![GalleryMetadataFilter::default()];
         filters.push(GalleryMetadataFilter {
-            extension: "jpg".into(),
+            extensions: vec!["jpg".into()],
+            ..Default::default()
+        });
+        filters.push(GalleryMetadataFilter {
+            extensions: vec!["jpg".into(), "png".into()],
             ..Default::default()
         });
         filters.push(GalleryMetadataFilter {

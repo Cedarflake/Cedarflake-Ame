@@ -1,7 +1,7 @@
 use std::sync::atomic::AtomicBool;
 
 use crate::domain::ScanError;
-use crate::domain::classification::{ImageFeature, ModelCompatibility, TextFeature};
+use crate::domain::image_features::{ImageFeature, ModelCompatibility, TextFeature};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ClassificationEncoderKind {

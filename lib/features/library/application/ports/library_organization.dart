@@ -32,7 +32,12 @@ abstract interface class LibraryOrganization {
   Future<LibraryOrganizationReceipt> createAlbum(
     String operationId,
     BigInt revision,
-    String name,
+    String name, {
+    LibraryAlbumIcon icon = LibraryAlbumIcon.album,
+  });
+  Future<LibraryOrganizationAlbum> changeAlbumIcon(
+    String albumId,
+    LibraryAlbumIcon icon,
   );
   Future<LibraryOrganizationReceipt> renameAlbum(
     String operationId,

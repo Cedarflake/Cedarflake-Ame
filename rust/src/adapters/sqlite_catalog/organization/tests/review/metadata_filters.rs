@@ -14,7 +14,7 @@ fn saved_filters_survive_restart_and_constrain_continuation() {
         .unwrap();
     let query = GalleryQuery {
         metadata_filter: GalleryMetadataFilter {
-            extension: "png".into(),
+            extensions: vec!["png".into()],
             camera_text: "Selected".into(),
             width: GalleryNumberRange {
                 minimum: Some(1),

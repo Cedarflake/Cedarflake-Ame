@@ -18,6 +18,7 @@ mod recovery_claim_validation;
 mod root_unregistration;
 mod scan_checkpoint;
 mod scan_publication;
+mod semantic_catalog;
 mod session_validation;
 mod source_reconciliation;
 mod support;

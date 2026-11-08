@@ -1,9 +1,9 @@
 use crate::domain::ScanError;
 use crate::domain::organization::{
-    OrganizationAction, OrganizationAlbum, OrganizationAlbumPage, OrganizationAlbumReceipt,
-    OrganizationHistory, OrganizationHistoryDirection, OrganizationHistoryReceipt,
-    OrganizationInspection, OrganizationPreparedSelection, OrganizationSelection,
-    OrganizationWriteReceipt,
+    OrganizationAction, OrganizationAlbum, OrganizationAlbumIcon, OrganizationAlbumPage,
+    OrganizationAlbumReceipt, OrganizationHistory, OrganizationHistoryDirection,
+    OrganizationHistoryReceipt, OrganizationInspection, OrganizationPreparedSelection,
+    OrganizationSelection, OrganizationWriteReceipt,
 };
 
 pub(crate) trait OrganizationRepository {
@@ -63,7 +63,14 @@ pub(crate) trait OrganizationRepository {
         operation_id: &str,
         expected_revision: u64,
         name: &str,
+        icon: OrganizationAlbumIcon,
     ) -> Result<OrganizationAlbumReceipt, ScanError>;
+
+    fn change_organization_album_icon(
+        &mut self,
+        album_id: &str,
+        icon: OrganizationAlbumIcon,
+    ) -> Result<OrganizationAlbum, ScanError>;
 
     fn rename_organization_album(
         &mut self,

@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-07
+Last planning update: 2026-11-08
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -32,7 +32,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R4 | Favorites, albums and durable organization progress | Merged into `main` on 2026-10-30 |
 | R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
 | R6 | Perceptual similarity review | Merged into `main` on 2026-11-05 |
-| R7 | Structured and semantic discovery | Planned after R6 |
+| R7 | Structured and semantic discovery | Implemented and verified on the R7 branch; awaiting integration authorization |
 | R8 | Immutable physical-organization dry-run | Planned after R7 |
 | R9 | Freshly authorized physical operations and recovery | Planned after R8 |
 | R10 | Large-library maturity and release readiness | Later work; infrastructure may support earlier stages |
@@ -59,7 +59,7 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 GPU analysis acceleration was merged into `main` on 2026-11-07 through
 [PR 52](https://github.com/Cedarflake/Cedarflake-Ame/pull/52). The
 [evidence](acceptance/gpu-analysis-acceleration.md#integration-disposition--2026-11-07) retains local
-verification, review scope and the authorized merge before CI completion. R7 implementation has not started.
+verification, review scope and the authorized merge before CI completion.
 
 Post-R6 maintenance is integrated into `main`. The owning records retain the local regression and
 rebuilt-client evidence for [similarity throughput](acceptance/r6-similar-images.md#development-analysis-throughput--2026-11-05),
@@ -68,16 +68,21 @@ rebuilt-client evidence for [similarity throughput](acceptance/r6-similar-images
 [date navigation and filmstrip paging](acceptance/image-rendering.md#time-navigation-after-catalog-publication--2026-11-05),
 and [hot-restart attachment and shutdown](acceptance/desktop-lifecycle-continuity.md).
 The generic `其他` category has been removed from browsing. Similarity parameters and source safety
-remain unchanged. Hosted CI remains the outstanding integration check; these repairs do not reopen
-R6 or start R7.
+remain unchanged. These repairs do not reopen R6; R7 retains its own verification boundary below.
 
 Project organization O1–O7 was merged into `main` on 2026-11-04 through
 [PR 46](https://github.com/Cedarflake/Cedarflake-Ame/pull/46). The
 [handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04) maps the
 delivered scope to evidence.
 
-R7 is the next planned stage; implementation has not started. Its scope remains in the
-[organization workflows](product/organization-workflows.md).
+R7's delivered scope follows the [semantic-discovery plan](plans/r7-semantic-discovery.md):
+composed filters, shared feature/index coverage, text retrieval, related-image discovery and desktop
+acceptance. It reuses SigLIP 2 and the existing default-enabled GPU image runtime;
+multi-model selection and the larger FG-CLIP 2 evaluation are outside this scope.
+
+The requested CI reduction is implemented: quick/full/nightly-release selection, affected Flutter
+suites and removal of incidental assertions. [CI evidence](acceptance/r7-semantic-discovery.md#ci-reduction--2026-11-07)
+retains its measured results and revision limits. Continue R7 without another broad test-cleanup project.
 
 R6 retains the paired engine with accepted visual-layout discrimination and heavier-crop limits.
 Cloud-primary runs, constrained-client measurements and optimization remain deferred outside R6.
@@ -121,6 +126,22 @@ any affected extension. Existing extractions are regression boundaries, not task
 multi-responsibility extension must first establish its typed owner; record only an actual unfinished
 larger split here, with affected scope and resume condition. This documentation reorganization
 schedules no additional broad split.
+
+## R7 implementation sequence
+
+The [R7 plan](plans/r7-semantic-discovery.md#implementation-slices) owns slice definitions and planned
+interaction. R7-01 through R7-05 are implemented and verified on the R7 branch: composed filters,
+durable features, independent indexing, resource-aware scheduling, text search and related-image results share the
+existing gallery and viewer. [Implementation evidence](acceptance/r7-semantic-discovery.md#connected-scheduling-and-search)
+retains the scoped native-client checks and fixed-corpus retrieval measurements.
+[Derived-index recovery](acceptance/r7-semantic-discovery.md#derived-index-recovery--2026-11-08)
+has connected native and desktop evidence. [Local-primary retrieval measurements](acceptance/r7-semantic-discovery.md#large-library-retrieval--2026-11-08)
+and [desktop restart/scope checks](acceptance/r7-semantic-discovery.md#desktop-continuation--2026-11-08)
+are recorded. Native IME submission and cancellation are verified, and the
+[`d9b69432` full CI](acceptance/r7-semantic-discovery.md#integrated-verification--2026-11-08)
+passed all nine main jobs and the final gate. Implementation and verification are complete;
+PR creation and integration await explicit authorization. Preserve the measured partial-index
+coverage and deferred constrained-device limits in the acceptance record.
 
 ## R4 implementation sequence
 

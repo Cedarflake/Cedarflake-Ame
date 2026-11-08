@@ -26,15 +26,18 @@ class OrganizationAlbum {
   final String albumId;
   final String name;
   final BigInt revision;
+  final OrganizationAlbumIcon icon;
 
   const OrganizationAlbum({
     required this.albumId,
     required this.name,
     required this.revision,
+    required this.icon,
   });
 
   @override
-  int get hashCode => albumId.hashCode ^ name.hashCode ^ revision.hashCode;
+  int get hashCode =>
+      albumId.hashCode ^ name.hashCode ^ revision.hashCode ^ icon.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -43,7 +46,23 @@ class OrganizationAlbum {
           runtimeType == other.runtimeType &&
           albumId == other.albumId &&
           name == other.name &&
-          revision == other.revision;
+          revision == other.revision &&
+          icon == other.icon;
+}
+
+enum OrganizationAlbumIcon {
+  album,
+  travel,
+  nature,
+  pets,
+  people,
+  food,
+  art,
+  work,
+  study,
+  games,
+  music,
+  memories,
 }
 
 class OrganizationAlbumPage {

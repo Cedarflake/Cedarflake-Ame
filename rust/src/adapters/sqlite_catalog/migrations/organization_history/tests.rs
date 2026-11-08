@@ -7,7 +7,7 @@ fn prior() -> (tempfile::TempDir, SqliteCatalog, String) {
     let directory = tempfile::tempdir().unwrap();
     let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     let album = catalog
-        .create_organization_album("create", 0, "Retained")
+        .create_organization_album("create", 0, "Retained", Default::default())
         .unwrap()
         .album_id;
     downgrade_to_v55_for_test(&catalog.connection);
@@ -22,6 +22,13 @@ fn history_upgrade_preserves_existing_decisions_and_receipts_without_inventing_o
         .query_row("SELECT revision FROM catalog_state", [], |row| row.get(0))
         .unwrap();
     migrate(&mut catalog.connection).unwrap();
+    let after: i64 = catalog
+        .connection
+        .query_row("SELECT revision FROM catalog_state", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(after, before);
+    drop(catalog);
+    let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     assert_eq!(
         catalog
             .find_organization_album(&album)
@@ -34,20 +41,13 @@ fn history_upgrade_preserves_existing_decisions_and_receipts_without_inventing_o
     assert_eq!(history.organization_revision, 1);
     assert_eq!(history.undo_operation_id, None);
     assert_eq!(history.redo_operation_id, None);
-    let after: i64 = catalog
-        .connection
-        .query_row("SELECT revision FROM catalog_state", [], |row| row.get(0))
-        .unwrap();
-    assert_eq!(after, before);
     assert_eq!(
         catalog
-            .create_organization_album("create", 0, "Retained")
+            .create_organization_album("create", 0, "Retained", Default::default())
             .unwrap()
             .album_id,
         album
     );
-    drop(catalog);
-    let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     catalog
         .undo_organization_operation("legacy-undo", "create", 1)
         .unwrap();
@@ -78,7 +78,15 @@ fn failed_history_upgrade_rolls_back_ddl_and_preserves_retry() {
         )
         .unwrap();
     assert_eq!(objects, 0);
-    assert!(catalog.find_organization_album(&album).unwrap().is_some());
+    let retained: String = catalog
+        .connection
+        .query_row(
+            "SELECT name FROM organization_albums WHERE album_id = ?1",
+            [&album],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(retained, "Retained");
     catalog
         .connection
         .execute_batch("DROP TRIGGER reject_history_upgrade;")

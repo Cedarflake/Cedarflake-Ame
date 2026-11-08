@@ -13,7 +13,7 @@ use windows_sys::Win32::System::JobObjects::{
 pub(super) struct WorkerJob(OwnedHandle);
 
 impl WorkerJob {
-    pub fn attach(child: &Child) -> io::Result<Self> {
+    pub fn attach(child: &Child, memory_limit: usize) -> io::Result<Self> {
         let raw = unsafe { CreateJobObjectW(null(), null()) };
         if raw.is_null() {
             return Err(io::Error::last_os_error());
@@ -24,7 +24,7 @@ impl WorkerJob {
             | JOB_OBJECT_LIMIT_ACTIVE_PROCESS
             | JOB_OBJECT_LIMIT_PROCESS_MEMORY;
         limits.BasicLimitInformation.ActiveProcessLimit = 1;
-        limits.ProcessMemoryLimit = 2 * 1024 * 1024 * 1024;
+        limits.ProcessMemoryLimit = memory_limit;
         if unsafe {
             SetInformationJobObject(
                 handle.as_raw_handle(),

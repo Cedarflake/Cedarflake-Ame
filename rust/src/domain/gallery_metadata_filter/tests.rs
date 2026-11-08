@@ -64,7 +64,7 @@ fn calendar_dates_and_numeric_bounds_reject_invalid_filters() {
 #[test]
 fn normalization_retains_literal_camera_text_and_empty_date_identity() {
     let mut filter = GalleryMetadataFilter {
-        extension: " .JPG ".into(),
+        extensions: vec![" .JPG ".into(), "png".into(), "JPG".into()],
         camera_text: " Maker%_One ".into(),
         date: GalleryDateRange {
             field: GalleryDateField::Modified,
@@ -73,10 +73,10 @@ fn normalization_retains_literal_camera_text_and_empty_date_identity() {
         ..Default::default()
     };
     filter.normalize();
-    assert_eq!(filter.extension, "jpg");
+    assert_eq!(filter.extensions, ["jpg", "png"]);
     assert_eq!(filter.camera_text, "Maker%_One");
     assert_eq!(filter.date.field, GalleryDateField::Capture);
     assert!(filter.validate().is_ok());
-    filter.extension = "jpg' OR 1=1".into();
+    filter.extensions.push("jpg' OR 1=1".into());
     assert!(filter.validate().is_err());
 }

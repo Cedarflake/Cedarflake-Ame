@@ -11,6 +11,15 @@ pub(super) struct GalleryOrderExpressions {
 }
 
 pub(super) fn gallery_order_expressions(query: &GalleryQuery) -> GalleryOrderExpressions {
+    if query.semantic_results.is_some() {
+        return GalleryOrderExpressions {
+            missing: "CAST(0 AS INTEGER)",
+            text: "CAST('' AS TEXT)",
+            number: Cow::Borrowed("CAST(semantic_result.key AS INTEGER)"),
+            date: None,
+            month: None,
+        };
+    }
     match query.sort_key {
         GallerySortKey::CaptureTime => GalleryOrderExpressions {
             missing: "(COALESCE(locations.capture_local_time, locations.file_local_time) IS NULL)",

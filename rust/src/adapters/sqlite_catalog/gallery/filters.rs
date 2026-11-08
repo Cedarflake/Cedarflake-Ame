@@ -7,7 +7,13 @@ use super::{
     duplicates, normalize_relative_folder, organization, organization_groups, organization_queue,
 };
 
-pub(super) fn gallery_source(query: &GalleryQuery, parameters: &mut Vec<Value>) -> String {
+pub(in crate::adapters::sqlite_catalog) fn gallery_source(
+    query: &GalleryQuery,
+    parameters: &mut Vec<Value>,
+) -> String {
+    if let Some(manifest) = &query.semantic_results {
+        return super::semantic::source(manifest, parameters).to_owned();
+    }
     if query.organization_queue.is_some() || query.collection != GalleryCollection::Library {
         let roots = if let Some(condition) = organization::presence_condition(query, parameters) {
             // An empty decision scope needs no location or group work.
@@ -32,7 +38,7 @@ pub(super) fn gallery_source(query: &GalleryQuery, parameters: &mut Vec<Value>) 
     }
 }
 
-pub(super) fn push_gallery_filters(
+pub(in crate::adapters::sqlite_catalog) fn push_gallery_filters(
     query: &GalleryQuery,
     clauses: &mut Vec<String>,
     parameters: &mut Vec<Value>,
@@ -44,6 +50,27 @@ pub(super) fn push_gallery_filters(
         push_source_filters(query, clauses, parameters);
         duplicates::push_duplicate_filter(query, clauses, parameters);
     }
+}
+
+pub(in crate::adapters::sqlite_catalog) fn semantic_candidate_source(
+    query: &GalleryQuery,
+    parameters: &mut Vec<Value>,
+) -> String {
+    let prefix = if let Some(condition) = organization::presence_condition(query, parameters) {
+        format!(
+            "FROM (SELECT 1 FROM organization_records AS record WHERE {condition} LIMIT 1)
+             AS organization_presence CROSS JOIN"
+        )
+    } else {
+        "FROM".to_owned()
+    };
+    // Discovery walks every candidate in location order. Keep the location index
+    // outermost so each bounded page does not sort all remaining active sources.
+    format!(
+        "{prefix} asset_locations AS locations
+         CROSS JOIN library_roots AS roots
+           ON roots.id = locations.root_id AND roots.active_scan_id = locations.scan_id"
+    )
 }
 
 pub(super) fn push_source_filters(

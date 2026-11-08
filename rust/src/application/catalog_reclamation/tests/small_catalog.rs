@@ -64,7 +64,7 @@ fn smaller_incremental_catalog_reclaims_space_and_preserves_search_and_decisions
         .unwrap()
         .organization_revision;
     catalog
-        .create_organization_album("album", revision, "Retained")
+        .create_organization_album("album", revision, "Retained", Default::default())
         .unwrap();
     let history = catalog.load_organization_history().unwrap();
     let before_assets = catalog

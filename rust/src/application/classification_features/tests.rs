@@ -1,3 +1,7 @@
+use crate::application::classification_residency::{
+    ClassificationEncoderResidency, ResidencyClock,
+};
+use crate::ports::classification_encoder::ClassificationEncoderFactory;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::time::Duration;

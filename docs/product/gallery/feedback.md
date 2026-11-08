@@ -55,7 +55,9 @@ does not add a bottom offset.
 
 Top notices retain the compact viewport layout: 16-pixel top/side inset, 48-pixel minimum height,
 8-pixel icon gap, `bodyMedium`, and the existing optional retry/undo action. Text wraps within the
-width bound without moving the image. Source and original-image recovery keep their current priority.
+width bound without moving the image. Notices without an action use symmetric 14-pixel horizontal
+content padding; notices with an action retain the 6-pixel trailing inset beside the text button.
+Source and original-image recovery keep their current priority.
 The shared style does not merge notification history, task cancellation, source recovery or receipt
 ownership. Persistent failures do not acquire a transient timeout, and Favorite successes still
 leave notification history and unread state unchanged.

@@ -2,7 +2,6 @@ mod decision_policy;
 mod decisions;
 pub mod discovery;
 mod evidence;
-mod features;
 pub mod installation;
 pub mod maintenance;
 mod ranking;
@@ -11,6 +10,10 @@ mod setup;
 mod taxonomy;
 pub mod work;
 
+pub use super::image_features::{
+    AnalysisRevision as ClassificationRevision, Embedding, FeatureIdentity, ImageFeature,
+    ModelCompatibility, TextFeature,
+};
 pub use decision_policy::plan_classification_change;
 pub use decisions::{
     ClassificationAction, ClassificationChange, ClassificationFieldAuthority,
@@ -22,14 +25,19 @@ pub use evidence::{
     ClassificationContent, ClassificationProposal, ClassificationRecordId, ClassificationRun,
     PredictionEvidence, PredictionReference, RefinementIdentity, ReviewRecommendation,
 };
-pub use features::{Embedding, FeatureIdentity, ImageFeature, ModelCompatibility, TextFeature};
 pub use ranking::{CategoryScore, RankedPrediction};
 pub use screening::{
     CategoryScreeningThresholds, ScreeningIdentity, ScreeningPolicy, ScreeningProfile,
     ScreeningThresholds,
 };
 pub use setup::{ClassificationAnalysisSetup, ClassificationSetupActivation};
-pub use taxonomy::{CategoryDefinition, CategoryId, ClassificationRevision, Taxonomy};
+pub use taxonomy::{CategoryDefinition, CategoryId, Taxonomy};
+
+impl From<super::image_features::InvalidEmbedding> for ClassificationError {
+    fn from(_: super::image_features::InvalidEmbedding) -> Self {
+        Self::InvalidEmbedding
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum ClassificationError {

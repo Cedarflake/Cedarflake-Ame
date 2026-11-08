@@ -63,6 +63,10 @@ CREATE TABLE archive_retired_album (
   album_id TEXT PRIMARY KEY NOT NULL REFERENCES archive_album(album_id),
   revision INTEGER NOT NULL CHECK(revision > 0), retired_unix_ms INTEGER NOT NULL CHECK(retired_unix_ms >= 0)
 ) STRICT;
+CREATE TABLE archive_album_icon (
+  album_id TEXT PRIMARY KEY NOT NULL REFERENCES archive_album(album_id),
+  icon TEXT NOT NULL
+);
 CREATE TABLE archive_album_change (
   operation_id TEXT PRIMARY KEY NOT NULL REFERENCES archive_operation(operation_id),
   album_id TEXT NOT NULL REFERENCES archive_album(album_id), previous_name TEXT,

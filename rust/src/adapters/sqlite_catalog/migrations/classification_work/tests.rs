@@ -15,7 +15,7 @@ fn upgrade_preserves_classification_decisions_without_enabling_analysis() {
     let (directory, mut catalog) = fixture();
     publish(&mut catalog, "a", 'a');
     catalog
-        .create_organization_album("retained", 0, "Retained")
+        .create_organization_album("retained", 0, "Retained", Default::default())
         .unwrap();
     let category = CategoryId::new("drawing".into()).unwrap();
     let taxonomy = Taxonomy::new(vec![

@@ -2,7 +2,8 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::domain::ScanError;
 use crate::domain::organization::{
-    OrganizationAlbum, OrganizationAlbumPage, OrganizationAlbumReceipt, OrganizationWriteReceipt,
+    OrganizationAlbum, OrganizationAlbumIcon, OrganizationAlbumPage, OrganizationAlbumReceipt,
+    OrganizationWriteReceipt,
 };
 
 use super::super::exact_duplicates::read_unsigned;
@@ -17,8 +18,9 @@ pub(super) fn find(
 ) -> Result<Option<OrganizationAlbum>, ScanError> {
     connection
         .query_row(
-            "SELECT album.album_id, album.name, album.revision
+            "SELECT album.album_id, album.name, album.revision, COALESCE(icon.icon, 'album')
          FROM organization_albums AS album
+         LEFT JOIN organization_album_icons AS icon USING(album_id)
          WHERE album.album_id = ?1 AND NOT EXISTS (
              SELECT 1 FROM organization_album_retirements WHERE album_id = album.album_id
          )",
@@ -28,6 +30,7 @@ pub(super) fn find(
                     album_id: row.get(0)?,
                     name: row.get(1)?,
                     revision: read_unsigned(row, 2)?,
+                    icon: super::album_icons::read(row, 3)?,
                 })
             },
         )
@@ -55,9 +58,10 @@ pub(super) fn load(
         )
         .map_err(database_error)?;
     let mut statement = connection.prepare(
-        "SELECT album.album_id, album.name, album.revision
+        "SELECT album.album_id, album.name, album.revision, COALESCE(icon.icon, 'album')
          FROM organization_sidebar_album_order AS ordering
          JOIN organization_albums AS album USING(album_id)
+         LEFT JOIN organization_album_icons AS icon USING(album_id)
          WHERE ordering.position > COALESCE(
            (SELECT position FROM organization_sidebar_album_order WHERE album_id = ?1), -1)
          AND NOT EXISTS(SELECT 1 FROM organization_album_retirements WHERE album_id = album.album_id)
@@ -71,6 +75,7 @@ pub(super) fn load(
                     album_id: row.get(0)?,
                     name: row.get(1)?,
                     revision: read_unsigned(row, 2)?,
+                    icon: super::album_icons::read(row, 3)?,
                 })
             },
         )
@@ -123,8 +128,18 @@ pub(super) fn create(
     operation_id: &str,
     expected_revision: u64,
     name: &str,
+    icon: OrganizationAlbumIcon,
 ) -> Result<OrganizationAlbumReceipt, ScanError> {
-    let digest = operations::request_digest("create-album", expected_revision, &[name]);
+    let digest = match icon {
+        OrganizationAlbumIcon::Album => {
+            operations::request_digest("create-album", expected_revision, &[name])
+        }
+        _ => operations::request_digest(
+            "create-album-with-icon",
+            expected_revision,
+            &[name, icon.stored()],
+        ),
+    };
     let revision = match operations::admit(
         connection,
         operation_id,
@@ -157,6 +172,7 @@ pub(super) fn create(
             params![operation_id, album_id, revision],
         )
         .map_err(database_error)?;
+    super::album_icons::set(connection, &album_id, icon)?;
     let operation = operations::finish(connection, operation_id, revision, 0, true)?;
     Ok(OrganizationAlbumReceipt {
         album_id,

@@ -1671,7 +1671,6 @@ foreach ($requiredVerificationJobContract in @(
     "Download immutable signed candidate",
     "Verify signed manifest and fixed binaries",
     "./tool/release_verify_windows.ps1",
-    "./tool/performance_run_synthetic.ps1 -Case scan",
     "SignedApplicationBundlePath",
     "Expose verified immutable artifact"
 )) {

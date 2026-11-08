@@ -181,6 +181,8 @@ class LibraryController extends Notifier<LibraryState>
     }
   }
 
+  void supersedeQueryRequests() => _viewport.supersedeExternalRequests();
+
   Future<bool> updateQuery(
     LibraryGalleryQuery query, {
     String? anchorLocationId,

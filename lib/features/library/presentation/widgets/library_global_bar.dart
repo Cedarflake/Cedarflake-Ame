@@ -1,22 +1,25 @@
 import "dart:math" as math;
 
 import "package:flutter/material.dart";
-import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_brand_mark.dart";
 import "../../../../app/presentation/ame_notifications.dart";
-import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../../../app/window/ame_window_chrome.dart";
 import "../library_strings.dart";
+import "../coordination/library_search.dart";
+import "library_search_bar.dart";
 import "library_workbench_metrics.dart";
 
 class LibraryGlobalBar extends StatelessWidget {
   const LibraryGlobalBar({
     required this.isSearchEnabled,
     required this.searchController,
-    required this.onSearchChanged,
+    required this.sidebarWidth,
+    required this.sidebarExpansion,
+    this.onSearchChanged,
+    this.discovery,
     required this.notifications,
     required this.onNotificationsOpened,
     required this.onNotificationSelected,
@@ -25,7 +28,10 @@ class LibraryGlobalBar extends StatelessWidget {
 
   final bool isSearchEnabled;
   final TextEditingController searchController;
-  final ValueChanged<String> onSearchChanged;
+  final double sidebarWidth;
+  final double sidebarExpansion;
+  final ValueChanged<String>? onSearchChanged;
+  final LibrarySearch? discovery;
   final AmeNotificationState notifications;
   final VoidCallback onNotificationsOpened;
   final ValueChanged<AmeNotificationEntry> onNotificationSelected;
@@ -40,20 +46,45 @@ class LibraryGlobalBar extends StatelessWidget {
         height: 64,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final isCompact = constraints.maxWidth < 980;
-            final leadingWidth = isCompact
-                ? LibraryWorkbenchMetrics.railWidth
-                : 244.0;
+            const collapsedLeading =
+                LibraryWorkbenchMetrics.railWidth +
+                LibraryWorkbenchMetrics.galleryHeadingInset;
+            final contentLeading =
+                collapsedLeading + sidebarWidth * sidebarExpansion;
+            final leadingWidth = (contentLeading - 16).clamp(
+              LibraryWorkbenchMetrics.railWidth,
+              244.0,
+            );
+            final isCompact = leadingWidth < 244;
             const captionWidth = 48.0 * 3 + 8;
             const notificationWidth = 48.0;
             const notificationGap = 8.0;
+            const collapsedSearchGap = 16.0;
+            const expandedSearchGap = 32.0;
             const trailingWidth =
                 captionWidth + notificationWidth + notificationGap;
-            final edgeReserve = math.max(leadingWidth, trailingWidth);
-            final searchWidth = math.min(
-              720.0,
-              math.max(360.0, constraints.maxWidth - edgeReserve * 2 - 32),
+            final collapsedSearchWidth = math.max(
+              0.0,
+              constraints.maxWidth -
+                  collapsedLeading -
+                  trailingWidth -
+                  collapsedSearchGap,
             );
+            final expandedSearchWidth = math.min(
+              720.0,
+              math.max(
+                0.0,
+                constraints.maxWidth -
+                    collapsedLeading -
+                    sidebarWidth -
+                    trailingWidth -
+                    expandedSearchGap,
+              ),
+            );
+            // Fixed endpoints keep the right edge from reversing mid-transition.
+            final searchWidth =
+                collapsedSearchWidth +
+                (expandedSearchWidth - collapsedSearchWidth) * sidebarExpansion;
             return Stack(
               fit: StackFit.expand,
               children: [
@@ -100,34 +131,18 @@ class LibraryGlobalBar extends StatelessWidget {
                     ),
                   ),
                 ),
-                Align(
+                Positioned(
+                  left: contentLeading,
+                  top: 0,
+                  bottom: 0,
                   child: SizedBox(
                     width: searchWidth,
                     child: Align(
                       key: const Key("library-search-alignment"),
-                      child: SearchBar(
-                        key: const Key("library-search"),
-                        constraints: const BoxConstraints(
-                          minHeight: 44,
-                          maxHeight: 44,
-                        ),
+                      child: LibrarySearchBar(
                         controller: searchController,
                         enabled: isSearchEnabled,
-                        hintText: LibraryStrings.searchHint,
-                        leading: const Icon(Symbols.search_rounded),
-                        trailing: [
-                          if (searchController.text.isNotEmpty)
-                            AmeTooltip(
-                              message: LibraryStrings.clearSearch,
-                              child: IconButton(
-                                onPressed: () {
-                                  searchController.clear();
-                                  onSearchChanged("");
-                                },
-                                icon: const Icon(Symbols.close_rounded),
-                              ),
-                            ),
-                        ],
+                        discovery: discovery,
                         onChanged: onSearchChanged,
                       ),
                     ),

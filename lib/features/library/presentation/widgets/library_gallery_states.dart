@@ -4,6 +4,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_state.dart";
 import "../library_first_import_feedback.dart";
+import "../library_search_strings.dart";
 import "../library_strings.dart";
 import "library_gallery_message.dart";
 
@@ -179,6 +180,16 @@ class NoGalleryResults extends StatelessWidget {
           LibraryOrganizationQueue.ignored => "没有已忽略的图片",
         },
         detail: "可以切换整理队列，或在更多菜单中退出整理模式。",
+      );
+    }
+    if (query.semanticResults != null || query.metadataFilter.isActive) {
+      return LibraryGalleryMessage(
+        key: const Key("library-no-results"),
+        icon: Symbols.image_search_rounded,
+        title: LibraryStrings.noSearchResults,
+        detail: query.semanticResults != null
+            ? LibrarySearchStrings.noResultsHint
+            : LibrarySearchStrings.noFilterResultsHint,
       );
     }
     final isSearch = query.searchText.isNotEmpty;

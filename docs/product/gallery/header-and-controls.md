@@ -169,6 +169,8 @@ The gallery Filter menu retains two independent single-choice groups:
 ────────────────
 全部图片
 合并重复图片
+────────────────
+更多筛选
 ```
 
 The source group controls descendants of the current folder. The duplicate group controls whether
@@ -181,18 +183,44 @@ choices remain visible and disabled. Manual albums, smart albums and organizatio
 merged groups: their duplicate choices remain visible and disabled, with `合并重复图片` selected.
 Library and Favorites retain their supported duplicate-display choices.
 
-The menu applies each choice directly. The metadata-condition entry and form were withdrawn on
-2026-11-02; do not replace them with another panel or menu. Ordinary desktop queries have no metadata
-conditions, and organization continuation uses the current query's conditions rather than restoring
-hidden restrictions from an older bookmark. Historical payloads remain readable for archive
-compatibility without erasing organization progress.
+The descendant and duplicate choices apply directly. `更多筛选` opens the standard Material bottom
+sheet centered at the bottom of the window, using the same opening behavior and theme width as the
+album picker. Content scrolls within the bounded sheet; its title and action row remain visible.
+Formats use multi-select `FilterChip` controls; selecting JPG and PNG includes either format.
+Each section title sits above its controls. Content-sized format chips occupy one horizontal row
+with compact gaps. Arrange format, date, dimensions, file size and camera sections vertically.
+Group the date-type dropdown with two calendar fields. Width, height and file
+size expose minimum/maximum numeric fields directly, without presets; retain the size-unit dropdown.
+Camera has its own section. Chips, outlined fields and buttons use the application theme and standard
+component shapes, with no separate fills, rounding or fixed-width chip cells. Reuse shared scrolling,
+with hover/pressed feedback following each control's shape. The custom form withdrawn on
+2026-11-02 is superseded by this framework composition.
+Draft edits leave the gallery unchanged until `应用`; invalid dates, bounds or text stay editable
+with field errors. `取消`, Close and Escape preserve the applied conditions. `清除筛选` clears metadata
+conditions while retaining the folder/collection, search and duplicate-display choices.
 
-Consecutive filter/search changes retain the original visible image and its fractional viewport
+Place Clear at the tray's bottom left and Cancel/Apply at its bottom right. Applied conditions
+give the toolbar filter button an active state; its tooltip summarizes them and its menu places
+`清除筛选` immediately after `更多筛选`, followed by individually removable conditions. Keep the gallery
+title area free of condition chips. Removing one
+condition retains the others. An editor or removal menu opened for a retired query cannot publish
+into a different query.
+Organization continuation uses the current query's conditions, preserving compatibility with saved
+payloads without erasing organization progress. [ADR 0033](../../architecture/0033-structured-gallery-filters.md)
+owns field meaning and shared query behavior.
+
+Consecutive metadata-filter and literal-search changes retain the original visible image and its fractional viewport
 position. A missing image, empty result or automatic clamp to an edge does not replace that intent;
 when conditions include the image again, restore it within the available scroll range. Actual
 scrolling, timeline navigation, source/folder selection or a changed ordering establishes a new
 browsing context. Passive catalog refresh preserves the currently displayed result and leaves the
 latent filter intent available for the next explicit filter change.
+Starting a new semantic description or reference establishes a new relevance order and opens its
+first result. Refining filters or explicitly updating the same semantic search preserves position;
+entering and returning from the shared viewer retains the current result.
+Semantic search displays candidates admitted by its relevance rule, ordered by relevance. The result
+limit never pads the list with unrelated candidates. An empty search explains that no matches were
+found and retains the current scope/filter controls for refinement.
 
 The Duplicates workspace owns duplicate-only results and group review. A top-left icon in merged
 gallery mode opens every known current location of that group, including relevant availability

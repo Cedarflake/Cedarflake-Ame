@@ -7,7 +7,7 @@ use crate::domain::ScanError;
 use super::{error, io_error, records};
 
 pub(super) const FORMAT: &str = "ame-organization-archive";
-pub(super) const VERSION: u32 = 6;
+pub(super) const VERSION: u32 = 8;
 pub(super) const MAX_LINE_BYTES: usize = 1024 * 1024;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -177,7 +177,7 @@ pub(super) fn read_records(
                     return Err(invalid());
                 }
                 validate_values(&records::KINDS[index], &values, header.version)?;
-                compatibility::upgrade(&kind, &mut values, header.version);
+                compatibility::upgrade(&kind, &mut values, header.version)?;
                 accept(index, &values)?;
                 counts[index] = counts[index].checked_add(1).ok_or_else(invalid)?;
                 total = total.checked_add(1).ok_or_else(invalid)?;

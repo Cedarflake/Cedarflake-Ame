@@ -7,7 +7,7 @@ fn assign_child(fixture: &Fixture) -> (String, String) {
     let asset_id = fixture.snapshot().assets[0].asset_id.clone();
     let mut catalog = SqliteCatalog::open(fixture.storage.catalog_path.clone()).unwrap();
     let album = catalog
-        .create_organization_album("album", 0, "旅行")
+        .create_organization_album("album", 0, "旅行", Default::default())
         .unwrap()
         .album_id;
     let location = catalog

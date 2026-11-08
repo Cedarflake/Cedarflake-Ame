@@ -4,12 +4,11 @@ use std::sync::atomic::AtomicBool;
 use crate::domain::ScanError;
 use crate::domain::classification::ClassificationRevision;
 use crate::domain::classification::discovery::{CategoryNaming, DiscoveryCohort};
-use crate::ports::classification_encoder::ClassificationEncoderFactory;
 use crate::ports::classification_features::ClassificationFeatureRepository;
 use crate::ports::classification_vocabulary::ClassificationVocabulary;
+use crate::ports::image_feature_encoding::ImageFeatureEncoding;
 
 use super::super::classification_matching::CategoryMatcher;
-use super::super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
 use super::context_graph::{self, limit_error};
 use super::{
     CategoryAdmissionPolicy, ConceptConsolidation, ConceptConsolidationLimits,
@@ -41,10 +40,10 @@ pub struct ConceptNomination {
     pub ancestry_edges: usize,
 }
 
-pub fn nominate_classification_contexts<F: ClassificationEncoderFactory, C: ResidencyClock>(
+pub fn nominate_classification_contexts<E: ImageFeatureEncoding>(
     request: ConceptNominationRequest<'_>,
     vocabulary: &mut impl ClassificationVocabulary,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<ConceptNomination, ScanError> {
@@ -53,10 +52,10 @@ pub fn nominate_classification_contexts<F: ClassificationEncoderFactory, C: Resi
     result
 }
 
-fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
+fn nominate<E: ImageFeatureEncoding>(
     request: ConceptNominationRequest<'_>,
     vocabulary: &mut impl ClassificationVocabulary,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<ConceptNomination, ScanError> {

@@ -17,12 +17,12 @@ function Assert-AmeHostedExtendedContract {
     param([string]$Gate, [string]$Synthetic)
 
     foreach ($entry in @(
-        @{ Job = "quality_synthetic_windows"; Workflow = "quality_gate_synthetic_windows.yml" },
-        @{ Job = "quality_unsigned_windows"; Workflow = "quality_gate_unsigned_windows.yml" }
+        @{ Job = "quality_synthetic_windows"; Workflow = "quality_gate_synthetic_windows.yml"; Condition = "inputs.gate_mode == 'daily' && inputs.extended" },
+        @{ Job = "quality_unsigned_windows"; Workflow = "quality_gate_unsigned_windows.yml"; Condition = "inputs.gate_mode == 'daily'" }
     )) {
         $source = Get-AmeHostedJobSource $Gate $entry.Job
         foreach ($required in @(
-            "    if: inputs.gate_mode == 'daily'",
+            "    if: $($entry.Condition)",
             "    uses: ./.github/workflows/$($entry.Workflow)",
             '      checkout_ref: ${{ inputs.checkout_ref || github.sha }}'
         )) {
@@ -42,18 +42,22 @@ function Assert-AmeHostedExtendedContract {
             throw "Release Daily must cover the candidate's immutable source through existing components"
         }
     }
+    $releaseSynthetic = Get-AmeHostedJobSource $Gate "release_synthetic_windows"
+    if (-not $releaseSynthetic.Contains('checkout_ref: ${{ needs.release_unsigned_windows.outputs.source_commit }}') -or
+        -not $releaseSynthetic.Contains('uses: ./.github/workflows/quality_gate_synthetic_windows.yml')) {
+        throw "Release workloads must cover the candidate's immutable source"
+    }
     foreach ($job in @("release_verify_windows", "release_verify_unsigned_windows")) {
         $verifier = Get-AmeHostedJobSource $Gate $job
         if (-not $verifier.Contains("./tool/release_verify_windows.ps1") -or
-            -not $verifier.Contains("./tool/performance_run_synthetic.ps1 -Case scan") -or
-            $verifier -match 'quality_verify_daily\.ps1|release_verify_candidate\.ps1') {
-            throw "Candidate verification must retain runtime and performance checks without serial Daily"
+            $verifier -match 'quality_verify_daily\.ps1|release_verify_candidate\.ps1|performance_run_synthetic\.ps1') {
+            throw "Candidate verification must retain runtime checks without duplicate regression or benchmarks"
         }
     }
     $aggregate = Get-AmeHostedJobSource $Gate "quality_windows"
     foreach ($job in @(
-        "daily_components", "quality_synthetic_windows", "quality_unsigned_windows",
-        "release_daily_components", "release_verify_windows", "release_verify_unsigned_windows"
+        "documentation", "daily_components", "quality_synthetic_windows", "quality_unsigned_windows",
+        "release_daily_components", "release_synthetic_windows", "release_verify_windows", "release_verify_unsigned_windows"
     )) {
         if ($aggregate -notmatch ('(?m)^      - ' + $job + '\r?$')) {
             throw "The aggregate gate does not depend on $job"
@@ -107,13 +111,6 @@ foreach ($mutation in @(
     @{ Gate = $gate.Replace("      - release_daily_components", ""); Synthetic = $synthetic },
     @{
         Gate = $gate.Replace(
-            "./tool/performance_run_synthetic.ps1 -Case scan",
-            "./tool/performance_benchmark_synthetic_library.ps1"
-        )
-        Synthetic = $synthetic
-    },
-    @{
-        Gate = $gate.Replace(
             'checkout_ref: ${{ needs.release_unsigned_windows.outputs.source_commit }}',
             'checkout_ref: ${{ github.sha }}'
         )
@@ -157,13 +154,23 @@ $verify = [scriptblock]::Create(
 $resultNames = @("AME_DAILY_RESULT", "AME_SYNTHETIC_RESULT", "AME_UNSIGNED_RESULT")
 $environmentNames = $resultNames + @(
     "AME_GATE_MODE", "AME_RELEASE_RESULT", "AME_RELEASE_UNSIGNED_RESULT", "AME_RELEASE_SIGNING_MODE",
-    "AME_RELEASE_DAILY_RESULT"
+    "AME_RELEASE_DAILY_RESULT", "AME_RELEASE_SYNTHETIC_RESULT", "AME_EXTENDED", "AME_DOCUMENTATION_RESULT"
 )
 $saved = @{}
 foreach ($name in $environmentNames) { $saved[$name] = [Environment]::GetEnvironmentVariable($name) }
 try {
+    $env:AME_GATE_MODE = "documentation"
+    $env:AME_DOCUMENTATION_RESULT = "success"
+    & $verify
+    foreach ($failure in @("failure", "cancelled", "skipped", "")) {
+        $env:AME_DOCUMENTATION_RESULT = $failure
+        $rejected = $false
+        try { & $verify } catch { $rejected = $true }
+        if (-not $rejected) { throw "Documentation checks accepted $failure" }
+    }
     foreach ($name in $resultNames) { [Environment]::SetEnvironmentVariable($name, "success") }
     $env:AME_GATE_MODE = "daily"
+    $env:AME_EXTENDED = "true"
     $env:AME_RELEASE_RESULT = "skipped"
     $env:AME_RELEASE_DAILY_RESULT = "skipped"
     & $verify
@@ -176,6 +183,18 @@ try {
         }
         [Environment]::SetEnvironmentVariable($name, "success")
     }
+    $env:AME_EXTENDED = "false"
+    $env:AME_SYNTHETIC_RESULT = "skipped"
+    & $verify
+    $env:AME_GATE_MODE = "quick"
+    $env:AME_UNSIGNED_RESULT = "skipped"
+    & $verify
+    foreach ($failure in @("failure", "cancelled", "skipped", "")) {
+        $env:AME_DAILY_RESULT = $failure
+        $rejected = $false
+        try { & $verify } catch { $rejected = $true }
+        if (-not $rejected) { throw "Quick checks accepted $failure" }
+    }
     $env:AME_GATE_MODE = "release"
     foreach ($name in $resultNames) { [Environment]::SetEnvironmentVariable($name, "skipped") }
     foreach ($mode in @("signed", "unsigned")) {
@@ -184,9 +203,10 @@ try {
         $env:AME_RELEASE_RESULT = "skipped"
         $env:AME_RELEASE_UNSIGNED_RESULT = "skipped"
         $env:AME_RELEASE_DAILY_RESULT = "success"
+        $env:AME_RELEASE_SYNTHETIC_RESULT = "success"
         [Environment]::SetEnvironmentVariable($resultName, "success")
         & $verify
-        foreach ($requiredResult in @($resultName, "AME_RELEASE_DAILY_RESULT")) {
+        foreach ($requiredResult in @($resultName, "AME_RELEASE_DAILY_RESULT", "AME_RELEASE_SYNTHETIC_RESULT")) {
             foreach ($failure in @("failure", "cancelled", "skipped", "")) {
                 [Environment]::SetEnvironmentVariable($requiredResult, $failure)
                 $rejected = $false

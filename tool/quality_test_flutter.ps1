@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [string[]]$TestPath = @("test"),
+    [string]$AffectedSince,
     [switch]$NoPub
 )
 
@@ -13,6 +14,19 @@ $toolLock = Enter-AmeRepositoryToolLock
 
 Push-Location $repositoryRoot
 try {
+    if ($AffectedSince) {
+        if ($PSBoundParameters.ContainsKey("TestPath")) {
+            throw "Choose explicit test paths or an affected comparison, not both"
+        }
+        if ($AffectedSince -cnotmatch '^[0-9a-f]{40}$') {
+            throw "Flutter test selection requires an immutable base commit"
+        }
+        $selectedJson = & $toolchain.Dart run tool/dependency-boundaries/affected_tests.dart $AffectedSince
+        if ($LASTEXITCODE -ne 0) { throw "Could not determine affected Flutter tests" }
+        $TestPath = @($selectedJson | ConvertFrom-Json)
+        Write-Host "Affected Flutter test files: $($TestPath.Count)"
+        if ($TestPath.Count -eq 0) { return }
+    }
     $candidateTestFiles = @(
         foreach ($path in $TestPath) {
             if (Test-Path -LiteralPath $path -PathType Container) {
@@ -31,7 +45,7 @@ try {
         throw "No Flutter test files were found"
     }
 
-    $isFirstTest = $true
+    $relativePaths = [System.Collections.Generic.List[string]]::new()
     foreach ($testFile in $testFiles) {
         $resolvedTestFile = [System.IO.Path]::GetFullPath($testFile)
         $repositoryPrefix = "$repositoryRoot$([System.IO.Path]::DirectorySeparatorChar)"
@@ -42,18 +56,36 @@ try {
             throw "Flutter test files must remain inside the repository: $testFile"
         }
         $relativePath = $resolvedTestFile.Substring($repositoryPrefix.Length)
-        Write-Host "Flutter test: $relativePath"
+        $relativePaths.Add($relativePath)
+    }
+
+    # Reuse Flutter's compiler between files; its runner still isolates each suite.
+    # Bounded batches stay below cmd.exe's command-line limit on Windows.
+    $isFirstBatch = $true
+    $offset = 0
+    while ($offset -lt $relativePaths.Count) {
+        $batch = [System.Collections.Generic.List[string]]::new()
+        $characters = 0
+        while ($offset -lt $relativePaths.Count) {
+            $path = $relativePaths[$offset]
+            if ($path.Length + 3 -gt 6000) { throw "Flutter test path is too long: $path" }
+            if ($characters + $path.Length + 3 -gt 6000) { break }
+            $batch.Add($path)
+            $characters += $path.Length + 3
+            $offset++
+        }
+        Write-Host "Flutter tests: $($batch.Count) files"
         $arguments = @(
             "test",
             "--concurrency=1",
             "--reporter=expanded"
         )
-        if ($NoPub -or -not $isFirstTest) {
+        if ($NoPub -or -not $isFirstBatch) {
             $arguments += "--no-pub"
         }
-        $arguments += $resolvedTestFile
+        $arguments += $batch.ToArray()
         Invoke-AmeChecked $toolchain.Flutter $arguments
-        $isFirstTest = $false
+        $isFirstBatch = $false
     }
 } finally {
     Pop-Location

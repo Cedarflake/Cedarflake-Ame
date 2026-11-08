@@ -116,6 +116,7 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   generator guardrail and non-mutating generation check before the formatting gate, runs Clippy for
   all targets and features with warnings denied, and runs the pinned Dart analyzer with warnings and
   informational lints treated as failures.
+  `-PresentationOnly` runs Dart formatting, dependency checks and analysis for the quick hosted path.
 - `./tool/quality_verify_dependencies.ps1` parses handwritten Dart imports, exports, conditional
   branches and parts, checks resolved layer/cross-feature edges and cycles, and rejects changed,
   unknown or stale legacy exceptions. Its exact bridge roster excludes reviewed generated
@@ -126,8 +127,12 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 - `./tool/quality_lint_workflows.ps1 -ActionlintPath <path>` validates all hosted workflows with a
   caller-provided `actionlint` executable. Hosted CI supplies a fixed version with a verified
   checksum; the daily workstation gate does not silently download tools.
-- `./tool/quality_test_flutter.ps1` expands the requested widget-test paths and runs each test file
-  in its own `flutter test --concurrency=1` process while holding the repository tool lock.
+- `./tool/quality_test_flutter.ps1` validates requested test paths and runs bounded batches with
+  `flutter test --concurrency=1` under the repository lock. Flutter retains per-suite isolation while
+  reusing its compiler; batches stay below the Windows command-line limit.
+  `-AffectedSince <immutable-base-sha>` selects existing suites through the parsed Dart dependency
+  graph, including exports, conditional imports and parts. It cannot be combined with `-TestPath`;
+  changed Flutter runner configuration selects all suites. A selection error fails the command.
 - `./tool/quality_test_rust.ps1` runs every locked Cargo target and feature under the repository
   lock with single-threaded case execution. Its optional `-Partition` selects one hosted owner
   after full compiled-inventory validation; it never starts parallel local workers.
@@ -143,6 +148,8 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   it remains serial for workstation safety. The shared hosted workflow may invoke its validated
   `-Component` partitions on isolated runners so the same evidence is collected in parallel without
   sharing Flutter, Cargo, or build state.
+  The quick hosted caller supplies `-PresentationOnly -AffectedSince <base-sha>` for its Static and
+  Flutter components. Full, nightly and release callers retain the complete defaults.
 - `./tool/integration_test_windows_accessibility.ps1` runs a semantics-enabled virtual-gallery
   stress sequence in the native Windows runner and fails when engine stderr reports an invalid
   `ui::AXTree` update. Run and cleanup failures persist current Flutter output, verified native
@@ -283,12 +290,14 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 
 Hosted workflow ownership is:
 
-- `.github/workflows/quality_ci.yml` for pushes to `main`, pull requests, merge queues, and manual
-  daily-gate runs;
-- `.github/workflows/quality_gate_windows.yml` for the shared Windows daily or release gate;
+- `.github/workflows/quality_ci.yml` for change-scoped pushes, pull requests and merge queues,
+  nightly extended checks, and manual full/extended checks; `quality_select_ci.ps1` applies the
+  conservative policy in `quality_ci_policy.ps1` to the complete changed-path list;
+- `.github/workflows/quality_gate_windows.yml` for the shared quick, full or release gate;
 - `.github/workflows/quality_gate_synthetic_windows.yml` and
   `.github/workflows/quality_gate_unsigned_windows.yml` for mandatory isolated workload and unsigned
-  build evidence in ordinary quality CI, without publication or signing authority;
+  workload evidence in nightly/release runs and build evidence in full runs, without publication
+  or signing authority;
 - `.github/workflows/release_candidate_windows.yml` for version-tag and manual release candidates,
   followed by portable ZIP publication;
 - `.github/workflows/release_verify_published.yml` for post-publication attachment verification.

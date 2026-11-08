@@ -69,7 +69,7 @@ fn upgrade_preserves_legacy_pause_human_decisions_and_source_boundary() {
         )
         .unwrap();
     catalog
-        .create_organization_album("album", 0, "Retained")
+        .create_organization_album("album", 0, "Retained", Default::default())
         .unwrap();
     let selected_r4 = catalog
         .prepare_organization_selection(std::slice::from_ref(&selection))

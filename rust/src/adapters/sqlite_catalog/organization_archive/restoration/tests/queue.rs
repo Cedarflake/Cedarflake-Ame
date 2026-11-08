@@ -84,7 +84,7 @@ fn organization_archive_restores_selected_sort_and_missing_anchor_boundary() {
          UPDATE organization_review_cursor SET primary_text = 'retained-name', primary_number = 0;",
     ).unwrap();
     let filter = crate::domain::gallery_metadata_filter::GalleryMetadataFilter {
-        extension: "jpg".into(),
+        extensions: vec!["jpg".into(), "png".into()],
         camera_text: "Camera".into(),
         ..Default::default()
     };

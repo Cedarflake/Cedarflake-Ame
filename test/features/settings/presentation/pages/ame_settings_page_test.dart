@@ -8,7 +8,7 @@ import "package:cedarflake_ame/features/settings/application/ame_preferences.dar
 import "package:cedarflake_ame/features/settings/application/ports/ame_preference_store.dart";
 import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/presentation/pages/ame_settings_page.dart";
-import "package:cedarflake_ame/features/settings/presentation/widgets/settings_section.dart";
+import "package:cedarflake_ame/app/presentation/ame_choice.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/storage_settings_section.dart";
 import "package:cedarflake_ame/features/storage/application/ports/storage_settings_gateway.dart";
 import "package:cedarflake_ame/features/storage/application/storage_settings.dart";
@@ -92,7 +92,7 @@ void main() {
     );
     expect(find.textContaining(r"\\?\C:\AmeData"), findsNothing);
     expect(
-      find.byWidgetPredicate((widget) => widget is SettingsChoice<Object?>),
+      find.byWidgetPredicate((widget) => widget is AmeChoice<Object?>),
       findsNWidgets(5),
     );
     expect(
@@ -106,9 +106,7 @@ void main() {
     );
     expect(
       find.descendant(
-        of: find.byWidgetPredicate(
-          (widget) => widget is SettingsChoice<Object?>,
-        ),
+        of: find.byWidgetPredicate((widget) => widget is AmeChoice<Object?>),
         matching: find.byIcon(Symbols.arrow_drop_down_rounded),
       ),
       findsNWidgets(5),
@@ -545,23 +543,23 @@ void main() {
             home: Scaffold(
               body: Column(
                 children: [
-                  SettingsChoice<int>(
+                  AmeChoice<int>(
                     key: const Key("enabled-settings-choice"),
                     value: 1,
                     entries: const [
-                      SettingsChoiceEntry(value: 1, label: "当前"),
-                      SettingsChoiceEntry(value: 2, label: "备用"),
+                      AmeChoiceEntry(value: 1, label: "当前"),
+                      AmeChoiceEntry(value: 2, label: "备用"),
                     ],
                     onSelected: (value) => selected = value,
                   ),
-                  SettingsChoice<int>(
+                  AmeChoice<int>(
                     key: const Key("disabled-settings-choice"),
                     value: 3,
                     enabled: false,
                     width: 144,
                     entries: const [
-                      SettingsChoiceEntry(value: 3, label: "已禁用"),
-                      SettingsChoiceEntry(value: 4, label: "不可选择"),
+                      AmeChoiceEntry(value: 3, label: "已禁用"),
+                      AmeChoiceEntry(value: 4, label: "不可选择"),
                     ],
                     onSelected: (_) {},
                   ),
@@ -605,14 +603,12 @@ void main() {
         await tester.pumpAndSettle();
         expect(
           tester
-              .getSemantics(
-                find.byKey(const ValueKey("settings-choice-option-1")),
-              )
+              .getSemantics(find.byKey(const ValueKey("ame-choice-option-1")))
               .flagsCollection
               .isChecked,
           CheckedState.isTrue,
         );
-        final option = find.byKey(const ValueKey("settings-choice-option-2"));
+        final option = find.byKey(const ValueKey("ame-choice-option-2"));
         final route = ModalRoute.of(tester.element(option));
         expect(tester.getSize(option).width, 176);
         expect(route?.transitionDuration, AmeMenuTransition.duration);
@@ -668,7 +664,7 @@ void main() {
 
     final speedMenu = find.descendant(
       of: find.byKey(const Key("preview-loading-speed-setting")),
-      matching: find.byType(SettingsChoice<PreviewLoadingSpeed>),
+      matching: find.byType(AmeChoice<PreviewLoadingSpeed>),
     );
     await tester.ensureVisible(speedMenu);
     await tester.pumpAndSettle();
@@ -732,7 +728,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final themeMenu = find.byType(SettingsChoice<AmeThemePreference>);
+    final themeMenu = find.byType(AmeChoice<AmeThemePreference>);
     await _openPopupMenu(
       tester,
       find.descendant(of: themeMenu, matching: find.byType(OutlinedButton)),
@@ -771,7 +767,7 @@ void main() {
 
     final budgetMenu = find.descendant(
       of: find.byKey(const Key("preview-budget-setting")),
-      matching: find.byType(SettingsChoice<BigInt>),
+      matching: find.byType(AmeChoice<BigInt>),
     );
     await tester.ensureVisible(budgetMenu);
     await tester.pumpAndSettle();

@@ -4724,219 +4724,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
         },
     ];
 
-    const DOMAIN_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
-        AvailabilityModuleContract {
-            name: "similar_images",
-            visibility: "pub(crate)",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "path_display",
-            visibility: "",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "scan_publication",
-            visibility: "",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "source_discovery",
-            visibility: "",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "stable_identity",
-            visibility: "",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "classification",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "classification_catalog",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "classification_configuration",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "classification_review",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "classification_selection",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "organization_archive",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "organization_batch",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "organization_conflicts",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "organization_cleanup",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "organization_queue",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "organization_review",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "sidebar_order",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "organization",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "exact_duplicate_review",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "exact_duplicates",
-            visibility: "pub(crate)",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "media_admission_recheck",
-            visibility: "",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "journal_scope_recovery",
-            visibility: "",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "gallery_query_snapshot",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "gallery_scroll_section",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "gallery_time_snapshot",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "library_catalog_delta",
-            visibility: "",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "library_change",
-            visibility: "pub(crate)",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "library_change_catch_up",
-            visibility: "",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "library_change_queue",
-            visibility: "pub(crate)",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "library_metadata_inventory",
-            visibility: "",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "library_synchronization",
-            visibility: "pub(crate)",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "media_metadata",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "gallery_metadata_filter",
-            visibility: "pub",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "persistent_journal",
-            visibility: "pub(crate)",
-            attributes: &[],
-            is_inline: false,
-        },
-        AvailabilityModuleContract {
-            name: "scan_resume_coverage",
-            visibility: "",
-            attributes: &[],
-            is_inline: false,
-        },
-    ];
-
+    const DOMAIN_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[AvailabilityModuleContract {
+        name: "library_metadata_inventory",
+        visibility: "",
+        attributes: &[],
+        is_inline: false,
+    }];
     const LOCAL_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
         AvailabilityModuleContract {
             name: "publication_namespace",
@@ -5802,8 +5595,17 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
                 ));
             }
         }
-        for name in modules.keys() {
+        for (name, declarations) in &modules {
             if !expected.contains_key(name.as_str()) {
+                // Unrelated sibling modules cannot enter the separately checked call closure.
+                // Conditional declarations are ordinary loading; path overrides are not.
+                if matches!(source_key, "domain" | "adapters-parent")
+                    && matches!(declarations.as_slice(), [module]
+                        if module.content.is_none()
+                            && module.attrs.iter().all(|attribute| attribute.path().is_ident("cfg")))
+                {
+                    continue;
+                }
                 errors.push(format!(
                     "availability module topology source {source_key} has unexpected nested or generated module {name}"
                 ));

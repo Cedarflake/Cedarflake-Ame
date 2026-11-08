@@ -28,6 +28,7 @@ class LibraryWorkbench extends ConsumerStatefulWidget {
     required this.onPreferenceError,
     this.onWorkspaceSelected,
     this.albumLanding,
+    this.globalBarBuilder,
     super.key,
   });
 
@@ -40,6 +41,8 @@ class LibraryWorkbench extends ConsumerStatefulWidget {
   final void Function(String title, Object error) onPreferenceError;
   final ValueChanged<LibraryWorkspace>? onWorkspaceSelected;
   final Widget? albumLanding;
+  final Widget Function(double sidebarWidth, double sidebarExpansion)?
+  globalBarBuilder;
 
   @override
   ConsumerState<LibraryWorkbench> createState() => _LibraryWorkbenchState();
@@ -113,97 +116,111 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
             ),
           ),
         );
-        final gallery = Material(
-          color: Theme.of(context).colorScheme.surfaceContainerLow,
-          borderRadius: LibraryMainSurface.borderRadius,
-          child: LibrarySidebarTransition(
-            expanded: expanded,
-            sidebarWidth: sidebarWidth,
-            sidebar: Stack(
-              fit: StackFit.expand,
-              children: [
-                _retainedWorkspace(
-                  workspace: LibraryWorkspace.gallery,
-                  visible: workspace != LibraryWorkspace.albums,
-                  child: widget.navigationBuilder(sidebarWidth),
-                ),
-                if (_visited.contains(LibraryWorkspace.albums))
-                  _retainedWorkspace(
-                    workspace: LibraryWorkspace.albums,
-                    visible: workspace == LibraryWorkspace.albums,
-                    child: widget.albumsNavigationBuilder(sidebarWidth),
-                  ),
-              ],
-            ),
-            gallery: Stack(
-              fit: StackFit.expand,
-              children: [
-                _retainedWorkspace(
-                  workspace: LibraryWorkspace.gallery,
-                  visible:
-                      workspace != LibraryWorkspace.albums ||
-                      widget.albumLanding == null,
-                  child: widget.galleryBuilder(context),
-                ),
-                if (workspace == LibraryWorkspace.albums &&
-                    widget.albumLanding != null)
-                  LibrarySidebarContent(
-                    alignment: Alignment.topCenter,
-                    child: widget.albumLanding!,
-                  ),
-              ],
-            ),
-            resizeHandle: LibraryNavigationResizeHandle(
-              width: sidebarWidth,
-              minimumWidth: ameMinimumSidebarWidth,
-              maximumWidth: ameMaximumSidebarWidth,
-              defaultWidth: ameDefaultSidebarWidth,
-              onWidthChangeStart: () => widget.onSidebarResizeChanged(true),
-              onWidthChanged: (width) => setState(() => _sidebarWidth = width),
-              onWidthChangeEnd: _finishResize,
-              onWidthChangeCancel: () => widget.onSidebarResizeChanged(false),
-            ),
-          ),
+        final rail = _FunctionRail(
+          workspace: workspace,
+          sidebarToggle: toggle,
+          onSelected: widget.onWorkspaceSelected,
         );
-        return ColoredBox(
-          color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          child: Row(
+        final destinations = [
+          if (_visited.contains(LibraryWorkspace.duplicates))
+            _retainedWorkspace(
+              workspace: LibraryWorkspace.duplicates,
+              visible: workspace == LibraryWorkspace.duplicates,
+              child: LibraryMainSurface(
+                child: widget.duplicatesBuilder(context),
+              ),
+            ),
+          if (_visited.contains(LibraryWorkspace.settings))
+            _retainedWorkspace(
+              workspace: LibraryWorkspace.settings,
+              visible: workspace == LibraryWorkspace.settings,
+              child: LibraryMainSurface(child: widget.settingsBuilder(context)),
+            ),
+        ];
+        return LibrarySidebarTransition(
+          expanded: expanded,
+          sidebarWidth: sidebarWidth,
+          sidebar: Stack(
+            fit: StackFit.expand,
             children: [
-              _FunctionRail(
-                workspace: workspace,
-                sidebarToggle: toggle,
-                onSelected: widget.onWorkspaceSelected,
+              _retainedWorkspace(
+                workspace: LibraryWorkspace.gallery,
+                visible: workspace != LibraryWorkspace.albums,
+                child: widget.navigationBuilder(sidebarWidth),
               ),
-              Expanded(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _retainedWorkspace(
-                      workspace: LibraryWorkspace.gallery,
-                      visible: workspace.isBrowsing,
-                      child: gallery,
-                    ),
-                    if (_visited.contains(LibraryWorkspace.duplicates))
-                      _retainedWorkspace(
-                        workspace: LibraryWorkspace.duplicates,
-                        visible: workspace == LibraryWorkspace.duplicates,
-                        child: LibraryMainSurface(
-                          child: widget.duplicatesBuilder(context),
-                        ),
-                      ),
-                    if (_visited.contains(LibraryWorkspace.settings))
-                      _retainedWorkspace(
-                        workspace: LibraryWorkspace.settings,
-                        visible: workspace == LibraryWorkspace.settings,
-                        child: LibraryMainSurface(
-                          child: widget.settingsBuilder(context),
-                        ),
-                      ),
-                  ],
+              if (_visited.contains(LibraryWorkspace.albums))
+                _retainedWorkspace(
+                  workspace: LibraryWorkspace.albums,
+                  visible: workspace == LibraryWorkspace.albums,
+                  child: widget.albumsNavigationBuilder(sidebarWidth),
                 ),
-              ),
             ],
           ),
+          gallery: Stack(
+            fit: StackFit.expand,
+            children: [
+              _retainedWorkspace(
+                workspace: LibraryWorkspace.gallery,
+                visible:
+                    workspace != LibraryWorkspace.albums ||
+                    widget.albumLanding == null,
+                child: widget.galleryBuilder(context),
+              ),
+              if (workspace == LibraryWorkspace.albums &&
+                  widget.albumLanding != null)
+                LibrarySidebarContent(
+                  alignment: Alignment.topCenter,
+                  child: widget.albumLanding!,
+                ),
+            ],
+          ),
+          resizeHandle: LibraryNavigationResizeHandle(
+            width: sidebarWidth,
+            minimumWidth: ameMinimumSidebarWidth,
+            maximumWidth: ameMaximumSidebarWidth,
+            defaultWidth: ameDefaultSidebarWidth,
+            onWidthChangeStart: () => widget.onSidebarResizeChanged(true),
+            onWidthChanged: (width) => setState(() => _sidebarWidth = width),
+            onWidthChangeEnd: _finishResize,
+            onWidthChangeCancel: () => widget.onSidebarResizeChanged(false),
+          ),
+          frameBuilder: (context, extent, panels) {
+            final body = ColoredBox(
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
+              child: Row(
+                children: [
+                  rail,
+                  Expanded(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _retainedWorkspace(
+                          workspace: LibraryWorkspace.gallery,
+                          visible: workspace.isBrowsing,
+                          child: Material(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerLow,
+                            borderRadius: LibraryMainSurface.borderRadius,
+                            child: panels,
+                          ),
+                        ),
+                        ...destinations,
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+            final globalBarBuilder = widget.globalBarBuilder;
+            if (globalBarBuilder == null) return body;
+            return Column(
+              children: [
+                globalBarBuilder(sidebarWidth, extent / sidebarWidth),
+                Expanded(child: body),
+              ],
+            );
+          },
         );
       },
     );

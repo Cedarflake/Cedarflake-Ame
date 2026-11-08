@@ -2,6 +2,7 @@ import "../../../../src/rust/api/organization.dart" as api;
 import "../../../../src/rust/domain.dart" as rust;
 import "../../../../src/rust/domain/organization.dart" as dto;
 import "../../domain/library_organization.dart";
+import "rust_library_album.dart";
 import "../../domain/library_organization_history.dart";
 import "../../domain/library_review.dart";
 
@@ -89,10 +90,7 @@ class RustLibraryOrganization implements LibraryOrganization {
               },
               album: decision.album == null
                   ? null
-                  : LibraryOrganizationAlbum(
-                      decision.album!.albumId,
-                      decision.album!.name,
-                    ),
+                  : libraryAlbum(decision.album!),
               hasConflict: decision.hasConflict,
             ),
           )
@@ -151,10 +149,7 @@ class RustLibraryOrganization implements LibraryOrganization {
       _call(() async {
         final page = await api.loadOrganizationAlbums(after: after);
         return LibraryOrganizationAlbumPage(
-          albums: [
-            for (final album in page.albums)
-              LibraryOrganizationAlbum(album.albumId, album.name),
-          ],
+          albums: [for (final album in page.albums) libraryAlbum(album)],
           revision: page.organizationRevision,
           total: page.totalAlbums.toInt(),
           nextAlbumId: page.nextAlbumId,
@@ -164,25 +159,25 @@ class RustLibraryOrganization implements LibraryOrganization {
   @override
   Future<LibraryOrganizationAlbum?> findAlbum(String id) => _call(() async {
     final value = await api.findOrganizationAlbum(albumId: id);
-    return value == null
-        ? null
-        : LibraryOrganizationAlbum(value.albumId, value.name);
+    return value == null ? null : libraryAlbum(value);
   });
 
   @override
   Future<LibraryOrganizationReceipt> createAlbum(
     String operationId,
     BigInt revision,
-    String name,
-  ) => _call(() async {
+    String name, {
+    LibraryAlbumIcon icon = LibraryAlbumIcon.album,
+  }) => _call(() async {
     final result = await api.createOrganizationAlbum(
       operationId: operationId,
       expectedRevision: revision,
       name: name,
+      icon: nativeAlbumIcon(icon),
     );
     return _receipt(
       result.operation,
-      album: LibraryOrganizationAlbum(result.albumId, name.trim()),
+      album: LibraryOrganizationAlbum(result.albumId, name.trim(), icon: icon),
     );
   });
 
@@ -199,10 +194,19 @@ class RustLibraryOrganization implements LibraryOrganization {
       albumId: albumId,
       name: name,
     );
-    return _receipt(
-      result.operation,
-      album: LibraryOrganizationAlbum(result.albumId, name.trim()),
+    return _receipt(result.operation, album: await findAlbum(result.albumId));
+  });
+
+  @override
+  Future<LibraryOrganizationAlbum> changeAlbumIcon(
+    String albumId,
+    LibraryAlbumIcon icon,
+  ) => _call(() async {
+    final result = await api.changeOrganizationAlbumIcon(
+      albumId: albumId,
+      icon: nativeAlbumIcon(icon),
     );
+    return libraryAlbum(result);
   });
 
   @override

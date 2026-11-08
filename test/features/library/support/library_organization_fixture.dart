@@ -160,8 +160,27 @@ class OrganizationServiceFixture implements LibraryOrganization {
   Future<LibraryOrganizationReceipt> createAlbum(
     String operationId,
     BigInt revision,
-    String name,
-  ) => _album(operationId, revision, null, name);
+    String name, {
+    LibraryAlbumIcon icon = LibraryAlbumIcon.album,
+  }) => _album(operationId, revision, null, name, icon: icon);
+
+  @override
+  Future<LibraryOrganizationAlbum> changeAlbumIcon(
+    String albumId,
+    LibraryAlbumIcon icon,
+  ) async {
+    final existing = albumItems.firstWhere((album) => album.id == albumId);
+    final updated = LibraryOrganizationAlbum(
+      existing.id,
+      existing.name,
+      icon: icon,
+    );
+    albumItems = [
+      for (final album in albumItems)
+        if (album.id == albumId) updated else album,
+    ];
+    return updated;
+  }
 
   @override
   Future<LibraryOrganizationReceipt> renameAlbum(
@@ -182,8 +201,9 @@ class OrganizationServiceFixture implements LibraryOrganization {
     String id,
     BigInt revision,
     String? albumId,
-    String? name,
-  ) async {
+    String? name, {
+    LibraryAlbumIcon? icon,
+  }) async {
     albumWrites.add((id: id, revision: revision, albumId: albumId, name: name));
     if (saveAlbum case final save?) return save(id);
     final album = name == null
@@ -191,6 +211,13 @@ class OrganizationServiceFixture implements LibraryOrganization {
         : LibraryOrganizationAlbum(
             albumId ?? 'album-${albumItems.length}',
             name,
+            icon:
+                icon ??
+                albumItems
+                    .where((item) => item.id == albumId)
+                    .firstOrNull
+                    ?.icon ??
+                LibraryAlbumIcon.album,
           );
     albumItems = [
       for (final item in albumItems)

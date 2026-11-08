@@ -38,6 +38,11 @@ class SharedPreferencesAmeStore
       return const LibraryViewPreferences();
     }
     return LibraryViewPreferences(
+      searchMode: _enumByName(
+        LibrarySearchMode.values,
+        value["searchMode"],
+        LibrarySearchMode.content,
+      ),
       layoutShape: _enumByName(
         GalleryLayoutShape.values,
         value["layoutShape"],
@@ -156,6 +161,7 @@ class SharedPreferencesAmeStore
         "sortKey": preferences.sortKey.name,
         "sortDirection": preferences.sortDirection.name,
         "duplicateMode": preferences.duplicateMode.name,
+        "searchMode": preferences.searchMode.name,
       }),
     );
   }

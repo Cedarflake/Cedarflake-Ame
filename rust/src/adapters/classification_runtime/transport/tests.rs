@@ -12,7 +12,7 @@ fn unresponsive_worker() -> Transport {
         "-Command",
         "$null = [Console]::In.ReadToEnd()",
     ]);
-    Transport::launch(command).unwrap()
+    Transport::launch(command, 1024 * 1024 * 1024).unwrap()
 }
 
 fn request() -> Frame<Request> {

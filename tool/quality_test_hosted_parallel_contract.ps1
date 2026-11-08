@@ -108,9 +108,15 @@ if ($lintSource.IndexOf(
     ) -lt 0) {
     throw "PowerShell 7 Daily lint must retain the complete R2c-R guardrail"
 }
-$hostedComponents = @([regex]::Matches(
-    $workflow, '(?m)^          - component: ([a-z_]+)\r?$'
-) | ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+$matrices = [regex]::Match($workflow, "(?s)fromJSON\(inputs.quick && '(?<quick>\[.*?\])' \|\| '(?<full>\[.*?\])'\)")
+if (-not $matrices.Success) { throw "Hosted component selection is missing" }
+$quickComponents = @($matrices.Groups['quick'].Value | ConvertFrom-Json)
+if (($quickComponents.component -join ',') -cne 'static,flutter') {
+    throw "Quick checks must retain static analysis and Flutter tests"
+}
+$hostedComponents = @(
+    ($matrices.Groups['full'].Value | ConvertFrom-Json).component | Sort-Object
+)
 $expectedHostedComponents = @($expectedComponents | Where-Object { $_ -ne "all" })
 if (($hostedComponents -join ",") -cne ($expectedHostedComponents -join ",")) {
     throw "Hosted daily components must each run exactly once on a separate runner"

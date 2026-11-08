@@ -8,18 +8,17 @@ use crate::domain::classification::{ClassificationRecordId, ClassificationRevisi
 use crate::ports::classification_analysis::{
     ClassificationAnalysisRepository, ClassificationImageLease, ClassificationImageReader,
 };
-use crate::ports::classification_encoder::ClassificationEncoderFactory;
 use crate::ports::classification_features::ClassificationFeatureRepository;
+use crate::ports::image_feature_encoding::ImageFeatureEncoding;
 
-use super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
 use super::classification_screening::ScreeningClassifier;
 
 #[cfg(all(windows, feature = "classification-worker"))]
-pub fn analyze_classification_content<F: ClassificationEncoderFactory, C: ResidencyClock>(
+pub fn analyze_classification_content<E: ImageFeatureEncoding>(
     database_path: &std::path::Path,
     lease: &ClassificationWorkLease,
     classifier: &ScreeningClassifier,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<ClassificationAnalysisResult, ScanError> {
@@ -44,12 +43,12 @@ pub fn analyze_classification_content<F: ClassificationEncoderFactory, C: Reside
     )
 }
 
-pub(crate) fn analyze<F: ClassificationEncoderFactory, C: ResidencyClock>(
+pub(crate) fn analyze<E: ImageFeatureEncoding>(
     repository: &mut impl ClassificationAnalysisRepository,
     reader: &impl ClassificationImageReader,
     lease: &ClassificationWorkLease,
     classifier: &ScreeningClassifier,
-    residency: &mut ClassificationEncoderResidency<F, C>,
+    residency: &mut E,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<ClassificationAnalysisResult, ScanError> {
@@ -106,6 +105,9 @@ pub(crate) fn analyze<F: ClassificationEncoderFactory, C: ResidencyClock>(
     if !repository.classification_analysis_is_current(lease, cancelled)? {
         return Ok(interrupted(cancelled));
     }
+    if !used_cached_feature {
+        cache.store_image_feature(run.model(), content, &feature)?;
+    }
     let result = classifier.classify(&feature).map_err(|_| incompatible())?;
     let identity = ClassificationRevision::derive(
         "ame.classification.work-prediction.v1",
@@ -128,9 +130,6 @@ pub(crate) fn analyze<F: ClassificationEncoderFactory, C: ResidencyClock>(
     let evidence = result
         .into_evidence(prediction_id, run.clone(), content.clone())
         .map_err(|_| incompatible())?;
-    if !used_cached_feature {
-        cache.store_image_feature(run.model(), content, &feature)?;
-    }
     if cancelled.load(Ordering::Acquire) {
         return Ok(ClassificationAnalysisResult::Cancelled);
     }

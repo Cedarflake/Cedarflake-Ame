@@ -20,7 +20,7 @@ fn prior() -> (tempfile::TempDir, SqliteCatalog) {
         .unwrap()
         .organization_revision;
     catalog
-        .create_organization_album("create", revision, "Retained")
+        .create_organization_album("create", revision, "Retained", Default::default())
         .unwrap();
     catalog
         .connection
@@ -56,13 +56,13 @@ fn compact_upgrade_preserves_document_identity_metadata_and_decisions() {
     migrate(&mut catalog.connection).unwrap();
     current_schema::validate_schema_version(&catalog.connection, 63).unwrap();
     assert_eq!(documents(&catalog.connection), before_documents);
-    assert_eq!(catalog.load_organization_history().unwrap(), history);
-    assert_eq!(
-        catalog.load_organization_albums(None).unwrap().albums[0].name,
-        "Retained"
-    );
     drop(catalog);
     let mut reopened = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
+    assert_eq!(reopened.load_organization_history().unwrap(), history);
+    assert_eq!(
+        reopened.load_organization_albums(None).unwrap().albums[0].name,
+        "Retained"
+    );
     let snapshot = reopened
         .load_snapshot(
             10,

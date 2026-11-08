@@ -9,14 +9,19 @@ pub(super) fn push_filters(
     clauses: &mut Vec<String>,
     parameters: &mut Vec<Value>,
 ) {
-    if !filter.extension.is_empty() {
-        clauses.push(
-            "lower(substr(locations.relative_path, -length(?) - 1)) = '.' || lower(?)".into(),
-        );
-        parameters.extend([
-            Value::Text(filter.extension.clone()),
-            Value::Text(filter.extension.clone()),
-        ]);
+    if !filter.extensions.is_empty() {
+        let alternatives = filter
+            .extensions
+            .iter()
+            .map(|extension| {
+                parameters.extend([
+                    Value::Text(extension.clone()),
+                    Value::Text(extension.clone()),
+                ]);
+                "lower(substr(locations.relative_path, -length(?) - 1)) = '.' || lower(?)"
+            })
+            .collect::<Vec<_>>();
+        clauses.push(format!("({})", alternatives.join(" OR ")));
     }
     for (column, range) in [
         ("file_size", &filter.bytes),

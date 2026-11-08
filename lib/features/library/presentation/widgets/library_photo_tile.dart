@@ -44,6 +44,7 @@ class LibraryPhotoTile extends ConsumerStatefulWidget {
     required this.onViewInformation,
     required this.onCopyPath,
     required this.onRevealFile,
+    this.onFindRelated,
     super.key,
   });
 
@@ -57,6 +58,7 @@ class LibraryPhotoTile extends ConsumerStatefulWidget {
   final ValueChanged<LibraryAsset> onViewInformation;
   final ValueChanged<LibraryAsset> onCopyPath;
   final ValueChanged<LibraryAsset> onRevealFile;
+  final ValueChanged<LibraryAsset>? onFindRelated;
 
   @override
   ConsumerState<LibraryPhotoTile> createState() => _LibraryPhotoTileState();
@@ -415,6 +417,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
     final onInformation = widget.onViewInformation;
     final onCopyPath = widget.onCopyPath;
     final onReveal = widget.onRevealFile;
+    final onFindRelated = widget.onFindRelated;
     await _contextMenu.open(
       context: context,
       ref: ref,
@@ -427,6 +430,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       onInformation: () => onInformation(asset),
       onCopyPath: () => onCopyPath(asset),
       onReveal: () => onReveal(asset),
+      onFindRelated: onFindRelated == null ? null : () => onFindRelated(asset),
     );
   }
 }

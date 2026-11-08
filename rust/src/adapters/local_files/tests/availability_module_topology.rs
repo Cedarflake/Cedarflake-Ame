@@ -1,5 +1,5 @@
 use super::{
-    CRATE_PARENT_MODULE_CONTRACTS, DOMAIN_MODULE_CONTRACTS, LOCAL_MODULE_CONTRACTS,
+    CRATE_PARENT_MODULE_CONTRACTS, LOCAL_MODULE_CONTRACTS,
     assert_availability_exact_source_contract_with_environment,
 };
 
@@ -8,6 +8,33 @@ const DOMAIN_SOURCE: &str = include_str!("../../../domain/mod.rs");
 const METADATA_SOURCE: &str = include_str!("../../../domain/library_metadata_inventory.rs");
 const ADAPTERS_SOURCE: &str = include_str!("../../mod.rs");
 const CRATE_SOURCE: &str = include_str!("../../../lib.rs");
+
+#[test]
+fn root_availability_allows_unrelated_sibling_modules_without_alternate_loaders() {
+    for parent in ["domain", "adapters-parent"] {
+        let source = syn::parse_file(
+            "pub mod future_feature; mod private_feature;
+             #[cfg(windows)] pub(crate) mod platform_feature;",
+        )
+        .unwrap();
+        let mut errors = Vec::new();
+        super::validate_availability_module_topology(parent, &source, &[], &mut errors);
+        assert!(errors.is_empty(), "{parent}: {errors:?}");
+
+        for source in [
+            "pub mod future_feature; pub mod future_feature;",
+            "#[path = \"alternate.rs\"] pub mod future_feature;",
+            "#[cfg_attr(test, path = \"alternate.rs\")] pub mod future_feature;",
+            "#[adversarial_loader] pub mod future_feature;",
+            "pub mod future_feature { include!(\"alternate.rs\"); }",
+        ] {
+            let source = syn::parse_file(source).unwrap();
+            let mut errors = Vec::new();
+            super::validate_availability_module_topology(parent, &source, &[], &mut errors);
+            assert!(!errors.is_empty(), "{parent}");
+        }
+    }
+}
 
 #[test]
 fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() {
@@ -48,35 +75,6 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
     assert_eq!(location[0].visibility, "");
     assert_eq!(location[0].attributes, ["cfg(windows)"]);
     assert!(!location[0].is_inline);
-    for module_name in [
-        "classification",
-        "classification_catalog",
-        "classification_configuration",
-        "classification_review",
-        "classification_selection",
-        "exact_duplicate_review",
-        "organization_archive",
-        "organization_batch",
-        "organization_cleanup",
-        "organization_conflicts",
-        "organization_queue",
-        "organization_review",
-        "sidebar_order",
-        "gallery_query_snapshot",
-        "gallery_scroll_section",
-        "gallery_time_snapshot",
-        "media_metadata",
-        "gallery_metadata_filter",
-    ] {
-        let snapshot = DOMAIN_MODULE_CONTRACTS
-            .iter()
-            .filter(|contract| contract.name == module_name)
-            .collect::<Vec<_>>();
-        assert_eq!(snapshot.len(), 1);
-        assert_eq!(snapshot[0].visibility, "pub");
-        assert!(snapshot[0].attributes.is_empty());
-        assert!(!snapshot[0].is_inline);
-    }
     let fixtures = CRATE_PARENT_MODULE_CONTRACTS
         .iter()
         .filter(|contract| contract.name == "media_fixtures")
@@ -332,26 +330,8 @@ fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loadi
         (
             "domain",
             DOMAIN_SOURCE,
-            "pub mod classification_catalog;",
-            "pub(crate) mod classification_catalog;",
-        ),
-        (
-            "domain",
-            DOMAIN_SOURCE,
-            "pub mod classification_configuration;",
-            "pub(crate) mod classification_configuration;",
-        ),
-        (
-            "domain",
-            DOMAIN_SOURCE,
-            "pub mod classification_review;",
-            "pub(crate) mod classification_review;",
-        ),
-        (
-            "domain",
-            DOMAIN_SOURCE,
-            "pub mod classification_selection;",
-            "pub(crate) mod classification_selection;",
+            "mod library_metadata_inventory;",
+            "pub mod library_metadata_inventory;",
         ),
         (
             "local",
@@ -364,60 +344,6 @@ fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loadi
             LOCAL_SOURCE,
             "mod file_revalidation;",
             "pub mod file_revalidation;",
-        ),
-        (
-            "domain",
-            DOMAIN_SOURCE,
-            "pub mod gallery_query_snapshot;",
-            "pub(crate) mod gallery_query_snapshot;",
-        ),
-        (
-            "domain",
-            DOMAIN_SOURCE,
-            "pub mod gallery_time_snapshot;",
-            "pub(crate) mod gallery_time_snapshot;",
-        ),
-        (
-            "domain",
-            DOMAIN_SOURCE,
-            "pub mod exact_duplicate_review;",
-            "pub(crate) mod exact_duplicate_review;",
-        ),
-        (
-            "domain",
-            DOMAIN_SOURCE,
-            "pub mod organization;",
-            "pub(crate) mod organization;",
-        ),
-        (
-            "domain",
-            DOMAIN_SOURCE,
-            "pub mod organization_batch;",
-            "pub(crate) mod organization_batch;",
-        ),
-        (
-            "domain",
-            DOMAIN_SOURCE,
-            "pub mod organization_cleanup;",
-            "pub(crate) mod organization_cleanup;",
-        ),
-        (
-            "domain",
-            DOMAIN_SOURCE,
-            "pub mod organization_conflicts;",
-            "pub(crate) mod organization_conflicts;",
-        ),
-        (
-            "domain",
-            DOMAIN_SOURCE,
-            "pub mod organization_queue;",
-            "pub(crate) mod organization_queue;",
-        ),
-        (
-            "domain",
-            DOMAIN_SOURCE,
-            "pub mod organization_review;",
-            "pub(crate) mod organization_review;",
         ),
     ] {
         assert!(
@@ -434,7 +360,6 @@ fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loadi
             format!("#[adversarial_loader]\n{declaration}"),
             declaration.replace(';', " { mod generated {} }"),
             "include!(\"alternate.rs\");".to_owned(),
-            format!("{declaration}\nmod unknown_catalog_module;"),
         ] {
             let mutated = source.replacen(declaration, &replacement, 1);
             assert_ne!(mutated, source, "the {source_key} mutation must be real");

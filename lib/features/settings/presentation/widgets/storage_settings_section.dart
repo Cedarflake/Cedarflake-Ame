@@ -5,6 +5,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_choice.dart";
 import "../../../storage/application/ports/storage_settings_gateway.dart";
 import "../../../storage/application/storage_settings.dart";
 import "../../../storage/domain/storage_models.dart";
@@ -496,7 +497,7 @@ class _StorageSettingsSectionState
               Text("当前占用 ${_formatBytes(status.previewUsedBytes)}"),
             ],
           ),
-          trailing: SettingsChoice<BigInt>(
+          trailing: AmeChoice<BigInt>(
             value: status.previewBudgetBytes,
             width: 144,
             selectedLabel: _formatBytes(status.previewBudgetBytes),
@@ -508,7 +509,7 @@ class _StorageSettingsSectionState
             },
             entries: [
               for (final bytes in _budgetOptions)
-                SettingsChoiceEntry(value: bytes, label: _formatBytes(bytes)),
+                AmeChoiceEntry(value: bytes, label: _formatBytes(bytes)),
             ],
           ),
         ),

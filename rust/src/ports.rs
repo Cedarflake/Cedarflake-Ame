@@ -53,6 +53,8 @@ pub(crate) mod scan_publication;
 pub(crate) mod scan_recovery;
 pub(crate) mod scan_staging;
 pub(crate) mod search_index;
+pub(crate) mod semantic_catalog;
+pub(crate) mod semantic_features;
 pub(crate) mod sidebar_order;
 pub(crate) mod similar_images;
 pub(crate) mod source_identity;
@@ -1207,3 +1209,5 @@ pub(crate) trait MetadataExtractor {
     fn engine_version(&self) -> &'static str;
     fn extract(&self, raw_exif: Option<&[u8]>, source_path: &str) -> MetadataInspection;
 }
+pub(crate) mod analysis_capacity;
+pub(crate) mod image_feature_encoding;

@@ -3,6 +3,9 @@ use std::fs;
 use rusqlite::Connection;
 use serde_json::Value;
 
+use crate::domain::organization::OrganizationAlbumIcon;
+use crate::ports::organization::OrganizationRepository;
+
 use super::*;
 
 pub(super) fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
@@ -50,7 +53,7 @@ pub(super) fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
         &crate::domain::gallery_metadata_filter::GalleryMetadataFilter::default(),
     )
     .unwrap();
-    catalog.connection.execute("INSERT INTO organization_review_filters SELECT slot, 1, ?1 FROM organization_review_scopes", [empty_filter]).unwrap();
+    catalog.connection.execute("INSERT INTO organization_review_filters SELECT slot, 2, ?1 FROM organization_review_scopes", [empty_filter]).unwrap();
     (directory, catalog)
 }
 
@@ -76,7 +79,10 @@ pub(super) fn assert_no_scratch(directory: &Path) {
 
 #[test]
 fn organization_archive_exports_durable_families_without_original_reads() {
-    let (directory, catalog) = fixture();
+    let (directory, mut catalog) = fixture();
+    catalog
+        .change_organization_album_icon("album-a", OrganizationAlbumIcon::Nature)
+        .unwrap();
     let destination = directory.path().join("整理记录.ame-backup");
     let receipt = catalog
         .export_organization_archive(&destination, &mut |_| true)

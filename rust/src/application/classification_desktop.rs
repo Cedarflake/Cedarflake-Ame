@@ -25,7 +25,17 @@ mod connection;
 mod maintenance;
 pub(crate) use connection::ClassificationDesktopSession;
 pub(crate) use connection::current_device;
+pub(crate) use connection::search;
+pub(crate) use connection::semantic_status;
 pub(crate) use maintenance::ClassificationDesktopMaintenance;
+
+pub(crate) fn retry_semantic_index() -> Result<(), ScanError> {
+    super::classification_runtime::recover_semantic_index(
+        &storage_paths()?
+            .catalog_path
+            .with_file_name("semantic-features"),
+    )
+}
 
 pub(crate) fn save_installation(models: String, runtime: String) -> Result<(), ScanError> {
     let installation = ClassificationInstallation {

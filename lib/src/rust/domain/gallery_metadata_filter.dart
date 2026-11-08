@@ -29,7 +29,7 @@ class GalleryDateRange {
 }
 
 class GalleryMetadataFilter {
-  final String extension_;
+  final List<String> extensions;
   final GalleryNumberRange bytes;
   final GalleryNumberRange width;
   final GalleryNumberRange height;
@@ -37,7 +37,7 @@ class GalleryMetadataFilter {
   final String cameraText;
 
   const GalleryMetadataFilter({
-    required this.extension_,
+    required this.extensions,
     required this.bytes,
     required this.width,
     required this.height,
@@ -47,7 +47,7 @@ class GalleryMetadataFilter {
 
   @override
   int get hashCode =>
-      extension_.hashCode ^
+      extensions.hashCode ^
       bytes.hashCode ^
       width.hashCode ^
       height.hashCode ^
@@ -59,7 +59,7 @@ class GalleryMetadataFilter {
       identical(this, other) ||
       other is GalleryMetadataFilter &&
           runtimeType == other.runtimeType &&
-          extension_ == other.extension_ &&
+          extensions == other.extensions &&
           bytes == other.bytes &&
           width == other.width &&
           height == other.height &&

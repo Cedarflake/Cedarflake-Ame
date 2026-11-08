@@ -11,7 +11,9 @@ param(
         "windows_scan",
         "windows_accessibility"
     )]
-    [string]$Component = "all"
+    [string]$Component = "all",
+    [switch]$PresentationOnly,
+    [string]$AffectedSince
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,7 +26,7 @@ Push-Location $repositoryRoot
 
 try {
     if ($Component -in @("all", "static")) {
-        & (Join-Path $PSScriptRoot "quality_lint.ps1")
+        & (Join-Path $PSScriptRoot "quality_lint.ps1") -PresentationOnly:$PresentationOnly
     }
     if ($Component -eq "all") {
         & (Join-Path $PSScriptRoot "quality_test_rust.ps1")
@@ -32,7 +34,7 @@ try {
         & (Join-Path $PSScriptRoot "quality_test_rust.ps1") -Partition $Component.Substring(5)
     }
     if ($Component -in @("all", "flutter")) {
-        & (Join-Path $PSScriptRoot "quality_test_flutter.ps1")
+        & (Join-Path $PSScriptRoot "quality_test_flutter.ps1") -AffectedSince $AffectedSince
     }
     if ($Component -in @("all", "windows_scan")) {
         & (Join-Path $PSScriptRoot "integration_test_windows.ps1")

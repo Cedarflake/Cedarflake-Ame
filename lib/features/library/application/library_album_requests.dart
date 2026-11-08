@@ -3,7 +3,7 @@ import "ports/library_organization.dart";
 import "library_organization_publication.dart";
 import "library_organization_requests.dart";
 
-enum LibraryAlbumEditKind { create, rename, delete }
+enum LibraryAlbumEditKind { create, rename, icon, delete }
 
 class LibraryAlbumEditSession {
   LibraryAlbumEditSession({
@@ -17,14 +17,18 @@ class LibraryAlbumEditSession {
   final LibraryOrganizationAlbum? album;
   LibraryAlbumEditRequest? _attempt;
 
-  LibraryAlbumEditRequest request(String name) {
+  LibraryAlbumEditRequest request(
+    String name, {
+    LibraryAlbumIcon icon = LibraryAlbumIcon.album,
+  }) {
     final normalized = name.trim();
-    if (_attempt?.name != normalized) {
+    if (_attempt?.name != normalized || _attempt?.icon != icon) {
       _attempt?.cancel();
       _attempt = LibraryAlbumEditRequest._(
         kind,
         album?.id,
         normalized,
+        icon,
         revision,
       );
     }
@@ -35,12 +39,18 @@ class LibraryAlbumEditSession {
 }
 
 class LibraryAlbumEditRequest extends LibraryOrganizationRequest {
-  LibraryAlbumEditRequest._(this.kind, this.albumId, this.name, BigInt revision)
-    : _revision = revision;
+  LibraryAlbumEditRequest._(
+    this.kind,
+    this.albumId,
+    this.name,
+    this.icon,
+    BigInt revision,
+  ) : _revision = revision;
 
   final LibraryAlbumEditKind kind;
   final String? albumId;
   final String name;
+  final LibraryAlbumIcon icon;
   BigInt? _revision;
 
   @override
@@ -56,12 +66,15 @@ class LibraryAlbumEditRequest extends LibraryOrganizationRequest {
   String get successMessage => switch (kind) {
     LibraryAlbumEditKind.create => "已新建相册",
     LibraryAlbumEditKind.rename => "已重命名相册",
+    LibraryAlbumEditKind.icon => "已更改相册图标",
     LibraryAlbumEditKind.delete => "已删除相册",
   };
 
   @override
   bool canUndo(LibraryOrganizationReceipt receipt) =>
-      _revision != null && receipt.revision > _revision!;
+      kind != LibraryAlbumEditKind.icon &&
+      _revision != null &&
+      receipt.revision > _revision!;
 
   @override
   Future<LibraryOrganizationReceipt> execute(
@@ -70,7 +83,18 @@ class LibraryAlbumEditRequest extends LibraryOrganizationRequest {
     final revision = _revision ??= await service.revision();
     requireActive();
     return switch (kind) {
-      LibraryAlbumEditKind.create => service.createAlbum(id, revision, name),
+      LibraryAlbumEditKind.create => service.createAlbum(
+        id,
+        revision,
+        name,
+        icon: icon,
+      ),
+      LibraryAlbumEditKind.icon => LibraryOrganizationReceipt(
+        operationId: id,
+        revision: revision,
+        changedGroups: 0,
+        album: await service.changeAlbumIcon(albumId!, icon),
+      ),
       LibraryAlbumEditKind.rename => service.renameAlbum(
         id,
         revision,

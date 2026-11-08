@@ -1,3 +1,4 @@
+use crate::adapters::SqliteClassificationFeatureCache;
 use crate::application::classification_desktop::ClassificationDesktopMaintenance;
 use crate::application::classification_discovery::prepare_category_reduction;
 use crate::application::classification_dispatch::{
@@ -7,6 +8,7 @@ use crate::application::classification_runtime::{
     ClassificationRuntimePaths, NativeClassificationRuntime, PreparedCategoryMaintenance,
     commit_category_maintenance,
 };
+use crate::ports::classification_features::ClassificationFeatureRepository;
 
 use super::*;
 
@@ -60,7 +62,8 @@ fn idle_runtime_reconciles_the_curated_catalog_without_model_or_source_access() 
     )
     .unwrap();
     assert_eq!(saved.catalog.taxonomy.unwrap().categories().len(), 1);
-    assert!(!feature_cache_directory.exists());
+    let cache = SqliteClassificationFeatureCache::open(&feature_cache_directory).unwrap();
+    assert_eq!(cache.feature_cache_stats().unwrap().entries, 0);
 }
 
 #[test]
@@ -143,7 +146,8 @@ fn runtime_retirement_precedes_maintenance_and_reopening_uses_the_committed_setu
     assert_eq!(current.dispatch.run_id, Some(id("merge")));
     assert_eq!(current.dispatch.mode, ClassificationDispatchMode::Paused);
     assert_eq!(current.dispatch.session_id, Some(id("after-maintenance")));
-    assert!(!paths().feature_cache_directory.exists());
+    let cache = SqliteClassificationFeatureCache::open(&paths().feature_cache_directory).unwrap();
+    assert_eq!(cache.feature_cache_stats().unwrap().entries, 0);
     reopened.control().signals().close().unwrap();
     reopened.run().unwrap();
     drop(reopened);

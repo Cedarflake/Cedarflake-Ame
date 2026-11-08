@@ -49,7 +49,13 @@ impl WorkerSession {
             return Err(RuntimeError::Configuration);
         }
         Ok(Self {
-            transport: Transport::start(&configuration.executable)?,
+            transport: Transport::start(
+                &configuration.executable,
+                match configuration.encoder {
+                    EncoderKind::Image => 2 * 1024 * 1024 * 1024,
+                    EncoderKind::Text => 1024 * 1024 * 1024,
+                },
+            )?,
             session,
             next_request: 1,
             encoder: configuration.encoder,

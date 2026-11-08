@@ -3,10 +3,10 @@ import "dart:async";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_choice.dart";
 import "../../../library/application/library_cleanup_controller.dart";
 import "../../../library/application/library_cleanup_state.dart";
 import "../../../library/domain/library_organization_cleanup.dart";
-import "settings_section.dart";
 
 String cleanupAgeDescription(LibraryCleanupInspection inspection) {
   final oldest = inspection.oldestUnassociatedUnixMs;
@@ -70,15 +70,15 @@ class _OrganizationCleanupConfirmation extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SettingsChoice<int>(
+            AmeChoice<int>(
               key: const Key("settings-cleanup-age"),
               value: minimumAgeDays,
               width: 260,
               enabled: state is! LibraryCleanupWorking,
               entries: const [
-                SettingsChoiceEntry(value: 90, label: "未关联超过 90 天"),
-                SettingsChoiceEntry(value: 30, label: "未关联超过 30 天"),
-                SettingsChoiceEntry(value: 0, label: "全部未关联记录"),
+                AmeChoiceEntry(value: 90, label: "未关联超过 90 天"),
+                AmeChoiceEntry(value: 30, label: "未关联超过 30 天"),
+                AmeChoiceEntry(value: 0, label: "全部未关联记录"),
               ],
               onSelected: (value) {
                 if (value == null || value == minimumAgeDays) return;

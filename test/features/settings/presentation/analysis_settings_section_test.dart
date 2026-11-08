@@ -34,7 +34,6 @@ void main() {
       configuration.pending.complete();
       await tester.pumpAndSettle();
       expect(tester.widget<Switch>(toggle).value, isFalse);
-      expect(find.text("智能相册使用 CPU 分析图片"), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpWidget(page());
       await tester.pumpAndSettle();

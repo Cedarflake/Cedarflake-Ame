@@ -42,7 +42,7 @@ class LibraryClassificationLifecycle extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> waitUntilOpened() => _sessions.waitUntilOpened();
+  Future<bool> waitUntilOpened() => _sessions.waitUntilOpened();
   void startInBackground() => _sessions.startInBackground();
   Future<T> changeConfiguration<T>(Future<T> Function() change) =>
       _sessions.changeConfiguration(change);

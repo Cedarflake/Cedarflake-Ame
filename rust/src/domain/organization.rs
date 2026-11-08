@@ -140,6 +140,61 @@ pub struct OrganizationAlbum {
     pub album_id: String,
     pub name: String,
     pub revision: u64,
+    pub icon: OrganizationAlbumIcon,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum OrganizationAlbumIcon {
+    #[default]
+    Album,
+    Travel,
+    Nature,
+    Pets,
+    People,
+    Food,
+    Art,
+    Work,
+    Study,
+    Games,
+    Music,
+    Memories,
+}
+
+impl OrganizationAlbumIcon {
+    pub(crate) fn stored(self) -> &'static str {
+        match self {
+            Self::Album => "album",
+            Self::Travel => "travel",
+            Self::Nature => "nature",
+            Self::Pets => "pets",
+            Self::People => "people",
+            Self::Food => "food",
+            Self::Art => "art",
+            Self::Work => "work",
+            Self::Study => "study",
+            Self::Games => "games",
+            Self::Music => "music",
+            Self::Memories => "memories",
+        }
+    }
+
+    pub(crate) fn from_stored(value: &str) -> Option<Self> {
+        Some(match value {
+            "album" => Self::Album,
+            "travel" => Self::Travel,
+            "nature" => Self::Nature,
+            "pets" => Self::Pets,
+            "people" => Self::People,
+            "food" => Self::Food,
+            "art" => Self::Art,
+            "work" => Self::Work,
+            "study" => Self::Study,
+            "games" => Self::Games,
+            "music" => Self::Music,
+            "memories" => Self::Memories,
+            _ => return None,
+        })
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

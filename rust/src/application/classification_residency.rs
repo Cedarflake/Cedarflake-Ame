@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use crate::domain::ScanError;
-use crate::domain::classification::{ImageFeature, ModelCompatibility, TextFeature};
+use crate::domain::image_features::{ImageFeature, ModelCompatibility, TextFeature};
 use crate::ports::classification_encoder::{
     ClassificationEncoder, ClassificationEncoderFactory, ClassificationEncoderKind,
 };
@@ -192,6 +192,35 @@ impl<F: ClassificationEncoderFactory, C: ResidencyClock> ClassificationEncoderRe
 
 fn cancelled_error() -> ScanError {
     ScanError::new("classification_cancelled", "Classification was stopped")
+}
+
+impl<F: ClassificationEncoderFactory, C: ResidencyClock>
+    crate::ports::image_feature_encoding::ImageFeatureEncoding
+    for ClassificationEncoderResidency<F, C>
+{
+    fn compatibility(&self) -> ModelCompatibility {
+        self.compatibility()
+    }
+
+    fn encode_prepared_image(
+        &mut self,
+        pixels: &[f32],
+        cancelled: &AtomicBool,
+    ) -> Result<ImageFeature, ScanError> {
+        self.encode_prepared_image(pixels, cancelled)
+    }
+
+    fn encode_description(
+        &mut self,
+        description: &str,
+        cancelled: &AtomicBool,
+    ) -> Result<TextFeature, ScanError> {
+        self.encode_description(description, cancelled)
+    }
+
+    fn finish_descriptions(&mut self) -> Result<(), ScanError> {
+        self.finish_descriptions()
+    }
 }
 
 #[cfg(test)]

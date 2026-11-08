@@ -187,7 +187,14 @@ impl<V: ManagedClassificationVocabulary> CategoryDiscovery<V> {
             resources.residency,
             resources.cache,
             cancelled,
-        )?;
+        );
+        let prepared = match prepared {
+            Err(error) if error.code == "analysis_yielded" => {
+                executor.mark_yielded();
+                return Ok(ClassificationMaintenanceStep::Progress);
+            }
+            result => result?,
+        };
         self.pass = match prepared.next {
             Some(cursor) => Pass::Sampling {
                 notification,

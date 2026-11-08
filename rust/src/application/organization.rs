@@ -1,8 +1,9 @@
 use crate::domain::organization::{
-    OrganizationAction, OrganizationAlbum, OrganizationAlbumPage, OrganizationAlbumReceipt,
-    OrganizationHistory, OrganizationHistoryDirection, OrganizationHistoryReceipt,
-    OrganizationInspection, OrganizationPreparedSelection, OrganizationSelection,
-    OrganizationWriteReceipt, normalize_album_name, validate_identifier, validate_selections,
+    OrganizationAction, OrganizationAlbum, OrganizationAlbumIcon, OrganizationAlbumPage,
+    OrganizationAlbumReceipt, OrganizationHistory, OrganizationHistoryDirection,
+    OrganizationHistoryReceipt, OrganizationInspection, OrganizationPreparedSelection,
+    OrganizationSelection, OrganizationWriteReceipt, normalize_album_name, validate_identifier,
+    validate_selections,
 };
 use crate::domain::{LibraryChangeLane, ScanError};
 use crate::ports::organization::OrganizationRepository;
@@ -93,10 +94,19 @@ pub(crate) fn create_album(
     operation_id: String,
     expected_revision: u64,
     name: String,
+    icon: OrganizationAlbumIcon,
 ) -> Result<OrganizationAlbumReceipt, ScanError> {
     validate_identifier(&operation_id)?;
     let name = normalize_album_name(&name)?;
-    open_catalog()?.create_organization_album(&operation_id, expected_revision, &name)
+    open_catalog()?.create_organization_album(&operation_id, expected_revision, &name, icon)
+}
+
+pub(crate) fn change_album_icon(
+    album_id: String,
+    icon: OrganizationAlbumIcon,
+) -> Result<OrganizationAlbum, ScanError> {
+    validate_identifier(&album_id)?;
+    open_catalog()?.change_organization_album_icon(&album_id, icon)
 }
 
 pub(crate) fn rename_album(

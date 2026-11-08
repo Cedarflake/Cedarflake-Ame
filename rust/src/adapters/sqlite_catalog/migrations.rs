@@ -12,6 +12,7 @@ use super::{
     unix_time_ms,
 };
 
+mod album_icons;
 mod camera_metadata;
 mod catch_up_contract;
 mod catch_up_repair;
@@ -37,6 +38,7 @@ mod interrupted_foreground_repair;
 mod inventory_spool_contract;
 mod live_gap_contract;
 mod location_columns;
+mod multiple_metadata_formats;
 mod organization_review_filters;
 mod prerelease_journal_repair;
 mod recovery_authority_contract;
@@ -188,6 +190,8 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         similar_images::migrate_transaction(&transaction)?;
         similar_images::migrate_confirmation_transaction(&transaction)?;
         similar_images::migrate_preferences_transaction(&transaction)?;
+        multiple_metadata_formats::migrate_transaction(&transaction)?;
+        album_icons::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -304,6 +308,8 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             73 => similar_images::migrate(connection)?,
             74 => similar_images::migrate_confirmation(connection)?,
             75 => similar_images::migrate_preferences(connection)?,
+            76 => multiple_metadata_formats::migrate(connection)?,
+            77 => album_icons::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

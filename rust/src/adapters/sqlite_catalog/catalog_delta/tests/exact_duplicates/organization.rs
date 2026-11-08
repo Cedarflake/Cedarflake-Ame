@@ -43,7 +43,7 @@ fn journal_rename_preserves_organization_and_content_change_requires_new_proof()
     publish_fingerprint(&mut catalog, "location-a", 'a');
     publish_fingerprint(&mut catalog, "location-b", 'a');
     let album = catalog
-        .create_organization_album("create-album", 0, "Kept")
+        .create_organization_album("create-album", 0, "Kept", Default::default())
         .unwrap()
         .album_id;
     let before = candidate(&catalog, "location-b");

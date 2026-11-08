@@ -1,9 +1,10 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use crate::adapters::SqliteClassificationFeatureCache;
 use crate::adapters::classification_runtime::LocalClassificationEncoderFactory;
+use crate::adapters::{SqliteClassificationFeatureCache, SqliteSemanticFeatureStore};
 use crate::domain::ScanError;
 use crate::domain::classification::ClassificationAnalysisSetup;
 use crate::domain::classification::work::{
@@ -14,39 +15,38 @@ use crate::ports::classification_execution::{
     ClassificationExecutionError, ClassificationExecutionOutcome, ClassificationWorkExecutor,
 };
 
+use super::super::analysis_scheduling::{AnalysisScheduler, Priority, ScheduledEncoding};
 use super::super::classification_analysis::analyze_classification_content;
-use super::super::classification_residency::{
-    ClassificationEncoderResidency, MonotonicResidencyClock,
-};
 use super::super::classification_screening::ScreeningClassifier;
 use super::super::classification_verification::verify_classification_source;
-use super::admitted_text::AdmittedTextFactory;
+use super::super::image_feature_reuse::SharedImageFeatures;
 use super::{ClassificationRuntimePaths, setup};
 
-type NativeEncoderResidency = ClassificationEncoderResidency<
-    AdmittedTextFactory<LocalClassificationEncoderFactory>,
-    MonotonicResidencyClock,
->;
+type NativeEncoderResidency = ScheduledEncoding<LocalClassificationEncoderFactory>;
+
+type NativeFeatureRepository =
+    SharedImageFeatures<SqliteClassificationFeatureCache, SqliteSemanticFeatureStore>;
 
 pub(super) struct FeatureResources<'a> {
-    pub cache: &'a mut SqliteClassificationFeatureCache,
+    pub cache: &'a mut NativeFeatureRepository,
     pub residency: &'a mut NativeEncoderResidency,
 }
 
 pub(super) struct NativeExecutor {
     database: PathBuf,
     cache_directory: PathBuf,
-    cache: Option<SqliteClassificationFeatureCache>,
+    cache: Option<NativeFeatureRepository>,
     setup: ClassificationAnalysisSetup,
     classifier: Option<ScreeningClassifier>,
     residency: NativeEncoderResidency,
+    yielded: bool,
 }
 
 impl NativeExecutor {
     pub(super) fn new(
         paths: &ClassificationRuntimePaths,
         setup: ClassificationAnalysisSetup,
-        factory: LocalClassificationEncoderFactory,
+        residency: NativeEncoderResidency,
     ) -> Self {
         Self {
             database: paths.database.clone(),
@@ -54,12 +54,36 @@ impl NativeExecutor {
             cache: None,
             setup,
             classifier: None,
-            residency: ClassificationEncoderResidency::new(
-                AdmittedTextFactory(factory),
-                MonotonicResidencyClock::default(),
-                Duration::from_secs(60),
-            ),
+            residency,
+            yielded: false,
         }
+    }
+
+    pub(super) fn scheduler(&self) -> Arc<AnalysisScheduler<LocalClassificationEncoderFactory>> {
+        self.residency.scheduler()
+    }
+
+    pub(super) fn search_executor(&self) -> Self {
+        Self {
+            database: self.database.clone(),
+            cache_directory: self.cache_directory.clone(),
+            cache: None,
+            setup: self.setup.clone(),
+            classifier: None,
+            residency: self.scheduler().client(Priority::Foreground),
+            yielded: false,
+        }
+    }
+
+    pub(super) fn take_yielded(&mut self) -> bool {
+        std::mem::take(&mut self.yielded)
+    }
+    pub(super) fn mark_yielded(&mut self) {
+        self.yielded = true;
+    }
+
+    pub(super) fn database(&self) -> &std::path::Path {
+        &self.database
     }
 
     pub(super) fn taxonomy(&self) -> &crate::domain::classification::Taxonomy {
@@ -68,9 +92,7 @@ impl NativeExecutor {
 
     pub(super) fn feature_resources(&mut self) -> Result<FeatureResources<'_>, ScanError> {
         if self.cache.is_none() {
-            self.cache = Some(SqliteClassificationFeatureCache::open(
-                &self.cache_directory,
-            )?);
+            self.cache = Some(self.open_features()?);
         }
         Ok(FeatureResources {
             cache: self.cache.as_mut().expect("the feature cache is owned"),
@@ -84,9 +106,7 @@ impl NativeExecutor {
         cancelled: &AtomicBool,
     ) -> Result<ClassificationAnalysisResult, ScanError> {
         if self.cache.is_none() {
-            self.cache = Some(SqliteClassificationFeatureCache::open(
-                &self.cache_directory,
-            )?);
+            self.cache = Some(self.open_features()?);
         }
         let cache = self.cache.as_mut().expect("the feature cache is owned");
         if self.classifier.is_none() {
@@ -105,6 +125,14 @@ impl NativeExecutor {
             cache,
             cancelled,
         )
+    }
+    fn open_features(&self) -> Result<NativeFeatureRepository, ScanError> {
+        Ok(SharedImageFeatures::new(
+            SqliteClassificationFeatureCache::open(&self.cache_directory)?,
+            SqliteSemanticFeatureStore::open(
+                &self.cache_directory.with_file_name("semantic-features"),
+            )?,
+        ))
     }
 }
 
@@ -152,6 +180,10 @@ impl ClassificationWorkExecutor for NativeExecutor {
             }
         };
         match result {
+            Err(error) if error.code == "analysis_yielded" => {
+                self.yielded = true;
+                Ok(ClassificationExecutionOutcome::Cancelled)
+            }
             Err(_) if cancelled.load(Ordering::Acquire) => {
                 Ok(ClassificationExecutionOutcome::Cancelled)
             }
@@ -166,7 +198,7 @@ impl ClassificationWorkExecutor for NativeExecutor {
         self.residency.retire_if_idle()
     }
     fn idle_delay(&self) -> Option<Duration> {
-        self.residency.idle_delay()
+        Some(Duration::from_secs(2))
     }
 }
 
@@ -177,6 +209,7 @@ pub(super) fn execution_error(error: ScanError) -> ClassificationExecutionError 
         | "preview_root_unavailable"
         | "preview_source_open_failed"
         | "classification_source_changed"
+        | "semantic_source_changed"
         | "exact_source_changed"
         | "preview_root_identity_changed"
         | "preview_source_changed"

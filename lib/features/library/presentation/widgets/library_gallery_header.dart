@@ -10,6 +10,7 @@ import "../gallery_view_options.dart";
 import "../library_strings.dart";
 import "library_gallery_header_actions.dart";
 import "library_sidebar_content.dart";
+import "library_workbench_metrics.dart";
 
 class LibraryGalleryHeader extends StatelessWidget {
   const LibraryGalleryHeader({
@@ -19,6 +20,8 @@ class LibraryGalleryHeader extends StatelessWidget {
     this.selectionToolbar,
     this.reviewToolbar,
     this.reviewCounts,
+    this.semanticSummary,
+    this.semanticNotice,
     this.isReviewing = false,
     this.onToggleReview,
     required this.totalItems,
@@ -45,6 +48,8 @@ class LibraryGalleryHeader extends StatelessWidget {
   final Widget? selectionToolbar;
   final Widget? reviewToolbar;
   final LibraryOrganizationCounts? reviewCounts;
+  final String? semanticSummary;
+  final String? semanticNotice;
   final bool isReviewing;
   final VoidCallback? onToggleReview;
   final int totalItems;
@@ -67,9 +72,10 @@ class LibraryGalleryHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final title = isSelecting ? "已选择 $selectedCount 个项目" : galleryTitle;
     var subtitle = "$totalItems 张图片";
-    if (mergedItems case final count?) {
+    if (mergedItems case final count? when count != totalItems) {
       subtitle = "$subtitle · 去重后 $count 张";
     }
+    if (semanticNotice case final notice?) subtitle = "$subtitle · $notice";
     if (reviewCounts case final counts?) {
       subtitle =
           "${counts.total} 张图片 · 已整理 ${counts.organized} · 待整理 ${counts.pending} · 已忽略 ${counts.ignored}";
@@ -82,7 +88,12 @@ class LibraryGalleryHeader extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 104),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 18, 20, 16),
+          padding: const EdgeInsets.fromLTRB(
+            LibraryWorkbenchMetrics.galleryHeadingInset,
+            18,
+            20,
+            16,
+          ),
           child: Builder(
             builder: (context) {
               final titleText = Wrap(
@@ -108,11 +119,14 @@ class LibraryGalleryHeader extends StatelessWidget {
                   scrollDirection: Axis.horizontal,
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    child: Text(
-                      subtitle,
-                      key: const Key("library-summary"),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    child: AmeTooltip(
+                      message: semanticSummary ?? subtitle,
+                      child: Text(
+                        subtitle,
+                        key: const Key("library-summary"),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ),
@@ -135,6 +149,7 @@ class LibraryGalleryHeader extends StatelessWidget {
                         _SelectionToolbar(onCancel: onCancelSelection)
                   : _BrowsingToolbar(
                       filter: filter,
+                      relevanceOrder: semanticSummary != null,
                       isReviewing: isReviewing,
                       onToggleReview: onToggleReview,
                       layoutShape: layoutShape,
@@ -165,6 +180,7 @@ class LibraryGalleryHeader extends StatelessWidget {
 class _BrowsingToolbar extends StatelessWidget {
   const _BrowsingToolbar({
     this.filter,
+    required this.relevanceOrder,
     required this.isReviewing,
     this.onToggleReview,
     required this.layoutShape,
@@ -180,6 +196,7 @@ class _BrowsingToolbar extends StatelessWidget {
   });
 
   final Widget? filter;
+  final bool relevanceOrder;
   final bool isReviewing;
   final VoidCallback? onToggleReview;
   final GalleryLayoutShape layoutShape;
@@ -205,13 +222,14 @@ class _BrowsingToolbar extends StatelessWidget {
           icon: const Icon(Symbols.check_box_rounded),
           label: const Text(LibraryStrings.select),
         ),
-        _SortMenu(
-          isReviewing: isReviewing,
-          sortKey: sortKey,
-          direction: sortDirection,
-          onSortKeyChanged: onSortKeyChanged,
-          onDirectionChanged: onSortDirectionChanged,
-        ),
+        if (!relevanceOrder)
+          _SortMenu(
+            isReviewing: isReviewing,
+            sortKey: sortKey,
+            direction: sortDirection,
+            onSortKeyChanged: onSortKeyChanged,
+            onDirectionChanged: onSortDirectionChanged,
+          ),
         ?filter,
         _LayoutMenu(
           shape: layoutShape,

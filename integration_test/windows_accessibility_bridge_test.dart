@@ -26,8 +26,6 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_gal
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_time_navigation.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_virtual_gallery_geometry.dart";
-import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
-import "package:cedarflake_ame/features/settings/presentation/widgets/settings_section.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -606,13 +604,9 @@ void main() {
       final settingsPage = find.byKey(const Key("ame-settings-page"));
       await _pumpUntil(tester, () => settingsPage.evaluate().isNotEmpty);
       expect(settingsPage, findsOneWidget);
-      final themeChoice = find.byType(SettingsChoice<AmeThemePreference>);
+      final themeChoice = find.widgetWithText(OutlinedButton, "跟随系统");
       expect(themeChoice, findsOneWidget);
-      await tester.tap(
-        find
-            .descendant(of: themeChoice, matching: find.byType(OutlinedButton))
-            .hitTestable(),
-      );
+      await tester.tap(themeChoice.hitTestable());
       final lightThemeLabel = find.text("浅色");
       final lightThemeItem = find.ancestor(
         of: lightThemeLabel.last,

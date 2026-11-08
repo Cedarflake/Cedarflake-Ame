@@ -15,6 +15,7 @@ pub mod organization_cleanup;
 pub mod organization_conflicts;
 pub mod organization_review;
 pub mod preview;
+pub mod semantic_search;
 pub mod sidebar_order;
 pub mod similar_image_review;
 pub mod similar_images;

@@ -2,7 +2,8 @@ mod production;
 mod query;
 mod root_availability;
 mod time_snapshot;
-use query::{gallery_query_identity, normalize_gallery_query, normalize_relative_folder};
+use query::normalize_relative_folder;
+pub(crate) use query::{gallery_query_identity, normalize_gallery_query};
 pub use time_snapshot::load_catalog_time_snapshot;
 
 #[cfg(test)]

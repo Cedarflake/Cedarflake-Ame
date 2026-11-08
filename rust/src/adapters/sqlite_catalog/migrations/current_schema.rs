@@ -87,6 +87,9 @@ fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<
     if schema_version >= 74 {
         super::similar_images::validate_rows(connection)?;
     }
+    if schema_version >= 78 {
+        super::album_icons::validate_rows(connection)?;
+    }
     if schema_version >= 33 {
         super::scan_resume_inventory::validate_rows(connection)?;
     }
@@ -247,7 +250,9 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 62 {
         super::camera_metadata::validate(connection)?;
     }
-    if schema_version >= 64 {
+    if schema_version >= 77 {
+        super::multiple_metadata_formats::validate(connection)?;
+    } else if schema_version >= 64 {
         super::organization_review_filters::validate(connection)?;
     }
     if schema_version >= 65 {
@@ -273,6 +278,9 @@ pub(super) fn validate_schema_structure(
     }
     if schema_version >= 74 {
         super::similar_images::validate(connection)?;
+    }
+    if schema_version >= 78 {
+        super::album_icons::validate(connection)?;
     }
     validate_existing_source_metadata_marker(connection)
 }
