@@ -673,11 +673,11 @@ void main() {
     await tester.pump();
     final latestPixels = scrollController.offset;
     expect(latestPixels, greaterThan(7000));
-    expect(requests.offsets, hasLength(2));
+    expect(requests.offsets, hasLength(1));
 
     requests.completers.first.complete(true);
     await tester.pump();
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
 
     expect(scrollController.offset, closeTo(latestPixels, 0.01));
     expect(requests.offsets, hasLength(2));

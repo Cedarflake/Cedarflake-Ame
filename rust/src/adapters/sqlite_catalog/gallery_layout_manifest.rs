@@ -15,15 +15,27 @@ use super::{
     load_catalog_revision, sqlite_u32, sqlite_unsigned,
 };
 
-struct StoredLayoutManifestItem {
-    location_id: String,
-    root_id: String,
-    width: u32,
-    height: u32,
-    date_key: Option<String>,
-    primary_missing: bool,
-    primary_text: String,
-    primary_number: i64,
+pub(super) struct StoredLayoutManifestItem {
+    pub(super) location_id: String,
+    pub(super) root_id: String,
+    pub(super) width: u32,
+    pub(super) height: u32,
+    pub(super) date_key: Option<String>,
+    pub(super) primary_missing: bool,
+    pub(super) primary_text: String,
+    pub(super) primary_number: i64,
+}
+
+pub(super) const MAX_INLINE_LAYOUT_ITEMS: u64 = 64 * 1024 * 1024 / 192;
+
+impl StoredLayoutManifestItem {
+    pub(super) fn aspect_ratio_milli(&self) -> u16 {
+        if self.width == 0 || self.height == 0 {
+            1_000
+        } else {
+            ((u64::from(self.width) * 1_000) / u64::from(self.height)).clamp(200, 5_000) as u16
+        }
+    }
 }
 
 pub(super) fn load_chunk(
@@ -152,9 +164,7 @@ pub(super) fn load_snapshot(
     revision: u64,
     total_items: u64,
 ) -> Result<Option<Vec<GalleryLayoutManifestChunk>>, ScanError> {
-    const INLINE_BUDGET: u64 = 64 * 1024 * 1024;
-    const MAXIMUM_ITEM_BYTES: u64 = 192;
-    if total_items > INLINE_BUDGET / MAXIMUM_ITEM_BYTES {
+    if total_items > MAX_INLINE_LAYOUT_ITEMS {
         return Ok(None);
     }
     let limit = i64::try_from(total_items.saturating_add(1)).map_err(|_| {
@@ -221,7 +231,7 @@ pub(super) fn load_snapshot(
     Ok(Some(chunks))
 }
 
-fn continuation(
+pub(super) fn continuation(
     items: &[StoredLayoutManifestItem],
     revision: u64,
     query_id: &str,
@@ -245,7 +255,7 @@ fn continuation(
     })
 }
 
-fn encode_chunk(
+pub(super) fn encode_chunk(
     items: Vec<StoredLayoutManifestItem>,
     revision: u64,
     query_id: &str,
@@ -261,21 +271,7 @@ fn encode_chunk(
     let mut flags = Vec::with_capacity(items.len());
     for item in items {
         let has_dimensions = item.width > 0 && item.height > 0;
-        let ratio = if has_dimensions {
-            let scaled = u64::from(item.width)
-                .saturating_mul(1_000)
-                .checked_div(u64::from(item.height))
-                .unwrap_or(1_000)
-                .clamp(200, 5_000);
-            u16::try_from(scaled).map_err(|_| {
-                ScanError::new(
-                    "catalog_layout_ratio_invalid",
-                    "The gallery layout aspect ratio exceeds the supported range",
-                )
-            })?
-        } else {
-            1_000
-        };
+        let ratio = item.aspect_ratio_milli();
         let date_group_index = if let Some(index) = date_group_lookup.get(&item.date_key) {
             *index
         } else {

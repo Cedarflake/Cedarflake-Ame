@@ -245,84 +245,31 @@ void main() {
     },
   );
 
-  test(
-    "a changed deferred timeline waits for removal release before refreshing coherently",
-    () async {
-      final catalog = _RemovalCatalog();
-      var state = LibraryState.fromSnapshot(_querySnapshot(7).snapshot);
-      final controller = LibraryViewportController(
-        catalog,
-        () => state,
-        (value) => state = value,
-        () => false,
-        (_) {},
-      );
-      addTearDown(controller.dispose);
-      controller.seed(state);
-      final publication = controller.reserveCatalogPublication()!;
-      expect(
-        await controller.reloadCommittedRootRemovalFirstPage(
-          removedRootId: "removed",
-        ),
-        isTrue,
-      );
-      expect(state.catalogRevision, BigInt.from(8));
-      expect(state.isLoadingTimeline, isTrue);
-      expect(catalog.pendingTimeline.isCompleted, isFalse);
-      catalog.pendingTimeline.complete(_querySnapshot(9).timeline);
-      await Future<void>.delayed(Duration.zero);
-      expect(state.catalogRevision, BigInt.from(8));
-      expect(catalog.requests, isEmpty);
-      controller.releaseCatalogPublication(publication);
-      await Future<void>.delayed(Duration.zero);
-      expect(state.catalogRevision, BigInt.from(10));
-      expect(state.timeline?.revision, BigInt.from(10));
-      expect(state.timeNavigationErrorMessage, isNull);
-      expect(catalog.requests, hasLength(1));
-    },
-  );
-
-  test(
-    "a replacement query retires the deferred removal refresh before another read",
-    () async {
-      final catalog = _RemovalCatalog();
-      var state = LibraryState.fromSnapshot(_querySnapshot(7).snapshot);
-      final controller = LibraryViewportController(
-        catalog,
-        () => state,
-        (value) => state = value,
-        () => false,
-        (_) {},
-      );
-      addTearDown(controller.dispose);
-      controller.seed(state);
-      final publication = controller.reserveCatalogPublication()!;
-      expect(
-        await controller.reloadCommittedRootRemovalFirstPage(
-          removedRootId: "removed",
-        ),
-        isTrue,
-      );
-      catalog.pendingTimeline.complete(_querySnapshot(9).timeline);
-      await Future<void>.delayed(Duration.zero);
-      expect(catalog.requests, isEmpty);
-
-      controller.releaseCatalogPublication(publication);
-      expect(
-        await controller.updateQuery(
-          const LibraryGalleryQuery(searchText: "new query"),
-        ),
-        isTrue,
-      );
-      await Future<void>.delayed(Duration.zero);
-      expect(state.query.searchText, "new query");
-      expect(state.catalogRevision, BigInt.from(10));
-      expect(state.timeline?.revision, state.catalogRevision);
-      expect(state.isLoadingTimeline, isFalse);
-      expect(state.timeNavigationErrorMessage, isNull);
-      expect(catalog.requests, hasLength(1));
-    },
-  );
+  test("removal refresh publishes one coherent projection", () async {
+    final pending = Completer<LibraryQuerySnapshot>();
+    final catalog = _AtomicCatalog([pending.future]);
+    final initial = LibraryState.fromSnapshot(_querySnapshot(7).snapshot);
+    var state = initial;
+    final controller = LibraryViewportController(
+      catalog,
+      () => state,
+      (value) => state = value,
+      () => false,
+      (_) {},
+    );
+    addTearDown(controller.dispose);
+    controller.seed(state);
+    final read = controller.reloadCommittedRootRemovalFirstPage(
+      removedRootId: "removed",
+    );
+    expect(state, same(initial));
+    pending.complete(_querySnapshot(8));
+    expect(await read, isTrue);
+    expect(state.catalogRevision, BigInt.from(8));
+    expect(state.timeline?.revision, BigInt.from(8));
+    expect(state.isLoadingTimeline, isFalse);
+    expect(catalog.separateReads, 0);
+  });
 
   test(
     "rejects inconsistent and too-old query evidence without retrying",
@@ -363,46 +310,6 @@ void main() {
       );
       expect(catalog.requests, hasLength(2));
       expect(catalog.separateReads, 0);
-    },
-  );
-
-  test(
-    "a failed deferred refresh clears loading and retains the published removal page",
-    () async {
-      final result = Completer<LibraryQuerySnapshot>();
-      final catalog = _RemovalCatalog(response: result.future);
-      var state = LibraryState.fromSnapshot(_querySnapshot(7).snapshot);
-      final controller = LibraryViewportController(
-        catalog,
-        () => state,
-        (value) => state = value,
-        () => false,
-        (_) {},
-      );
-      addTearDown(controller.dispose);
-      controller.seed(state);
-      expect(
-        await controller.reloadCommittedRootRemovalFirstPage(
-          removedRootId: "removed",
-        ),
-        isTrue,
-      );
-      catalog.pendingTimeline.complete(_querySnapshot(9).timeline);
-      await Future<void>.delayed(Duration.zero);
-      expect(catalog.requests, hasLength(1));
-      result.completeError(
-        const LibraryCatalogFailure(
-          code: "catalog_read_failed",
-          message: "controlled failure",
-        ),
-      );
-      await Future<void>.delayed(Duration.zero);
-      expect(state.catalogRevision, BigInt.from(8));
-      expect(state.roots.single.id, "kept");
-      expect(state.timeline, isNull);
-      expect(state.isLoadingTimeline, isFalse);
-      expect(state.timeNavigationErrorMessage, contains("catalog_read_failed"));
-      expect(catalog.requests, hasLength(1));
     },
   );
 }
@@ -478,41 +385,4 @@ class _AtomicCatalog implements LibraryCatalog {
 
   @override
   Future<bool> unregisterRoot(String rootId) => throw UnimplementedError();
-}
-
-class _RemovalCatalog extends _AtomicCatalog {
-  _RemovalCatalog({Future<LibraryQuerySnapshot>? response})
-    : super([response ?? Future.value(_querySnapshot(10))]);
-
-  final Completer<LibraryTimeline> pendingTimeline = Completer();
-
-  @override
-  Future<LibrarySnapshot> load({
-    required int maxItems,
-    required LibraryGalleryQuery query,
-    LibraryCatalogCursor? after,
-    LibraryCatalogCursor? before,
-  }) async {
-    return LibrarySnapshot(
-      catalogPath: "fixture.sqlite3",
-      revision: BigInt.from(8),
-      queryId: "query",
-      roots: const [
-        LibraryRoot(
-          id: "kept",
-          path: "C:\\Fixture",
-          displayPath: "C:\\Fixture",
-          activeScanId: "scan",
-          createdUnixMs: 0,
-          assetCount: 0,
-          issueCount: 0,
-        ),
-      ],
-      assets: const [],
-    );
-  }
-
-  @override
-  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) =>
-      pendingTimeline.future;
 }

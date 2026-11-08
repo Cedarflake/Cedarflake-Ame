@@ -245,14 +245,10 @@ class LibraryGalleryWall extends StatelessWidget {
             state.catalogRevision,
             availableWidth,
           );
-          final isViewportInsideLoadedWindow =
-              metrics.pixels >= virtualGeometry.leadingExtent &&
-              metrics.pixels + metrics.viewportDimension <=
-                  virtualGeometry.loadedEndExtent;
           final visibleRange =
               state.timeline != null &&
                   virtualGeometry.isVirtualized &&
-                  !isViewportInsideLoadedWindow
+                  visiblePosition == null
               ? LibraryGalleryViewportFeedback.estimatedVisibleRangeFor(
                   virtualGeometry: virtualGeometry,
                   timeline: state.timeline!,

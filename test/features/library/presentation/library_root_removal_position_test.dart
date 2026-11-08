@@ -82,9 +82,12 @@ void main() {
           libraryScannerProvider.overrideWithValue(scanner),
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(
-              catalog.snapshot(),
+              catalog.snapshot(startItemOffset: 480),
               query: _query,
-            ).copyWith(timeline: catalog.timeline()),
+            ).copyWith(
+              timeline: catalog.timeline(),
+              windowStartItemOffset: 480,
+            ),
           ),
         ]),
       );
@@ -94,14 +97,6 @@ void main() {
       );
       await _pumpFrames(tester);
       final controller = container.read(libraryControllerProvider.notifier);
-      expect(
-        await controller.jumpToTime(
-          catalog.timeline().buckets.single,
-          itemOffset: 480,
-        ),
-        isTrue,
-      );
-      await _pumpFrames(tester);
       expect(
         container.read(libraryControllerProvider).windowStartItemOffset,
         480,

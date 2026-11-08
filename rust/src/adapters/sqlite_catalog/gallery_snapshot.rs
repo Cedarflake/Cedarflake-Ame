@@ -13,6 +13,7 @@ use super::gallery::{
     resolve_gallery_anchor_cursor, resolve_gallery_asset_anchor, resolve_gallery_location_anchor,
     validate_gallery_query,
 };
+use super::gallery_read_projection::GalleryReadProjection;
 use super::{
     MAX_CATALOG_PAGE_ITEMS, SqliteCatalog, database_error, load_catalog_revision, load_root_views,
     read_stored_asset, stored_asset_view,
@@ -48,6 +49,19 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
 
     pub(super) fn commit(self) -> Result<(), ScanError> {
         self.transaction.commit().map_err(database_error)
+    }
+
+    pub(super) fn load_projection(&self) -> Result<Option<GalleryReadProjection>, ScanError> {
+        GalleryReadProjection::load(&self.transaction, self.query, self.query_id, self.revision)
+    }
+
+    pub(super) fn load_projection_page(
+        &self,
+        projection: &GalleryReadProjection,
+        start: u64,
+        max_items: u32,
+    ) -> Result<CatalogSnapshot, ScanError> {
+        projection.load_page(&self.transaction, &self.catalog_path, start, max_items)
     }
 
     pub(super) fn load_anchored_snapshot(
@@ -282,9 +296,11 @@ impl GalleryQueryRepository for SqliteCatalog {
     ) -> Result<GalleryQuerySnapshot, ScanError> {
         let read =
             GalleryReadTransaction::begin(&mut self.connection, &self.path, query, query_id)?;
-        let snapshot = match anchor {
-            Some(anchor) => read.load_anchored_snapshot(max_items, anchor),
-            None => read.load_snapshot(max_items, None, None, None),
+        let projection = read.load_projection()?;
+        let snapshot = match (anchor, projection.as_ref()) {
+            (Some(anchor), _) => read.load_anchored_snapshot(max_items, anchor),
+            (None, Some(projection)) => read.load_projection_page(projection, 0, max_items),
+            (None, None) => read.load_snapshot(max_items, None, None, None),
         }?;
         #[cfg(test)]
         AFTER_QUERY_SNAPSHOT_READ.with(|hook| {
@@ -292,8 +308,14 @@ impl GalleryQueryRepository for SqliteCatalog {
                 hook();
             }
         });
-        let timeline = read.load_timeline()?;
-        let layout_manifest = read.load_layout_manifest(timeline.total_items)?;
+        let timeline = match projection.as_ref() {
+            Some(projection) => projection.timeline.clone(),
+            None => read.load_timeline()?,
+        };
+        let layout_manifest = match projection {
+            Some(projection) => Some(projection.into_layout()?),
+            None => read.load_layout_manifest(timeline.total_items)?,
+        };
         let organization_counts = query
             .organization_queue
             .map(|_| super::gallery::organization_queue::load_counts(&read.transaction, query))

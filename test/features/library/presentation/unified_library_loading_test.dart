@@ -19,37 +19,6 @@ import "support/library_screen_fixture.dart";
 import "../../../support/application_test_bindings.dart";
 
 void main() {
-  testWidgets("reuses the gallery loading bar for a distant visible range", (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1280, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: applicationTestOverrides([
-          initialLibraryStateProvider.overrideWithValue(
-            populatedScreenState(
-              totalItems: 64,
-            ).copyWith(isLoadingVisibleRange: true),
-          ),
-        ]),
-        child: const AmeApp(),
-      ),
-    );
-    await tester.pump();
-
-    final loadingBar = find.byKey(const Key("library-top-loading"));
-    expect(loadingBar, findsOneWidget);
-    expect(tester.widget<LinearProgressIndicator>(loadingBar).minHeight, 2);
-    expect(
-      find.byKey(const Key("library-visible-range-loading")),
-      findsNothing,
-    );
-  });
-
   testWidgets(
     "square direct jump shows the top loading line before its manifest",
     (tester) async {

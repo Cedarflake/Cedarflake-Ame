@@ -88,10 +88,15 @@ publications cannot invalidate the read between blocks. Inline transfer is bound
 estimate at 192 bytes per item; larger queries retain the chunk protocol and need separate scale
 validation. Flutter validates and publishes the coherent result once. A metadata-only revision
 with identical ordered identities, dimensions and date groups reuses the existing row geometry.
-Ordinary paging and the immediate page
-after catalog removal remain bounded reads without timeline aggregation. A deferred removal
-timeline that observes a later revision uses the existing committed-refresh coordinator and
-revalidates its original publication before requesting one coherent replacement snapshot.
+Within the inline budget, chronological and name-sorted snapshots select ordered compact rows once
+and derive the timeline and encoded layout from that selection. Detail windows use indexed location reads
+against the same transaction. The selection is not retained across catalog revisions. Other sort
+modes and larger scopes retain their bounded query paths.
+
+Ordinary paging remains a bounded read without timeline aggregation. Removal refresh uses the
+coherent snapshot boundary as well: splitting its page and timeline would temporarily collapse
+the global scroll range. Removing a root outside the currently selected root preserves the displayed
+projection until replacement; scopes affected by removal immediately exclude its visible assets.
 
 Folder branches own their data revision separately from the gallery invalidation revision. A
 scope-matching first folder page may be newer than the gallery. A current cursor yields an explicit

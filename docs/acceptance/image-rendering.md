@@ -247,8 +247,9 @@ separate from that infrastructure failure and the local checks above.
 
 The `codex/gallery-navigation-snapshots` repair is based on `c1797887` and implements the
 [navigation stability plan](../plans/gallery-navigation-stability.md). Earlier click and wheel
-evidence did not cover the subsequently reproduced held-drag failure. The checked Windows Debug
-build was rebuilt on 2026-11-08 at 21:40 local time with the changes accompanying this record.
+evidence did not cover the subsequently reproduced held-drag failure. Initial Windows Debug
+interaction evidence below used the 2026-11-08 21:40 build; the subsequent query-cost checks used
+the 2026-11-09 Debug build accompanying this record.
 
 The local-primary catalog contained 63,072 locations and 47,828 displayed duplicate representatives.
 Both equal-height and square layouts moved during native mouse drags and displayed shaped unloaded
@@ -256,6 +257,17 @@ cards immediately at distant targets. Post-frame observations recorded changed s
 the Material pointer was still held. The native input API supplies short drags, not a configurable
 multi-second hold; the operator separately reported normal interaction during the same validation.
 Quick distant-and-return gestures retained the returned images after the old read completed.
+
+The rebuilt 2026-11-09 client repeated equal-height and square distant dragging: shaped placeholders
+appeared immediately, and filled cards retained the same clipped row boundaries. The real profile
+contained 63,073 locations and 47,829 displayed items. Smart navigation displayed its initial spinner;
+the album landing displayed the shared loading line until the chosen category arrived. Switching
+from the middle of manga to photos began at the photo category's first date. Returning to albums
+retained the category list while classification increased its counts. Gallery, favorites, duplicate
+groups, organization entry/exit and the empty ignored queue completed their visible transitions.
+Leaving organization restored the prior browsing position. Verification changed no organization
+decisions or source files, restored the original equal-height preference, and closed the client
+normally. Native input still uses the short-drag limitation described above.
 
 Image arrival initially exposed a second position error: a background refresh began between a new
 snapshot's publication and its first frame, rejected the previous revision's displayed position and
@@ -266,17 +278,40 @@ Switching from the December 2025 portion of the growing manga category to the 21
 category displayed its first July 22, 2026 heading and the rail's start position. Wheel movement
 continued through visible rows. These checks used browsing and derived preview reads only.
 
-Read-only SQLite comparison retained all 47,828 ordered location identities while reducing the
-representative-layout query from about 2.2–2.3 seconds to 1.3 seconds with the same 32 MiB connection
-cache. Native detail navigation in the instrumented Debug client completed in roughly 3–8 seconds
-under concurrent classification; geometry and placeholder feedback did not wait for those reads.
-Cold detail loading still has visible latency. The coherent inline layout is bounded to 64 MiB by
-its item budget; larger queries retain the existing block protocol and were not accepted here.
+The initial native detail reads took roughly 3–8 seconds under concurrent classification. Follow-up
+review found repeated membership scans across the page, timeline and layout, plus an unindexed
+bounded-detail join. The transaction-local selection now supplies navigation and geometry once;
+detail reads use the existing location index and retain both root and location identity.
 
-The coherent SQLite snapshot, duplicate evidence, held-gesture and position regressions passed in
-focused runs. The final two position checks, library static analysis and Debug build also passed.
-Temporary probes were removed. Hosted results must be evaluated for the published implementation
-commit; neither the local build nor this record establishes a hosted pass.
+Serial native-bridge measurements on the established local-primary profile retained 47,829 displayed
+items. Full gallery snapshots took 1.33–1.39 seconds after session initialization, versus 5.25–5.43
+seconds at `e7655cbe`. A switch sequence measured 2.90 seconds on its first gallery read and 1.36
+seconds on return. Five growing smart categories took 2.03–2.32 seconds after shared group counting,
+versus 3.18–3.43 seconds immediately before that change. The pending organization queue took 2.05
+seconds, empty deferred/ignored queues 0.51–0.53 seconds, and favorites 0.49 seconds. These are native
+read timings, not input-to-paint or cold-machine startup measurements; classification membership
+grew during acceptance. No manual albums existed in the real profile; their contracts retain
+fixture coverage without creating user data for this check.
+
+Fresh-process reads with warm system caches took 4.60 seconds for a page and 4.96 seconds for a full
+snapshot. Earlier loaded-workstation samples ranged from 10.77 to 13.92 seconds. Session preparation
+still contributes visible startup latency; this change does not bypass catalog validation or claim
+instant startup. Cold detail arrival still waits for reads, while geometry and placeholders remain
+interactive. The inline layout retains its 64 MiB item budget; larger block-protocol queries were
+not accepted here.
+
+The no-compatible-fingerprint regression uses the real migrated schema and compares a fixed
+32-item page across 256 and 4,096 locations. The grouped-only implementation required 31,952 and
+485,072 SQLite VM steps; the restored fast path passes the unchanged bounded-cost assertion.
+An isolated 63,072-row comparison likewise dropped from about 6.06 million to 16,000 steps. The
+existing category snapshot cost assertion also passes unchanged after shared selection, including
+name ordering. These isolated costs are not workstation UI timings.
+
+Focused checks cover coherent reads, duplicate evidence, name/date sections, category costs,
+held gestures, root-removal positions and concurrent update publication. Tests for the retired
+separate removal timeline were replaced by atomic refresh and stale-result coverage. A synthetic
+loading-flag case was removed; blocked-read interaction cases retain loading behavior coverage.
+Temporary product probes were removed. Hosted results must be evaluated for the published commit.
 
 Pre-merge review and [the first hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42487135679)
 exposed missing distant-detail demand in provisional equal-height layouts and an unretired paging
@@ -284,6 +319,10 @@ timer. Both layouts now request the estimated visible range, offscreen detail wi
 false visible anchor, and disposal cancels queued paging. The affected interaction, resize and late
 navigation checks pass locally with their original visible-position requirements; fixtures now use
 the global loaded-window offset instead of assuming that each detail window starts at zero.
+The next hosted run exposed repeated demand on partially covered viewports and a stale interaction
+value after release. Passive disjoint demand now requires no visible loaded anchor, and complete
+geometry returns the rail to the actual scroll position after release. Root removal retains an
+unaffected root's displayed geometry until its coherent replacement arrives.
 
 One attached verification process exited after about 21 minutes with `0xC000013A`
 (`STATUS_CONTROL_C_EXIT`), captured by a retained process handle. No application crash event was
@@ -291,10 +330,11 @@ found. The source of the console termination remains unconfirmed; it is not reco
 application crash. The independently launched final Debug client remained available during the
 subsequent interaction checks. Raw process and timing logs remain ignored under `build`.
 
-The viewport facade, screen, wall, navigation widget and position owner contain 1,324, 1,995, 1,563,
-769 and 176 production lines respectively. The seek scheduler contains 96 lines; the native compact
-layout owner contains 316 and reduces the SQLite facade to 2,985. These owners contain no inline
-tests. The dedicated held-drag, position, layout-projection and native snapshot files contain 210,
-195, 136 and 195 lines. The changes retain existing query, geometry and publication owners.
+The viewport facade, screen, wall, navigation widget and position owner contain 1,209, 1,995, 1,559,
+772 and 176 production lines respectively. The seek scheduler contains 96 lines; native compact
+layout and read-projection owners contain 312 and 265, with a 2,986-line SQLite facade. The committed
+root-removal projection contains 51 lines. These owners contain no inline tests. Dedicated query
+snapshot, root-removal position, native snapshot and query-index files contain 388, 332, 195 and 135
+lines. The changes retain existing query, geometry and publication owners.
 The interaction and viewport-feedback owners contain 163 and 284 production lines; their dedicated
 interaction, resize and pending-navigation checks contain 319, 1,332 and 458 lines, without inline tests.

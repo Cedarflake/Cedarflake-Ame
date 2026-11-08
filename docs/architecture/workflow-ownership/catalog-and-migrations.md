@@ -58,6 +58,10 @@ shared principles; the roadmap owns current delivery order and acceptance status
 - `domain/gallery_time_snapshot.rs` owns semantic month resolution, display-order fallback and
   bounded target-window selection. `sqlite_catalog/gallery_time_snapshot.rs` resolves that intent
   and reads the timeline, roots, page and inline layout inside one `GalleryReadTransaction`.
+  `gallery_read_projection.rs` owns the transaction-local ordered selection for chronological and
+  name-sorted inline snapshots. It derives navigation and geometry from that selection and loads
+  bounded detail windows through the existing location index. It cannot cache membership across
+  read transactions.
   `gallery_layout_manifest.rs` owns compact block encoding, continuation evidence and its transfer
   budget; the catalog facade delegates legacy chunk reads to the same owner. The target ordinal
   remains distinct from the centered page start, so changed row grouping retains a loaded prefix.

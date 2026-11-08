@@ -22,7 +22,10 @@ mod semantic;
 mod time_anchor;
 mod timeline;
 
+pub(super) use organization_groups::uses_grouped_organization;
+pub(super) use scroll_sections::project_name_sections;
 pub(super) use timeline::load_gallery_timeline;
+pub(super) use timeline::load_source_count;
 
 use filters::push_source_filters;
 pub(super) use filters::{gallery_source, push_gallery_filters, semantic_candidate_source};
@@ -51,6 +54,15 @@ pub(super) struct BuiltGalleryQuery {
     pub(super) sql: String,
     pub(super) parameters: Vec<Value>,
 }
+
+pub(super) const ASSET_COLUMNS: &str = "locations.asset_id, locations.location_id, locations.root_id,
+    locations.scan_id, locations.absolute_path, locations.relative_path,
+    locations.preview_path, locations.file_size, locations.created_unix_ms, locations.modified_unix_ms,
+    locations.width, locations.height, locations.preview_status, locations.preview_issue_code,
+    locations.preview_issue_message, locations.metadata_engine_id, locations.metadata_engine_version,
+    locations.capture_local_time, locations.capture_offset_minutes, locations.capture_time_source,
+    locations.capture_raw_value, locations.file_identity_scheme, locations.file_identity_value,
+    locations.source_revision_token, locations.source_generation, locations.camera_make, locations.camera_model";
 
 pub(super) fn validate_gallery_query(query: &GalleryQuery) -> Result<(), ScanError> {
     classification::validate(query)?;
@@ -135,19 +147,7 @@ pub(super) fn build_gallery_asset_query(
     parameters.push(Value::Integer(sql_limit));
     Ok(BuiltGalleryQuery {
         sql: format!(
-            "SELECT locations.asset_id, locations.location_id, locations.root_id,
-                    locations.scan_id,
-                    locations.absolute_path, locations.relative_path,
-                    locations.preview_path, locations.file_size,
-                    locations.created_unix_ms, locations.modified_unix_ms,
-                    locations.width, locations.height,
-                    locations.preview_status, locations.preview_issue_code,
-                    locations.preview_issue_message, locations.metadata_engine_id,
-                    locations.metadata_engine_version, locations.capture_local_time,
-                    locations.capture_offset_minutes, locations.capture_time_source,
-                    locations.capture_raw_value, locations.file_identity_scheme,
-                    locations.file_identity_value, locations.source_revision_token,
-                    locations.source_generation, locations.camera_make, locations.camera_model
+            "SELECT {ASSET_COLUMNS}
              {source}
              {where_clause}
              ORDER BY {missing} {missing_direction},
@@ -174,8 +174,20 @@ pub(super) fn build_gallery_layout_manifest_query(
     let order = gallery_order_expressions(query);
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
+    let mut prefix = String::new();
+    let source_items = if uses_grouped_organization(query) {
+        let grouped = organization_groups::build_group_query(query);
+        prefix = format!("WITH scoped_groups AS MATERIALIZED ({})", grouped.sql);
+        parameters.extend(grouped.parameters);
+        clauses.push("locations.location_id IN (SELECT location_id FROM scoped_groups)".to_owned());
+        "(SELECT SUM(source_items) FROM scoped_groups)"
+    } else {
+        "NULL"
+    };
     let source = gallery_source(query, &mut parameters);
-    push_gallery_filters(query, &mut clauses, &mut parameters);
+    if !uses_grouped_organization(query) {
+        push_gallery_filters(query, &mut clauses, &mut parameters);
+    }
     if let Some(cursor) = after {
         push_cursor_filter(
             cursor,
@@ -196,12 +208,14 @@ pub(super) fn build_gallery_layout_manifest_query(
     let date = order.date.unwrap_or("NULL");
     Ok(BuiltGalleryQuery {
         sql: format!(
-            "SELECT locations.location_id, locations.root_id,
+            "{prefix}
+             SELECT locations.location_id, locations.root_id,
                     locations.width, locations.height,
                     {date} AS date_key,
                     {missing} AS primary_missing,
                     {text} AS primary_text,
-                    {number} AS primary_number
+                    {number} AS primary_number,
+                    {source_items}
              {source}
              {where_clause}
              ORDER BY {missing}, {text} {primary_direction},

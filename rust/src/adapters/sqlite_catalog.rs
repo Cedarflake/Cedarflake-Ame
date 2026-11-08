@@ -35,6 +35,7 @@ mod exact_duplicates;
 mod folders;
 mod gallery;
 mod gallery_layout_manifest;
+mod gallery_read_projection;
 mod gallery_snapshot;
 mod gallery_time_snapshot;
 mod identity_group_state;

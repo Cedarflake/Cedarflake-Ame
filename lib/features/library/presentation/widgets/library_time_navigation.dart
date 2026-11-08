@@ -162,7 +162,10 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
             ? widget.scrollController.position
             : null;
         LibraryTimeRailFrame? frame;
-        final interactiveValue = _interactiveValue;
+        final interactiveValue =
+            _isDragging || widget.layoutMetrics?.isQueryWide != true
+            ? _interactiveValue
+            : null;
         if (globalProjection != null && interactiveValue != null) {
           frame = LibraryTimeRailFrame(
             projection: globalProjection,

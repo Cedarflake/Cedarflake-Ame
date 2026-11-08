@@ -737,7 +737,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         unawaited(_selectWorkspace(workspace));
       },
       albumLanding: collection is LibraryAllCollection
-          ? const LibraryAlbumsLanding()
+          ? LibraryAlbumsLanding(isLoading: state.isRefreshingQuery)
           : null,
       albumsNavigationBuilder: (width) => LibraryAlbumsSidebar(
         width: width,

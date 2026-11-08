@@ -243,72 +243,75 @@ void main() {
     },
   );
 
-  testWidgets(
-    "empty smart albums use a noninteractive sidebar row without sample categories",
-    (tester) async {
-      LibraryClassificationCategory? selected;
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: applicationTestOverrides([
-            libraryClassificationNavigationProvider.overrideWith(
-              (ref) async => LibraryClassificationSettings(
-                revision: BigInt.zero,
-                dispatchRevision: BigInt.zero,
-                mode: LibraryClassificationMode.disabled,
-                categories: const [],
-                runId: null,
-                installationSelected: false,
-              ),
-            ),
-          ]),
-          child: MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 260,
-                child: LibrarySmartAlbumNavigation(
-                  collection: const LibraryGalleryCollection.library(),
-                  enabled: true,
-                  onSelect: (category) => selected = category,
-                ),
+  testWidgets("smart album loading settles into a noninteractive empty row", (
+    tester,
+  ) async {
+    LibraryClassificationCategory? selected;
+    final pending = Completer<LibraryClassificationSettings>();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: applicationTestOverrides([
+          libraryClassificationNavigationProvider.overrideWith(
+            (ref) => pending.future,
+          ),
+        ]),
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 260,
+              child: LibrarySmartAlbumNavigation(
+                collection: const LibraryGalleryCollection.library(),
+                enabled: true,
+                onSelect: (category) => selected = category,
               ),
             ),
           ),
         ),
-      );
-      await tester.pumpAndSettle();
-      for (final label in ["插画", "漫画", "表情包", "截图", "实拍", "其他"]) {
-        expect(find.text(label), findsNothing);
-      }
-      expect(selected, isNull);
-      expect(find.byType(ListTile), findsOneWidget);
-      expect(find.text("还没有分类结果"), findsOneWidget);
-      expect(
-        tester
-            .widget<ListTile>(
-              find.byKey(const Key("library-sidebar-smart-empty")),
-            )
-            .onTap,
-        isNull,
-      );
-      expect(
-        find.byKey(const Key("library-sidebar-smart-expand")),
-        findsOneWidget,
-      );
-      await tester.tap(find.byKey(const Key("library-sidebar-smart-expand")));
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const Key("library-sidebar-smart-empty")),
-        findsNothing,
-      );
-      await tester.tap(find.byKey(const Key("library-sidebar-smart-expand")));
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const Key("library-sidebar-smart-empty")),
-        findsOneWidget,
-      );
-      expect(tester.takeException(), isNull);
-    },
-  );
+      ),
+    );
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text("还没有分类结果"), findsNothing);
+    pending.complete(
+      LibraryClassificationSettings(
+        revision: BigInt.zero,
+        dispatchRevision: BigInt.zero,
+        mode: LibraryClassificationMode.disabled,
+        categories: const [],
+        runId: null,
+        installationSelected: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    for (final label in ["插画", "漫画", "表情包", "截图", "实拍", "其他"]) {
+      expect(find.text(label), findsNothing);
+    }
+    expect(selected, isNull);
+    expect(find.byType(ListTile), findsOneWidget);
+    expect(find.text("还没有分类结果"), findsOneWidget);
+    expect(
+      tester
+          .widget<ListTile>(
+            find.byKey(const Key("library-sidebar-smart-empty")),
+          )
+          .onTap,
+      isNull,
+    );
+    expect(
+      find.byKey(const Key("library-sidebar-smart-expand")),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key("library-sidebar-smart-expand")));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key("library-sidebar-smart-empty")), findsNothing);
+    await tester.tap(find.byKey(const Key("library-sidebar-smart-expand")));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key("library-sidebar-smart-empty")),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
 
 LibraryClassificationSettings _settings(
