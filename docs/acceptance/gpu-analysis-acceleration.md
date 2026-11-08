@@ -71,9 +71,7 @@ The user authorized merging after review without waiting for hosted CI. The
 running at merge; this disposition does not record a hosted pass. The local and remote feature
 branches were deleted after confirming that `main` contained the reviewed implementation.
 
-## Physical ownership
-
-### Concurrent startup migration — 2026-11-08
+## Concurrent startup migration — 2026-11-08
 
 The running Debug client's installation recovery reported `classification_installation_unavailable`
 with `database is locked`. Its selected model directory already contained all three manifest-verified
@@ -84,9 +82,16 @@ download and default GPU preference; current-schema reads also succeed beside an
 
 The nine installation-store tests pass in a small harness compiling copies of the production adapter,
 ports and their tests against real SQLite. Only the unrelated error transport type is a local facade.
-The full-crate local test compilation was stopped at low memory headroom; hosted checks own that run.
+The full-crate local test compilation was stopped at low memory headroom. The
+[hosted run at d37f350d](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42455380487)
+passed Static, Flutter, all four Rust groups, Windows integration, build verification and Windows Gate.
 Eight Flutter installation/notification tests pass, including the configuration-specific recovery
-message. Existing model files were only read and hashed; the running native DLL was not replaced.
+message. After an authorized Debug rebuild and restart, the client loaded the existing models without
+a download or installation error; the analysis worker started and Settings reported the current
+RTX 4050 GPU. Both installation recovery and classification lifecycle error fields were empty, and
+the smart-album content opened normally. Existing model files were only read and hashed.
+
+## Physical ownership
 
 The affected handwritten owners retain separate responsibilities: encoder factory 193 lines,
 session encoder 177, graph promotion 121, application runtime facade 120, model transition 46,
