@@ -189,7 +189,7 @@ jobs:
             -CandidateRoot (Join-Path $PWD 'build/release-candidate') `
             -SigningMode $env:AME_RELEASE_SIGNING_MODE `
             -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER `
-            -CMakePath (Get-Command cmake -CommandType Application).Source `
+            -CMakePath (Get-Command cmake -CommandType Application | Select-Object -First 1).Source `
             -OutputDirectory $output -AcceptWixBinaryEula
           $receipt = Get-Content -LiteralPath (Join-Path $output 'package.json') `
             -Raw -Encoding utf8 | ConvertFrom-Json

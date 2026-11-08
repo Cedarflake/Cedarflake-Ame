@@ -92,3 +92,10 @@ The candidate and publisher contain 157 and 231 production lines; their dedicate
 and wiring checks contain 213 and 89 lines, with no inline tests. Alpha 2 was dispatched before
 this change, so its existing run retains the earlier publisher; its final body will be synchronized
 from the versioned document without rebuilding or changing the source tag.
+
+Alpha 2 run `42508623527` passed the candidate, complete regression and synthetic-workload gates.
+ZIP creation also passed, but MSI creation stopped before compilation because CMake discovery
+returned multiple application paths to one string parameter. The packager now selects the first
+application in PATH order. An isolated two-executable PATH fixture reproduced the old parameter
+binding failure and accepted the corrected selection; publication wiring and actionlint passed.
+The source tag and verified application payload were not changed by this packaging correction.
