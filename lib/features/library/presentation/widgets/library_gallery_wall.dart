@@ -250,11 +250,13 @@ class LibraryGalleryWall extends StatelessWidget {
               metrics.pixels + metrics.viewportDimension <=
                   virtualGeometry.loadedEndExtent;
           final visibleRange =
-              layoutShape == GalleryLayoutShape.square &&
+              state.timeline != null &&
                   virtualGeometry.isVirtualized &&
                   !isViewportInsideLoadedWindow
-              ? LibraryGalleryViewportFeedback.estimatedSquareVisibleRangeFor(
+              ? LibraryGalleryViewportFeedback.estimatedVisibleRangeFor(
                   virtualGeometry: virtualGeometry,
+                  timeline: state.timeline!,
+                  layoutShape: layoutShape,
                   scrollOffset: metrics.pixels,
                   viewportDimension: metrics.viewportDimension,
                   availableWidth: availableWidth,
@@ -271,13 +273,10 @@ class LibraryGalleryWall extends StatelessWidget {
                 );
           if (visibleRange != null) {
             onVisibleRangeChanged?.call(visibleRange);
-            if (layoutShape == GalleryLayoutShape.square) {
-              controller.ensureVisibleRange(
-                startItemOffset: visibleRange.startGlobalItemIndex,
-                endItemOffsetExclusive:
-                    visibleRange.endGlobalItemIndexExclusive,
-              );
-            }
+            controller.ensureVisibleRange(
+              startItemOffset: visibleRange.startGlobalItemIndex,
+              endItemOffsetExclusive: visibleRange.endGlobalItemIndexExclusive,
+            );
           }
           LibraryGalleryViewportFeedback.updatePreviewDemand(
             controller: controller,
@@ -526,6 +525,10 @@ class LibraryGalleryWall extends StatelessWidget {
     double availableWidth,
   ) {
     if (entries.isEmpty || revision == null) {
+      return null;
+    }
+    final contentEnd = 18 + entryStartOffsets.last + entries.last.extent;
+    if (scrollOffset + viewportDimension <= 18 || scrollOffset >= contentEnd) {
       return null;
     }
     final anchorOffset = scrollOffset + viewportDimension * 0.5;

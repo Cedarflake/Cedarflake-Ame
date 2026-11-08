@@ -278,14 +278,23 @@ focused runs. The final two position checks, library static analysis and Debug b
 Temporary probes were removed. Hosted results must be evaluated for the published implementation
 commit; neither the local build nor this record establishes a hosted pass.
 
+Pre-merge review and [the first hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42487135679)
+exposed missing distant-detail demand in provisional equal-height layouts and an unretired paging
+timer. Both layouts now request the estimated visible range, offscreen detail windows supply no
+false visible anchor, and disposal cancels queued paging. The affected interaction, resize and late
+navigation checks pass locally with their original visible-position requirements; fixtures now use
+the global loaded-window offset instead of assuming that each detail window starts at zero.
+
 One attached verification process exited after about 21 minutes with `0xC000013A`
 (`STATUS_CONTROL_C_EXIT`), captured by a retained process handle. No application crash event was
 found. The source of the console termination remains unconfirmed; it is not recorded as a repaired
 application crash. The independently launched final Debug client remained available during the
 subsequent interaction checks. Raw process and timing logs remain ignored under `build`.
 
-The viewport facade, screen, wall, navigation widget and position owner contain 1,324, 1,995, 1,560,
+The viewport facade, screen, wall, navigation widget and position owner contain 1,324, 1,995, 1,563,
 769 and 176 production lines respectively. The seek scheduler contains 96 lines; the native compact
 layout owner contains 316 and reduces the SQLite facade to 2,985. These owners contain no inline
 tests. The dedicated held-drag, position, layout-projection and native snapshot files contain 210,
 195, 136 and 195 lines. The changes retain existing query, geometry and publication owners.
+The interaction and viewport-feedback owners contain 163 and 284 production lines; their dedicated
+interaction, resize and pending-navigation checks contain 319, 1,332 and 458 lines, without inline tests.

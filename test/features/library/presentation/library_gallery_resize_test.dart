@@ -288,6 +288,7 @@ void main() {
       final controller = RecordingGalleryController();
       final scrollController = ScrollController();
       LibraryGalleryVisiblePosition? visiblePosition;
+      var loadedStart = 0.0;
       addTearDown(() async {
         scrollController.dispose();
         manifest.dispose();
@@ -325,7 +326,9 @@ void main() {
                       visiblePosition = position;
                     },
                     onLoadPrevious: controller.loadPreviousPage,
-                    onLayoutChanged: (_, _) {},
+                    onLayoutChanged: (_, geometry) {
+                      loadedStart = geometry.leadingExtent;
+                    },
                   ),
                 ),
               ),
@@ -334,7 +337,7 @@ void main() {
         ),
       );
 
-      scrollController.jumpTo(1480);
+      scrollController.jumpTo(loadedStart + 1480);
       await tester.pump();
       await tester.pump();
 
@@ -434,6 +437,7 @@ void main() {
         addTearDown(scroll.dispose);
         addTearDown(configuration.dispose);
         LibraryGalleryVisiblePosition? latestPosition;
+        var loadedStart = 0.0;
         await tester.binding.setSurfaceSize(const Size(1100, 760));
         addTearDown(() => tester.binding.setSurfaceSize(null));
         await tester.pumpWidget(
@@ -469,7 +473,9 @@ void main() {
                         latestPosition = position;
                       },
                       onLoadPrevious: controller.loadPreviousPage,
-                      onLayoutChanged: (_, _) {},
+                      onLayoutChanged: (_, geometry) {
+                        loadedStart = geometry.leadingExtent;
+                      },
                     ),
                   ),
                 ),
@@ -486,7 +492,7 @@ void main() {
         );
         final originalOffset = timing.initialManifest
             ? targetSnapshot.metrics.itemOffsets[3100]
-            : 2400.0;
+            : loadedStart + 2400.0;
         scroll.jumpTo(originalOffset);
         await tester.pump();
         await tester.pump();
