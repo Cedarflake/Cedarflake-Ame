@@ -53,7 +53,11 @@ void main() {
                 : const LibraryQueryIdle(),
           ),
         );
-        fixture.scroll.jumpTo(fixture.scroll.position.maxScrollExtent - 60);
+        fixture.scroll.jumpTo(
+          fixture.geometry.loadedEndExtent -
+              fixture.scroll.position.viewportDimension -
+              60,
+        );
         await tester.pump();
         await _wheel(tester, 60);
         expect(fixture.controller.nextPageRequests, 0);
@@ -177,15 +181,11 @@ void main() {
             fixture.scroll.offset,
             greaterThan(fixture.scroll.position.maxScrollExtent * .7),
           );
-          if (withManifest || shape == GalleryLayoutShape.square) {
-            expect(fixture.controller.visibleRangeRequests, isNotEmpty);
-            expect(
-              fixture.controller.visibleRangeRequests.last.start,
-              greaterThan(700),
-            );
-          } else {
-            expect(fixture.controller.nextPageRequests, greaterThan(0));
-          }
+          expect(fixture.controller.visibleRangeRequests, isNotEmpty);
+          expect(
+            fixture.controller.visibleRangeRequests.last.start,
+            greaterThan(700),
+          );
           final nearTop = Offset(start.dx, bounds.top + bounds.height * .08);
           await gesture.moveTo(nearTop);
           await gesture.up();

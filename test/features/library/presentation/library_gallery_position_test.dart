@@ -1,8 +1,54 @@
+import "dart:typed_data";
+
+import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_position.dart";
 import "package:flutter/widgets.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test(
+    "a new snapshot retains the displayed position before its first frame",
+    () {
+      final displayed = _position("visible");
+      final resolver = LibraryGalleryPositionResolver()
+        ..update(
+          queryId: displayed.queryId,
+          revision: displayed.revision,
+          resolve: (_, _) => displayed,
+        );
+      final builder =
+          LibraryGalleryLayoutManifestBuilder(
+            revision: BigInt.two,
+            queryId: "query",
+            totalItems: 2,
+          )..append(
+            LibraryGalleryLayoutManifestChunk(
+              revision: BigInt.two,
+              queryId: "query",
+              totalItems: 2,
+              startOrdinal: 0,
+              locationIds: const ["new", "visible"],
+              aspectRatioMilli: Uint16List.fromList([1000, 1000]),
+              dateGroupIndices: Uint16List(2),
+              dateGroups: const ["2026-11-08"],
+              flags: Uint8List.fromList([1, 1]),
+            ),
+          );
+      final position = resolver.resolve(
+        queryId: "query",
+        revision: BigInt.two,
+        scrollOffset: 500,
+        viewportDimension: 600,
+        manifest: builder.build(),
+      );
+      expect(position?.locationId, "visible");
+      expect(position?.revision, BigInt.two);
+      expect(position?.globalItemIndex, 1);
+      expect(position?.itemFraction, 0.3);
+      expect(position?.viewportFraction, 0.5);
+    },
+  );
+
   testWidgets("later input resolves from the displayed geometry", (
     tester,
   ) async {

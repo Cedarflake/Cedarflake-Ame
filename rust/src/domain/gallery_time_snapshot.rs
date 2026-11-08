@@ -15,6 +15,7 @@ pub struct GalleryTimeSnapshot {
     pub timeline: GalleryTimeline,
     pub anchor: Option<GalleryTimeAnchor>,
     pub window_start_ordinal: u64,
+    pub layout_manifest: Option<Vec<super::GalleryLayoutManifestChunk>>,
 }
 
 pub(crate) struct ResolvedGalleryTimeIntent {

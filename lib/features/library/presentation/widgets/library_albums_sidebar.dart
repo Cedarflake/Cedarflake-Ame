@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "library_gallery_message.dart";
+import "library_gallery_loading_region.dart";
 
 class LibraryAlbumsSidebar extends StatelessWidget {
   const LibraryAlbumsSidebar({
@@ -22,12 +23,18 @@ class LibraryAlbumsSidebar extends StatelessWidget {
 }
 
 class LibraryAlbumsLanding extends StatelessWidget {
-  const LibraryAlbumsLanding({super.key});
+  const LibraryAlbumsLanding({this.isLoading = false, super.key});
+
+  final bool isLoading;
 
   @override
-  Widget build(BuildContext context) => const LibraryGalleryMessage(
-    icon: Symbols.photo_album_rounded,
-    title: "选择相册",
-    detail: "在侧栏中选择收藏夹或相册，也可以新建相册。",
+  Widget build(BuildContext context) => LibraryGalleryLoadingRegion(
+    isLoading: isLoading,
+    delay: const Duration(milliseconds: 250),
+    child: const LibraryGalleryMessage(
+      icon: Symbols.photo_album_rounded,
+      title: "选择相册",
+      detail: "在侧栏中选择收藏夹或相册，也可以新建相册。",
+    ),
   );
 }

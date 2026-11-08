@@ -1,7 +1,9 @@
+use std::collections::BTreeMap;
+
 use rusqlite::{Transaction, params_from_iter, types::Value};
 
 use crate::domain::gallery_scroll_section::{GalleryScrollSection, GalleryScrollSectionKind};
-use crate::domain::{GalleryQuery, ScanError};
+use crate::domain::{GalleryQuery, GallerySortDirection, ScanError};
 
 use super::super::{database_error, sqlite_unsigned};
 use super::{gallery_direction_sql, gallery_source, organization_groups, push_gallery_filters};
@@ -9,6 +11,43 @@ use super::{gallery_direction_sql, gallery_source, organization_groups, push_gal
 pub(super) struct NameSections {
     pub sections: Vec<GalleryScrollSection>,
     pub total_source_items: Option<u64>,
+}
+
+pub(in crate::adapters::sqlite_catalog) fn project_name_sections<'a>(
+    names: impl Iterator<Item = &'a str>,
+    direction: &GallerySortDirection,
+) -> Vec<GalleryScrollSection> {
+    let mut groups = BTreeMap::<String, (&str, u64)>::new();
+    for name in names {
+        let key = match name.chars().next() {
+            Some('\u{1e}') => "0-9".to_owned(),
+            Some(first @ 'a'..='z') => first.to_ascii_uppercase().to_string(),
+            Some(first) if first > 'z' => "symbols-after".to_owned(),
+            _ => "symbols-before".to_owned(),
+        };
+        let (first, count) = groups.entry(key).or_insert((name, 0));
+        *first = (*first).min(name);
+        *count += 1;
+    }
+    let mut groups: Vec<_> = groups.into_iter().collect();
+    groups.sort_by_key(|(_, (name, _))| *name);
+    if *direction == GallerySortDirection::Descending {
+        groups.reverse();
+    }
+    let mut start_ordinal = 0;
+    groups
+        .into_iter()
+        .map(|(key, (_, item_count))| {
+            let section = GalleryScrollSection {
+                kind: GalleryScrollSectionKind::Name,
+                key,
+                start_ordinal,
+                item_count,
+            };
+            start_ordinal += item_count;
+            section
+        })
+        .collect()
 }
 
 pub(super) fn load_name_sections(

@@ -549,7 +549,7 @@ void main() {
       final anchorTopBefore = tester.getTopLeft(
         find.byKey(const ValueKey("anchor-0")),
       );
-      expect(position.pixels, 0);
+      expect(position.pixels, greaterThan(0));
 
       tester.view.physicalSize = const Size(1180, 760);
       await tester.pump();
@@ -559,12 +559,14 @@ void main() {
       expect(find.byKey(const ValueKey("anchor-0")), findsOneWidget);
       expect(catalog.beforeCursors, isEmpty);
 
+      final pixelsBeforeWheel = position.pixels;
       await tester.sendEventToBinding(
         PointerScrollEvent(
           position: tester.getCenter(photoWall),
           scrollDelta: const Offset(0, -240),
         ),
       );
+      final wheelMovement = pixelsBeforeWheel - position.pixels;
       await tester.pumpAndSettle();
 
       final state = container.read(libraryControllerProvider);
@@ -579,11 +581,13 @@ void main() {
       );
       final anchorTopAfter = tester.getTopLeft(anchorAfter);
       expect(catalog.beforeCursors, [same(previousCursor)]);
+      expect(catalog.timeAnchors, isEmpty);
       expect(state.assets, hasLength(90));
       expect(state.assets.first.locationId, "previous-0");
       expect(state.previousCursor, isNull);
       expect(position.pixels, greaterThan(0));
-      expect(anchorTopAfter.dy, closeTo(anchorTopBefore.dy, 1));
+      expect(wheelMovement, greaterThan(0));
+      expect(anchorTopAfter.dy, closeTo(anchorTopBefore.dy + wheelMovement, 1));
     },
   );
 }

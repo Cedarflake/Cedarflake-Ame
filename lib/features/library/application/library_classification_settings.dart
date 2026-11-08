@@ -13,7 +13,7 @@ final libraryClassificationSettingsProvider =
     });
 
 final libraryClassificationNavigationProvider =
-    FutureProvider.autoDispose<LibraryClassificationSettings?>((ref) {
+    FutureProvider<LibraryClassificationSettings?>((ref) {
       _watchClassificationChanges(ref);
       return ref
           .watch(libraryClassificationConfigurationProvider)

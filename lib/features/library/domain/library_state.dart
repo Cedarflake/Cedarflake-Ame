@@ -1,6 +1,7 @@
 import "library_models.dart";
 import "library_primary_scan_snapshot.dart";
 import "library_query_activity.dart";
+import "gallery_layout_manifest.dart";
 
 export "library_primary_scan_snapshot.dart";
 export "library_query_activity.dart";
@@ -39,6 +40,7 @@ class LibraryState {
     this.previousCursor,
     this.nextCursor,
     this.timeline,
+    this.layoutManifest,
     this.organizationSummary,
     this.activeTimeAnchor,
     this.queryAnchorResolution,
@@ -144,6 +146,7 @@ class LibraryState {
   final LibraryCatalogCursor? previousCursor;
   final LibraryCatalogCursor? nextCursor;
   final LibraryTimeline? timeline;
+  final LibraryGalleryLayoutManifest? layoutManifest;
   final LibraryOrganizationCountSnapshot? organizationSummary;
   LibraryOrganizationCounts? get organizationCounts =>
       organizationSummary?.forQuery(queryId, catalogRevision);
@@ -296,6 +299,7 @@ class LibraryState {
     Object? previousCursor = _unchanged,
     Object? nextCursor = _unchanged,
     Object? timeline = _unchanged,
+    Object? layoutManifest = _unchanged,
     Object? organizationSummary = _unchanged,
     Object? activeTimeAnchor = _unchanged,
     Object? queryAnchorResolution = _unchanged,
@@ -313,6 +317,13 @@ class LibraryState {
     Object? timeNavigationErrorMessage = _unchanged,
     Object? errorMessage = _unchanged,
   }) {
+    final sameCatalog =
+        (catalogRevision == _unchanged ||
+            catalogRevision == this.catalogRevision) &&
+        (queryId == null || queryId == this.queryId);
+    final nextLayoutManifest = layoutManifest == _unchanged
+        ? (sameCatalog ? this.layoutManifest : null)
+        : layoutManifest as LibraryGalleryLayoutManifest?;
     return LibraryState(
       status: status ?? this.status,
       scanId: scanId == _unchanged ? this.scanId : scanId as String?,
@@ -367,6 +378,7 @@ class LibraryState {
       timeline: timeline == _unchanged
           ? this.timeline
           : timeline as LibraryTimeline?,
+      layoutManifest: nextLayoutManifest,
       organizationSummary: organizationSummary == _unchanged
           ? this.organizationSummary
           : organizationSummary as LibraryOrganizationCountSnapshot?,

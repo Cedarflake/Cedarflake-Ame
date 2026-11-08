@@ -61,7 +61,10 @@ factory neither replaces that path nor grants source-read authority.
   Cancellation, query/publication supersession and disposal fence both
   reads. `library_time_seek_alignment.dart` retains the semantic target through its admitted
   publication; current geometry and complete target-row coverage govern alignment. Query, layout,
-  controller and later input changes retire that presentation authority.
+  controller and later gesture changes retire that presentation authority. The presentation
+  `library_time_seek_scheduler.dart` owns one admitted read and the latest pending pointer target;
+  continuous motion cannot starve the admitted read. The rail retains its Material gesture through
+  same-query publications, while completed reads cannot align over a held pointer.
 - `library_preview_order.dart` owns the pure priority, optional demand-rank and arrival comparison.
   The queue owns active-location exclusion, demand/source validity, bounded execution and result
   acceptance; selection order cannot confer publication authority. `LibraryState` separately
@@ -141,6 +144,9 @@ factory neither replaces that path nor grants source-read authority.
   application publication. The screen composes the resulting layout transition without owning a
   second asynchronous query-position lifecycle. A gesture waiter belongs to its presentation
   generation; a newer query or disposal retires it without issuing its old read.
+  `LibraryGalleryPositionResolver` captures the geometry still on screen before a newer snapshot's
+  first frame. Its current, coherent manifest can rebase that location and both fractions into the
+  new revision; another query or a future geometry revision cannot supply that position.
   Consecutive explicit filters retain a separate image/fraction anchor across absent results and
   extent clamping. That intent is not catalog-publication authority and does not drive passive
   refresh positioning. Scrolling, date navigation, source/folder or ordering changes and disposal

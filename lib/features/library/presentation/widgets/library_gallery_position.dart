@@ -1,5 +1,6 @@
 import "package:flutter/widgets.dart";
 
+import "../../domain/gallery_layout_manifest.dart";
 import "library_gallery_reflow.dart";
 
 class LibraryGalleryVisiblePosition {
@@ -22,6 +23,36 @@ class LibraryGalleryVisiblePosition {
   final int globalItemIndex;
   final double itemFraction;
   final double viewportFraction;
+}
+
+LibraryGalleryVisiblePosition? rebaseLibraryGalleryPosition(
+  LibraryGalleryVisiblePosition position,
+  LibraryGalleryLayoutManifest manifest,
+) {
+  if (position.queryId != manifest.queryId || manifest.itemCount == 0) {
+    return null;
+  }
+  var index = position.globalItemIndex.clamp(0, manifest.itemCount - 1);
+  if (manifest.locationIdAt(index) != position.locationId) {
+    for (var candidate = 0; candidate < manifest.itemCount; candidate++) {
+      if (manifest.locationIdAt(candidate) == position.locationId) {
+        index = candidate;
+        break;
+      }
+    }
+  }
+  final locationId = manifest.locationIdAt(index);
+  final date = manifest.dateKeyAt(index);
+  return LibraryGalleryVisiblePosition(
+    queryId: manifest.queryId,
+    revision: manifest.revision,
+    monthKey: date != null && date.length >= 7 ? date.substring(0, 7) : null,
+    locationId: locationId,
+    assetId: locationId == position.locationId ? position.assetId : null,
+    globalItemIndex: index,
+    itemFraction: position.itemFraction,
+    viewportFraction: position.viewportFraction,
+  );
 }
 
 class LibraryGalleryPositionResolver {
@@ -52,11 +83,25 @@ class LibraryGalleryPositionResolver {
     required BigInt? revision,
     required double scrollOffset,
     required double viewportDimension,
+    LibraryGalleryLayoutManifest? manifest,
   }) {
-    if (_queryId != queryId || _revision != revision) {
+    if (_queryId != queryId) {
       return null;
     }
-    return _resolve?.call(scrollOffset, viewportDimension);
+    if (_revision == revision) {
+      return _resolve?.call(scrollOffset, viewportDimension);
+    }
+    if (manifest == null ||
+        manifest.queryId != queryId ||
+        manifest.revision != revision ||
+        _revision == null ||
+        _revision! > manifest.revision) {
+      return null;
+    }
+    final displayed = _resolve?.call(scrollOffset, viewportDimension);
+    return displayed == null
+        ? null
+        : rebaseLibraryGalleryPosition(displayed, manifest);
   }
 }
 

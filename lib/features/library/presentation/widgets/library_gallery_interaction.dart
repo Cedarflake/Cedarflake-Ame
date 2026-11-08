@@ -43,7 +43,13 @@ class LibraryGalleryInteraction extends StatefulWidget {
 
 class _LibraryGalleryInteractionState extends State<LibraryGalleryInteraction> {
   final _pageDemand = LibraryGalleryPageDemand();
-  bool _isPageCheckScheduled = false;
+  Timer? _pageCheck;
+
+  @override
+  void dispose() {
+    _pageCheck?.cancel();
+    super.dispose();
+  }
 
   @override
   void didUpdateWidget(covariant LibraryGalleryInteraction oldWidget) {
@@ -109,34 +115,31 @@ class _LibraryGalleryInteractionState extends State<LibraryGalleryInteraction> {
   }
 
   void _schedulePageRequest() {
-    if (_isPageCheckScheduled || !_pageDemand.hasDemand) return;
-    _isPageCheckScheduled = true;
-    unawaited(
-      Future<void>(() async {
-        _isPageCheckScheduled = false;
-        if (!mounted ||
-            !widget.scrollController.hasClients ||
-            !TickerMode.getValuesNotifier(context).value.enabled) {
-          return;
-        }
-        final metrics = widget.scrollController.position;
-        if (!metrics.hasContentDimensions) return;
-        // Read the resulting position, after Scrollable has handled the signal.
-        final direction = _pageDemand.requestFor(
-          widget.state,
-          nearStart: _isNearLoadedStart(metrics),
-          nearEnd: _isNearLoadedEnd(metrics),
-        );
-        switch (direction) {
-          case LibraryPageDirection.previous:
-            await widget.onLoadPrevious();
-          case LibraryPageDirection.next:
-            await widget.onLoadNext();
-          case null:
-            break;
-        }
-      }),
-    );
+    if (_pageCheck != null || !_pageDemand.hasDemand) return;
+    _pageCheck = Timer(Duration.zero, () async {
+      _pageCheck = null;
+      if (!mounted ||
+          !widget.scrollController.hasClients ||
+          !TickerMode.getValuesNotifier(context).value.enabled) {
+        return;
+      }
+      final metrics = widget.scrollController.position;
+      if (!metrics.hasContentDimensions) return;
+      // Read the resulting position, after Scrollable has handled the signal.
+      final direction = _pageDemand.requestFor(
+        widget.state,
+        nearStart: _isNearLoadedStart(metrics),
+        nearEnd: _isNearLoadedEnd(metrics),
+      );
+      switch (direction) {
+        case LibraryPageDirection.previous:
+          await widget.onLoadPrevious();
+        case LibraryPageDirection.next:
+          await widget.onLoadNext();
+        case null:
+          break;
+      }
+    });
   }
 
   @override

@@ -1,4 +1,5 @@
 import "library_models.dart";
+import "gallery_layout_manifest.dart";
 
 class LibraryTimeIntent {
   const LibraryTimeIntent({required this.monthKey, required this.itemOffset});
@@ -13,12 +14,14 @@ class LibraryTimeSnapshot {
     required this.timeline,
     required this.anchor,
     required this.windowStartItemOffset,
+    this.layoutManifest,
   });
 
   final LibrarySnapshot snapshot;
   final LibraryTimeline timeline;
   final LibraryTimeAnchor? anchor;
   final int windowStartItemOffset;
+  final LibraryGalleryLayoutManifest? layoutManifest;
 
   int? get targetItemOffset {
     final target = anchor;

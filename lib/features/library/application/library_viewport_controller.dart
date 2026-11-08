@@ -8,6 +8,7 @@ import "library_browse_admission.dart";
 import "library_catalog.dart";
 import "ports/library_catalog.dart";
 import "../domain/library_query_snapshot.dart";
+import "../domain/gallery_layout_manifest.dart";
 import "library_catalog_publication.dart";
 import "library_page_operation.dart";
 import "library_query_projection.dart";
@@ -17,6 +18,7 @@ import "library_query_transition.dart";
 import "library_retained_catalog_window.dart";
 import "library_root_consolidation.dart";
 import "library_root_removal_page_reader.dart";
+import "library_root_removal_projection.dart";
 import "library_time_navigation_requests.dart";
 import "library_time_snapshot_reader.dart";
 
@@ -233,6 +235,7 @@ class LibraryViewportController {
       snapshot: result.snapshot,
       query: query,
       timeline: result.timeline,
+      layoutManifest: result.layoutManifest,
       organizationSummary: result.organizationSummary,
       isLoadingTimeline: false,
     );
@@ -377,6 +380,7 @@ class LibraryViewportController {
         windowStartItemOffset: windowStart,
         timeline: timeline,
         organizationSummary: result.organizationSummary,
+        layoutManifest: result.layoutManifest,
         activeTimeAnchor: null,
         isLoadingTimeline: false,
         isLoadingTimeAnchor: false,
@@ -716,6 +720,12 @@ class LibraryViewportController {
   }
 
   Future<bool> _loadTimeNavigation(LibraryTimeNavigationRequest request) async {
+    if (!_timeNavigation.ownsExplicitIntent(request) &&
+        request.currentItemOffset >= _state.windowStartItemOffset &&
+        request.currentItemOffset <
+            _state.windowStartItemOffset + _state.assets.length) {
+      return true;
+    }
     final hadQueryTransition = _queryTransition.retire();
     final generation = ++_publicationGeneration;
     _timeNavigation.beginLoading(request);
@@ -1009,51 +1019,15 @@ class LibraryViewportController {
   }
 
   void publishCommittedRootRemovalProjection(LibraryRoot removedRoot) {
-    final roots = List<LibraryRoot>.unmodifiable(
-      _state.roots.where((root) => root.id != removedRoot.id),
-    );
-    final assets = List<LibraryAsset>.unmodifiable(
-      _state.assets.where((asset) => asset.rootId != removedRoot.id),
-    );
-    final query = _state.query.rootId == removedRoot.id
-        ? LibraryGalleryQuery(
-            collection: _state.query.collection,
-            organizationQueue: _state.query.organizationQueue,
-          )
-        : _state.query;
+    final projection = projectCommittedRootRemoval(_state, removedRoot);
     _retainedWindow.reset(
-      assets: assets,
-      startItemOffset: 0,
+      assets: projection.assets,
+      startItemOffset: projection.windowStartItemOffset,
       previousCursor: null,
       nextCursor: null,
     );
-    _retainPreviewPending(assets.map((asset) => asset.locationId));
-    _state = _state.copyWith(
-      rootPath: _state.rootPath == removedRoot.path ? null : _state.rootPath,
-      displayRootPath: _state.displayRootPath == removedRoot.displayPath
-          ? null
-          : _state.displayRootPath,
-      isRemovalCommitted: true,
-      roots: roots,
-      assets: assets,
-      query: query,
-      queryId: "",
-      windowStartItemOffset: 0,
-      previousCursor: null,
-      nextCursor: null,
-      timeline: null,
-      activeTimeAnchor: null,
-      queryAnchorResolution: null,
-      isLoadingPage: false,
-      isLoadingPreviousPage: false,
-      isLoadingTimeline: roots.isNotEmpty,
-      isLoadingTimeAnchor: false,
-      isLoadingVisibleRange: false,
-      pageErrorMessage: null,
-      previousPageErrorMessage: null,
-      timeNavigationErrorMessage: null,
-      errorMessage: null,
-    );
+    _retainPreviewPending(projection.assets.map((asset) => asset.locationId));
+    _state = projection;
   }
 
   Future<bool> reloadCommittedRootRemovalFirstPage({
@@ -1063,7 +1037,7 @@ class LibraryViewportController {
     final generation = _publicationGeneration;
     final projectionRead = queryProjections.beginRead();
     final query = _state.query;
-    final snapshot = await _rootRemovalPages.loadCurrent(
+    final result = await _rootRemovalPages.loadCurrent(
       removedRootId: removedRootId,
       query: query,
       anchor: anchor,
@@ -1071,35 +1045,19 @@ class LibraryViewportController {
           _canPublishGeneration(generation) &&
           queryProjections.accepts(projectionRead),
     );
-    if (snapshot == null ||
+    if (result == null ||
         !_canPublishGeneration(generation) ||
         !queryProjections.accepts(projectionRead)) {
       return false;
     }
-    final shouldLoadTimeline = snapshot.roots.isNotEmpty;
     _publishFirstCatalogPage(
       generation: generation,
-      snapshot: snapshot,
+      snapshot: result.snapshot,
       query: query,
-      timeline: null,
-      isLoadingTimeline: shouldLoadTimeline,
-    );
-    if (!shouldLoadTimeline ||
-        !_canPublishBackgroundTimeline(
-          generation: generation,
-          query: query,
-          revision: snapshot.revision,
-          queryId: snapshot.queryId,
-        )) {
-      return true;
-    }
-    unawaited(
-      _loadBackgroundTimeline(
-        generation: generation,
-        query: query,
-        revision: snapshot.revision,
-        queryId: snapshot.queryId,
-      ),
+      timeline: result.timeline,
+      layoutManifest: result.layoutManifest,
+      organizationSummary: result.organizationSummary,
+      isLoadingTimeline: false,
     );
     return true;
   }
@@ -1123,6 +1081,7 @@ class LibraryViewportController {
       query: query,
       timeline: timeline,
       organizationSummary: result.organizationSummary,
+      layoutManifest: result.layoutManifest,
       isLoadingTimeline: false,
     );
     return true;
@@ -1161,75 +1120,12 @@ class LibraryViewportController {
     }
   }
 
-  Future<void> _loadBackgroundTimeline({
-    required int generation,
-    required LibraryGalleryQuery query,
-    required BigInt revision,
-    required String queryId,
-  }) async {
-    try {
-      final timeline = await _catalog.loadTimeline(query);
-      if (!_canPublishBackgroundTimeline(
-        generation: generation,
-        query: query,
-        revision: revision,
-        queryId: queryId,
-      )) {
-        return;
-      }
-      if (timeline.revision != revision || timeline.queryId != queryId) {
-        await _queryRefresh.refreshCommitted(() async {
-          if (!_canPublishBackgroundTimeline(
-            generation: generation,
-            query: query,
-            revision: revision,
-            queryId: queryId,
-          )) {
-            return LibraryQueryUpdateOutcome.superseded;
-          }
-          return await reloadFirstCatalogPage()
-              ? LibraryQueryUpdateOutcome.applied
-              : LibraryQueryUpdateOutcome.superseded;
-        });
-        return;
-      }
-      _state = _state.copyWith(
-        timeline: timeline,
-        isLoadingTimeline: false,
-        timeNavigationErrorMessage: null,
-      );
-    } on Object catch (error) {
-      if (_canPublishBackgroundTimeline(
-        generation: generation,
-        query: query,
-        revision: revision,
-        queryId: queryId,
-      )) {
-        _state = _state.copyWith(
-          isLoadingTimeline: false,
-          timeNavigationErrorMessage: error.toString(),
-        );
-      }
-    }
-  }
-
-  bool _canPublishBackgroundTimeline({
-    required int generation,
-    required LibraryGalleryQuery query,
-    required BigInt revision,
-    required String queryId,
-  }) {
-    return _canPublishGeneration(generation) &&
-        _state.query == query &&
-        _state.catalogRevision == revision &&
-        _state.queryId == queryId;
-  }
-
   void _publishFirstCatalogPage({
     required int generation,
     required LibrarySnapshot snapshot,
     required LibraryGalleryQuery query,
     required LibraryTimeline? timeline,
+    LibraryGalleryLayoutManifest? layoutManifest,
     LibraryOrganizationCountSnapshot? organizationSummary,
     required bool isLoadingTimeline,
   }) {
@@ -1260,6 +1156,7 @@ class LibraryViewportController {
           previousState.rootRemovalCompletionSequence,
       status: wasRemoving ? LibraryStatus.removing : null,
       timeline: timeline,
+      layoutManifest: layoutManifest,
       organizationSummary: organizationSummary,
       activeTimeAnchor: null,
       isLoadingTimeline: isLoadingTimeline,

@@ -69,6 +69,10 @@ class LibraryTimelineProjection {
     if (identical(this, source) || value <= 0 || value >= 1) {
       return value.clamp(0.0, 1.0).toDouble();
     }
+    if (layoutMetrics != null &&
+        identical(layoutMetrics, source.layoutMetrics)) {
+      return projection.offsetToValue(source.projection.valueToOffset(value));
+    }
     final target = source.targetForValue(value);
     final sourceOffset = source.globalItemOffsetForValue(value);
     final fraction =

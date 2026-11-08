@@ -120,7 +120,7 @@ fn load_time_buckets(
     })
 }
 
-fn load_source_count(
+pub(in super::super) fn load_source_count(
     transaction: &Transaction<'_>,
     query: &GalleryQuery,
 ) -> Result<u64, ScanError> {

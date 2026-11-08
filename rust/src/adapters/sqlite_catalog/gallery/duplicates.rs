@@ -82,6 +82,8 @@ pub(super) fn push_duplicate_filter(
     };
     let compatible = compatible_fingerprint("locations");
     let representative = representative_expression("locations");
+    // Unanalyzed copies need no group query. Resolve published or retained evidence
+    // by source identity only when a fingerprinted copy needs its representative.
     clauses.push(format!(
         "(NOT EXISTS (
            SELECT 1 FROM {DISPLAY_FINGERPRINTS} WHERE {compatible})
@@ -89,7 +91,11 @@ pub(super) fn push_duplicate_filter(
            SELECT {representative}
            FROM library_roots AS roots
            JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
-           JOIN {DISPLAY_FINGERPRINTS} ON {compatible}
+           CROSS JOIN content_fingerprints AS f
+             ON f.source_generation = (
+               SELECT f.evidence_source_generation FROM {DISPLAY_FINGERPRINTS}
+               WHERE {compatible})
+             AND f.scheme = '{EXACT_FINGERPRINT_SCHEME}'
            {DECISION_JOIN}
            WHERE {scope}
            GROUP BY f.scheme, f.digest, f.byte_length))"

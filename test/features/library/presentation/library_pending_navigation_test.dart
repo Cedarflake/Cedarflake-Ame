@@ -63,10 +63,16 @@ void main() {
       expect(fixture.state.windowStartItemOffset, 340);
       await _seek(tester, 0.69);
       await _frames(tester);
-      expect(fixture.state.windowStartItemOffset, 744);
-      expect(fixture.state.assets.first.locationId, "location-744");
-      expect(_position(tester).pixels, lessThan(100));
-      expect(find.byKey(const ValueKey("location-744")), findsOneWidget);
+      final target = find.byKey(const ValueKey("location-744"));
+      final wall = find.byKey(const Key("library-photo-wall"));
+      expect(target.hitTestable(), findsOneWidget);
+      final targetTop = tester.getTopLeft(target).dy;
+      final viewportTop = tester.getTopLeft(wall).dy;
+      expect(targetTop, inInclusiveRange(viewportTop, viewportTop + 100));
+      final pixels = _position(tester).pixels;
+      await _frames(tester);
+      expect(_position(tester).pixels, closeTo(pixels, 0.01));
+      expect(tester.getTopLeft(target).dy, closeTo(targetTop, 0.01));
       await fixture.dispose(tester);
     },
   );

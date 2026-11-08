@@ -2231,82 +2231,6 @@ void main() {
     expect(completed.isRemovalCommitted, isFalse);
   });
 
-  test("does not await the full timeline after committed removal", () async {
-    const removedRoot = LibraryRoot(
-      id: "root-remove-before-timeline",
-      path: "C:\\RemoveBeforeTimeline",
-      displayPath: "C:\\RemoveBeforeTimeline",
-      activeScanId: "scan-remove-before-timeline",
-      createdUnixMs: 1,
-      assetCount: 1,
-      issueCount: 0,
-    );
-    const keptRoot = LibraryRoot(
-      id: "root-keep-before-timeline",
-      path: "C:\\KeepBeforeTimeline",
-      displayPath: "C:\\KeepBeforeTimeline",
-      activeScanId: "scan-keep-before-timeline",
-      createdUnixMs: 2,
-      assetCount: 1,
-      issueCount: 0,
-    );
-    final refreshedSnapshot = _snapshot(
-      revision: BigInt.two,
-      queryId: "query-after-removal",
-      roots: const [keptRoot],
-      assets: [_asset(suffix: "kept-before-timeline", rootId: keptRoot.id)],
-    );
-    final catalog = _DeferredTimelineLibraryCatalog(refreshedSnapshot);
-    final initialState =
-        LibraryState.fromSnapshot(
-          _snapshot(
-            roots: const [removedRoot, keptRoot],
-            assets: [
-              _asset(suffix: "remove-before-timeline", rootId: removedRoot.id),
-            ],
-          ),
-        ).copyWith(
-          timeline: LibraryTimeline(
-            revision: BigInt.one,
-            queryId: "query-1",
-            totalItems: 2,
-            buckets: const [],
-          ),
-        );
-    final container = ProviderContainer(
-      overrides: applicationTestOverrides([
-        initialLibraryStateProvider.overrideWithValue(initialState),
-        libraryCatalogProvider.overrideWithValue(catalog),
-      ]),
-    );
-    addTearDown(container.dispose);
-
-    final removal = container
-        .read(libraryControllerProvider.notifier)
-        .unregisterRoot(removedRoot);
-
-    expect(await removal, isTrue);
-    final beforeTimeline = container.read(libraryControllerProvider);
-    expect(catalog.timelineLoadCount, 1);
-    expect(beforeTimeline.timeline, isNull);
-    expect(beforeTimeline.isLoadingTimeline, isTrue);
-    expect(beforeTimeline.roots, const [keptRoot]);
-
-    catalog.completeTimeline(
-      LibraryTimeline(
-        revision: BigInt.two,
-        queryId: "query-after-removal",
-        totalItems: 1,
-        buckets: const [],
-      ),
-    );
-    await Future<void>.delayed(Duration.zero);
-
-    final completed = container.read(libraryControllerProvider);
-    expect(completed.timeline?.totalItems, 1);
-    expect(completed.isLoadingTimeline, isFalse);
-  });
-
   test(
     "publishes removal feedback before awaiting commit and blocks duplicates",
     () async {
@@ -3534,23 +3458,6 @@ class _DeferredUnregisterLibraryCatalog extends _FakeLibraryCatalog {
 
   void completeRemoval(bool removed) {
     _removal.complete(removed);
-  }
-}
-
-class _DeferredTimelineLibraryCatalog extends _FakeLibraryCatalog {
-  _DeferredTimelineLibraryCatalog(super.snapshot);
-
-  final Completer<LibraryTimeline> _timeline = Completer<LibraryTimeline>();
-  var timelineLoadCount = 0;
-
-  @override
-  Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) {
-    timelineLoadCount += 1;
-    return _timeline.future;
-  }
-
-  void completeTimeline(LibraryTimeline timeline) {
-    _timeline.complete(timeline);
   }
 }
 

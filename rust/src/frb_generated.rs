@@ -6812,10 +6812,13 @@ impl SseDecode for crate::domain::gallery_query_snapshot::GalleryQuerySnapshot {
         let mut var_organizationCounts = <Option<
             crate::domain::organization_queue::OrganizationCounts,
         >>::sse_decode(deserializer);
+        let mut var_layoutManifest =
+            <Option<Vec<crate::domain::GalleryLayoutManifestChunk>>>::sse_decode(deserializer);
         return crate::domain::gallery_query_snapshot::GalleryQuerySnapshot {
             snapshot: var_snapshot,
             timeline: var_timeline,
             organization_counts: var_organizationCounts,
+            layout_manifest: var_layoutManifest,
         };
     }
 }
@@ -6928,11 +6931,14 @@ impl SseDecode for crate::domain::gallery_time_snapshot::GalleryTimeSnapshot {
         let mut var_timeline = <crate::domain::GalleryTimeline>::sse_decode(deserializer);
         let mut var_anchor = <Option<crate::domain::GalleryTimeAnchor>>::sse_decode(deserializer);
         let mut var_windowStartOrdinal = <u64>::sse_decode(deserializer);
+        let mut var_layoutManifest =
+            <Option<Vec<crate::domain::GalleryLayoutManifestChunk>>>::sse_decode(deserializer);
         return crate::domain::gallery_time_snapshot::GalleryTimeSnapshot {
             snapshot: var_snapshot,
             timeline: var_timeline,
             anchor: var_anchor,
             window_start_ordinal: var_windowStartOrdinal,
+            layout_manifest: var_layoutManifest,
         };
     }
 }
@@ -7376,6 +7382,20 @@ impl SseDecode for Vec<crate::domain::GalleryLayoutDateGroup> {
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ {
             ans_.push(<crate::domain::GalleryLayoutDateGroup>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::domain::GalleryLayoutManifestChunk> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::domain::GalleryLayoutManifestChunk>::sse_decode(
                 deserializer,
             ));
         }
@@ -8020,6 +8040,19 @@ impl SseDecode for Option<u64> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<u64>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<Vec<crate::domain::GalleryLayoutManifestChunk>> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <Vec<crate::domain::GalleryLayoutManifestChunk>>::sse_decode(deserializer),
+            );
         } else {
             return None;
         }
@@ -11550,6 +11583,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::gallery_query_snapshot::Ga
             self.snapshot.into_into_dart().into_dart(),
             self.timeline.into_into_dart().into_dart(),
             self.organization_counts.into_into_dart().into_dart(),
+            self.layout_manifest.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -11730,6 +11764,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::gallery_time_snapshot::Gal
             self.timeline.into_into_dart().into_dart(),
             self.anchor.into_into_dart().into_dart(),
             self.window_start_ordinal.into_into_dart().into_dart(),
+            self.layout_manifest.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -15468,6 +15503,10 @@ impl SseEncode for crate::domain::gallery_query_snapshot::GalleryQuerySnapshot {
             self.organization_counts,
             serializer,
         );
+        <Option<Vec<crate::domain::GalleryLayoutManifestChunk>>>::sse_encode(
+            self.layout_manifest,
+            serializer,
+        );
     }
 }
 
@@ -15569,6 +15608,10 @@ impl SseEncode for crate::domain::gallery_time_snapshot::GalleryTimeSnapshot {
         <crate::domain::GalleryTimeline>::sse_encode(self.timeline, serializer);
         <Option<crate::domain::GalleryTimeAnchor>>::sse_encode(self.anchor, serializer);
         <u64>::sse_encode(self.window_start_ordinal, serializer);
+        <Option<Vec<crate::domain::GalleryLayoutManifestChunk>>>::sse_encode(
+            self.layout_manifest,
+            serializer,
+        );
     }
 }
 
@@ -15924,6 +15967,16 @@ impl SseEncode for Vec<crate::domain::GalleryLayoutDateGroup> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::domain::GalleryLayoutDateGroup>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::domain::GalleryLayoutManifestChunk> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::domain::GalleryLayoutManifestChunk>::sse_encode(item, serializer);
         }
     }
 }
@@ -16449,6 +16502,16 @@ impl SseEncode for Option<u64> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <u64>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<Vec<crate::domain::GalleryLayoutManifestChunk>> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <Vec<crate::domain::GalleryLayoutManifestChunk>>::sse_encode(value, serializer);
         }
     }
 }

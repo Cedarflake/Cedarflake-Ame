@@ -187,7 +187,7 @@ class LibraryGalleryWall extends StatelessWidget {
                 devicePixelRatio: devicePixelRatio,
               ).previewEdge,
         };
-        final estimatedGeometry = LibraryVirtualGalleryGeometry.calculate(
+        final virtualGeometry = LibraryVirtualGalleryGeometry.calculate(
           timeline: state.timeline,
           availableWidth: availableWidth,
           viewportExtent: constraints.maxHeight,
@@ -200,20 +200,6 @@ class LibraryGalleryWall extends StatelessWidget {
           loadedItemCount: state.assets.length,
           queryId: state.queryId,
         );
-        final virtualGeometry = layoutShape == GalleryLayoutShape.equalHeight
-            ? LibraryVirtualGalleryGeometry(
-                totalContentExtent: layoutMetrics.contentExtent,
-                viewportExtent: constraints.maxHeight,
-                leadingExtent: 0,
-                loadedContentExtent: layoutMetrics.contentExtent,
-                trailingExtent: 0,
-                windowStartItemOffset: state.windowStartItemOffset,
-                loadedItemCount: state.assets.length,
-                totalItemCount:
-                    state.timeline?.totalItems ?? state.assets.length,
-                queryId: state.queryId,
-              )
-            : estimatedGeometry;
         final layoutCorrection = _layoutCorrectionForTransition(
           transition: layoutTransition,
           state: state,
@@ -259,16 +245,14 @@ class LibraryGalleryWall extends StatelessWidget {
             state.catalogRevision,
             availableWidth,
           );
-          final isViewportInsideLoadedWindow =
-              metrics.pixels >= virtualGeometry.leadingExtent &&
-              metrics.pixels + metrics.viewportDimension <=
-                  virtualGeometry.loadedEndExtent;
           final visibleRange =
-              layoutShape == GalleryLayoutShape.square &&
+              state.timeline != null &&
                   virtualGeometry.isVirtualized &&
-                  !isViewportInsideLoadedWindow
-              ? LibraryGalleryViewportFeedback.estimatedSquareVisibleRangeFor(
+                  visiblePosition == null
+              ? LibraryGalleryViewportFeedback.estimatedVisibleRangeFor(
                   virtualGeometry: virtualGeometry,
+                  timeline: state.timeline!,
+                  layoutShape: layoutShape,
                   scrollOffset: metrics.pixels,
                   viewportDimension: metrics.viewportDimension,
                   availableWidth: availableWidth,
@@ -285,13 +269,10 @@ class LibraryGalleryWall extends StatelessWidget {
                 );
           if (visibleRange != null) {
             onVisibleRangeChanged?.call(visibleRange);
-            if (layoutShape == GalleryLayoutShape.square) {
-              controller.ensureVisibleRange(
-                startItemOffset: visibleRange.startGlobalItemIndex,
-                endItemOffsetExclusive:
-                    visibleRange.endGlobalItemIndexExclusive,
-              );
-            }
+            controller.ensureVisibleRange(
+              startItemOffset: visibleRange.startGlobalItemIndex,
+              endItemOffsetExclusive: visibleRange.endGlobalItemIndexExclusive,
+            );
           }
           LibraryGalleryViewportFeedback.updatePreviewDemand(
             controller: controller,
@@ -542,6 +523,10 @@ class LibraryGalleryWall extends StatelessWidget {
     if (entries.isEmpty || revision == null) {
       return null;
     }
+    final contentEnd = 18 + entryStartOffsets.last + entries.last.extent;
+    if (scrollOffset + viewportDimension <= 18 || scrollOffset >= contentEnd) {
+      return null;
+    }
     final anchorOffset = scrollOffset + viewportDimension * 0.5;
     final target = anchorOffset - 18;
     final activeIndex = _photoEntryIndexNearestOffset(
@@ -645,23 +630,35 @@ class LibraryGalleryWall extends StatelessWidget {
     required LibraryGalleryPositionResolver? positionResolver,
     required LibraryGalleryVisiblePosition? fallbackPosition,
   }) {
-    if (transition == null ||
-        state.catalogRevision == null ||
-        transition.position.queryId != state.queryId ||
-        transition.position.revision != state.catalogRevision ||
-        entries.isEmpty) {
+    if (state.catalogRevision == null || entries.isEmpty) {
       return null;
     }
-    final position = transition.resolvePosition(
-      current: scrollController.hasClients ? scrollController.position : null,
-      resolver: positionResolver,
-      fallback: fallbackPosition,
-    );
+    final current = scrollController.hasClients
+        ? scrollController.position
+        : null;
+    if (transition == null &&
+        (current != null || virtualGeometry.leadingExtent == 0)) {
+      return null;
+    }
+    final position = transition == null
+        ? fallbackPosition
+        : transition.resolvePosition(
+            current: current,
+            resolver: positionResolver,
+            fallback: fallbackPosition,
+          );
+    final generation = transition == null
+        ? (scope: "gallery-initial", value: state.queryId)
+        : (scope: "gallery-transition", value: transition.generation);
     if (position == null) {
       return LibraryExactExtentLayoutCorrection(
-        generation: (scope: "gallery-transition", value: transition.generation),
+        generation: generation,
         delta: 0,
       );
+    }
+    if (position.queryId != state.queryId ||
+        position.revision != state.catalogRevision) {
+      return null;
     }
     final localItemIndex = state.assets.indexWhere(
       (asset) => asset.locationId == position.locationId,
@@ -692,13 +689,15 @@ class LibraryGalleryWall extends StatelessWidget {
     final maximum = (virtualGeometry.totalContentExtent - viewportExtent)
         .clamp(0, double.infinity)
         .toDouble();
-    final boundedTarget = transition.constrainScrollOffset(
-      current: scrollController.hasClients ? scrollController.position : null,
-      imageOffset: target,
-      maximum: maximum,
-    );
+    final boundedTarget = transition == null
+        ? target.clamp(0, maximum).toDouble()
+        : transition.constrainScrollOffset(
+            current: current,
+            imageOffset: target,
+            maximum: maximum,
+          );
     return LibraryExactExtentLayoutCorrection(
-      generation: (scope: "gallery-transition", value: transition.generation),
+      generation: generation,
       delta:
           boundedTarget -
           (scrollController.hasClients
@@ -804,8 +803,13 @@ class _ManifestLibraryGalleryWallState
   @override
   void didUpdateWidget(covariant _ManifestLibraryGalleryWall oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final rebound = identical(oldWidget.manifest, widget.manifest)
+        ? _snapshot
+        : _snapshot?.withCompatibleManifest(widget.manifest);
+    if (rebound != null) _snapshot = rebound;
     if (oldWidget.manifest.queryId != widget.manifest.queryId ||
-        oldWidget.manifest.revision != widget.manifest.revision) {
+        (oldWidget.manifest.revision != widget.manifest.revision &&
+            rebound == null)) {
       _didApplyInitialPosition = false;
       _layoutCorrection = null;
     }

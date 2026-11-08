@@ -3,6 +3,7 @@ import "../../domain/library_models.dart";
 import "../../domain/library_state.dart";
 import "../gallery_view_options.dart";
 import "library_gallery_layout.dart";
+import "library_timeline_projection.dart";
 import "library_virtual_gallery_geometry.dart";
 
 class LibraryGalleryVisibleRange {
@@ -212,8 +213,10 @@ class LibraryGalleryViewportFeedback {
     );
   }
 
-  static LibraryGalleryVisibleRange? estimatedSquareVisibleRangeFor({
+  static LibraryGalleryVisibleRange? estimatedVisibleRangeFor({
     required LibraryVirtualGalleryGeometry virtualGeometry,
+    required LibraryTimeline timeline,
+    required GalleryLayoutShape layoutShape,
     required double scrollOffset,
     required double viewportDimension,
     required double availableWidth,
@@ -245,11 +248,17 @@ class LibraryGalleryViewportFeedback {
     final endValue = virtualGeometry.valueForScrollOffset(
       scrollOffset + viewportDimension,
     );
-    var start = (startValue * totalItems)
+    final projection = LibraryTimelineProjection(
+      timeline: timeline,
+      useAspectRatioWeight: layoutShape == GalleryLayoutShape.equalHeight,
+    );
+    var start = projection
+        .globalItemOffsetForValue(startValue)
         .floor()
         .clamp(0, totalItems - 1)
         .toInt();
-    var end = (endValue * totalItems)
+    var end = projection
+        .globalItemOffsetForValue(endValue)
         .ceil()
         .clamp(start + 1, totalItems)
         .toInt();

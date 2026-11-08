@@ -88,6 +88,26 @@ void main() {
     );
     expect(mismatched!.layoutMetrics, isNull);
   });
+
+  test("keeps the within-row position across timeline publications", () {
+    final previous = LibraryTimelineProjection.fromLayout(
+      timeline: timeline,
+      metrics: metrics,
+      maximumScrollOffset: 900,
+    );
+    final current = LibraryTimelineProjection.fromLayout(
+      timeline: LibraryTimeline(
+        revision: timeline.revision + BigInt.one,
+        queryId: timeline.queryId,
+        totalItems: timeline.totalItems,
+        buckets: timeline.buckets,
+      ),
+      metrics: metrics,
+      maximumScrollOffset: 900,
+    );
+    final value = current.valueFromProjection(previous, 549 / 900);
+    expect(current.projection.valueToOffset(value), closeTo(549, 0.000001));
+  });
 }
 
 LibraryGalleryLayoutMetrics _metrics({bool isQueryWide = true}) =>

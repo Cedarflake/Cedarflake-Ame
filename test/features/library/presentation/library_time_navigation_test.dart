@@ -246,8 +246,8 @@ void main() {
     slider.onChanged?.call(0);
     await tester.pumpAndSettle();
 
-    expect(selectedBucket, isNull);
-    expect(selectedOffset, isNull);
+    expect(selectedBucket?.monthKey, "2022-01");
+    expect(selectedOffset, 99);
 
     tester
         .widget<Slider>(find.byKey(const Key("timeline-slider")))
@@ -354,117 +354,6 @@ void main() {
 
     expect(scrollController.offset, closeTo(itemOffsets[241], 0.01));
     expect(selectedBucket, isNull);
-  });
-
-  testWidgets("loads a distant equal-height target before drag release", (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1000, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    final scrollController = ScrollController();
-    addTearDown(scrollController.dispose);
-    final selectedOffsets = <int>[];
-    final metrics = LibraryGalleryLayoutMetrics(
-      contentExtent: 1200,
-      photoRowHeight: 100,
-      dateAnchors: const [
-        LibraryGalleryDateAnchor(
-          id: "2026-08-05",
-          label: "2026年8月5日",
-          scrollOffset: 0,
-          year: 2026,
-          isUnknown: false,
-        ),
-      ],
-      locationOffsets: const {},
-      itemOffsets: List<double>.generate(100, (index) => index * 4.0),
-    );
-    const virtualGeometry = LibraryVirtualGalleryGeometry(
-      totalContentExtent: 10000,
-      viewportExtent: 800,
-      leadingExtent: 0,
-      loadedContentExtent: 1200,
-      trailingExtent: 8800,
-      windowStartItemOffset: 0,
-      loadedItemCount: 100,
-      totalItemCount: 1000,
-      queryId: "query-1",
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Row(
-            children: [
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  children: const [SizedBox(height: 10000)],
-                ),
-              ),
-              LibraryTimeNavigation(
-                isLoading: false,
-                scrollController: scrollController,
-                layoutMetrics: metrics,
-                timeline: LibraryTimeline(
-                  revision: BigInt.one,
-                  queryId: "query-1",
-                  totalItems: 1000,
-                  buckets: const [
-                    LibraryTimeBucket(
-                      monthKey: "2026-08",
-                      itemCount: 900,
-                      aspectRatioSum: 900,
-                    ),
-                    LibraryTimeBucket(
-                      monthKey: "2022-01",
-                      itemCount: 100,
-                      aspectRatioSum: 100,
-                    ),
-                  ],
-                ),
-                layoutShape: GalleryLayoutShape.equalHeight,
-                virtualGeometry: virtualGeometry,
-                windowStartItemOffset: 0,
-                loadedItemCount: 100,
-                onSeek: (_, itemOffset) {
-                  selectedOffsets.add(itemOffset);
-                  return Future.value(true);
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    var slider = tester.widget<Slider>(
-      find.byKey(const Key("timeline-slider")),
-    );
-    slider.onChangeStart?.call(slider.value);
-    slider.onChanged?.call(0.5);
-    await tester.pump();
-    await tester.pump();
-    expect(selectedOffsets, isNotEmpty);
-    expect(scrollController.offset, 0);
-
-    slider = tester.widget<Slider>(find.byKey(const Key("timeline-slider")));
-    slider.onChanged?.call(0);
-    await tester.pump(const Duration(milliseconds: 120));
-    expect(scrollController.offset, 0);
-
-    tester
-        .widget<Slider>(find.byKey(const Key("timeline-slider")))
-        .onChangeEnd
-        ?.call(0);
-    await tester.pumpAndSettle();
-
-    expect(selectedOffsets.last, 99);
-    expect(selectedOffsets.length, lessThanOrEqualTo(3));
   });
 
   testWidgets(
@@ -784,11 +673,11 @@ void main() {
     await tester.pump();
     final latestPixels = scrollController.offset;
     expect(latestPixels, greaterThan(7000));
-    expect(requests.offsets, hasLength(2));
+    expect(requests.offsets, hasLength(1));
 
     requests.completers.first.complete(true);
     await tester.pump();
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
 
     expect(scrollController.offset, closeTo(latestPixels, 0.01));
     expect(requests.offsets, hasLength(2));

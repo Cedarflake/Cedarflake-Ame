@@ -6,6 +6,7 @@ import "package:cedarflake_ame/features/library/application/library_root_removal
 import "package:cedarflake_ame/features/library/application/library_viewport_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
@@ -93,15 +94,23 @@ class _Catalog extends Fake implements LibraryCatalog {
   int timelineReads = 0;
 
   @override
-  Future<LibrarySnapshot> load({
+  Future<LibraryQuerySnapshot> loadQuerySnapshot({
     required int maxItems,
     required LibraryGalleryQuery query,
-    LibraryCatalogCursor? after,
-    LibraryCatalogCursor? before,
-  }) {
+    LibraryQueryAnchor? anchor,
+  }) async {
     expect(maxItems, libraryCatalogWindow);
     pageReads++;
-    return page;
+    final snapshot = await page;
+    return LibraryQuerySnapshot(
+      snapshot: snapshot,
+      timeline: LibraryTimeline(
+        revision: snapshot.revision,
+        queryId: snapshot.queryId,
+        totalItems: 0,
+        buckets: const [],
+      ),
+    );
   }
 
   @override

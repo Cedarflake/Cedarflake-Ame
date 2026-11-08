@@ -8,6 +8,7 @@ import "package:cedarflake_ame/features/library/application/library_scan_executi
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_update_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -848,6 +849,24 @@ class _RemovingUpdateCatalog
   }
 
   void completeRemovalPage() => _removalPage.complete(_capturedRemovalPage!);
+
+  @override
+  Future<LibraryQuerySnapshot> loadQuerySnapshot({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryQueryAnchor? anchor,
+  }) async {
+    final page = await load(maxItems: maxItems, query: query);
+    return LibraryQuerySnapshot(
+      snapshot: page,
+      timeline: LibraryTimeline(
+        revision: page.revision,
+        queryId: page.queryId,
+        totalItems: page.assets.length,
+        buckets: const [],
+      ),
+    );
+  }
 
   @override
   Future<bool> unregisterRoot(String rootId) {

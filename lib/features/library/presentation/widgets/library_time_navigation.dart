@@ -6,6 +6,7 @@ import "package:flutter/scheduler.dart";
 
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_models.dart";
+import "../coordination/library_time_seek_scheduler.dart";
 import "../gallery_view_options.dart";
 import "library_gallery_layout.dart";
 import "library_time_rail_presentation.dart";
@@ -16,8 +17,6 @@ import "library_virtual_gallery_geometry.dart";
 
 typedef LibraryTimelineSeekCallback =
     Future<bool> Function(LibraryTimeBucket bucket, int itemOffset);
-
-enum _LibraryTimelineSeekIntent { navigation, prefetch }
 
 class LibraryTimeNavigation extends StatefulWidget {
   const LibraryTimeNavigation({
@@ -56,23 +55,16 @@ class LibraryTimeNavigation extends StatefulWidget {
 }
 
 class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
-  static const Duration _windowSeekInterval = Duration(milliseconds: 120);
   static const Duration _galleryScrollSettleDelay = Duration(milliseconds: 180);
 
   double? _interactiveValue;
   double? _pendingFrameValue;
-  double? _pendingSeekValue;
-  _LibraryTimelineSeekIntent? _pendingSeekIntent;
-  bool _isPendingSeekFinal = false;
   bool _isDragging = false;
   bool _hasUserScrollIntent = false;
   bool _isFrameScheduled = false;
-  final Set<int> _activeSeekGenerations = <int>{};
+  late final _seeks = LibraryTimeSeekScheduler(_startSeek);
   LibraryTimeSeekAlignment? _navigationAlignment;
   int _timelineGeneration = 0;
-  int _seekIntentGeneration = 0;
-  DateTime? _lastSeekStartedAt;
-  Timer? _seekTimer;
   Timer? _galleryScrollSettleTimer;
   Timer? _userScrollIntentTimer;
   double? _pendingGalleryScrollValue;
@@ -82,10 +74,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   var _stableWindowStartItemOffset = 0;
   var _stableLoadedItemCount = 0;
 
-  bool get _isSeeking => _activeSeekGenerations.isNotEmpty;
-
-  bool get _hasCurrentSeek =>
-      _activeSeekGenerations.contains(_seekIntentGeneration);
+  bool get _isSeeking => _seeks.isRunning;
 
   @override
   void initState() {
@@ -105,37 +94,47 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
         oldWidget.timeline?.queryId != widget.timeline?.queryId ||
         oldWidget.scrollController != widget.scrollController ||
         oldWidget.layoutShape != widget.layoutShape;
-    final didChangeTimeline =
-        didChangeContext ||
-        oldWidget.timeline?.revision != widget.timeline?.revision;
-    if (didChangeTimeline) {
-      final retainsNavigation =
-          !didChangeContext &&
-          _navigationAlignment?.generation == _seekIntentGeneration;
+    if (didChangeContext) {
       _timelineGeneration += 1;
-      if (!retainsNavigation) {
-        _seekIntentGeneration += 1;
-        _navigationAlignment = null;
-        _activeSeekGenerations.clear();
-      }
-      _seekTimer?.cancel();
+      _seeks.cancel();
+      _navigationAlignment = null;
       _galleryScrollSettleTimer?.cancel();
       _userScrollIntentTimer?.cancel();
       _interactiveValue = null;
       _pendingFrameValue = null;
-      _pendingSeekValue = null;
-      _pendingSeekIntent = null;
       _pendingGalleryScrollValue = null;
-      _isPendingSeekFinal = false;
       _isDragging = false;
       _hasUserScrollIntent = false;
       _isFrameScheduled = false;
-      _lastSeekStartedAt = null;
       _projectionCache.clear();
       _stableLayoutMetrics = null;
       _stableVirtualGeometry = null;
       _stableWindowStartItemOffset = 0;
       _stableLoadedItemCount = 0;
+    } else if (oldWidget.timeline?.revision != widget.timeline?.revision) {
+      final previousProjection = _projectionCache.current;
+      _timelineGeneration++;
+      _isFrameScheduled = false;
+      _cancelGalleryScrollSettle();
+      _projectionCache.clear();
+      _stableLayoutMetrics = null;
+      _stableVirtualGeometry = null;
+      final currentProjection = _projectionForCurrentTimeline();
+      if (previousProjection != null && currentProjection != null) {
+        if (_interactiveValue case final value?) {
+          _interactiveValue = currentProjection.valueFromProjection(
+            previousProjection,
+            value,
+          );
+        }
+        if (_pendingFrameValue case final value?) {
+          _pendingFrameValue = currentProjection.valueFromProjection(
+            previousProjection,
+            value,
+          );
+          _scheduleNavigationFrame(currentProjection);
+        }
+      }
     }
     _rememberStableLayout();
   }
@@ -144,11 +143,9 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   void dispose() {
     _navigationAlignment = null;
     _timelineGeneration += 1;
-    _seekIntentGeneration += 1;
-    _seekTimer?.cancel();
+    _seeks.dispose();
     _galleryScrollSettleTimer?.cancel();
     _userScrollIntentTimer?.cancel();
-    _activeSeekGenerations.clear();
     widget.scrollController.removeListener(_handleGalleryScroll);
     super.dispose();
   }
@@ -165,7 +162,10 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
             ? widget.scrollController.position
             : null;
         LibraryTimeRailFrame? frame;
-        final interactiveValue = _interactiveValue;
+        final interactiveValue =
+            _isDragging || widget.layoutMetrics?.isQueryWide != true
+            ? _interactiveValue
+            : null;
         if (globalProjection != null && interactiveValue != null) {
           frame = LibraryTimeRailFrame(
             projection: globalProjection,
@@ -196,7 +196,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
             ),
           );
         }
-        final interactionGeneration = _seekIntentGeneration;
+        final interactionGeneration = _seeks.generation;
         return LibraryTimeRailPresentation(
           timeline: widget.timeline,
           layoutShape: widget.layoutShape,
@@ -219,7 +219,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
             // its alignment when the resulting catalog layout is published.
             if (mounted &&
                 _isDragging &&
-                interactionGeneration == _seekIntentGeneration) {
+                interactionGeneration == _seeks.generation) {
               _cancelTimelineIntent();
             }
           },
@@ -280,6 +280,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
 
   void _beginInteraction(double value) {
     _cancelGalleryScrollSettle();
+    _cancelSeek();
     _userScrollIntentTimer?.cancel();
     _userScrollIntentTimer = null;
     _hasUserScrollIntent = false;
@@ -293,11 +294,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     LibraryTimelineProjection globalProjection,
     double value,
   ) {
-    // A loaded target must also retire the previous catalog navigation intent.
-    _clearPendingSeek();
-    widget.onCancelSeek?.call();
     widget.onBeginNavigation?.call();
-    _seekIntentGeneration += 1;
     _pendingFrameValue = value;
     _scheduleNavigationFrame(globalProjection);
   }
@@ -311,14 +308,14 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       _interactiveValue = value;
     });
     _pendingFrameValue = null;
-    if (_isSeeking || !_isTargetLoaded(globalProjection, value)) {
+    if (!_isTargetLoaded(globalProjection, value)) {
       if (_hasTargetGeometry(globalProjection, value)) {
         _moveGalleryToValue(globalProjection, value);
       }
-      _queueSeek(globalProjection, value, isFinal: true, immediate: true);
+      _queueSeek(globalProjection, value, immediate: true);
     } else {
+      _cancelSeek();
       _moveGalleryToValue(globalProjection, value);
-      _clearPendingSeek();
       setState(() => _interactiveValue = null);
     }
   }
@@ -342,25 +339,14 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       if (_interactiveValue != value) {
         setState(() => _interactiveValue = value);
       }
-      final isTargetLoaded = _isTargetLoaded(globalProjection, value);
-      if (isTargetLoaded || _hasTargetGeometry(globalProjection, value)) {
-        _moveGalleryToValue(globalProjection, value);
+      final projection = _projectionForCurrentTimeline() ?? globalProjection;
+      final isTargetLoaded = _isTargetLoaded(projection, value);
+      if (isTargetLoaded) _cancelSeek();
+      if (isTargetLoaded || _hasTargetGeometry(projection, value)) {
+        _moveGalleryToValue(projection, value);
       }
-      if (_isDragging) {
-        if (!isTargetLoaded &&
-            widget.layoutShape == GalleryLayoutShape.equalHeight) {
-          _queueSeek(globalProjection, value);
-        }
-        return;
-      }
-      if (_isSeeking) {
-        _queueSeek(globalProjection, value);
-        return;
-      }
-      if (isTargetLoaded) {
-        _clearPendingSeek();
-      } else {
-        _queueSeek(globalProjection, value);
+      if (!isTargetLoaded) {
+        _queueSeek(projection, value);
       }
     });
   }
@@ -368,66 +354,49 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   void _queueSeek(
     LibraryTimelineProjection globalProjection,
     double value, {
-    bool isFinal = false,
     bool immediate = false,
-    _LibraryTimelineSeekIntent intent = _LibraryTimelineSeekIntent.navigation,
+    LibraryTimeSeekIntent intent = LibraryTimeSeekIntent.navigation,
   }) {
-    if (intent == _LibraryTimelineSeekIntent.navigation) {
+    if (intent == LibraryTimeSeekIntent.navigation) {
       _cancelGalleryScrollSettle();
     }
-    _seekIntentGeneration += 1;
-    _pendingSeekValue = value;
-    _pendingSeekIntent = isFinal
-        ? _LibraryTimelineSeekIntent.navigation
-        : intent;
-    _isPendingSeekFinal = _isPendingSeekFinal || isFinal;
-    final lastStartedAt = _lastSeekStartedAt;
-    final elapsed = lastStartedAt == null
-        ? _windowSeekInterval
-        : DateTime.now().difference(lastStartedAt);
-    final delay = immediate || elapsed >= _windowSeekInterval
-        ? Duration.zero
-        : _windowSeekInterval - elapsed;
-    if (delay == Duration.zero) {
-      _seekTimer?.cancel();
-      _seekTimer = null;
-      unawaited(_startPendingSeek(globalProjection, _timelineGeneration));
-      return;
-    }
-    _seekTimer ??= Timer(delay, () {
-      _seekTimer = null;
-      unawaited(_startPendingSeek(globalProjection, _timelineGeneration));
-    });
+    _seeks.schedule(
+      LibraryTimeSeekRequest(
+        projection: globalProjection,
+        value: value,
+        intent: intent,
+      ),
+      immediate: immediate,
+    );
   }
 
-  Future<void> _startPendingSeek(
-    LibraryTimelineProjection globalProjection,
-    int generation,
+  Future<void> _startSeek(
+    LibraryTimeSeekRequest request,
+    int seekIntentGeneration,
   ) async {
-    if (!mounted || generation != _timelineGeneration) {
+    if (!mounted) {
       return;
     }
-    final value = _pendingSeekValue;
-    final intent = _pendingSeekIntent ?? _LibraryTimelineSeekIntent.navigation;
-    final seekIntentGeneration = _seekIntentGeneration;
-    _pendingSeekValue = null;
-    _pendingSeekIntent = null;
-    _isPendingSeekFinal = false;
-    if (value == null) {
-      return;
-    }
+    final generation = _timelineGeneration;
+    final globalProjection =
+        _projectionForCurrentTimeline() ?? request.projection;
+    final value = globalProjection.valueFromProjection(
+      request.projection,
+      request.value,
+    );
+    final intent = request.intent;
     if (_isTargetLoaded(globalProjection, value)) {
-      if (!_isDragging && !_isSeeking) {
-        setState(() => _interactiveValue = null);
+      if (intent == LibraryTimeSeekIntent.navigation) {
+        _moveGalleryToValue(globalProjection, value);
+        if (!_isDragging) {
+          setState(() => _interactiveValue = null);
+        }
       }
       return;
     }
-    _activeSeekGenerations.add(seekIntentGeneration);
-    _lastSeekStartedAt = DateTime.now();
     final target = _detailLoadTarget(globalProjection, value);
     final alignment =
-        intent == _LibraryTimelineSeekIntent.navigation &&
-            widget.timeline != null
+        intent == LibraryTimeSeekIntent.navigation && widget.timeline != null
         ? LibraryTimeSeekAlignment(
             generation: seekIntentGeneration,
             timeline: widget.timeline!,
@@ -446,7 +415,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     if (alignment != null) {
       _navigationAlignment = alignment;
     }
-    final seek = intent == _LibraryTimelineSeekIntent.prefetch
+    final seek = intent == LibraryTimeSeekIntent.prefetch
         ? widget.onPrefetch ?? widget.onSeek
         : widget.onSeek;
     try {
@@ -461,28 +430,11 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
         return;
       }
     } finally {
-      _activeSeekGenerations.remove(seekIntentGeneration);
       if (identical(_navigationAlignment, alignment)) {
         _navigationAlignment = null;
       }
     }
-    if (_pendingSeekValue case final pendingValue?) {
-      if (_seekTimer != null) {
-        return;
-      }
-      final pendingIntent =
-          _pendingSeekIntent ?? _LibraryTimelineSeekIntent.navigation;
-      final isPendingFinal = _isPendingSeekFinal;
-      _queueSeek(
-        _projectionForCurrentTimeline() ?? globalProjection,
-        pendingValue,
-        isFinal: isPendingFinal,
-        immediate: isPendingFinal,
-        intent: pendingIntent,
-      );
-      return;
-    }
-    if (!_isDragging && _pendingFrameValue == null && !_hasCurrentSeek) {
+    if (!_isDragging && _pendingFrameValue == null && !_seeks.hasPending) {
       setState(() => _interactiveValue = null);
     }
   }
@@ -492,7 +444,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     int seekIntentGeneration,
     LibraryTimeSeekAlignment? alignment,
   ) {
-    if (!mounted || seekIntentGeneration != _seekIntentGeneration) {
+    if (!mounted || !_seeks.isCurrent(seekIntentGeneration)) {
       return false;
     }
     if (alignment != null) {
@@ -509,7 +461,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       await WidgetsBinding.instance.endOfFrame;
       if (!mounted ||
           !identical(_navigationAlignment, alignment) ||
-          alignment.generation != _seekIntentGeneration) {
+          !_seeks.isCurrent(alignment.generation)) {
         return;
       }
       final timeline = widget.timeline;
@@ -528,6 +480,9 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       }
       // The rail already positioned this complete layout, including the fraction within a row.
       if (alignment.retainsExactPosition(timeline, widget.layoutMetrics)) {
+        return;
+      }
+      if (_isDragging || _seeks.hasPending) {
         return;
       }
       _moveGalleryToGlobalTarget(projection, offset);
@@ -637,7 +592,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     if (_isTargetLoaded(projection, value)) {
       _cancelGalleryScrollSettle();
       if (!_isSeeking) {
-        _clearPendingSeek();
+        _seeks.clearPending();
       }
       return;
     }
@@ -661,7 +616,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
         currentProjection,
         pendingValue,
         immediate: true,
-        intent: _LibraryTimelineSeekIntent.prefetch,
+        intent: LibraryTimeSeekIntent.prefetch,
       );
     });
   }
@@ -687,17 +642,8 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
 
   void _cancelTimelineIntent() {
     _isDragging = false;
-    _navigationAlignment = null;
-    widget.onCancelSeek?.call();
-    if (!_isSeeking &&
-        _pendingSeekValue == null &&
-        _seekTimer == null &&
-        _interactiveValue == null) {
-      return;
-    }
-    _seekIntentGeneration += 1;
+    _cancelSeek();
     _pendingFrameValue = null;
-    _clearPendingSeek();
     if (_interactiveValue != null) {
       setState(() => _interactiveValue = null);
     }
@@ -790,16 +736,15 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       return false;
     }
     return metrics.containsGlobalItemIndex(
-      projection.targetForValue(value).globalItemOffset.toDouble(),
-    );
+          projection.targetForValue(value).globalItemOffset.toDouble(),
+        ) ||
+        widget.virtualGeometry?.isVirtualized == true;
   }
 
-  void _clearPendingSeek() {
-    _seekTimer?.cancel();
-    _seekTimer = null;
-    _pendingSeekValue = null;
-    _pendingSeekIntent = null;
-    _isPendingSeekFinal = false;
+  void _cancelSeek() {
+    _navigationAlignment = null;
+    _seeks.cancel();
+    widget.onCancelSeek?.call();
   }
 
   void _moveOneRow(LibraryGalleryLayoutMetrics metrics, int direction) {

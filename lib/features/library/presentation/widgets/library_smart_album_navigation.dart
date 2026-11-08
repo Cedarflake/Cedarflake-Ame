@@ -133,7 +133,20 @@ class _LibrarySmartAlbumNavigationState
                       : null,
                 ),
             ],
-            loading: () => const <Widget>[],
+            loading: () => const [
+              Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(
+                  child: SizedBox.square(
+                    dimension: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      semanticsLabel: "正在加载智能相册",
+                    ),
+                  ),
+                ),
+              ),
+            ],
             error: (error, stack) => [
               ListTile(
                 title: const Text("分类暂时无法加载"),

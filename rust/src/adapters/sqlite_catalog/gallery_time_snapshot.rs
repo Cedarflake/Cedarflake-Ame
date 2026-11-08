@@ -29,7 +29,11 @@ pub(super) fn load_time_snapshot(
     }
     let read =
         GalleryReadTransaction::begin(&mut catalog.connection, &catalog.path, query, query_id)?;
-    let timeline = read.load_timeline()?;
+    let projection = read.load_projection()?;
+    let timeline = match projection.as_ref() {
+        Some(projection) => projection.timeline.clone(),
+        None => read.load_timeline()?,
+    };
     let resolved = intent.resolve(&timeline, &query.sort_direction)?;
     #[cfg(test)]
     AFTER_TIME_RESOLUTION.with(|slot| {
@@ -44,13 +48,23 @@ pub(super) fn load_time_snapshot(
         .transpose()?;
     let window_start_ordinal = window_start.as_ref().map_or(0, |value| value.ordinal);
     let window_anchor = window_start.as_ref().map(|value| &value.anchor);
-    let snapshot = read.load_snapshot(max_items, None, None, window_anchor)?;
+    let snapshot = match projection.as_ref() {
+        Some(projection) => {
+            read.load_projection_page(projection, window_start_ordinal, max_items)?
+        }
+        None => read.load_snapshot(max_items, None, None, window_anchor)?,
+    };
+    let layout_manifest = match projection {
+        Some(projection) => Some(projection.into_layout()?),
+        None => read.load_layout_manifest(timeline.total_items)?,
+    };
     read.commit()?;
     Ok(GalleryTimeSnapshot {
         snapshot,
         timeline,
         anchor,
         window_start_ordinal,
+        layout_manifest,
     })
 }
 

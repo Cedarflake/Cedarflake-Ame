@@ -12,7 +12,7 @@ use super::organization::{
 };
 use super::{BuiltGalleryQuery, database_error, gallery_source, push_source_filters};
 
-pub(super) fn uses_grouped_organization(query: &GalleryQuery) -> bool {
+pub(in crate::adapters::sqlite_catalog) fn uses_grouped_organization(query: &GalleryQuery) -> bool {
     query.folds_duplicates()
         && (query.organization_queue.is_some() || query.collection != GalleryCollection::Library)
 }

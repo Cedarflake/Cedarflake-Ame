@@ -477,7 +477,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     final amePreferences = ref.watch(amePreferencesControllerProvider);
     final controller = _libraryController;
     final catalogRevision = state.catalogRevision;
-    final manifestRequest = catalogRevision != null && state.queryId.isNotEmpty
+    final manifestRequest =
+        state.layoutManifest == null &&
+            catalogRevision != null &&
+            state.queryId.isNotEmpty
         ? LibraryGalleryLayoutManifestRequest(
             query: state.query,
             revision: catalogRevision,
@@ -485,7 +488,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           )
         : null;
     final baseLayoutManifest = manifestRequest == null
-        ? null
+        ? state.layoutManifest
         : ref
               .watch(libraryGalleryLayoutManifestProvider(manifestRequest))
               .value;
@@ -734,7 +737,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         unawaited(_selectWorkspace(workspace));
       },
       albumLanding: collection is LibraryAllCollection
-          ? const LibraryAlbumsLanding()
+          ? LibraryAlbumsLanding(isLoading: state.isRefreshingQuery)
           : null,
       albumsNavigationBuilder: (width) => LibraryAlbumsSidebar(
         width: width,
@@ -1409,6 +1412,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         revision: state.catalogRevision,
         scrollOffset: scrollPosition.pixels,
         viewportDimension: scrollPosition.viewportDimension,
+        manifest: state.layoutManifest,
       );
     }
     return null;
@@ -1870,6 +1874,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
       return null;
     }
     final visiblePosition = _visibleGalleryPosition;
+    final manifest = state.layoutManifest;
+    if (visiblePosition != null && manifest != null) {
+      final rebased = rebaseLibraryGalleryPosition(visiblePosition, manifest);
+      if (rebased != null) return rebased;
+    }
     final loadedEnd = state.windowStartItemOffset + state.assets.length;
     if (visiblePosition != null &&
         visiblePosition.queryId == state.queryId &&

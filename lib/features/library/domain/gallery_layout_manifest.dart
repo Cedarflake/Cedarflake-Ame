@@ -111,6 +111,19 @@ class LibraryGalleryLayoutManifest {
 
   LibraryGalleryLayoutManifestStorageKind get storageKind => _storage.kind;
 
+  bool hasSameGeometry(LibraryGalleryLayoutManifest other) {
+    if (identical(this, other)) return true;
+    if (queryId != other.queryId ||
+        itemCount != other.itemCount ||
+        _dimensionOverrides.length != other._dimensionOverrides.length) {
+      return false;
+    }
+    for (final entry in _dimensionOverrides.entries) {
+      if (other._dimensionOverrides[entry.key] != entry.value) return false;
+    }
+    return _storage.hasSameGeometry(other._storage);
+  }
+
   String locationIdAt(int index) {
     _checkIndex(index);
     return _storage.locationIdAt(index);
@@ -450,6 +463,7 @@ class _HierarchicalLibraryGalleryLayoutManifestBuilder
 }
 
 abstract interface class _LibraryGalleryLayoutManifestStorage {
+  bool hasSameGeometry(_LibraryGalleryLayoutManifestStorage other);
   LibraryGalleryLayoutManifestStorageKind get kind;
 
   int get itemCount;
@@ -489,6 +503,16 @@ class _FlatLibraryGalleryLayoutManifestStorage
   final Uint32List _dateGroupIndices;
   final List<String?> _dateGroups;
   final Uint8List _flags;
+
+  @override
+  bool hasSameGeometry(_LibraryGalleryLayoutManifestStorage other) =>
+      other is _FlatLibraryGalleryLayoutManifestStorage &&
+      _sameValues(_locationIdBytes, other._locationIdBytes) &&
+      _sameValues(_locationIdOffsets, other._locationIdOffsets) &&
+      _sameValues(_aspectRatioMilli, other._aspectRatioMilli) &&
+      _sameValues(_dateGroupIndices, other._dateGroupIndices) &&
+      _sameValues(_dateGroups, other._dateGroups) &&
+      _sameValues(_flags, other._flags);
 
   @override
   int get primitiveByteLength =>
@@ -536,6 +560,18 @@ class _HierarchicalLibraryGalleryLayoutManifestStorage
   final int itemCount;
   final List<_LibraryGalleryLayoutManifestBlock> blocks;
   final Uint32List _blockStarts;
+
+  @override
+  bool hasSameGeometry(_LibraryGalleryLayoutManifestStorage other) {
+    if (other is! _HierarchicalLibraryGalleryLayoutManifestStorage ||
+        !_sameValues(_blockStarts, other._blockStarts)) {
+      return false;
+    }
+    for (var index = 0; index < blocks.length; index++) {
+      if (!blocks[index].hasSameGeometry(other.blocks[index])) return false;
+    }
+    return true;
+  }
 
   @override
   int get primitiveByteLength =>
@@ -635,6 +671,15 @@ class _LibraryGalleryLayoutManifestBlock {
   final List<String?> _dateGroups;
   final Uint8List _flags;
 
+  bool hasSameGeometry(_LibraryGalleryLayoutManifestBlock other) =>
+      startOrdinal == other.startOrdinal &&
+      _sameValues(_locationIdBytes, other._locationIdBytes) &&
+      _sameValues(_locationIdOffsets, other._locationIdOffsets) &&
+      _sameValues(_aspectRatioMilli, other._aspectRatioMilli) &&
+      _sameValues(_dateGroupIndices, other._dateGroupIndices) &&
+      _sameValues(_dateGroups, other._dateGroups) &&
+      _sameValues(_flags, other._flags);
+
   int get primitiveByteLength =>
       _locationIdBytes.lengthInBytes +
       _locationIdOffsets.lengthInBytes +
@@ -657,6 +702,15 @@ class _LibraryGalleryLayoutManifestBlock {
 
   bool hasKnownDimensionsAt(int index) =>
       _flags[index] & libraryGalleryLayoutDimensionsKnownFlag != 0;
+}
+
+bool _sameValues<T>(List<T> left, List<T> right) {
+  if (identical(left, right)) return true;
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
 }
 
 int _encodedDateBytes(List<String?> dates) {

@@ -71,7 +71,9 @@ shared principles; the roadmap owns current delivery order and acceptance status
   Reservation release is explicit on completion, failure, abandonment, and disposal.
   After the single unregister command, the mounted query projection captures the current visible
   identity before publishing the removed-root projection. `library_root_removal_page_reader.dart`
-  owns the bounded anchored page and removed-root absence check; the complete timeline remains a
-  separate background read. Later input retires old results and errors. Only a proven position
-  supersession may repeat display publication; neither that continuation nor an explicit display
+  owns coherent anchored refresh and the removed-root absence check.
+  `library_root_removal_projection.dart` owns immediate committed display state and retains the
+  existing layout when removal cannot affect the selected root. Later input retires old results
+  and errors. Only a proven position supersession may repeat display publication; neither that
+  continuation nor an explicit display
   retry repeats the unregister command. Capture failure still projects the committed removal.

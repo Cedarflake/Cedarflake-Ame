@@ -1,4 +1,5 @@
 import "library_models.dart";
+import "gallery_layout_manifest.dart";
 
 class LibraryQueryAnchor {
   const LibraryQueryAnchor({
@@ -17,11 +18,13 @@ class LibraryQuerySnapshot {
     required this.snapshot,
     required this.timeline,
     this.organizationCounts,
+    this.layoutManifest,
   });
 
   final LibrarySnapshot snapshot;
   final LibraryTimeline timeline;
   final LibraryOrganizationCounts? organizationCounts;
+  final LibraryGalleryLayoutManifest? layoutManifest;
   LibraryOrganizationCountSnapshot? get organizationSummary =>
       organizationCounts == null
       ? null
