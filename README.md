@@ -43,3 +43,11 @@ For more detail, see the [roadmap](docs/roadmap.md),
 [development guide](docs/development/repository-layout.md),
 [build and test commands](docs/acceptance/quality-gates.md), or the
 [architecture notes](docs/architecture/README.md).
+
+## License
+
+Copyright 2026 Cedarflake Ame contributors.
+
+Except where otherwise noted, Cedarflake Ame is licensed under the
+[Apache License, Version 2.0](LICENSE) (`Apache-2.0`).
+Third-party code, dependencies, model weights, and resources retain their own licenses and notices.

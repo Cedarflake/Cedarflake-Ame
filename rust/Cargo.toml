@@ -2,6 +2,7 @@
 name = "rust_lib_cedarflake_ame"
 version = "0.1.0-alpha.1"
 edition = "2024"
+license = "Apache-2.0"
 
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]
