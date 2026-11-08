@@ -39,7 +39,7 @@ permissions:
 jobs:
   package_windows:
     name: Windows ZIP and MSI Packages
-    runs-on: windows-2025
+    runs-on: windows-2022
     timeout-minutes: 45
     permissions:
       contents: read

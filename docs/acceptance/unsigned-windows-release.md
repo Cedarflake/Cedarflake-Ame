@@ -89,13 +89,25 @@ body without replacing either package, and missing, empty or mismatched notes st
 The publication contract and pinned actionlint 1.7.12 also passed. These checks made no remote writes.
 
 The candidate and publisher contain 157 and 231 production lines; their dedicated publication
-and wiring checks contain 213 and 89 lines, with no inline tests. Alpha 2 was dispatched before
-this change, so its existing run retains the earlier publisher; its final body will be synchronized
-from the versioned document without rebuilding or changing the source tag.
+and wiring checks contain 213 and 89 lines, with no inline tests. Complete CI passed at `37e0da65`
+in run `42509982166`. The Alpha 2 draft body matches the versioned document; final publication
+reads the same owner automatically.
 
 Alpha 2 run `42508623527` passed the candidate, complete regression and synthetic-workload gates.
 ZIP creation also passed, but MSI creation stopped before compilation because CMake discovery
 returned multiple application paths to one string parameter. The packager now selects the first
 application in PATH order. An isolated two-executable PATH fixture reproduced the old parameter
 binding failure and accepted the corrected selection; publication wiring and actionlint passed.
-The source tag and verified application payload were not changed by this packaging correction.
+Application source and the tag remained unchanged by this packaging correction.
+
+Run `42517797115` then passed the same application gates but exposed the hosted image's migration
+to Visual Studio 2026: the installer requires the Visual Studio 2022 CMake generator. Packaging now
+uses the supported `windows-2022` image; application build and runtime verification retain their
+existing host. The [upstream image inventory](https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md)
+confirms Visual Studio 2022, its C++ toolchain and the Windows SDK.
+
+The manifest-verified candidate from that run produced a complete local validation MSI with Visual
+Studio 2022, embedded models, native policy checks, database rejection cases and native option-state
+evaluation. Native checks used leased scratch storage after the default temporary directory rejected
+fixture creation. No installation or service registration ran, and this local package is not a release
+attachment. The candidate's Flutter notices also contain Ame's Apache 2.0 license entry.

@@ -67,6 +67,8 @@ not part of the tag or artifact name.
 Only Windows 11 x64 is supported and published. ARM packages are not produced or implied. A hosted
 `windows-2025` Windows Server runner supplies reproducible build and release checks, but it does not
 replace the separately authorized Windows 11 client acceptance evidence.
+Installer packaging uses `windows-2022` to retain the Visual Studio 2022 generator required by
+the native installer policy module. This packaging host does not change the supported client OS.
 
 Every release provides the MSI installer and portable ZIP under the same release tag. Its product
 version, embedded model payload and installation lifecycle follow [ADR 0027](0027-windows-installer-lifecycle.md).
