@@ -20,7 +20,8 @@ class LibrarySearch extends ChangeNotifier {
     required this.onModeChanged,
     required LibrarySearchMode initialMode,
     LibrarySemanticSearch? service,
-  }) : _session = service == null
+  }) : _lastEditingValue = text.value,
+       _session = service == null
            ? null
            : LibrarySemanticSearchSession(service),
        _mode = service == null || text.text.isNotEmpty
@@ -41,6 +42,7 @@ class LibrarySearch extends ChangeNotifier {
   final bool Function() allowContent;
   final ValueChanged<LibrarySearchMode> onModeChanged;
   final LibrarySemanticSearchSession? _session;
+  TextEditingValue _lastEditingValue;
   LibrarySearchMode _mode;
   LibrarySearchMode get selectedMode => _mode;
   LibrarySearchMode get mode => available ? _mode : LibrarySearchMode.fileName;
@@ -65,6 +67,12 @@ class LibrarySearch extends ChangeNotifier {
   };
 
   void _edited() {
+    final value = text.value;
+    final previous = _lastEditingValue;
+    _lastEditingValue = value;
+    if (value.text == previous.text && value.composing == previous.composing) {
+      return;
+    }
     _debounce?.cancel();
     cancelPending();
     error = null;
@@ -291,9 +299,7 @@ class LibrarySearch extends ChangeNotifier {
     onFailure(null);
     final scope = _effectiveScope();
     _scope = null;
-    text.removeListener(_edited);
-    text.clear();
-    text.addListener(_edited);
+    _replaceText("");
     try {
       await publish(
         scope.copyWith(searchText: "", semanticResults: null),
@@ -350,6 +356,7 @@ class LibrarySearch extends ChangeNotifier {
   void _replaceText(String value) {
     text.removeListener(_edited);
     text.text = value;
+    _lastEditingValue = text.value;
     text.addListener(_edited);
   }
 

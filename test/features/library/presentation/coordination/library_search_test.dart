@@ -11,10 +11,53 @@ import "package:cedarflake_ame/features/library/domain/library_semantic_search.d
 import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_search.dart";
 import "package:cedarflake_ame/features/library/presentation/library_search_notifications.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_search_bar.dart";
 
 import "../support/library_screen_fixture.dart";
 
 void main() {
+  testWidgets("focus and caret changes preserve the current search", (
+    tester,
+  ) async {
+    final fixture = _Fixture();
+    try {
+      fixture.search.findRelated(
+        galleryAsset(id: "reference", captureLocalTime: "2026-11-08T10:00:00"),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LibrarySearchBar(
+              controller: fixture.text,
+              enabled: true,
+              discovery: fixture.search,
+            ),
+          ),
+        ),
+      );
+      fixture.service.requests.single.result.complete(_results("related"));
+      await tester.pump();
+      await tester.tap(find.byType(TextField));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(fixture.search.related, isTrue);
+      expect(fixture.query.semanticResults?.id, "related");
+      expect(fixture.service.requests, hasLength(1));
+
+      fixture.text.text = "fox";
+      await tester.pump(const Duration(milliseconds: 250));
+      fixture.service.requests.last.result.complete(_results("text"));
+      await tester.pump();
+      fixture.text.selection = const TextSelection.collapsed(offset: 1);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(fixture.query.semanticResults?.id, "text");
+      expect(fixture.service.requests, hasLength(2));
+      expect(fixture.search.loading, isFalse);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      fixture.dispose();
+    }
+  });
+
   for (final related in [false, true]) {
     testWidgets(
       "acknowledging a failed ${related ? 'related' : 'text'} search clears only its current request",

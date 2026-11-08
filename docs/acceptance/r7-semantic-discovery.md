@@ -462,6 +462,13 @@ closed and cleaned up; the input layout was restored.
 
 ## Integrated verification — 2026-11-08
 
+Pre-merge review reproduced a search-input defect in the production Material search bar: focusing
+a related-image query cleared its reference, and moving the caret restarted a text query. The
+coordinator now reacts only to text or composing-range changes and tracks programmatic replacements.
+The focused widget case failed before the repair and passed afterward; all six search-coordinator
+cases passed, including IME composition, supersession, delayed preparation and failure acknowledgement.
+This follow-up changes no native, model, storage or source-admission inputs.
+
 The [`d9b69432` full run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42418380857)
 passed all nine main jobs and the final Windows Gate: Static, Flutter, Windows accessibility,
 Windows scan, production-bundle build and all four Rust partitions. Schema and Queue passed 410
