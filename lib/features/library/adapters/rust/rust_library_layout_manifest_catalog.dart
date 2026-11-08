@@ -23,7 +23,7 @@ class RustLibraryGalleryLayoutManifestCatalog
         query: mapLibraryGalleryQueryToRust(query),
         after: after == null ? null : _mapCursorToRust(after),
       );
-      return _mapChunk(chunk);
+      return mapChunk(chunk);
     } on LibraryGalleryLayoutManifestFailure {
       rethrow;
     } on Object catch (error) {
@@ -37,7 +37,7 @@ class RustLibraryGalleryLayoutManifestCatalog
     }
   }
 
-  LibraryGalleryLayoutManifestChunk _mapChunk(
+  static LibraryGalleryLayoutManifestChunk mapChunk(
     rust_domain.GalleryLayoutManifestChunk chunk,
   ) {
     final totalItems = _mapCount(chunk.totalItems, "total item count");
@@ -78,7 +78,7 @@ class RustLibraryGalleryLayoutManifestCatalog
     );
   }
 
-  LibraryGalleryLayoutManifestCursor _mapCursorFromRust(
+  static LibraryGalleryLayoutManifestCursor _mapCursorFromRust(
     rust_domain.GalleryLayoutManifestCursor cursor,
   ) {
     return LibraryGalleryLayoutManifestCursor(
@@ -98,7 +98,7 @@ class RustLibraryGalleryLayoutManifestCatalog
     );
   }
 
-  int _mapCount(BigInt value, String label) {
+  static int _mapCount(BigInt value, String label) {
     if (value.isNegative || value > BigInt.from(0x7fffffffffffffff)) {
       throw LibraryGalleryLayoutManifestFailure(
         code: "gallery_layout_manifest_count_invalid",
@@ -107,4 +107,26 @@ class RustLibraryGalleryLayoutManifestCatalog
     }
     return value.toInt();
   }
+}
+
+LibraryGalleryLayoutManifest? mapRustGalleryLayoutManifest(
+  List<rust_domain.GalleryLayoutManifestChunk>? chunks,
+) {
+  if (chunks == null) return null;
+  if (chunks.isEmpty) {
+    throw const LibraryGalleryLayoutManifestFailure(
+      code: "gallery_layout_manifest_incomplete",
+      message: "The gallery snapshot did not include its layout header",
+    );
+  }
+  final first = RustLibraryGalleryLayoutManifestCatalog.mapChunk(chunks.first);
+  final builder = LibraryGalleryLayoutManifestBuilder(
+    revision: first.revision,
+    queryId: first.queryId,
+    totalItems: first.totalItems,
+  )..append(first);
+  for (final chunk in chunks.skip(1)) {
+    builder.append(RustLibraryGalleryLayoutManifestCatalog.mapChunk(chunk));
+  }
+  return builder.build();
 }

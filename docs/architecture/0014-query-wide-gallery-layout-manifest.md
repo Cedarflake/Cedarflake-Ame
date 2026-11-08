@@ -2,7 +2,7 @@
 
 - Status: Accepted for validation
 - Date: 2026-08-09
-- Last amended: 2026-09-09
+- Last amended: 2026-11-08
 - Amends: ADR 0010 and ADR 0011
 
 ## Context
@@ -81,8 +81,14 @@ evidence changed; dimension recovery retains the separate geometry-evidence cont
 ### Deterministic layout snapshot
 
 Initial and replacement gallery queries return their bounded detail window, optional stable-anchor
-resolution, and timeline in one typed `GalleryQuerySnapshot` from one SQLite read transaction.
-Flutter validates and publishes this coherent result once. Ordinary paging and the immediate page
+resolution, timeline and compact layout in one typed `GalleryQuerySnapshot` from one SQLite read
+transaction. A time intent resolved against a newer revision uses the same snapshot boundary.
+Compact layout rows are encoded in 4096-item blocks inside that transaction; concurrent WAL
+publications cannot invalidate the read between blocks. Inline transfer is bounded by a 64 MiB
+estimate at 192 bytes per item; larger queries retain the chunk protocol and need separate scale
+validation. Flutter validates and publishes the coherent result once. A metadata-only revision
+with identical ordered identities, dimensions and date groups reuses the existing row geometry.
+Ordinary paging and the immediate page
 after catalog removal remain bounded reads without timeline aggregation. A deferred removal
 timeline that observes a later revision uses the existing committed-refresh coordinator and
 revalidates its original publication before requesting one coherent replacement snapshot.
@@ -196,6 +202,13 @@ generations. It keeps interaction state separate from data readiness. There is n
 controller, loaded-window scroll position, or second canonical offset. Rail labels, the primary
 line, visible date headings, page prefetch, and restored position all derive from the same logical
 anchor and layout snapshot.
+
+During a held rail gesture, one admitted detail read may finish while the newest pending target
+replaces earlier pending demand. Pointer movement does not cancel that read. Query replacement,
+native user movement and a newer gesture retire its authority. Same-query revisions preserve the
+Material pointer and remap its date target through the current layout; completion cannot align an
+older target over the still-held pointer. Passive demand rechecks whether adjacent paging already
+supplied its target before issuing another read, and never writes the scroll position.
 
 The newest explicit time target retains navigation ownership across its catalog load and layout
 alignment. Passive visible-range reports, including initial `ScrollMetricsNotification` delivery

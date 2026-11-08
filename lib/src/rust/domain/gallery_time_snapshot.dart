@@ -32,12 +32,14 @@ class GalleryTimeSnapshot {
   final GalleryTimeline timeline;
   final GalleryTimeAnchor? anchor;
   final BigInt windowStartOrdinal;
+  final List<GalleryLayoutManifestChunk>? layoutManifest;
 
   const GalleryTimeSnapshot({
     required this.snapshot,
     required this.timeline,
     this.anchor,
     required this.windowStartOrdinal,
+    this.layoutManifest,
   });
 
   @override
@@ -45,7 +47,8 @@ class GalleryTimeSnapshot {
       snapshot.hashCode ^
       timeline.hashCode ^
       anchor.hashCode ^
-      windowStartOrdinal.hashCode;
+      windowStartOrdinal.hashCode ^
+      layoutManifest.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -55,5 +58,6 @@ class GalleryTimeSnapshot {
           snapshot == other.snapshot &&
           timeline == other.timeline &&
           anchor == other.anchor &&
-          windowStartOrdinal == other.windowStartOrdinal;
+          windowStartOrdinal == other.windowStartOrdinal &&
+          layoutManifest == other.layoutManifest;
 }

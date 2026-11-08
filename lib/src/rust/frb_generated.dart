@@ -7295,14 +7295,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   GalleryQuerySnapshot dco_decode_gallery_query_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return GalleryQuerySnapshot(
       snapshot: dco_decode_catalog_snapshot(arr[0]),
       timeline: dco_decode_gallery_timeline(arr[1]),
       organizationCounts: dco_decode_opt_box_autoadd_organization_counts(
         arr[2],
       ),
+      layoutManifest: dco_decode_opt_list_gallery_layout_manifest_chunk(arr[3]),
     );
   }
 
@@ -7381,13 +7382,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   GalleryTimeSnapshot dco_decode_gallery_time_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return GalleryTimeSnapshot(
       snapshot: dco_decode_catalog_snapshot(arr[0]),
       timeline: dco_decode_gallery_timeline(arr[1]),
       anchor: dco_decode_opt_box_autoadd_gallery_time_anchor(arr[2]),
       windowStartOrdinal: dco_decode_u_64(arr[3]),
+      layoutManifest: dco_decode_opt_list_gallery_layout_manifest_chunk(arr[4]),
     );
   }
 
@@ -7671,6 +7673,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>)
         .map(dco_decode_gallery_layout_date_group)
+        .toList();
+  }
+
+  @protected
+  List<GalleryLayoutManifestChunk>
+  dco_decode_list_gallery_layout_manifest_chunk(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_gallery_layout_manifest_chunk)
         .toList();
   }
 
@@ -8099,6 +8110,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_u_64(raw);
+  }
+
+  @protected
+  List<GalleryLayoutManifestChunk>?
+  dco_decode_opt_list_gallery_layout_manifest_chunk(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_list_gallery_layout_manifest_chunk(raw);
   }
 
   @protected
@@ -11141,10 +11161,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_organizationCounts = sse_decode_opt_box_autoadd_organization_counts(
       deserializer,
     );
+    var var_layoutManifest = sse_decode_opt_list_gallery_layout_manifest_chunk(
+      deserializer,
+    );
     return GalleryQuerySnapshot(
       snapshot: var_snapshot,
       timeline: var_timeline,
       organizationCounts: var_organizationCounts,
+      layoutManifest: var_layoutManifest,
     );
   }
 
@@ -11246,11 +11270,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       deserializer,
     );
     var var_windowStartOrdinal = sse_decode_u_64(deserializer);
+    var var_layoutManifest = sse_decode_opt_list_gallery_layout_manifest_chunk(
+      deserializer,
+    );
     return GalleryTimeSnapshot(
       snapshot: var_snapshot,
       timeline: var_timeline,
       anchor: var_anchor,
       windowStartOrdinal: var_windowStartOrdinal,
+      layoutManifest: var_layoutManifest,
     );
   }
 
@@ -11645,6 +11673,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <GalleryLayoutDateGroup>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_gallery_layout_date_group(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<GalleryLayoutManifestChunk>
+  sse_decode_list_gallery_layout_manifest_chunk(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <GalleryLayoutManifestChunk>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_gallery_layout_manifest_chunk(deserializer));
     }
     return ans_;
   }
@@ -12311,6 +12352,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_u_64(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  List<GalleryLayoutManifestChunk>?
+  sse_decode_opt_list_gallery_layout_manifest_chunk(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_list_gallery_layout_manifest_chunk(deserializer));
     } else {
       return null;
     }
@@ -15529,6 +15584,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       self.organizationCounts,
       serializer,
     );
+    sse_encode_opt_list_gallery_layout_manifest_chunk(
+      self.layoutManifest,
+      serializer,
+    );
   }
 
   @protected
@@ -15613,6 +15672,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_gallery_timeline(self.timeline, serializer);
     sse_encode_opt_box_autoadd_gallery_time_anchor(self.anchor, serializer);
     sse_encode_u_64(self.windowStartOrdinal, serializer);
+    sse_encode_opt_list_gallery_layout_manifest_chunk(
+      self.layoutManifest,
+      serializer,
+    );
   }
 
   @protected
@@ -15923,6 +15986,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_gallery_layout_date_group(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_gallery_layout_manifest_chunk(
+    List<GalleryLayoutManifestChunk> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_gallery_layout_manifest_chunk(item, serializer);
     }
   }
 
@@ -16551,6 +16626,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_u_64(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_list_gallery_layout_manifest_chunk(
+    List<GalleryLayoutManifestChunk>? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_list_gallery_layout_manifest_chunk(self, serializer);
     }
   }
 

@@ -6,6 +6,8 @@ class LibraryTimelineProjectionCache {
   LibraryTimelineProjection? _projection;
   LibraryTimeline? _timeline;
 
+  LibraryTimelineProjection? get current => _projection;
+
   void clear() {
     _projection = null;
     _timeline = null;

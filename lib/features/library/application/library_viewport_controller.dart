@@ -8,6 +8,7 @@ import "library_browse_admission.dart";
 import "library_catalog.dart";
 import "ports/library_catalog.dart";
 import "../domain/library_query_snapshot.dart";
+import "../domain/gallery_layout_manifest.dart";
 import "library_catalog_publication.dart";
 import "library_page_operation.dart";
 import "library_query_projection.dart";
@@ -233,6 +234,7 @@ class LibraryViewportController {
       snapshot: result.snapshot,
       query: query,
       timeline: result.timeline,
+      layoutManifest: result.layoutManifest,
       organizationSummary: result.organizationSummary,
       isLoadingTimeline: false,
     );
@@ -377,6 +379,7 @@ class LibraryViewportController {
         windowStartItemOffset: windowStart,
         timeline: timeline,
         organizationSummary: result.organizationSummary,
+        layoutManifest: result.layoutManifest,
         activeTimeAnchor: null,
         isLoadingTimeline: false,
         isLoadingTimeAnchor: false,
@@ -716,6 +719,12 @@ class LibraryViewportController {
   }
 
   Future<bool> _loadTimeNavigation(LibraryTimeNavigationRequest request) async {
+    if (!_timeNavigation.ownsExplicitIntent(request) &&
+        request.currentItemOffset >= _state.windowStartItemOffset &&
+        request.currentItemOffset <
+            _state.windowStartItemOffset + _state.assets.length) {
+      return true;
+    }
     final hadQueryTransition = _queryTransition.retire();
     final generation = ++_publicationGeneration;
     _timeNavigation.beginLoading(request);
@@ -1123,6 +1132,7 @@ class LibraryViewportController {
       query: query,
       timeline: timeline,
       organizationSummary: result.organizationSummary,
+      layoutManifest: result.layoutManifest,
       isLoadingTimeline: false,
     );
     return true;
@@ -1230,6 +1240,7 @@ class LibraryViewportController {
     required LibrarySnapshot snapshot,
     required LibraryGalleryQuery query,
     required LibraryTimeline? timeline,
+    LibraryGalleryLayoutManifest? layoutManifest,
     LibraryOrganizationCountSnapshot? organizationSummary,
     required bool isLoadingTimeline,
   }) {
@@ -1260,6 +1271,7 @@ class LibraryViewportController {
           previousState.rootRemovalCompletionSequence,
       status: wasRemoving ? LibraryStatus.removing : null,
       timeline: timeline,
+      layoutManifest: layoutManifest,
       organizationSummary: organizationSummary,
       activeTimeAnchor: null,
       isLoadingTimeline: isLoadingTimeline,

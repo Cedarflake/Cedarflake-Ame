@@ -62,6 +62,12 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
+Gallery navigation stability is the active repair before R8. Follow the
+[repair plan](plans/gallery-navigation-stability.md). Local-primary interaction has been checked;
+the [evidence and remaining limits](acceptance/image-rendering.md#continuous-timeline-dragging-and-coherent-layout-publication)
+own the result. The repair remains on its branch pending hosted checks and integration; navigation
+features remain frozen during that delivery.
+
 The standalone Material migration was integrated on 2026-11-08 through
 [PR 54](https://github.com/Cedarflake/Cedarflake-Ame/pull/54).
 [ADR 0001](architecture/0001-flutter-rust-desktop-stack.md#standalone-material-library)

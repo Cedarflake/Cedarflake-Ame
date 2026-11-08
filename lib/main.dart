@@ -68,11 +68,19 @@ Future<void> main() async {
           sortDirection: viewPreferences.sortDirection,
           duplicateMode: viewPreferences.duplicateMode,
         );
-        final snapshot = await reads.catalog.load(
+        final initialSnapshot = await reads.catalog.loadQuerySnapshot(
           maxItems: libraryCatalogWindow,
           query: query,
         );
-        final initialState = LibraryState.fromSnapshot(snapshot, query: query);
+        final initialState =
+            LibraryState.fromSnapshot(
+              initialSnapshot.snapshot,
+              query: query,
+            ).copyWith(
+              timeline: initialSnapshot.timeline,
+              layoutManifest: initialSnapshot.layoutManifest,
+              organizationSummary: initialSnapshot.organizationSummary,
+            );
         final synchronizationBindings =
             LibrarySynchronizationBindings.production();
         final synchronizationOwner = synchronizationBindings.lifecycle;

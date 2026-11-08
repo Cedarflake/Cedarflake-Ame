@@ -41,16 +41,21 @@ class GalleryQuerySnapshot {
   final CatalogSnapshot snapshot;
   final GalleryTimeline timeline;
   final OrganizationCounts? organizationCounts;
+  final List<GalleryLayoutManifestChunk>? layoutManifest;
 
   const GalleryQuerySnapshot({
     required this.snapshot,
     required this.timeline,
     this.organizationCounts,
+    this.layoutManifest,
   });
 
   @override
   int get hashCode =>
-      snapshot.hashCode ^ timeline.hashCode ^ organizationCounts.hashCode;
+      snapshot.hashCode ^
+      timeline.hashCode ^
+      organizationCounts.hashCode ^
+      layoutManifest.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -59,5 +64,6 @@ class GalleryQuerySnapshot {
           runtimeType == other.runtimeType &&
           snapshot == other.snapshot &&
           timeline == other.timeline &&
-          organizationCounts == other.organizationCounts;
+          organizationCounts == other.organizationCounts &&
+          layoutManifest == other.layoutManifest;
 }

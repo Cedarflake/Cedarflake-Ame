@@ -43,8 +43,13 @@ class LibraryQuerySnapshotReader {
       anchor: anchor,
     );
     final snapshot = result.snapshot;
+    final layout = result.layoutManifest;
     if (snapshot.revision != result.timeline.revision ||
-        snapshot.queryId != result.timeline.queryId) {
+        snapshot.queryId != result.timeline.queryId ||
+        (layout != null &&
+            (layout.revision != snapshot.revision ||
+                layout.queryId != snapshot.queryId ||
+                layout.itemCount != result.timeline.totalItems))) {
       throw const LibraryCatalogFailure(
         code: "catalog_query_snapshot_invalid",
         message:

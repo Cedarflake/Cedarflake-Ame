@@ -883,6 +883,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<GalleryLayoutManifestChunk>
+  dco_decode_list_gallery_layout_manifest_chunk(dynamic raw);
+
+  @protected
   List<GalleryScrollSection> dco_decode_list_gallery_scroll_section(
     dynamic raw,
   );
@@ -1085,6 +1089,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
+
+  @protected
+  List<GalleryLayoutManifestChunk>?
+  dco_decode_opt_list_gallery_layout_manifest_chunk(dynamic raw);
 
   @protected
   OrganizationAction dco_decode_organization_action(dynamic raw);
@@ -2309,6 +2317,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<GalleryLayoutManifestChunk>
+  sse_decode_list_gallery_layout_manifest_chunk(SseDeserializer deserializer);
+
+  @protected
   List<GalleryScrollSection> sse_decode_list_gallery_scroll_section(
     SseDeserializer deserializer,
   );
@@ -2555,6 +2567,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
+  List<GalleryLayoutManifestChunk>?
+  sse_decode_opt_list_gallery_layout_manifest_chunk(
+    SseDeserializer deserializer,
+  );
 
   @protected
   OrganizationAction sse_decode_organization_action(
@@ -4063,6 +4081,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_gallery_layout_manifest_chunk(
+    List<GalleryLayoutManifestChunk> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_gallery_scroll_section(
     List<GalleryScrollSection> self,
     SseSerializer serializer,
@@ -4352,6 +4376,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_list_gallery_layout_manifest_chunk(
+    List<GalleryLayoutManifestChunk>? self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_organization_action(

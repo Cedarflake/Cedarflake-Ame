@@ -23,7 +23,7 @@ class LibraryTimeSeekAlignment {
     return positionedLayout?.isQueryWide == true &&
         identical(positionedLayout, layout) &&
         current.queryId == timeline.queryId &&
-        current.revision == timeline.revision;
+        current.revision >= timeline.revision;
   }
 
   int? currentItemOffset(

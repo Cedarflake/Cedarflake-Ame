@@ -56,6 +56,8 @@ class LibraryTimeRailPresentation extends StatefulWidget {
 class _LibraryTimeRailPresentationState
     extends State<LibraryTimeRailPresentation> {
   LibraryTimeRailFrame? _retainedFrame;
+  ({LibraryTimelineProjection paint, LibraryTimelineProjection input})?
+  _gesture;
 
   @override
   void initState() {
@@ -96,10 +98,11 @@ class _LibraryTimeRailPresentationState
         origin: LibraryTimeRailPositionOrigin.interaction,
       );
     }
-    if (!identical(
-      oldWidget.navigationProjection,
-      widget.navigationProjection,
-    )) {
+    if (oldWidget.timeline?.queryId != widget.timeline?.queryId ||
+        oldWidget.layoutShape != widget.layoutShape ||
+        oldWidget.scrollController != widget.scrollController ||
+        widget.navigationProjection == null) {
+      _gesture = null;
       final cancelInteraction = oldWidget.onInteractionCancelled;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) cancelInteraction();
@@ -115,7 +118,18 @@ class _LibraryTimeRailPresentationState
 
   @override
   Widget build(BuildContext context) {
-    final frame = _retainedFrame;
+    final retained = _retainedFrame;
+    final gestureProjection = _gesture?.paint;
+    final frame = retained == null || gestureProjection == null
+        ? retained
+        : LibraryTimeRailFrame(
+            projection: gestureProjection,
+            value: gestureProjection.valueFromProjection(
+              retained.projection,
+              retained.value,
+            ),
+            origin: retained.origin,
+          );
     if (frame == null) {
       return SizedBox(
         width: AnnotatedTimeRail.width,
@@ -134,15 +148,14 @@ class _LibraryTimeRailPresentationState
         currentNavigation != null && _ownsInput(currentNavigation)
         ? currentNavigation
         : null;
-    // A new gesture uses current date evidence while the painted ticks stay
-    // stable. Replacing its projection still retires the old Material pointer.
+    // Keep Material's pointer and painted date scale for the gesture. Every
+    // callback resolves that date through the current query projection.
     return AnnotatedTimeRail(
       interactionKey: ValueKey((
-        widget.timeline?.revision,
         widget.timeline?.queryId,
         widget.layoutShape,
         widget.scrollController,
-        navigation,
+        _gesture?.input ?? navigation,
       )),
       key: const Key("library-time-rail"),
       value: frame.value,
@@ -152,6 +165,9 @@ class _LibraryTimeRailPresentationState
       onChangeStart: navigation != null
           ? (value) {
               if (_ownsInput(navigation)) {
+                setState(
+                  () => _gesture = (paint: frame.projection, input: navigation),
+                );
                 widget.onChangeStart(
                   navigation.valueFromProjection(frame.projection, value),
                 );
@@ -173,6 +189,7 @@ class _LibraryTimeRailPresentationState
                 widget.onChangeEnd?.call(
                   navigation.valueFromProjection(frame.projection, value),
                 );
+                setState(() => _gesture = null);
               }
             }
           : null,

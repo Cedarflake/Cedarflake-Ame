@@ -11,6 +11,7 @@ import "library_asset_mapping.dart";
 import "../../application/ports/library_catalog.dart";
 import "library_gallery_query_mapping.dart";
 import "library_organization_counts_mapping.dart";
+import "rust_library_layout_manifest_catalog.dart";
 
 class RustLibraryCatalog
     implements
@@ -49,6 +50,7 @@ class RustLibraryCatalog
                 itemOffset: anchor.itemOffset.toInt(),
               ),
         windowStartItemOffset: result.windowStartOrdinal.toInt(),
+        layoutManifest: mapRustGalleryLayoutManifest(result.layoutManifest),
       );
     } on Object catch (error) {
       throw _mapFailure(error, "bridge_time_intent_load_failed");
@@ -80,6 +82,7 @@ class RustLibraryCatalog
         organizationCounts: counts == null
             ? null
             : mapRustOrganizationCounts(counts),
+        layoutManifest: mapRustGalleryLayoutManifest(result.layoutManifest),
       );
     } on Object catch (error) {
       throw _mapFailure(error, "bridge_query_snapshot_load_failed");

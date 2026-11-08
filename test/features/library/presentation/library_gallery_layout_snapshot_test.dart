@@ -11,6 +11,35 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_gal
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test(
+    "catalog-only revisions retain rows and invalidate changed geometry",
+    () {
+      final snapshot = LibraryGalleryLayoutSnapshot.build(
+        manifest: _manifest(),
+        availableWidth: 900,
+        thumbnailSize: GalleryThumbnailSize.small,
+        sortKey: LibraryGallerySortKey.captureTime,
+      );
+      final replacement = _manifest(revision: BigInt.from(8));
+      final rebound = snapshot.withCompatibleManifest(replacement)!;
+      expect(rebound.manifest, same(replacement));
+      expect(rebound.entries, same(snapshot.entries));
+      expect(rebound.metrics, same(snapshot.metrics));
+      expect(
+        snapshot.withCompatibleManifest(
+          _manifest(aspectRatios: [2, 1, 1, 1, 1, 0]),
+        ),
+        isNull,
+      );
+      expect(
+        snapshot.withCompatibleManifest(
+          _manifest(locationIds: ["b", "a", "c", "d", "e", "f"]),
+        ),
+        isNull,
+      );
+    },
+  );
+
   for (final queue in LibraryOrganizationQueue.values) {
     for (final sortKey in LibraryGallerySortKey.values) {
       for (final shape in GalleryLayoutShape.values) {
@@ -300,6 +329,7 @@ void main() {
 }
 
 LibraryGalleryLayoutManifest _manifest({
+  BigInt? revision,
   List<String>? locationIds,
   List<double>? aspectRatios,
   List<String?>? dateKeys,
@@ -330,7 +360,7 @@ LibraryGalleryLayoutManifest _manifest({
       }),
     );
   }
-  final revision = BigInt.from(7);
+  revision ??= BigInt.from(7);
   final builder = LibraryGalleryLayoutManifestBuilder(
     revision: revision,
     queryId: "query-wide-layout",

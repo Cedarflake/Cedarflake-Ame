@@ -247,6 +247,19 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
     pub(super) fn load_timeline(&self) -> Result<GalleryTimeline, ScanError> {
         load_gallery_timeline(&self.transaction, self.query, self.query_id, self.revision)
     }
+
+    pub(super) fn load_layout_manifest(
+        &self,
+        total_items: u64,
+    ) -> Result<Option<Vec<crate::domain::GalleryLayoutManifestChunk>>, ScanError> {
+        super::gallery_layout_manifest::load_snapshot(
+            &self.transaction,
+            self.query,
+            self.query_id,
+            self.revision,
+            total_items,
+        )
+    }
 }
 
 impl GalleryQueryRepository for SqliteCatalog {
@@ -280,6 +293,7 @@ impl GalleryQueryRepository for SqliteCatalog {
             }
         });
         let timeline = read.load_timeline()?;
+        let layout_manifest = read.load_layout_manifest(timeline.total_items)?;
         let organization_counts = query
             .organization_queue
             .map(|_| super::gallery::organization_queue::load_counts(&read.transaction, query))
@@ -289,6 +303,7 @@ impl GalleryQueryRepository for SqliteCatalog {
             snapshot,
             timeline,
             organization_counts,
+            layout_manifest,
         })
     }
 }

@@ -74,6 +74,7 @@ class LibraryTimeSnapshotReader {
     final snapshot = result.snapshot;
     final timeline = result.timeline;
     final anchor = result.anchor;
+    final layout = result.layoutManifest;
     final rootId = request.query.rootId;
     if (rootId != null && !snapshot.roots.any((root) => root.id == rootId)) {
       throw const LibraryCatalogFailure(
@@ -111,6 +112,10 @@ class LibraryTimeSnapshotReader {
         snapshot.revision < request.timeline.revision ||
         snapshot.queryId != timeline.queryId ||
         timeline.queryId != request.timeline.queryId ||
+        (layout != null &&
+            (layout.revision != snapshot.revision ||
+                layout.queryId != snapshot.queryId ||
+                layout.itemCount != timeline.totalItems)) ||
         bucketCount != timeline.totalItems ||
         !matchesCursor(snapshot.previousCursor) ||
         !matchesCursor(snapshot.nextCursor) ||
@@ -134,6 +139,12 @@ LibraryState publishLibraryTimeSnapshot(
   catalogRevision: result.snapshot.revision,
   queryId: result.snapshot.queryId,
   timeline: result.timeline,
+  layoutManifest:
+      result.layoutManifest ??
+      (current.catalogRevision == result.snapshot.revision &&
+              current.queryId == result.snapshot.queryId
+          ? current.layoutManifest
+          : null),
   windowStartItemOffset: result.windowStartItemOffset,
   previousCursor: result.snapshot.previousCursor,
   nextCursor: result.snapshot.nextCursor,

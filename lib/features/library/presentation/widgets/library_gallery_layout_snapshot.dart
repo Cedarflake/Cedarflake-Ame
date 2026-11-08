@@ -247,6 +247,25 @@ class LibraryGalleryLayoutSnapshot {
   final LibraryGalleryGrouping grouping;
   final double minimumCellWidth;
 
+  LibraryGalleryLayoutSnapshot? withCompatibleManifest(
+    LibraryGalleryLayoutManifest replacement,
+  ) {
+    if (!manifest.hasSameGeometry(replacement)) return null;
+    return LibraryGalleryLayoutSnapshot._(
+      manifest: replacement,
+      entries: entries,
+      entryStartOffsets: entryStartOffsets,
+      metrics: metrics,
+      itemEndOffsets: _itemEndOffsets,
+      availableWidth: availableWidth,
+      thumbnailSize: thumbnailSize,
+      layoutShape: layoutShape,
+      sortKey: sortKey,
+      grouping: grouping,
+      minimumCellWidth: minimumCellWidth,
+    );
+  }
+
   bool matches({
     required LibraryGalleryLayoutManifest otherManifest,
     required double otherAvailableWidth,

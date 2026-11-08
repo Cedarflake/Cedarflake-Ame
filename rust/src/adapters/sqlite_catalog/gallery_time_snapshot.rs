@@ -45,12 +45,14 @@ pub(super) fn load_time_snapshot(
     let window_start_ordinal = window_start.as_ref().map_or(0, |value| value.ordinal);
     let window_anchor = window_start.as_ref().map(|value| &value.anchor);
     let snapshot = read.load_snapshot(max_items, None, None, window_anchor)?;
+    let layout_manifest = read.load_layout_manifest(timeline.total_items)?;
     read.commit()?;
     Ok(GalleryTimeSnapshot {
         snapshot,
         timeline,
         anchor,
         window_start_ordinal,
+        layout_manifest,
     })
 }
 

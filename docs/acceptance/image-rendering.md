@@ -242,3 +242,50 @@ The page-demand owner, interaction widget, rail navigation and gallery wall cont
 The preceding `c34a94d2` hosted run `42470075424` passed Flutter tests but encountered HTTP 504
 downloads in Static and the three Windows build/integration jobs. Current-head hosted results remain
 separate from that infrastructure failure and the local checks above.
+
+### Continuous timeline dragging and coherent layout publication
+
+The `codex/gallery-navigation-snapshots` repair is based on `c1797887` and implements the
+[navigation stability plan](../plans/gallery-navigation-stability.md). Earlier click and wheel
+evidence did not cover the subsequently reproduced held-drag failure. The checked Windows Debug
+build was rebuilt on 2026-11-08 at 21:40 local time with the changes accompanying this record.
+
+The local-primary catalog contained 63,072 locations and 47,828 displayed duplicate representatives.
+Both equal-height and square layouts moved during native mouse drags and displayed shaped unloaded
+cards immediately at distant targets. Post-frame observations recorded changed scroll pixels while
+the Material pointer was still held. The native input API supplies short drags, not a configurable
+multi-second hold; the operator separately reported normal interaction during the same validation.
+Quick distant-and-return gestures retained the returned images after the old read completed.
+
+Image arrival initially exposed a second position error: a background refresh began between a new
+snapshot's publication and its first frame, rejected the previous revision's displayed position and
+restored a row-start fallback. The final client preserves the displayed location and row fraction
+through that gap. Square cards retained the same clipped first row before and after loading;
+equal-height cards retained their row boundaries through loading and later classification updates.
+Switching from the December 2025 portion of the growing manga category to the 218-image photo
+category displayed its first July 22, 2026 heading and the rail's start position. Wheel movement
+continued through visible rows. These checks used browsing and derived preview reads only.
+
+Read-only SQLite comparison retained all 47,828 ordered location identities while reducing the
+representative-layout query from about 2.2–2.3 seconds to 1.3 seconds with the same 32 MiB connection
+cache. Native detail navigation in the instrumented Debug client completed in roughly 3–8 seconds
+under concurrent classification; geometry and placeholder feedback did not wait for those reads.
+Cold detail loading still has visible latency. The coherent inline layout is bounded to 64 MiB by
+its item budget; larger queries retain the existing block protocol and were not accepted here.
+
+The coherent SQLite snapshot, duplicate evidence, held-gesture and position regressions passed in
+focused runs. The final two position checks, library static analysis and Debug build also passed.
+Temporary probes were removed. Hosted results must be evaluated for the published implementation
+commit; neither the local build nor this record establishes a hosted pass.
+
+One attached verification process exited after about 21 minutes with `0xC000013A`
+(`STATUS_CONTROL_C_EXIT`), captured by a retained process handle. No application crash event was
+found. The source of the console termination remains unconfirmed; it is not recorded as a repaired
+application crash. The independently launched final Debug client remained available during the
+subsequent interaction checks. Raw process and timing logs remain ignored under `build`.
+
+The viewport facade, screen, wall, navigation widget and position owner contain 1,324, 1,995, 1,560,
+769 and 176 production lines respectively. The seek scheduler contains 96 lines; the native compact
+layout owner contains 316 and reduces the SQLite facade to 2,985. These owners contain no inline
+tests. The dedicated held-drag, position, layout-projection and native snapshot files contain 210,
+195, 136 and 195 lines. The changes retain existing query, geometry and publication owners.

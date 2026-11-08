@@ -240,69 +240,80 @@ void main() {
     );
   }
 
-  testWidgets("same-revision fallback retires an active pointer", (
-    tester,
-  ) async {
+  testWidgets("same-query fallback preserves a held pointer", (tester) async {
     final fixture = _PublicationFixture(tester);
     await fixture.show(isQueryWide: true);
     await fixture.show(isQueryWide: true);
     final bounds = tester.getRect(find.byKey(const Key("timeline-slider")));
     final gesture = await tester.startGesture(bounds.center);
     await tester.pump();
+    final initialPosition = fixture.controller.offset;
     await fixture.show();
-    fixture.controller.jumpTo(1000);
     await fixture.show(isQueryWide: true);
+    await gesture.moveTo(
+      Offset(bounds.center.dx, bounds.top + bounds.height * 0.75),
+    );
+    await tester.pump();
+    final draggedPosition = fixture.controller.offset;
+    expect(draggedPosition, greaterThan(initialPosition));
     await gesture.up();
     await tester.pump(const Duration(milliseconds: 200));
-    expect(fixture.controller.offset, 1000);
+    expect(fixture.controller.offset, draggedPosition);
     expect(fixture.seeks, 0);
     expect(
       tester
           .widget<AnnotatedTimeRail>(find.byKey(const Key("library-time-rail")))
           .value,
-      closeTo(1000 / fixture.controller.position.maxScrollExtent, 0.000001),
+      closeTo(
+        draggedPosition / fixture.controller.position.maxScrollExtent,
+        0.000001,
+      ),
     );
     await tester.tapAt(
       Offset(bounds.center.dx, bounds.top + bounds.height * 0.3),
     );
     await tester.pump();
-    expect(fixture.controller.offset, isNot(1000));
+    expect(fixture.controller.offset, lessThan(draggedPosition));
   });
 
-  testWidgets(
-    "a retired pointer cannot commit after replacement geometry arrives",
-    (tester) async {
-      final fixture = _PublicationFixture(tester);
-      await fixture.show();
-      final slider = find.byKey(const Key("timeline-slider"));
-      final bounds = tester.getRect(slider);
-      final gesture = await tester.startGesture(
-        Offset(bounds.center.dx, bounds.top + bounds.height * 0.65),
-      );
-      await tester.pump();
-      await fixture.show(revision: 2, hasGeometry: false);
-      fixture.controller.jumpTo(1000);
-      await fixture.show(revision: 2);
-      await gesture.up();
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
-      expect(
-        fixture.controller.offset,
-        1000,
-        reason: "PointerUp belongs to the retired catalog revision",
-      );
-      expect(fixture.seeks, 0);
-      await tester.tapAt(
-        Offset(bounds.center.dx, bounds.top + bounds.height * 0.45),
-      );
-      await tester.pump();
-      expect(
-        fixture.controller.offset,
-        isNot(1000),
-        reason: "The replacement rail accepts a new pointer",
-      );
-    },
-  );
+  testWidgets("a held pointer continues through a newer catalog revision", (
+    tester,
+  ) async {
+    final fixture = _PublicationFixture(tester);
+    await fixture.show();
+    final slider = find.byKey(const Key("timeline-slider"));
+    final bounds = tester.getRect(slider);
+    final gesture = await tester.startGesture(
+      Offset(bounds.center.dx, bounds.top + bounds.height * 0.65),
+    );
+    await tester.pump();
+    await fixture.show(revision: 2, hasGeometry: false);
+    await fixture.show(revision: 2);
+    await gesture.moveTo(
+      Offset(bounds.center.dx, bounds.top + bounds.height * 0.45),
+    );
+    await tester.pump();
+    final draggedPosition = fixture.controller.offset;
+    expect(draggedPosition, greaterThan(0));
+    await gesture.up();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(
+      fixture.controller.offset,
+      draggedPosition,
+      reason: "Release retains the position already reached while held",
+    );
+    expect(fixture.seeks, 0);
+    await tester.tapAt(
+      Offset(bounds.center.dx, bounds.top + bounds.height * 0.75),
+    );
+    await tester.pump();
+    expect(
+      fixture.controller.offset,
+      greaterThan(draggedPosition),
+      reason: "The replacement rail accepts a new pointer",
+    );
+  });
 
   testWidgets("keeps the rail visible without granting stale geometry input", (
     tester,

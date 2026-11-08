@@ -14,17 +14,19 @@ use tempfile::tempdir;
 use crate::adapters::sqlite_catalog::*;
 
 #[test]
-fn query_snapshot_keeps_page_and_timeline_in_one_read_transaction() {
+fn query_snapshot_keeps_page_timeline_and_layout_in_one_read_transaction() {
     let directory = tempdir().expect("temporary catalog");
     let path = directory.path().join("catalog.sqlite3");
     let mut reader = SqliteCatalog::open(path.clone()).expect("reader");
-    publish_gallery_fixture(
-        &mut reader,
-        "initial",
-        "root",
-        "C:\\Fixture",
-        &[("first", None, 1), ("second", None, 2)],
-    );
+    let location_ids: Vec<_> = (0..=MAX_LAYOUT_MANIFEST_CHUNK_ITEMS)
+        .map(|index| format!("location-{index}"))
+        .collect();
+    let locations: Vec<_> = location_ids
+        .iter()
+        .enumerate()
+        .map(|(index, id)| (id.as_str(), None, index as i64))
+        .collect();
+    publish_gallery_fixture(&mut reader, "initial", "root", "C:\\Fixture", &locations);
     let mut writer = SqliteCatalog::open(path).expect("independent writer");
     set_after_query_snapshot_read_hook(move || {
         publish_fixture(&mut writer, "later", "other", "C:\\Other", "third");
@@ -36,13 +38,48 @@ fn query_snapshot_keeps_page_and_timeline_in_one_read_transaction() {
     assert_eq!(result.snapshot.revision, result.timeline.revision);
     assert_eq!(result.snapshot.query_id, result.timeline.query_id);
     assert_eq!(result.snapshot.assets.len(), 1);
-    assert_eq!(result.timeline.total_items, 2);
+    assert_eq!(result.timeline.total_items, location_ids.len() as u64);
+    let layout = result
+        .layout_manifest
+        .as_ref()
+        .expect("coherent compact layout");
+    assert_eq!(layout.len(), 2);
+    assert_eq!(layout[0].revision, result.snapshot.revision);
+    assert_eq!(
+        layout[0].location_ids.len(),
+        MAX_LAYOUT_MANIFEST_CHUNK_ITEMS as usize
+    );
+    let continuation = layout[0]
+        .next_cursor
+        .as_ref()
+        .expect("non-terminal block cursor");
+    assert_eq!(
+        continuation.next_ordinal,
+        u64::from(MAX_LAYOUT_MANIFEST_CHUNK_ITEMS)
+    );
+    assert_eq!(
+        continuation.after.location_id,
+        *layout[0].location_ids.last().expect("last location")
+    );
+    assert_eq!(layout[1].start_ordinal, continuation.next_ordinal);
+    assert_eq!(layout[1].location_ids, ["location-0"]);
+    assert!(layout[1].next_cursor.is_none());
     let cursor = result.snapshot.next_cursor.expect("bounded cursor");
     let current = reader
         .load_query_snapshot(1, &GalleryQuery::default(), TEST_QUERY_ID, None)
         .expect("next query observes publication");
     assert!(current.snapshot.revision > result.snapshot.revision);
-    assert_eq!(current.timeline.total_items, 3);
+    assert_eq!(current.timeline.total_items, location_ids.len() as u64 + 1);
+    assert_eq!(
+        current
+            .layout_manifest
+            .as_ref()
+            .expect("new layout")
+            .iter()
+            .map(|chunk| chunk.location_ids.len())
+            .sum::<usize>(),
+        location_ids.len() + 1
+    );
     assert_eq!(
         load_default_snapshot(&mut reader, 1, Some(&cursor))
             .expect_err("ordinary pagination still rejects stale cursors")

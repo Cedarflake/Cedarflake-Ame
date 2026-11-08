@@ -57,7 +57,9 @@ shared principles; the roadmap owns current delivery order and acceptance status
   selected root, generation and authority before publishing a lease.
 - `domain/gallery_time_snapshot.rs` owns semantic month resolution, display-order fallback and
   bounded target-window selection. `sqlite_catalog/gallery_time_snapshot.rs` resolves that intent
-  and reads the timeline, roots and page inside one `GalleryReadTransaction`. The target ordinal
+  and reads the timeline, roots, page and inline layout inside one `GalleryReadTransaction`.
+  `gallery_layout_manifest.rs` owns compact block encoding, continuation evidence and its transfer
+  budget; the catalog facade delegates legacy chunk reads to the same owner. The target ordinal
   remains distinct from the centered page start, so changed row grouping retains a loaded prefix.
   Ordinary time anchors and paging cursors keep their strict revision/query authority; this read
   grants no source access, catalog mutation or stale-cursor permission.
@@ -79,6 +81,10 @@ shared principles; the roadmap owns current delivery order and acceptance status
   groups. `organization_groups.rs` applies the same membership proof to the requested active copy
   before selecting its scoped representative; a copy outside the physical scope can still resolve
   through another member. Eligibility retains the shared empty-decision and published-source relation.
+- `sqlite_catalog/gallery/duplicates.rs` owns folded library membership. It resolves each scoped
+  copy's compatible published or retained fingerprint by source identity before choosing the group
+  representative. Copies without that evidence remain separate; preferred-copy and physical-scope
+  rules remain shared with exact-duplicate review.
 - `sqlite_catalog/gallery/organization_groups.rs` owns scoped organization-group selection,
   preferred representatives and group-anchor resolution. Its group query retains physical member
   counts for chronological timeline aggregation; page filters and continuation reuse the same

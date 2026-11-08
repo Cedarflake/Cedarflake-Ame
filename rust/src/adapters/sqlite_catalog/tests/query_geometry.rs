@@ -5,7 +5,7 @@ use crate::adapters::sqlite_catalog::tests::support::{
 
 use tempfile::tempdir;
 
-use crate::domain::GalleryTimeBucket;
+use crate::domain::{GalleryLayoutDateGroup, GalleryTimeBucket};
 
 use crate::adapters::sqlite_catalog::*;
 
