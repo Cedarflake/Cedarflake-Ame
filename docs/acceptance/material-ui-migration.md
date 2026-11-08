@@ -31,8 +31,9 @@ admits both standalone libraries in presentation and rejects them in adapters, i
 Cupertino import. Existing core-layer rejection and composition policy remain.
 
 All 56 focused checks passed across the existing application/localization, theme, menu, checkbox,
-filter, search and dependency-boundary suites. Diff review found 310 Dart files changed only by
-import replacement and formatting; the remaining Dart owners are localization and the boundary
+filter, search and dependency-boundary suites. The 11 existing image-viewer checks also passed,
+including wheel animation, actual-size persistence and panning bounds. Diff review found 310 Dart
+files changed only by import replacement and formatting; the remaining Dart owners are localization and the boundary
 rule/fixture. No generated bridge or native source changed.
 
 The first Windows build stopped at the existing memory guard during Rust compilation. The previous
@@ -49,6 +50,17 @@ composition retained the gallery; committing the Chinese text submitted the sear
 intentionally model-free profile, acknowledging the missing-model feedback cleared the search.
 The client closed normally with exit code 0; all 368 retained preview hashes were unchanged, and
 the scratch profile was retired. No Flutter exception or layout-overflow diagnostic was logged.
+
+A second isolated run at `ab512fd8` assigned quarterly dates from 2022 through 2025 to 368 temporary
+preview copies. Timeline clicks and drags reached October 2022, 2024 and 2023 without reverting after
+release; gallery scrolling updated the indicator. Viewer wheel zoom, slider dragging and actual-size
+reset changed the rendered scale. Filmstrip dragging reached both ends without changing the main
+image; selecting ordinals 365 and 1 displayed the matching image and retained the strip position.
+Closing and reopening the viewer preserved the gallery location. This client also exited normally,
+retired its scratch profile and preserved all 368 retained preview hashes, with no Flutter errors.
+
+Native image-panning input did not produce an observable displacement in the automation tool. The
+existing gesture/bounds test passed; sustained desktop image dragging remains unconfirmed.
 
 Hosted full regression remains the integration gate for this dependency migration. Its current
 commit's Actions results own that outcome; the local checks do not replace a fresh Windows build.
