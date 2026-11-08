@@ -111,3 +111,12 @@ Studio 2022, embedded models, native policy checks, database rejection cases and
 evaluation. Native checks used leased scratch storage after the default temporary directory rejected
 fixture creation. No installation or service registration ran, and this local package is not a release
 attachment. The candidate's Flutter notices also contain Ame's Apache 2.0 license entry.
+
+Run `42524891369` passed every candidate, regression, performance and package gate and uploaded
+both packages. Publication then stopped because GitHub's tag lookup returns published releases,
+not drafts. The publisher now discovers drafts through the authenticated paginated release list
+and rejects ambiguous matching releases. Faithful draft responses reproduced the failure in the
+existing transaction fixture; the corrected workflow passed it in PowerShell 7 and Windows
+PowerShell 5.1, including existing drafts, later release pages and duplicate-tag rejection.
+The publisher contains 252 production lines and its transaction fixture 233 dedicated test lines,
+with no inline tests. Publication recovery reuses this run's immutable packages and completed gates.

@@ -33,8 +33,22 @@ function Invoke-WebRequest {
     $state = $script:publicationState
     if ($state.LookupFailure) { return [pscustomobject]@{ StatusCode = 503; Content = '{}' } }
     if ($Uri.AbsolutePath -ceq "/repos/fixture/ame/releases/tags/$fixtureTag") {
-        if (-not $state.Exists) { return [pscustomobject]@{ StatusCode = 404; Content = '{}' } }
+        if (-not $state.Exists -or $state.Draft) { return [pscustomobject]@{ StatusCode = 404; Content = '{}' } }
         $content = @{ id = 42; tag_name = $fixtureTag; draft = $state.Draft } | ConvertTo-Json -Compress
+    } elseif ($Uri.AbsolutePath -ceq '/repos/fixture/ame/releases') {
+        if ($Uri.Query -notmatch '^\?per_page=100&page=([1-9][0-9]*)$') { throw 'Unexpected release pagination request' }
+        $page = [int]$Matches[1]
+        $state.ReleasePages.Add($page)
+        $releases = @(
+            if ($state.PaginatedReleases) {
+                for ($index = 0; $index -lt 100; $index++) {
+                    @{ id = 1000 + $index; tag_name = "other-$index"; draft = $false }
+                }
+            }
+            if ($state.Exists) { @{ id = 42; tag_name = $fixtureTag; draft = $state.Draft } }
+            if ($state.DuplicateRelease) { @{ id = 43; tag_name = $fixtureTag; draft = $true } }
+        )
+        $content = ConvertTo-Json -InputObject @($releases | Select-Object -Skip (($page - 1) * 100) -First 100) -Compress
     } elseif ($Uri.AbsolutePath -ceq '/repos/fixture/ame/releases/42/assets') {
         if ($Uri.Query -notmatch '^\?per_page=100&page=([1-9][0-9]*)$') { throw 'Unexpected asset pagination request' }
         $page = [int]$Matches[1]
@@ -137,12 +151,16 @@ try {
         $env:GH_TOKEN = 'fixture-token'
         Push-Location $scratch
         try {
-            foreach ($scenario in @('new', 'existing', 'missing-msi', 'failed-upload', 'conflicting-msi',
+            foreach ($scenario in @('new', 'existing', 'draft', 'paginated-releases', 'duplicate-releases',
+                    'missing-msi', 'failed-upload', 'conflicting-msi',
                     'missing-digest', 'lookup-failure', 'paginated', 'missing-notes', 'empty-notes',
                     'wrong-version-notes', 'missing-local-msi')) {
                 $state = @{
                     Exists = $scenario -notin @('new', 'failed-upload', 'missing-local-msi')
-                    Draft = $false; FailMsi = ($scenario -ceq 'failed-upload')
+                    Draft = ($scenario -in @('draft', 'paginated-releases', 'duplicate-releases'))
+                    FailMsi = ($scenario -ceq 'failed-upload')
+                    PaginatedReleases = ($scenario -ceq 'paginated-releases')
+                    DuplicateRelease = ($scenario -ceq 'duplicate-releases')
                     LookupFailure = ($scenario -ceq 'lookup-failure')
                     NotesMissing = ($scenario -ceq 'missing-notes')
                     NotesEmpty = ($scenario -ceq 'empty-notes')
@@ -151,6 +169,7 @@ try {
                     Assets = [Collections.Generic.List[object]]::new()
                     Writes = [Collections.Generic.List[string]]::new()
                     Pages = [Collections.Generic.List[int]]::new()
+                    ReleasePages = [Collections.Generic.List[int]]::new()
                 }
                 if ($scenario -ceq 'paginated') {
                     for ($index = 0; $index -lt 100; $index++) { $state.Assets.Add([pscustomobject]@{ name = "other-$index" }) }
@@ -174,7 +193,7 @@ try {
                     'failed-upload' {
                         if ($null -eq $failure -or -not $state.Draft -or $state.Writes -ccontains 'publish') { throw 'A partial upload exposed a public release' }
                     }
-                    { $_ -in @('conflicting-msi', 'missing-digest', 'lookup-failure', 'missing-local-msi',
+                    { $_ -in @('duplicate-releases', 'conflicting-msi', 'missing-digest', 'lookup-failure', 'missing-local-msi',
                             'missing-notes', 'empty-notes', 'wrong-version-notes') } {
                         if ($null -eq $failure -or $state.Writes.Count -ne 0) { throw "Unsafe publication was not rejected before mutation: $scenario" }
                     }
@@ -184,6 +203,7 @@ try {
                         $expectedWrites = switch ($scenario) { 'new' { 4 }; 'missing-msi' { 2 }; default { 1 } }
                         if ($state.Writes.Count -ne $expectedWrites) { throw "Publication performed unintended writes: $scenario" }
                         if ($scenario -ceq 'paginated' -and $state.Pages -notcontains 2) { throw 'Publication ignored later asset pages' }
+                        if ($scenario -ceq 'paginated-releases' -and $state.ReleasePages -notcontains 2) { throw 'Publication ignored a draft on a later release page' }
                         $release = [pscustomobject]@{ tag_name = $fixtureTag; draft = $false; assets = $state.Assets }
                         Assert-AmePublishedPackages -Release $release -Tag $fixtureTag -Directory $directory `
                             -ExpectedArchiveSha256 $env:AME_ARCHIVE_SHA256 -ExpectedInstallerSha256 $env:AME_INSTALLER_SHA256

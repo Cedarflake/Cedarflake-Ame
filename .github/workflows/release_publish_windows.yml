@@ -136,6 +136,30 @@ jobs:
             return $objectSha
           }
 
+          function Find-ReleaseForTag {
+            param([string]$Endpoint, [hashtable]$Headers, [string]$ReleaseTag)
+
+            $matchedRelease = $null
+            $page = 1
+            do {
+              $response = Invoke-WebRequest -Uri "${Endpoint}?per_page=100&page=$page" `
+                -Headers $Headers -SkipHttpErrorCheck -TimeoutSec 30
+              if ($response.StatusCode -ne 200) { throw "GitHub release lookup failed with HTTP $($response.StatusCode)" }
+              if (-not ([string]$response.Content).TrimStart().StartsWith('[')) {
+                throw 'GitHub release lookup did not return a release array'
+              }
+              [object[]]$pageReleases = ConvertFrom-Json -InputObject $response.Content
+              if ($null -eq $pageReleases) { $pageReleases = @() }
+              foreach ($release in $pageReleases) {
+                if ($release.tag_name -cne $ReleaseTag) { continue }
+                if ($null -ne $matchedRelease) { throw 'GitHub has multiple releases for the requested tag' }
+                $matchedRelease = $release
+              }
+              $page += 1
+            } while ($pageReleases.Count -eq 100)
+            return $matchedRelease
+          }
+
           function Get-ReleasePublicationPlan {
             param([string]$Repository, [string]$ReleaseTag, [object[]]$Artifacts, [string]$Token)
 
@@ -145,13 +169,10 @@ jobs:
               'X-GitHub-Api-Version' = '2022-11-28'
             }
             $endpoint = "https://api.github.com/repos/$Repository/releases"
-            $response = Invoke-WebRequest -Uri "$endpoint/tags/$([Uri]::EscapeDataString($ReleaseTag))" `
-              -Headers $headers -SkipHttpErrorCheck -TimeoutSec 30
-            if ($response.StatusCode -eq 404) {
+            $release = Find-ReleaseForTag -Endpoint $endpoint -Headers $headers -ReleaseTag $ReleaseTag
+            if ($null -eq $release) {
               return [pscustomobject]@{ Create = $true; Draft = $true; Missing = @($Artifacts.Name) }
             }
-            if ($response.StatusCode -ne 200) { throw "GitHub release lookup failed with HTTP $($response.StatusCode)" }
-            $release = $response.Content | ConvertFrom-Json
             if ([string]$release.id -cnotmatch '^[1-9][0-9]*$' -or $release.tag_name -cne $ReleaseTag -or
                 $release.draft -isnot [bool]) { throw 'GitHub release lookup returned an invalid release identity' }
 

@@ -233,8 +233,10 @@ release it lists every asset page through the authenticated GitHub API. A same-n
 uploaded and have an API-provided SHA-256 digest matching the corresponding verified package; that
 identity is retained without another upload. A different, missing, or malformed digest fails closed.
 Only a missing attachment may be uploaded, without overwrite permission.
-A release lookup's explicit HTTP 404 permits creation; transport errors and other unsuccessful
-release or asset lookups never count as absence. The publisher rechecks the tag immediately before
+Release discovery uses the authenticated, paginated release list so it includes drafts as well as
+published releases. Creation requires a complete successful lookup with no exact tag match; multiple
+matches stop publication. Transport errors and unsuccessful release or asset lookups never count
+as absence. The publisher rechecks the tag immediately before
 mutation; GitHub does not make tag resolution and release-asset mutation one transaction. Post-publication
 verification downloads and checks both assets against their API digests and the packager's hashes.
 Its pair verifier is read from the immutable workflow commit; application verification remains bound
