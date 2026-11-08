@@ -179,6 +179,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
                     ? null
                     : _toggleFilmstrip,
                 onInformation: widget.onInformation,
+                onRotate: _zoom.hasDimensions ? _zoom.rotateClockwise : null,
                 isActualSize: _zoom.isActualSize,
                 onToggleZoomMode: _zoom.hasDimensions
                     ? _toggleActualSize
@@ -210,6 +211,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
               LibraryViewerSourceScope.maybeOf(context)?.scheduler ??
               ref.watch(librarySourceReadSchedulerProvider),
           zoomScale: _zoom.transform.value.getMaxScaleOnAxis(),
+          quarterTurns: _zoom.quarterTurns,
           imageBuilder: _buildTransformedImage,
           operationNotice: widget.operationNotice,
           notice: switch (widget.sourceNotice) {

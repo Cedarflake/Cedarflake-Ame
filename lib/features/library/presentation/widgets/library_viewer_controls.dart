@@ -38,9 +38,9 @@ class LibraryViewerTopBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Expanded(
+            SizedBox(
+              width: 360,
               child: AmeWindowDragRegion(
-                key: const Key("viewer-window-drag-region"),
                 child: Row(
                   children: [
                     Expanded(
@@ -58,6 +58,12 @@ class LibraryViewerTopBar extends StatelessWidget {
               actions,
               const SizedBox(width: 16),
             ],
+            const Expanded(
+              child: AmeWindowDragRegion(
+                key: Key("viewer-window-drag-region"),
+                child: SizedBox.expand(),
+              ),
+            ),
             const AmeWindowCaptionControls(height: 64),
           ],
         ),

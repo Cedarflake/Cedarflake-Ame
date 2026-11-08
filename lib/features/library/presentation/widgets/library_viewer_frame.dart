@@ -133,7 +133,7 @@ class _LibraryViewerFrameState extends ConsumerState<LibraryViewerFrame> {
                 if (isFullscreen && actions != null)
                   Positioned(
                     top: 12,
-                    right: 20,
+                    left: 20,
                     child: Material(
                       color: Theme.of(context).colorScheme.surfaceContainerLow,
                       shape: const StadiumBorder(),

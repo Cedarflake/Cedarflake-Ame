@@ -15,6 +15,7 @@ class LibraryViewerToolbar extends StatelessWidget {
     this.onInformation,
     this.onCopyPath,
     this.onRevealFile,
+    this.onRotate,
     required this.isActualSize,
     required this.onToggleZoomMode,
     required this.sliderValue,
@@ -37,6 +38,7 @@ class LibraryViewerToolbar extends StatelessWidget {
   final VoidCallback? onInformation;
   final VoidCallback? onCopyPath;
   final VoidCallback? onRevealFile;
+  final VoidCallback? onRotate;
   final String? positionLabel;
   final Widget? leading;
   final bool isActualSize;
@@ -152,6 +154,13 @@ class LibraryViewerToolbar extends StatelessWidget {
           final zoomControls = Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (onRotate != null)
+                LibraryViewerToolbarButton(
+                  id: "viewer-rotate-clockwise",
+                  label: "顺时针旋转 90°",
+                  icon: Symbols.rotate_right_rounded,
+                  onPressed: onRotate,
+                ),
               LibraryViewerToolbarButton(
                 id: "viewer-zoom-mode",
                 label: isActualSize

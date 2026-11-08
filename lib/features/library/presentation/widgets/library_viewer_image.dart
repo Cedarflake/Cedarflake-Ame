@@ -26,6 +26,7 @@ class LibraryViewerImage extends StatefulWidget {
     this.sourceBufferLoader,
     this.imageBuilder,
     this.zoomScale = 1,
+    this.quarterTurns = 0,
     this.notice,
     this.operationNotice,
     super.key,
@@ -37,6 +38,7 @@ class LibraryViewerImage extends StatefulWidget {
   final LibrarySourceBufferLoader? sourceBufferLoader;
   final LibraryViewerImageBuilder? imageBuilder;
   final double zoomScale;
+  final int quarterTurns;
   final Widget? notice;
   final Widget? operationNotice;
 
@@ -106,6 +108,7 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
             widget.asset.height.toDouble(),
           ),
           viewportSize: constraints.biggest,
+          quarterTurns: widget.quarterTurns,
         );
         final quality = geometry.filterQualityForScale(
           widget.zoomScale,

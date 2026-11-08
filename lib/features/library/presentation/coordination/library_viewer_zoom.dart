@@ -5,7 +5,7 @@ import "package:material_ui/material_ui.dart";
 import "../../../settings/domain/ame_preferences.dart";
 import "../widgets/library_viewer_zoom_geometry.dart";
 
-/// Owns zoom intent as well as its transform, so resizing preserves actual pixel scale.
+/// Owns viewing geometry so rotation and resizing preserve zoom intent and pixel scale.
 class LibraryViewerZoom extends ChangeNotifier {
   LibraryViewerZoom({required TickerProvider vsync}) {
     _animation = AnimationController(
@@ -23,14 +23,19 @@ class LibraryViewerZoom extends ChangeNotifier {
   Object? _image;
   Size _imageSize = Size.zero;
   Size _viewport = Size.zero;
+  int _quarterTurns = 0;
   ImageViewerOpenBehavior? _behavior = ImageViewerOpenBehavior.automatic;
   double _scale = 1;
   bool _isConstraining = false;
   bool _isUpdatingLayout = false;
 
-  LibraryViewerZoomGeometry get _geometry =>
-      LibraryViewerZoomGeometry(imageSize: _imageSize, viewportSize: _viewport);
+  LibraryViewerZoomGeometry get _geometry => LibraryViewerZoomGeometry(
+    imageSize: _imageSize,
+    viewportSize: _viewport,
+    quarterTurns: _quarterTurns,
+  );
   Size get viewport => _viewport;
+  int get quarterTurns => _quarterTurns;
   bool get isUpdatingLayout => _isUpdatingLayout;
   double get minimumScale => _geometry.minimumScale;
   double get maximumScale => _geometry.maximumScale;
@@ -58,7 +63,10 @@ class LibraryViewerZoom extends ChangeNotifier {
     _image = image;
     _imageSize = imageSize;
     _viewport = viewport;
-    if (changedImage) _behavior = opening;
+    if (changedImage) {
+      _behavior = opening;
+      _quarterTurns = 0;
+    }
     _isUpdatingLayout = true;
     try {
       final behavior = _behavior;
@@ -94,6 +102,27 @@ class LibraryViewerZoom extends ChangeNotifier {
     } else {
       actualSize();
     }
+  }
+
+  void rotateClockwise() {
+    if (!hasDimensions) return;
+    final pixelScale = _geometry.fitImageScale * _scale;
+    _quarterTurns = (_quarterTurns + 1) % 4;
+    _interactionStart = null;
+    _isUpdatingLayout = true;
+    try {
+      final behavior = _behavior;
+      _setScale(
+        behavior == null
+            ? pixelScale / _geometry.fitImageScale
+            : _geometry.openingScale(behavior),
+        animate: false,
+        center: true,
+      );
+    } finally {
+      _isUpdatingLayout = false;
+    }
+    notifyListeners();
   }
 
   void zoomIn() => _manualScale(_scale * 1.25);
@@ -204,7 +233,7 @@ class LibraryViewerZoom extends ChangeNotifier {
     final matrix = transform.value;
     final scale = matrix.getMaxScaleOnAxis();
     final position = matrix.getTranslation();
-    final fitted = _imageSize * _geometry.fitImageScale;
+    final fitted = _geometry.orientedImageSize * _geometry.fitImageScale;
     final left = position.x + (_viewport.width - fitted.width) / 2 * scale;
     final top = position.y + (_viewport.height - fitted.height) / 2 * scale;
     final width = fitted.width * scale;

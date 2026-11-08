@@ -91,7 +91,10 @@ class _LibraryViewerImageInteractionState
         child: SizedBox(
           width: widget.zoom.viewport.width,
           height: widget.zoom.viewport.height,
-          child: widget.child,
+          child: RotatedBox(
+            quarterTurns: widget.zoom.quarterTurns,
+            child: widget.child,
+          ),
         ),
       ),
     ),

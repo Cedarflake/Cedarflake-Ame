@@ -64,17 +64,25 @@ The count includes the image unit and is separated from file metadata by a thin 
 The bottom More menu opens upward from its fixed lower edge above the button and closes toward
 that same edge. Its placement and animation leave the triggering button unobscured.
 The top bar retains the filename, back action and window controls. Favorite, album and organization
-actions form one icon-only group on its right, before the window controls and outside the draggable
-filename region. Hover tooltips and accessible names describe each action and its current state;
+actions form one icon-only group directly after the fixed-width filename region on the left.
+Long filenames elide without moving these actions. The filename and remaining blank header space
+are draggable; action buttons remain outside drag regions. Hover tooltips and accessible names
+describe each action and its current state;
 defer and ignore use labeled entries with icons inside the organization More menu. Album-conflict
-actions also use icons. Full screen keeps these actions at the upper right while hiding the filename
+actions also use icons. Full screen keeps these actions at the upper left while hiding the filename
 and window controls, preserving any in-flight action across the placement change. Both sides of the
 bottom toolbar use the same icon size and text style.
-Zoom mode, percentage, zoom slider and full-screen
+Clockwise rotation, zoom mode, percentage, zoom slider and full-screen
 action are on the right; full screen is the last action. The strip starts hidden and remembers its
 visibility. It uses bounded catalog paging and lazily creates visible thumbnails; selecting one opens
 that image in the current query order. Its ordinary mouse wheel moves horizontally through the native
 scroll position, alongside native horizontal-wheel, touchpad and scrollbar input.
+
+Rotation changes the current viewing direction by 90 degrees without changing the original file,
+EXIF, preview cache or catalog dimensions. It reuses the existing image interaction and sampling:
+fit and automatic modes follow the oriented image bounds; actual size and manual pixel scale are
+preserved. Loading and error notices remain upright. Navigating to another image or closing the
+viewer resets the viewing rotation.
 Small triangle buttons at the scrollbar ends move the strip by one thumbnail without changing
 the selected image. Each disables at its corresponding end. They use Material `IconButton`;
 the installed `ScrollbarThemeData.mainAxisMargin` reserves their space outside the native track.

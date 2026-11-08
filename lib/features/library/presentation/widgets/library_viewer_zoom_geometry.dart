@@ -7,6 +7,7 @@ class LibraryViewerZoomGeometry {
   const LibraryViewerZoomGeometry({
     required this.imageSize,
     required this.viewportSize,
+    this.quarterTurns = 0,
   });
 
   static const _defaultMinimumScale = 0.25;
@@ -14,6 +15,10 @@ class LibraryViewerZoomGeometry {
 
   final Size imageSize;
   final Size viewportSize;
+  final int quarterTurns;
+
+  Size get orientedImageSize =>
+      quarterTurns.isOdd ? Size(imageSize.height, imageSize.width) : imageSize;
 
   bool get hasImageDimensions => !imageSize.isEmpty && !viewportSize.isEmpty;
 
@@ -22,8 +27,8 @@ class LibraryViewerZoomGeometry {
       return 1;
     }
     return math.min(
-      viewportSize.width / imageSize.width,
-      viewportSize.height / imageSize.height,
+      viewportSize.width / orientedImageSize.width,
+      viewportSize.height / orientedImageSize.height,
     );
   }
 

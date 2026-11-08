@@ -89,7 +89,7 @@ void main() {
       );
       expect(actionRect.center.dy, minimizeRect.center.dy);
       expect(actionRect.right, lessThan(minimizeRect.left));
-      expect(actionRect.left, greaterThanOrEqualTo(dragRect.right));
+      expect(actionRect.right, lessThanOrEqualTo(dragRect.left));
       await tester.tap(organizationAction);
       expect(organizationActions, 1);
       await tester.tap(find.byKey(const Key("viewer-zoom-mode")));
@@ -113,7 +113,7 @@ void main() {
       expect(find.text("100%"), findsOneWidget);
       expect(tester.element(organizationAction), same(organizationElement));
       expect(tester.getRect(organizationAction).top, lessThan(64));
-      expect(tester.getRect(organizationAction).right, closeTo(980, .1));
+      expect(tester.getRect(organizationAction).left, closeTo(20, .1));
       await tester.tap(organizationAction);
       expect(organizationActions, 2);
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -564,6 +564,85 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   });
 
+  testWidgets(
+    "rotation keeps source pixels and zoom while resetting on navigation",
+    (tester) async {
+      tester.view.physicalSize = const Size(1000, 700);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final first = await _assetWithImage(tester, width: 1000, height: 500);
+      final next = await _assetWithImage(
+        tester,
+        width: 1000,
+        height: 500,
+        locationId: "next-image",
+      );
+      var active = first;
+      late StateSetter update;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: _viewerOverrides(),
+          child: MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  update = setState;
+                  return LibraryImageViewer(
+                    asset: active,
+                    onBack: () {},
+                    onInformation: () {},
+                    onCopyPath: () {},
+                    onRevealFile: () {},
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      _expectViewerPixels(tester, first);
+      final pixels = tester.widget<RawImage>(find.byType(RawImage)).image;
+      final rotate = find.byKey(const Key("viewer-rotate-clockwise"));
+      final imageRotation = find.ancestor(
+        of: find.byType(RawImage),
+        matching: find.byType(RotatedBox),
+      );
+
+      // The 580-pixel viewing height fits the rotated 1000-pixel image at 58%.
+      for (var turn = 1; turn <= 4; turn++) {
+        await tester.tap(rotate);
+        await tester.pumpAndSettle();
+        expect(tester.widget<RotatedBox>(imageRotation).quarterTurns, turn % 4);
+        expect(find.text(turn.isOdd ? "58%" : "100%"), findsOneWidget);
+        expect(
+          tester.widget<RawImage>(find.byType(RawImage)).image,
+          same(pixels),
+        );
+      }
+      await tester.tap(rotate);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("viewer-zoom-mode")));
+      await tester.pumpAndSettle();
+      await tester.tap(rotate);
+      await tester.pumpAndSettle();
+      expect(find.text("100%"), findsOneWidget);
+      await tester.tap(find.byKey(const Key("viewer-zoom-in")));
+      await tester.pumpAndSettle();
+      await tester.tap(rotate);
+      await tester.pumpAndSettle();
+      expect(find.text("125%"), findsOneWidget);
+
+      update(() => active = next);
+      await tester.pumpAndSettle();
+      expect(tester.widget<RotatedBox>(imageRotation).quarterTurns, 0);
+      expect(find.text("100%"), findsOneWidget);
+      _expectViewerPixels(tester, next);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets("viewer groups browsing left and zoom with fullscreen right", (
     tester,
   ) async {
@@ -807,8 +886,9 @@ Future<LibraryAsset> _assetWithImage(
   WidgetTester tester, {
   required int width,
   required int height,
+  String locationId = "location-1",
 }) async {
-  final asset = _asset(width: width, height: height);
+  final asset = _asset(width: width, height: height, locationId: locationId);
   final source = LibrarySourceImage(asset, scheduler: _sourceScheduler);
   await tester.runAsync(() async {
     final recorder = ui.PictureRecorder();
