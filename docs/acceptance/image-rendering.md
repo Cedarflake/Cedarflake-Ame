@@ -251,6 +251,12 @@ evidence did not cover the subsequently reproduced held-drag failure. Initial Wi
 interaction evidence below used the 2026-11-08 21:40 build; the subsequent query-cost checks used
 the 2026-11-09 Debug build accompanying this record.
 
+[PR 55](https://github.com/Cedarflake/Cedarflake-Ame/pull/55) was merged on 2026-11-09 as
+`da6c6c47`, after review and the [successful hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42498939639)
+for final implementation commit `9266d209`. All selected Rust, Flutter, static, Windows scan,
+accessibility and production-bundle checks passed, including the previously failing category
+query-cost and gallery interaction cases. The local and remote repair branches were deleted.
+
 The local-primary catalog contained 63,072 locations and 47,828 displayed duplicate representatives.
 Both equal-height and square layouts moved during native mouse drags and displayed shaped unloaded
 cards immediately at distant targets. Post-frame observations recorded changed scroll pixels while

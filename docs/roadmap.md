@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-08
+Last planning update: 2026-11-09
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -62,11 +62,11 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-Gallery navigation stability is the active repair before R8. Follow the
-[repair plan](plans/gallery-navigation-stability.md). Local-primary interaction has been checked;
-the [evidence and remaining limits](acceptance/image-rendering.md#continuous-timeline-dragging-and-coherent-layout-publication)
-own the result. The repair remains on its branch pending hosted checks and integration; navigation
-features remain frozen during that delivery.
+Gallery navigation stability was integrated on 2026-11-09 through
+[PR 55](https://github.com/Cedarflake/Cedarflake-Ame/pull/55). The
+[repair plan](plans/gallery-navigation-stability.md) retains its implementation boundaries; the
+[evidence and remaining limits](acceptance/image-rendering.md#continuous-timeline-dragging-and-coherent-layout-publication)
+own interaction, query-cost and hosted verification. R8 is the next planned stage and has not started.
 
 The standalone Material migration was integrated on 2026-11-08 through
 [PR 54](https://github.com/Cedarflake/Cedarflake-Ame/pull/54).

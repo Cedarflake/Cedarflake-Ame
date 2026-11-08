@@ -1,6 +1,6 @@
 # Gallery navigation stability
 
-Status: active repair under the [roadmap](../roadmap.md#current-execution-queue)
+Status: retained repair plan; the [roadmap](../roadmap.md#current-execution-queue) owns disposition
 
 ## Outcome
 
