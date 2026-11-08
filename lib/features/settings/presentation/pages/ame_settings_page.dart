@@ -216,7 +216,7 @@ class AmeSettingsPage extends ConsumerWidget {
                             const SettingsRow(
                               icon: Symbols.info_rounded,
                               title: "版本",
-                              subtitle: Text("Cedarflake Ame 0.1.0"),
+                              subtitle: Text("Cedarflake Ame 0.1.0-alpha.2"),
                             ),
                             SettingsRow(
                               key: const Key("open-source-notices-setting"),
@@ -229,7 +229,7 @@ class AmeSettingsPage extends ConsumerWidget {
                               onTap: () => showLicensePage(
                                 context: context,
                                 applicationName: "Cedarflake Ame",
-                                applicationVersion: "0.1.0",
+                                applicationVersion: "0.1.0-alpha.2",
                               ),
                             ),
                           ],
