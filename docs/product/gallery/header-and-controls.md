@@ -97,9 +97,10 @@ retain the checkbox, check mark, and Material primary-color outline. Activating 
 the viewer; activating the checkbox changes selection without opening. Touch and assistive
 technology receive an always-available semantic selection action and do not depend on hover.
 
-Versions before R9 do not show executable delete, move, or copy placeholders. R8 may show clearly
-non-executable plan actions only when the dry-run workflow is connected end to end; filesystem
-execution appears only when R9's implementation and safety gates are accepted.
+File-operation controls appear only when the
+[R8 workflow](../organization-workflows.md#r8---file-organization-and-recovery) is connected end to
+end and its safety gates are accepted. Do not show executable delete, move, or copy placeholders,
+or introduce an organization-preview control.
 
 Every gallery item supports a Material context menu opened by secondary click or the platform
 keyboard context-menu gesture. It targets the item under the pointer without losing an existing

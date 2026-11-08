@@ -17,6 +17,7 @@ recorded local checkpoint does not establish that the current product source pas
 | [R5 integrated delivery](r5-closeout.md) | Ordered slice coverage, current desktop boundaries, retained limits and submitted CI provenance |
 | [R6 engine evaluation](r6-engine-evaluation.md) | Candidate integration, transformation quality, index growth and remaining admission evidence |
 | [R6 similarity integration](r6-similar-images.md) | Persistent identities, production analysis, durable choices and desktop workflow evidence |
+| [R8 filesystem verification](r8-file-operations.md) | Planned disposable-fixture, file-integrity and interruption-recovery checks without Windows Sandbox |
 | [R5 exploratory model comparison](r5-model-evaluation.md) | Provisional local candidate comparison, source/provenance boundaries and remaining admission evidence |
 | [R5 inference runtime](r5-runtime-admission.md) | Pinned artifact provenance, isolated local/cloud resource observations and feature-compatibility evidence |
 | [GPU analysis acceleration](gpu-analysis-acceleration.md) | Default-enabled preference, CPU/GPU compatibility, isolated worker measurements and device-switching evidence |
@@ -122,8 +123,8 @@ Large testing starts during R1 rather than waiting for R10:
     R3;
 11. resumable review, override durability, and confidence-band sampling during R4 and R5;
 12. perceptual-candidate quality and bounded index evidence during R6;
-13. immutable dry-run determinism and unchanged source and target trees during R8;
-14. separately authorized operation fixtures and recovery evidence during R9.
+13. deterministic, non-mutating preflight plus separately authorized operation fixtures and recovery
+    evidence during the merged R8, following the [filesystem procedure](r8-file-operations.md).
 
 Every large run records file counts, duration, throughput, structured issue counts, cancellation
 behavior, recovery behavior, peak resource observations where available, cache growth, and whether

@@ -6,7 +6,8 @@ The [roadmap](../roadmap.md#delivery-sequence) alone selects delivery order and 
 These requirements retain the complete R3–R10 outcomes, exclusions, and acceptance boundaries without
 maintaining a second progress tracker. They complement the [workbench contract](workbench.md) and
 [gallery UI contract](gallery-ui.md). File operations remain unavailable until their separately
-authorized execution workflow; neither a requirement nor a dry-run plan authorizes source changes.
+authorized execution workflow; neither a requirement nor an internal operation plan authorizes
+source changes.
 
 ## R3 - Exact duplicate understanding
 
@@ -116,50 +117,37 @@ Scope:
 - no use of semantic similarity as exact duplicate proof, category override, automatic keep/delete
   decision, or filesystem-operation authority.
 
-## R8 - Physical organization dry-run
+## R8 - File organization and recovery
 
 User outcome:
 
-The user can define how virtual knowledge would map to a target filesystem, inspect the complete
-result, and resolve conflicts without Ame changing any source or target file.
+The user can select images, choose a file action and destination or naming rule, resolve blocking
+conflicts, and authorize execution. Ame checks current files, reports progress and partial results,
+and supports cancellation and recovery after interruption.
+
+This combines the former R8 and R9 scopes. There is no organization-preview page, optional preview,
+before/after listing, saved-plan manager, or plan export. The action control identifies the affected
+scope and destination; conflict handling and execution feedback remain part of the operation.
 
 Scope:
 
 - organization rules based on effective category, selected virtual albums, date, source, or explicit
   user choices;
-- target-root and path-template preview with invalid-name, reserved-name, path-length, unsupported
-  target, and source-overlap validation;
+- background validation of target roots and path templates, including invalid or reserved names,
+  path length, unsupported targets, and source overlap;
 - explicit handling of unresolved album-assignment conflicts before physical materialization;
   Favorites remain independent, and neither a favorite nor an unresolved album candidate implies a
   physical destination;
 - deterministic target-collision, existing-file, unavailable-source, cloud-placeholder, permission,
   cross-volume, and insufficient-space analysis;
-- an immutable, non-executable `OperationPlan` containing source and target, action kind, reason,
+- an internal immutable `OperationPlan` containing source and target, action kind, reason,
   expected source state and fingerprint evidence, target preconditions, conflicts, warnings, and
   estimated space impact;
-- summary counts for move, copy, rename, keep-in-place, exact duplicate locations, conflicts,
-  collisions, unavailable items, and items requiring another decision;
-- plan review, filtering, export, and regeneration as a new plan rather than mutation of historical
-  evidence;
-- no filesystem execution control, delete shortcut, implicit conflict resolution, or authorization
-  carried forward into R9.
-
-R8 acceptance proves that repeated generation from the same trustworthy inputs is deterministic,
-that stale or incomplete evidence is reported rather than guessed, and that source and target trees
-remain byte-for-byte and entry-for-entry unchanged.
-
-## R9 - Explicitly authorized filesystem execution
-
-User outcome:
-
-After reviewing a specific current plan, the user can freshly authorize its supported actions.
-Ame revalidates every item, records durable execution evidence, handles partial failure, and can
-recover safely after interruption.
-
-Scope:
-
-- fresh authorization bound to one immutable `OperationPlan`; viewing or generating a plan never
-  authorizes execution;
+- explicit resolution of the physical locations affected when one gallery item represents exact
+  duplicates; grouping alone never authorizes removing or moving every copy;
+- fresh action authorization bound to one immutable `OperationPlan`; background preparation never
+  authorizes execution, and a changed scope, destination, or conflict choice requires renewed
+  authorization rather than modification of the earlier evidence;
 - immediate per-item revalidation of root generation, physical identity, source state, compatible
   fingerprint evidence, target state, available space, and permissions before mutation;
 - same-volume move or rename behavior with explicit overwrite policy and recoverable intermediate
@@ -175,6 +163,11 @@ Scope:
   roots, cloud placeholders, cross-volume interruption, database failure, and process termination;
 - permanent deletion remains unavailable by default and requires a separately accepted policy and
   explicit action-level authorization if ever introduced.
+
+Preflight remains deterministic for the same trustworthy inputs and leaves source and target media
+unchanged. Execution changes only the authorized items, rejects stale evidence, and preserves
+recoverability. The [filesystem verification procedure](../acceptance/r8-file-operations.md) owns
+disposable fixtures, failure checks, and Windows integration evidence.
 
 ## R10 - Large-library maturity and release readiness
 
@@ -213,6 +206,5 @@ version, which is managed by the release process:
 | Smart albums | R5 | Automatic initial screening supplies useful category views while preserving legacy records and R4 decisions |
 | Similarity understanding | R6 | Near-duplicate candidates can be compared and reviewed without automatic deletion |
 | Advanced discovery | R7 | Structured and semantic search help rediscover understood content |
-| Safe physical proposal | R8 | A complete non-executable organization plan can be inspected and resolved |
-| Authorized organization | R9 | Reviewed filesystem changes execute with revalidation, journaling, and recovery |
+| Authorized organization | R8 | File actions execute with explicit authorization, revalidation, journaling, and recovery |
 | Release maturity | R10 | Installation, migration, diagnostics, resource limits, and long-term reliability are ready |

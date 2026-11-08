@@ -175,7 +175,7 @@ Until each owning stage connects its complete workflow, the production UI does n
 - semantic similarity;
 - people, faces, or identity features;
 - editing tools;
-- delete, move, copy, rename, recycle-bin, quarantine, or dry-run execution controls;
+- delete, move, copy, rename, recycle-bin, or quarantine controls;
 - a permanent task center, read-only-validation entry, cache diagnostics, or engineering limits.
 
 Classification belongs to R5 and appears as `智能相册`, scoping the same gallery through a derived

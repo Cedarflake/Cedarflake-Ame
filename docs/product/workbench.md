@@ -30,9 +30,9 @@ logical IDs. The mapping is discovery data and does not itself authorize source 
 real-library acceptance run.
 
 Ame must not require a second complete copy of these sources. Cataloging, browsing, analysis,
-review, and virtual organization do not modify original media. R8 produces only an immutable,
-non-executable organization plan. File-changing operations enter the product only in the separately
-approved and freshly authorized R9 execution stage.
+review, and virtual organization do not modify original media. R8 introduces separately authorized
+file organization and recovery, with internal preflight and current-state revalidation. It has no
+organization-preview feature; preparing an internal operation plan never authorizes file changes.
 
 Product success is measured by reduced human work and trustworthy decisions, not only by indexed
 file count or gallery feature breadth. Each applicable stage records:
@@ -41,8 +41,7 @@ file count or gallery feature breadth. Each applicable stage records:
 - model coverage, observed errors by confidence band, and automatic refinement outcomes;
 - review throughput, resumable progress, undo behavior, and durable user decisions;
 - virtual organization coverage and unresolved organization conflicts;
-- the proportion of a proposed physical plan that is ready, blocked, unchanged, or requires an
-  explicit choice;
+- authorized file-operation outcomes: completed, unchanged, blocked, failed, and recovered items;
 - source-state, cloud-placeholder, and operation-safety evidence proving that Ame never presented
   guesses as user decisions or changed files before authorization.
 
@@ -88,9 +87,10 @@ file count or gallery feature breadth. Each applicable stage records:
   [R4 requirements](r4-organization.md) own conflicts, progress, regrouping, and recovery.
 - Person recognition, face clustering, identity naming, pixel editing, RAW development, cloud sync,
   and a Lightroom-style editor are outside the product scope.
-- Delete, move, copy, rename, quarantine, and recycle-bin execution remain unavailable until R9 and
-  require a freshly authorized plan, current-state revalidation, an operation journal, and explicit
-  partial-failure and recovery behavior.
+- File-changing controls remain unavailable until the merged R8 workflow connects fresh action
+  authorization, current-state revalidation, an operation journal, and explicit partial-failure
+  and recovery behavior. Its [scope](organization-workflows.md#r8---file-organization-and-recovery)
+  retains the separate exclusion of permanent deletion.
 
 ### 2.1 Stable workbench concepts
 
@@ -124,9 +124,10 @@ must preserve their authority boundaries:
   distinct from legacy classification review status and R3's duplicate-review ignore choice.
 - `ReviewSession`: a persistent review query, position, progress, shortcuts, decisions, and undo
   boundary that can be resumed after restart.
-- `OperationPlan`: an immutable dry-run proposal describing intended filesystem actions, expected
-  source state, conflicts, targets, reasons, and estimated impact. It does not authorize execution.
-- `OperationJournal`: durable execution and recovery evidence created only by the authorized R9
+- `OperationPlan`: an internal immutable proposal describing intended filesystem actions, expected
+  source state, conflicts, targets, reasons, and estimated impact. It does not authorize execution
+  or require a user-facing preview.
+- `OperationJournal`: durable execution and recovery evidence created only by the authorized R8
   workflow.
 
 ## 3. Reference application policy: Lap
@@ -206,7 +207,7 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 - Do not treat filesystem notifications or staged inventory rows as authoritative file or asset
   state.
 - Do not respond to ordinary source changes by repeatedly scanning every configured root.
-- Do not mutate source or target media during R8, and do not execute an R9 action without fresh
+- Do not mutate source or target media during preflight, or execute a file action without fresh
   authorization bound to the exact immutable plan and current-state revalidation.
 - Do not silently change the UI framework, bridge, database, taxonomy, or reference policy.
 - After context compaction, query recent task history and verify live files before resuming.

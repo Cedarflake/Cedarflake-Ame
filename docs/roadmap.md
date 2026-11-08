@@ -33,9 +33,14 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
 | R6 | Perceptual similarity review | Merged into `main` on 2026-11-05 |
 | R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
-| R8 | Immutable physical-organization dry-run | Planned after R7 |
-| R9 | Freshly authorized physical operations and recovery | Planned after R8 |
+| R8 | Authorized file organization and recovery | Planned after R7; incorporates former R9 |
 | R10 | Large-library maturity and release readiness | Later work; infrastructure may support earlier stages |
+
+R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
+feature. R9 is no longer a separate stage; R10 keeps its identifier. The
+[merged scope](product/organization-workflows.md#r8---file-organization-and-recovery) owns behavior;
+the [verification procedure](acceptance/r8-file-operations.md) defines fixture-based checks without
+requiring Windows Sandbox. Implementation has not started.
 
 ## Current stage and acceptance boundary
 
