@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../app/notifications/ame_notification_controller.dart";
 import "../application/library_model_installation.dart";
+import "../domain/library_classification_review.dart";
 import "../domain/library_model_installation.dart";
 import "widgets/library_model_setup.dart";
 
@@ -55,6 +56,10 @@ class LibraryModelInstallationNotifications {
               "${(progress.totalBytes / 1000000).toStringAsFixed(1)} MB"
         : "";
     final failed = installation.stage == LibraryModelInstallationStage.failed;
+    final failure = switch (installation.error) {
+      LibraryClassificationFailure error => error,
+      _ => null,
+    };
     final (action, actionLabel) = switch (installation.stage) {
       LibraryModelInstallationStage.preparing ||
       LibraryModelInstallationStage.verifying ||
@@ -91,7 +96,8 @@ class LibraryModelInstallationNotifications {
         dedupeKey: key,
         title: title,
         message: message,
-        detail: failed ? "下载进度已保留，可以重试。" : null,
+        detail: failed ? _failureDetail(installation.error) : null,
+        technicalCode: failed ? failure?.code : null,
         severity: severity,
         isPersistent: installation.busy || failed,
         actionId: action,
@@ -105,6 +111,17 @@ class LibraryModelInstallationNotifications {
     }
   }
 }
+
+String _failureDetail(Object? error) => switch (error) {
+  LibraryClassificationFailure(
+    code: "classification_installation_unavailable",
+  ) =>
+    "暂时无法读取模型配置，请重试。",
+  LibraryClassificationFailure(:final code)
+      when code.startsWith("classification_download_") =>
+    "下载进度已保留，可以重试。",
+  _ => "请重试启用，已有的完整模型文件会复用。",
+};
 
 bool handleLibraryModelInstallationNotification(
   BuildContext context,

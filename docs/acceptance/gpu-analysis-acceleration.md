@@ -73,6 +73,21 @@ branches were deleted after confirming that `main` contained the reviewed implem
 
 ## Physical ownership
 
+### Concurrent startup migration — 2026-11-08
+
+The running Debug client's installation recovery reported `classification_installation_unavailable`
+with `database is locked`. Its selected model directory already contained all three manifest-verified
+artifacts. The error came from competing deferred schema-upgrade transactions, not missing models.
+An eight-caller legacy-schema fixture reproduces the same error against `97279e23`. Acquiring an
+immediate migration transaction and rereading its version preserves the saved installation, pending
+download and default GPU preference; current-schema reads also succeed beside an uncommitted writer.
+
+The nine installation-store tests pass in a small harness compiling copies of the production adapter,
+ports and their tests against real SQLite. Only the unrelated error transport type is a local facade.
+The full-crate local test compilation was stopped at low memory headroom; hosted checks own that run.
+Eight Flutter installation/notification tests pass, including the configuration-specific recovery
+message. Existing model files were only read and hashed; the running native DLL was not replaced.
+
 The affected handwritten owners retain separate responsibilities: encoder factory 193 lines,
 session encoder 177, graph promotion 121, application runtime facade 120, model transition 46,
 Settings section 119, package preparation 82 and bounded download 40. These owners contain no

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use rusqlite::Connection;
+use rusqlite::{Connection, TransactionBehavior};
 
 use crate::domain::ScanError;
 
@@ -14,15 +14,15 @@ pub(super) fn open(path: &Path) -> Result<Connection, ScanError> {
     connection
         .busy_timeout(std::time::Duration::from_secs(5))
         .map_err(storage_error)?;
-    let transaction = connection.transaction().map_err(storage_error)?;
-    let version: u32 = transaction
-        .pragma_query_value(None, "user_version", |row| row.get(0))
-        .map_err(storage_error)?;
-    if version > 3 {
-        return Err(storage_error(
-            "The classification installation format is newer than supported",
-        ));
+    if schema_version(&connection)? == 3 {
+        return Ok(connection);
     }
+    // Acquire write authority before reading the migration version. Concurrent
+    // startup readers must not deadlock while promoting deferred transactions.
+    let transaction = connection
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(storage_error)?;
+    let version = schema_version(&transaction)?;
     if version == 0 {
         transaction
             .execute_batch(
@@ -61,4 +61,16 @@ pub(super) fn open(path: &Path) -> Result<Connection, ScanError> {
     }
     transaction.commit().map_err(storage_error)?;
     Ok(connection)
+}
+
+fn schema_version(connection: &Connection) -> Result<u32, ScanError> {
+    let version = connection
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .map_err(storage_error)?;
+    if version > 3 {
+        return Err(storage_error(
+            "The classification installation format is newer than supported",
+        ));
+    }
+    Ok(version)
 }

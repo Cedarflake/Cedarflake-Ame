@@ -1,6 +1,64 @@
 use super::*;
 
 #[test]
+fn concurrent_startup_preserves_legacy_selection_and_pending_download() {
+    use crate::ports::classification_acceleration::ClassificationAccelerationRepository;
+    use std::sync::Barrier;
+
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("classification.sqlite3");
+    let selected = ClassificationInstallation {
+        models: directory.path().join("models"),
+        runtime: directory.path().join("runtime"),
+    };
+    let pending = DownloadIntent {
+        generation: 7,
+        package: "retained-model".into(),
+    };
+    let connection = Connection::open(&path).unwrap();
+    connection
+        .execute_batch(
+            "CREATE TABLE installation (id INTEGER PRIMARY KEY, models TEXT, runtime TEXT);
+             CREATE TABLE download_intent (
+                id INTEGER PRIMARY KEY, generation INTEGER, package TEXT, pending INTEGER
+             );
+             INSERT INTO download_intent VALUES (1, 7, 'retained-model', 1);
+             PRAGMA user_version = 2;",
+        )
+        .unwrap();
+    write_installation(&connection, &selected).unwrap();
+    drop(connection);
+    let startup = Barrier::new(8);
+    std::thread::scope(|scope| {
+        let workers: Vec<_> = (0..8)
+            .map(|_| {
+                scope.spawn(|| {
+                    startup.wait();
+                    let store = ClassificationInstallationStore;
+                    assert_eq!(store.load(&path).unwrap(), Some(selected.clone()));
+                    assert!(store.gpu_enabled(&path).unwrap());
+                    assert_eq!(
+                        store.pending_download(&path, &pending.package).unwrap(),
+                        Some(pending.clone())
+                    );
+                })
+            })
+            .collect();
+        for worker in workers {
+            worker.join().unwrap();
+        }
+    });
+    // Current-schema reads remain available while another connection owns a write.
+    let connection = Connection::open(&path).unwrap();
+    connection.execute_batch("BEGIN IMMEDIATE;").unwrap();
+    assert_eq!(
+        ClassificationInstallationStore.load(&path).unwrap(),
+        Some(selected)
+    );
+    connection.execute_batch("ROLLBACK;").unwrap();
+}
+
+#[test]
 fn no_selection_leaves_storage_absent_and_explicit_selection_survives_reopen() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory

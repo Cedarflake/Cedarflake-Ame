@@ -53,7 +53,9 @@ profile is not copied or relabelled as GPU calibration. No new confidence claim 
 ## Preferences and distribution
 
 Installation storage schema 3 adds one default-enabled preference while preserving model selection
-and pending download intent. Saves require proven native retirement. The existing desktop
+and pending download intent. Schema upgrades acquire an immediate write transaction before reading
+the version again; current-schema readers do not acquire a write lock. Saves require proven native
+retirement. The existing desktop
 configuration lifecycle joins the previous worker, commits the preference and opens the replacement.
 UI failure recovery rereads the saved preference, including a committed save followed by failed
 reopening. Catalog schema and source media are unchanged.
