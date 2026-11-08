@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 
 import "library_main_surface.dart";
 import "library_navigation_resize_handle.dart";

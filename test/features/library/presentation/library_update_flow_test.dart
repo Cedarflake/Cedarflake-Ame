@@ -7,7 +7,7 @@ import "package:cedarflake_ame/features/library/presentation/library_strings.dar
 import "package:cedarflake_ame/features/library/presentation/widgets/library_task_surface.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_update_dialog.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_update_task_surface.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {

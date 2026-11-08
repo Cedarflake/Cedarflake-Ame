@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../features/library/presentation/library_model_installation_notifications.dart";

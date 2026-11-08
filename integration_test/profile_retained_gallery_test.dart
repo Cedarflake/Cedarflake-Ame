@@ -15,7 +15,7 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/storage/adapters/rust/rust_storage_settings_gateway.dart";
 import "package:cedarflake_ame/src/rust/frb_generated.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart";
 import "package:flutter_test/flutter_test.dart";

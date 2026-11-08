@@ -1,5 +1,4 @@
-import "package:flutter/material.dart";
-import "package:flutter_localizations/flutter_localizations.dart";
+import "package:material_ui/material_ui.dart";
 
 const ameLocale = Locale.fromSubtags(
   languageCode: "zh",
@@ -9,8 +8,4 @@ const ameLocale = Locale.fromSubtags(
 
 const ameSupportedLocales = <Locale>[ameLocale];
 
-const ameLocalizationsDelegates = <LocalizationsDelegate<dynamic>>[
-  GlobalMaterialLocalizations.delegate,
-  GlobalWidgetsLocalizations.delegate,
-  GlobalCupertinoLocalizations.delegate,
-];
+const ameLocalizationsDelegates = GlobalMaterialLocalizations.delegates;

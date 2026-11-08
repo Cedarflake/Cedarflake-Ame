@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 
 /// Reveals decoded pixels without animating the card's geometry or compositing the whole wall.
 class LibraryImageReveal extends StatefulWidget {

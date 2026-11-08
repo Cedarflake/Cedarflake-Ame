@@ -12,7 +12,7 @@ import "package:cedarflake_ame/features/library/presentation/coordination/librar
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_notice.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {

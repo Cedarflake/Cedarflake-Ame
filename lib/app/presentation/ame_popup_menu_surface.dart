@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 
 /// Keeps an above-anchor popup's bottom edge fixed while Material reveals it.
 /// The captured theme only changes surface layout; the popup route still owns

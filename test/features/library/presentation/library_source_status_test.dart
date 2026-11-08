@@ -11,7 +11,7 @@ import "package:cedarflake_ame/features/library/domain/library_synchronization_m
 import "package:cedarflake_ame/features/library/presentation/widgets/library_analysis_activity.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_update_status.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_navigation_tile.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 

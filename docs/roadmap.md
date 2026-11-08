@@ -56,6 +56,11 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
+The standalone Material migration is implemented on `codex/material-ui-migration`; hosted regression
+and integration remain. [ADR 0001](architecture/0001-flutter-rust-desktop-stack.md#standalone-material-library)
+owns package compatibility and preserved desktop behavior; the [evidence record](acceptance/material-ui-migration.md)
+owns verification. This work does not start R8.
+
 GPU analysis acceleration was merged into `main` on 2026-11-07 through
 [PR 52](https://github.com/Cedarflake/Cedarflake-Ame/pull/52). The
 [evidence](acceptance/gpu-analysis-acceleration.md#integration-disposition--2026-11-07) retains local
@@ -82,7 +87,7 @@ multi-model selection and the larger FG-CLIP 2 evaluation are outside this scope
 
 The requested CI reduction is implemented: quick/full/nightly-release selection, affected Flutter
 suites and removal of incidental assertions. [CI evidence](acceptance/r7-semantic-discovery.md#ci-reduction--2026-11-07)
-retains its measured results and revision limits. Continue R7 without another broad test-cleanup project.
+retains its measured results and revision limits. Preserve that policy without another broad test-cleanup project.
 
 R6 retains the paired engine with accepted visual-layout discrimination and heavier-crop limits.
 Cloud-primary runs, constrained-client measurements and optimization remain deferred outside R6.

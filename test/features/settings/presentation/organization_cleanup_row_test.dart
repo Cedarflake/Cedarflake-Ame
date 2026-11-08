@@ -7,7 +7,7 @@ import "package:cedarflake_ame/features/library/application/library_organization
 import "package:cedarflake_ame/features/library/domain/library_organization_cleanup.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/organization_cleanup_row.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/organization_record_feedback.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 

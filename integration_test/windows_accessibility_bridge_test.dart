@@ -27,7 +27,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_pho
 import "package:cedarflake_ame/features/library/presentation/widgets/library_time_navigation.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_virtual_gallery_geometry.dart";
 import "package:flutter/gestures.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";

@@ -7,7 +7,7 @@ import "package:cedarflake_ame/features/library/application/ports/library_view_p
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";

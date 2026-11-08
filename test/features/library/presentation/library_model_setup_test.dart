@@ -15,7 +15,7 @@ import "package:cedarflake_ame/features/library/domain/library_model_installatio
 import "package:cedarflake_ame/features/library/presentation/library_model_installation_notifications.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_model_installation_feedback.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_smart_album_navigation.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";

@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";

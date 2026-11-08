@@ -4,7 +4,7 @@ import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/presentation/ame_localizations.dart";
 import "package:cedarflake_ame/app/presentation/ame_system_theme.dart";
 import "package:cedarflake_ame/features/library/presentation/pages/unified_library_screen.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";

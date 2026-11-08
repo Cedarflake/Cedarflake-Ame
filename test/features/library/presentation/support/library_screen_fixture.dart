@@ -6,7 +6,7 @@ import "package:cedarflake_ame/features/library/application/ports/library_scanne
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../support/library_query_snapshot_fixture.dart";

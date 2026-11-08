@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 
 import "../../../library/application/library_archive_state.dart";
 import "../organization_archive_messages.dart";

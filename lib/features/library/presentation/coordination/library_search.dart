@@ -1,6 +1,6 @@
 import "dart:async";
 
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 
 import "../../application/library_query_update.dart";
 import "../../application/library_semantic_search.dart";

@@ -6,7 +6,7 @@ import "package:cedarflake_ame/features/library/application/ports/library_synchr
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
 import "package:cedarflake_ame/src/rust/domain/library_synchronization.dart"
     as rust_sync;
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../support/synchronization_fixture.dart";

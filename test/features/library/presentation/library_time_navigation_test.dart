@@ -6,7 +6,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_gal
 import "package:cedarflake_ame/features/library/presentation/widgets/library_time_navigation.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_timeline_projection.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_virtual_gallery_geometry.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {

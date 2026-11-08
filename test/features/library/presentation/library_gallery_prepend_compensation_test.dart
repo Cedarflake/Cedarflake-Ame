@@ -1,7 +1,7 @@
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_prepend_compensation.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_virtual_gallery_geometry.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {

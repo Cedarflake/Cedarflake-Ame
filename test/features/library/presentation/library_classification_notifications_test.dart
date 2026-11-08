@@ -6,7 +6,7 @@ import "package:cedarflake_ame/features/library/application/ports/library_classi
 import "package:cedarflake_ame/features/library/presentation/library_classification_notifications.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_analysis_activity.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_bottom_feedback.dart";
-import "package:flutter/material.dart";
+import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 

@@ -93,7 +93,9 @@ const _stateLibraries = {
   "package:flutter_riverpod/flutter_riverpod.dart",
   "package:flutter_riverpod/legacy.dart",
 };
+const _designPackages = {"material_ui", "cupertino_ui"};
 const _presentationPackages = {
+  ..._designPackages,
   "flutter",
   "flutter_localizations",
   "flutter_riverpod",
@@ -122,6 +124,12 @@ bool _allowsExternal(ModuleLayer layer, String target) {
     return _valueLibraries.contains(target) || _stateLibraries.contains(target);
   }
   if (layer == ModuleLayer.adapter) {
+    final uri = Uri.parse(target);
+    if (uri.scheme == "package" &&
+        uri.pathSegments.isNotEmpty &&
+        _designPackages.contains(uri.pathSegments.first)) {
+      return false;
+    }
     return !{
       "package:flutter/material.dart",
       "package:flutter/widgets.dart",

@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Last amended: 2026-10-28
+- Last amended: 2026-11-08
 
 ## Context
 
@@ -54,7 +54,7 @@ accessibility ecosystem for this product.
 Use:
 
 - Flutter stable and Dart for the Windows desktop presentation layer;
-- Flutter's first-party Material 3 components and theme system;
+- Flutter's first-party `material_ui` components and Material 3 theme system;
 - Riverpod for presentation and ephemeral interaction state only;
 - a Rust workspace for domain, application, persistence, task, and adapter code;
 - `flutter_rust_bridge` behind a narrow generated bridge layer;
@@ -98,6 +98,33 @@ the previous 3.44.9 pin and dependency lock together, remove the new public swit
 the complete runtime; never mix engine DLLs and Dart payloads between SDK versions. The previous SDK
 revision remains available locally. Preserve the image I/O scheduling and native lifecycle checks
 when changing either path.
+
+## Standalone Material library
+
+Pin the official `material_ui` package to 1.10.0; the dependency lock also records its required
+`cupertino_ui` 1.1.6 dependency. Both retain Flutter's BSD-3-Clause license. Material components,
+themes and translated delegates come from `package:material_ui/material_ui.dart`; framework
+foundation, widgets, rendering and input primitives remain in the Flutter SDK. New UI libraries
+remain presentation dependencies and cannot enter domain, application, ports or adapters.
+
+The independent package receives component fixes without an SDK upgrade. It replaces the frozen
+in-framework Material library while preserving Ame's accepted Material 3 appearance, shared menus,
+tooltips, window chrome and desktop interaction. Expressive styling and replacement of the retained
+Windows overlay adaptations require their own affected interaction evidence.
+
+`ameLocalizationsDelegates` uses `GlobalMaterialLocalizations.delegates` from the standalone library,
+including its Cupertino and framework delegates. A legacy dependency that renders Material widgets
+may use the official compatibility bridge at that subtree; the bridge cannot convert incompatible
+Material types in a dependency's public API. The currently used Riverpod consumers and window-manager
+gesture/platform APIs do not require that bridge.
+
+Keep the application's existing Dart language mode. The package constraints and Flutter minimum
+enforce a compatible runtime SDK; raising the application's language version also affects generated
+Freezed syntax and is a separate generator/toolchain change. Migration uses the official
+`dart fix --apply --code=migrate_design_widgets`, followed by explicit package pinning and delegate
+updates. Rollback restores imports, delegates and the dependency lock together; Rust contracts,
+catalogs and original media are unchanged. The [migration evidence](../acceptance/material-ui-migration.md)
+owns actual compatibility and desktop results.
 
 ## Validation gates
 
@@ -166,6 +193,8 @@ without measured failure evidence.
 - <https://docs.flutter.dev/platform-integration/desktop>
 - <https://docs.flutter.dev/perf/impeller#windows>
 - <https://docs.flutter.dev/cookbook/design/themes>
+- <https://docs.flutter.dev/release/breaking-changes/material-ui-and-cupertino-ui>
+- <https://pub.dev/packages/material_ui/versions/1.10.0>
 - <https://api.flutter.dev/flutter/widgets/SliverGrid-class.html>
 - <https://github.com/fzyzcjy/flutter_rust_bridge>
 - <https://github.com/material-components/material-web>
