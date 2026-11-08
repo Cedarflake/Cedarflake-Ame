@@ -469,6 +469,20 @@ The focused widget case failed before the repair and passed afterward; all six s
 cases passed, including IME composition, supersession, delayed preparation and failure acknowledgement.
 This follow-up changes no native, model, storage or source-admission inputs.
 
+The repair is committed as `f4c7869a`. Its rebuilt Windows Debug client retained the reference-image
+state after focusing the search field and moving the caret; acknowledging the unavailable response
+cleared it. This isolated, model-free check used no model workers, peaked at 470.6 MiB private memory,
+exited normally and preserved all 368 preview hashes. The leased profile was cleaned up. Successful
+retrieval remains covered by the installed-model checks above and the focused widget regression.
+
+Review against `2e176aa8` covered search ordering and stale-result admission, cancellation, bounded
+feature storage and recovery, source-read validation, scheduling, migrations, album-icon persistence
+and CI selection. No unresolved confirmed finding remained after the search-input repair.
+[PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) merged the reviewed `f4c7869a` into `main`
+as `2c7ab9c3` on 2026-11-08. The user explicitly authorized integration before the
+[`f4c7869a` PR run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42444080153) finished;
+that run was still in progress at merge time. The earlier full result below retains its exact scope.
+
 The [`d9b69432` full run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42418380857)
 passed all nine main jobs and the final Windows Gate: Static, Flutter, Windows accessibility,
 Windows scan, production-bundle build and all four Rust partitions. Schema and Queue passed 410

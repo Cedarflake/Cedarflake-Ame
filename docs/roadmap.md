@@ -32,7 +32,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R4 | Favorites, albums and durable organization progress | Merged into `main` on 2026-10-30 |
 | R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
 | R6 | Perceptual similarity review | Merged into `main` on 2026-11-05 |
-| R7 | Structured and semantic discovery | Implemented and verified on the R7 branch; awaiting integration authorization |
+| R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
 | R8 | Immutable physical-organization dry-run | Planned after R7 |
 | R9 | Freshly authorized physical operations and recovery | Planned after R8 |
 | R10 | Large-library maturity and release readiness | Later work; infrastructure may support earlier stages |
@@ -129,19 +129,12 @@ schedules no additional broad split.
 
 ## R7 implementation sequence
 
-The [R7 plan](plans/r7-semantic-discovery.md#implementation-slices) owns slice definitions and planned
-interaction. R7-01 through R7-05 are implemented and verified on the R7 branch: composed filters,
-durable features, independent indexing, resource-aware scheduling, text search and related-image results share the
-existing gallery and viewer. [Implementation evidence](acceptance/r7-semantic-discovery.md#connected-scheduling-and-search)
-retains the scoped native-client checks and fixed-corpus retrieval measurements.
-[Derived-index recovery](acceptance/r7-semantic-discovery.md#derived-index-recovery--2026-11-08)
-has connected native and desktop evidence. [Local-primary retrieval measurements](acceptance/r7-semantic-discovery.md#large-library-retrieval--2026-11-08)
-and [desktop restart/scope checks](acceptance/r7-semantic-discovery.md#desktop-continuation--2026-11-08)
-are recorded. Native IME submission and cancellation are verified, and the
-[`d9b69432` full CI](acceptance/r7-semantic-discovery.md#integrated-verification--2026-11-08)
-passed all nine main jobs and the final gate. Implementation and verification are complete;
-PR creation and integration await explicit authorization. Preserve the measured partial-index
-coverage and deferred constrained-device limits in the acceptance record.
+R7-01 through R7-05 are integrated through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53).
+The [plan](plans/r7-semantic-discovery.md#implementation-slices) retains slice definitions;
+the [integration record](acceptance/r7-semantic-discovery.md#integrated-verification--2026-11-08)
+owns review, desktop verification, CI provenance and the authorized merge before the latest CI
+finished. Preserve the measured partial-index coverage and deferred constrained-device limits in
+that acceptance record. R8 remains planned and has not started.
 
 ## R4 implementation sequence
 
