@@ -40,8 +40,8 @@ R8 combines the former R8 and R9 scopes into one executable workflow without an 
 feature. R9 is no longer a separate stage; R10 keeps its identifier. The
 [merged scope](product/organization-workflows.md#r8---file-organization-and-recovery) owns behavior;
 the [execution plan](plans/r8-file-organization.md) defines Windows-backed implementation slices;
-the [verification procedure](acceptance/r8-file-operations.md) defines fixture-based checks without
-requiring Windows Sandbox. Implementation has not started.
+the [verification procedure](acceptance/r8-file-operations.md) defines guest-contained Windows Sandbox
+and hosted Windows fixture checks. Implementation has not started.
 
 ## Current stage and acceptance boundary
 

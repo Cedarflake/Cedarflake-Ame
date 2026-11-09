@@ -129,10 +129,13 @@ This combines the former R8 and R9 scopes. There is no organization-preview page
 before/after listing, saved-plan manager, or plan export. The action control identifies the affected
 scope and destination; conflict handling and execution feedback remain part of the operation.
 
-Windows capabilities perform file transfers, renames and recycling. Ame owns authorization,
-operation records, progress, catalog consistency and recovery coordination. Reuse the system
-Recycle Bin; a failed or unsupported recycle action never falls back to permanent deletion.
-The [execution plan](../plans/r8-file-organization.md) owns system-interface admission and rollout.
+Windows capabilities perform file transfers, renames, recycling and explicitly authorized permanent
+deletion. Ame owns authorization, operation records, progress, catalog consistency and recovery
+coordination. Reuse the system Recycle Bin by default. Permanent deletion requires the user's
+explicit choice in Ame's deletion confirmation or an affirmative Windows confirmation when
+recycling is unavailable; no silent
+fallback is allowed. The [execution plan](../plans/r8-file-organization.md#planned-interaction-decisions)
+owns the planned interaction details, system-interface admission and rollout.
 
 Scope:
 
@@ -140,22 +143,25 @@ Scope:
   user choices;
 - background validation of target roots and path templates, including invalid or reserved names,
   path length, unsupported targets, and source overlap;
-- explicit handling of unresolved album-assignment conflicts before physical materialization;
+- skipping and reporting multiple album destinations during album-based physical organization;
   Favorites remain independent, and neither a favorite nor an unresolved album candidate implies a
   physical destination;
 - deterministic target-collision, existing-file, unavailable-source, cloud-placeholder, permission,
   cross-volume, and insufficient-space analysis;
-- an internal immutable `OperationPlan` containing source and target, action kind, reason,
-  expected source state and fingerprint evidence, target preconditions, conflicts, warnings, and
-  estimated space impact;
+- an internal immutable `OperationPlan` containing source, destination and collision policy, action
+  kind, reason, expected source state and fingerprint evidence, target preconditions, conflicts,
+  warnings, and estimated space impact;
 - explicit resolution of the physical locations affected when one gallery item represents exact
   duplicates; grouping alone never authorizes removing or moving every copy;
+- ordinary gallery deletion may remove the preferred file; successful deletion chooses a new
+  preferred file from remaining duplicates, or removes the card when none remain;
 - fresh action authorization bound to one immutable `OperationPlan`; background preparation never
-  authorizes execution, and a changed scope, destination, or conflict choice requires renewed
-  authorization rather than modification of the earlier evidence;
+  authorizes execution, and a changed scope, destination root, deletion mode or collision policy
+  requires renewed authorization rather than modification of the earlier evidence;
 - immediate per-item revalidation of root generation, physical identity, source state, compatible
   fingerprint evidence, target state, available space, and permissions before mutation;
-- system-backed same-volume move or rename with explicit overwrite policy and recoverable outcomes;
+- system-backed same-volume move or rename with numbered collision names, no overwrite and
+  recoverable outcomes;
 - cross-volume transfer that establishes a complete, verified destination before authorized source
   removal and preserves a valid copy through interruption; use native transfer semantics where they
   satisfy these guarantees, otherwise compose native copy, bounded verification and source removal;
@@ -167,17 +173,20 @@ Scope:
   system-reported destinations; preserve durable user decisions through moves and recovery;
 - source and target safety fixtures for Chinese and long paths, conflicts, locked files, unavailable
   roots, cloud placeholders, cross-volume interruption, database failure, and process termination;
-- permanent deletion remains unavailable by default and requires a separately accepted policy and
-  explicit action-level authorization if ever introduced.
+- deletion confirmation defaults to recycling and offers an unchecked permanent-delete option;
+- a TXT result explanation in the export root for automatic renames, skipped items and other
+  exceptional outcomes, derived from durable operation records.
 
 System-backed execution replaces the earlier prescribed temporary-target publication sequence.
-Content preservation, explicit source-removal authority and recovery remain required outcomes;
-the system's internal copy algorithm and an Ame-specific quarantine are not product requirements.
+Content preservation for transfers, explicit deletion authority and applicable recovery remain
+required outcomes; the system's internal copy algorithm and an Ame-specific quarantine are not
+product requirements.
 
 Preflight remains deterministic for the same trustworthy inputs and leaves source and target media
 unchanged. Execution changes only the authorized items, rejects stale evidence, and preserves
-recoverability. The [filesystem verification procedure](../acceptance/r8-file-operations.md) owns
-disposable fixtures, failure checks, and Windows integration evidence.
+applicable recovery without offering a restore for permanent deletion. The
+[filesystem verification procedure](../acceptance/r8-file-operations.md) owns disposable fixtures,
+failure checks, and Windows integration evidence.
 
 ## R10 - Large-library maturity and release readiness
 

@@ -4,22 +4,31 @@ Status: planned verification procedure; no R8 execution or recovery pass is reco
 
 The [roadmap](../roadmap.md) owns activation and delivery status. The
 [merged product scope](../product/organization-workflows.md#r8---file-organization-and-recovery)
-owns authorization and file-operation behavior. Windows Sandbox is not a prerequisite.
+owns authorization and file-operation behavior. Windows Sandbox is the planned local isolation
+route; hosted Windows checks provide repeatable integration coverage.
 
 ## Disposable data and execution boundaries
 
-Local client checks use copies of the established `build/test` sample corpus in a leased
-`Invoke-AmeAcceptanceScratch` directory. Keep source fixtures, targets, catalog, and journal in
-separate owned subdirectories. Follow the existing
+Stage client binaries and sample copies from the established `build/test` corpus in a leased
+`Invoke-AmeAcceptanceScratch` directory, then pass them into Windows Sandbox through a read-only
+mapped input folder. Copy them into guest-local writable storage before testing. Keep source
+fixtures, targets, catalog, and journal in separate guest-owned subdirectories. Follow the existing
 [storage and cleanup procedure](quality/execution-safety.md#execution-scope-and-storage); preserve
 the reusable corpus and original catalogs. Never give the test process real-library roots or a
 production profile. No real photographs or catalogs enter hosted CI.
 
+Use a scoped [`.wsb` configuration](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file)
+with networking and clipboard redirection disabled. Do not expose host source folders or writable
+host mappings to mutation fixtures. Capture compact evidence before closing the sandbox; recovery
+checks restart Ame within the same sandbox so its test files and history survive the app restart.
+Confirm the required native capabilities when R8-01 begins; this plan records no successful Sandbox run.
+
 Scratch storage supplies ownership and cleanup, not operating-system isolation. The production
 operation boundary must validate resolved roots, file identity and target state, and reject path
 escape or unapproved reparse traversal. First exercise boundary attacks and process termination in
-a disposable hosted Windows job, using synthetic files and fixture-only sentinel targets. Local
-client verification follows those checks. Never point a deliberately hostile fixture at user data.
+Windows Sandbox or a disposable hosted Windows job, using synthetic files and fixture-only sentinel
+targets. Local client verification follows those checks. Never point a deliberately hostile fixture
+at user data.
 
 Record relative paths, file sizes and content hashes before and after a run. Include untouched
 sibling files outside the operation's allowed source and target roots but inside owned test storage.
@@ -39,11 +48,15 @@ the system's internal copying algorithm.
 | --- | --- |
 | Preflight, rejected or stale authorization | Source and target paths and bytes stay unchanged; a changed selection cannot execute an earlier request |
 | Copy, same-volume move or rename | Only authorized paths change; content is preserved; copy keeps its source; catalog identity and durable album/favorite decisions remain correct |
-| Collision, locked file, unavailable root, invalid name, Chinese or long path | Supported paths work; rejected items retain their sources and existing targets; partial results identify the affected items |
+| Numbered collision naming | Existing files stay unchanged; occupied suffixes and racing destination creation lead to another available name, never overwrite; actual names reach the catalog and TXT report |
+| Locked file, unavailable root, invalid name, Chinese or long path | Supported paths work; rejected items retain their sources and existing targets; partial results identify the affected items |
 | Root replacement, path escape, reparse point or changed target | Execution stops before an unauthorized write; out-of-scope sentinel files stay unchanged |
 | Cross-volume move | A complete verified target is published before authorized source removal; a failed or interrupted copy retains the source |
-| Cancellation, database failure, process termination | Restart reconciles disk, journal and catalog without losing the sole valid copy, repeating a completed mutation, or reporting unfinished work as complete |
-| Recycle and supported system restoration | Only the run's fixture items are affected; non-recyclable items fail before mutation; unrelated recycle-bin contents and files are untouched |
+| Cancellation, database failure, process termination | Restart reconciles disk, journal and catalog without unapproved loss, repeating a completed mutation, or reporting unfinished work as complete |
+| Delete confirmation and supported system restoration | Each new confirmation defaults to recycling; cancel/close leaves files intact; an explicitly checked and confirmed permanent deletion is recorded without a restore action; unrelated files and Recycle Bin contents stay untouched |
+| Non-recyclable item and Windows fallback prompt | Declining or cancelling preserves the file; affirmative native confirmation permits only the confirmed deletion; absent confirmation cannot authorize permanent fallback |
+| Preferred file deleted in the ordinary gallery | Only the bound file is deleted; a remaining duplicate becomes the persisted preference and displayed representative, or the card disappears when none remain; unchanged failed/cancelled files keep their preference; a late callback cannot delete the replacement |
+| Multiple album destinations and TXT result report | Ambiguous items are skipped without changing files or memberships; other items proceed; final feedback and one uniquely named report contain actual exceptional outcomes; clean runs create no report and report-write failure does not replay mutations |
 | Native completion and progress callbacks | Overall success with aborted or failed items is not reported as full success; actual renamed destinations reach the catalog; estimates and stopping states remain accurate |
 | Cloud-only or changed source | No implicit hydration; stale or unavailable evidence cannot authorize mutation |
 
@@ -62,17 +75,18 @@ sample copies; no preview UI is part of acceptance. Existing unrelated UI change
 new full filesystem suite. Follow the [test-design standard](../development/testing.md) and
 [existing CI selection](quality/gate-selection.md).
 
-Hosted Windows integration verifies actual file locks, volume identity, supported recycle behavior
-and native publication semantics. Cross-volume acceptance requires two genuinely distinct volumes
+Sandbox and hosted Windows integration verify actual file locks, volume identity, supported recycle
+behavior and native publication semantics. Cross-volume acceptance requires two genuinely distinct volumes
 in that disposable environment; two directories or an injected cross-volume error do not prove it.
 Prepare a bounded disposable volume fixture there when implementing this workflow, with cleanup
 scoped to its created resources. Do not repartition or configure the workstation for these checks.
 
 Permission and disk-full errors can be injected for focused recovery tests; native guarantees still
-need their applicable Windows integration evidence. Recycle-only safety includes a target that
-cannot recycle and must remain intact; observing permanent deletion after a callback is a failure,
-not a successful rejection. Test restoration through the admitted system route and restart Ame to
-verify its independent history, without relying on Explorer's undo stack. A missing runner capability
+need their applicable Windows integration evidence. Include an oversized or otherwise non-recyclable
+fixture and exercise both answers to the native permanent-deletion prompt, without a Yes-to-All
+shortcut. A completion callback alone does not prove prior authorization. Test restoration only for
+successfully recycled items through the admitted system route and restart Ame to verify its
+independent history, without relying on Explorer's undo stack. A missing runner capability
 needs a scoped equivalent Windows check or remains an explicit gap for that action. Small fixtures
 establish correctness; large batches and sustained resource checks belong to affected performance
 acceptance or release qualification.

@@ -16,6 +16,31 @@ persistence, bridge contracts and presentation. Keep this planning change separa
 Do not introduce a new privileged Windows service, private recycle bin or general-purpose copy
 engine. A system capability gap first receives a bounded Windows API evaluation.
 
+## Planned interaction decisions
+
+Ordinary gallery and viewer deletion acts on the explicitly selected physical file, including a
+preferred file. A preferred/selected marker is not a global deletion lock. A merged duplicate card
+does not authorize deleting its hidden copies. After verified deletion, automatically choose and
+persist a new preferred file from the remaining exact duplicates and refresh the card; remove the
+card when no copies remain. A cancelled or failed deletion that leaves the file intact preserves
+the original preference. Keep exact-group single preference and similar-group multiple selections
+as group-cleanup defaults; unselected membership alone does not authorize deletion.
+
+| Situation | Planned behavior |
+| --- | --- |
+| Name already exists at the destination | Keep the extension and allocate `name(1).jpg`, `name(2).jpg`, and so on, using the first free number without overwriting existing files. Record the actual final name. |
+| Delete confirmation | Show the affected file count and a `永久删除` checkbox, unchecked for every new request. Confirming normally requests the system Recycle Bin; checking the option and confirming explicitly authorizes permanent deletion. Cancel or close performs no deletion. |
+| Windows cannot recycle, including an oversized file | Preserve the native Windows confirmation and follow the user's response. Permanent fallback requires an affirmative system confirmation; cancellation or a refusal leaves the file intact. Ame never answers the dialog or silently retries permanently. |
+| Multiple album destinations in album-based organization | Skip that image, continue the other items, and summarize skipped items at the end. Do not choose an album or create multiple copies implicitly. This does not change virtual album membership. |
+
+When an export/organization run has automatic renames, skipped items, failures or unfinished items,
+write one UTF-8 TXT explanation in the selected export root. Include the operation time, source
+filename/path, actual destination/name, result and reason for each exceptional item. Generate it
+from recorded outcomes, use a unique report filename, and preserve earlier reports. A clean run
+needs no report. Keep report-write failures separate from completed file operations and surface
+them in Ame; retain the operation history. In-place deletion without an export root does not create
+a sidecar in the source library. This is a result report, not a plan export or preview.
+
 ## Implementation boundaries
 
 | Owner | Work |
@@ -48,12 +73,17 @@ Validate these adapter behaviors before exposing mutation controls:
   and uncertain results separately. System progress estimates must not be presented as measured bytes.
 - Verify how cancellation reaches an active operation and measure when it stops. Keep a stopping
   state until callbacks and execution retire. Do not infer pause/resume support from timer callbacks.
-- Validate recycle-only behavior through supported
+- Validate default recycling, explicitly selected permanent deletion, and native fallback confirmation
+  through supported
   [operation flags](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-ifileoperation-setoperationflags)
-  and pre-operation admission. A non-recyclable item must be rejected before deletion; inspecting
+  and pre-operation admission. Prove that declining the system's permanent-delete prompt preserves
+  a non-recyclable file. Use
   [`PostDeleteItem`](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-ifileoperationprogresssink-postdeleteitem)
-  afterwards cannot prevent permanent deletion. Record the actual recycled item for recovery.
-- Preserve explicit overwrite and conflict choices. Do not use a blanket Yes-to-All flag to hide
+  to record the actual outcome and recycled item, not to establish prior authorization. Permanent
+  deletion has no Recycle Bin restore action.
+- Admit numbered collision naming without overwrite, including another writer occupying a chosen
+  name before execution. Bind allocation to the authorized destination and naming policy; record
+  the resolved target before native submission. Do not use a blanket Yes-to-All flag to hide
   dialogs. Keep Ame's progress surface and avoid a duplicate native progress window; required
   system dialogs must have the correct owner window and cannot silently broaden the request.
 
@@ -73,7 +103,8 @@ undo state is session-dependent, so durable Ame history and restart reconciliati
 ### R8-01: Windows adapter admission
 
 Record the platform ADR and FFI safety contract, then prove the selected native APIs on disposable
-fixtures. Cover same-volume actions, cross-volume behavior, recycle-only rejection, restoration,
+fixtures in Windows Sandbox or hosted Windows. Cover same-volume actions, cross-volume behavior,
+numbered collisions, both deletion modes, fallback-confirmation refusal/acceptance, restoration,
 callbacks, cancellation and joined shutdown. Establish bounded batches and one mutation lane; let
 Windows own transfer mechanics. Document unsupported cases instead of silently substituting a
 custom engine. Exit with the native contract and concrete evidence needed by R8-02.
@@ -89,6 +120,8 @@ Apply actual verified results through the existing identity/reconciliation bound
 system notifications with the operation so the same change is not published twice. Cross-volume
 identity changes retain proven logical continuity; copied files follow the existing asset/location
 rules without merging durable identities. Target selection does not silently register a new root.
+Reconcile successful preferred-file deletion and replacement selection in one catalog publication;
+late callbacks cannot retarget an authorized deletion to the newly chosen representative.
 
 On restart, reconcile in-flight records with disk and catalog state before offering retry or
 supported recovery. Unknown outcomes remain unresolved until checked; never replay a mutation
@@ -97,11 +130,11 @@ catalog-commit boundaries, before UI mutation becomes available.
 
 ### R8-03: Connected desktop file actions
 
-Connect copy, move, rename and move-to-Recycle-Bin actions to existing gallery selection and context
+Connect copy, move, rename and confirmed deletion actions to existing gallery selection and context
 menus through the application owner. Distinguish selected image groups from affected physical
 files; unresolved duplicate-location choices require an explicit selection. Use existing destination
 selection, menus, feedback and bounded record surfaces rather than a preview page or task center.
-In the image viewer, place the move-to-Recycle-Bin button beside Favorite and Add to Album in the
+In the image viewer, place the delete button beside Favorite and Add to Album in the
 upper-right image-action group, before the window controls.
 
 Show real progress, partial results, cancellation and supported retry/restore actions. Keep gallery,
@@ -112,9 +145,10 @@ sample-copy interaction, including unavailable targets and a cancelled/partially
 
 Connect category, album, date and source rules from the product scope to the same request/execution
 path. Validate names and destinations in the background and resolve blocking conflicts in context.
-Rule changes retire unstarted requests; unresolved album assignments do not choose a destination.
+Rule changes retire unstarted requests; multiple album destinations are skipped and reported.
 Keep rules and item generation bounded, without a second engine, preview or saved-plan workflow.
-Exit with deterministic rule results and the same authorization/recovery behavior as direct actions.
+Connect the TXT result report to recorded exceptional outcomes. Exit with deterministic rule results
+and the same authorization/recovery behavior as direct actions.
 
 ### R8-05: Integrated verification and delivery
 
