@@ -26,17 +26,35 @@ $publishCall = Get-AmeWorkflowJobBlock $entry 'publish_windows'
 $verifyCall = Get-AmeWorkflowJobBlock $entry 'verify_published'
 $packageJob = Get-AmeWorkflowJobBlock $package 'package_windows'
 $publishJob = Get-AmeWorkflowJobBlock $publisher 'publish_windows'
+$prepareJob = Get-AmeWorkflowJobBlock $entry 'release_prepare'
+$candidateCall = Get-AmeWorkflowJobBlock $entry 'release_windows'
+
+Require-Text $prepareJob @(
+    'contents: read', 'actions: read', 'persist-credentials: false',
+    'ref: ${{ github.workflow_sha }}', 'release_prepare_reuse.ps1', 'release_validate_reuse.ps1'
+) @('contents: write', 'secrets:', 'gh release ', 'AME_SIGNING_PFX')
+foreach ($call in @($candidateCall, $packageCall, $publishCall)) {
+    Require-Text $call @('!inputs.validate_only') @()
+}
 
 Require-Text $packageCall @(
     '- release_request', '- release_windows', 'contents: read',
     'uses: ./.github/workflows/release_package_windows.yml',
-    'source_commit: ${{ needs.release_windows.outputs.source_commit }}',
+    'source_commit: ${{ needs.release_prepare.outputs.source_commit }}',
     'trusted_workflow_commit: ${{ needs.release_request.outputs.trusted_workflow_commit }}',
-    'verified_bundle_artifact: ${{ needs.release_windows.outputs.verified_bundle_artifact }}'
+    'verified_bundle_artifact: ${{ needs.release_windows.outputs.verified_bundle_artifact || needs.release_prepare.outputs.reuse_artifact }}',
+    'manifest_sha256: ${{ needs.release_prepare.outputs.manifest_sha256 }}'
 ) @('contents: write', 'secrets:', 'steps:')
 Require-Text $packageJob @(
     'contents: read', 'ref: ${{ inputs.source_commit }}', 'persist-credentials: false',
-    'git merge-base --is-ancestor $headCommit $env:AME_TRUSTED_WORKFLOW_COMMIT',
+    'ref: ${{ inputs.trusted_workflow_commit }}', 'path: build/release-source',
+    'git merge-base --is-ancestor $applicationCommit $env:AME_TRUSTED_WORKFLOW_COMMIT',
+    'Reused candidate manifest changed after provenance verification',
+    '-PubspecPath build/release-source/pubspec.yaml', '-CargoManifestPath build/release-source/rust/Cargo.toml',
+    '-ModelMetadataDirectory build/release-source/rust/src/adapters/classification_runtime',
+    "format = 'cedarflake-ame-release-packages-v1'", 'workflowCommit = $env:AME_TRUSTED_WORKFLOW_COMMIT',
+    'runId = $env:GITHUB_RUN_ID; runAttempt = $env:GITHUB_RUN_ATTEMPT',
+    'archiveSha256 = $env:AME_ARCHIVE_SHA256', 'installerSha256 = $env:AME_INSTALLER_SHA256',
     'manifest.sourceCommit -cne $env:AME_SOURCE_COMMIT', 'cedarflake-ame-signed-v1',
     'release_verify_windows_candidate.ps1', 'release_package_portable_windows.ps1',
     'release_prepare_installer_toolchain.ps1', 'release_package_installer_windows.ps1',
@@ -46,14 +64,15 @@ Require-Text $packageJob @(
 Require-Text $publishCall @(
     '- release_request', '- release_windows', '- package_windows', 'contents: write',
     'uses: ./.github/workflows/release_publish_windows.yml',
-    'source_commit: ${{ needs.release_windows.outputs.source_commit }}',
+    'source_commit: ${{ needs.release_prepare.outputs.source_commit }}',
     'trusted_workflow_commit: ${{ needs.release_request.outputs.trusted_workflow_commit }}',
-    'package_artifact: ${{ needs.package_windows.outputs.package_artifact }}',
-    'archive_sha256: ${{ needs.package_windows.outputs.archive_sha256 }}',
-    'installer_sha256: ${{ needs.package_windows.outputs.installer_sha256 }}'
+    'package_artifact: ${{ needs.package_windows.outputs.package_artifact || needs.release_prepare.outputs.reuse_artifact }}',
+    'archive_sha256: ${{ needs.package_windows.outputs.archive_sha256 || needs.release_prepare.outputs.archive_sha256 }}',
+    'installer_sha256: ${{ needs.package_windows.outputs.installer_sha256 || needs.release_prepare.outputs.installer_sha256 }}',
+    "github.ref == 'refs/heads/main'"
 ) @('secrets:', 'steps:')
 Require-Text $publishJob @(
-    'contents: write', 'Download immutable ZIP and MSI',
+    'contents: write', 'Download immutable ZIP and MSI', "github.ref == 'refs/heads/main'",
     'AME_NOTES_COMMIT: ${{ inputs.trusted_workflow_commit }}',
     'Read versioned release notes', '--notes-file',
     'Publication requires exactly one ZIP and one MSI',
@@ -75,8 +94,8 @@ Require-Text $verifyCall @(
     'uses: ./.github/workflows/release_verify_published.yml',
     'release_tag: ${{ inputs.release_tag }}',
     'expected_broker_publisher: ${{ inputs.expected_broker_publisher }}',
-    'archive_sha256: ${{ needs.package_windows.outputs.archive_sha256 }}',
-    'installer_sha256: ${{ needs.package_windows.outputs.installer_sha256 }}'
+    'archive_sha256: ${{ needs.package_windows.outputs.archive_sha256 || needs.release_prepare.outputs.archive_sha256 }}',
+    'installer_sha256: ${{ needs.package_windows.outputs.installer_sha256 || needs.release_prepare.outputs.installer_sha256 }}'
 ) @('contents: write', 'runs-on:', 'steps:', 'secrets:', 'actions: write', 'GH_TOKEN')
 Require-Text $published @(
     'release:', 'workflow_call:', 'workflow_dispatch:',
@@ -86,4 +105,5 @@ Require-Text $published @(
     '-ExpectedArchiveSha256 $env:AME_ARCHIVE_SHA256', '-ExpectedInstallerSha256 $env:AME_INSTALLER_SHA256',
     'release_verify_portable_signatures.ps1'
 ) @('contents: write')
+& (Join-Path $PSScriptRoot 'release_test_reuse.ps1')
 Write-Host 'Windows package and publication workflow contracts passed'

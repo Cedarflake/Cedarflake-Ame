@@ -62,6 +62,10 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
+Release artifact reuse is the active maintenance scope. The
+[execution plan](plans/release-artifact-reuse.md) adds stage-aware continuation from verified CI
+artifacts; it does not republish Alpha 2 or start R8.
+
 Gallery navigation stability was integrated on 2026-11-09 through
 [PR 55](https://github.com/Cedarflake/Cedarflake-Ame/pull/55). The
 [repair plan](plans/gallery-navigation-stability.md) retains its implementation boundaries; the

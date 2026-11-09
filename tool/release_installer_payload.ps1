@@ -27,7 +27,8 @@ function Get-AmeInstallerGuid {
 }
 
 function Assert-AmeInstallerPayloadNames {
-    param([Parameter(Mandatory = $true)][object[]]$Files, [bool]$RequireModels = $true)
+    param([Parameter(Mandatory = $true)][object[]]$Files, [bool]$RequireModels = $true,
+        [object]$ModelManifest = (Get-AmeClassificationModelsManifest))
 
     if ($Files.Count -eq 0 -or $Files.Count -gt 4096) {
         throw "Installer payload must contain between 1 and 4096 files"
@@ -53,7 +54,7 @@ function Assert-AmeInstallerPayloadNames {
         "cedarflake_ame_classification_worker.exe",
         "rust_lib_cedarflake_ame.dll", "flutter_windows.dll", "data/app.so", "data/icudtl.dat"
     ) + @(Get-AmeClassificationRuntimePayloadNames)
-    if ($RequireModels) { $requiredFiles += @(Get-AmeClassificationModelsPayloadNames) }
+    if ($RequireModels) { $requiredFiles += @(Get-AmeClassificationModelsPayloadNames $ModelManifest) }
     foreach ($required in $requiredFiles) {
         if (-not $names.Contains($required)) { throw "Installer payload is missing $required" }
     }
@@ -82,10 +83,11 @@ function New-AmeInstallerApplicationSource {
         [Parameter(Mandatory = $true)][object[]]$Files,
         [Parameter(Mandatory = $true)][string]$BundlePath,
         [Parameter(Mandatory = $true)][string]$OutputPath,
-        [string]$ModelDirectory
+        [string]$ModelDirectory,
+        [object]$ModelManifest = (Get-AmeClassificationModelsManifest)
     )
 
-    Assert-AmeInstallerPayloadNames -Files $Files
+    Assert-AmeInstallerPayloadNames -Files $Files -ModelManifest $ModelManifest
     $document = [Xml.XmlDocument]::new()
     $root = $document.CreateElement("Wix", $script:AmeInstallerNamespace)
     [void]$document.AppendChild($root)
@@ -131,7 +133,7 @@ function New-AmeInstallerApplicationSource {
         $fileId = $id
         if ($relative -ceq "cedarflake_ame.exe") { $fileId = "AmeApplicationExecutable" }
         $sourcePath = Join-Path $BundlePath $relative
-        if ($ModelDirectory -and $relative -cin @(Get-AmeClassificationModelsPayloadNames)) {
+        if ($ModelDirectory -and $relative -cin @(Get-AmeClassificationModelsPayloadNames $ModelManifest)) {
             $sourcePath = Join-Path $ModelDirectory ([IO.Path]::GetFileName($relative))
         }
         $entry = Add-AmeInstallerXmlElement $component "File" @{

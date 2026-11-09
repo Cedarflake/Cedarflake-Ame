@@ -248,6 +248,26 @@ unsigned channel unless the repository Actions variable `AME_WINDOWS_RELEASE_SIG
 selects `signed`, which also requires `AME_WINDOWS_EXPECTED_PUBLISHER`. Manual dispatch can select
 either channel. A structural ZIP check alone is not release identity evidence.
 
+### Continuing from verified CI artifacts
+
+A new main dispatch may reuse unexpired artifacts from completed main-dispatched release runs in
+the same repository. The exact tag/source and signature channel must still match. Candidate reuse
+requires the producing attempt's complete candidate gate and independent verifier to have passed.
+Package reuse requires a successful packaging job and a digest-verified receipt binding the two
+file hashes to the tag, source, workflow commit, run, attempt and channel. Downloads are revalidated;
+artifact names alone do not establish trust. Candidate and package artifacts are retained for 14 days.
+
+Publication and release-note changes reuse the verified ZIP/MSI pair. Packaging changes reuse the
+verified application but rebuild both packages with current trusted tools and tagged application
+version/model metadata. Candidate-verification changes and unknown inputs require fresh gates.
+Application edits on main do not change an existing tag's source. Missing automatic reuse falls back
+to fresh verification; an explicitly requested incompatible run fails instead. Current verifiers
+must still admit the retained payload; reuse does not bypass changed compatibility requirements.
+
+Read-only validation may run on a branch to select, download and check artifacts. It skips building,
+signing, packaging and publishing. Publication retains an independent main-only guard and the
+existing no-checkout writer. Reuse never replaces a published attachment or moves a tag.
+
 ## Deferred decisions
 
 Later release-maturity work outside ADR 0024 owns the following work:

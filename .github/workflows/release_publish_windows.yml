@@ -15,6 +15,12 @@ on:
       package_artifact:
         required: true
         type: string
+      package_run:
+        default: ""
+        type: string
+      package_artifact_id:
+        default: ""
+        type: string
       archive_name:
         required: true
         type: string
@@ -30,14 +36,17 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   publish_windows:
     name: Windows ZIP and MSI
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
     runs-on: windows-2025
     timeout-minutes: 20
     permissions:
       contents: write
+      actions: read
     env:
       AME_ARCHIVE_NAME: ${{ inputs.archive_name }}
       AME_ARCHIVE_SHA256: ${{ inputs.archive_sha256 }}
@@ -50,7 +59,10 @@ jobs:
       - name: Download immutable ZIP and MSI
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: ${{ inputs.package_artifact }}
+          name: ${{ inputs.package_artifact_id == '' && inputs.package_artifact || '' }}
+          artifact-ids: ${{ inputs.package_artifact_id }}
+          run-id: ${{ inputs.package_run || github.run_id }}
+          github-token: ${{ github.token }}
           path: build/publish
 
       - name: Validate immutable package pair

@@ -6,6 +6,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_ci_policy.ps1")
+. (Join-Path $PSScriptRoot 'release_reuse_github.ps1')
 
 $paths = @()
 if ($Requested -eq "auto") {
@@ -13,8 +14,7 @@ if ($Requested -eq "auto") {
         if ($BaseRevision -cnotmatch '^[0-9a-f]{40}$') {
             throw "The CI comparison requires an immutable base commit"
         }
-        $paths = @(& git -c core.quotepath=false diff --name-only --no-renames $BaseRevision HEAD --)
-        if ($LASTEXITCODE -ne 0) { throw "Could not inspect the CI change range" }
+        $paths = @(Get-AmeReleaseToolChanges -PreviousCommit $BaseRevision -CurrentCommit HEAD)
     }
 }
 $policy = Get-AmeCiPolicy -ChangedPaths $paths -Requested $Requested
