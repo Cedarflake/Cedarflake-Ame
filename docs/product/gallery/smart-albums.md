@@ -82,8 +82,10 @@ The viewer shows an available category as read-only text with its existing categ
 Favorite and Album. It has no category-selection menu, drop-down arrow, or manual analysis retry.
 Retain the same image's category during a catalog-driven reload; replace or remove it when the
 new result arrives, without carrying another image's label across navigation.
-A failed category read offers `重新读取分类`; stale reads
-cannot replace the state of a newly opened image. Supported metadata stays in the viewer information
+A failed category or organization-state read shares one `重新读取图片状态` action in the viewer;
+Favorite retains its icon and is unavailable until its state can be read. Catalog publication retries
+these reads automatically, and recovery removes the retry action. Stale reads cannot replace the
+state of a newly opened image. Supported metadata stays in the viewer information
 area without another permanent panel.
 
 Manual-album actions reuse the bottom tray, its deselectable single destination, and state-aware

@@ -24,18 +24,14 @@ class LibraryFavoriteButton extends ConsumerWidget {
       libraryOrganizationActionsProvider.select((value) => value.saving),
     );
     final favorite = status.value?.decisions.singleOrNull?.favorite;
-    final failed = status.hasError;
     final label = _label(
       favorite: favorite,
       saving: saving,
       error: status.error,
     );
     VoidCallback? action;
-    if (enabled && !saving && !status.isLoading) {
-      if (failed) {
-        action = () =>
-            ref.invalidate(libraryOrganizationInspectionProvider(target));
-      } else if (favorite != null) {
+    if (enabled && !saving && !status.isLoading && !status.hasError) {
+      if (favorite != null) {
         action = () => unawaited(
           ref
               .read(libraryOrganizationActionsProvider.notifier)
@@ -48,10 +44,10 @@ class LibraryFavoriteButton extends ConsumerWidget {
       child: IconButton(
         key: const Key("viewer-favorite"),
         iconSize: 20,
-        isSelected: failed ? false : favorite ?? false,
+        isSelected: favorite ?? false,
         onPressed: action,
         icon: Icon(
-          failed ? Symbols.refresh_rounded : Symbols.favorite_rounded,
+          Symbols.favorite_rounded,
           opticalSize: 20,
           weight: 400,
           fill: 0,
@@ -75,10 +71,10 @@ class LibraryFavoriteButton extends ConsumerWidget {
   }) {
     if (error is LibraryOrganizationFailure &&
         error.code == "organization_evidence_pending") {
-      return "正在确认图片内容，点击重试";
+      return "正在确认图片内容";
     }
     if (error != null) {
-      return "无法读取收藏状态，重试";
+      return "暂时无法读取收藏状态";
     }
     if (saving) {
       return "正在保存更改";

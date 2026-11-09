@@ -7,6 +7,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_fav
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../support/library_organization_fixture.dart";
 
@@ -58,7 +59,7 @@ void main() {
     },
   );
 
-  testWidgets("unavailable evidence offers a read retry without writing", (
+  testWidgets("unavailable evidence retains the disabled favorite action", (
     tester,
   ) async {
     final service = OrganizationServiceFixture();
@@ -68,13 +69,11 @@ void main() {
     );
     await tester.pumpWidget(_host(service, organizationTarget("one")));
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel("正在确认图片内容，点击重试"), findsOneWidget);
-    service.inspectTarget = null;
-    await tester.tap(find.byKey(const Key("viewer-favorite")));
-    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel("正在确认图片内容"), findsOneWidget);
+    expect(find.byIcon(Symbols.favorite_rounded), findsOneWidget);
     expect(service.writes, isEmpty);
     expect(_button(tester).isSelected, isFalse);
-    expect(_button(tester).onPressed, isNotNull);
+    expect(_button(tester).onPressed, isNull);
   });
 }
 

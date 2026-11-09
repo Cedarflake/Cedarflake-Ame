@@ -775,3 +775,14 @@ smart-album workflow now includes a populated `other` definition and still passe
 empty navigation and Library access. The category workflow also passes a retained `other` result
 without rendering its label. All 15 affected widget cases pass. The rebuilt Windows Debug sidebar
 shows the five named categories without an Other entry; their real gallery and viewer remain accessible.
+
+## Shared viewer state retry — 2026-11-09
+
+The viewer toolbar now owns one retry action for unavailable organization and category reads.
+Favorite retains its normal icon and stays disabled only while its own state is unavailable or
+saving. Focused regressions cover either read failing, both failing, manual recovery and a new
+catalog revision; a successful read is not repeated by the other read's retry. The retained favorite
+and classification suites also passed. The rebuilt Windows Debug client opened the newly cataloged
+screenshot and displayed Favorite, Album and its Screenshot category without a remaining retry.
+The earlier transient failure had already recovered; its paired retry state was verified through
+controlled provider failures, not reproduced again in the real catalog. No source file was modified.

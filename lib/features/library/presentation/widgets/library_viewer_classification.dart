@@ -18,17 +18,6 @@ class LibraryViewerClassification extends ConsumerWidget {
       return const SizedBox.shrink();
     }
     final result = ref.watch(libraryClassificationItemProvider(target));
-    if (result.hasError) {
-      return AmeTooltip(
-        message: "重新读取分类",
-        child: IconButton(
-          key: const Key("library-reload-classification"),
-          onPressed: () =>
-              ref.invalidate(libraryClassificationItemProvider(target)),
-          icon: const Icon(Symbols.refresh_rounded, semanticLabel: "重新读取分类"),
-        ),
-      );
-    }
     final item = result.value;
     final category = settings.visibleCategories
         .where((category) => category.id == item?.categoryId)

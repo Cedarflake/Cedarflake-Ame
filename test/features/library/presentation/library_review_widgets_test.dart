@@ -1,9 +1,13 @@
 import "dart:async";
 
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_classification_review.dart";
+import "package:cedarflake_ame/features/library/application/library_classification_settings.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/features/library/domain/library_classification_configuration.dart";
+import "package:cedarflake_ame/features/library/domain/library_classification_review.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_review.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_organization_mode.dart";
@@ -17,6 +21,7 @@ import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../support/library_organization_fixture.dart";
+import "../support/library_classification_review_fixture.dart";
 import "../support/library_review_fixture.dart";
 
 import "../../../support/application_test_bindings.dart";
@@ -35,7 +40,7 @@ void main() {
     container = ProviderContainer(
       overrides: applicationTestOverrides([
         libraryOrganizationProvider.overrideWithValue(organization),
-        libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
+        libraryControllerProvider.overrideWith(_UpdatingLibrary.new),
       ]),
     );
   });
@@ -88,6 +93,112 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+  }
+
+  for (final recovery in [
+    (organization: true, classification: true, automatic: false),
+    (organization: true, classification: true, automatic: true),
+    (organization: true, classification: false, automatic: false),
+    (organization: false, classification: true, automatic: false),
+  ]) {
+    testWidgets("viewer retries only unavailable state: $recovery", (
+      tester,
+    ) async {
+      final classification = ClassificationReviewFixture()
+        ..pendingRead = Completer<List<LibraryClassificationItem>>();
+      final pendingOrganization = Completer<LibraryOrganizationInspection>();
+      var organizationReads = 0;
+      organization.inspectTarget = (_) {
+        organizationReads++;
+        return pendingOrganization.future;
+      };
+      container.dispose();
+      container = ProviderContainer(
+        retry: (_, _) => null,
+        overrides: applicationTestOverrides([
+          libraryOrganizationProvider.overrideWithValue(organization),
+          libraryControllerProvider.overrideWith(_UpdatingLibrary.new),
+          libraryClassificationReviewServiceProvider.overrideWithValue(
+            classification,
+          ),
+          libraryClassificationSettingsProvider.overrideWith(
+            (ref) async => LibraryClassificationSettings(
+              revision: BigInt.one,
+              dispatchRevision: BigInt.one,
+              mode: LibraryClassificationMode.automatic,
+              categories: const [
+                LibraryClassificationCategory(
+                  id: "drawing",
+                  label: "插画",
+                  descriptions: ["drawing"],
+                ),
+              ],
+              runId: "run",
+              installationSelected: true,
+            ),
+          ),
+        ]),
+      );
+      await host(tester, viewer: true, organizing: false);
+      if (recovery.organization) {
+        pendingOrganization.completeError(
+          const LibraryOrganizationFailure(
+            "organization_evidence_pending",
+            "Evidence is pending",
+          ),
+        );
+      } else {
+        pendingOrganization.complete(organizationInspection(true));
+      }
+      if (recovery.classification) {
+        classification.pendingRead!.completeError(StateError("item pending"));
+      } else {
+        classification.pendingRead!.complete(classification.items);
+      }
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Symbols.refresh_rounded), findsOneWidget);
+      expect(find.byIcon(Symbols.favorite_rounded), findsOneWidget);
+
+      final recovered = Completer<LibraryOrganizationInspection>();
+      organization.inspectTarget = (_) {
+        organizationReads++;
+        return recovered.future;
+      };
+      classification.pendingRead = Completer<List<LibraryClassificationItem>>();
+      if (recovery.automatic) {
+        (container.read(libraryControllerProvider.notifier) as _UpdatingLibrary)
+            .publishRevision(BigInt.two);
+      } else {
+        await tester.tap(find.byKey(const Key("viewer-reload-state")));
+      }
+      await tester.pump();
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(const Key("viewer-favorite")))
+            .onPressed,
+        recovery.organization ? isNull : isNotNull,
+      );
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(const Key("viewer-reload-state")))
+            .onPressed,
+        isNull,
+      );
+      recovered.complete(organizationInspection(true));
+      classification.pendingRead!.complete(classification.items);
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Symbols.refresh_rounded), findsNothing);
+      expect(find.text("插画"), findsOneWidget);
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(const Key("viewer-favorite")))
+            .isSelected,
+        isTrue,
+      );
+      expect(organization.writes, isEmpty);
+      expect(organizationReads, recovery.organization ? 2 : 1);
+      expect(classification.reads, hasLength(recovery.classification ? 2 : 1));
+    });
   }
 
   testWidgets(
@@ -489,4 +600,10 @@ void main() {
       await tester.pumpAndSettle();
     },
   );
+}
+
+class _UpdatingLibrary extends OrganizationLibraryFixture {
+  void publishRevision(BigInt revision) {
+    state = state.copyWith(catalogRevision: revision);
+  }
 }
