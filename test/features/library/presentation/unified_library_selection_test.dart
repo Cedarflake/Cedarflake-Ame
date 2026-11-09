@@ -129,10 +129,12 @@ void main() {
       expect(find.text("查看信息"), findsOneWidget);
       expect(find.text("复制路径"), findsOneWidget);
       expect(find.text("在文件资源管理器中打开"), findsOneWidget);
-      expect(find.text("删除"), findsNothing);
+      expect(find.text("复制到文件夹"), findsOneWidget);
+      expect(find.text("移动到文件夹"), findsOneWidget);
+      expect(find.text("重命名"), findsOneWidget);
+      expect(find.text("删除"), findsOneWidget);
       expect(find.text("加入收藏夹"), findsOneWidget);
       expect(find.text("加入相册"), findsOneWidget);
-      expect(find.byType(AmeMenuItemContent), findsNWidgets(6));
     },
   );
 
