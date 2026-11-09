@@ -355,6 +355,10 @@ operation to that file. The probe executable SHA-256 was
 `891065c908534f664ca1db1a5c1c9c65e0dbe1f13f2d2a312df6aba7acc1130d`.
 System recycling remains a delivery blocker pending an explicit concurrency-boundary decision or
 a supported identity-bound implementation; normal recycling/restoration evidence does not cover it.
+`StorageFile` was not admitted as a replacement: Microsoft's
+[storage-object explanation](https://blogs.windows.com/windowsdeveloper/2014/06/20/common-questions-and-answers-about-files-and-app-data-part-2-files/)
+describes it as a path reference that does not hold the file open. No identity-bound recycling
+guarantee was established for that alternative.
 
 Explicit permanent deletion now uses the same guarded `FileDispositionInfo` removal owner as
 cross-volume move completion. In a fresh guest, cancellation and a stale request preserved both
@@ -367,10 +371,19 @@ The shared removal owner has 62 production lines and no inline tests; the existi
 retains cancellation, stale-source and selected-identity assertions.
 
 [Hosted full verification](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42683368989)
-targets `bb617233`. Windows scan and accessibility passed. Flutter reported two obsolete menu
-assertions (six entries and no deletion action). Those assertions now check lazy menu creation,
+targets `bb617233`. Windows build, scan, accessibility and three Rust partitions passed. Flutter
+reported two obsolete menu assertions (six entries and no deletion action). Those assertions now check lazy menu creation,
 keyboard/copy-path behavior and the admitted file actions; 18 scoped Flutter checks passed locally.
 Static failed in the release-script ZIP fixture's Windows PowerShell 5.1 assembly loading and
 cleanup; the [cause-level correction](unsigned-windows-release.md#release-artifact-continuation--2026-11-09)
 passed its explicit 5.1 entrypoint locally. The earlier local pass used PowerShell 7.
-Other jobs were still running at this observation. This run predates the permanent-deletion repair.
+Catalog reached its 90-minute job deadline after 931 of 950 cases passed, with no failed assertion;
+its log continued completing cases until cancellation. Approximately 18 minutes belonged to
+classification and 13 to organization. Those existing cases now run in the scan/synchronization
+and schema/queue partitions respectively, retaining four workers, serial cases, all-target/all-feature
+inventory coverage, original assertions and deadlines. Partition admission/rejection checks passed
+in PowerShell 7 and 5.1; the existing 3,046-case library inventory retained exactly one owner per case.
+Workflow lint and hosted wiring checks passed in their PowerShell 7 execution context. An extra
+PowerShell 5.1 invocation of the unchanged hosted-wiring check encountered its JSON-array projection
+incompatibility; that check remains owned by PowerShell 7. This run predates these corrections and
+the permanent-deletion repair; current-head hosted verification remains outstanding.

@@ -31,9 +31,9 @@ jobs:
             {"component":"flutter","label":"Flutter Tests","timeout_minutes":60}
           ]' || '[
             {"component":"static","label":"Static","timeout_minutes":90},
-            {"component":"rust_catalog_history","label":"Rust / Schema and Queue","timeout_minutes":90},
+            {"component":"rust_catalog_history","label":"Rust / Schema, Queue and Organization","timeout_minutes":90},
             {"component":"rust_catalog","label":"Rust / Catalog","timeout_minutes":90},
-            {"component":"rust_sync_scan","label":"Rust / Synchronization and Scan","timeout_minutes":90},
+            {"component":"rust_sync_scan","label":"Rust / Scan, Sync and Classification","timeout_minutes":90},
             {"component":"rust_other","label":"Rust / Remaining","timeout_minutes":90},
             {"component":"flutter","label":"Flutter Tests","timeout_minutes":60},
             {"component":"windows_scan","label":"Windows Scan","timeout_minutes":60},

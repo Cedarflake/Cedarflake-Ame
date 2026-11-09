@@ -4,6 +4,9 @@ $ErrorActionPreference = "Stop"
 $inventory = @(
     "adapters::sqlite_catalog::migrations::tests::upgrade: test",
     "adapters::sqlite_catalog::change_queue::tests::lease: test",
+    "adapters::sqlite_catalog::organization::tests::album: test",
+    "adapters::sqlite_catalog::classification::tests::prediction: test",
+    "adapters::sqlite_catalog::organization_archive::tests::restore: test",
     "adapters::sqlite_catalog::tests::rollback: test",
     "application::library_synchronization::tests::priority: test",
     "application::scan_library::tests::cancel: test",
@@ -11,17 +14,17 @@ $inventory = @(
     "new_module::future_case: test",
     "tests::broker_cli: test",
     "tests::broker_cli: test",
-    "9 tests, 0 benchmarks"
+    "12 tests, 0 benchmarks"
 )
 $names = @(ConvertFrom-AmeRustTestInventory $inventory)
 $coverage = @(Assert-AmeRustTestPartitionCoverage $names)
 $expectedCounts = @{
-    catalog_history = 2
-    catalog = 1
-    sync_scan = 2
+    catalog_history = 3
+    catalog = 2
+    sync_scan = 3
     other = 4
 }
-if ($names.Count -ne 9 -or $coverage.Count -ne 4) {
+if ($names.Count -ne 12 -or $coverage.Count -ne 4) {
     throw "Rust inventory lost tests, including same-named cases in different targets"
 }
 foreach ($entry in $coverage) {
@@ -34,16 +37,18 @@ $expectedArguments = @{
     all = @("--test-threads=1")
     catalog_history = @(
         "--test-threads=1", "adapters::sqlite_catalog::migrations::",
-        "adapters::sqlite_catalog::change_queue::"
+        "adapters::sqlite_catalog::change_queue::", "adapters::sqlite_catalog::organization::"
     )
     catalog = @(
         "--test-threads=1", "adapters::sqlite_catalog::",
         "--skip", "adapters::sqlite_catalog::migrations::",
-        "--skip", "adapters::sqlite_catalog::change_queue::"
+        "--skip", "adapters::sqlite_catalog::change_queue::",
+        "--skip", "adapters::sqlite_catalog::organization::",
+        "--skip", "adapters::sqlite_catalog::classification::"
     )
     sync_scan = @(
         "--test-threads=1", "application::library_synchronization::",
-        "application::scan_library::"
+        "application::scan_library::", "adapters::sqlite_catalog::classification::"
     )
     other = @(
         "--test-threads=1", "--skip", "adapters::sqlite_catalog::",
