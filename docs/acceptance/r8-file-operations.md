@@ -372,8 +372,9 @@ retains cancellation, stale-source and selected-identity assertions.
 
 [Hosted full verification](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42683368989)
 targets `bb617233`. Windows build, scan, accessibility and three Rust partitions passed. Flutter
-reported two obsolete menu assertions (six entries and no deletion action). Those assertions now check lazy menu creation,
-keyboard/copy-path behavior and the admitted file actions; 18 scoped Flutter checks passed locally.
+reported two obsolete menu assertions (six entries and no deletion action). Those assertions now
+check lazy menu creation, keyboard/copy-path behavior and the admitted file actions; 18 scoped
+Flutter checks passed locally.
 Static failed in the release-script ZIP fixture's Windows PowerShell 5.1 assembly loading and
 cleanup; the [cause-level correction](unsigned-windows-release.md#release-artifact-continuation--2026-11-09)
 passed its explicit 5.1 entrypoint locally. The earlier local pass used PowerShell 7.
@@ -386,10 +387,16 @@ in PowerShell 7 and 5.1; the existing 3,046-case library inventory retained exac
 Workflow lint and hosted wiring checks passed in their PowerShell 7 execution context. An extra
 PowerShell 5.1 invocation of the unchanged hosted-wiring check encountered its JSON-array projection
 incompatibility; that check remains owned by PowerShell 7. This run predates these corrections and
-the permanent-deletion repair; current-head hosted verification remains outstanding.
+the permanent-deletion repair.
 
 The [follow-up run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42698940352) targets
-`cecc4663`. Flutter passed. Static reached dependency verification and found the two generated export
-bridge files absent from the exact generated-file roster. Both are now explicitly registered;
-dependency verification, all-target/all-feature Clippy and Dart analysis passed locally. The remaining
-hosted jobs were still running, and the roster correction requires current-head verification.
+`cecc4663`. Every product test and build job passed; Catalog completed in approximately 49 minutes
+and the longest Rust partition in 55 minutes. Static found the two generated export bridge files
+absent from the exact generated-file roster. Both are now explicitly registered; dependency
+verification, all-target/all-feature Clippy and Dart analysis passed locally.
+
+[Final full CI](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42707789166) passed on
+`cc330c179d2378f4354e2f43eae089c9582e175b`, finishing at 22:53 UTC on 2026-11-09. Static, all four Rust
+partitions, Flutter, Windows scan, native accessibility, Windows build verification and the aggregate
+Windows Gate succeeded. This resolves the hosted failures above. The recycling identity boundary
+remains unresolved and prevents R8 delivery; no merge or release was performed.

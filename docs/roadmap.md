@@ -43,7 +43,8 @@ the [execution plan](plans/r8-file-organization.md) defines Windows-backed imple
 the [verification procedure](acceptance/r8-file-operations.md) defines guest-contained Windows Sandbox
 and hosted Windows fixture checks. R8-01 native admission, R8-02 durable execution and R8-03 desktop
 actions have scoped evidence; rule-based organization and result reports are connected. Integrated
-review and hosted verification are next.
+review and hosted checks have evidence; the remaining delivery blocker is the recycling identity
+boundary recorded below.
 
 ## Current stage and acceptance boundary
 
@@ -163,12 +164,12 @@ including the [joined runtime and scan ordering](acceptance/r8-file-operations.m
 R8-03 connects desktop actions with [isolated interaction evidence](acceptance/r8-file-operations.md#r8-03-connected-desktop-actions--2026-11-10).
 R8-04 connects organization rules and result reports with
 [native and desktop evidence](acceptance/r8-file-operations.md#r8-04-organization-rules-and-result-reports--2026-11-10).
-Continue with R8-05 in the [execution plan](plans/r8-file-organization.md#implementation-slices):
-complete integrated review and hosted verification. The
+Continue R8-05 in the [execution plan](plans/r8-file-organization.md#implementation-slices) by
+resolving the recycling boundary. The
 [integrated review](acceptance/r8-file-operations.md#r8-05-integrated-review--2026-11-10)
-retains a reproduced Shell recycling identity race and failing hosted checks. Recycling requires
+records passing hosted verification and a reproduced Shell recycling identity race. Recycling requires
 a supported fix or an explicit concurrency-boundary decision before delivery.
-Native behavior that cannot preserve the required source-safety guarantees blocks the
+Native behavior that cannot preserve the required source-safety guarantees blocks delivery of the
 affected action until resolved; it does not authorize a weaker fallback. Exit requires the connected
 workflow and scoped [verification](acceptance/r8-file-operations.md), without organization preview.
 
