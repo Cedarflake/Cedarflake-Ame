@@ -163,3 +163,11 @@ selected candidate artifact `13635930403` from run `42524891369`, bound to Alpha
 in a 36-second job. Build, packaging, publication and published-download jobs were all skipped.
 The retained run predates package receipts, so complete-pair reuse is covered by the isolated
 receipt/byte fixtures rather than this hosted candidate run. No release, tag or attachment changed.
+
+The R8 full run at `bb617233` exposed a Windows PowerShell 5.1 fixture failure: loading only
+`System.IO.Compression.FileSystem` did not resolve `ZipArchive`, and failed construction retained
+the already-open transport stream. The fixture now loads its direct assembly and encloses
+construction in the stream's cleanup lifetime. Scratch aggregation includes both original causes
+in its visible message. The full installer-guardrail entry and scratch safety checks passed in an
+explicit 5.1 subprocess on 2026-11-10; its process-only execution option changed no persistent policy.
+The combined-error fixture verifies both diagnostics without weakening busy-file or reparse guards.

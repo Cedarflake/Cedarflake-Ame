@@ -370,6 +370,7 @@ retains cancellation, stale-source and selected-identity assertions.
 targets `bb617233`. Windows scan and accessibility passed. Flutter reported two obsolete menu
 assertions (six entries and no deletion action). Those assertions now check lazy menu creation,
 keyboard/copy-path behavior and the admitted file actions; 18 scoped Flutter checks passed locally.
-Static failed in release-script scratch checking;
-the Windows PowerShell 5.1 entrypoint passed locally, and the hosted cause remains under diagnosis.
+Static failed in the release-script ZIP fixture's Windows PowerShell 5.1 assembly loading and
+cleanup; the [cause-level correction](unsigned-windows-release.md#release-artifact-continuation--2026-11-09)
+passed its explicit 5.1 entrypoint locally. The earlier local pass used PowerShell 7.
 Other jobs were still running at this observation. This run predates the permanent-deletion repair.

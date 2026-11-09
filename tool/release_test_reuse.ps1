@@ -124,6 +124,7 @@ Invoke-AmeAcceptanceScratch -Name 'release-reuse' -Action {
 . (Join-Path $PSScriptRoot 'release_reuse_github.ps1')
 Invoke-AmeAcceptanceScratch -Name 'release-reuse-transport' -Action {
     param($directory)
+    Add-Type -AssemblyName System.IO.Compression
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $script:downloadFixture = Join-Path $directory 'transport.zip'
     function Invoke-WebRequest {
@@ -135,11 +136,15 @@ Invoke-AmeAcceptanceScratch -Name 'release-reuse-transport' -Action {
     }
     function Write-TransportZip([string]$Entry, [string]$Content) {
         $stream = [IO.File]::Create($script:downloadFixture)
-        $archive = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Create)
+        $archive = $null
         try {
+            $archive = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Create)
             $writer = [IO.StreamWriter]::new($archive.CreateEntry($Entry).Open(), [Text.UTF8Encoding]::new($false))
             try { $writer.Write($Content) } finally { $writer.Dispose() }
-        } finally { $archive.Dispose(); $stream.Dispose() }
+        } finally {
+            if ($null -ne $archive) { $archive.Dispose() }
+            $stream.Dispose()
+        }
         return 'sha256:' + (Get-FileHash $script:downloadFixture -Algorithm SHA256).Hash.ToLowerInvariant()
     }
 

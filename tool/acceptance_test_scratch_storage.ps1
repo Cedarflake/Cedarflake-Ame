@@ -66,6 +66,28 @@ Invoke-AmeAcceptanceScratch -Name $name -Action {
 }
 Assert-ScratchResult (-not (Test-Path -LiteralPath $expected)) "Recovered scratch was retained"
 
+try {
+    $rejected = $false
+    try {
+        Invoke-AmeAcceptanceScratch -Name $name -Action {
+            param($root)
+            $script:held = [IO.File]::Open((Join-Path $root "busy.sqlite3"), [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+            throw "expected acceptance failure"
+        }
+    } catch {
+        $failure = $_.Exception
+        $rejected = $failure -is [AggregateException] -and $failure.InnerExceptions.Count -eq 2
+        Assert-ScratchResult $rejected "Combined action and cleanup failures lost their causes"
+        foreach ($cause in $failure.InnerExceptions) {
+            Assert-ScratchResult ($failure.Message.Contains($cause.Message)) "The CI diagnostic hides an inner failure"
+        }
+    }
+    Assert-ScratchResult $rejected "A failed action and busy scratch were accepted"
+} finally {
+    if ($null -ne $held) { $held.Dispose() }
+    Invoke-AmeAcceptanceScratch -Name $name -Action { param($root) }
+}
+
 $outside = Join-Path $parent ($name + "-outside")
 $junction = Join-Path $expected "linked"
 [IO.Directory]::CreateDirectory($outside) | Out-Null

@@ -93,7 +93,10 @@ function Invoke-AmeAcceptanceScratch {
                 Remove-AmeAcceptanceScratch -Root $root -Name $Name
             } catch {
                 if ($null -ne $operationFailure) {
-                    throw [AggregateException]::new("Acceptance and scratch cleanup failed", [Exception[]]@($operationFailure.Exception, $_.Exception))
+                    $failures = [Exception[]]@($operationFailure.Exception, $_.Exception)
+                    $message = "Acceptance and scratch cleanup failed for '$Name'. " +
+                        "Action: $($failures[0].Message) Cleanup: $($failures[1].Message)"
+                    throw [AggregateException]::new($message, $failures)
                 }
                 throw
             }
