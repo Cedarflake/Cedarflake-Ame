@@ -387,3 +387,9 @@ Workflow lint and hosted wiring checks passed in their PowerShell 7 execution co
 PowerShell 5.1 invocation of the unchanged hosted-wiring check encountered its JSON-array projection
 incompatibility; that check remains owned by PowerShell 7. This run predates these corrections and
 the permanent-deletion repair; current-head hosted verification remains outstanding.
+
+The [follow-up run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42698940352) targets
+`cecc4663`. Flutter passed. Static reached dependency verification and found the two generated export
+bridge files absent from the exact generated-file roster. Both are now explicitly registered;
+dependency verification, all-target/all-feature Clippy and Dart analysis passed locally. The remaining
+hosted jobs were still running, and the roster correction requires current-head verification.

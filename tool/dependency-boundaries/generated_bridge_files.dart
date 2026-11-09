@@ -37,6 +37,8 @@ const generatedBridgeFiles = <String>{
   "lib/src/rust/domain/classification_selection.dart",
   "lib/src/rust/domain/exact_duplicate_review.dart",
   "lib/src/rust/domain/exact_duplicates.dart",
+  "lib/src/rust/domain/file_operation_exports.dart",
+  "lib/src/rust/domain/file_operation_exports.freezed.dart",
   "lib/src/rust/domain/file_operation_journal.dart",
   "lib/src/rust/domain/file_operation_selection.dart",
   "lib/src/rust/domain/file_operation_selection.freezed.dart",
