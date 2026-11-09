@@ -148,3 +148,29 @@ The existing `local_files.rs` retains 2,607 lines before its inline-test module 
 lines; its change registers the separate 53-line operation-source owner and admits the two new module
 declarations in the existing source-safety loading registry. Its availability call-closure guards
 and production behavior are unchanged.
+
+## R8-02 durable journal foundation — 2026-11-09
+
+Schema v79 adds immutable physical-operation authorization and versioned transition history under
+[ADR 0042](../architecture/0042-windows-file-operations.md#durable-intent-and-outcome-journal).
+The journal binds exact catalog/source identities, retains copied-destination evidence separately
+from source removal, and does not execute pending records when reopened. Native admission and
+catalog publication remain separate transitions; history queries are bounded to 128 items.
+
+Four focused SQLite fixtures verified rejected/stale authorization, atomic rollback when intent or
+result recording fails, idempotent authorization, stale callback rejection, bounded history, and
+reopening a copied move without restarting it. They also rejected a corrupted journal head. The
+forward-migration fixture retained existing albums and organization history and rolled back a
+partially failed schema upgrade. The existing album-icon migration regression also passed.
+Warning-denying Clippy and the fixed dependency-boundary check passed. These checks do not exercise the forthcoming
+application executor or establish integrated restart/catalog reconciliation.
+
+The largest new production policy owner has 214 lines with no inline tests; the journal and
+migration fixtures contain 361 dedicated test lines. Existing coordinators retain 2,988 production
+lines in `sqlite_catalog.rs`, 4,195 production and 2,289 inline-test lines in `migrations.rs`, and
+430 production lines in `current_schema.rs`; additions there only register the new scoped owners.
+
+R8-01 was committed as `7a5288e1`. Branch pushes do not start the repository's main/PR CI workflow;
+hosted verification remains pending. No new PR or release was created, and no real source media or
+production catalog was used. The durable executor, disk reconciliation, catalog publication and
+desktop controls remain R8-02/R8-03 work in the roadmap.

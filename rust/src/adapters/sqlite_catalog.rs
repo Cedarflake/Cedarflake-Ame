@@ -32,6 +32,8 @@ mod connection_policy;
 use connection_policy::{configure_catalog_connection, configure_catalog_read_connection};
 mod exact_duplicate_review;
 mod exact_duplicates;
+mod file_operations;
+pub use file_operations::SqliteFileOperationJournal;
 mod folders;
 mod gallery;
 mod gallery_layout_manifest;
@@ -134,7 +136,7 @@ pub(crate) use catalog_delta::set_before_catalog_delta_commit_hook;
 pub(crate) use metadata_inventory::set_before_metadata_inventory_spool_commit_hook;
 #[cfg(test)]
 pub(crate) use scan_publication::set_before_scan_projection_replacement_hook;
-const SCHEMA_VERSION: i64 = 78;
+const SCHEMA_VERSION: i64 = 79;
 const SQLITE_APPLICATION_ID: i64 = 0x414D_4531;
 const SCAN_QUEUE_LEASE_MILLIS: i64 = 15 * 60 * 1_000;
 const MAX_SCAN_CATCH_UP_LINEAGE: i64 = 4_096;

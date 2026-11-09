@@ -1,6 +1,9 @@
+use serde::{Deserialize, Serialize};
+
 use crate::domain::{ExpectedFileState, FileIdentityEvidence};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum FileAction {
     Copy,
     Move,
@@ -34,7 +37,8 @@ pub struct FileOperationRequest {
     pub destination: Option<FileOperationDestination>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum FileOperationIssueKind {
     InvalidRequest,
     SourceChanged,
@@ -47,7 +51,8 @@ pub enum FileOperationIssueKind {
     OutcomeUnknown,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FileOperationIssue {
     pub kind: FileOperationIssueKind,
     pub message: String,
@@ -76,7 +81,8 @@ pub struct FileOperationReceipt {
     pub recovery: FileOperationRecovery,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum FileOperationRecovery {
     None,
     SystemRecycleBin,

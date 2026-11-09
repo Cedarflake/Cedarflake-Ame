@@ -16,6 +16,9 @@ no native resources and grants no source-file authority. Calls use the `NativeFi
 retain namespace guards through execution, and join the Shell STA before returning. The probe owns
 only newly generated guest-local fixtures. Application callers cannot inherit this export's
 concrete-adapter exception; their production factory requires its own scoped admission.
+The same facade exposes `SqliteFileOperationJournal` for scoped persistence and recovery fixtures.
+It owns one ordinary catalog connection, uses the existing write admission and migrations, and
+implements `FileOperationJournal`; opening it never executes a recorded file operation.
 
 The classification facade retains three exact native exports for repository tools:
 `CuratedClassificationVocabulary`, `LocalClassificationVocabulary` and

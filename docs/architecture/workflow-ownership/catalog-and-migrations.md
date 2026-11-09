@@ -199,6 +199,12 @@ shared principles; the roadmap owns current delivery order and acceptance status
   This validator remains inside the current-schema owner's consistent read snapshot and preserves
   the narrow historical migration exception rather than adding startup retry or repair policy.
 
+- `sqlite_catalog/file_operations` owns immutable physical-operation authorization, bounded history
+  reads and atomic event/head writes. Its codec keeps persisted source proofs inside the adapter;
+  its validator checks ordered transitions through the domain policy with one item in memory.
+  `migrations/file_operations` owns the forward schema and structural checks. Native work and
+  catalog reconciliation never run inside the journal's intent/result transaction.
+
 Content-signature admission and decoder failure classification have small adapter owners, separate
 from filesystem traversal and metadata extraction. Generated media fixtures, format adapter
 contracts, application replacement lifecycles, and performance workloads have distinct test modules.

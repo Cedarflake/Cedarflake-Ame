@@ -110,7 +110,7 @@ pub(crate) use preview_cache::{
     replace_file_atomically_for_test, seed_legacy_jpeg_preview,
 };
 pub(crate) use sqlite_catalog::MetadataInventorySpoolExecution;
-pub use sqlite_catalog::SqliteCatalog;
+pub use sqlite_catalog::{SqliteCatalog, SqliteFileOperationJournal};
 pub(crate) use sqlite_catalog::{
     SqliteCatalogReadExecutor, SqliteCatalogSession, SqliteCatalogSpaceMaintenance,
     SqliteOrganizationBatch,

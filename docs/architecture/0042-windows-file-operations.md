@@ -57,6 +57,27 @@ destination stays protected from concurrent writes/deletion throughout verificat
 removal. Cancellation or verification failure retains the original. SQLite and filesystem mutation
 are separate durable transitions, never one atomic transaction.
 
+## Durable intent and outcome journal
+
+Schema v79 keeps physical-operation authorization and append-only transition snapshots in the
+existing catalog, separate from virtual-organization history and filesystem-notification work.
+Authorization binds a batch ordinal to the exact asset, location, source/root generations, native
+source proof, action and destination naming policy. Reusing that ordinal with different intent
+fails. Native admission rechecks the catalog binding in the same transaction that records its start;
+filesystem evidence is checked by the native adapter immediately before execution.
+
+Each transition compares its expected version and atomically appends the next event and updates
+the journal head. No catalog transaction spans native I/O. A cross-volume move records the completed
+copy and its destination identity before a separate source-removal transition. An unknown result
+remains unresolved; neither opening the journal nor enumerating unfinished work replays it.
+Numbered destination names remain within the authorized directory, identity and base-name policy.
+
+History and unfinished-item reads use bounded keyset windows. Schema validation checks immutable
+authority, ordered transitions and agreement with each journal head while retaining one item in
+memory. Migration preserves existing albums, decisions and history. These records are durable data;
+preview/cache cleanup and source-root removal do not delete them. Rollback cannot undo completed
+native mutations or downgrade a catalog while discarding its operation records.
+
 ## FFI and resource safety
 
 The adapter and its isolated admission probe may use `unsafe` for the named Windows operations:

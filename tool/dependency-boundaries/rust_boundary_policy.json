@@ -2,15 +2,16 @@
   "activeIds": [],
   "retainedOwners": {
     "file-operation-tool-export": {
-      "responsibility": "Expose the admitted Windows file-operation adapter to the isolated native probe",
-      "reason": "The probe exercises real Windows behavior through NativeFileOperations; the facade performs no authorization or execution.",
+      "responsibility": "Expose the Windows operation and durable journal constructors to scoped native and SQLite fixtures",
+      "reason": "Fixtures exercise real adapters through NativeFileOperations and FileOperationJournal; the facade performs no authorization or execution.",
       "lifetime": "Each synchronous call owns guarded namespaces and file handles; Shell deletion owns a dedicated STA that joins before returning.",
       "replacement": "Replace the adapter and its native contract fixture together while preserving typed requests and outcomes.",
       "decision": "docs/architecture/workflow-ownership/native-composition.md#native-tool-entrypoints",
       "coverage": [
         "rust/examples/file_operation_probe.rs",
         "rust/examples/file_operation_probe/scenarios.rs",
-        "rust/examples/file_operation_probe/volumes.rs"
+        "rust/examples/file_operation_probe/volumes.rs",
+        "rust/src/adapters/sqlite_catalog/file_operations/tests.rs"
       ]
     },
     "classification-tool-exports": {
@@ -340,6 +341,16 @@
     }
   },
   "retained": [
+    {
+      "id": "file-operation-tool-journal-adapter",
+      "owner": "file-operation-tool-export",
+      "dependency": {
+        "source": "rust/src/file_operations.rs",
+        "symbol": "crate::file_operations::export::SqliteFileOperationJournal",
+        "target": "crate::adapters::sqlite_catalog::file_operations::SqliteFileOperationJournal",
+        "rule": "concrete-adapter"
+      }
+    },
     {
       "id": "file-operation-tool-windows-adapter",
       "owner": "file-operation-tool-export",
