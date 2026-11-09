@@ -11,6 +11,7 @@ use crate::ports::CatalogRepository;
 
 mod execution;
 mod publication;
+mod selection;
 mod task;
 
 fn fixture() -> (

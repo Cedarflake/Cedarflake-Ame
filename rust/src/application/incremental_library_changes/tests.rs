@@ -1842,11 +1842,30 @@ fn case_only_rename_removes_the_obsolete_catalog_spelling() {
 
     let report = fixture.process();
 
-    assert_eq!(report.applied_mutation_count, 1);
+    assert_eq!(report.applied_mutation_count, 1, "{report:?}");
     assert!(fixture.location("Photo.png").is_none());
     let renamed = fixture.location("photo.png").expect("renamed location");
     assert_eq!(renamed.asset_id, original.asset_id);
     assert_eq!(renamed.file_identity, original.file_identity);
+
+    for (sequence, origin) in [
+        LibraryChangeOrigin::LiveNotification,
+        LibraryChangeOrigin::MetadataInventory,
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let mut stale = intent(&fixture.root_id, "Photo.png", None, sequence as u64 + 2);
+        stale.origin = origin;
+        fixture.enqueue(&[stale]);
+        let report = fixture.process();
+        assert_eq!(report.completed_count, 1);
+        assert!(fixture.location("Photo.png").is_none());
+        let current = fixture.location("photo.png").expect("current spelling");
+        assert_eq!(current.asset_id, renamed.asset_id);
+        assert_eq!(current.file_identity, renamed.file_identity);
+        assert_eq!(current.relative_path, "photo.png");
+    }
 }
 
 #[cfg(windows)]

@@ -69,10 +69,22 @@ impl OperationScope {
                 }
                 let guard = open_directory(&destination.directory, Kind::DestinationChanged)?;
                 match guard.operation_path(&destination.name).symlink_metadata() {
-                    Ok(_) => Err(FileOperationIssue::new(
-                        Kind::Collision,
-                        "The destination name is already occupied",
-                    )),
+                    Ok(_) => {
+                        let own_entry = request.action == FileAction::Rename
+                            && inspect_location(destination)?.is_some_and(|actual| {
+                                actual.state.absolute_path == request.source.state.absolute_path
+                                    && actual.state.file_identity
+                                        == request.source.state.file_identity
+                            });
+                        if own_entry {
+                            Ok(guard)
+                        } else {
+                            Err(FileOperationIssue::new(
+                                Kind::Collision,
+                                "The destination name is already occupied",
+                            ))
+                        }
+                    }
                     Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(guard),
                     Err(error) => Err(FileOperationIssue::new(
                         Kind::Unavailable,
@@ -178,7 +190,22 @@ pub(super) fn inspect_location(
     if !occupied(&guard, &location.name)? {
         return Ok(None);
     }
-    inspect_guarded(&guard, &location.directory, &location.name).map(Some)
+    let mut observed = inspect_guarded(&guard, &location.directory, &location.name)?;
+    let resolved = guard
+        .operation_path(&location.name)
+        .canonicalize()
+        .map_err(|error| FileOperationIssue::new(Kind::Unavailable, error.to_string()))?;
+    let actual_name = resolved.file_name().ok_or_else(|| {
+        FileOperationIssue::new(Kind::Unavailable, "The file has no resolved name")
+    })?;
+    observed.state.absolute_path = Path::new(&location.directory.path)
+        .join(actual_name)
+        .to_string_lossy()
+        .into_owned();
+    let _held = guard
+        .open_operation_source(&actual_name.to_string_lossy(), &observed.state, false)
+        .map_err(|error| FileOperationIssue::new(Kind::SourceChanged, error.to_string()))?;
+    Ok(Some(observed))
 }
 
 fn occupied(

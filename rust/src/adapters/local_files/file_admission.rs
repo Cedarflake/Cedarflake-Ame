@@ -9,8 +9,9 @@ use super::media_signature::{has_image_extension, has_supported_magic_from_reade
 #[cfg(windows)]
 use super::{
     FILE_READ_ATTRIBUTES, file_attribute_tag_info_from_handle, file_identity_from_handle,
-    file_source_evidence, open_root_relative_handle, path_metadata_issue, relative_path_text,
-    reparse_evidence_from_attribute_tag, root_relative_path_issue, source_revision_from_handle,
+    file_source_evidence, final_path_from_handle, open_root_relative_handle, path_metadata_issue,
+    relative_path_text, reparse_evidence_from_attribute_tag, root_relative_path_issue,
+    source_revision_from_handle,
 };
 use super::{FileDiscovery, ReparseKind, created_unix_ms, modified_unix_ms, path_text};
 #[cfg(not(windows))]
@@ -73,9 +74,29 @@ impl FileDiscovery {
                 };
             }
         };
+        let canonical_path = match final_path_from_handle(&handle) {
+            Ok(path) if path.starts_with(&self.canonical_root) => path,
+            Ok(_) => {
+                return FileVisit {
+                    relative_path: relative_path_text,
+                    outcome: FileVisitOutcome::Issue(super::path_containment_issue(&path)),
+                };
+            }
+            Err(error) => {
+                return FileVisit {
+                    relative_path: relative_path_text,
+                    outcome: FileVisitOutcome::Issue(path_metadata_issue(&path, error)),
+                };
+            }
+        };
+        let admitted_relative_path = super::relative_path_text(
+            canonical_path
+                .strip_prefix(&self.canonical_root)
+                .expect("admitted root prefix"),
+        );
         self.visit_relative_path_with_metadata(
-            relative_path_text,
-            path,
+            admitted_relative_path,
+            canonical_path,
             metadata,
             reparse_kind,
             placeholder_state,

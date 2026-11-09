@@ -9,6 +9,7 @@
       "decision": "docs/architecture/workflow-ownership/native-composition.md#file-operation-runtime",
       "coverage": [
         "rust/src/adapters/sqlite_catalog/file_operations/tests/task.rs",
+        "rust/src/adapters/sqlite_catalog/file_operations/tests/selection.rs",
         "rust/src/application/file_operations/native_tests.rs"
       ]
     },
@@ -352,6 +353,26 @@
     }
   },
   "retained": [
+    {
+      "id": "file-operation-selection-catalog",
+      "owner": "file-operation-runtime",
+      "dependency": {
+        "source": "rust/src/application/file_operations/production.rs",
+        "symbol": "crate::application::file_operations::production::open_selection",
+        "target": "crate::adapters::sqlite_catalog::file_operations::selection::SqliteFileOperationSelection",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "file-operation-selection-inspector",
+      "owner": "file-operation-runtime",
+      "dependency": {
+        "source": "rust/src/application/file_operations/production.rs",
+        "symbol": "crate::application::file_operations::production::source_inspector",
+        "target": "crate::adapters::windows_file_operations::WindowsFileOperations",
+        "rule": "concrete-adapter"
+      }
+    },
     {
       "id": "file-operation-runtime-catalog",
       "owner": "file-operation-runtime",

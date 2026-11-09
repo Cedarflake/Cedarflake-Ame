@@ -1,6 +1,9 @@
 use std::path::Path;
 
-use crate::domain::file_operation_journal::{FileOperationPhase as Phase, FileOperationRecord};
+use crate::domain::ScanError;
+use crate::domain::file_operation_journal::{
+    FileOperationEvent as Event, FileOperationPhase as Phase, FileOperationRecord,
+};
 use crate::domain::file_operations::{
     FileAction, FileOperationDestination, FileOperationIssue, FileOperationIssueKind as Kind,
     FileOperationReceipt, FileOperationRecovery, FileOperationSource,
@@ -14,6 +17,40 @@ pub enum FileOperationInspection {
     Completed(FileOperationReceipt),
     NeedsAttention(FileOperationIssue),
     Settled,
+}
+
+impl super::FileOperationExecutor<'_> {
+    pub fn reconcile(&mut self, id: u64) -> Result<FileOperationRecord, ScanError> {
+        let record = self.journal.load(id)?;
+        match inspect_file_operation(&record, self.native) {
+            FileOperationInspection::NotStarted => self.advance(&record, Event::Cancelled),
+            FileOperationInspection::Completed(receipt)
+                if record.checkpoint.phase != Phase::NativeCompleted =>
+            {
+                self.advance(&record, Event::NativeCompleted(receipt))
+            }
+            FileOperationInspection::CopyRetained
+                if matches!(
+                    record.checkpoint.phase,
+                    Phase::RemovingSource | Phase::Uncertain
+                ) =>
+            {
+                let copied = record.checkpoint.copied.clone().ok_or_else(|| {
+                    ScanError::new(
+                        "file_operation_missing_receipt",
+                        "Recovery requires its recorded copy receipt",
+                    )
+                })?;
+                self.advance(&record, Event::Copied(copied))
+            }
+            FileOperationInspection::NeedsAttention(issue)
+                if record.checkpoint.phase != Phase::Uncertain =>
+            {
+                self.advance(&record, Event::Uncertain(issue))
+            }
+            _ => Ok(record),
+        }
+    }
 }
 
 pub fn inspect_file_operation(
@@ -58,13 +95,21 @@ fn inspect(
         .map(|location| native.inspect_location(location))
         .transpose()?
         .flatten();
+    let source_retired = source.is_none()
+        || (request.action == FileAction::Rename
+            && source.as_ref().is_some_and(|source| {
+                source.state.absolute_path != request.source.state.absolute_path
+                    && destination
+                        .as_ref()
+                        .is_some_and(|destination| same_file(source, destination))
+            }));
     if let Some(receipt) = &checkpoint.receipt {
         let target_matches = match (&receipt.destination, &destination) {
             (Some(expected), Some(actual)) => same_file(expected, actual),
             (None, None) => true,
             _ => false,
         };
-        let source_matches = request.action == FileAction::Copy || source.is_none();
+        let source_matches = request.action == FileAction::Copy || source_retired;
         if target_matches && source_matches {
             return Ok(FileOperationInspection::Completed(receipt.clone()));
         }
@@ -95,7 +140,7 @@ fn inspect(
         ));
     }
     if matches!(request.action, FileAction::Move | FileAction::Rename)
-        && source.is_none()
+        && source_retired
         && destination.as_ref().is_some_and(|actual| {
             actual.state.file_identity == request.source.state.file_identity
                 && actual.state.file_size == request.source.state.file_size

@@ -14,6 +14,7 @@ import "../../application/library_organization_batch.dart";
 import "../../application/library_organization_requests.dart";
 import "../../application/library_selection_session.dart";
 import "../../domain/library_models.dart";
+import "../../domain/library_file_operations.dart";
 import "../../domain/library_organization.dart";
 import "../../domain/library_organization_batch.dart";
 import "../../domain/library_review.dart";
@@ -24,6 +25,7 @@ import "../library_progress_controls.dart";
 import "library_album_picker.dart";
 import "library_organization_menu.dart";
 import "library_selection_progress.dart";
+import "library_file_menu.dart";
 
 class LibrarySelectionActions extends ConsumerStatefulWidget {
   const LibrarySelectionActions({
@@ -376,6 +378,19 @@ class _LibrarySelectionActionsState
                 error,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
+            LibraryFileMenu(
+              enabled: enabled,
+              selection: LibraryFilesInGallery(
+                LibraryOrganizationSelection(
+                  query: widget.query,
+                  catalogRevision: widget.catalogRevision,
+                  allMatching: widget.selection.isAllMatching,
+                  assetIds: widget.selection.isAllMatching
+                      ? widget.selection.excludedAssetIds
+                      : widget.selection.includedAssetIds,
+                ),
+              ),
+            ),
             TextButton.icon(
               key: const Key("library-cancel-selection"),
               onPressed: widget.onCancel,

@@ -42,6 +42,39 @@ fn record(
     })
 }
 
+pub(super) fn batch_count(connection: &Connection, batch_id: &str) -> Result<u64, ScanError> {
+    let count = connection
+        .query_row(
+            "SELECT COUNT(*) FROM file_operation_items WHERE batch_id = ?1",
+            [batch_id],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(database_error)?;
+    sqlite_unsigned(count, "batch item count")
+}
+
+pub(super) fn batch_page(
+    connection: &Connection,
+    batch_id: &str,
+    after_ordinal: Option<u64>,
+    limit: usize,
+) -> Result<Vec<FileOperationRecord>, ScanError> {
+    let after = after_ordinal
+        .map(|value| sqlite_integer(value, "batch cursor"))
+        .transpose()?
+        .unwrap_or(-1);
+    let mut statement = connection
+        .prepare(&format!(
+            "{CURRENT} WHERE i.batch_id = ?1 AND i.ordinal > ?2 ORDER BY i.ordinal LIMIT ?3"
+        ))
+        .map_err(database_error)?;
+    let rows = statement
+        .query_map(params![batch_id, after, limit as i64], decode)
+        .map_err(database_error)?;
+    rows.map(|row| record(row.map_err(database_error)?))
+        .collect()
+}
+
 pub(super) fn load(connection: &Connection, id: u64) -> Result<FileOperationRecord, ScanError> {
     let value = connection
         .query_row(

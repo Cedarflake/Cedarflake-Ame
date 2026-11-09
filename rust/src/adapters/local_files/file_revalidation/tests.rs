@@ -34,6 +34,24 @@ fn revalidation_accepts_unchanged_evidence_without_reading_source_content() {
 
     revalidate_file_state(&expected).expect("unchanged source evidence");
 
+    let discovery = crate::adapters::FileDiscovery::new(&root).expect("source directory");
+    let mut aliased = expected.clone();
+    aliased.absolute_path = std::path::PathBuf::from(root.to_uppercase())
+        .join("图片.bin")
+        .to_string_lossy()
+        .into_owned();
+    discovery
+        .revalidate_relative_file_state("图片.bin", &aliased)
+        .expect("directory spelling may use an equivalent Windows case alias");
+    aliased.absolute_path = path_text(source.with_file_name("图片.BIN"));
+    assert_eq!(
+        discovery
+            .revalidate_relative_file_state("图片.BIN", &aliased)
+            .expect_err("a stale filename must not be published")
+            .code,
+        "source_changed_during_scan"
+    );
+
     assert_eq!(source_content_open_count(&root), 0);
     assert_eq!(fs::read(&source).unwrap(), b"retained source bytes");
 }

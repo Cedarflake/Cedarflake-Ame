@@ -11,24 +11,41 @@ pub enum FileOperationTaskKind {
 #[derive(Clone, Debug)]
 pub struct FileOperationTaskRequest {
     pub kind: FileOperationTaskKind,
-    pub operation_ids: Vec<u64>,
+    pub target: FileOperationTaskTarget,
+}
+
+#[derive(Clone, Debug)]
+pub enum FileOperationTaskTarget {
+    Items(Vec<u64>),
+    Batch {
+        batch_id: String,
+        expected_items: u64,
+    },
 }
 
 impl FileOperationTaskRequest {
     pub(crate) fn validate(&self) -> Result<(), ScanError> {
-        if self.operation_ids.is_empty()
-            || self.operation_ids.len() > FILE_OPERATION_PAGE_SIZE
-            || self.operation_ids.contains(&0)
-            || self
-                .operation_ids
-                .iter()
-                .collect::<std::collections::HashSet<_>>()
-                .len()
-                != self.operation_ids.len()
-        {
+        let valid = match &self.target {
+            FileOperationTaskTarget::Items(ids) => {
+                !ids.is_empty()
+                    && ids.len() <= FILE_OPERATION_PAGE_SIZE
+                    && !ids.contains(&0)
+                    && ids.iter().collect::<std::collections::HashSet<_>>().len() == ids.len()
+            }
+            FileOperationTaskTarget::Batch {
+                batch_id,
+                expected_items,
+            } => {
+                !batch_id.is_empty()
+                    && batch_id.len() <= 256
+                    && !batch_id.contains('\0')
+                    && *expected_items > 0
+            }
+        };
+        if !valid {
             return Err(ScanError::new(
                 "file_operation_task_invalid",
-                "A file-operation task needs 1 to 128 distinct durable item IDs",
+                "A task needs a bounded item selection or an exact recorded batch",
             ));
         }
         Ok(())

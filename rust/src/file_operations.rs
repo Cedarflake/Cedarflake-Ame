@@ -14,7 +14,7 @@ pub use crate::domain::file_operation_publication::{
 };
 pub use crate::domain::file_operation_task::{
     FileOperationTaskKind, FileOperationTaskPhase, FileOperationTaskProgress,
-    FileOperationTaskRequest,
+    FileOperationTaskRequest, FileOperationTaskTarget,
 };
 pub use crate::domain::file_operations::{
     FileAction, FileOperationDestination, FileOperationDirectory, FileOperationIssue,

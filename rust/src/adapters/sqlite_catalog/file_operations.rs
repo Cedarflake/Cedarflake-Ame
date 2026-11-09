@@ -13,6 +13,8 @@ mod codec;
 pub(super) mod observed_removals;
 mod publication;
 mod reads;
+mod selection;
+pub(crate) use selection::SqliteFileOperationSelection;
 pub(super) mod scan_removals;
 pub(super) mod validation;
 mod writes;
@@ -34,6 +36,52 @@ impl SqliteFileOperationJournal {
 }
 
 impl FileOperationJournal for SqliteFileOperationJournal {
+    fn cancel_unstarted(
+        &mut self,
+        ids: &[u64],
+        now_unix_ms: i64,
+    ) -> Result<Vec<FileOperationRecord>, ScanError> {
+        use crate::domain::file_operation_journal::FileOperationPhase;
+        check_page(ids.len())?;
+        let transaction = self.catalog.begin_user_interactive_write()?;
+        let mut records = Vec::with_capacity(ids.len());
+        for id in ids {
+            let record = reads::load(&transaction, *id)?;
+            records.push(
+                if matches!(
+                    record.checkpoint.phase,
+                    FileOperationPhase::Prepared | FileOperationPhase::NameOccupied
+                ) {
+                    writes::advance(
+                        &transaction,
+                        *id,
+                        record.checkpoint.version,
+                        FileOperationEvent::Cancelled,
+                        now_unix_ms,
+                    )?
+                } else {
+                    record
+                },
+            );
+        }
+        transaction.commit().map_err(database_error)?;
+        Ok(records)
+    }
+
+    fn batch_count(&self, batch_id: &str) -> Result<u64, ScanError> {
+        reads::batch_count(&self.catalog.connection, batch_id)
+    }
+
+    fn batch_page(
+        &self,
+        batch_id: &str,
+        after_ordinal: Option<u64>,
+        limit: usize,
+    ) -> Result<Vec<FileOperationRecord>, ScanError> {
+        check_page(limit)?;
+        reads::batch_page(&self.catalog.connection, batch_id, after_ordinal, limit)
+    }
+
     fn authorize(
         &mut self,
         items: &[AuthorizedFileOperation],

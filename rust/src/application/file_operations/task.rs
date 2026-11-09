@@ -6,6 +6,7 @@ use std::thread::{self, JoinHandle};
 use crate::domain::ScanError;
 use crate::domain::file_operation_task::{
     FileOperationTaskPhase as TaskPhase, FileOperationTaskProgress, FileOperationTaskRequest,
+    FileOperationTaskTarget,
 };
 use crate::ports::file_operation_catalog::FileOperationCatalog;
 use crate::ports::file_operation_output::FileOperationOutputReader;
@@ -75,7 +76,10 @@ impl FileOperationTask {
             progress: Mutex::new(FileOperationTaskProgress {
                 kind: request.kind,
                 phase: TaskPhase::Starting,
-                total_items: request.operation_ids.len() as u64,
+                total_items: match &request.target {
+                    FileOperationTaskTarget::Items(ids) => ids.len() as u64,
+                    FileOperationTaskTarget::Batch { expected_items, .. } => *expected_items,
+                },
                 processed_items: 0,
                 published_items: 0,
                 failed_items: 0,

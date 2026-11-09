@@ -29,6 +29,7 @@
 use crate::api::classification::*;
 use crate::api::classification_installation::*;
 use crate::api::classification_maintenance::*;
+use crate::api::file_operations::*;
 use crate::api::organization_archive::*;
 use crate::api::organization_batch::*;
 use crate::api::organization_cleanup::*;
@@ -47,7 +48,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 756197839;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 408928844;
 
 // Section: executor
 
@@ -691,6 +692,530 @@ fn wire__crate__api__classification_installation__DesktopModelInstallation_progr
                     )?;
                 Ok(output_ok)
             })())
+        },
+    )
+}
+fn wire__crate__api__file_operations__FileActionTask_cancel_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "FileActionTask_cancel",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileActionTask>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok = Result::<_, ()>::Ok({
+                        crate::api::file_operations::FileActionTask::cancel(&*api_that_guard);
+                    })?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__file_operations__FileActionTask_close_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "FileActionTask_close",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileActionTask>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok =
+                        crate::api::file_operations::FileActionTask::close(&*api_that_guard)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__file_operations__FileActionTask_progress_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "FileActionTask_progress",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileActionTask>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok = Result::<_, ()>::Ok(
+                        crate::api::file_operations::FileActionTask::progress(&*api_that_guard),
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__file_operations__FileSelectionDraft_append_ids_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "FileSelectionDraft_append_ids",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>,
+            >>::sse_decode(&mut deserializer);
+            let api_asset_ids = <Vec<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok = crate::api::file_operations::FileSelectionDraft::append_ids(
+                        &*api_that_guard,
+                        api_asset_ids,
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__file_operations__FileSelectionDraft_append_locations_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "FileSelectionDraft_append_locations",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>,
+            >>::sse_decode(&mut deserializer);
+            let api_locations =
+                <Vec<crate::domain::organization::OrganizationSelection>>::sse_decode(
+                    &mut deserializer,
+                );
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok =
+                        crate::api::file_operations::FileSelectionDraft::append_locations(
+                            &*api_that_guard,
+                            api_locations,
+                        )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__file_operations__FileSelectionDraft_cancel_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "FileSelectionDraft_cancel",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok = Result::<_, ()>::Ok({
+                        crate::api::file_operations::FileSelectionDraft::cancel(&*api_that_guard);
+                    })?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__file_operations__FileSelectionDraft_close_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "FileSelectionDraft_close",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok =
+                        crate::api::file_operations::FileSelectionDraft::close(&*api_that_guard)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__file_operations__FileSelectionDraft_execute_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "FileSelectionDraft_execute",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>,
+            >>::sse_decode(&mut deserializer);
+            let api_batch_id = <String>::sse_decode(&mut deserializer);
+            let api_command =
+                <crate::domain::file_operation_selection::FileOperationCommand>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_owner_window = <Option<u64>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok = crate::api::file_operations::FileSelectionDraft::execute(
+                        &*api_that_guard,
+                        api_batch_id,
+                        api_command,
+                        api_owner_window,
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__file_operations__FileSelectionDraft_prepare_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "FileSelectionDraft_prepare",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok =
+                        crate::api::file_operations::FileSelectionDraft::prepare(&*api_that_guard)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__file_operations__FileSelectionDraft_progress_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "FileSelectionDraft_progress",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let mut api_that_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_that, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_that_guard = api_that_guard.unwrap();
+                    let output_ok = Result::<_, ()>::Ok(
+                        crate::api::file_operations::FileSelectionDraft::progress(&*api_that_guard),
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
         },
     )
 }
@@ -3099,6 +3624,43 @@ fn wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locatio
         },
     )
 }
+fn wire__crate__api__file_operations__load_file_operation_history_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "load_file_operation_history",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_before_id = <Option<u64>>::sse_decode(&mut deserializer);
+            let api_limit = <u32>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::file_operations::load_file_operation_history(
+                        api_before_id,
+                        api_limit,
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -3995,6 +4557,43 @@ fn wire__crate__api__storage__load_storage_status_impl(
         },
     )
 }
+fn wire__crate__api__file_operations__load_unfinished_file_operations_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "load_unfinished_file_operations",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_after_id = <u64>::sse_decode(&mut deserializer);
+            let api_limit = <u32>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::file_operations::load_unfinished_file_operations(
+                        api_after_id,
+                        api_limit,
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__preview__materialize_library_preview_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -4054,6 +4653,42 @@ fn wire__crate__api__classification__open_classification_session_impl(
             move |context| {
                 transform_result_sse::<_, crate::domain::ScanError>((move || {
                     let output_ok = crate::api::classification::open_classification_session()?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__file_operations__open_file_selection_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "open_file_selection",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_scope =
+                <crate::domain::file_operation_selection::FileOperationSelectionScope>::sse_decode(
+                    &mut deserializer,
+                );
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::file_operations::open_file_selection(api_scope)?;
                     Ok(output_ok)
                 })())
             }
@@ -4268,6 +4903,45 @@ fn wire__crate__api__semantic_search__prepare_semantic_search_impl(
                 transform_result_sse::<_, crate::domain::ScanError>((move || {
                     let output_ok =
                         crate::api::semantic_search::prepare_semantic_search(api_scope, api_input)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__file_operations__recover_file_operations_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "recover_file_operations",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_ids = <Vec<u64>>::sse_decode(&mut deserializer);
+            let api_continue_copied_move = <bool>::sse_decode(&mut deserializer);
+            let api_owner_window = <Option<u64>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::file_operations::recover_file_operations(
+                        api_ids,
+                        api_continue_copied_move,
+                        api_owner_window,
+                    )?;
                     Ok(output_ok)
                 })())
             }
@@ -5413,6 +6087,12 @@ flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>
 );
 flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
+    flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileActionTask>
+);
+flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
+    flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>
+);
+flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<OrganizationArchiveTask>
 );
 flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
@@ -5459,6 +6139,26 @@ impl SseDecode for DesktopModelInstallation {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <RustOpaqueMoi<
             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>,
+        >>::sse_decode(deserializer);
+        return flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(inner);
+    }
+}
+
+impl SseDecode for FileActionTask {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <RustOpaqueMoi<
+            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileActionTask>,
+        >>::sse_decode(deserializer);
+        return flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(inner);
+    }
+}
+
+impl SseDecode for FileSelectionDraft {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <RustOpaqueMoi<
+            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>,
         >>::sse_decode(deserializer);
         return flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(inner);
     }
@@ -5552,6 +6252,26 @@ impl SseDecode
     for RustOpaqueMoi<
         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>,
     >
+{
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <usize>::sse_decode(deserializer);
+        return decode_rust_opaque_moi(inner);
+    }
+}
+
+impl SseDecode
+    for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileActionTask>>
+{
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <usize>::sse_decode(deserializer);
+        return decode_rust_opaque_moi(inner);
+    }
+}
+
+impl SseDecode
+    for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>>
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -5767,6 +6487,28 @@ impl SseDecode for crate::domain::AssetLocationView {
     }
 }
 
+impl SseDecode for crate::domain::file_operation_journal::AuthorizedFileOperation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_batchId = <String>::sse_decode(deserializer);
+        let mut var_ordinal = <u64>::sse_decode(deserializer);
+        let mut var_authorizedUnixMs = <i64>::sse_decode(deserializer);
+        let mut var_catalog =
+            <crate::domain::file_operation_journal::FileOperationCatalogBinding>::sse_decode(
+                deserializer,
+            );
+        let mut var_request =
+            <crate::domain::file_operations::FileOperationRequest>::sse_decode(deserializer);
+        return crate::domain::file_operation_journal::AuthorizedFileOperation {
+            batch_id: var_batchId,
+            ordinal: var_ordinal,
+            authorized_unix_ms: var_authorizedUnixMs,
+            catalog: var_catalog,
+            request: var_request,
+        };
+    }
+}
+
 impl SseDecode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -5778,6 +6520,13 @@ impl SseDecode for Box<crate::domain::AssetLocationView> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         return Box::new(<crate::domain::AssetLocationView>::sse_decode(deserializer));
+    }
+}
+
+impl SseDecode for Box<crate::domain::GalleryQuery> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        return Box::new(<crate::domain::GalleryQuery>::sse_decode(deserializer));
     }
 }
 
@@ -6505,6 +7254,41 @@ impl SseDecode for crate::domain::exact_duplicate_review::ExactDuplicateReviewRa
     }
 }
 
+impl SseDecode for crate::domain::ExpectedFileState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_absolutePath = <String>::sse_decode(deserializer);
+        let mut var_fileSize = <u64>::sse_decode(deserializer);
+        let mut var_modifiedUnixMs = <i64>::sse_decode(deserializer);
+        let mut var_fileIdentity =
+            <Option<crate::domain::FileIdentityEvidence>>::sse_decode(deserializer);
+        let mut var_sourceRevision =
+            <Option<crate::domain::SourceRevisionEvidence>>::sse_decode(deserializer);
+        return crate::domain::ExpectedFileState {
+            absolute_path: var_absolutePath,
+            file_size: var_fileSize,
+            modified_unix_ms: var_modifiedUnixMs,
+            file_identity: var_fileIdentity,
+            source_revision: var_sourceRevision,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operations::FileAction {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::file_operations::FileAction::Copy,
+            1 => crate::domain::file_operations::FileAction::Move,
+            2 => crate::domain::file_operations::FileAction::Rename,
+            3 => crate::domain::file_operations::FileAction::Recycle,
+            4 => crate::domain::file_operations::FileAction::DeletePermanently,
+            _ => unreachable!("Invalid variant for FileAction: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for crate::domain::FileIdentityEvidence {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -6513,6 +7297,335 @@ impl SseDecode for crate::domain::FileIdentityEvidence {
         return crate::domain::FileIdentityEvidence {
             scheme: var_scheme,
             value: var_value,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operation_journal::FileOperationCatalogBinding {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_assetId = <String>::sse_decode(deserializer);
+        let mut var_locationId = <String>::sse_decode(deserializer);
+        let mut var_sourceGeneration = <u64>::sse_decode(deserializer);
+        let mut var_rootId = <String>::sse_decode(deserializer);
+        let mut var_rootGeneration = <u64>::sse_decode(deserializer);
+        return crate::domain::file_operation_journal::FileOperationCatalogBinding {
+            asset_id: var_assetId,
+            location_id: var_locationId,
+            source_generation: var_sourceGeneration,
+            root_id: var_rootId,
+            root_generation: var_rootGeneration,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operation_journal::FileOperationCheckpoint {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_version = <u64>::sse_decode(deserializer);
+        let mut var_phase =
+            <crate::domain::file_operation_journal::FileOperationPhase>::sse_decode(deserializer);
+        let mut var_destination =
+            <Option<crate::domain::file_operations::FileOperationDestination>>::sse_decode(
+                deserializer,
+            );
+        let mut var_copied =
+            <Option<crate::domain::file_operations::FileOperationSource>>::sse_decode(deserializer);
+        let mut var_receipt =
+            <Option<crate::domain::file_operations::FileOperationReceipt>>::sse_decode(
+                deserializer,
+            );
+        let mut var_issue =
+            <Option<crate::domain::file_operations::FileOperationIssue>>::sse_decode(deserializer);
+        let mut var_catalogRevision = <Option<u64>>::sse_decode(deserializer);
+        return crate::domain::file_operation_journal::FileOperationCheckpoint {
+            version: var_version,
+            phase: var_phase,
+            destination: var_destination,
+            copied: var_copied,
+            receipt: var_receipt,
+            issue: var_issue,
+            catalog_revision: var_catalogRevision,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operation_selection::FileOperationCommand {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_action = <crate::domain::file_operations::FileAction>::sse_decode(deserializer);
+        let mut var_destinationDirectory = <Option<String>>::sse_decode(deserializer);
+        let mut var_newName = <Option<String>>::sse_decode(deserializer);
+        return crate::domain::file_operation_selection::FileOperationCommand {
+            action: var_action,
+            destination_directory: var_destinationDirectory,
+            new_name: var_newName,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operations::FileOperationDestination {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_directory =
+            <crate::domain::file_operations::FileOperationDirectory>::sse_decode(deserializer);
+        let mut var_name = <String>::sse_decode(deserializer);
+        return crate::domain::file_operations::FileOperationDestination {
+            directory: var_directory,
+            name: var_name,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operations::FileOperationDirectory {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_path = <String>::sse_decode(deserializer);
+        let mut var_identity = <crate::domain::FileIdentityEvidence>::sse_decode(deserializer);
+        return crate::domain::file_operations::FileOperationDirectory {
+            path: var_path,
+            identity: var_identity,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operations::FileOperationIssue {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_kind =
+            <crate::domain::file_operations::FileOperationIssueKind>::sse_decode(deserializer);
+        let mut var_message = <String>::sse_decode(deserializer);
+        return crate::domain::file_operations::FileOperationIssue {
+            kind: var_kind,
+            message: var_message,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operations::FileOperationIssueKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::file_operations::FileOperationIssueKind::InvalidRequest,
+            1 => crate::domain::file_operations::FileOperationIssueKind::SourceChanged,
+            2 => crate::domain::file_operations::FileOperationIssueKind::DestinationChanged,
+            3 => crate::domain::file_operations::FileOperationIssueKind::Collision,
+            4 => crate::domain::file_operations::FileOperationIssueKind::Unavailable,
+            5 => crate::domain::file_operations::FileOperationIssueKind::DifferentVolume,
+            6 => crate::domain::file_operations::FileOperationIssueKind::Cancelled,
+            7 => crate::domain::file_operations::FileOperationIssueKind::NativeFailure,
+            8 => crate::domain::file_operations::FileOperationIssueKind::OutcomeUnknown,
+            _ => unreachable!("Invalid variant for FileOperationIssueKind: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operation_journal::FileOperationPhase {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::file_operation_journal::FileOperationPhase::Prepared,
+            1 => crate::domain::file_operation_journal::FileOperationPhase::Executing,
+            2 => crate::domain::file_operation_journal::FileOperationPhase::NameOccupied,
+            3 => crate::domain::file_operation_journal::FileOperationPhase::Copied,
+            4 => crate::domain::file_operation_journal::FileOperationPhase::RemovingSource,
+            5 => crate::domain::file_operation_journal::FileOperationPhase::NativeCompleted,
+            6 => crate::domain::file_operation_journal::FileOperationPhase::Published,
+            7 => crate::domain::file_operation_journal::FileOperationPhase::Failed,
+            8 => crate::domain::file_operation_journal::FileOperationPhase::Cancelled,
+            9 => crate::domain::file_operation_journal::FileOperationPhase::Uncertain,
+            _ => unreachable!("Invalid variant for FileOperationPhase: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operation_selection::FileOperationPreparationProgress {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_preparedFiles = <u64>::sse_decode(deserializer);
+        let mut var_totalFiles = <u64>::sse_decode(deserializer);
+        let mut var_currentPath = <Option<String>>::sse_decode(deserializer);
+        return crate::domain::file_operation_selection::FileOperationPreparationProgress {
+            prepared_files: var_preparedFiles,
+            total_files: var_totalFiles,
+            current_path: var_currentPath,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operations::FileOperationReceipt {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_destination =
+            <Option<crate::domain::file_operations::FileOperationSource>>::sse_decode(deserializer);
+        let mut var_recovery =
+            <crate::domain::file_operations::FileOperationRecovery>::sse_decode(deserializer);
+        return crate::domain::file_operations::FileOperationReceipt {
+            destination: var_destination,
+            recovery: var_recovery,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operation_journal::FileOperationRecord {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_id = <u64>::sse_decode(deserializer);
+        let mut var_authorization =
+            <crate::domain::file_operation_journal::AuthorizedFileOperation>::sse_decode(
+                deserializer,
+            );
+        let mut var_checkpoint =
+            <crate::domain::file_operation_journal::FileOperationCheckpoint>::sse_decode(
+                deserializer,
+            );
+        let mut var_updatedUnixMs = <i64>::sse_decode(deserializer);
+        return crate::domain::file_operation_journal::FileOperationRecord {
+            id: var_id,
+            authorization: var_authorization,
+            checkpoint: var_checkpoint,
+            updated_unix_ms: var_updatedUnixMs,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operations::FileOperationRecovery {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::file_operations::FileOperationRecovery::None,
+            1 => crate::domain::file_operations::FileOperationRecovery::SystemRecycleBin,
+            _ => unreachable!("Invalid variant for FileOperationRecovery: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operations::FileOperationRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_action = <crate::domain::file_operations::FileAction>::sse_decode(deserializer);
+        let mut var_source =
+            <crate::domain::file_operations::FileOperationSource>::sse_decode(deserializer);
+        let mut var_destination =
+            <Option<crate::domain::file_operations::FileOperationDestination>>::sse_decode(
+                deserializer,
+            );
+        return crate::domain::file_operations::FileOperationRequest {
+            action: var_action,
+            source: var_source,
+            destination: var_destination,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operation_selection::FileOperationSelectionScope {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_query = <Box<crate::domain::GalleryQuery>>::sse_decode(deserializer);
+                let mut var_catalogRevision = <u64>::sse_decode(deserializer);
+                let mut var_allMatching = <bool>::sse_decode(deserializer);
+                return crate::domain::file_operation_selection::FileOperationSelectionScope::Gallery{query: var_query, catalog_revision: var_catalogRevision, all_matching: var_allMatching};
+            }
+            1 => {
+                return crate::domain::file_operation_selection::FileOperationSelectionScope::Locations;
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseDecode for crate::domain::file_operation_selection::FileOperationSelectionSummary {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_fileCount = <u64>::sse_decode(deserializer);
+        let mut var_totalBytes = <u64>::sse_decode(deserializer);
+        return crate::domain::file_operation_selection::FileOperationSelectionSummary {
+            file_count: var_fileCount,
+            total_bytes: var_totalBytes,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operations::FileOperationSource {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_parent =
+            <crate::domain::file_operations::FileOperationDirectory>::sse_decode(deserializer);
+        let mut var_state = <crate::domain::ExpectedFileState>::sse_decode(deserializer);
+        return crate::domain::file_operations::FileOperationSource {
+            parent: var_parent,
+            state: var_state,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operation_task::FileOperationTaskKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::file_operation_task::FileOperationTaskKind::Execute,
+            1 => crate::domain::file_operation_task::FileOperationTaskKind::Inspect,
+            2 => crate::domain::file_operation_task::FileOperationTaskKind::ContinueCopiedMove,
+            _ => unreachable!("Invalid variant for FileOperationTaskKind: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operation_task::FileOperationTaskPhase {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::file_operation_task::FileOperationTaskPhase::Starting,
+            1 => crate::domain::file_operation_task::FileOperationTaskPhase::Running,
+            2 => crate::domain::file_operation_task::FileOperationTaskPhase::Stopping,
+            3 => crate::domain::file_operation_task::FileOperationTaskPhase::Finished,
+            4 => crate::domain::file_operation_task::FileOperationTaskPhase::Cancelled,
+            5 => crate::domain::file_operation_task::FileOperationTaskPhase::NeedsAttention,
+            _ => unreachable!("Invalid variant for FileOperationTaskPhase: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::domain::file_operation_task::FileOperationTaskProgress {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_kind =
+            <crate::domain::file_operation_task::FileOperationTaskKind>::sse_decode(deserializer);
+        let mut var_phase =
+            <crate::domain::file_operation_task::FileOperationTaskPhase>::sse_decode(deserializer);
+        let mut var_totalItems = <u64>::sse_decode(deserializer);
+        let mut var_processedItems = <u64>::sse_decode(deserializer);
+        let mut var_publishedItems = <u64>::sse_decode(deserializer);
+        let mut var_failedItems = <u64>::sse_decode(deserializer);
+        let mut var_cancelledItems = <u64>::sse_decode(deserializer);
+        let mut var_currentOperationId = <Option<u64>>::sse_decode(deserializer);
+        let mut var_currentPath = <Option<String>>::sse_decode(deserializer);
+        let mut var_copiedBytes = <u64>::sse_decode(deserializer);
+        let mut var_totalBytes = <u64>::sse_decode(deserializer);
+        let mut var_failure = <Option<crate::domain::ScanError>>::sse_decode(deserializer);
+        return crate::domain::file_operation_task::FileOperationTaskProgress {
+            kind: var_kind,
+            phase: var_phase,
+            total_items: var_totalItems,
+            processed_items: var_processedItems,
+            published_items: var_publishedItems,
+            failed_items: var_failedItems,
+            cancelled_items: var_cancelledItems,
+            current_operation_id: var_currentOperationId,
+            current_path: var_currentPath,
+            copied_bytes: var_copiedBytes,
+            total_bytes: var_totalBytes,
+            failure: var_failure,
         };
     }
 }
@@ -7359,6 +8472,22 @@ impl SseDecode for Vec<crate::domain::exact_duplicate_review::ExactDuplicateRevi
     }
 }
 
+impl SseDecode for Vec<crate::domain::file_operation_journal::FileOperationRecord> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::domain::file_operation_journal::FileOperationRecord>::sse_decode(
+                    deserializer,
+                ),
+            );
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::domain::exact_duplicates::GalleryDuplicateAnnotation> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -7544,6 +8673,18 @@ impl SseDecode for Vec<u16> {
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ {
             ans_.push(<u16>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<u64> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<u64>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -7800,6 +8941,60 @@ impl SseDecode for Option<crate::domain::FileIdentityEvidence> {
     }
 }
 
+impl SseDecode for Option<crate::domain::file_operations::FileOperationDestination> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::domain::file_operations::FileOperationDestination>::sse_decode(
+                    deserializer,
+                ),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::domain::file_operations::FileOperationIssue> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::domain::file_operations::FileOperationIssue>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::domain::file_operations::FileOperationReceipt> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::domain::file_operations::FileOperationReceipt>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::domain::file_operations::FileOperationSource> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::domain::file_operations::FileOperationSource>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::domain::GalleryLayoutManifestCursor> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -7966,6 +9161,17 @@ impl SseDecode for Option<crate::domain::RecoverableScan> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<crate::domain::RecoverableScan>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::domain::ScanError> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::domain::ScanError>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -9725,111 +10931,125 @@ fn pde_ffi_dispatcher_primary_impl(
 9 => wire__crate__api__classification_installation__DesktopModelInstallation_commit_impl(port, ptr, rust_vec_len, data_len),
 10 => wire__crate__api__classification_installation__DesktopModelInstallation_discard_impl(port, ptr, rust_vec_len, data_len),
 11 => wire__crate__api__classification_installation__DesktopModelInstallation_prepare_impl(port, ptr, rust_vec_len, data_len),
-15 => wire__crate__api__organization_batch__OrganizationSelectionDraft_append_ids_impl(port, ptr, rust_vec_len, data_len),
-16 => wire__crate__api__organization_batch__OrganizationSelectionDraft_apply_impl(port, ptr, rust_vec_len, data_len),
-17 => wire__crate__api__organization_batch__OrganizationSelectionDraft_close_impl(port, ptr, rust_vec_len, data_len),
-18 => wire__crate__api__organization_batch__OrganizationSelectionDraft_prepare_impl(port, ptr, rust_vec_len, data_len),
-19 => wire__crate__api__organization_batch__OrganizationSelectionDraft_progress_impl(port, ptr, rust_vec_len, data_len),
-20 => wire__crate__api__organization_batch__OrganizationSelectionDraft_refresh_impl(port, ptr, rust_vec_len, data_len),
-22 => wire__crate__api__classification_maintenance__PreparedClassificationMaintenance_commit_impl(port, ptr, rust_vec_len, data_len),
-24 => wire__crate__api__semantic_search__SemanticSearchRequest_run_impl(port, ptr, rust_vec_len, data_len),
-27 => wire__crate__api__similar_images__SimilarImageAnalysis_run_impl(port, ptr, rust_vec_len, data_len),
-29 => wire__crate__api__viewer_source__ViewerSourceReadLease_close_impl(port, ptr, rust_vec_len, data_len),
-30 => wire__crate__api__viewer_source__ViewerSourceReadLease_source_path_impl(port, ptr, rust_vec_len, data_len),
-31 => wire__crate__api__viewer_source__acquire_viewer_source_impl(port, ptr, rust_vec_len, data_len),
-32 => wire__crate__api__exact_duplicates__analyze_exact_duplicates_impl(port, ptr, rust_vec_len, data_len),
-33 => wire__crate__api__organization_cleanup__apply_organization_cleanup_impl(port, ptr, rust_vec_len, data_len),
-34 => wire__crate__api__organization_review__begin_organization_review_impl(port, ptr, rust_vec_len, data_len),
-35 => wire__crate__api__storage__cancel_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
-36 => wire__crate__api__exact_duplicates__cancel_exact_duplicate_analysis_impl(port, ptr, rust_vec_len, data_len),
-39 => wire__crate__api__catalog__cancel_retained_library_scan_impl(port, ptr, rust_vec_len, data_len),
-40 => wire__crate__api__classification_settings__change_classification_control_impl(port, ptr, rust_vec_len, data_len),
-41 => wire__crate__api__organization_review__change_current_organization_review_impl(port, ptr, rust_vec_len, data_len),
-42 => wire__crate__api__organization__change_organization_impl(port, ptr, rust_vec_len, data_len),
-43 => wire__crate__api__organization__change_organization_album_icon_impl(port, ptr, rust_vec_len, data_len),
-44 => wire__crate__api__organization_review__checkpoint_organization_review_impl(port, ptr, rust_vec_len, data_len),
-45 => wire__crate__api__storage__clear_preview_cache_impl(port, ptr, rust_vec_len, data_len),
-46 => wire__crate__api__storage__clear_retired_preview_cache_impl(port, ptr, rust_vec_len, data_len),
-48 => wire__crate__api__organization__create_organization_album_impl(port, ptr, rust_vec_len, data_len),
-51 => wire__crate__api__organization__delete_organization_album_impl(port, ptr, rust_vec_len, data_len),
-52 => wire__crate__api__organization_review__end_organization_review_impl(port, ptr, rust_vec_len, data_len),
-53 => wire__crate__api__similar_image_review__exclude_similar_member_impl(port, ptr, rust_vec_len, data_len),
-54 => wire__crate__api__organization_archive__export_organization_archive_impl(port, ptr, rust_vec_len, data_len),
-55 => wire__crate__api__organization__find_organization_album_impl(port, ptr, rust_vec_len, data_len),
-56 => wire__crate__api__initialization__init_app_impl(port, ptr, rust_vec_len, data_len),
-57 => wire__crate__api__classification_settings__initial_classification_categories_impl(port, ptr, rust_vec_len, data_len),
-58 => wire__crate__api__organization_archive__inspect_organization_archive_impl(port, ptr, rust_vec_len, data_len),
-59 => wire__crate__api__organization_cleanup__inspect_organization_cleanup_impl(port, ptr, rust_vec_len, data_len),
-60 => wire__crate__api__organization__inspect_organization_selection_impl(port, ptr, rust_vec_len, data_len),
-61 => wire__crate__api__storage__load_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
-62 => wire__crate__api__classification_settings__load_classification_acceleration_impl(port, ptr, rust_vec_len, data_len),
-63 => wire__crate__api__classification_review__load_classification_annotations_impl(port, ptr, rust_vec_len, data_len),
-64 => wire__crate__api__classification_review__load_classification_items_impl(port, ptr, rust_vec_len, data_len),
-65 => wire__crate__api__classification_settings__load_classification_navigation_impl(port, ptr, rust_vec_len, data_len),
-66 => wire__crate__api__classification_settings__load_classification_settings_impl(port, ptr, rust_vec_len, data_len),
-67 => wire__crate__api__exact_duplicates__load_exact_duplicate_groups_impl(port, ptr, rust_vec_len, data_len),
-68 => wire__crate__api__exact_duplicates__load_exact_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
-69 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
-70 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locations_impl(port, ptr, rust_vec_len, data_len),
-71 => wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
-72 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(port, ptr, rust_vec_len, data_len),
-73 => wire__crate__api__catalog__load_library_asset_by_id_impl(port, ptr, rust_vec_len, data_len),
-74 => wire__crate__api__catalog__load_library_catalog_impl(port, ptr, rust_vec_len, data_len),
-75 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(port, ptr, rust_vec_len, data_len),
-76 => wire__crate__api__catalog__load_library_catalog_around_location_impl(port, ptr, rust_vec_len, data_len),
-77 => wire__crate__api__catalog__load_library_catalog_at_time_impl(port, ptr, rust_vec_len, data_len),
-78 => wire__crate__api__catalog__load_library_folder_page_impl(port, ptr, rust_vec_len, data_len),
-79 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(port, ptr, rust_vec_len, data_len),
-80 => wire__crate__api__catalog__load_library_gallery_timeline_impl(port, ptr, rust_vec_len, data_len),
-81 => wire__crate__api__catalog__load_library_query_snapshot_impl(port, ptr, rust_vec_len, data_len),
-82 => wire__crate__api__catalog__load_library_time_snapshot_impl(port, ptr, rust_vec_len, data_len),
-83 => wire__crate__api__organization_review__load_organization_admission_boundary_impl(port, ptr, rust_vec_len, data_len),
-84 => wire__crate__api__organization__load_organization_albums_impl(port, ptr, rust_vec_len, data_len),
-85 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(port, ptr, rust_vec_len, data_len),
-86 => wire__crate__api__organization_conflicts__load_organization_conflict_annotations_impl(port, ptr, rust_vec_len, data_len),
-87 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(port, ptr, rust_vec_len, data_len),
-88 => wire__crate__api__organization_review__load_organization_continuation_impl(port, ptr, rust_vec_len, data_len),
-89 => wire__crate__api__organization__load_organization_history_impl(port, ptr, rust_vec_len, data_len),
-90 => wire__crate__api__catalog__load_paused_library_scan_impl(port, ptr, rust_vec_len, data_len),
-91 => wire__crate__api__catalog__load_recoverable_library_scan_impl(port, ptr, rust_vec_len, data_len),
-92 => wire__crate__api__similar_image_review__load_similar_groups_impl(port, ptr, rust_vec_len, data_len),
-93 => wire__crate__api__similar_image_review__load_similar_members_impl(port, ptr, rust_vec_len, data_len),
-94 => wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len),
-95 => wire__crate__api__preview__materialize_library_preview_impl(port, ptr, rust_vec_len, data_len),
-96 => wire__crate__api__classification__open_classification_session_impl(port, ptr, rust_vec_len, data_len),
-97 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(port, ptr, rust_vec_len, data_len),
-98 => wire__crate__api__similar_images__open_similar_image_analysis_impl(port, ptr, rust_vec_len, data_len),
-100 => wire__crate__api__synchronization__poll_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-101 => wire__crate__api__organization__prepare_organization_selection_impl(port, ptr, rust_vec_len, data_len),
-102 => wire__crate__api__semantic_search__prepare_semantic_search_impl(port, ptr, rust_vec_len, data_len),
-103 => wire__crate__api__classification_installation__recover_model_installation_impl(port, ptr, rust_vec_len, data_len),
-104 => wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len),
-105 => wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len),
-106 => wire__crate__api__organization__rename_organization_album_impl(port, ptr, rust_vec_len, data_len),
-107 => wire__crate__api__sidebar_order__reorder_sidebar_entry_impl(port, ptr, rust_vec_len, data_len),
-110 => wire__crate__api__organization_archive__restore_organization_archive_impl(port, ptr, rust_vec_len, data_len),
-111 => wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len),
-112 => wire__crate__api__classification_retry__retry_failed_classification_impl(port, ptr, rust_vec_len, data_len),
-113 => wire__crate__api__semantic_search__retry_semantic_index_impl(port, ptr, rust_vec_len, data_len),
-114 => wire__crate__api__classification_settings__save_classification_acceleration_impl(port, ptr, rust_vec_len, data_len),
-115 => wire__crate__api__classification_settings__save_classification_settings_impl(port, ptr, rust_vec_len, data_len),
-116 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-117 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
-118 => wire__crate__api__similar_image_review__seek_similar_groups_impl(port, ptr, rust_vec_len, data_len),
-119 => wire__crate__api__classification__select_classification_installation_impl(port, ptr, rust_vec_len, data_len),
-120 => wire__crate__api__semantic_search__semantic_index_status_impl(port, ptr, rust_vec_len, data_len),
-121 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(port, ptr, rust_vec_len, data_len),
-122 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(port, ptr, rust_vec_len, data_len),
-123 => wire__crate__api__organization__set_organization_favorite_impl(port, ptr, rust_vec_len, data_len),
-124 => wire__crate__api__similar_image_review__set_similar_ignored_impl(port, ptr, rust_vec_len, data_len),
-125 => wire__crate__api__similar_image_review__set_similar_preference_impl(port, ptr, rust_vec_len, data_len),
-126 => wire__crate__api__storage__start_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
-127 => wire__crate__api__synchronization__start_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-128 => wire__crate__api__organization__step_organization_history_impl(port, ptr, rust_vec_len, data_len),
-129 => wire__crate__api__synchronization__stop_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-131 => wire__crate__api__organization__undo_organization_operation_impl(port, ptr, rust_vec_len, data_len),
-132 => wire__crate__api__similar_image_review__undo_similar_exclusion_impl(port, ptr, rust_vec_len, data_len),
-133 => wire__crate__api__storage__update_storage_settings_impl(port, ptr, rust_vec_len, data_len),
+13 => wire__crate__api__file_operations__FileActionTask_cancel_impl(port, ptr, rust_vec_len, data_len),
+14 => wire__crate__api__file_operations__FileActionTask_close_impl(port, ptr, rust_vec_len, data_len),
+15 => wire__crate__api__file_operations__FileActionTask_progress_impl(port, ptr, rust_vec_len, data_len),
+16 => wire__crate__api__file_operations__FileSelectionDraft_append_ids_impl(port, ptr, rust_vec_len, data_len),
+17 => wire__crate__api__file_operations__FileSelectionDraft_append_locations_impl(port, ptr, rust_vec_len, data_len),
+18 => wire__crate__api__file_operations__FileSelectionDraft_cancel_impl(port, ptr, rust_vec_len, data_len),
+19 => wire__crate__api__file_operations__FileSelectionDraft_close_impl(port, ptr, rust_vec_len, data_len),
+20 => wire__crate__api__file_operations__FileSelectionDraft_execute_impl(port, ptr, rust_vec_len, data_len),
+21 => wire__crate__api__file_operations__FileSelectionDraft_prepare_impl(port, ptr, rust_vec_len, data_len),
+22 => wire__crate__api__file_operations__FileSelectionDraft_progress_impl(port, ptr, rust_vec_len, data_len),
+25 => wire__crate__api__organization_batch__OrganizationSelectionDraft_append_ids_impl(port, ptr, rust_vec_len, data_len),
+26 => wire__crate__api__organization_batch__OrganizationSelectionDraft_apply_impl(port, ptr, rust_vec_len, data_len),
+27 => wire__crate__api__organization_batch__OrganizationSelectionDraft_close_impl(port, ptr, rust_vec_len, data_len),
+28 => wire__crate__api__organization_batch__OrganizationSelectionDraft_prepare_impl(port, ptr, rust_vec_len, data_len),
+29 => wire__crate__api__organization_batch__OrganizationSelectionDraft_progress_impl(port, ptr, rust_vec_len, data_len),
+30 => wire__crate__api__organization_batch__OrganizationSelectionDraft_refresh_impl(port, ptr, rust_vec_len, data_len),
+32 => wire__crate__api__classification_maintenance__PreparedClassificationMaintenance_commit_impl(port, ptr, rust_vec_len, data_len),
+34 => wire__crate__api__semantic_search__SemanticSearchRequest_run_impl(port, ptr, rust_vec_len, data_len),
+37 => wire__crate__api__similar_images__SimilarImageAnalysis_run_impl(port, ptr, rust_vec_len, data_len),
+39 => wire__crate__api__viewer_source__ViewerSourceReadLease_close_impl(port, ptr, rust_vec_len, data_len),
+40 => wire__crate__api__viewer_source__ViewerSourceReadLease_source_path_impl(port, ptr, rust_vec_len, data_len),
+41 => wire__crate__api__viewer_source__acquire_viewer_source_impl(port, ptr, rust_vec_len, data_len),
+42 => wire__crate__api__exact_duplicates__analyze_exact_duplicates_impl(port, ptr, rust_vec_len, data_len),
+43 => wire__crate__api__organization_cleanup__apply_organization_cleanup_impl(port, ptr, rust_vec_len, data_len),
+44 => wire__crate__api__organization_review__begin_organization_review_impl(port, ptr, rust_vec_len, data_len),
+45 => wire__crate__api__storage__cancel_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
+46 => wire__crate__api__exact_duplicates__cancel_exact_duplicate_analysis_impl(port, ptr, rust_vec_len, data_len),
+49 => wire__crate__api__catalog__cancel_retained_library_scan_impl(port, ptr, rust_vec_len, data_len),
+50 => wire__crate__api__classification_settings__change_classification_control_impl(port, ptr, rust_vec_len, data_len),
+51 => wire__crate__api__organization_review__change_current_organization_review_impl(port, ptr, rust_vec_len, data_len),
+52 => wire__crate__api__organization__change_organization_impl(port, ptr, rust_vec_len, data_len),
+53 => wire__crate__api__organization__change_organization_album_icon_impl(port, ptr, rust_vec_len, data_len),
+54 => wire__crate__api__organization_review__checkpoint_organization_review_impl(port, ptr, rust_vec_len, data_len),
+55 => wire__crate__api__storage__clear_preview_cache_impl(port, ptr, rust_vec_len, data_len),
+56 => wire__crate__api__storage__clear_retired_preview_cache_impl(port, ptr, rust_vec_len, data_len),
+58 => wire__crate__api__organization__create_organization_album_impl(port, ptr, rust_vec_len, data_len),
+61 => wire__crate__api__organization__delete_organization_album_impl(port, ptr, rust_vec_len, data_len),
+62 => wire__crate__api__organization_review__end_organization_review_impl(port, ptr, rust_vec_len, data_len),
+63 => wire__crate__api__similar_image_review__exclude_similar_member_impl(port, ptr, rust_vec_len, data_len),
+64 => wire__crate__api__organization_archive__export_organization_archive_impl(port, ptr, rust_vec_len, data_len),
+65 => wire__crate__api__organization__find_organization_album_impl(port, ptr, rust_vec_len, data_len),
+66 => wire__crate__api__initialization__init_app_impl(port, ptr, rust_vec_len, data_len),
+67 => wire__crate__api__classification_settings__initial_classification_categories_impl(port, ptr, rust_vec_len, data_len),
+68 => wire__crate__api__organization_archive__inspect_organization_archive_impl(port, ptr, rust_vec_len, data_len),
+69 => wire__crate__api__organization_cleanup__inspect_organization_cleanup_impl(port, ptr, rust_vec_len, data_len),
+70 => wire__crate__api__organization__inspect_organization_selection_impl(port, ptr, rust_vec_len, data_len),
+71 => wire__crate__api__storage__load_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
+72 => wire__crate__api__classification_settings__load_classification_acceleration_impl(port, ptr, rust_vec_len, data_len),
+73 => wire__crate__api__classification_review__load_classification_annotations_impl(port, ptr, rust_vec_len, data_len),
+74 => wire__crate__api__classification_review__load_classification_items_impl(port, ptr, rust_vec_len, data_len),
+75 => wire__crate__api__classification_settings__load_classification_navigation_impl(port, ptr, rust_vec_len, data_len),
+76 => wire__crate__api__classification_settings__load_classification_settings_impl(port, ptr, rust_vec_len, data_len),
+77 => wire__crate__api__exact_duplicates__load_exact_duplicate_groups_impl(port, ptr, rust_vec_len, data_len),
+78 => wire__crate__api__exact_duplicates__load_exact_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
+79 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
+80 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locations_impl(port, ptr, rust_vec_len, data_len),
+81 => wire__crate__api__file_operations__load_file_operation_history_impl(port, ptr, rust_vec_len, data_len),
+82 => wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(port, ptr, rust_vec_len, data_len),
+83 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(port, ptr, rust_vec_len, data_len),
+84 => wire__crate__api__catalog__load_library_asset_by_id_impl(port, ptr, rust_vec_len, data_len),
+85 => wire__crate__api__catalog__load_library_catalog_impl(port, ptr, rust_vec_len, data_len),
+86 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(port, ptr, rust_vec_len, data_len),
+87 => wire__crate__api__catalog__load_library_catalog_around_location_impl(port, ptr, rust_vec_len, data_len),
+88 => wire__crate__api__catalog__load_library_catalog_at_time_impl(port, ptr, rust_vec_len, data_len),
+89 => wire__crate__api__catalog__load_library_folder_page_impl(port, ptr, rust_vec_len, data_len),
+90 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(port, ptr, rust_vec_len, data_len),
+91 => wire__crate__api__catalog__load_library_gallery_timeline_impl(port, ptr, rust_vec_len, data_len),
+92 => wire__crate__api__catalog__load_library_query_snapshot_impl(port, ptr, rust_vec_len, data_len),
+93 => wire__crate__api__catalog__load_library_time_snapshot_impl(port, ptr, rust_vec_len, data_len),
+94 => wire__crate__api__organization_review__load_organization_admission_boundary_impl(port, ptr, rust_vec_len, data_len),
+95 => wire__crate__api__organization__load_organization_albums_impl(port, ptr, rust_vec_len, data_len),
+96 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(port, ptr, rust_vec_len, data_len),
+97 => wire__crate__api__organization_conflicts__load_organization_conflict_annotations_impl(port, ptr, rust_vec_len, data_len),
+98 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(port, ptr, rust_vec_len, data_len),
+99 => wire__crate__api__organization_review__load_organization_continuation_impl(port, ptr, rust_vec_len, data_len),
+100 => wire__crate__api__organization__load_organization_history_impl(port, ptr, rust_vec_len, data_len),
+101 => wire__crate__api__catalog__load_paused_library_scan_impl(port, ptr, rust_vec_len, data_len),
+102 => wire__crate__api__catalog__load_recoverable_library_scan_impl(port, ptr, rust_vec_len, data_len),
+103 => wire__crate__api__similar_image_review__load_similar_groups_impl(port, ptr, rust_vec_len, data_len),
+104 => wire__crate__api__similar_image_review__load_similar_members_impl(port, ptr, rust_vec_len, data_len),
+105 => wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len),
+106 => wire__crate__api__file_operations__load_unfinished_file_operations_impl(port, ptr, rust_vec_len, data_len),
+107 => wire__crate__api__preview__materialize_library_preview_impl(port, ptr, rust_vec_len, data_len),
+108 => wire__crate__api__classification__open_classification_session_impl(port, ptr, rust_vec_len, data_len),
+109 => wire__crate__api__file_operations__open_file_selection_impl(port, ptr, rust_vec_len, data_len),
+110 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(port, ptr, rust_vec_len, data_len),
+111 => wire__crate__api__similar_images__open_similar_image_analysis_impl(port, ptr, rust_vec_len, data_len),
+113 => wire__crate__api__synchronization__poll_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+114 => wire__crate__api__organization__prepare_organization_selection_impl(port, ptr, rust_vec_len, data_len),
+115 => wire__crate__api__semantic_search__prepare_semantic_search_impl(port, ptr, rust_vec_len, data_len),
+116 => wire__crate__api__file_operations__recover_file_operations_impl(port, ptr, rust_vec_len, data_len),
+117 => wire__crate__api__classification_installation__recover_model_installation_impl(port, ptr, rust_vec_len, data_len),
+118 => wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len),
+119 => wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len),
+120 => wire__crate__api__organization__rename_organization_album_impl(port, ptr, rust_vec_len, data_len),
+121 => wire__crate__api__sidebar_order__reorder_sidebar_entry_impl(port, ptr, rust_vec_len, data_len),
+124 => wire__crate__api__organization_archive__restore_organization_archive_impl(port, ptr, rust_vec_len, data_len),
+125 => wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len),
+126 => wire__crate__api__classification_retry__retry_failed_classification_impl(port, ptr, rust_vec_len, data_len),
+127 => wire__crate__api__semantic_search__retry_semantic_index_impl(port, ptr, rust_vec_len, data_len),
+128 => wire__crate__api__classification_settings__save_classification_acceleration_impl(port, ptr, rust_vec_len, data_len),
+129 => wire__crate__api__classification_settings__save_classification_settings_impl(port, ptr, rust_vec_len, data_len),
+130 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+131 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
+132 => wire__crate__api__similar_image_review__seek_similar_groups_impl(port, ptr, rust_vec_len, data_len),
+133 => wire__crate__api__classification__select_classification_installation_impl(port, ptr, rust_vec_len, data_len),
+134 => wire__crate__api__semantic_search__semantic_index_status_impl(port, ptr, rust_vec_len, data_len),
+135 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(port, ptr, rust_vec_len, data_len),
+136 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(port, ptr, rust_vec_len, data_len),
+137 => wire__crate__api__organization__set_organization_favorite_impl(port, ptr, rust_vec_len, data_len),
+138 => wire__crate__api__similar_image_review__set_similar_ignored_impl(port, ptr, rust_vec_len, data_len),
+139 => wire__crate__api__similar_image_review__set_similar_preference_impl(port, ptr, rust_vec_len, data_len),
+140 => wire__crate__api__storage__start_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
+141 => wire__crate__api__synchronization__start_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+142 => wire__crate__api__organization__step_organization_history_impl(port, ptr, rust_vec_len, data_len),
+143 => wire__crate__api__synchronization__stop_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+145 => wire__crate__api__organization__undo_organization_operation_impl(port, ptr, rust_vec_len, data_len),
+146 => wire__crate__api__similar_image_review__undo_similar_exclusion_impl(port, ptr, rust_vec_len, data_len),
+147 => wire__crate__api__storage__update_storage_settings_impl(port, ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
 }
@@ -9848,22 +11068,22 @@ fn pde_ffi_dispatcher_sync_impl(
 5 => wire__crate__api__classification__DesktopClassificationSession_request_close_impl(ptr, rust_vec_len, data_len),
 8 => wire__crate__api__classification_installation__DesktopModelInstallation_cancel_impl(ptr, rust_vec_len, data_len),
 12 => wire__crate__api__classification_installation__DesktopModelInstallation_progress_impl(ptr, rust_vec_len, data_len),
-13 => wire__crate__api__organization_archive__OrganizationArchiveTask_cancel_impl(ptr, rust_vec_len, data_len),
-14 => wire__crate__api__organization_cleanup__OrganizationCleanupTask_cancel_impl(ptr, rust_vec_len, data_len),
-21 => wire__crate__api__classification_maintenance__PreparedClassificationMaintenance_cancel_impl(ptr, rust_vec_len, data_len),
-23 => wire__crate__api__semantic_search__SemanticSearchRequest_cancel_impl(ptr, rust_vec_len, data_len),
-25 => wire__crate__api__similar_images__SimilarImageAnalysis_cancel_impl(ptr, rust_vec_len, data_len),
-26 => wire__crate__api__similar_images__SimilarImageAnalysis_progress_impl(ptr, rust_vec_len, data_len),
-28 => wire__crate__api__similar_images__SimilarImageAnalysis_suspend_impl(ptr, rust_vec_len, data_len),
-37 => wire__crate__api__catalog__cancel_library_scan_impl(ptr, rust_vec_len, data_len),
-38 => wire__crate__api__storage__cancel_preview_cache_cleanup_impl(ptr, rust_vec_len, data_len),
-47 => wire__crate__api__classification_installation__create_model_installation_impl(ptr, rust_vec_len, data_len),
-49 => wire__crate__api__organization_archive__create_organization_archive_task_impl(ptr, rust_vec_len, data_len),
-50 => wire__crate__api__organization_cleanup__create_organization_cleanup_task_impl(ptr, rust_vec_len, data_len),
-99 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-108 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(ptr, rust_vec_len, data_len),
-109 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(ptr, rust_vec_len, data_len),
-130 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+23 => wire__crate__api__organization_archive__OrganizationArchiveTask_cancel_impl(ptr, rust_vec_len, data_len),
+24 => wire__crate__api__organization_cleanup__OrganizationCleanupTask_cancel_impl(ptr, rust_vec_len, data_len),
+31 => wire__crate__api__classification_maintenance__PreparedClassificationMaintenance_cancel_impl(ptr, rust_vec_len, data_len),
+33 => wire__crate__api__semantic_search__SemanticSearchRequest_cancel_impl(ptr, rust_vec_len, data_len),
+35 => wire__crate__api__similar_images__SimilarImageAnalysis_cancel_impl(ptr, rust_vec_len, data_len),
+36 => wire__crate__api__similar_images__SimilarImageAnalysis_progress_impl(ptr, rust_vec_len, data_len),
+38 => wire__crate__api__similar_images__SimilarImageAnalysis_suspend_impl(ptr, rust_vec_len, data_len),
+47 => wire__crate__api__catalog__cancel_library_scan_impl(ptr, rust_vec_len, data_len),
+48 => wire__crate__api__storage__cancel_preview_cache_cleanup_impl(ptr, rust_vec_len, data_len),
+57 => wire__crate__api__classification_installation__create_model_installation_impl(ptr, rust_vec_len, data_len),
+59 => wire__crate__api__organization_archive__create_organization_archive_task_impl(ptr, rust_vec_len, data_len),
+60 => wire__crate__api__organization_cleanup__create_organization_cleanup_task_impl(ptr, rust_vec_len, data_len),
+112 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
+122 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(ptr, rust_vec_len, data_len),
+123 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(ptr, rust_vec_len, data_len),
+144 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
 }
@@ -9906,6 +11126,39 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<DesktopModelInstallation>>
     for DesktopModelInstallation
 {
     fn into_into_dart(self) -> FrbWrapper<DesktopModelInstallation> {
+        self.into()
+    }
+}
+
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<FileActionTask> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self.0)
+            .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<FileActionTask> {}
+
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<FileActionTask>> for FileActionTask {
+    fn into_into_dart(self) -> FrbWrapper<FileActionTask> {
+        self.into()
+    }
+}
+
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<FileSelectionDraft> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self.0)
+            .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<FileSelectionDraft>
+{
+}
+
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<FileSelectionDraft>> for FileSelectionDraft {
+    fn into_into_dart(self) -> FrbWrapper<FileSelectionDraft> {
         self.into()
     }
 }
@@ -10087,6 +11340,34 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::AssetLocationView>
     for crate::domain::AssetLocationView
 {
     fn into_into_dart(self) -> crate::domain::AssetLocationView {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::file_operation_journal::AuthorizedFileOperation
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.batch_id.into_into_dart().into_dart(),
+            self.ordinal.into_into_dart().into_dart(),
+            self.authorized_unix_ms.into_into_dart().into_dart(),
+            self.catalog.into_into_dart().into_dart(),
+            self.request.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operation_journal::AuthorizedFileOperation
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::file_operation_journal::AuthorizedFileOperation,
+    > for crate::domain::file_operation_journal::AuthorizedFileOperation
+{
+    fn into_into_dart(self) -> crate::domain::file_operation_journal::AuthorizedFileOperation {
         self
     }
 }
@@ -11195,6 +12476,54 @@ impl
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::ExpectedFileState {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.absolute_path.into_into_dart().into_dart(),
+            self.file_size.into_into_dart().into_dart(),
+            self.modified_unix_ms.into_into_dart().into_dart(),
+            self.file_identity.into_into_dart().into_dart(),
+            self.source_revision.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::ExpectedFileState
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::ExpectedFileState>
+    for crate::domain::ExpectedFileState
+{
+    fn into_into_dart(self) -> crate::domain::ExpectedFileState {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::file_operations::FileAction {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Copy => 0.into_dart(),
+            Self::Move => 1.into_dart(),
+            Self::Rename => 2.into_dart(),
+            Self::Recycle => 3.into_dart(),
+            Self::DeletePermanently => 4.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operations::FileAction
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::file_operations::FileAction>
+    for crate::domain::file_operations::FileAction
+{
+    fn into_into_dart(self) -> crate::domain::file_operations::FileAction {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::domain::FileIdentityEvidence {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -11212,6 +12541,494 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::FileIdentityEvidence>
     for crate::domain::FileIdentityEvidence
 {
     fn into_into_dart(self) -> crate::domain::FileIdentityEvidence {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::file_operation_journal::FileOperationCatalogBinding
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.asset_id.into_into_dart().into_dart(),
+            self.location_id.into_into_dart().into_dart(),
+            self.source_generation.into_into_dart().into_dart(),
+            self.root_id.into_into_dart().into_dart(),
+            self.root_generation.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operation_journal::FileOperationCatalogBinding
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::file_operation_journal::FileOperationCatalogBinding,
+    > for crate::domain::file_operation_journal::FileOperationCatalogBinding
+{
+    fn into_into_dart(self) -> crate::domain::file_operation_journal::FileOperationCatalogBinding {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::file_operation_journal::FileOperationCheckpoint
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.version.into_into_dart().into_dart(),
+            self.phase.into_into_dart().into_dart(),
+            self.destination.into_into_dart().into_dart(),
+            self.copied.into_into_dart().into_dart(),
+            self.receipt.into_into_dart().into_dart(),
+            self.issue.into_into_dart().into_dart(),
+            self.catalog_revision.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operation_journal::FileOperationCheckpoint
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::file_operation_journal::FileOperationCheckpoint,
+    > for crate::domain::file_operation_journal::FileOperationCheckpoint
+{
+    fn into_into_dart(self) -> crate::domain::file_operation_journal::FileOperationCheckpoint {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::file_operation_selection::FileOperationCommand
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.action.into_into_dart().into_dart(),
+            self.destination_directory.into_into_dart().into_dart(),
+            self.new_name.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operation_selection::FileOperationCommand
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<crate::domain::file_operation_selection::FileOperationCommand>
+    for crate::domain::file_operation_selection::FileOperationCommand
+{
+    fn into_into_dart(self) -> crate::domain::file_operation_selection::FileOperationCommand {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::file_operations::FileOperationDestination {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.directory.into_into_dart().into_dart(),
+            self.name.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operations::FileOperationDestination
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::file_operations::FileOperationDestination>
+    for crate::domain::file_operations::FileOperationDestination
+{
+    fn into_into_dart(self) -> crate::domain::file_operations::FileOperationDestination {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::file_operations::FileOperationDirectory {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.path.into_into_dart().into_dart(),
+            self.identity.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operations::FileOperationDirectory
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::file_operations::FileOperationDirectory>
+    for crate::domain::file_operations::FileOperationDirectory
+{
+    fn into_into_dart(self) -> crate::domain::file_operations::FileOperationDirectory {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::file_operations::FileOperationIssue {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.kind.into_into_dart().into_dart(),
+            self.message.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operations::FileOperationIssue
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::file_operations::FileOperationIssue>
+    for crate::domain::file_operations::FileOperationIssue
+{
+    fn into_into_dart(self) -> crate::domain::file_operations::FileOperationIssue {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::file_operations::FileOperationIssueKind {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::InvalidRequest => 0.into_dart(),
+            Self::SourceChanged => 1.into_dart(),
+            Self::DestinationChanged => 2.into_dart(),
+            Self::Collision => 3.into_dart(),
+            Self::Unavailable => 4.into_dart(),
+            Self::DifferentVolume => 5.into_dart(),
+            Self::Cancelled => 6.into_dart(),
+            Self::NativeFailure => 7.into_dart(),
+            Self::OutcomeUnknown => 8.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operations::FileOperationIssueKind
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::file_operations::FileOperationIssueKind>
+    for crate::domain::file_operations::FileOperationIssueKind
+{
+    fn into_into_dart(self) -> crate::domain::file_operations::FileOperationIssueKind {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::file_operation_journal::FileOperationPhase {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Prepared => 0.into_dart(),
+            Self::Executing => 1.into_dart(),
+            Self::NameOccupied => 2.into_dart(),
+            Self::Copied => 3.into_dart(),
+            Self::RemovingSource => 4.into_dart(),
+            Self::NativeCompleted => 5.into_dart(),
+            Self::Published => 6.into_dart(),
+            Self::Failed => 7.into_dart(),
+            Self::Cancelled => 8.into_dart(),
+            Self::Uncertain => 9.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operation_journal::FileOperationPhase
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::file_operation_journal::FileOperationPhase>
+    for crate::domain::file_operation_journal::FileOperationPhase
+{
+    fn into_into_dart(self) -> crate::domain::file_operation_journal::FileOperationPhase {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::file_operation_selection::FileOperationPreparationProgress
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.prepared_files.into_into_dart().into_dart(),
+            self.total_files.into_into_dart().into_dart(),
+            self.current_path.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operation_selection::FileOperationPreparationProgress
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::file_operation_selection::FileOperationPreparationProgress,
+    > for crate::domain::file_operation_selection::FileOperationPreparationProgress
+{
+    fn into_into_dart(
+        self,
+    ) -> crate::domain::file_operation_selection::FileOperationPreparationProgress {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::file_operations::FileOperationReceipt {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.destination.into_into_dart().into_dart(),
+            self.recovery.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operations::FileOperationReceipt
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::file_operations::FileOperationReceipt>
+    for crate::domain::file_operations::FileOperationReceipt
+{
+    fn into_into_dart(self) -> crate::domain::file_operations::FileOperationReceipt {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::file_operation_journal::FileOperationRecord {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.id.into_into_dart().into_dart(),
+            self.authorization.into_into_dart().into_dart(),
+            self.checkpoint.into_into_dart().into_dart(),
+            self.updated_unix_ms.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operation_journal::FileOperationRecord
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::file_operation_journal::FileOperationRecord>
+    for crate::domain::file_operation_journal::FileOperationRecord
+{
+    fn into_into_dart(self) -> crate::domain::file_operation_journal::FileOperationRecord {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::file_operations::FileOperationRecovery {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::None => 0.into_dart(),
+            Self::SystemRecycleBin => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operations::FileOperationRecovery
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::file_operations::FileOperationRecovery>
+    for crate::domain::file_operations::FileOperationRecovery
+{
+    fn into_into_dart(self) -> crate::domain::file_operations::FileOperationRecovery {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::file_operations::FileOperationRequest {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.action.into_into_dart().into_dart(),
+            self.source.into_into_dart().into_dart(),
+            self.destination.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operations::FileOperationRequest
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::file_operations::FileOperationRequest>
+    for crate::domain::file_operations::FileOperationRequest
+{
+    fn into_into_dart(self) -> crate::domain::file_operations::FileOperationRequest {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::file_operation_selection::FileOperationSelectionScope
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::domain::file_operation_selection::FileOperationSelectionScope::Gallery {
+                query,
+                catalog_revision,
+                all_matching,
+            } => [
+                0.into_dart(),
+                query.into_into_dart().into_dart(),
+                catalog_revision.into_into_dart().into_dart(),
+                all_matching.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            crate::domain::file_operation_selection::FileOperationSelectionScope::Locations => {
+                [1.into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operation_selection::FileOperationSelectionScope
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::file_operation_selection::FileOperationSelectionScope,
+    > for crate::domain::file_operation_selection::FileOperationSelectionScope
+{
+    fn into_into_dart(
+        self,
+    ) -> crate::domain::file_operation_selection::FileOperationSelectionScope {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::file_operation_selection::FileOperationSelectionSummary
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.file_count.into_into_dart().into_dart(),
+            self.total_bytes.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operation_selection::FileOperationSelectionSummary
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::file_operation_selection::FileOperationSelectionSummary,
+    > for crate::domain::file_operation_selection::FileOperationSelectionSummary
+{
+    fn into_into_dart(
+        self,
+    ) -> crate::domain::file_operation_selection::FileOperationSelectionSummary {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::file_operations::FileOperationSource {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.parent.into_into_dart().into_dart(),
+            self.state.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operations::FileOperationSource
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::file_operations::FileOperationSource>
+    for crate::domain::file_operations::FileOperationSource
+{
+    fn into_into_dart(self) -> crate::domain::file_operations::FileOperationSource {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::file_operation_task::FileOperationTaskKind {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Execute => 0.into_dart(),
+            Self::Inspect => 1.into_dart(),
+            Self::ContinueCopiedMove => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operation_task::FileOperationTaskKind
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::file_operation_task::FileOperationTaskKind>
+    for crate::domain::file_operation_task::FileOperationTaskKind
+{
+    fn into_into_dart(self) -> crate::domain::file_operation_task::FileOperationTaskKind {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::file_operation_task::FileOperationTaskPhase {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Starting => 0.into_dart(),
+            Self::Running => 1.into_dart(),
+            Self::Stopping => 2.into_dart(),
+            Self::Finished => 3.into_dart(),
+            Self::Cancelled => 4.into_dart(),
+            Self::NeedsAttention => 5.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operation_task::FileOperationTaskPhase
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::file_operation_task::FileOperationTaskPhase>
+    for crate::domain::file_operation_task::FileOperationTaskPhase
+{
+    fn into_into_dart(self) -> crate::domain::file_operation_task::FileOperationTaskPhase {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::file_operation_task::FileOperationTaskProgress
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.kind.into_into_dart().into_dart(),
+            self.phase.into_into_dart().into_dart(),
+            self.total_items.into_into_dart().into_dart(),
+            self.processed_items.into_into_dart().into_dart(),
+            self.published_items.into_into_dart().into_dart(),
+            self.failed_items.into_into_dart().into_dart(),
+            self.cancelled_items.into_into_dart().into_dart(),
+            self.current_operation_id.into_into_dart().into_dart(),
+            self.current_path.into_into_dart().into_dart(),
+            self.copied_bytes.into_into_dart().into_dart(),
+            self.total_bytes.into_into_dart().into_dart(),
+            self.failure.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::file_operation_task::FileOperationTaskProgress
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<crate::domain::file_operation_task::FileOperationTaskProgress>
+    for crate::domain::file_operation_task::FileOperationTaskProgress
+{
+    fn into_into_dart(self) -> crate::domain::file_operation_task::FileOperationTaskProgress {
         self
     }
 }
@@ -14365,6 +16182,20 @@ impl SseEncode for DesktopModelInstallation {
     }
 }
 
+impl SseEncode for FileActionTask {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileActionTask>>>::sse_encode(flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self), serializer);
+    }
+}
+
+impl SseEncode for FileSelectionDraft {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>>>::sse_encode(flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self), serializer);
+    }
+}
+
 impl SseEncode for OrganizationArchiveTask {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -14468,6 +16299,28 @@ impl SseEncode
     for RustOpaqueMoi<
         flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>,
     >
+{
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        let (ptr, size) = self.sse_encode_raw();
+        <usize>::sse_encode(ptr, serializer);
+        <i32>::sse_encode(size, serializer);
+    }
+}
+
+impl SseEncode
+    for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileActionTask>>
+{
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        let (ptr, size) = self.sse_encode_raw();
+        <usize>::sse_encode(ptr, serializer);
+        <i32>::sse_encode(size, serializer);
+    }
+}
+
+impl SseEncode
+    for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>>
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -14659,6 +16512,23 @@ impl SseEncode for crate::domain::AssetLocationView {
     }
 }
 
+impl SseEncode for crate::domain::file_operation_journal::AuthorizedFileOperation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.batch_id, serializer);
+        <u64>::sse_encode(self.ordinal, serializer);
+        <i64>::sse_encode(self.authorized_unix_ms, serializer);
+        <crate::domain::file_operation_journal::FileOperationCatalogBinding>::sse_encode(
+            self.catalog,
+            serializer,
+        );
+        <crate::domain::file_operations::FileOperationRequest>::sse_encode(
+            self.request,
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -14670,6 +16540,13 @@ impl SseEncode for Box<crate::domain::AssetLocationView> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::domain::AssetLocationView>::sse_encode(*self, serializer);
+    }
+}
+
+impl SseEncode for Box<crate::domain::GalleryQuery> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::GalleryQuery>::sse_encode(*self, serializer);
     }
 }
 
@@ -15266,11 +17143,333 @@ impl SseEncode for crate::domain::exact_duplicate_review::ExactDuplicateReviewRa
     }
 }
 
+impl SseEncode for crate::domain::ExpectedFileState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.absolute_path, serializer);
+        <u64>::sse_encode(self.file_size, serializer);
+        <i64>::sse_encode(self.modified_unix_ms, serializer);
+        <Option<crate::domain::FileIdentityEvidence>>::sse_encode(self.file_identity, serializer);
+        <Option<crate::domain::SourceRevisionEvidence>>::sse_encode(
+            self.source_revision,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::file_operations::FileAction {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::file_operations::FileAction::Copy => 0,
+                crate::domain::file_operations::FileAction::Move => 1,
+                crate::domain::file_operations::FileAction::Rename => 2,
+                crate::domain::file_operations::FileAction::Recycle => 3,
+                crate::domain::file_operations::FileAction::DeletePermanently => 4,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for crate::domain::FileIdentityEvidence {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.scheme, serializer);
         <String>::sse_encode(self.value, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::file_operation_journal::FileOperationCatalogBinding {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.asset_id, serializer);
+        <String>::sse_encode(self.location_id, serializer);
+        <u64>::sse_encode(self.source_generation, serializer);
+        <String>::sse_encode(self.root_id, serializer);
+        <u64>::sse_encode(self.root_generation, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::file_operation_journal::FileOperationCheckpoint {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.version, serializer);
+        <crate::domain::file_operation_journal::FileOperationPhase>::sse_encode(
+            self.phase, serializer,
+        );
+        <Option<crate::domain::file_operations::FileOperationDestination>>::sse_encode(
+            self.destination,
+            serializer,
+        );
+        <Option<crate::domain::file_operations::FileOperationSource>>::sse_encode(
+            self.copied,
+            serializer,
+        );
+        <Option<crate::domain::file_operations::FileOperationReceipt>>::sse_encode(
+            self.receipt,
+            serializer,
+        );
+        <Option<crate::domain::file_operations::FileOperationIssue>>::sse_encode(
+            self.issue, serializer,
+        );
+        <Option<u64>>::sse_encode(self.catalog_revision, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::file_operation_selection::FileOperationCommand {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::file_operations::FileAction>::sse_encode(self.action, serializer);
+        <Option<String>>::sse_encode(self.destination_directory, serializer);
+        <Option<String>>::sse_encode(self.new_name, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::file_operations::FileOperationDestination {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::file_operations::FileOperationDirectory>::sse_encode(
+            self.directory,
+            serializer,
+        );
+        <String>::sse_encode(self.name, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::file_operations::FileOperationDirectory {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.path, serializer);
+        <crate::domain::FileIdentityEvidence>::sse_encode(self.identity, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::file_operations::FileOperationIssue {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::file_operations::FileOperationIssueKind>::sse_encode(self.kind, serializer);
+        <String>::sse_encode(self.message, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::file_operations::FileOperationIssueKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::file_operations::FileOperationIssueKind::InvalidRequest => 0,
+                crate::domain::file_operations::FileOperationIssueKind::SourceChanged => 1,
+                crate::domain::file_operations::FileOperationIssueKind::DestinationChanged => 2,
+                crate::domain::file_operations::FileOperationIssueKind::Collision => 3,
+                crate::domain::file_operations::FileOperationIssueKind::Unavailable => 4,
+                crate::domain::file_operations::FileOperationIssueKind::DifferentVolume => 5,
+                crate::domain::file_operations::FileOperationIssueKind::Cancelled => 6,
+                crate::domain::file_operations::FileOperationIssueKind::NativeFailure => 7,
+                crate::domain::file_operations::FileOperationIssueKind::OutcomeUnknown => 8,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::file_operation_journal::FileOperationPhase {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::file_operation_journal::FileOperationPhase::Prepared => 0,
+                crate::domain::file_operation_journal::FileOperationPhase::Executing => 1,
+                crate::domain::file_operation_journal::FileOperationPhase::NameOccupied => 2,
+                crate::domain::file_operation_journal::FileOperationPhase::Copied => 3,
+                crate::domain::file_operation_journal::FileOperationPhase::RemovingSource => 4,
+                crate::domain::file_operation_journal::FileOperationPhase::NativeCompleted => 5,
+                crate::domain::file_operation_journal::FileOperationPhase::Published => 6,
+                crate::domain::file_operation_journal::FileOperationPhase::Failed => 7,
+                crate::domain::file_operation_journal::FileOperationPhase::Cancelled => 8,
+                crate::domain::file_operation_journal::FileOperationPhase::Uncertain => 9,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::file_operation_selection::FileOperationPreparationProgress {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.prepared_files, serializer);
+        <u64>::sse_encode(self.total_files, serializer);
+        <Option<String>>::sse_encode(self.current_path, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::file_operations::FileOperationReceipt {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<crate::domain::file_operations::FileOperationSource>>::sse_encode(
+            self.destination,
+            serializer,
+        );
+        <crate::domain::file_operations::FileOperationRecovery>::sse_encode(
+            self.recovery,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::file_operation_journal::FileOperationRecord {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.id, serializer);
+        <crate::domain::file_operation_journal::AuthorizedFileOperation>::sse_encode(
+            self.authorization,
+            serializer,
+        );
+        <crate::domain::file_operation_journal::FileOperationCheckpoint>::sse_encode(
+            self.checkpoint,
+            serializer,
+        );
+        <i64>::sse_encode(self.updated_unix_ms, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::file_operations::FileOperationRecovery {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::file_operations::FileOperationRecovery::None => 0,
+                crate::domain::file_operations::FileOperationRecovery::SystemRecycleBin => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::file_operations::FileOperationRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::file_operations::FileAction>::sse_encode(self.action, serializer);
+        <crate::domain::file_operations::FileOperationSource>::sse_encode(self.source, serializer);
+        <Option<crate::domain::file_operations::FileOperationDestination>>::sse_encode(
+            self.destination,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::file_operation_selection::FileOperationSelectionScope {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::domain::file_operation_selection::FileOperationSelectionScope::Gallery {
+                query,
+                catalog_revision,
+                all_matching,
+            } => {
+                <i32>::sse_encode(0, serializer);
+                <Box<crate::domain::GalleryQuery>>::sse_encode(query, serializer);
+                <u64>::sse_encode(catalog_revision, serializer);
+                <bool>::sse_encode(all_matching, serializer);
+            }
+            crate::domain::file_operation_selection::FileOperationSelectionScope::Locations => {
+                <i32>::sse_encode(1, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseEncode for crate::domain::file_operation_selection::FileOperationSelectionSummary {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.file_count, serializer);
+        <u64>::sse_encode(self.total_bytes, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::file_operations::FileOperationSource {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::file_operations::FileOperationDirectory>::sse_encode(
+            self.parent,
+            serializer,
+        );
+        <crate::domain::ExpectedFileState>::sse_encode(self.state, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::file_operation_task::FileOperationTaskKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::file_operation_task::FileOperationTaskKind::Execute => 0,
+                crate::domain::file_operation_task::FileOperationTaskKind::Inspect => 1,
+                crate::domain::file_operation_task::FileOperationTaskKind::ContinueCopiedMove => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::file_operation_task::FileOperationTaskPhase {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::file_operation_task::FileOperationTaskPhase::Starting => 0,
+                crate::domain::file_operation_task::FileOperationTaskPhase::Running => 1,
+                crate::domain::file_operation_task::FileOperationTaskPhase::Stopping => 2,
+                crate::domain::file_operation_task::FileOperationTaskPhase::Finished => 3,
+                crate::domain::file_operation_task::FileOperationTaskPhase::Cancelled => 4,
+                crate::domain::file_operation_task::FileOperationTaskPhase::NeedsAttention => 5,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::file_operation_task::FileOperationTaskProgress {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::file_operation_task::FileOperationTaskKind>::sse_encode(
+            self.kind, serializer,
+        );
+        <crate::domain::file_operation_task::FileOperationTaskPhase>::sse_encode(
+            self.phase, serializer,
+        );
+        <u64>::sse_encode(self.total_items, serializer);
+        <u64>::sse_encode(self.processed_items, serializer);
+        <u64>::sse_encode(self.published_items, serializer);
+        <u64>::sse_encode(self.failed_items, serializer);
+        <u64>::sse_encode(self.cancelled_items, serializer);
+        <Option<u64>>::sse_encode(self.current_operation_id, serializer);
+        <Option<String>>::sse_encode(self.current_path, serializer);
+        <u64>::sse_encode(self.copied_bytes, serializer);
+        <u64>::sse_encode(self.total_bytes, serializer);
+        <Option<crate::domain::ScanError>>::sse_encode(self.failure, serializer);
     }
 }
 
@@ -15949,6 +18148,18 @@ impl SseEncode for Vec<crate::domain::exact_duplicate_review::ExactDuplicateRevi
     }
 }
 
+impl SseEncode for Vec<crate::domain::file_operation_journal::FileOperationRecord> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::domain::file_operation_journal::FileOperationRecord>::sse_encode(
+                item, serializer,
+            );
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::domain::exact_duplicates::GalleryDuplicateAnnotation> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -16093,6 +18304,16 @@ impl SseEncode for Vec<u16> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <u16>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<u64> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <u64>::sse_encode(item, serializer);
         }
     }
 }
@@ -16300,6 +18521,48 @@ impl SseEncode for Option<crate::domain::FileIdentityEvidence> {
     }
 }
 
+impl SseEncode for Option<crate::domain::file_operations::FileOperationDestination> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::file_operations::FileOperationDestination>::sse_encode(
+                value, serializer,
+            );
+        }
+    }
+}
+
+impl SseEncode for Option<crate::domain::file_operations::FileOperationIssue> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::file_operations::FileOperationIssue>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::domain::file_operations::FileOperationReceipt> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::file_operations::FileOperationReceipt>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::domain::file_operations::FileOperationSource> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::file_operations::FileOperationSource>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::domain::GalleryLayoutManifestCursor> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -16440,6 +18703,16 @@ impl SseEncode for Option<crate::domain::RecoverableScan> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::domain::RecoverableScan>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::domain::ScanError> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::ScanError>::sse_encode(value, serializer);
         }
     }
 }
@@ -17886,6 +20159,7 @@ mod io {
     use crate::api::classification::*;
     use crate::api::classification_installation::*;
     use crate::api::classification_maintenance::*;
+    use crate::api::file_operations::*;
     use crate::api::organization_archive::*;
     use crate::api::organization_batch::*;
     use crate::api::organization_cleanup::*;
@@ -17932,6 +20206,34 @@ mod io {
         ptr: *const std::ffi::c_void,
     ) {
         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>>::decrement_strong_count(ptr as _);
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_cedarflake_ame_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+        ptr: *const std::ffi::c_void,
+    ) {
+        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileActionTask>>::increment_strong_count(ptr as _);
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_cedarflake_ame_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+        ptr: *const std::ffi::c_void,
+    ) {
+        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileActionTask>>::decrement_strong_count(ptr as _);
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_cedarflake_ame_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
+        ptr: *const std::ffi::c_void,
+    ) {
+        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>>::increment_strong_count(ptr as _);
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_cedarflake_ame_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
+        ptr: *const std::ffi::c_void,
+    ) {
+        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>>::decrement_strong_count(ptr as _);
     }
 
     #[unsafe(no_mangle)]
@@ -18055,6 +20357,7 @@ mod web {
     use crate::api::classification::*;
     use crate::api::classification_installation::*;
     use crate::api::classification_maintenance::*;
+    use crate::api::file_operations::*;
     use crate::api::organization_archive::*;
     use crate::api::organization_batch::*;
     use crate::api::organization_cleanup::*;
@@ -18103,6 +20406,34 @@ mod web {
         ptr: *const std::ffi::c_void,
     ) {
         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DesktopModelInstallation>>::decrement_strong_count(ptr as _);
+    }
+
+    #[wasm_bindgen]
+    pub fn rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+        ptr: *const std::ffi::c_void,
+    ) {
+        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileActionTask>>::increment_strong_count(ptr as _);
+    }
+
+    #[wasm_bindgen]
+    pub fn rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+        ptr: *const std::ffi::c_void,
+    ) {
+        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileActionTask>>::decrement_strong_count(ptr as _);
+    }
+
+    #[wasm_bindgen]
+    pub fn rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
+        ptr: *const std::ffi::c_void,
+    ) {
+        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>>::increment_strong_count(ptr as _);
+    }
+
+    #[wasm_bindgen]
+    pub fn rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
+        ptr: *const std::ffi::c_void,
+    ) {
+        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>>::decrement_strong_count(ptr as _);
     }
 
     #[wasm_bindgen]

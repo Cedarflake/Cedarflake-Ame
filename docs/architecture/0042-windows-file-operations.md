@@ -24,8 +24,24 @@ denies concurrent content writes; a rename operates on that handle rather than r
 An occupied destination returns to Ame's numbered-name allocation without overwriting it. Shell's
 automatic collision naming is localized and does not implement the required `(1)`, `(2)` policy.
 
+A rename that changes only filename case may address its own existing directory entry. Native
+inspection resolves the stored filename, then verifies the same file identity and revision under a
+write/replacement guard, retaining the admitted parent path. Matching identity alone is insufficient: another
+hard link remains an occupied destination. Interrupted rename recovery checks that the original
+spelling retired and the exact destination spelling now identifies the original file. The native
+replace flag remains false. Windows path resolution follows
+[`std::fs::canonicalize`](https://doc.rust-lang.org/std/fs/fn.canonicalize.html); its extended-path
+prefix is not copied into the catalog because only the resolved filename is used.
+Discovery also resolves the current handle-backed filename before admitting a location and checks
+that exact name again at publication. A delayed notification using the previous case spelling must
+not create a second catalog location for the same directory entry.
+
 Use `IFileOperation` for recycling and explicitly authorized permanent deletion on a dedicated,
 joined STA thread in the current user's session. Admit only one native mutation at a time.
+Convert the extended filesystem namespace into a Shell parsing name at this adapter boundary;
+retain the original handle-backed identity and revision for pre-delete admission. The Shell parser
+does not accept every filesystem namespace supported by file-handle APIs. An unresolvable name
+fails without deletion or a permanent-delete fallback.
 
 Bind each submitted item to the authorized source identity/state and target policy. Reject stale,
 unavailable or escaping paths before submission and revalidate at the pre-operation callback.
@@ -79,6 +95,8 @@ failure stops the workflow. An interrupted operation cannot reenter ordinary exe
 inspects pinned parent directories and exact file evidence without mutation; a proven completed move
 can regain its receipt. A retained copy requires an explicit continuation before source removal.
 Missing or conflicting evidence remains uncertain. The runtime serializes recovery with active work.
+Inspection retires a request that never started as cancelled; retry requires a new selection and
+confirmation rather than replaying its old authorization.
 
 A joined application worker owns one bounded page of at most 128 durable item IDs and the validated
 catalog connection. Its process-wide task permit excludes other execution/recovery workers until

@@ -43,6 +43,12 @@ it to the operation journal/catalog ports. `start_file_operation_task` construct
 and opens the catalog inside the joined worker. Its bounded request names already authorized durable
 items; the factory adds no selection or mutation authority.
 
+`open_selection` binds a bounded selection session to the same validated catalog. Its temporary
+tables freeze visible physical locations, including offscreen selections, without expanding hidden
+duplicate members. `source_inspector` binds the native admission port used before recording that
+selection's immutable authority. Closing a selection cancels its work and releases its catalog;
+neither factory starts file mutations. Preparation completes before the joined task is submitted.
+
 One process-wide task lane serializes execution and recovery. Cancellation remains stopping while a
 native call is active; close joins that worker before resources can be replaced. A completed native
 result is still published after late cancellation, and interrupted work remains in durable history.

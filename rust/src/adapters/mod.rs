@@ -54,6 +54,7 @@ pub(crate) use preview_cache_storage::LocalPreviewCacheStorage;
 mod similar_image_reader;
 mod sqlite_catalog;
 pub(crate) use similar_image_reader::GuardedSimilarImageReader;
+pub(crate) use sqlite_catalog::SqliteFileOperationSelection;
 mod storage_settings;
 #[cfg(windows)]
 mod windows_identity_journal;

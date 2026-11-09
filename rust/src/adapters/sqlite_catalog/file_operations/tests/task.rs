@@ -7,6 +7,7 @@ use crate::domain::IncrementalCatalogRoot;
 use crate::domain::file_operation_publication::FileOperationOutputMetadata;
 use crate::domain::file_operation_task::{
     FileOperationTaskKind, FileOperationTaskPhase, FileOperationTaskRequest,
+    FileOperationTaskTarget,
 };
 use crate::domain::file_operations::{
     FileOperationIssue, FileOperationIssueKind, FileOperationResult,
@@ -94,12 +95,23 @@ impl FileOperationOutputReader for BlockedNative {
 fn file_operation_task_cancellation_joins_native_work_and_retires_unstarted_authority() {
     let (directory, mut journal, mut first) = fixture();
     first.request.action = FileAction::Copy;
-    let mut second = first.clone();
-    second.ordinal = 1;
-    let records = journal.authorize(&[first, second]).unwrap();
+    let mut records = Vec::new();
+    for start in [0, FILE_OPERATION_PAGE_SIZE] {
+        let page = (start..(start + FILE_OPERATION_PAGE_SIZE).min(130))
+            .map(|ordinal| {
+                let mut item = first.clone();
+                item.ordinal = ordinal as u64;
+                item
+            })
+            .collect::<Vec<_>>();
+        records.extend(journal.authorize(&page).unwrap());
+    }
     let request = FileOperationTaskRequest {
         kind: FileOperationTaskKind::Execute,
-        operation_ids: records.iter().map(|record| record.id).collect(),
+        target: FileOperationTaskTarget::Batch {
+            batch_id: first.batch_id.clone(),
+            expected_items: records.len() as u64,
+        },
     };
     let (entered, entry) = mpsc::sync_channel(1);
     let (release, held) = mpsc::sync_channel(1);
@@ -154,8 +166,8 @@ fn file_operation_task_cancellation_joins_native_work_and_retires_unstarted_auth
     close.join().unwrap();
     let progress = task.snapshot();
     assert_eq!(progress.phase, FileOperationTaskPhase::Cancelled);
-    assert_eq!(progress.processed_items, 2);
-    assert_eq!(progress.cancelled_items, 2);
+    assert_eq!(progress.processed_items, records.len() as u64);
+    assert_eq!(progress.cancelled_items, records.len() as u64);
     for record in records {
         assert_eq!(
             journal.load(record.id).unwrap().checkpoint.phase,

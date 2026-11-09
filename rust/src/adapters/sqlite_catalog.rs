@@ -34,6 +34,7 @@ mod exact_duplicate_review;
 mod exact_duplicates;
 mod file_operations;
 pub use file_operations::SqliteFileOperationJournal;
+pub(crate) use file_operations::SqliteFileOperationSelection;
 mod folders;
 mod gallery;
 mod gallery_layout_manifest;

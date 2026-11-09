@@ -383,6 +383,41 @@ class ConsolidatedLibraryRoot {
           relativePath == other.relativePath;
 }
 
+class ExpectedFileState {
+  final String absolutePath;
+  final BigInt fileSize;
+  final PlatformInt64 modifiedUnixMs;
+  final FileIdentityEvidence? fileIdentity;
+  final SourceRevisionEvidence? sourceRevision;
+
+  const ExpectedFileState({
+    required this.absolutePath,
+    required this.fileSize,
+    required this.modifiedUnixMs,
+    this.fileIdentity,
+    this.sourceRevision,
+  });
+
+  @override
+  int get hashCode =>
+      absolutePath.hashCode ^
+      fileSize.hashCode ^
+      modifiedUnixMs.hashCode ^
+      fileIdentity.hashCode ^
+      sourceRevision.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ExpectedFileState &&
+          runtimeType == other.runtimeType &&
+          absolutePath == other.absolutePath &&
+          fileSize == other.fileSize &&
+          modifiedUnixMs == other.modifiedUnixMs &&
+          fileIdentity == other.fileIdentity &&
+          sourceRevision == other.sourceRevision;
+}
+
 class FileIdentityEvidence {
   final String scheme;
   final String value;

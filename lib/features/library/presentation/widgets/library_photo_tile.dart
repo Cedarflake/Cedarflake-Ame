@@ -423,6 +423,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       ref: ref,
       position: position,
       target: target,
+      fileName: asset.sourcePath.split(RegExp(r"[\\/]")).last,
       isCurrent: () =>
           mounted &&
           LibraryOrganizationTarget.fromAsset(widget.asset) == target,

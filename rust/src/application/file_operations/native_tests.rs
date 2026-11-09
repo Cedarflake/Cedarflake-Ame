@@ -174,26 +174,25 @@ fn file_operation_sandbox_recovers_native_move_and_publishes_copy_without_replay
             .decisions[0]
             .favorite
     );
-    fs::write(exports.join("图片.png"), b"occupied destination").unwrap();
-    let copy = authorization(
-        &engine,
-        &root,
-        &moved,
-        "native-copy",
-        FileAction::Copy,
-        &exports,
-        "图片.png",
-    );
-    let copy = journal.authorize(&[copy]).unwrap().remove(0);
-    let task = super::start_file_operation_task(
+    fs::write(exports.join("移动.png"), b"occupied destination").unwrap();
+    let selected = FileOperationSelectionSession::for_catalog(
         storage.catalog_path.clone(),
-        crate::domain::file_operation_task::FileOperationTaskRequest {
-            kind: crate::domain::file_operation_task::FileOperationTaskKind::Execute,
-            operation_ids: vec![copy.id],
-        },
-        None,
+        crate::domain::file_operation_selection::FileOperationSelectionScope::Locations,
     )
     .unwrap();
+    selected.append_locations(vec![selection(&moved)]).unwrap();
+    assert_eq!(selected.prepare().unwrap().file_count, 1);
+    let task = selected
+        .execute(
+            "native-copy".into(),
+            crate::domain::file_operation_selection::FileOperationCommand {
+                action: FileAction::Copy,
+                destination_directory: Some(exports.to_string_lossy().into_owned()),
+                new_name: None,
+            },
+            None,
+        )
+        .unwrap();
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
     loop {
         use crate::domain::file_operation_task::FileOperationTaskPhase;
@@ -218,25 +217,101 @@ fn file_operation_sandbox_recovers_native_move_and_publishes_copy_without_replay
         std::thread::sleep(std::time::Duration::from_millis(10));
     }
     task.close().unwrap();
-    let copied = journal.load(copy.id).unwrap();
+    selected.close().unwrap();
+    let copied = journal
+        .batch_page("native-copy", None, 1)
+        .unwrap()
+        .remove(0);
     assert_eq!(copied.checkpoint.phase, Phase::Published);
     assert_eq!(
         copied.checkpoint.destination.as_ref().unwrap().name,
-        "图片(1).png"
+        "移动(1).png"
     );
     assert_eq!(
-        fs::read(exports.join("图片(1).png")).unwrap(),
+        fs::read(exports.join("移动(1).png")).unwrap(),
         original_bytes
     );
     assert_eq!(
-        fs::read(exports.join("图片.png")).unwrap(),
+        fs::read(exports.join("移动.png")).unwrap(),
         b"occupied destination"
     );
     assert_eq!(fs::read(&moved_path).unwrap(), original_bytes);
+    let rename = authorization(
+        &engine,
+        &root,
+        &moved,
+        "native-case",
+        FileAction::Rename,
+        &destination,
+        "移动.PNG",
+    );
+    let rename = journal.authorize(&[rename]).unwrap().remove(0);
+    faults.execute_batch(
+        "CREATE TRIGGER interrupt_native_receipt BEFORE UPDATE OF phase ON file_operation_items
+         WHEN NEW.phase = 'native_completed' BEGIN SELECT RAISE(ABORT, 'injected case rename receipt loss'); END;",
+    ).unwrap();
+    assert!(
+        FileOperationExecutor::new(&mut journal, &engine, &control, &now)
+            .execute(rename.id)
+            .is_err()
+    );
+    assert!(
+        fs::read_dir(&destination)
+            .unwrap()
+            .any(|entry| entry.unwrap().file_name() == "移动.PNG")
+    );
+    faults
+        .execute_batch("DROP TRIGGER interrupt_native_receipt;")
+        .unwrap();
+    let recovered = FileOperationExecutor::new(&mut journal, &engine, &control, &now)
+        .reconcile(rename.id)
+        .unwrap();
+    assert_eq!(recovered.checkpoint.phase, Phase::NativeCompleted);
+    publish_file_operation(&mut journal, &engine, rename.id, 14).unwrap();
+    let renamed_path = destination.join("移动.PNG");
+    let hard_link = destination.join("other-link.png");
+    fs::hard_link(&renamed_path, &hard_link).unwrap();
+    let collision = FileOperationRequest {
+        action: FileAction::Rename,
+        source: engine
+            .inspect_source(renamed_path.to_str().unwrap())
+            .unwrap(),
+        destination: Some(FileOperationDestination {
+            directory: engine
+                .inspect_directory(destination.to_str().unwrap())
+                .unwrap(),
+            name: "other-link.png".into(),
+        }),
+    };
+    assert_eq!(
+        engine.execute(&collision, &control).unwrap_err().kind,
+        Kind::Collision
+    );
+    assert_eq!(fs::read(&renamed_path).unwrap(), original_bytes);
+    assert_eq!(fs::read(&hard_link).unwrap(), original_bytes);
+    let extended_copy = exports.join("移动(1).png").canonicalize().unwrap();
+    let recycled = engine
+        .execute(
+            &FileOperationRequest {
+                action: FileAction::Recycle,
+                source: engine
+                    .inspect_source(extended_copy.to_str().unwrap())
+                    .unwrap(),
+                destination: None,
+            },
+            &control,
+        )
+        .unwrap();
+    assert_eq!(
+        recycled.recovery,
+        crate::domain::file_operations::FileOperationRecovery::SystemRecycleBin
+    );
+    assert!(!extended_copy.exists());
+    assert_eq!(fs::read(&renamed_path).unwrap(), original_bytes);
     assert_eq!(journal.publication_roots().unwrap().len(), 1);
     assert_eq!(fs::read(&sentinel).unwrap(), b"outside operation selection");
     println!(
-        "native move receipt recovery, held output, catalog rollback, favorite continuity, numbered copy: PASS; bytes={}, sha256={:x}",
+        "native move receipt recovery, held output, catalog rollback, favorite continuity, selected numbered copy, case rename recovery, hard-link collision, extended-path recycle: PASS; bytes={}, sha256={:x}",
         original_bytes.len(),
         Sha256::digest(&original_bytes)
     );

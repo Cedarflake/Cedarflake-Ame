@@ -247,11 +247,15 @@ pub(super) fn delete(
         }
         let cookie = operation.Advise(&sink).map_err(native_error)?;
         let operation = AdvisedOperation { operation, cookie };
-        let source: IShellItem = SHCreateItemFromParsingName(
-            &HSTRING::from(&admission.request.source.state.absolute_path),
-            None,
-        )
-        .map_err(native_error)?;
+        let parsing_name =
+            crate::domain::user_visible_path(&admission.request.source.state.absolute_path);
+        let source: IShellItem = SHCreateItemFromParsingName(&HSTRING::from(parsing_name), None)
+            .map_err(|error| {
+                FileOperationIssue::new(
+                    Kind::NativeFailure,
+                    format!("Windows could not resolve the file for deletion: {error}"),
+                )
+            })?;
         operation
             .operation
             .DeleteItem(&source, None)

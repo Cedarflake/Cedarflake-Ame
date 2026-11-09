@@ -26,4 +26,16 @@ pub trait FileOperationJournal: Send {
         after_id: u64,
         limit: usize,
     ) -> Result<Vec<FileOperationRecord>, ScanError>;
+    fn batch_count(&self, batch_id: &str) -> Result<u64, ScanError>;
+    fn cancel_unstarted(
+        &mut self,
+        ids: &[u64],
+        now_unix_ms: i64,
+    ) -> Result<Vec<FileOperationRecord>, ScanError>;
+    fn batch_page(
+        &self,
+        batch_id: &str,
+        after_ordinal: Option<u64>,
+        limit: usize,
+    ) -> Result<Vec<FileOperationRecord>, ScanError>;
 }

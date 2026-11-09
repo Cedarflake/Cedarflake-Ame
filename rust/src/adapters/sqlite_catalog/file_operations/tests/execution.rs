@@ -145,6 +145,14 @@ fn file_operation_execution_records_collision_and_recovers_a_lost_move_receipt_w
         .unwrap()[0]
         .id;
     let control = FileOperationControl::default();
+    let mut unstarted = authorization.clone();
+    unstarted.batch_id = "interrupted-before-start".into();
+    let unstarted_id = journal.authorize(&[unstarted]).unwrap()[0].id;
+    let retired = FileOperationExecutor::new(&mut journal, &native, &control, &|| 2)
+        .reconcile(unstarted_id)
+        .unwrap();
+    assert_eq!(retired.checkpoint.phase, Phase::Cancelled);
+    assert!(native.calls.lock().unwrap().is_empty());
     let record = FileOperationExecutor::new(&mut journal, &native, &control, &|| 2)
         .execute(id)
         .unwrap();

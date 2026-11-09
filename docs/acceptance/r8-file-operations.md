@@ -255,3 +255,48 @@ Reviewability: the task lifetime owner has 162 production lines, its execution l
 correlation 90, with no inline tests. The cancellation fixture has 172 dedicated test lines; the
 existing native fixture now has 284. The 252-line scan transaction owner only sequences the typed
 correlation owner around its existing projection publication.
+
+## R8-03 connected desktop actions — 2026-11-10
+
+The typed desktop bridge connects selected physical locations and query-wide selections to the
+existing executor. Preparation uses disk-backed SQLite selection tables and bounded pages; confirmation
+binds the submitted action and destination. Gallery menus, batch actions and the viewer's upper-right
+delete button use the shared dialog and feedback components. History reads 40 records per page;
+unfinished outcomes require inspection, and retry creates a fresh selection and confirmation.
+
+The Debug client ran in a 3-GiB Windows Sandbox with read-only host inputs, no network or clipboard,
+and guest-local source files, catalog and targets. No real source root or production catalog was used.
+The tested native DLL SHA-256 was
+`91d78116901a998d8429d90c2ee19b74e96856adcb0d3291fba2e558089ee09f`.
+
+| Desktop interaction | Observed result |
+| --- | --- |
+| Copy and move through the context menu and system folder picker | Completed outputs retained the fixture bytes; catalog counts followed the actual source changes |
+| Case-only rename | `sample-2.png` became `Sample-2.png`; all five baseline hashes remained unchanged and only the current spelling appeared in the five active catalog locations |
+| Destination removed between picking and confirmation | The dialog requested another folder; source files remained intact and no destination was recreated |
+| Delete confirmation and cancellation | Permanent deletion was initially unchecked, selecting it changed the warning, and cancelling performed no mutation; the next confirmation reset it to unchecked |
+| Copy 1,285 selected files to an occupied destination, then stop | The UI and journal agreed on 1,051 completed and 234 cancelled items, with zero failed items. Existing outputs remained intact, new outputs used numbered names, and all 1,285 source hashes and 2,336 output hashes matched their expected contents |
+| Viewer deletion and system restore | Recycling `batch-1280.png` reduced physical/catalog counts from 1,285 to 1,284 and persisted a system-bin receipt. The history action opened Windows Recycle Bin; restoring that one entry restored its bytes and both counts to 1,285 |
+
+Desktop verification exposed two integration defects. Delayed scan observations could republish the
+old spelling after a case-only rename; handle-based filename revalidation now rejects that stale
+observation without reading source content. Shell parsing also rejected an extended filesystem path
+with `0x80070057`; the Shell boundary now uses the normal drive/UNC spelling while retaining identity
+and source-state validation. The guest native fixture covers case-only recovery, a competing hardlink
+name and recycling an extended-path source. Its executable SHA-256 was
+`423f6fde374a0e49e72d3f6f34f90e8ad701ad1973e40df62e162c3531f8617c`.
+
+Focused SQLite selection/execution checks, the delayed scan/case-alias regressions, Rust dependency
+boundaries, warning-denying all-target Clippy, Dart analysis and the Windows Debug build passed.
+Four focused Flutter cases cover joined shutdown, preserving a worker failure during stopping,
+retiring a late selection handle and resetting deletion consent. The final stopping-error correction
+was verified at the controlled lifecycle boundary; it changes no native action or successful UI path.
+Hosted CI has not run for this branch, whose pushes do not trigger the main/PR workflow. Rule-based
+organization and exceptional-result TXT output remain R8-04 work.
+
+Reviewability: selection lifetime, authorization, execution paging and SQLite selection have
+219, 225, 200 and 209 production lines respectively, without inline tests. Desktop lifecycle,
+confirmation and history have 209, 210 and 235 production lines. Their dedicated selection, native
+and Flutter fixtures have 184, 359 and 223 lines. The existing `local_files.rs` facade retains 2,543
+lines before its 3,364-line inline-test module; its revalidation responsibility was moved into the
+existing scoped owner rather than extended in place.

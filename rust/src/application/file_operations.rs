@@ -10,15 +10,18 @@ use crate::domain::file_operations::{
 use crate::ports::file_operation_journal::FileOperationJournal;
 use crate::ports::file_operations::{FileOperationControl, NativeFileOperations};
 
+pub(crate) mod history;
 #[cfg(all(test, windows))]
 mod native_tests;
 mod production;
 mod publication;
 mod recovery;
+mod selection;
 mod task;
 pub use production::start_file_operation_task;
 pub use publication::publish_file_operation;
 pub use recovery::{FileOperationInspection, inspect_file_operation};
+pub(crate) use selection::FileOperationSelectionSession;
 pub use task::FileOperationTask;
 
 const MAX_NAME_CANDIDATES: u32 = 10_000;
@@ -66,7 +69,24 @@ impl<'a> FileOperationExecutor<'a> {
             };
             if let Some(destination) = &destination {
                 match self.native.destination_occupied(destination) {
-                    Ok(true) => continue,
+                    Ok(true) => {
+                        let source = &record.authorization.request.source;
+                        if record.authorization.request.action != FileAction::Rename
+                            || destination.directory.identity != source.parent.identity
+                        {
+                            continue;
+                        }
+                        let observed = match self.native.inspect_location(destination) {
+                            Ok(observed) => observed,
+                            Err(issue) => return self.failure(&record, issue),
+                        };
+                        if !observed.is_some_and(|actual| {
+                            actual.state.absolute_path == source.state.absolute_path
+                                && actual.state.file_identity == source.state.file_identity
+                        }) {
+                            continue;
+                        }
+                    }
                     Ok(false) => {}
                     Err(issue) => return self.failure(&record, issue),
                 }
@@ -128,37 +148,6 @@ impl<'a> FileOperationExecutor<'a> {
             ));
         }
         self.finish_copied_move(record)
-    }
-
-    pub fn reconcile(&mut self, id: u64) -> Result<FileOperationRecord, ScanError> {
-        let record = self.journal.load(id)?;
-        match inspect_file_operation(&record, self.native) {
-            FileOperationInspection::Completed(receipt)
-                if record.checkpoint.phase != Phase::NativeCompleted =>
-            {
-                self.advance(&record, Event::NativeCompleted(receipt))
-            }
-            FileOperationInspection::CopyRetained
-                if matches!(
-                    record.checkpoint.phase,
-                    Phase::RemovingSource | Phase::Uncertain
-                ) =>
-            {
-                let copied = record.checkpoint.copied.clone().ok_or_else(|| {
-                    ScanError::new(
-                        "file_operation_missing_receipt",
-                        "Recovery requires its recorded copy receipt",
-                    )
-                })?;
-                self.advance(&record, Event::Copied(copied))
-            }
-            FileOperationInspection::NeedsAttention(issue)
-                if record.checkpoint.phase != Phase::Uncertain =>
-            {
-                self.advance(&record, Event::Uncertain(issue))
-            }
-            _ => Ok(record),
-        }
     }
 
     fn finish_copied_move(
