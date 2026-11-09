@@ -72,6 +72,14 @@ copy and its destination identity before a separate source-removal transition. A
 remains unresolved; neither opening the journal nor enumerating unfinished work replays it.
 Numbered destination names remain within the authorized directory, identity and base-name policy.
 
+The application executor selects the first free numbered name, records it before native submission,
+and retries an occupied name only after the native adapter reports no overwrite. Allocation is bounded
+to 10,000 candidates per attempt. Copy receipts must commit before source-removal admission; a recording
+failure stops the workflow. An interrupted operation cannot reenter ordinary execution. Recovery
+inspects pinned parent directories and exact file evidence without mutation; a proven completed move
+can regain its receipt. A retained copy requires an explicit continuation before source removal.
+Missing or conflicting evidence remains uncertain. The runtime serializes recovery with active work.
+
 History and unfinished-item reads use bounded keyset windows. Schema validation checks immutable
 authority, ordered transitions and agreement with each journal head while retaining one item in
 memory. Migration preserves existing albums, decisions and history. These records are durable data;

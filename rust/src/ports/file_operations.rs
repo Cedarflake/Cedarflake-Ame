@@ -2,8 +2,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use crate::domain::file_operations::{
-    FileOperationDirectory, FileOperationIssue, FileOperationRequest, FileOperationResult,
-    FileOperationSource,
+    FileOperationDestination, FileOperationDirectory, FileOperationIssue, FileOperationRequest,
+    FileOperationResult, FileOperationSource,
 };
 
 #[derive(Clone, Default)]
@@ -38,6 +38,15 @@ impl FileOperationControl {
 pub trait NativeFileOperations: Send + Sync {
     fn inspect_source(&self, path: &str) -> Result<FileOperationSource, FileOperationIssue>;
     fn inspect_directory(&self, path: &str) -> Result<FileOperationDirectory, FileOperationIssue>;
+
+    fn destination_occupied(
+        &self,
+        destination: &FileOperationDestination,
+    ) -> Result<bool, FileOperationIssue>;
+    fn inspect_location(
+        &self,
+        location: &FileOperationDestination,
+    ) -> Result<Option<FileOperationSource>, FileOperationIssue>;
 
     /// The caller records this exact authorized item before invoking the native operation.
     /// A different-volume move is rejected unchanged; its copy/verify/remove stages belong to

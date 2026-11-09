@@ -9,6 +9,8 @@ use crate::domain::file_operations::{
 use crate::domain::{ExpectedFileState, FileIdentityEvidence};
 use crate::ports::CatalogRepository;
 
+mod execution;
+
 fn fixture() -> (
     tempfile::TempDir,
     SqliteFileOperationJournal,

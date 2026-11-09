@@ -7,9 +7,9 @@ mod shell_delete;
 use std::sync::{Mutex, MutexGuard, TryLockError};
 
 use crate::domain::file_operations::{
-    FileAction, FileOperationDirectory, FileOperationIssue, FileOperationIssueKind as Kind,
-    FileOperationReceipt, FileOperationRecovery, FileOperationRequest, FileOperationResult,
-    FileOperationSource,
+    FileAction, FileOperationDestination, FileOperationDirectory, FileOperationIssue,
+    FileOperationIssueKind as Kind, FileOperationReceipt, FileOperationRecovery,
+    FileOperationRequest, FileOperationResult, FileOperationSource,
 };
 use crate::ports::file_operations::{FileOperationControl, NativeFileOperations};
 
@@ -34,6 +34,20 @@ impl NativeFileOperations for WindowsFileOperations {
 
     fn inspect_directory(&self, path: &str) -> Result<FileOperationDirectory, FileOperationIssue> {
         scope::inspect_directory(path)
+    }
+
+    fn destination_occupied(
+        &self,
+        destination: &FileOperationDestination,
+    ) -> Result<bool, FileOperationIssue> {
+        scope::destination_occupied(destination)
+    }
+
+    fn inspect_location(
+        &self,
+        location: &FileOperationDestination,
+    ) -> Result<Option<FileOperationSource>, FileOperationIssue> {
+        scope::inspect_location(location)
     }
 
     fn complete_move(

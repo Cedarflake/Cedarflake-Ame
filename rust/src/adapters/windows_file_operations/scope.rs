@@ -2,8 +2,8 @@ use std::path::Path;
 
 use crate::adapters::PublicationGuardedFileDiscovery;
 use crate::domain::file_operations::{
-    FileAction, FileOperationDirectory, FileOperationIssue, FileOperationIssueKind as Kind,
-    FileOperationRequest, FileOperationSource,
+    FileAction, FileOperationDestination, FileOperationDirectory, FileOperationIssue,
+    FileOperationIssueKind as Kind, FileOperationRequest, FileOperationSource,
 };
 use crate::domain::{
     ExpectedFileState, MetadataInventoryEntryKind, MetadataInventoryPlaceholderState,
@@ -160,6 +160,39 @@ pub(super) fn inspect_guarded(
             source_revision: entry.source_revision,
         },
     })
+}
+
+pub(super) fn destination_occupied(
+    destination: &FileOperationDestination,
+) -> Result<bool, FileOperationIssue> {
+    validate_name(&destination.name)?;
+    let guard = open_directory(&destination.directory, Kind::DestinationChanged)?;
+    occupied(&guard, &destination.name)
+}
+
+pub(super) fn inspect_location(
+    location: &FileOperationDestination,
+) -> Result<Option<FileOperationSource>, FileOperationIssue> {
+    validate_name(&location.name)?;
+    let guard = open_directory(&location.directory, Kind::DestinationChanged)?;
+    if !occupied(&guard, &location.name)? {
+        return Ok(None);
+    }
+    inspect_guarded(&guard, &location.directory, &location.name).map(Some)
+}
+
+fn occupied(
+    guard: &PublicationGuardedFileDiscovery,
+    name: &str,
+) -> Result<bool, FileOperationIssue> {
+    match guard.operation_path(name).symlink_metadata() {
+        Ok(_) => Ok(true),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(FileOperationIssue::new(
+            Kind::Unavailable,
+            error.to_string(),
+        )),
+    }
 }
 
 fn open_directory(

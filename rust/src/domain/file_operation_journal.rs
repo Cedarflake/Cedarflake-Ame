@@ -6,7 +6,9 @@ use crate::domain::file_operations::{
     FileOperationRequest, FileOperationSource,
 };
 
+mod naming;
 mod transitions;
+pub use naming::numbered_file_name;
 
 pub const FILE_OPERATION_PAGE_SIZE: usize = 128;
 

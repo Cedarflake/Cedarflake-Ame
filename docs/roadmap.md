@@ -156,8 +156,8 @@ schedules no additional broad split.
 R8 implementation is active on `codex/r8-file-organization`. R8-01 Windows capability admission
 under [ADR 0042](architecture/0042-windows-file-operations.md) has scoped
 [native evidence](acceptance/r8-file-operations.md#r8-01-native-capability-admission--2026-11-09).
-R8-02 has its [durable journal foundation](acceptance/r8-file-operations.md#r8-02-durable-journal-foundation--2026-11-09);
-native execution, restart reconciliation and catalog publication remain in that slice.
+R8-02 has its [durable journal and executor](acceptance/r8-file-operations.md#r8-02-durable-journal-foundation--2026-11-09);
+integrated native recovery and catalog publication remain in that slice.
 Continue through R8-02 to R8-05 in the
 [execution plan](plans/r8-file-organization.md#implementation-slices): connect durable
 execution and recovery, expose desktop actions, add organization rules, and complete integrated

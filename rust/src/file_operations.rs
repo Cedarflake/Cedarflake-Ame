@@ -1,6 +1,9 @@
 pub use crate::adapters::SqliteFileOperationJournal;
 #[cfg(windows)]
 pub use crate::adapters::WindowsFileOperations;
+pub use crate::application::file_operations::{
+    FileOperationExecutor, FileOperationInspection, inspect_file_operation,
+};
 pub use crate::domain::file_operation_journal::{
     AuthorizedFileOperation, FILE_OPERATION_PAGE_SIZE, FileOperationCatalogBinding,
     FileOperationCheckpoint, FileOperationEvent, FileOperationPhase, FileOperationRecord,

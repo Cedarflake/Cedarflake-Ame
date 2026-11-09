@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use super::naming::is_numbered_name;
 use super::{
     AuthorizedFileOperation, FileOperationCheckpoint, FileOperationEvent as Event,
     FileOperationPhase as Phase, invalid, validate_source,
@@ -39,7 +40,12 @@ impl FileOperationCheckpoint {
                 Phase::NameOccupied
             }
             Event::Copied(destination)
-                if self.phase == Phase::Executing && action == FileAction::Move =>
+                if action == FileAction::Move
+                    && (self.phase == Phase::Executing
+                        || matches!(self.phase, Phase::RemovingSource | Phase::Uncertain)
+                            && self.copied.as_ref().is_some_and(|previous| {
+                                previous.state.file_identity == destination.state.file_identity
+                            })) =>
             {
                 validate_completed_destination(self.destination.as_ref(), &destination)?;
                 if destination.state.file_size != authorization.request.source.state.file_size {
@@ -49,17 +55,20 @@ impl FileOperationCheckpoint {
                 Phase::Copied
             }
             Event::RemovingSource
-                if self.phase == Phase::Copied
+                if matches!(self.phase, Phase::Copied | Phase::Failed | Phase::Cancelled)
                     && action == FileAction::Move
                     && self.copied.is_some() =>
             {
                 Phase::RemovingSource
             }
             Event::NativeCompleted(receipt)
-                if matches!(self.phase, Phase::Executing | Phase::RemovingSource) =>
+                if matches!(
+                    self.phase,
+                    Phase::Executing | Phase::RemovingSource | Phase::Uncertain
+                ) =>
             {
                 validate_receipt(authorization, self.destination.as_ref(), &receipt)?;
-                if self.phase == Phase::Executing
+                if self.copied.is_none()
                     && matches!(action, FileAction::Move | FileAction::Rename)
                     && receipt.destination.as_ref().is_none_or(|destination| {
                         destination.state.file_identity
@@ -117,7 +126,12 @@ impl FileOperationCheckpoint {
             Event::Uncertain(issue)
                 if matches!(
                     self.phase,
-                    Phase::Executing | Phase::RemovingSource | Phase::NativeCompleted
+                    Phase::Executing
+                        | Phase::RemovingSource
+                        | Phase::NativeCompleted
+                        | Phase::Copied
+                        | Phase::Failed
+                        | Phase::Cancelled
                 ) =>
             {
                 next.issue = Some(issue);
@@ -138,7 +152,7 @@ fn validate_destination(
         (Some(expected), Some(actual))
             if expected.directory.path == actual.directory.path
                 && expected.directory.identity == actual.directory.identity
-                && numbered_name(&expected.name, &actual.name) =>
+                && is_numbered_name(&expected.name, &actual.name) =>
         {
             Ok(())
         }
@@ -146,30 +160,6 @@ fn validate_destination(
             "Execution changed the authorized destination policy",
         )),
     }
-}
-
-fn numbered_name(original: &str, actual: &str) -> bool {
-    if original == actual {
-        return true;
-    }
-    let path = Path::new(original);
-    let stem = path
-        .file_stem()
-        .and_then(|value| value.to_str())
-        .unwrap_or(original);
-    let suffix = path
-        .extension()
-        .and_then(|value| value.to_str())
-        .map(|value| format!(".{value}"))
-        .unwrap_or_default();
-    actual
-        .strip_prefix(&format!("{stem}("))
-        .and_then(|value| value.strip_suffix(&format!("){suffix}")))
-        .is_some_and(|number| {
-            !number.starts_with('0')
-                && number.bytes().all(|value| value.is_ascii_digit())
-                && number.parse::<u32>().is_ok_and(|value| value > 0)
-        })
 }
 
 fn validate_completed_destination(

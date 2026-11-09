@@ -162,15 +162,27 @@ result recording fails, idempotent authorization, stale callback rejection, boun
 reopening a copied move without restarting it. They also rejected a corrupted journal head. The
 forward-migration fixture retained existing albums and organization history and rolled back a
 partially failed schema upgrade. The existing album-icon migration regression also passed.
-Warning-denying Clippy and the fixed dependency-boundary check passed. These checks do not exercise the forthcoming
-application executor or establish integrated restart/catalog reconciliation.
+Warning-denying Clippy and the fixed dependency-boundary check passed. Those foundation checks cover
+persistence and migration; the executor checks below cover their connected admission order.
 
 The largest new production policy owner has 214 lines with no inline tests; the journal and
 migration fixtures contain 361 dedicated test lines. Existing coordinators retain 2,988 production
 lines in `sqlite_catalog.rs`, 4,195 production and 2,289 inline-test lines in `migrations.rs`, and
 430 production lines in `current_schema.rs`; additions there only register the new scoped owners.
 
-R8-01 was committed as `7a5288e1`. Branch pushes do not start the repository's main/PR CI workflow;
+The port-based executor now records selected numbered names before submission and separates native
+copy, durable copy receipt, source-removal admission and native completion. Restart inspection uses
+parent identity and file-state evidence without replaying operations. Two additional cases use actual
+SQLite with a controlled native collaborator: a failed start write makes no native call; a failed copy
+receipt write preserves the original; a collision selects `图片(1).jpg`; and reopening after a lost
+source-removal callback recovers the retained move result without another mutation. All six scoped
+journal/migration/executor cases and warning-denying Clippy passed. The collaborator supplies controlled
+file observations; these cases do not replace the native Sandbox evidence or desktop acceptance.
+
+The executor has 231 production lines, restart inspection has 128, and their dedicated SQLite tests
+have 249 lines. The shared transition owner now has 204 production lines with no inline tests.
+
+R8-01 was committed as `7a5288e1`, and the journal foundation as `64c6add2`. Branch pushes do not start the repository's main/PR CI workflow;
 hosted verification remains pending. No new PR or release was created, and no real source media or
-production catalog was used. The durable executor, disk reconciliation, catalog publication and
-desktop controls remain R8-02/R8-03 work in the roadmap.
+production catalog was used. Integrated native recovery, catalog publication and desktop controls
+remain R8-02/R8-03 work in the roadmap.
