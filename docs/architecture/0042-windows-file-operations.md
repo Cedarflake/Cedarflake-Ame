@@ -86,6 +86,32 @@ memory. Migration preserves existing albums, decisions and history. These record
 preview/cache cleanup and source-root removal do not delete them. Rollback cannot undo completed
 native mutations or downgrade a catalog while discarding its operation records.
 
+## Catalog publication and notification ordering
+
+Publish a verified native receipt, its location changes, durable organization association and
+replacement duplicate preference in one catalog transaction. A failed transaction retains the native
+receipt for publication retry; it never repeats the file operation. Remove only the authorized source
+identity/version. A newer file at the old path is outside that receipt's scope.
+
+For a destination under a registered root, hold its native identity and source state against writes
+and deletion through metadata inspection and catalog commit. Revalidate both the immediate parent
+and the registered root namespace. Use existing metadata inspection and source-generation owners,
+including the catalog's normalized relative paths. Destination selection does not register a root;
+an outside destination retains its verified result and applicable durable organization binding.
+
+Moves retain the original logical asset and organization decisions across the verified identity
+change. Copies receive independent asset identity; an already published observation of the same
+physical output is reused. Conflicting durable destination associations fail publication without
+overwriting either decision. Analysis results remain versioned evidence rather than being rewritten
+as operation history.
+
+System notifications may publish before or after native completion is recorded. Reuse an observed
+destination's compatible source generation. When a validated notification removes an authorized
+deletion target first, save its replacement exact-duplicate preference in that same publication.
+Schema v80 adds a partial index over pending deletion location/generation for this point correlation;
+normal synchronization does not scan the operation history. Notification evidence alone does not
+manufacture a native completion result or authorize another mutation.
+
 ## FFI and resource safety
 
 The adapter and its isolated admission probe may use `unsafe` for the named Windows operations:

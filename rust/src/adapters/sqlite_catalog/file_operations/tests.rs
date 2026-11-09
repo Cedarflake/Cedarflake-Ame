@@ -10,6 +10,7 @@ use crate::domain::{ExpectedFileState, FileIdentityEvidence};
 use crate::ports::CatalogRepository;
 
 mod execution;
+mod publication;
 
 fn fixture() -> (
     tempfile::TempDir,
@@ -198,7 +199,7 @@ fn file_operation_journal_preserves_authority_and_rolls_back_failed_intent_or_re
 }
 
 #[test]
-fn file_operation_journal_reopens_copied_moves_without_starting_or_retargeting_them() {
+fn file_operation_journal_upgrades_copied_moves_without_starting_or_retargeting_them() {
     let (directory, mut journal, authorization) = fixture();
     let record = journal
         .authorize(std::slice::from_ref(&authorization))
@@ -224,6 +225,14 @@ fn file_operation_journal_reopens_copied_moves_without_starting_or_retargeting_t
         "0000000000000002:00000000000000000000000000000003".into();
     journal
         .advance(record.id, 1, FileOperationEvent::Copied(copied.clone()), 3)
+        .unwrap();
+    journal
+        .catalog
+        .connection
+        .execute_batch(
+            "DROP INDEX file_operation_removal_source;
+         UPDATE schema_info SET version = 79; PRAGMA user_version = 79;",
+        )
         .unwrap();
     drop(journal);
     let mut reopened =

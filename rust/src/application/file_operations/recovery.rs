@@ -44,10 +44,14 @@ fn inspect(
         .file_name()
         .and_then(|name| name.to_str())
         .ok_or_else(|| unknown("The recorded source has no filename"))?;
-    let source = native.inspect_location(&FileOperationDestination {
-        directory: request.source.parent.clone(),
-        name: source_name.to_owned(),
-    })?;
+    let source = if request.action == FileAction::Copy && checkpoint.receipt.is_some() {
+        None
+    } else {
+        native.inspect_location(&FileOperationDestination {
+            directory: request.source.parent.clone(),
+            name: source_name.to_owned(),
+        })?
+    };
     let destination = checkpoint
         .destination
         .as_ref()
@@ -60,13 +64,7 @@ fn inspect(
             (None, None) => true,
             _ => false,
         };
-        let source_matches = if request.action == FileAction::Copy {
-            source
-                .as_ref()
-                .is_some_and(|actual| same_file(&request.source, actual))
-        } else {
-            source.is_none()
-        };
+        let source_matches = request.action == FileAction::Copy || source.is_none();
         if target_matches && source_matches {
             return Ok(FileOperationInspection::Completed(receipt.clone()));
         }

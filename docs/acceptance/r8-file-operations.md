@@ -1,6 +1,6 @@
 # R8 filesystem verification
 
-Status: verification procedure and scoped R8-01 admission evidence; integrated R8 acceptance is pending.
+Status: verification procedure and scoped R8-01/R8-02 evidence; integrated R8 acceptance is pending.
 
 The [roadmap](../roadmap.md) owns activation and delivery status. The
 [merged product scope](../product/organization-workflows.md#r8---file-organization-and-recovery)
@@ -184,5 +184,49 @@ have 249 lines. The shared transition owner now has 204 production lines with no
 
 R8-01 was committed as `7a5288e1`, and the journal foundation as `64c6add2`. Branch pushes do not start the repository's main/PR CI workflow;
 hosted verification remains pending. No new PR or release was created, and no real source media or
-production catalog was used. Integrated native recovery, catalog publication and desktop controls
-remain R8-02/R8-03 work in the roadmap.
+production catalog was used. Subsequent catalog/native integration evidence follows below; runtime
+and desktop delivery continue under the roadmap.
+
+## R8-02 catalog publication and native recovery — 2026-11-09
+
+The executor was committed as `6f3d58d3`. Catalog publication now uses the existing location,
+source-generation and organization owners in one transaction with its journal result. Moving retains
+favorite/album association; deleting a selected preferred file saves a remaining exact duplicate as
+the replacement. A compatible target already published by synchronization retains its observed
+generation. Pending deletion notifications use the v80 point index and update preference in their
+own catalog transaction, even when the native result has not yet been recorded.
+
+The eight scoped SQLite/executor/migration cases passed in 29.08 seconds. The publication cases
+exercise both notification-first and operation-first ordering, rollback of a rejected publication,
+retained favorites, exact selected-file removal, persisted replacement preference and idempotent
+retry. Reopening a v79 journal retains an unfinished copied move through the v80 upgrade. The first
+notification-order run exposed Windows-style relative paths in the new publication path; using the
+existing slash-normalized catalog format resolved it. Warning-denying Clippy passed for all targets,
+and the fixed dependency inventory passed in 34.00 seconds.
+
+The explicitly isolated native fixture
+`application::file_operations::native_tests::file_operation_sandbox_recovers_native_move_and_publishes_copy_without_replay`
+then passed in Windows Sandbox in 5.00 seconds. It is ignored by ordinary workstation tests and
+requires the guest identity before creating any files. A generated 157-byte PNG, sibling sentinel,
+catalog and destinations were all guest-local. The host input mapping was read-only; networking and
+clipboard redirection were disabled.
+
+| Native integration boundary | Observed result |
+| --- | --- |
+| Same-volume move followed by a rejected receipt write | File moved once; journal remained executing; reopening and disk inspection recovered the completion without replay |
+| Output held for metadata/publication | Image dimensions were read through the existing inspector; a competing writable open was rejected |
+| Rejected catalog-publication commit | Old catalog location remained and destination bytes were preserved; retry published the moved location and retained its favorite |
+| Numbered native copy outside registered roots | Existing target and source stayed intact; `图片(1).png` contained the original bytes; no new root was registered |
+| Fixture containment | The sibling sentinel was unchanged; the owned Sandbox stopped and its leased host staging directory was cleaned |
+
+The executed test binary SHA-256 was
+`902ad5a919ea3e32052a1549571b1975f0ddd432a6149184c5067436bfedf946`.
+This proves the native/persistence connection for the named fixture, not a desktop confirmation flow.
+Cross-volume native behavior retains the R8-01 evidence; its durable ordering retains the executor
+fault cases. Runtime ownership, integrated scan/operation concurrency and desktop actions remain
+in the active R8 queue.
+
+Reviewability: catalog publication has 250 production lines, application publication 121 and the
+guarded output adapter 132, with no inline tests. The publication fixtures contain 436 dedicated
+test lines and the isolated native fixture 253. The shared location-mutation owner has 154 production
+lines; the 2,044-line catalog-delta facade only exposes its existing scoped helpers in this change.

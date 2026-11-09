@@ -46,6 +46,6 @@ fn file_operation_upgrade_preserves_user_decisions_and_rolls_back_partial_schema
     assert_eq!(catalog.load_organization_history().unwrap(), history);
     assert_eq!(
         schema_shape::schema_version(&catalog.connection).unwrap(),
-        79
+        crate::adapters::sqlite_catalog::SCHEMA_VERSION
     );
 }

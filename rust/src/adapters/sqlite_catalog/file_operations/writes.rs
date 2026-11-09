@@ -114,6 +114,19 @@ fn revalidate_catalog(
     connection: &Connection,
     item: &AuthorizedFileOperation,
 ) -> Result<(), ScanError> {
+    if !catalog_matches(connection, item)? {
+        return Err(ScanError::new(
+            "file_operation_selection_changed",
+            "The selected physical file or library root changed",
+        ));
+    }
+    Ok(())
+}
+
+pub(super) fn catalog_matches(
+    connection: &Connection,
+    item: &AuthorizedFileOperation,
+) -> Result<bool, ScanError> {
     let binding = &item.catalog;
     let source = &item.request.source.state;
     let identity = source
@@ -124,7 +137,7 @@ fn revalidate_catalog(
         .source_revision
         .as_ref()
         .ok_or_else(|| invalid("Missing source revision"))?;
-    let matches: bool = connection.query_row(
+    connection.query_row(
         "SELECT EXISTS(SELECT 1 FROM asset_locations AS l
          JOIN library_roots AS root ON root.id = l.root_id AND root.active_scan_id = l.scan_id
          JOIN library_change_root_state AS state ON state.root_id = l.root_id
@@ -134,12 +147,5 @@ fn revalidate_catalog(
            AND l.file_identity_scheme = ?9 AND l.file_identity_value = ?10 AND l.source_revision_token = ?11)",
         params![binding.location_id, binding.asset_id, sqlite_integer(binding.source_generation, "source generation")?, binding.root_id, sqlite_integer(binding.root_generation, "root generation")?, source.absolute_path, sqlite_integer(source.file_size, "source size")?, source.modified_unix_ms, identity.scheme, identity.value, source_revision_token(revision)?],
         |row| row.get(0),
-    ).map_err(database_error)?;
-    if !matches {
-        return Err(ScanError::new(
-            "file_operation_selection_changed",
-            "The selected physical file or library root changed",
-        ));
-    }
-    Ok(())
+    ).map_err(database_error)
 }

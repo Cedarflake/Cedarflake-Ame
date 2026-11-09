@@ -90,6 +90,7 @@ pub(super) fn validate_rows(connection: &Connection) -> Result<(), ScanError> {
 
 #[cfg(test)]
 pub(super) fn downgrade_for_test(connection: &Connection) {
+    super::file_operation_notifications::downgrade_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() == 79 {
         connection
             .execute_batch(

@@ -10,7 +10,11 @@ use crate::domain::file_operations::{
 use crate::ports::file_operation_journal::FileOperationJournal;
 use crate::ports::file_operations::{FileOperationControl, NativeFileOperations};
 
+#[cfg(all(test, windows))]
+mod native_tests;
+mod publication;
 mod recovery;
+pub use publication::publish_file_operation;
 pub use recovery::{FileOperationInspection, inspect_file_operation};
 
 const MAX_NAME_CANDIDATES: u32 = 10_000;

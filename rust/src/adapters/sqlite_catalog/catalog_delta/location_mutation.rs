@@ -4,11 +4,17 @@ use rusqlite::{Transaction, params};
 
 use crate::domain::{AssetLocationView, CatalogDeltaMutation, PreviewStatus, ScanError};
 
+use super::super::file_operations::observed_removals::ObservedFileRemoval;
 use super::super::gallery::retained_membership::capture_unchanged_display;
 use super::super::source_reconciliation::{
     IdentityGenerationBatchState, IdentityGenerationExpectation,
 };
 use super::super::{database_error, persist_location, sqlite_unsigned};
+
+pub(in super::super) struct LocationChange<'a> {
+    pub remove_location_ids: &'a [String],
+    pub upsert_location: Option<&'a AssetLocationView>,
+}
 
 pub(in super::super) fn apply(
     transaction: &Transaction<'_>,
@@ -19,18 +25,49 @@ pub(in super::super) fn apply(
     identity_generations: &mut HashMap<(String, String), IdentityGenerationBatchState>,
     staging_generations: &mut HashMap<(String, String), IdentityGenerationBatchState>,
 ) -> Result<(), ScanError> {
-    let retained = mutation
+    let removals = mutation
+        .remove_location_ids
+        .iter()
+        .map(|id| ObservedFileRemoval::capture(transaction, active_scan_id, id))
+        .collect::<Result<Vec<_>, _>>()?;
+    apply_location(
+        transaction,
+        active_scan_id,
+        running_scan_id,
+        root_id,
+        LocationChange {
+            remove_location_ids: &mutation.remove_location_ids,
+            upsert_location: mutation.upsert_location.as_ref(),
+        },
+        identity_generations,
+        staging_generations,
+    )?;
+    for removal in removals.into_iter().flatten() {
+        removal.publish(transaction)?;
+    }
+    Ok(())
+}
+
+pub(in super::super) fn apply_location(
+    transaction: &Transaction<'_>,
+    active_scan_id: &str,
+    running_scan_id: Option<&str>,
+    root_id: &str,
+    change: LocationChange<'_>,
+    identity_generations: &mut HashMap<(String, String), IdentityGenerationBatchState>,
+    staging_generations: &mut HashMap<(String, String), IdentityGenerationBatchState>,
+) -> Result<(), ScanError> {
+    let retained = change
         .upsert_location
-        .as_ref()
         .map(|location| capture_unchanged_display(transaction, location))
         .transpose()?
         .flatten();
-    let mut removals = mutation
+    let mut removals = change
         .remove_location_ids
         .iter()
         .map(String::as_str)
         .collect::<HashSet<_>>();
-    if let Some(location) = &mutation.upsert_location {
+    if let Some(location) = change.upsert_location {
         removals.insert(&location.location_id);
     }
     for location_id in removals {
@@ -42,7 +79,7 @@ pub(in super::super) fn apply(
             location_id,
         )?;
     }
-    let Some(location) = &mutation.upsert_location else {
+    let Some(location) = change.upsert_location else {
         return Ok(());
     };
     let persisted = persist_location(
