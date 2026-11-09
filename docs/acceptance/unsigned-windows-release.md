@@ -153,5 +153,13 @@ The entry, packaging and publication workflows contain 241, 279 and 264 producti
 policy, GitHub transport/selection, preparation and byte verification contain 93, 153, 65 and 30
 production lines. Their dedicated reuse and workflow-contract fixtures contain 169 and 109 lines.
 Model distribution, installer payload and installer orchestration contain 154, 170 and 164 production
-lines; model fixtures contain 82 test lines. These owners have no inline tests. Hosted read-only
-artifact verification and exact-commit CI remain pending submission.
+lines; model fixtures contain 82 test lines. These owners have no inline tests.
+
+At `5d39533e`, [CI 42541578902](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42541578902)
+selected release tooling and skipped the application gate. Its release-script job passed in 24 seconds.
+[Read-only run 42541591029](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42541591029)
+selected candidate artifact `13635930403` from run `42524891369`, bound to Alpha 2 source
+`1b6995b20f6596cfb4935b2313c35bb8b3d5d854`. Selection, download, digest and payload verification passed
+in a 36-second job. Build, packaging, publication and published-download jobs were all skipped.
+The retained run predates package receipts, so complete-pair reuse is covered by the isolated
+receipt/byte fixtures rather than this hosted candidate run. No release, tag or attachment changed.
