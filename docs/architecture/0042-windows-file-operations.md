@@ -36,8 +36,13 @@ Discovery also resolves the current handle-backed filename before admitting a lo
 that exact name again at publication. A delayed notification using the previous case spelling must
 not create a second catalog location for the same directory entry.
 
-Use `IFileOperation` for recycling and explicitly authorized permanent deletion on a dedicated,
-joined STA thread in the current user's session. Admit only one native mutation at a time.
+Use `FileDispositionInfo` on the exact revalidated, DELETE-capable source handle for explicitly
+authorized permanent deletion. Keep its parent namespace pinned and deny concurrent writes and
+deletion through completion, reusing the removal owner used by cross-volume moves. Ame's unchecked-by-default
+permanent-delete option and confirmation provide consent; this path needs no second Shell dialog.
+
+Use `IFileOperation` for recycling on a dedicated, joined STA thread in the current user's session.
+Admit only one native mutation at a time.
 Convert the extended filesystem namespace into a Shell parsing name at this adapter boundary;
 retain the original handle-backed identity and revision for pre-delete admission. The Shell parser
 does not accept every filesystem namespace supported by file-handle APIs. An unresolvable name

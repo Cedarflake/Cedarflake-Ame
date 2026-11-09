@@ -2,6 +2,7 @@ mod complete_move;
 mod copy;
 mod exports;
 mod output;
+mod remove;
 mod rename;
 mod scope;
 mod shell_delete;
@@ -75,10 +76,10 @@ impl NativeFileOperations for WindowsFileOperations {
             return Err(cancelled());
         }
         let scope = OperationScope::open(request)?;
-        if matches!(
-            request.action,
-            FileAction::Recycle | FileAction::DeletePermanently
-        ) {
+        if request.action == FileAction::DeletePermanently {
+            return remove::permanently(request, &scope, control);
+        }
+        if request.action == FileAction::Recycle {
             return std::thread::scope(|threads| {
                 std::thread::Builder::new()
                     .name("ame-file-operation".to_owned())

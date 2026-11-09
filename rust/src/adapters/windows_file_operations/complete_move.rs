@@ -1,10 +1,5 @@
 use std::io::Read;
-use std::os::windows::io::AsRawHandle;
 use std::path::Path;
-
-use windows_sys::Win32::Storage::FileSystem::{
-    FILE_DISPOSITION_INFO, FileDispositionInfo, SetFileInformationByHandle,
-};
 
 use crate::domain::file_operations::{
     FileOperationIssue, FileOperationIssueKind as Kind, FileOperationReceipt,
@@ -60,32 +55,9 @@ pub(super) fn complete_move(
     if control.is_cancelled() {
         return Err(super::cancelled());
     }
-    let disposition = FILE_DISPOSITION_INFO { DeleteFile: true };
-    // SAFETY: ADR 0042; this exact DELETE-capable source handle and verified destination
-    // stay open without write/delete sharing through the call. No path is reopened for deletion.
-    let removed = unsafe {
-        SetFileInformationByHandle(
-            original.as_raw_handle(),
-            FileDispositionInfo,
-            std::ptr::from_ref(&disposition).cast(),
-            std::mem::size_of_val(&disposition) as u32,
-        )
-    };
-    if removed == 0 {
-        return Err(FileOperationIssue::new(
-            Kind::NativeFailure,
-            std::io::Error::last_os_error().to_string(),
-        ));
-    }
-    drop(original);
-    match Path::new(&source.state.absolute_path).symlink_metadata() {
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(FileOperationReceipt {
-            destination: Some(destination.clone()),
-            recovery: FileOperationRecovery::None,
-        }),
-        _ => Err(FileOperationIssue::new(
-            Kind::OutcomeUnknown,
-            "Move source removal needs reconciliation",
-        )),
-    }
+    super::remove::held_source(original, Path::new(&source.state.absolute_path))?;
+    Ok(FileOperationReceipt {
+        destination: Some(destination.clone()),
+        recovery: FileOperationRecovery::None,
+    })
 }

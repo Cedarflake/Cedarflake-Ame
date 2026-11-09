@@ -164,7 +164,10 @@ R8-03 connects desktop actions with [isolated interaction evidence](acceptance/r
 R8-04 connects organization rules and result reports with
 [native and desktop evidence](acceptance/r8-file-operations.md#r8-04-organization-rules-and-result-reports--2026-11-10).
 Continue with R8-05 in the [execution plan](plans/r8-file-organization.md#implementation-slices):
-complete integrated review and hosted verification. Hosted branch verification remains pending.
+complete integrated review and hosted verification. The
+[integrated review](acceptance/r8-file-operations.md#r8-05-integrated-review--2026-11-10)
+retains a reproduced Shell recycling identity race and failing hosted checks. Recycling requires
+a supported fix or an explicit concurrency-boundary decision before delivery.
 Native behavior that cannot preserve the required source-safety guarantees blocks the
 affected action until resolved; it does not authorize a weaker fallback. Exit requires the connected
 workflow and scoped [verification](acceptance/r8-file-operations.md), without organization preview.

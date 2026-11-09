@@ -344,3 +344,30 @@ authorization remains 217 lines with its 105-line candidate owner; report task c
 82 lines. Desktop action lifetime, file history and export history contain 228, 255 and 147 lines.
 The export migration contains 91 production and 67 inline-test/helper lines. Dedicated persistence/rule
 and guest-native export fixtures contain 256 and 244 lines respectively.
+
+## R8-05 integrated review — 2026-11-10
+
+Review of `bb617233` reproduced a deletion admission gap in an isolated native Shell probe.
+After `PreDeleteItem` admission, the probe renamed the original and created another file at its
+old path. Windows recycled the replacement, leaving the retained original intact. Holding parent
+directories and checking identity before callback return does not bind the subsequent Shell
+operation to that file. The probe executable SHA-256 was
+`891065c908534f664ca1db1a5c1c9c65e0dbe1f13f2d2a312df6aba7acc1130d`.
+System recycling remains a delivery blocker pending an explicit concurrency-boundary decision or
+a supported identity-bound implementation; normal recycling/restoration evidence does not cover it.
+
+Explicit permanent deletion now uses the same guarded `FileDispositionInfo` removal owner as
+cross-volume move completion. In a fresh guest, cancellation and a stale request preserved both
+the original and a replacement; a new authorization removed only the original. Move completion
+also rejected different copied bytes and removed its source only after matching verification.
+Both native scenarios passed; probe SHA-256 was
+`d2f28bc862ed148c3675578f9675b4b93e1b38d4c2fd9bba81541ee2cc4a5421`.
+Each Sandbox used guest-local files and read-only host inputs, then stopped and retired its scratch.
+The shared removal owner has 62 production lines and no inline tests; the existing guest probe
+retains cancellation, stale-source and selected-identity assertions.
+
+[Hosted full verification](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42683368989)
+targets `bb617233`. Windows scan and accessibility passed. Flutter reported two obsolete menu
+assertions (six entries and no deletion action). Static failed in release-script scratch checking;
+the Windows PowerShell 5.1 entrypoint passed locally, and the hosted cause remains under diagnosis.
+Other jobs were still running at this observation. This run predates the permanent-deletion repair.

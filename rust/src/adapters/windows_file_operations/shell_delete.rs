@@ -13,7 +13,7 @@ use windows::Win32::UI::Shell::{
 use windows::core::{HRESULT, HSTRING, PCWSTR, Ref, Result, implement};
 
 use crate::domain::file_operations::{
-    FileAction, FileOperationIssue, FileOperationIssueKind as Kind, FileOperationReceipt,
+    FileOperationIssue, FileOperationIssueKind as Kind, FileOperationReceipt,
     FileOperationRecovery, FileOperationRequest, FileOperationResult,
 };
 use crate::ports::file_operations::FileOperationControl;
@@ -234,10 +234,7 @@ pub(super) fn delete(
     let (status, aborted) = unsafe {
         let operation: IFileOperation =
             CoCreateInstance(&FileOperation, None, CLSCTX_INPROC_SERVER).map_err(native_error)?;
-        let mut flags = FOF_SILENT | FOF_WANTNUKEWARNING;
-        if admission.request.action == FileAction::Recycle {
-            flags |= FOFX_RECYCLEONDELETE;
-        }
+        let flags = FOF_SILENT | FOF_WANTNUKEWARNING | FOFX_RECYCLEONDELETE;
         operation.SetOperationFlags(flags).map_err(native_error)?;
         if let Some(window) = owner_window {
             validate_window(window)?;

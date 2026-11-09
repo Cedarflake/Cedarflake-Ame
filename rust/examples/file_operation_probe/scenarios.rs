@@ -26,7 +26,8 @@ pub(super) fn run(scenario: &str, root: &Path) -> ProbeResult {
         "complete-move" => complete_move(&engine, &source, &destination),
         "cross-volume" => volumes::cross_volume(&engine, &source),
         "fallback-refuse" | "fallback-accept" => volumes::recycle_fallback(&engine, scenario),
-        "recycle" | "permanent" | "refuse-permanent" => deletion(&engine, &source, scenario),
+        "recycle" => deletion(&engine, &source),
+        "permanent" => permanent_deletion(&engine, &source),
         _ => Err("Unknown scenario".into()),
     }?;
     assert_eq!(
@@ -255,36 +256,47 @@ fn complete_move(engine: &WindowsFileOperations, source: &Path, destination: &Pa
     Ok("Move completion rejected different bytes and removed only the original after matching verification".to_owned())
 }
 
-fn deletion(engine: &WindowsFileOperations, source: &Path, scenario: &str) -> ProbeResult {
-    let action = if scenario == "recycle" {
-        FileAction::Recycle
-    } else {
-        FileAction::DeletePermanently
-    };
+fn deletion(engine: &WindowsFileOperations, source: &Path) -> ProbeResult {
     let request = FileOperationRequest {
-        action,
+        action: FileAction::Recycle,
         source: engine.inspect_source(source.to_str().ok_or("Invalid source encoding")?)?,
         destination: None,
     };
-    let result = engine.execute(&request, &FileOperationControl::default());
-    if scenario == "refuse-permanent" {
-        assert_eq!(
-            result.expect_err("Declining must cancel deletion").kind,
-            Kind::Cancelled
-        );
-        assert_eq!(fs::read(source)?, CONTENT);
-        Ok("System refusal preserved the selected file".to_owned())
-    } else {
-        let receipt = result?;
-        assert!(!source.exists());
-        let recovery = if scenario == "recycle" {
-            FileOperationRecovery::SystemRecycleBin
-        } else {
-            FileOperationRecovery::None
-        };
-        assert_eq!(receipt.recovery, recovery);
-        Ok(format!(
-            "Deleted exact selected file; recovery={recovery:?}"
-        ))
-    }
+    let receipt = engine.execute(&request, &FileOperationControl::default())?;
+    assert!(!source.exists());
+    assert_eq!(receipt.recovery, FileOperationRecovery::SystemRecycleBin);
+    Ok("Recycled exact selected file through Windows".to_owned())
+}
+
+fn permanent_deletion(engine: &WindowsFileOperations, source: &Path) -> ProbeResult {
+    let mut request = FileOperationRequest {
+        action: FileAction::DeletePermanently,
+        source: engine.inspect_source(source.to_str().ok_or("Invalid source encoding")?)?,
+        destination: None,
+    };
+    let cancelled = FileOperationControl::default();
+    cancelled.cancel();
+    assert_eq!(
+        engine.execute(&request, &cancelled).unwrap_err().kind,
+        Kind::Cancelled
+    );
+    assert_eq!(fs::read(source)?, CONTENT);
+
+    let retained = source.with_file_name("retained-original.txt");
+    fs::rename(source, &retained)?;
+    fs::write(source, b"replacement outside deletion scope")?;
+    assert_eq!(
+        engine
+            .execute(&request, &FileOperationControl::default())
+            .unwrap_err()
+            .kind,
+        Kind::SourceChanged
+    );
+    assert_eq!(fs::read(&retained)?, CONTENT);
+    request.source = engine.inspect_source(retained.to_str().ok_or("Invalid source encoding")?)?;
+    let receipt = engine.execute(&request, &FileOperationControl::default())?;
+    assert_eq!(receipt.recovery, FileOperationRecovery::None);
+    assert!(!retained.exists());
+    assert_eq!(fs::read(source)?, b"replacement outside deletion scope");
+    Ok("Cancelled and stale requests preserved both files; permanent deletion removed only the reauthorized original".to_owned())
 }
