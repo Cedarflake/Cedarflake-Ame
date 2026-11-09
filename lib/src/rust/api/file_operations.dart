@@ -5,6 +5,7 @@
 
 import '../domain.dart';
 import '../domain/classification_review.dart';
+import '../domain/file_operation_exports.dart';
 import '../domain/file_operation_journal.dart';
 import '../domain/file_operation_selection.dart';
 import '../domain/file_operation_task.dart';
@@ -28,6 +29,19 @@ Future<List<FileOperationRecord>> loadFileOperationHistory({
   beforeId: beforeId,
   limit: limit,
 );
+
+Future<List<FileExportRecord>> loadFileExportHistory({
+  BigInt? beforeId,
+  required int limit,
+}) => RustLib.instance.api.crateApiFileOperationsLoadFileExportHistory(
+  beforeId: beforeId,
+  limit: limit,
+);
+
+Future<FileActionTask> writeFileExportReport({required String batchId}) =>
+    RustLib.instance.api.crateApiFileOperationsWriteFileExportReport(
+      batchId: batchId,
+    );
 
 Future<List<FileOperationRecord>> loadUnfinishedFileOperations({
   required BigInt afterId,

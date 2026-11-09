@@ -34,7 +34,10 @@ mod directory_identities;
 mod exact_candidate_index_retirement;
 mod exact_duplicate_review;
 mod exact_duplicates;
+mod file_operation_exports;
 mod file_operation_notifications;
+#[cfg(test)]
+pub(super) use file_operation_notifications::downgrade_for_test as downgrade_to_v79_for_test;
 mod file_operations;
 mod interrupted_foreground_repair;
 mod inventory_spool_contract;
@@ -196,6 +199,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         album_icons::migrate_transaction(&transaction)?;
         file_operations::migrate_transaction(&transaction)?;
         file_operation_notifications::migrate_transaction(&transaction)?;
+        file_operation_exports::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -316,6 +320,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             77 => album_icons::migrate(connection)?,
             78 => file_operations::migrate(connection)?,
             79 => file_operation_notifications::migrate(connection)?,
+            80 => file_operation_exports::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

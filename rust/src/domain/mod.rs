@@ -9,6 +9,7 @@ pub mod classification_review;
 pub mod classification_selection;
 pub mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
+pub mod file_operation_exports;
 pub mod file_operation_journal;
 pub mod file_operation_publication;
 pub mod file_operation_selection;

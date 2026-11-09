@@ -1,5 +1,6 @@
 import "../../../../src/rust/domain.dart" as rust;
 import "../../../../src/rust/domain/file_operation_journal.dart" as journal;
+import "../../../../src/rust/domain/file_operation_exports.dart" as exports;
 import "../../../../src/rust/domain/file_operation_task.dart" as task;
 import "../../../../src/rust/domain/file_operations.dart" as native;
 import "../../domain/library_file_operations.dart";
@@ -42,6 +43,8 @@ LibraryFileProgress fileProgressFromRust(
   published: value.publishedItems.toInt(),
   failed: value.failedItems.toInt(),
   cancelled: value.cancelledItems.toInt(),
+  skipped: value.skippedItems.toInt(),
+  export: value.export_ == null ? null : fileExportFromRust(value.export_!),
   path: value.currentPath,
   copiedBytes: value.copiedBytes.toInt(),
   totalBytes: value.totalBytes.toInt(),
@@ -49,6 +52,46 @@ LibraryFileProgress fileProgressFromRust(
       ? null
       : LibraryFileFailure(value.failure!.code, value.failure!.message),
 );
+
+exports.FileOrganizationRule fileOrganizationRuleToRust(
+  LibraryFileOrganizationRule rule,
+) => switch (rule) {
+  LibraryFileOrganizationRule.direct => exports.FileOrganizationRule.direct,
+  LibraryFileOrganizationRule.category => exports.FileOrganizationRule.category,
+  LibraryFileOrganizationRule.album => exports.FileOrganizationRule.album,
+  LibraryFileOrganizationRule.date => exports.FileOrganizationRule.date,
+  LibraryFileOrganizationRule.source => exports.FileOrganizationRule.source,
+};
+
+LibraryFileExport fileExportFromRust(exports.FileExportRecord value) =>
+    LibraryFileExport(
+      id: value.id,
+      batchId: value.batch.batchId,
+      directory: value.batch.root.path,
+      selected: value.batch.selectedFiles.toInt(),
+      skipped: value.skippedFiles.toInt(),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(
+        value.batch.authorizedUnixMs.toInt(),
+      ),
+      reportState: switch (value.report) {
+        exports.FileExportReport_Pending() => LibraryFileReportState.pending,
+        exports.FileExportReport_NotNeeded() =>
+          LibraryFileReportState.notNeeded,
+        exports.FileExportReport_Written() => LibraryFileReportState.written,
+        exports.FileExportReport_Failed() => LibraryFileReportState.failed,
+      },
+      reportPath: switch (value.report) {
+        exports.FileExportReport_Written(:final field0) => field0,
+        _ => null,
+      },
+      failure: switch (value.report) {
+        exports.FileExportReport_Failed(:final field0) => LibraryFileFailure(
+          field0.code,
+          field0.message,
+        ),
+        _ => null,
+      },
+    );
 
 LibraryFileRecord fileRecordFromRust(journal.FileOperationRecord value) {
   final head = value.checkpoint;

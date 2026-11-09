@@ -110,6 +110,19 @@ memory. Migration preserves existing albums, decisions and history. These record
 preview/cache cleanup and source-root removal do not delete them. Rollback cannot undo completed
 native mutations or downgrade a catalog while discarding its operation records.
 
+Schema v81 retains the export root identity, selected count, organization rule and skipped items
+separately from executable item authorizations. Freeze rule destinations in a bounded, disk-backed
+selection snapshot before preparing native requests. Category organization uses the gallery's
+effective classification; album organization uses its durable membership and skips conflicting or
+retired destinations. Dates use the gallery's capture/file-date fallback and `YYYY-MM` folders;
+source organization uses the registered source folder's name. Missing metadata is a recorded skip.
+The native adapter validates the resulting single directory component without silently rewriting it.
+
+Result-report status is independent of file checkpoints. Generate exceptional-item text from bounded
+journal and skip pages, retaining the authorization time in UTC and actual output paths. A report-only
+task uses the existing joined task lane and has no media-execution target. Regeneration allocates a
+new report and leaves earlier reports intact; it neither repeats transfers nor modifies membership.
+
 ## Catalog publication and notification ordering
 
 Publish a verified native receipt, its location changes, durable organization association and
@@ -142,6 +155,17 @@ SQLite table retains only operation IDs and duplicate keys; records are streamed
 as a whole-root collection. Rollback retires both the projection and preference changes together.
 
 ## FFI and resource safety
+
+Export organization creates only validated child directories beneath the identity-pinned export
+root, using the native directory operation behind `std::fs::create_dir`. Existing entries must pass
+the same no-reparse, locally available directory guard. The durable export authorization precedes
+directory creation; cancelling may leave an empty authorized directory.
+
+Result reports stream recorded exceptions through a bounded UTF-8 buffer into a create-new temporary
+file in that guarded root. Flush and publish using the admitted non-replacing handle rename. Failure
+disposes only the writer's own temporary handle through `FileDispositionInfo`; a published report is
+never overwritten or deleted. Report retry cannot execute media requests. Its durable status is
+separate from each file's outcome, so a report or status-write failure preserves completed transfers.
 
 The adapter and its isolated admission probe may use `unsafe` for the named Windows operations:
 CopyFile2 and its progress callback, FlushFileBuffers on completed copy streams,

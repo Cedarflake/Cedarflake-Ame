@@ -1,37 +1,145 @@
-use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::domain::ScanError;
-use crate::domain::file_operation_journal::{
-    AuthorizedFileOperation, FILE_OPERATION_PAGE_SIZE, FileOperationCatalogBinding,
+use crate::domain::file_operation_exports::{
+    FileExportBatch, FileExportSkip, FileOrganizationDestination, FileOrganizationRule,
 };
+use crate::domain::file_operation_journal::FILE_OPERATION_PAGE_SIZE;
 use crate::domain::file_operation_selection::{
     FileOperationCommand, FileOperationSelectionSummary,
 };
-use crate::domain::file_operations::{FileAction, FileOperationDestination, FileOperationRequest};
+use crate::domain::file_operations::FileAction;
 use crate::domain::organization::validate_identifier;
+use crate::ports::file_operation_catalog::FileOperationCatalog;
+use crate::ports::file_operation_exports::NativeFilePreparation;
 use crate::ports::file_operation_journal::FileOperationJournal;
 use crate::ports::file_operation_selection::FileOperationSelectionRepository;
-use crate::ports::file_operations::NativeFileOperations;
 
 use super::FileOperationSelectionSession;
 
 pub(super) fn record(
     selection: &dyn FileOperationSelectionRepository,
-    journal: &mut dyn FileOperationJournal,
-    native: &dyn NativeFileOperations,
+    journal: &mut impl FileOperationCatalog,
+    native: &dyn NativeFilePreparation,
     batch_id: &str,
     command: &FileOperationCommand,
     summary: &FileOperationSelectionSummary,
     session: &FileOperationSelectionSession,
-) -> Result<(), ScanError> {
+) -> Result<u64, ScanError> {
     validate_identifier(batch_id)?;
-    if journal.batch_count(batch_id)? != 0 {
+    if journal.batch_count(batch_id)? != 0 || journal.load_export(batch_id)?.is_some() {
         return Err(ScanError::new(
             "file_operation_batch_exists",
             "This operation identifier is already recorded",
         ));
     }
+    validate(command, summary)?;
+    let directory = command
+        .destination_directory
+        .as_deref()
+        .map(|path| native.inspect_directory(path))
+        .transpose()
+        .map_err(|error| ScanError::new("file_operation_destination_unavailable", error.message))?;
+    let authorized_unix_ms = now();
+    if let Some(root) = &directory {
+        journal.begin_export(&FileExportBatch {
+            batch_id: batch_id.to_owned(),
+            authorized_unix_ms,
+            action: command.action,
+            rule: command.organization_rule,
+            selected_files: summary.file_count,
+            root: root.clone(),
+        })?;
+    }
+    let mut after = None;
+    let mut prepared = 0;
+    let mut executable = 0;
+    let result = (|| {
+        loop {
+            session.check()?;
+            let page = selection.page(after)?;
+            if page.is_empty() {
+                break;
+            }
+            let mut authorized = Vec::with_capacity(page.len());
+            let mut skipped = Vec::new();
+            for candidate in page {
+                session.check()?;
+                session
+                    .progress
+                    .lock()
+                    .unwrap_or_else(|error| error.into_inner())
+                    .current_path = Some(candidate.location.display_path.clone());
+                after = Some(candidate.ordinal);
+                if let FileOrganizationDestination::Skip(reason) =
+                    &candidate.organization_destination
+                {
+                    skipped.push(FileExportSkip {
+                        ordinal: candidate.ordinal,
+                        source: candidate.location.absolute_path.clone(),
+                        reason: reason.clone(),
+                    });
+                } else {
+                    match super::candidate::authorize(
+                        &candidate,
+                        command,
+                        directory.as_ref(),
+                        native,
+                        batch_id,
+                        authorized_unix_ms,
+                    ) {
+                        Ok(item) => authorized.push(item),
+                        Err(error) if directory.is_some() => skipped.push(FileExportSkip {
+                            ordinal: candidate.ordinal,
+                            source: candidate.location.absolute_path.clone(),
+                            reason: skip_reason(&error),
+                        }),
+                        Err(error) => return Err(error),
+                    }
+                }
+            }
+            if !authorized.is_empty() {
+                journal.authorize(&authorized)?;
+            }
+            if !skipped.is_empty() {
+                journal.record_export_skips(batch_id, &skipped)?;
+            }
+            executable += authorized.len() as u64;
+            prepared += (authorized.len() + skipped.len()) as u64;
+            let mut progress = session
+                .progress
+                .lock()
+                .unwrap_or_else(|error| error.into_inner());
+            progress.total_files = summary.file_count;
+            progress.prepared_files = prepared;
+        }
+        if prepared != summary.file_count {
+            return Err(ScanError::new(
+                "file_operation_selection_changed",
+                "The physical selection changed during preparation",
+            ));
+        }
+        Ok(executable)
+    })();
+    if let Err(error) = result {
+        retire(journal, batch_id).map_err(|retirement| {
+            ScanError::new(
+                "file_operation_preparation_retirement_failed",
+                format!(
+                    "{}; unable to retire unstarted records: {}",
+                    error.message, retirement.message
+                ),
+            )
+        })?;
+        return Err(error);
+    }
+    result
+}
+
+fn validate(
+    command: &FileOperationCommand,
+    summary: &FileOperationSelectionSummary,
+) -> Result<(), ScanError> {
     let valid = match command.action {
         FileAction::Copy | FileAction::Move => {
             command
@@ -47,145 +155,22 @@ pub(super) fn record(
                     .as_ref()
                     .is_some_and(|name| !name.is_empty())
                 && summary.file_count == 1
+                && command.organization_rule == FileOrganizationRule::Direct
         }
         FileAction::Recycle | FileAction::DeletePermanently => {
-            command.destination_directory.is_none() && command.new_name.is_none()
+            command.destination_directory.is_none()
+                && command.new_name.is_none()
+                && command.organization_rule == FileOrganizationRule::Direct
         }
     };
-    if !valid {
-        return Err(ScanError::new(
+    if valid {
+        Ok(())
+    } else {
+        Err(ScanError::new(
             "file_operation_command_invalid",
             "The file action and its destination do not match",
-        ));
+        ))
     }
-    let directory = command
-        .destination_directory
-        .as_deref()
-        .map(|path| native.inspect_directory(path))
-        .transpose()
-        .map_err(|error| ScanError::new("file_operation_destination_unavailable", error.message))?;
-    let authorized_unix_ms = now();
-    let mut after = None;
-    let mut completed = 0;
-    let result = (|| {
-        loop {
-            session.check()?;
-            let page = selection.page(after)?;
-            if page.is_empty() {
-                break;
-            }
-            let mut authorized = Vec::with_capacity(page.len());
-            for candidate in page {
-                session.check()?;
-                let location = candidate.location;
-                session
-                    .progress
-                    .lock()
-                    .unwrap_or_else(|error| error.into_inner())
-                    .current_path = Some(location.display_path.clone());
-                let source = native
-                    .inspect_source(&location.absolute_path)
-                    .map_err(|error| {
-                        ScanError::new("file_operation_source_unavailable", error.message)
-                    })?;
-                if source.state.file_identity != location.file_identity
-                    || source.state.source_revision != location.source_revision
-                    || source.state.file_size != location.file_size
-                    || source.state.modified_unix_ms != location.modified_unix_ms
-                {
-                    return Err(ScanError::new(
-                        "file_operation_source_changed",
-                        "The selected file changed; refresh its selection before retrying",
-                    ));
-                }
-                let destination = if matches!(
-                    command.action,
-                    FileAction::Copy | FileAction::Move | FileAction::Rename
-                ) {
-                    let name = match &command.new_name {
-                        Some(name) => name.clone(),
-                        None => Path::new(&location.absolute_path)
-                            .file_name()
-                            .and_then(|name| name.to_str())
-                            .ok_or_else(|| {
-                                ScanError::new(
-                                    "file_operation_name_invalid",
-                                    "The selected file has no supported filename",
-                                )
-                            })?
-                            .to_owned(),
-                    };
-                    let destination = FileOperationDestination {
-                        directory: directory.clone().unwrap_or_else(|| source.parent.clone()),
-                        name,
-                    };
-                    if command.action != FileAction::Copy
-                        && Path::new(&destination.directory.path).join(&destination.name)
-                            == Path::new(&source.state.absolute_path)
-                    {
-                        return Err(ScanError::new(
-                            "file_operation_same_destination",
-                            "The source and destination are the same file",
-                        ));
-                    }
-                    native
-                        .destination_occupied(&destination)
-                        .map_err(native_error)?;
-                    Some(destination)
-                } else {
-                    None
-                };
-                after = Some(candidate.ordinal);
-                authorized.push(AuthorizedFileOperation {
-                    batch_id: batch_id.to_owned(),
-                    ordinal: candidate.ordinal,
-                    authorized_unix_ms,
-                    catalog: FileOperationCatalogBinding {
-                        asset_id: location.asset_id,
-                        location_id: location.location_id,
-                        source_generation: location.source_generation,
-                        root_id: location.root_id,
-                        root_generation: candidate.root_generation,
-                    },
-                    request: FileOperationRequest {
-                        action: command.action,
-                        source,
-                        destination,
-                    },
-                });
-            }
-            journal.authorize(&authorized)?;
-            completed += authorized.len() as u64;
-            let mut progress = session
-                .progress
-                .lock()
-                .unwrap_or_else(|error| error.into_inner());
-            progress.total_files = summary.file_count;
-            progress.prepared_files = completed;
-        }
-        if completed != summary.file_count {
-            return Err(ScanError::new(
-                "file_operation_selection_changed",
-                "The physical selection changed during preparation",
-            ));
-        }
-        Ok(())
-    })();
-    if let Err(error) = result {
-        if completed > 0 {
-            retire(journal, batch_id).map_err(|retirement| {
-                ScanError::new(
-                    "file_operation_preparation_retirement_failed",
-                    format!(
-                        "{}; unable to retire unstarted records: {}",
-                        error.message, retirement.message
-                    ),
-                )
-            })?;
-        }
-        return Err(error);
-    }
-    Ok(())
 }
 
 pub(super) fn retire(
@@ -206,14 +191,21 @@ pub(super) fn retire(
     }
 }
 
-fn native_error(error: crate::domain::file_operations::FileOperationIssue) -> ScanError {
-    let code = match error.kind {
-        crate::domain::file_operations::FileOperationIssueKind::InvalidRequest => {
-            "file_operation_name_invalid"
+fn skip_reason(error: &ScanError) -> String {
+    let message = match error.code.as_str() {
+        "file_operation_source_unavailable" => "源文件不可用，可能已移除、被占用或尚未下载",
+        "file_operation_source_changed" => "源文件已发生变化，需要重新选择",
+        "file_operation_same_destination" => "文件已在目标位置",
+        "file_organization_name_invalid" | "file_operation_name_invalid" => {
+            "目标名称不符合 Windows 文件命名规则"
         }
-        _ => "file_operation_destination_unavailable",
+        _ => "目标文件夹不可用或无法写入",
     };
-    ScanError::new(code, error.message)
+    // Native details remain in the durable explanation without allowing an unbounded item record.
+    format!(
+        "{message}：{}",
+        error.message.chars().take(1000).collect::<String>()
+    )
 }
 
 fn now() -> i64 {

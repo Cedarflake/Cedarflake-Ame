@@ -30,6 +30,10 @@ impl ItemPages {
         catalog: &impl FileOperationCatalog,
     ) -> Result<Self, ScanError> {
         match target {
+            FileOperationTaskTarget::Export(_) => Err(ScanError::new(
+                "file_operation_task_invalid",
+                "A report task cannot execute media operations",
+            )),
             FileOperationTaskTarget::Items(ids) => Ok(Self::Items(Some(ids.clone()))),
             FileOperationTaskTarget::Batch {
                 batch_id,
@@ -144,6 +148,12 @@ where
                 Kind::Execute => executor.execute(record.id)?,
                 Kind::Inspect => executor.reconcile(record.id)?,
                 Kind::ContinueCopiedMove => executor.resume_copied_move(record.id)?,
+                Kind::WriteReport => {
+                    return Err(ScanError::new(
+                        "file_operation_task_invalid",
+                        "Report generation cannot execute a file action",
+                    ));
+                }
             };
             let record = if record.checkpoint.phase == Phase::NativeCompleted {
                 publish_file_operation(catalog, native, record.id, now())?

@@ -10,6 +10,7 @@ use crate::ports::file_operation_journal::FileOperationJournal;
 use super::{SqliteCatalog, SqliteCatalogSession, database_error};
 
 mod codec;
+mod exports;
 pub(super) mod observed_removals;
 mod publication;
 mod reads;

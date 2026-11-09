@@ -9,6 +9,8 @@ abstract interface class LibraryFileOperationPlatform {
 abstract interface class LibraryFileOperations {
   Future<LibraryFileSelectionDraft> open(LibraryFileSelection selection);
   Future<List<LibraryFileRecord>> history({BigInt? before, int limit = 40});
+  Future<List<LibraryFileExport>> exports({BigInt? before, int limit = 40});
+  Future<LibraryFileTask> writeReport(String batchId);
   Future<LibraryFileTask> recover(
     List<BigInt> ids, {
     required bool continueMove,

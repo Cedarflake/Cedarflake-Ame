@@ -17,14 +17,16 @@ class LibraryFileActivity {
     this.action,
     this.progress,
     this.stopping = false,
-    this.recovering = false,
+    this.purpose = LibraryFileActivityPurpose.action,
   });
   final LibraryFileAction? action;
   final LibraryFileProgress? progress;
   final bool stopping;
-  final bool recovering;
+  final LibraryFileActivityPurpose purpose;
   bool get busy => progress != null && !progress!.isFinished;
 }
+
+enum LibraryFileActivityPurpose { action, recovery, report }
 
 final libraryFileActionsProvider =
     NotifierProvider<LibraryFileActions, LibraryFileActivity>(
@@ -71,18 +73,33 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
     );
   }
 
-  Future<void> recover(List<BigInt> ids, {bool continueMove = false}) {
+  Future<void> recover(List<BigInt> ids, {bool continueMove = false}) =>
+      _startExisting(
+        LibraryFileActivityPurpose.recovery,
+        () => ref
+            .read(libraryFileOperationsProvider)
+            .recover(ids, continueMove: continueMove),
+      );
+
+  Future<void> writeReport(String batchId) => _startExisting(
+    LibraryFileActivityPurpose.report,
+    () => ref.read(libraryFileOperationsProvider).writeReport(batchId),
+  );
+
+  Future<void> _startExisting(
+    LibraryFileActivityPurpose purpose,
+    Future<LibraryFileTask> Function() start,
+  ) {
     if (_closing || _running != null) return Future.value();
     _stopping = false;
     _published = 0;
-    state = const LibraryFileActivity(
-      recovering: true,
-      progress: LibraryFileProgress(phase: LibraryFileTaskPhase.preparing),
+    state = LibraryFileActivity(
+      purpose: purpose,
+      progress: const LibraryFileProgress(
+        phase: LibraryFileTaskPhase.preparing,
+      ),
     );
-    final service = ref.read(libraryFileOperationsProvider);
-    return _running = _run(
-      () => service.recover(ids, continueMove: continueMove),
-    );
+    return _running = _run(start);
   }
 
   Future<void> _run(Future<LibraryFileTask> Function() start) async {
@@ -159,6 +176,8 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
           published: previous?.published ?? 0,
           failed: previous?.failed ?? 0,
           cancelled: previous?.cancelled ?? 0,
+          skipped: previous?.skipped ?? 0,
+          export: previous?.export,
           failure: cancelledPreparation ? null : failure,
         ),
       );
@@ -173,7 +192,7 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
     if (_disposed) return;
     state = LibraryFileActivity(
       action: state.action,
-      recovering: state.recovering,
+      purpose: state.purpose,
       progress: progress,
       stopping: _stopping && !progress.isFinished,
     );

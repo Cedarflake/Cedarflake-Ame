@@ -16,6 +16,7 @@ use crate::ports::organization::OrganizationRepository;
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 
 use super::*;
+mod exports;
 
 #[test]
 #[ignore = "requires guest-local Windows Sandbox fixtures"]
@@ -186,6 +187,8 @@ fn file_operation_sandbox_recovers_native_move_and_publishes_copy_without_replay
         .execute(
             "native-copy".into(),
             crate::domain::file_operation_selection::FileOperationCommand {
+                organization_rule:
+                    crate::domain::file_operation_exports::FileOrganizationRule::Direct,
                 action: FileAction::Copy,
                 destination_directory: Some(exports.to_string_lossy().into_owned()),
                 new_name: None,

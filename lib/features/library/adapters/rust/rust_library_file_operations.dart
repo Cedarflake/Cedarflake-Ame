@@ -54,6 +54,19 @@ class RustLibraryFileOperations implements LibraryFileOperations {
 
   @override
   Future<void> openRecycleBin() => platform.openRecycleBin();
+
+  @override
+  Future<List<LibraryFileExport>> exports({BigInt? before, int limit = 40}) =>
+      fileOperationCall(
+        () async => (await api.loadFileExportHistory(
+          beforeId: before,
+          limit: limit,
+        )).map(fileExportFromRust).toList(growable: false),
+      );
+  @override
+  Future<LibraryFileTask> writeReport(String batchId) => fileOperationCall(
+    () async => _Task(await api.writeFileExportReport(batchId: batchId)),
+  );
 }
 
 class _Draft implements LibraryFileSelectionDraft {
@@ -97,6 +110,7 @@ class _Draft implements LibraryFileSelectionDraft {
               action: fileActionToRust(command.action),
               destinationDirectory: command.directory,
               newName: command.name,
+              organizationRule: fileOrganizationRuleToRust(command.rule),
             ),
             ownerWindow: await platform.ownerWindow(),
           ),

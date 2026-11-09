@@ -3,6 +3,8 @@ import "library_organization_batch.dart";
 
 enum LibraryFileAction { copy, move, rename, recycle, deletePermanently }
 
+enum LibraryFileOrganizationRule { direct, category, album, date, source }
+
 sealed class LibraryFileSelection {
   const LibraryFileSelection();
 }
@@ -19,10 +21,16 @@ class LibraryFilesAtLocations extends LibraryFileSelection {
 }
 
 class LibraryFileCommand {
-  const LibraryFileCommand(this.action, {this.directory, this.name});
+  const LibraryFileCommand(
+    this.action, {
+    this.directory,
+    this.name,
+    this.rule = LibraryFileOrganizationRule.direct,
+  });
   final LibraryFileAction action;
   final String? directory;
   final String? name;
+  final LibraryFileOrganizationRule rule;
 }
 
 class LibraryFileSelectionSummary {
@@ -49,6 +57,8 @@ class LibraryFileProgress {
     this.published = 0,
     this.failed = 0,
     this.cancelled = 0,
+    this.skipped = 0,
+    this.export,
     this.path,
     this.copiedBytes = 0,
     this.totalBytes = 0,
@@ -60,6 +70,8 @@ class LibraryFileProgress {
   final int published;
   final int failed;
   final int cancelled;
+  final int skipped;
+  final LibraryFileExport? export;
   final String? path;
   final int copiedBytes;
   final int totalBytes;
@@ -72,6 +84,8 @@ class LibraryFileProgress {
         published: published,
         failed: failed,
         cancelled: cancelled,
+        skipped: skipped,
+        export: export,
         path: path,
         copiedBytes: copiedBytes,
         totalBytes: totalBytes,
@@ -131,4 +145,29 @@ class LibraryFileFailure implements Exception {
   final String detail;
   @override
   String toString() => "$code: $detail";
+}
+
+enum LibraryFileReportState { pending, notNeeded, written, failed }
+
+class LibraryFileExport {
+  const LibraryFileExport({
+    required this.id,
+    required this.batchId,
+    required this.directory,
+    required this.selected,
+    required this.skipped,
+    required this.createdAt,
+    required this.reportState,
+    this.reportPath,
+    this.failure,
+  });
+  final BigInt id;
+  final String batchId;
+  final String directory;
+  final int selected;
+  final int skipped;
+  final DateTime createdAt;
+  final LibraryFileReportState reportState;
+  final String? reportPath;
+  final LibraryFileFailure? failure;
 }

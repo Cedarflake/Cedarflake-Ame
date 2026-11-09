@@ -1,3 +1,4 @@
+use super::file_operation_exports::{FileOrganizationDestination, FileOrganizationRule};
 use super::file_operations::FileAction;
 use super::{AssetLocationView, GalleryQuery};
 
@@ -22,6 +23,7 @@ pub struct FileOperationCandidate {
     pub ordinal: u64,
     pub location: AssetLocationView,
     pub root_generation: u64,
+    pub organization_destination: FileOrganizationDestination,
 }
 
 #[derive(Clone, Debug)]
@@ -29,6 +31,7 @@ pub struct FileOperationCommand {
     pub action: FileAction,
     pub destination_directory: Option<String>,
     pub new_name: Option<String>,
+    pub organization_rule: FileOrganizationRule,
 }
 
 #[derive(Clone, Debug)]

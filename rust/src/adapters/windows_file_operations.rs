@@ -1,5 +1,6 @@
 mod complete_move;
 mod copy;
+mod exports;
 mod output;
 mod rename;
 mod scope;

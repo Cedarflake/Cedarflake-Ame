@@ -22,7 +22,7 @@ pub(super) fn open_selection(
 }
 
 pub(super) fn source_inspector()
--> Result<Box<dyn crate::ports::file_operations::NativeFileOperations>, ScanError> {
+-> Result<Box<dyn crate::ports::file_operation_exports::NativeFilePreparation>, ScanError> {
     #[cfg(windows)]
     {
         Ok(Box::new(crate::adapters::WindowsFileOperations::new(None)))

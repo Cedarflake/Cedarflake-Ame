@@ -9,10 +9,12 @@ use crate::domain::file_operation_task::{
     FileOperationTaskTarget,
 };
 use crate::ports::file_operation_catalog::FileOperationCatalog;
+use crate::ports::file_operation_exports::NativeFileExports;
 use crate::ports::file_operation_output::FileOperationOutputReader;
 use crate::ports::file_operations::{FileOperationControl, NativeFileOperations};
 
 mod execution;
+mod export;
 
 static ACTIVE_LANE: AtomicBool = AtomicBool::new(false);
 
@@ -67,7 +69,7 @@ impl FileOperationTask {
     ) -> Result<Self, ScanError>
     where
         C: FileOperationCatalog + 'static,
-        N: NativeFileOperations + FileOperationOutputReader + 'static,
+        N: NativeFileOperations + FileOperationOutputReader + NativeFileExports + 'static,
     {
         request.validate()?;
         let permit = LanePermit::acquire()?;
@@ -79,11 +81,14 @@ impl FileOperationTask {
                 total_items: match &request.target {
                     FileOperationTaskTarget::Items(ids) => ids.len() as u64,
                     FileOperationTaskTarget::Batch { expected_items, .. } => *expected_items,
+                    FileOperationTaskTarget::Export(_) => 0,
                 },
                 processed_items: 0,
                 published_items: 0,
                 failed_items: 0,
                 cancelled_items: 0,
+                skipped_items: 0,
+                export: None,
                 current_operation_id: None,
                 current_path: None,
                 copied_bytes: 0,
@@ -98,7 +103,7 @@ impl FileOperationTask {
                 let _permit = permit;
                 let result = catch_unwind(AssertUnwindSafe(|| {
                     let mut catalog = open_catalog()?;
-                    execution::run(&request, &mut catalog, &native, &running)
+                    export::run(&request, &mut catalog, &native, &running)
                 }))
                 .unwrap_or_else(|_| Err(worker_failed()));
                 running.update(|progress| match result {

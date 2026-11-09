@@ -6,6 +6,7 @@
 import '../domain.dart';
 import '../frb_generated.dart';
 import 'classification_review.dart';
+import 'file_operation_exports.dart';
 import 'file_operations.dart';
 import 'gallery_metadata_filter.dart';
 import 'organization.dart';
@@ -19,16 +20,21 @@ class FileOperationCommand {
   final FileAction action;
   final String? destinationDirectory;
   final String? newName;
+  final FileOrganizationRule organizationRule;
 
   const FileOperationCommand({
     required this.action,
     this.destinationDirectory,
     this.newName,
+    required this.organizationRule,
   });
 
   @override
   int get hashCode =>
-      action.hashCode ^ destinationDirectory.hashCode ^ newName.hashCode;
+      action.hashCode ^
+      destinationDirectory.hashCode ^
+      newName.hashCode ^
+      organizationRule.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -37,7 +43,8 @@ class FileOperationCommand {
           runtimeType == other.runtimeType &&
           action == other.action &&
           destinationDirectory == other.destinationDirectory &&
-          newName == other.newName;
+          newName == other.newName &&
+          organizationRule == other.organizationRule;
 }
 
 class FileOperationPreparationProgress {

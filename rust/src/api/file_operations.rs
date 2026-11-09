@@ -31,6 +31,18 @@ pub fn load_file_operation_history(
     crate::application::file_operations::history::history(before_id, limit)
 }
 
+pub fn load_file_export_history(
+    before_id: Option<u64>,
+    limit: u32,
+) -> Result<Vec<crate::domain::file_operation_exports::FileExportRecord>, ScanError> {
+    crate::application::file_operations::history::exports(before_id, limit)
+}
+
+pub fn write_file_export_report(batch_id: String) -> Result<FileActionTask, ScanError> {
+    crate::application::file_operations::history::write_report(batch_id)
+        .map(|inner| FileActionTask { inner })
+}
+
 pub fn load_unfinished_file_operations(
     after_id: u64,
     limit: u32,

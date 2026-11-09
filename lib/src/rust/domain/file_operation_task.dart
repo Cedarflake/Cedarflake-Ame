@@ -5,9 +5,11 @@
 
 import '../domain.dart';
 import '../frb_generated.dart';
+import 'file_operation_exports.dart';
+import 'file_operations.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-enum FileOperationTaskKind { execute, inspect, continueCopiedMove }
+enum FileOperationTaskKind { execute, inspect, continueCopiedMove, writeReport }
 
 enum FileOperationTaskPhase {
   starting,
@@ -26,6 +28,8 @@ class FileOperationTaskProgress {
   final BigInt publishedItems;
   final BigInt failedItems;
   final BigInt cancelledItems;
+  final BigInt skippedItems;
+  final FileExportRecord? export_;
   final BigInt? currentOperationId;
   final String? currentPath;
   final BigInt copiedBytes;
@@ -40,6 +44,8 @@ class FileOperationTaskProgress {
     required this.publishedItems,
     required this.failedItems,
     required this.cancelledItems,
+    required this.skippedItems,
+    this.export_,
     this.currentOperationId,
     this.currentPath,
     required this.copiedBytes,
@@ -56,6 +62,8 @@ class FileOperationTaskProgress {
       publishedItems.hashCode ^
       failedItems.hashCode ^
       cancelledItems.hashCode ^
+      skippedItems.hashCode ^
+      export_.hashCode ^
       currentOperationId.hashCode ^
       currentPath.hashCode ^
       copiedBytes.hashCode ^
@@ -74,6 +82,8 @@ class FileOperationTaskProgress {
           publishedItems == other.publishedItems &&
           failedItems == other.failedItems &&
           cancelledItems == other.cancelledItems &&
+          skippedItems == other.skippedItems &&
+          export_ == other.export_ &&
           currentOperationId == other.currentOperationId &&
           currentPath == other.currentPath &&
           copiedBytes == other.copiedBytes &&

@@ -222,7 +222,7 @@ fn occupied(
     }
 }
 
-fn open_directory(
+pub(super) fn open_directory(
     directory: &FileOperationDirectory,
     kind: Kind,
 ) -> Result<PublicationGuardedFileDiscovery, FileOperationIssue> {
@@ -233,7 +233,7 @@ fn open_directory(
     .map_err(|error| FileOperationIssue::new(kind, error.to_string()))
 }
 
-fn validate_name(name: &str) -> Result<(), FileOperationIssue> {
+pub(super) fn validate_name(name: &str) -> Result<(), FileOperationIssue> {
     let stem = name
         .split('.')
         .next()

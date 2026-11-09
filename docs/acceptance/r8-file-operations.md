@@ -1,6 +1,6 @@
 # R8 filesystem verification
 
-Status: verification procedure and scoped R8-01/R8-02 evidence; integrated R8 acceptance is pending.
+Status: verification procedure and scoped R8-01 through R8-04 evidence; integrated R8 acceptance is pending.
 
 The [roadmap](../roadmap.md) owns activation and delivery status. The
 [merged product scope](../product/organization-workflows.md#r8---file-organization-and-recovery)
@@ -300,3 +300,47 @@ confirmation and history have 209, 210 and 235 production lines. Their dedicated
 and Flutter fixtures have 184, 359 and 223 lines. The existing `local_files.rs` facade retains 2,543
 lines before its 3,364-line inline-test module; its revalidation responsibility was moved into the
 existing scoped owner rather than extended in place.
+
+## R8-04 organization rules and result reports — 2026-11-10
+
+Schema v81 records immutable export scope, skipped items and independent report status. Copy/move
+confirmation selects direct, category, album, date or source organization through the existing
+choice control. Rules freeze against the selected catalog snapshot; native authorization rechecks
+source and destination identities. Exceptional outcomes produce a unique UTF-8 TXT in the selected
+root; report regeneration reads history and cannot submit media operations.
+
+Focused SQLite checks cover the forward migration and rollback, retained export authority,
+independent report failure/retry, album conflicts, classification, date and source destinations.
+The first rule fixture omitted required EXIF provenance; completing that fixture made the scoped
+rule case pass. The existing migration fixture now downgrades through the canonical migration chain
+instead of leaving newer tables behind. Four existing Flutter lifecycle/consent cases, scoped Dart
+analysis and the Debug build passed. Hosted checks remain pending.
+
+The guest-only native export case passed in 4.70 seconds. It preserved an occupied destination,
+published `图片(1).png` under the selected album, skipped an unassigned image, retained the original
+report when a report-only retry failed, then generated a second unique report without another copy.
+A clean date-organized batch produced two verified outputs and no TXT. Sources and the unregistered
+target-root status were unchanged. The executed test binary SHA-256 was
+`4551b9a459eb591f889d2566291d58c99a7a1e71d2421f6d516a3e8592d87151`.
+
+The desktop Debug client used the same isolated 3-GiB Sandbox policy as R8-03. Its native DLL SHA-256
+was `d3b8c2fd9bf28fa7910f7587b018e08d83e748c9c6555dcafb146996c34c23d2`.
+
+| Desktop interaction | Observed result |
+| --- | --- |
+| Select four displayed images and copy by date | Four outputs appeared under `2026-11`; each SHA-256 matched its original. The five physical sources and catalog locations remained unchanged. |
+| Copy one image without an album using the album rule | Zero copied, one skipped; feedback identified the skip and a UTF-8 report recorded the source and missing-album reason. |
+| Make the guest target unavailable and regenerate its report | History displayed report-write failure while preserving the media-operation results. Restoring the same directory and retrying saved another uniquely named report. |
+| Read back actual files and catalog | Exactly four media-operation records, two export batches, one skip and one registered source root remained. Both reports were present, no temporary report remained, and the sibling sentinel was unchanged. |
+
+The temporary PowerShell check initially read its own Chinese literals using the guest's legacy
+encoding; saving that check with a UTF-8 signature corrected the assertion. Both generated TXT files
+decoded as strict UTF-8. The client closed normally, the owned Sandbox stopped and its leased host
+staging directory was cleaned. No real media or production profile was used.
+
+Reviewability: export persistence, rule resolution, native directory/report handling and report
+formatting contain 251, 165, 155 and 141 production lines, with no inline tests. Selection
+authorization remains 217 lines with its 105-line candidate owner; report task coordination is
+82 lines. Desktop action lifetime, file history and export history contain 228, 255 and 147 lines.
+The export migration contains 91 production and 67 inline-test/helper lines. Dedicated persistence/rule
+and guest-native export fixtures contain 256 and 244 lines respectively.

@@ -30,22 +30,29 @@ class LibraryFileFeedback extends ConsumerWidget {
       final action = activity.busy ? commands.cancel : commands.dismiss;
       return LibraryViewerNotice(
         icon: Symbols.folder_rounded,
-        message: "$title · ${progress.processed}/${progress.total}",
+        message: activity.purpose == LibraryFileActivityPurpose.report
+            ? title
+            : "$title · ${progress.processed + progress.skipped}/${progress.total}",
         actionLabel: activity.busy ? "停止" : "知道了",
         onAction: activity.busy && !canStop ? null : action,
       );
     }
     return AmeFeedbackCard(
       title: title,
-      severity: progress.failure != null || progress.failed > 0
+      severity:
+          progress.failure != null ||
+              progress.failed > 0 ||
+              progress.skipped > 0
           ? AmeNotificationSeverity.warning
           : AmeNotificationSeverity.info,
       message: _message(progress),
       detail: progress.path?.split(RegExp(r"[\\/]")).last,
       progress: activity.busy
           ? LinearProgressIndicator(
-              value: progress.total > 0
-                  ? progress.processed / progress.total
+              value:
+                  activity.purpose != LibraryFileActivityPurpose.report &&
+                      progress.total > 0
+                  ? (progress.processed + progress.skipped) / progress.total
                   : null,
             )
           : null,
@@ -66,6 +73,15 @@ class LibraryFileFeedback extends ConsumerWidget {
   }
 
   String _message(LibraryFileProgress progress) {
+    if (activity.purpose == LibraryFileActivityPurpose.report) {
+      if (progress.failure != null) {
+        return LibraryFileStrings.failure(progress.failure);
+      }
+      if (progress.export?.reportState == LibraryFileReportState.notNeeded) {
+        return "没有特殊结果，无需生成清单。";
+      }
+      return progress.export?.reportPath ?? "正在读取操作记录";
+    }
     if (progress.failure != null) {
       return LibraryFileStrings.failure(progress.failure);
     }
@@ -73,7 +89,11 @@ class LibraryFileFeedback extends ConsumerWidget {
       return "已核对 ${progress.processed} / ${progress.total} 个文件";
     }
     if (progress.isFinished) {
-      return "已完成 ${progress.published} 个，未完成 ${progress.failed} 个，已停止 ${progress.cancelled} 个";
+      final skipped = progress.skipped > 0 ? "，已跳过 ${progress.skipped} 个" : "";
+      final report = progress.export?.reportPath != null
+          ? "\n结果清单已保存到目标文件夹。"
+          : "";
+      return "已完成 ${progress.published} 个，未完成 ${progress.failed} 个，已停止 ${progress.cancelled} 个$skipped$report";
     }
     return "已处理 ${progress.processed} / ${progress.total} 个文件";
   }

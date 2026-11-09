@@ -21,11 +21,13 @@ use super::super::{
 };
 
 mod query;
+mod rules;
 
 pub(crate) struct SqliteFileOperationSelection {
     catalog: SqliteCatalog,
     scope: Scope,
     prepared: Option<FileOperationSelectionSummary>,
+    cancelled: Arc<AtomicBool>,
 }
 
 impl SqliteFileOperationSelection {
@@ -44,17 +46,20 @@ impl SqliteFileOperationSelection {
                PRIMARY KEY(asset_id, location_id)) WITHOUT ROWID;
              CREATE TEMP TABLE file_operation_selection (
                ordinal INTEGER PRIMARY KEY, asset_id TEXT NOT NULL, location_id TEXT NOT NULL UNIQUE,
-               source_generation INTEGER NOT NULL, root_generation INTEGER NOT NULL, file_size INTEGER NOT NULL);
+               source_generation INTEGER NOT NULL, root_generation INTEGER NOT NULL, file_size INTEGER NOT NULL,
+               destination_folder TEXT, skip_reason TEXT);
              CREATE INDEX temp.file_operation_selection_asset ON file_operation_selection(asset_id);"
         ).map_err(database_error)?;
+        let sql_cancelled = Arc::clone(&cancelled);
         catalog
             .connection
-            .progress_handler(1000, Some(move || cancelled.load(Ordering::Acquire)))
+            .progress_handler(1000, Some(move || sql_cancelled.load(Ordering::Acquire)))
             .map_err(database_error)?;
         Ok(Self {
             catalog,
             scope,
             prepared: None,
+            cancelled,
         })
     }
 
@@ -67,6 +72,15 @@ impl SqliteFileOperationSelection {
 }
 
 impl FileOperationSelectionRepository for SqliteFileOperationSelection {
+    fn freeze_rule(
+        &mut self,
+        rule: crate::domain::file_operation_exports::FileOrganizationRule,
+    ) -> Result<(), ScanError> {
+        if self.prepared.is_none() {
+            return Err(stale_selection());
+        }
+        rules::freeze(&self.catalog.connection, rule, &self.cancelled)
+    }
     fn append_ids(&mut self, ids: &[String]) -> Result<(), ScanError> {
         self.require_collecting()?;
         if !matches!(self.scope, Scope::Gallery { .. }) || ids.len() > 256 {
@@ -173,7 +187,7 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
             .transpose()?
             .unwrap_or(0);
         let mut statement = self.catalog.connection.prepare(
-            "SELECT ordinal, asset_id, location_id, source_generation, root_generation FROM temp.file_operation_selection
+            "SELECT ordinal, asset_id, location_id, source_generation, root_generation, destination_folder, skip_reason FROM temp.file_operation_selection
              WHERE ordinal > ?1 ORDER BY ordinal LIMIT ?2").map_err(database_error)?;
         let rows = statement
             .query_map(params![after, FILE_OPERATION_PAGE_SIZE as i64], |row| {
@@ -183,11 +197,13 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
                     row.get::<_, String>(2)?,
                     row.get::<_, i64>(3)?,
                     row.get::<_, i64>(4)?,
+                    row.get::<_, Option<String>>(5)?,
+                    row.get::<_, Option<String>>(6)?,
                 ))
             })
             .map_err(database_error)?;
         rows.map(|row| {
-            let (ordinal, asset_id, location_id, generation, root_generation) =
+            let (ordinal, asset_id, location_id, generation, root_generation, folder, reason) =
                 row.map_err(database_error)?;
             let location = self
                 .catalog
@@ -202,6 +218,19 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
                 ordinal: sqlite_unsigned(ordinal, "selected ordinal")?,
                 location,
                 root_generation: sqlite_unsigned(root_generation, "selected root generation")?,
+                organization_destination: match (folder, reason) {
+                    (_, Some(reason)) => {
+                        crate::domain::file_operation_exports::FileOrganizationDestination::Skip(
+                            reason,
+                        )
+                    }
+                    (Some(folder), _) => {
+                        crate::domain::file_operation_exports::FileOrganizationDestination::Folder(
+                            folder,
+                        )
+                    }
+                    _ => crate::domain::file_operation_exports::FileOrganizationDestination::Direct,
+                },
             })
         })
         .collect()

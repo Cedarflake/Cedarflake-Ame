@@ -41,7 +41,8 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
 }
 
 #[cfg(test)]
-pub(super) fn downgrade_for_test(connection: &Connection) {
+pub(in crate::adapters::sqlite_catalog) fn downgrade_for_test(connection: &Connection) {
+    super::file_operation_exports::downgrade_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() == 80 {
         connection
             .execute_batch(

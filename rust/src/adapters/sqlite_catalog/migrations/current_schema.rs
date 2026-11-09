@@ -291,6 +291,9 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 80 {
         super::file_operation_notifications::validate(connection)?;
     }
+    if schema_version >= 81 {
+        super::file_operation_exports::validate(connection)?;
+    }
     validate_existing_source_metadata_marker(connection)
 }
 

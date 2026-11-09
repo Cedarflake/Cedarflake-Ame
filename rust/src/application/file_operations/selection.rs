@@ -17,6 +17,7 @@ use crate::ports::file_operation_selection::FileOperationSelectionRepository;
 use super::{FileOperationTask, production};
 
 mod authorization;
+mod candidate;
 
 static OPEN_SELECTIONS: AtomicUsize = AtomicUsize::new(0);
 
@@ -129,9 +130,10 @@ impl FileOperationSelectionSession {
     ) -> Result<FileOperationTask, ScanError> {
         self.with_selection(|selected| {
             let summary = selected.repository.prepare()?;
+            selected.repository.freeze_rule(command.organization_rule)?;
             let mut journal = production::open_journal(&self.catalog_path)?;
             let native = production::source_inspector()?;
-            authorization::record(
+            let executable = authorization::record(
                 selected.repository.as_ref(),
                 &mut journal,
                 native.as_ref(),
@@ -148,7 +150,7 @@ impl FileOperationSelectionSession {
                         kind: FileOperationTaskKind::Execute,
                         target: FileOperationTaskTarget::Batch {
                             batch_id: batch_id.clone(),
-                            expected_items: summary.file_count,
+                            expected_items: executable,
                         },
                     },
                     owner_window,

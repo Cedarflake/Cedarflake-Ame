@@ -42,7 +42,8 @@ feature. R9 is no longer a separate stage; R10 keeps its identifier. The
 the [execution plan](plans/r8-file-organization.md) defines Windows-backed implementation slices;
 the [verification procedure](acceptance/r8-file-operations.md) defines guest-contained Windows Sandbox
 and hosted Windows fixture checks. R8-01 native admission, R8-02 durable execution and R8-03 desktop
-actions have scoped evidence; rule-based organization and result reports are next.
+actions have scoped evidence; rule-based organization and result reports are connected. Integrated
+review and hosted verification are next.
 
 ## Current stage and acceptance boundary
 
@@ -160,9 +161,10 @@ R8-02 has its [durable journal and executor](acceptance/r8-file-operations.md#r8
 and [catalog/native recovery connection](acceptance/r8-file-operations.md#r8-02-catalog-publication-and-native-recovery--2026-11-09),
 including the [joined runtime and scan ordering](acceptance/r8-file-operations.md#r8-02-joined-runtime-and-scan-ordering--2026-11-09).
 R8-03 connects desktop actions with [isolated interaction evidence](acceptance/r8-file-operations.md#r8-03-connected-desktop-actions--2026-11-10).
-Continue through R8-04 and R8-05 in the
-[execution plan](plans/r8-file-organization.md#implementation-slices): add organization rules and
-result reports, then complete integrated verification. Hosted branch verification remains pending.
+R8-04 connects organization rules and result reports with
+[native and desktop evidence](acceptance/r8-file-operations.md#r8-04-organization-rules-and-result-reports--2026-11-10).
+Continue with R8-05 in the [execution plan](plans/r8-file-organization.md#implementation-slices):
+complete integrated review and hosted verification. Hosted branch verification remains pending.
 Native behavior that cannot preserve the required source-safety guarantees blocks the
 affected action until resolved; it does not authorize a weaker fallback. Exit requires the connected
 workflow and scoped [verification](acceptance/r8-file-operations.md), without organization preview.

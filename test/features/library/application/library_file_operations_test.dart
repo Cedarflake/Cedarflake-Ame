@@ -148,6 +148,14 @@ void main() {
 }
 
 class _Backend implements LibraryFileOperations {
+  @override
+  Future<List<LibraryFileExport>> exports({
+    BigInt? before,
+    int limit = 40,
+  }) async => const [];
+  @override
+  Future<LibraryFileTask> writeReport(String batchId) =>
+      throw UnimplementedError();
   final task = _Task();
   final commands = <LibraryFileCommand>[];
   Future<LibraryFileSelectionDraft>? opening;

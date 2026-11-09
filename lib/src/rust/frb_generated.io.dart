@@ -40,6 +40,7 @@ import 'domain/classification_review.dart';
 import 'domain/classification_selection.dart';
 import 'domain/exact_duplicate_review.dart';
 import 'domain/exact_duplicates.dart';
+import 'domain/file_operation_exports.dart';
 import 'domain/file_operation_journal.dart';
 import 'domain/file_operation_selection.dart';
 import 'domain/file_operation_task.dart';
@@ -411,6 +412,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  FileExportRecord dco_decode_box_autoadd_file_export_record(dynamic raw);
+
+  @protected
   FileIdentityEvidence dco_decode_box_autoadd_file_identity_evidence(
     dynamic raw,
   );
@@ -779,6 +783,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FileAction dco_decode_file_action(dynamic raw);
 
   @protected
+  FileExportBatch dco_decode_file_export_batch(dynamic raw);
+
+  @protected
+  FileExportRecord dco_decode_file_export_record(dynamic raw);
+
+  @protected
+  FileExportReport dco_decode_file_export_report(dynamic raw);
+
+  @protected
   FileIdentityEvidence dco_decode_file_identity_evidence(dynamic raw);
 
   @protected
@@ -846,6 +859,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FileOperationTaskProgress dco_decode_file_operation_task_progress(
     dynamic raw,
   );
+
+  @protected
+  FileOrganizationRule dco_decode_file_organization_rule(dynamic raw);
 
   @protected
   GalleryCollection dco_decode_gallery_collection(dynamic raw);
@@ -1026,6 +1042,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_list_exact_duplicate_review_location(dynamic raw);
 
   @protected
+  List<FileExportRecord> dco_decode_list_file_export_record(dynamic raw);
+
+  @protected
   List<FileOperationRecord> dco_decode_list_file_operation_record(dynamic raw);
 
   @protected
@@ -1162,6 +1181,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ExactDuplicatePreference?
   dco_decode_opt_box_autoadd_exact_duplicate_preference(dynamic raw);
+
+  @protected
+  FileExportRecord? dco_decode_opt_box_autoadd_file_export_record(dynamic raw);
 
   @protected
   FileIdentityEvidence? dco_decode_opt_box_autoadd_file_identity_evidence(
@@ -1877,6 +1899,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  FileExportRecord sse_decode_box_autoadd_file_export_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   FileIdentityEvidence sse_decode_box_autoadd_file_identity_evidence(
     SseDeserializer deserializer,
   );
@@ -2349,6 +2376,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FileAction sse_decode_file_action(SseDeserializer deserializer);
 
   @protected
+  FileExportBatch sse_decode_file_export_batch(SseDeserializer deserializer);
+
+  @protected
+  FileExportRecord sse_decode_file_export_record(SseDeserializer deserializer);
+
+  @protected
+  FileExportReport sse_decode_file_export_report(SseDeserializer deserializer);
+
+  @protected
   FileIdentityEvidence sse_decode_file_identity_evidence(
     SseDeserializer deserializer,
   );
@@ -2444,6 +2480,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   FileOperationTaskProgress sse_decode_file_operation_task_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOrganizationRule sse_decode_file_organization_rule(
     SseDeserializer deserializer,
   );
 
@@ -2668,6 +2709,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   sse_decode_list_exact_duplicate_review_location(SseDeserializer deserializer);
 
   @protected
+  List<FileExportRecord> sse_decode_list_file_export_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<FileOperationRecord> sse_decode_list_file_operation_record(
     SseDeserializer deserializer,
   );
@@ -2834,6 +2880,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ExactDuplicatePreference?
   sse_decode_opt_box_autoadd_exact_duplicate_preference(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileExportRecord? sse_decode_opt_box_autoadd_file_export_record(
     SseDeserializer deserializer,
   );
 
@@ -3717,6 +3768,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_file_export_record(
+    FileExportRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_file_identity_evidence(
     FileIdentityEvidence self,
     SseSerializer serializer,
@@ -4284,6 +4341,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_file_action(FileAction self, SseSerializer serializer);
 
   @protected
+  void sse_encode_file_export_batch(
+    FileExportBatch self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_export_record(
+    FileExportRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_export_report(
+    FileExportReport self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_file_identity_evidence(
     FileIdentityEvidence self,
     SseSerializer serializer,
@@ -4400,6 +4475,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_file_operation_task_progress(
     FileOperationTaskProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_organization_rule(
+    FileOrganizationRule self,
     SseSerializer serializer,
   );
 
@@ -4683,6 +4764,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_file_export_record(
+    List<FileExportRecord> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_file_operation_record(
     List<FileOperationRecord> self,
     SseSerializer serializer,
@@ -4883,6 +4970,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_exact_duplicate_preference(
     ExactDuplicatePreference? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_file_export_record(
+    FileExportRecord? self,
     SseSerializer serializer,
   );
 

@@ -28,6 +28,7 @@ pub(crate) mod classification_work;
 pub(crate) mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
 pub(crate) mod file_operation_catalog;
+pub(crate) mod file_operation_exports;
 pub(crate) mod file_operation_journal;
 pub(crate) mod file_operation_output;
 pub(crate) mod file_operation_selection;

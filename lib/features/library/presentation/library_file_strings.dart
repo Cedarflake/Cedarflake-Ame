@@ -2,6 +2,13 @@ import "../application/library_file_operations.dart";
 import "../domain/library_file_operations.dart";
 
 abstract final class LibraryFileStrings {
+  static String rule(LibraryFileOrganizationRule rule) => switch (rule) {
+    LibraryFileOrganizationRule.direct => "直接放入目标文件夹",
+    LibraryFileOrganizationRule.category => "按分类",
+    LibraryFileOrganizationRule.album => "按相册",
+    LibraryFileOrganizationRule.date => "按日期",
+    LibraryFileOrganizationRule.source => "按来源文件夹",
+  };
   static String action(LibraryFileAction action) => switch (action) {
     LibraryFileAction.copy => "复制",
     LibraryFileAction.move => "移动",
@@ -12,14 +19,30 @@ abstract final class LibraryFileStrings {
   static String activity(LibraryFileActivity activity) {
     final progress = activity.progress!;
     if (activity.stopping) return "正在停止";
-    final verb = activity.recovering ? "核对文件操作" : action(activity.action!);
+    if (activity.purpose == LibraryFileActivityPurpose.report) {
+      if (progress.phase == LibraryFileTaskPhase.finished) {
+        return progress.export?.reportState == LibraryFileReportState.notNeeded
+            ? "无需生成结果清单"
+            : "结果清单已保存";
+      }
+      if (progress.phase == LibraryFileTaskPhase.needsAttention) {
+        return "结果清单未能生成";
+      }
+    }
+    final verb = switch (activity.purpose) {
+      LibraryFileActivityPurpose.action => action(activity.action!),
+      LibraryFileActivityPurpose.recovery => "核对文件操作",
+      LibraryFileActivityPurpose.report => "生成结果清单",
+    };
     return switch (progress.phase) {
       LibraryFileTaskPhase.preparing => "正在准备$verb",
       LibraryFileTaskPhase.running => "正在$verb",
       LibraryFileTaskPhase.refreshing => "正在更新图库",
       LibraryFileTaskPhase.stopping => "正在停止",
       LibraryFileTaskPhase.finished =>
-        progress.failed > 0 ? "$verb已结束，部分文件未完成" : "$verb已完成",
+        progress.failed > 0 || progress.skipped > 0
+            ? "$verb已结束，部分文件未处理"
+            : "$verb已完成",
       LibraryFileTaskPhase.cancelled => "$verb已停止",
       LibraryFileTaskPhase.needsAttention => "文件操作需要处理",
     };
@@ -52,6 +75,7 @@ abstract final class LibraryFileStrings {
     "file_operation_selection_busy" => "还有文件操作正在处理，请稍后重试。",
     "file_operation_inspection_required" => "请在文件操作记录中核对结果后再继续。",
     "file_operation_selection_closed" => "这次操作已取消。",
+    "file_export_report_failed" => "文件操作结果已保留，但结果清单未能写入。可在记录中重新生成清单。",
     _ => "部分文件可能尚未处理，请查看文件操作记录。",
   };
 }

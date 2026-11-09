@@ -10,6 +10,7 @@ use crate::domain::file_operations::{
 use crate::ports::file_operation_journal::FileOperationJournal;
 use crate::ports::file_operations::{FileOperationControl, NativeFileOperations};
 
+pub(crate) mod exports;
 pub(crate) mod history;
 #[cfg(all(test, windows))]
 mod native_tests;

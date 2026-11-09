@@ -20,6 +20,23 @@ struct BlockedNative {
     release: Mutex<mpsc::Receiver<()>>,
 }
 
+impl crate::ports::file_operation_exports::NativeFileExports for BlockedNative {
+    fn organization_directory(
+        &self,
+        _: &FileOperationDirectory,
+        _: &str,
+    ) -> Result<FileOperationDirectory, ScanError> {
+        unreachable!()
+    }
+    fn begin_export_report(
+        &self,
+        _: &FileOperationDirectory,
+    ) -> Result<Box<dyn crate::ports::file_operation_exports::FileExportReportWriter>, ScanError>
+    {
+        unreachable!()
+    }
+}
+
 impl NativeFileOperations for BlockedNative {
     fn inspect_source(&self, _: &str) -> Result<FileOperationSource, FileOperationIssue> {
         unreachable!()

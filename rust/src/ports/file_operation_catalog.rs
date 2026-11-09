@@ -2,9 +2,10 @@ use crate::domain::file_operation_journal::FileOperationRecord;
 use crate::domain::file_operation_publication::FileOperationDestinationPublication;
 use crate::domain::{IncrementalCatalogRoot, ScanError};
 
+use super::file_operation_exports::FileExportRepository;
 use super::file_operation_journal::FileOperationJournal;
 
-pub trait FileOperationCatalog: FileOperationJournal {
+pub trait FileOperationCatalog: FileOperationJournal + FileExportRepository {
     fn publication_roots(&self) -> Result<Vec<IncrementalCatalogRoot>, ScanError>;
 
     /// The application retains the native result's source/namespace guards through this call.

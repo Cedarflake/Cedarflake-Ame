@@ -10,6 +10,7 @@ use crate::domain::{ExpectedFileState, FileIdentityEvidence};
 use crate::ports::CatalogRepository;
 
 mod execution;
+mod exports;
 mod publication;
 mod selection;
 mod task;
@@ -228,14 +229,7 @@ fn file_operation_journal_upgrades_copied_moves_without_starting_or_retargeting_
     journal
         .advance(record.id, 1, FileOperationEvent::Copied(copied.clone()), 3)
         .unwrap();
-    journal
-        .catalog
-        .connection
-        .execute_batch(
-            "DROP INDEX file_operation_removal_source;
-         UPDATE schema_info SET version = 79; PRAGMA user_version = 79;",
-        )
-        .unwrap();
+    super::super::migrations::downgrade_to_v79_for_test(&journal.catalog.connection);
     drop(journal);
     let mut reopened =
         SqliteFileOperationJournal::open(directory.path().join("catalog.sqlite3")).unwrap();
