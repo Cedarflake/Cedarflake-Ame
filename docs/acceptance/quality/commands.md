@@ -287,6 +287,9 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   including x64 application and broker protocol, then confirms scratch cleanup.
 - `./tool/release_verify_portable_signatures.ps1` is the optional signed-channel verifier and
   requires exact publisher, signature, x64 machine, broker protocol and scratch cleanup.
+- `./tool/release_test_tooling.ps1` runs the existing release-script fixtures and reuse-admission
+  cases without an application build. `release_prepare_reuse.ps1` selects compatible prior CI
+  artifacts; `release_validate_reuse.ps1` checks their bytes without publication.
 
 Hosted workflow ownership is:
 
@@ -298,8 +301,11 @@ Hosted workflow ownership is:
   `.github/workflows/quality_gate_unsigned_windows.yml` for mandatory isolated workload and unsigned
   workload evidence in nightly/release runs and build evidence in full runs, without publication
   or signing authority;
-- `.github/workflows/release_candidate_windows.yml` for version-tag and manual release candidates,
-  followed by portable ZIP publication;
+- `.github/workflows/release_tooling_checks.yml` for admitted release-tooling-only changes;
+- `.github/workflows/release_candidate_windows.yml` for manual version-tag releases with both ZIP
+  and MSI. `reuse_run=auto` searches recent eligible runs; a run ID selects one explicitly and
+  `none` forces fresh gates. `validate_only=true` permits read-only branch validation and skips
+  building, packaging and publication. The default publishing path requires `main`;
 - `.github/workflows/release_verify_published.yml` for post-publication attachment verification.
 
 The gate sections above own environment requirements, complete procedures, and acceptance boundaries.

@@ -54,7 +54,7 @@ jobs:
   quality_windows:
     name: Windows Gate
     needs: scope
-    if: always()
+    if: ${{ always() && needs.scope.outputs.mode != 'release-tooling' }}
     permissions:
       contents: read
     uses: ./.github/workflows/quality_gate_windows.yml
@@ -62,3 +62,11 @@ jobs:
       gate_mode: ${{ needs.scope.outputs.mode || 'invalid' }}
       extended: ${{ needs.scope.outputs.extended == 'true' }}
       base_revision: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before || '' }}
+
+  release_tooling:
+    name: Release Tooling
+    needs: scope
+    if: needs.scope.outputs.mode == 'release-tooling'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/release_tooling_checks.yml

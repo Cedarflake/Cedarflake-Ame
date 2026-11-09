@@ -1,0 +1,35 @@
+name: Release / Tooling Checks
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  tooling:
+    name: Release Scripts
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install pinned actionlint
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'actionlint.zip'
+          Invoke-WebRequest -Uri 'https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_windows_amd64.zip' -OutFile $archive
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -cne
+              '6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9') {
+            throw 'actionlint checksum mismatch'
+          }
+          Expand-Archive -LiteralPath $archive -DestinationPath (Join-Path $env:RUNNER_TEMP 'actionlint')
+
+      - name: Verify release workflows and script behavior
+        shell: pwsh
+        run: |
+          ./tool/quality_lint_workflows.ps1 -ActionlintPath (Join-Path $env:RUNNER_TEMP 'actionlint/actionlint.exe')
+          ./tool/release_test_tooling.ps1

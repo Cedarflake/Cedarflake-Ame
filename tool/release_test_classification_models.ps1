@@ -35,6 +35,23 @@ Invoke-AmeAcceptanceScratch -Name 'classification-model-distribution' -Action {
     foreach ($notice in $fixture.notices) {
         if (!(Test-Path -LiteralPath (Join-Path $output $notice.name))) { throw 'Model attribution was omitted' }
     }
+    $tagged = Join-Path $scratch 'tagged-metadata'
+    [void][IO.Directory]::CreateDirectory((Join-Path $tagged 'installation'))
+    $taggedManifest = $fixture | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+    foreach ($notice in $taggedManifest.notices) {
+        $path = Join-Path $tagged "installation/$($notice.name)"
+        [IO.File]::WriteAllText($path, 'tagged model attribution', [Text.UTF8Encoding]::new($false))
+        $notice.length = (Get-Item -LiteralPath $path).Length
+        $notice.sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+    $taggedManifest | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $tagged 'model_distribution.json') -Encoding utf8
+    $taggedOutput = Join-Path $scratch 'tagged-payload'
+    & (Join-Path $PSScriptRoot 'release_prepare_classification_models.ps1') `
+        -OutputDirectory $taggedOutput -SourceDirectory $source -MetadataDirectory $tagged
+    Assert-AmeClassificationModelsDirectory $taggedOutput $taggedManifest
+    if (@(Get-AmeClassificationModelsPayload $taggedOutput -Manifest $taggedManifest).Count -ne 5) {
+        throw 'Tagged model metadata did not produce the complete installer inventory'
+    }
     $first = Join-Path $output $fixture.files[0].name
     [IO.File]::WriteAllText($first, 'damaged', [Text.UTF8Encoding]::new($false))
     Assert-ModelPackageRejected { New-AmeClassificationModelsDirectory $output $source $fixture }

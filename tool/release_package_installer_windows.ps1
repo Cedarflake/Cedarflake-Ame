@@ -16,7 +16,10 @@ param(
     [Parameter(Mandatory = $true)][string]$CMakePath,
     [Parameter(Mandatory = $true)][string]$OutputDirectory,
     [switch]$AcceptWixBinaryEula,
-    [string]$ModelSourceDirectory
+    [string]$ModelSourceDirectory,
+    [string]$PubspecPath,
+    [string]$CargoManifestPath,
+    [string]$ModelMetadataDirectory
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,9 +38,11 @@ if (-not $AcceptWixBinaryEula) {
 }
 if (-not [Environment]::Is64BitProcess) { throw "MSI packaging requires a native x64 process" }
 $repository = Get-AmeRepositoryRoot
-& (Join-Path $PSScriptRoot "release_validate_version.ps1") -Tag $Tag
+if ([string]::IsNullOrWhiteSpace($PubspecPath)) { $PubspecPath = Join-Path $repository 'pubspec.yaml' }
+& (Join-Path $PSScriptRoot "release_validate_version.ps1") -Tag $Tag `
+    -PubspecPath $PubspecPath -CargoManifestPath $CargoManifestPath
 $applicationVersion = [regex]::Match(
-    [IO.File]::ReadAllText((Join-Path $repository 'pubspec.yaml'), [Text.Encoding]::UTF8),
+    [IO.File]::ReadAllText($PubspecPath, [Text.Encoding]::UTF8),
     '(?m)^version:\s*["'']?(?<version>[^\s"'']+)["'']?\s*$'
 ).Groups['version'].Value
 $version = Get-AmeInstallerVersion -Tag $Tag -ApplicationVersion $applicationVersion
@@ -80,18 +85,18 @@ try {
             throw "Installer payload differs from its verified Release manifest"
         }
     }
-    $modelManifest = Get-AmeClassificationModelsManifest
+    $modelManifest = Get-AmeClassificationModelsManifest -MetadataDirectory $ModelMetadataDirectory
     $modelDirectory = Join-Path $buildRoot "classification-models/$($modelManifest.package)"
     & (Join-Path $PSScriptRoot 'release_prepare_classification_models.ps1') `
-        -OutputDirectory $modelDirectory -SourceDirectory $ModelSourceDirectory
-    $modelFiles = @(Get-AmeClassificationModelsPayload $modelDirectory)
+        -OutputDirectory $modelDirectory -SourceDirectory $ModelSourceDirectory -MetadataDirectory $ModelMetadataDirectory
+    $modelFiles = @(Get-AmeClassificationModelsPayload $modelDirectory -Manifest $modelManifest)
     foreach ($entry in $modelFiles) {
         $path = Join-Path $modelDirectory ([IO.Path]::GetFileName($entry.relativePath))
         $leases.Add([IO.FileStream]::new($path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read))
         Assert-AmeClassificationRuntimeArtifact $path $entry
     }
     $installerFiles = @($installerSource.Files) + $modelFiles
-    Assert-AmeInstallerPayloadNames $installerFiles
+    Assert-AmeInstallerPayloadNames $installerFiles -ModelManifest $modelManifest
     $nativeBuild = Join-Path $output "native"
     Invoke-AmeChecked $CMakePath @("-S", (Join-Path $repository "windows/installer"), "-B", $nativeBuild,
         "-G", "Visual Studio 17 2022", "-A", "x64")
@@ -102,7 +107,8 @@ try {
     Assert-AmeUnsignedX64Image $admission
     $leases.Add([IO.FileStream]::new($admission, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read))
     $generated = Join-Path $output "application_files.wxs"
-    New-AmeInstallerApplicationSource -Files $installerFiles -BundlePath $bundle -OutputPath $generated -ModelDirectory $modelDirectory
+    New-AmeInstallerApplicationSource -Files $installerFiles -BundlePath $bundle -OutputPath $generated `
+        -ModelDirectory $modelDirectory -ModelManifest $modelManifest
     $broker = @($installerSource.Files | Where-Object { $_.relativePath -ceq "cedarflake_ame_journal_broker.exe" })[0]
     $identity = "AMEJBID3|protocol=5|max_frame=1048576|sha256=" + ([string]$broker.sha256).ToUpperInvariant()
     $productCode = Get-AmeInstallerGuid "product/$version"

@@ -3,7 +3,11 @@ Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'release_classification_runtime.ps1')
 
 function Get-AmeClassificationModelsManifest {
-    $path = Join-Path (Split-Path -Parent $PSScriptRoot) 'rust/src/adapters/classification_runtime/model_distribution.json'
+    param([string]$MetadataDirectory)
+    if (-not $MetadataDirectory) {
+        $MetadataDirectory = Join-Path (Split-Path -Parent $PSScriptRoot) 'rust/src/adapters/classification_runtime'
+    }
+    $path = Join-Path $MetadataDirectory 'model_distribution.json'
     [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8) | ConvertFrom-Json
 }
 
@@ -21,7 +25,7 @@ function Assert-AmeClassificationModelsManifest {
 }
 
 function Get-AmeClassificationModelsPayloadNames {
-    $manifest = Get-AmeClassificationModelsManifest
+    param([object]$Manifest = (Get-AmeClassificationModelsManifest))
     foreach ($file in @($manifest.files) + @($manifest.notices)) { "$($manifest.bundleDirectory)/$($file.name)" }
 }
 
@@ -37,8 +41,7 @@ function Assert-AmeClassificationModelsDirectory {
 }
 
 function Get-AmeClassificationModelsPayload {
-    param([Parameter(Mandatory)][string]$Directory)
-    $manifest = Get-AmeClassificationModelsManifest
+    param([Parameter(Mandatory)][string]$Directory, [object]$Manifest = (Get-AmeClassificationModelsManifest))
     Assert-AmeClassificationModelsDirectory $Directory $manifest
     foreach ($file in @($manifest.files) + @($manifest.notices)) {
         [pscustomobject]@{ relativePath = "$($manifest.bundleDirectory)/$($file.name)"; length = [long]$file.length; sha256 = [string]$file.sha256 }
@@ -104,7 +107,10 @@ function Receive-AmeModelArtifact {
 }
 
 function New-AmeClassificationModelsDirectory {
-    param([string]$OutputDirectory, [string]$SourceDirectory, [object]$Manifest)
+    param([string]$OutputDirectory, [string]$SourceDirectory, [object]$Manifest, [string]$NoticeDirectory)
+    if (-not $NoticeDirectory) {
+        $NoticeDirectory = Join-Path (Split-Path -Parent $PSScriptRoot) 'rust/src/adapters/classification_runtime/installation'
+    }
     Assert-AmeClassificationModelsManifest $Manifest
     $output = [IO.Path]::GetFullPath($OutputDirectory).TrimEnd('\', '/')
     $build = [IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $PSScriptRoot) 'build'))
@@ -129,7 +135,7 @@ function New-AmeClassificationModelsDirectory {
             Assert-AmeClassificationRuntimeArtifact $destination $artifact
         }
         foreach ($notice in $Manifest.notices) {
-            $source = Join-Path (Split-Path -Parent $PSScriptRoot) "rust/src/adapters/classification_runtime/installation/$($notice.name)"
+            $source = Join-Path $NoticeDirectory $notice.name
             Assert-AmeClassificationRuntimeArtifact $source $notice
             [IO.File]::Copy($source, (Join-Path $scratch $notice.name))
         }

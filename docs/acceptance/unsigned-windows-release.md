@@ -134,3 +134,32 @@ passed, and the public body matches `docs/releases/v0.1.0-alpha.2.md` after line
 | --- | --- | --- |
 | Portable ZIP | 47,395,283 | `f832aec57f7fd3f0fc096f7403d8e58a3d8d9eb77f34225cd5f19f39d4b8a373` |
 | MSI | 383,852,544 | `69245cd49430b75daa5ab5f04c66812636b9dd765d10799fcad570867735dd4e` |
+
+## Release artifact continuation — 2026-11-09
+
+Release-only CI now runs workflow/script, packaging and publication fixtures without rebuilding
+the application. The release entry selects fresh gates, a verified application candidate, or the
+verified ZIP/MSI pair according to changed tooling. Selection and byte verification have a read-only
+mode; the existing main-only publication transaction retains its attachment and tag guards.
+
+Local PowerShell 7 fixtures passed reuse-stage selection, successful prerequisite admission,
+expired/wrong-run/wrong-attempt rejection, receipt binding, changed package/transport bytes and
+archive traversal rejection. Existing release-script checks, pinned actionlint 1.7.12 and PowerShell
+syntax checks passed. Tagged-model fixtures verify that repackaging uses the selected tag's model
+metadata and notices. The first local fixture run could not create a sandboxed directory junction;
+the same isolated check passed with that filesystem operation permitted. No service was installed.
+
+The entry, packaging and publication workflows contain 241, 279 and 264 production lines. Reuse
+policy, GitHub transport/selection, preparation and byte verification contain 93, 153, 65 and 30
+production lines. Their dedicated reuse and workflow-contract fixtures contain 169 and 109 lines.
+Model distribution, installer payload and installer orchestration contain 154, 170 and 164 production
+lines; model fixtures contain 82 test lines. These owners have no inline tests.
+
+At `5d39533e`, [CI 42541578902](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42541578902)
+selected release tooling and skipped the application gate. Its release-script job passed in 24 seconds.
+[Read-only run 42541591029](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42541591029)
+selected candidate artifact `13635930403` from run `42524891369`, bound to Alpha 2 source
+`1b6995b20f6596cfb4935b2313c35bb8b3d5d854`. Selection, download, digest and payload verification passed
+in a 36-second job. Build, packaging, publication and published-download jobs were all skipped.
+The retained run predates package receipts, so complete-pair reuse is covered by the isolated
+receipt/byte fixtures rather than this hosted candidate run. No release, tag or attachment changed.

@@ -20,12 +20,21 @@ on:
         required: false
         default: ""
         type: string
+      reuse_run:
+        description: Reuse verified artifacts (auto, none, or a previous main release run ID)
+        required: true
+        default: auto
+        type: string
+      validate_only:
+        description: Check artifact selection and bytes without building or publishing
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-candidate-${{ inputs.release_tag }}
+  group: release-candidate-${{ inputs.release_tag }}-${{ inputs.validate_only && github.ref || 'publish' }}
   cancel-in-progress: false
 
 jobs:
@@ -49,6 +58,7 @@ jobs:
           AME_REF: ${{ github.ref }}
           AME_RELEASE_TAG: ${{ inputs.release_tag }}
           AME_WORKFLOW_COMMIT: ${{ github.workflow_sha }}
+          AME_VALIDATE_ONLY: ${{ inputs.validate_only }}
         run: |
           $ErrorActionPreference = "Stop"
           $preReleaseIdentifier = (
@@ -62,7 +72,7 @@ jobs:
           )
           if (
             $env:AME_EVENT_NAME -cne "workflow_dispatch" -or
-            $env:AME_REF -cne "refs/heads/main"
+            ($env:AME_REF -cne "refs/heads/main" -and $env:AME_VALIDATE_ONLY -cne 'true')
           ) {
             throw "Release publication must be dispatched from main"
           }
@@ -93,9 +103,63 @@ jobs:
           }
           "trusted_workflow_commit=$env:AME_WORKFLOW_COMMIT" >> $env:GITHUB_OUTPUT
 
+  release_prepare:
+    name: Select and verify reusable artifacts
+    needs: release_request
+    runs-on: windows-2025
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      mode: ${{ steps.reuse.outputs.mode }}
+      source_commit: ${{ steps.reuse.outputs.source_commit }}
+      reuse_run: ${{ steps.reuse.outputs.reuse_run }}
+      reuse_artifact: ${{ steps.reuse.outputs.reuse_artifact }}
+      reuse_artifact_id: ${{ steps.reuse.outputs.reuse_artifact_id }}
+      archive_name: ${{ steps.reuse.outputs.archive_name }}
+      archive_sha256: ${{ steps.reuse.outputs.archive_sha256 }}
+      installer_name: ${{ steps.reuse.outputs.installer_name }}
+      installer_sha256: ${{ steps.reuse.outputs.installer_sha256 }}
+      manifest_sha256: ${{ steps.validate_reuse.outputs.manifest_sha256 }}
+    steps:
+      - name: Check out trusted release tooling
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.workflow_sha }}
+
+      - name: Select reusable release artifacts
+        id: reuse
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+          AME_WORKFLOW_COMMIT: ${{ github.workflow_sha }}
+          AME_SIGNING_MODE: ${{ inputs.release_signing_mode }}
+          AME_PUBLISHER: ${{ inputs.expected_broker_publisher }}
+          AME_REUSE_RUN: ${{ inputs.reuse_run }}
+        run: |
+          ./tool/release_prepare_reuse.ps1 -Repository $env:GITHUB_REPOSITORY `
+            -Tag $env:AME_RELEASE_TAG -WorkflowCommit $env:AME_WORKFLOW_COMMIT `
+            -SigningMode $env:AME_SIGNING_MODE -ExpectedPublisher $env:AME_PUBLISHER `
+            -PreviousRun $env:AME_REUSE_RUN -GitHubOutput $env:GITHUB_OUTPUT
+
+      - name: Validate reused artifact bytes
+        if: steps.reuse.outputs.mode != 'fresh'
+        id: validate_reuse
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ./tool/release_validate_reuse.ps1 -PlanPath build/release-reuse/plan.json `
+            -ArtifactDirectory build/release-reuse/artifact -GitHubOutput $env:GITHUB_OUTPUT
+
   release_windows:
     name: Windows Candidate Gate
-    needs: release_request
+    needs: [release_request, release_prepare]
+    if: ${{ !inputs.validate_only && needs.release_prepare.outputs.mode == 'fresh' }}
     permissions:
       contents: read
     uses: ./.github/workflows/quality_gate_windows.yml
@@ -110,15 +174,24 @@ jobs:
     name: Windows Packages
     needs:
       - release_request
+      - release_prepare
       - release_windows
+    if: >-
+      ${{ !cancelled() && !inputs.validate_only && needs.release_prepare.result == 'success' &&
+          (needs.release_prepare.outputs.mode == 'candidate' ||
+           (needs.release_prepare.outputs.mode == 'fresh' && needs.release_windows.result == 'success')) }}
     permissions:
       contents: read
+      actions: read
     uses: ./.github/workflows/release_package_windows.yml
     with:
       release_tag: ${{ inputs.release_tag }}
-      source_commit: ${{ needs.release_windows.outputs.source_commit }}
+      source_commit: ${{ needs.release_prepare.outputs.source_commit }}
       trusted_workflow_commit: ${{ needs.release_request.outputs.trusted_workflow_commit }}
-      verified_bundle_artifact: ${{ needs.release_windows.outputs.verified_bundle_artifact }}
+      verified_bundle_artifact: ${{ needs.release_windows.outputs.verified_bundle_artifact || needs.release_prepare.outputs.reuse_artifact }}
+      bundle_run: ${{ needs.release_prepare.outputs.reuse_run }}
+      bundle_artifact_id: ${{ needs.release_prepare.outputs.reuse_artifact_id }}
+      manifest_sha256: ${{ needs.release_prepare.outputs.manifest_sha256 }}
       release_signing_mode: ${{ inputs.release_signing_mode }}
       expected_broker_publisher: ${{ inputs.expected_broker_publisher }}
 
@@ -126,26 +199,37 @@ jobs:
     name: Publish Windows Packages
     needs:
       - release_request
+      - release_prepare
       - release_windows
       - package_windows
+    if: >-
+      ${{ !cancelled() && !inputs.validate_only && github.ref == 'refs/heads/main' &&
+          needs.release_prepare.result == 'success' &&
+          (needs.release_prepare.outputs.mode == 'packages' || needs.package_windows.result == 'success') }}
     permissions:
       contents: write
+      actions: read
     uses: ./.github/workflows/release_publish_windows.yml
     with:
       release_tag: ${{ inputs.release_tag }}
-      source_commit: ${{ needs.release_windows.outputs.source_commit }}
+      source_commit: ${{ needs.release_prepare.outputs.source_commit }}
       trusted_workflow_commit: ${{ needs.release_request.outputs.trusted_workflow_commit }}
-      package_artifact: ${{ needs.package_windows.outputs.package_artifact }}
-      archive_name: ${{ needs.package_windows.outputs.archive_name }}
-      archive_sha256: ${{ needs.package_windows.outputs.archive_sha256 }}
-      installer_name: ${{ needs.package_windows.outputs.installer_name }}
-      installer_sha256: ${{ needs.package_windows.outputs.installer_sha256 }}
+      package_artifact: ${{ needs.package_windows.outputs.package_artifact || needs.release_prepare.outputs.reuse_artifact }}
+      package_run: ${{ needs.release_prepare.outputs.mode == 'packages' && needs.release_prepare.outputs.reuse_run || '' }}
+      package_artifact_id: ${{ needs.release_prepare.outputs.mode == 'packages' && needs.release_prepare.outputs.reuse_artifact_id || '' }}
+      archive_name: ${{ needs.package_windows.outputs.archive_name || needs.release_prepare.outputs.archive_name }}
+      archive_sha256: ${{ needs.package_windows.outputs.archive_sha256 || needs.release_prepare.outputs.archive_sha256 }}
+      installer_name: ${{ needs.package_windows.outputs.installer_name || needs.release_prepare.outputs.installer_name }}
+      installer_sha256: ${{ needs.package_windows.outputs.installer_sha256 || needs.release_prepare.outputs.installer_sha256 }}
 
   verify_published:
     name: Published Release Verification
     needs:
       - publish_windows
       - package_windows
+      - release_request
+      - release_prepare
+    if: ${{ !cancelled() && needs.publish_windows.result == 'success' }}
     permissions:
       contents: read
     uses: ./.github/workflows/release_verify_published.yml
@@ -153,5 +237,5 @@ jobs:
       release_tag: ${{ inputs.release_tag }}
       expected_broker_publisher: ${{ inputs.expected_broker_publisher }}
       release_signing_mode: ${{ inputs.release_signing_mode }}
-      archive_sha256: ${{ needs.package_windows.outputs.archive_sha256 }}
-      installer_sha256: ${{ needs.package_windows.outputs.installer_sha256 }}
+      archive_sha256: ${{ needs.package_windows.outputs.archive_sha256 || needs.release_prepare.outputs.archive_sha256 }}
+      installer_sha256: ${{ needs.package_windows.outputs.installer_sha256 || needs.release_prepare.outputs.installer_sha256 }}

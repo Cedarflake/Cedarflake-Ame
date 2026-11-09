@@ -1,4 +1,5 @@
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot 'release_reuse_policy.ps1')
 
 function Get-AmeCiPolicy {
     param(
@@ -13,8 +14,19 @@ function Get-AmeCiPolicy {
         }
     }
 
-    # Only known presentation/documentation edits take the fast route. New or
-    # unknown owners retain full regression, including deleted and renamed files.
+    # Known release tooling and presentation/documentation edits have scoped
+    # checks. Unknown owners retain full regression, including deletions/renames.
+    $documentationOnly = $true
+    $releaseOnly = $true
+    foreach ($path in $ChangedPaths) {
+        $normalized = $path.Replace('\', '/')
+        if ($normalized -cmatch '^(docs/[^\r\n]+\.md|[^/]+\.md)$') { continue }
+        if (-not (Test-AmeReleaseToolingPath $normalized)) { $releaseOnly = $false; break }
+        $documentationOnly = $false
+    }
+    if ($releaseOnly -and -not $documentationOnly) {
+        return [pscustomobject]@{ Mode = 'release-tooling'; Extended = $false }
+    }
     $documentationOnly = $true
     foreach ($path in $ChangedPaths) {
         $normalized = $path.Replace('\', '/')

@@ -62,6 +62,11 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
+Release artifact reuse is implemented in [PR 56](https://github.com/Cedarflake/Cedarflake-Ame/pull/56).
+The [plan](plans/release-artifact-reuse.md) retains its scope; the
+[evidence](acceptance/unsigned-windows-release.md#release-artifact-continuation--2026-11-09)
+records scoped CI and read-only artifact reuse. R8 remains planned and has not started.
+
 Gallery navigation stability was integrated on 2026-11-09 through
 [PR 55](https://github.com/Cedarflake/Cedarflake-Ame/pull/55). The
 [repair plan](plans/gallery-navigation-stability.md) retains its implementation boundaries; the

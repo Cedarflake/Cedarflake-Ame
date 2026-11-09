@@ -406,7 +406,7 @@ jobs:
           path: build/unsigned-candidate
           if-no-files-found: error
           include-hidden-files: true
-          retention-days: 1
+          retention-days: 14
 
   release_sign_windows:
     name: Release / Protected Signing
@@ -739,7 +739,7 @@ jobs:
           path: build/unsigned-candidate
           if-no-files-found: error
           include-hidden-files: true
-          retention-days: 1
+          retention-days: 14
 
   release_verify_windows:
     name: Release / Signed Verification

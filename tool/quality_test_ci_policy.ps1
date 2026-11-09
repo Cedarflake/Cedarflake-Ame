@@ -13,6 +13,18 @@ foreach ($paths in @(
 if ((Get-AmeCiPolicy -ChangedPaths @('README.md', 'docs/product/gallery.md')).Mode -ne 'documentation') {
     throw "Documentation-only edits must not start product builds or tests"
 }
+foreach ($paths in @(
+    @('tool/release_reuse_policy.ps1', 'docs/releases/v1.0.0.md'),
+    @('.github/workflows/release_publish_windows.yml'),
+    @('tool/release_package_installer_windows.ps1', '.github/workflows/quality_ci.yml')
+)) {
+    if ((Get-AmeCiPolicy -ChangedPaths $paths).Mode -cne 'release-tooling') {
+        throw 'Release-tooling-only changes must use script verification without application builds'
+    }
+}
+if ((Get-AmeCiPolicy -ChangedPaths @('tool/release_publish.ps1', 'rust/src/main.rs')).Mode -cne 'daily') {
+    throw 'Release tooling cannot hide changed application source'
+}
 foreach ($path in @(
     "rust/src/adapters/local_files.rs", "rust/src/domain/mod.rs",
     "lib/features/library/application/query.dart", "lib/app/bootstrap/library.dart",

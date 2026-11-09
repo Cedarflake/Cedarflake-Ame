@@ -15,6 +15,15 @@ on:
       verified_bundle_artifact:
         required: true
         type: string
+      bundle_run:
+        default: ""
+        type: string
+      bundle_artifact_id:
+        default: ""
+        type: string
+      manifest_sha256:
+        default: ""
+        type: string
       release_signing_mode:
         required: true
         type: string
@@ -35,6 +44,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   package_windows:
@@ -43,6 +53,7 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: read
+      actions: read
     env:
       CI: "true"
       AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher }}
@@ -57,12 +68,19 @@ jobs:
       installer_name: ${{ steps.installer_identity.outputs.installer_name }}
       installer_sha256: ${{ steps.installer_identity.outputs.installer_sha256 }}
     steps:
-      - name: Check out immutable release source
+      - name: Check out trusted packaging tools
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ inputs.trusted_workflow_commit }}
+
+      - name: Check out tagged application metadata
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
           ref: ${{ inputs.source_commit }}
+          path: build/release-source
 
       - name: Prove package source and tag identity
         shell: pwsh
@@ -84,10 +102,12 @@ jobs:
             throw "The exact publication tag does not resolve to a commit: $tagRef"
           }
           $headCommit = (git rev-parse --verify HEAD).Trim()
+          $applicationCommit = (git -C build/release-source rev-parse --verify HEAD).Trim()
           if (
             $LASTEXITCODE -ne 0 -or
-            $headCommit -cne $tagCommit -or
-            $headCommit -cne $env:AME_SOURCE_COMMIT
+            $headCommit -cne $env:AME_TRUSTED_WORKFLOW_COMMIT -or
+            $applicationCommit -cne $tagCommit -or
+            $applicationCommit -cne $env:AME_SOURCE_COMMIT
           ) {
             throw "Package HEAD, release tag, and verified source commit do not match"
           }
@@ -95,7 +115,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Trusted release-workflow commit is unavailable to the packager"
           }
-          git merge-base --is-ancestor $headCommit $env:AME_TRUSTED_WORKFLOW_COMMIT
+          git merge-base --is-ancestor $applicationCommit $env:AME_TRUSTED_WORKFLOW_COMMIT
           if ($LASTEXITCODE -ne 0) {
             throw "Package source is not an ancestor of the trusted workflow commit"
           }
@@ -103,17 +123,28 @@ jobs:
       - name: Download immutable verified Windows bundle
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: ${{ inputs.verified_bundle_artifact }}
+          name: ${{ inputs.bundle_artifact_id == '' && inputs.verified_bundle_artifact || '' }}
+          artifact-ids: ${{ inputs.bundle_artifact_id }}
+          run-id: ${{ inputs.bundle_run || github.run_id }}
+          github-token: ${{ github.token }}
           path: build/release-candidate
 
       - name: Bind candidate manifest to the package source
         shell: pwsh
+        env:
+          AME_REUSED_MANIFEST_SHA256: ${{ inputs.manifest_sha256 }}
+          AME_BUNDLE_RUN: ${{ inputs.bundle_run }}
         run: |
           $ErrorActionPreference = "Stop"
           $candidateRoot = [System.IO.Path]::GetFullPath("build\release-candidate")
           $manifestPath = Join-Path $candidateRoot "manifest.json"
           if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
             throw "Candidate manifest is missing from the package input"
+          }
+          if ($env:AME_BUNDLE_RUN -and
+              ($env:AME_REUSED_MANIFEST_SHA256 -cnotmatch '^[0-9a-f]{64}$' -or
+               (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $env:AME_REUSED_MANIFEST_SHA256)) {
+            throw 'Reused candidate manifest changed after provenance verification'
           }
           $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 |
             ConvertFrom-Json
@@ -147,6 +178,8 @@ jobs:
           $archivePath = (
             ./tool/release_package_portable_windows.ps1 `
               -Tag $env:AME_RELEASE_TAG `
+              -PubspecPath build/release-source/pubspec.yaml `
+              -CargoManifestPath build/release-source/rust/Cargo.toml `
               -ReleaseRoot ([System.IO.Path]::GetFullPath("build\release-candidate\payload")) `
               -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER |
               Select-Object -Last 1
@@ -186,6 +219,9 @@ jobs:
           $output = Join-Path $PWD 'build/release-installer'
           ./tool/release_package_installer_windows.ps1 @toolchain `
             -Tag $env:AME_RELEASE_TAG -SourceCommit $env:AME_SOURCE_COMMIT `
+            -PubspecPath build/release-source/pubspec.yaml `
+            -CargoManifestPath build/release-source/rust/Cargo.toml `
+            -ModelMetadataDirectory build/release-source/rust/src/adapters/classification_runtime `
             -CandidateRoot (Join-Path $PWD 'build/release-candidate') `
             -SigningMode $env:AME_RELEASE_SIGNING_MODE `
             -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER `
@@ -211,4 +247,33 @@ jobs:
           name: ${{ steps.portable_identity.outputs.artifact_name }}
           path: build/release-packages/*
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 14
+
+      - name: Record verified package provenance
+        shell: pwsh
+        env:
+          AME_PACKAGE_ARTIFACT: ${{ steps.portable_identity.outputs.artifact_name }}
+          AME_ARCHIVE_NAME: ${{ steps.portable_identity.outputs.archive_name }}
+          AME_ARCHIVE_SHA256: ${{ steps.portable_identity.outputs.archive_sha256 }}
+          AME_INSTALLER_NAME: ${{ steps.installer_identity.outputs.installer_name }}
+          AME_INSTALLER_SHA256: ${{ steps.installer_identity.outputs.installer_sha256 }}
+        run: |
+          [void][IO.Directory]::CreateDirectory('build/release-receipt')
+          [ordered]@{
+            format = 'cedarflake-ame-release-packages-v1'
+            tag = $env:AME_RELEASE_TAG; sourceCommit = $env:AME_SOURCE_COMMIT
+            workflowCommit = $env:AME_TRUSTED_WORKFLOW_COMMIT
+            runId = $env:GITHUB_RUN_ID; runAttempt = $env:GITHUB_RUN_ATTEMPT
+            packageArtifact = $env:AME_PACKAGE_ARTIFACT
+            signingMode = $env:AME_RELEASE_SIGNING_MODE; expectedPublisher = $env:AME_EXPECTED_PUBLISHER
+            archiveName = $env:AME_ARCHIVE_NAME; archiveSha256 = $env:AME_ARCHIVE_SHA256
+            installerName = $env:AME_INSTALLER_NAME; installerSha256 = $env:AME_INSTALLER_SHA256
+          } | ConvertTo-Json | Set-Content -LiteralPath build/release-receipt/release-package-receipt.json -Encoding utf8
+
+      - name: Upload package provenance
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: ${{ steps.portable_identity.outputs.artifact_name }}-receipt
+          path: build/release-receipt/release-package-receipt.json
+          if-no-files-found: error
+          retention-days: 14
