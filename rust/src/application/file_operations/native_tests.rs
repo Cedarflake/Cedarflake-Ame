@@ -185,9 +185,41 @@ fn file_operation_sandbox_recovers_native_move_and_publishes_copy_without_replay
         "图片.png",
     );
     let copy = journal.authorize(&[copy]).unwrap().remove(0);
-    let copied = FileOperationExecutor::new(&mut journal, &engine, &control, &now)
-        .execute(copy.id)
-        .unwrap();
+    let task = super::start_file_operation_task(
+        storage.catalog_path.clone(),
+        crate::domain::file_operation_task::FileOperationTaskRequest {
+            kind: crate::domain::file_operation_task::FileOperationTaskKind::Execute,
+            operation_ids: vec![copy.id],
+        },
+        None,
+    )
+    .unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    loop {
+        use crate::domain::file_operation_task::FileOperationTaskPhase;
+        let progress = task.snapshot();
+        if !matches!(
+            progress.phase,
+            FileOperationTaskPhase::Starting | FileOperationTaskPhase::Running
+        ) {
+            assert_eq!(
+                progress.phase,
+                FileOperationTaskPhase::Finished,
+                "{:?}",
+                progress.failure
+            );
+            assert_eq!(progress.published_items, 1);
+            break;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "native task did not finish"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    task.close().unwrap();
+    let copied = journal.load(copy.id).unwrap();
+    assert_eq!(copied.checkpoint.phase, Phase::Published);
     assert_eq!(
         copied.checkpoint.destination.as_ref().unwrap().name,
         "图片(1).png"
@@ -201,7 +233,6 @@ fn file_operation_sandbox_recovers_native_move_and_publishes_copy_without_replay
         b"occupied destination"
     );
     assert_eq!(fs::read(&moved_path).unwrap(), original_bytes);
-    publish_file_operation(&mut journal, &engine, copy.id, 13).unwrap();
     assert_eq!(journal.publication_roots().unwrap().len(), 1);
     assert_eq!(fs::read(&sentinel).unwrap(), b"outside operation selection");
     println!(

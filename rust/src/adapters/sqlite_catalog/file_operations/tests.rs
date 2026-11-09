@@ -11,6 +11,7 @@ use crate::ports::CatalogRepository;
 
 mod execution;
 mod publication;
+mod task;
 
 fn fixture() -> (
     tempfile::TempDir,

@@ -223,10 +223,35 @@ The executed test binary SHA-256 was
 `902ad5a919ea3e32052a1549571b1975f0ddd432a6149184c5067436bfedf946`.
 This proves the native/persistence connection for the named fixture, not a desktop confirmation flow.
 Cross-volume native behavior retains the R8-01 evidence; its durable ordering retains the executor
-fault cases. Runtime ownership, integrated scan/operation concurrency and desktop actions remain
-in the active R8 queue.
+fault cases. The following record covers joined runtime and scan ordering; desktop actions retain
+their separate interaction verification.
 
 Reviewability: catalog publication has 250 production lines, application publication 121 and the
 guarded output adapter 132, with no inline tests. The publication fixtures contain 436 dedicated
 test lines and the isolated native fixture 253. The shared location-mutation owner has 154 production
 lines; the 2,044-line catalog-delta facade only exposes its existing scoped helpers in this change.
+
+## R8-02 joined runtime and scan ordering — 2026-11-09
+
+The application task opens its validated catalog on one joined worker and serializes execution with
+recovery. A controlled active native call verified stopping state, refusal of a second task, joined
+close, durable cancellation of the unstarted item and retention of the original catalog location.
+The existing deletion case now also publishes a complete replacement scan before the native receipt;
+that scan saves the remaining exact duplicate as preferred in its own transaction.
+
+All nine scoped journal/executor/publication cases passed in 35.60 seconds; the separate guest-only
+case was skipped on the host. Warning-denying Clippy passed. Existing scan-unwind/rollback coverage
+passed, and the fixed dependency inventory passed in 33.72 seconds with the exact production-factory
+admissions. No schema version or native API changed in this increment.
+
+The guest-only native fixture then passed in Windows Sandbox in 5.78 seconds with its numbered copy
+submitted through the production task factory. Progress reached finished with one published result,
+close joined successfully, and original/occupied/sibling bytes remained intact. The executed binary
+SHA-256 was `c226243f405aa85685764945acbbc8b582277d7876d71dda4b2ae5c5c67b6202`.
+The owned Sandbox stopped and its leased host staging was cleaned. This remains native/application
+verification; desktop confirmation, rule organization and integrated hosted CI are outstanding.
+
+Reviewability: the task lifetime owner has 162 production lines, its execution loop 110 and scan
+correlation 90, with no inline tests. The cancellation fixture has 172 dedicated test lines; the
+existing native fixture now has 284. The 252-line scan transaction owner only sequences the typed
+correlation owner around its existing projection publication.

@@ -228,12 +228,23 @@ fn check_move_publication(notification_first: bool) {
 
 #[test]
 fn file_operation_publication_removes_only_selected_copy_and_persists_remaining_preference() {
-    for notification_first in [false, true] {
-        check_delete_publication(notification_first);
+    for observation in [
+        RemovalObservation::Receipt,
+        RemovalObservation::Notification,
+        RemovalObservation::Scan,
+    ] {
+        check_delete_publication(observation);
     }
 }
 
-fn check_delete_publication(notification_first: bool) {
+#[derive(Clone, Copy)]
+enum RemovalObservation {
+    Receipt,
+    Notification,
+    Scan,
+}
+
+fn check_delete_publication(observation: RemovalObservation) {
     let (_directory, mut journal, mut authorization) = fixture();
     super::super::super::tests::publish_gallery_fixture(
         &mut journal.catalog,
@@ -301,13 +312,23 @@ fn check_delete_publication(notification_first: bool) {
     let pending = journal
         .advance(pending.id, 0, FileOperationEvent::Started(None), 2)
         .unwrap();
-    if notification_first {
+    if !matches!(observation, RemovalObservation::Receipt) {
         let selected = journal
             .catalog
             .load_active_location("photo-a")
             .unwrap()
             .unwrap();
-        observe(&mut journal.catalog, &selected, true);
+        match observation {
+            RemovalObservation::Notification => observe(&mut journal.catalog, &selected, true),
+            RemovalObservation::Scan => super::super::super::tests::publish_gallery_fixture(
+                &mut journal.catalog,
+                "scan-after-removal",
+                "root-a",
+                "C:\\Fixture",
+                &[],
+            ),
+            RemovalObservation::Receipt => unreachable!(),
+        }
         assert_eq!(
             journal
                 .catalog

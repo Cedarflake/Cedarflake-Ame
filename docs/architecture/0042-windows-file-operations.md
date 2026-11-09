@@ -80,6 +80,12 @@ inspects pinned parent directories and exact file evidence without mutation; a p
 can regain its receipt. A retained copy requires an explicit continuation before source removal.
 Missing or conflicting evidence remains uncertain. The runtime serializes recovery with active work.
 
+A joined application worker owns one bounded page of at most 128 durable item IDs and the validated
+catalog connection. Its process-wide task permit excludes other execution/recovery workers until
+retirement. Cancellation stops future items and records their cancellation; a completed native
+mutation still receives catalog publication. Close cancels and joins the current call. A worker
+failure retains its journal for inspection and cannot release authority to automatic replay.
+
 History and unfinished-item reads use bounded keyset windows. Schema validation checks immutable
 authority, ordered transitions and agreement with each journal head while retaining one item in
 memory. Migration preserves existing albums, decisions and history. These records are durable data;
@@ -111,6 +117,11 @@ deletion target first, save its replacement exact-duplicate preference in that s
 Schema v80 adds a partial index over pending deletion location/generation for this point correlation;
 normal synchronization does not scan the operation history. Notification evidence alone does not
 manufacture a native completion result or authorize another mutation.
+
+Full-scan publication captures pending authorized deletions through the same partial index before
+replacing its projection, then saves replacement preferences in that transaction. Its temporary
+SQLite table retains only operation IDs and duplicate keys; records are streamed rather than held
+as a whole-root collection. Rollback retires both the projection and preference changes together.
 
 ## FFI and resource safety
 

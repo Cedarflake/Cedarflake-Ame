@@ -36,6 +36,18 @@ public aliases. Native entrypoints cannot call back into application or bridge p
 production synchronization owner retains observation startup and shutdown; no separate public
 observer wrapper selects another factory.
 
+## File-operation runtime
+
+`file_operations/production::open_journal` selects the existing validated catalog session and binds
+it to the operation journal/catalog ports. `start_file_operation_task` constructs the Windows adapter
+and opens the catalog inside the joined worker. Its bounded request names already authorized durable
+items; the factory adds no selection or mutation authority.
+
+One process-wide task lane serializes execution and recovery. Cancellation remains stopping while a
+native call is active; close joins that worker before resources can be replaced. A completed native
+result is still published after late cancellation, and interrupted work remains in durable history.
+Replacing either adapter preserves these lifetimes and the port-level authorization checks.
+
 ## Validated catalog session
 
 `catalog_session.rs` is the application resource host for validated catalog sessions. Its registered

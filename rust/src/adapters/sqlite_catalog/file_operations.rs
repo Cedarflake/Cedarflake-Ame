@@ -13,6 +13,7 @@ mod codec;
 pub(super) mod observed_removals;
 mod publication;
 mod reads;
+pub(super) mod scan_removals;
 pub(super) mod validation;
 mod writes;
 
@@ -21,6 +22,10 @@ pub struct SqliteFileOperationJournal {
 }
 
 impl SqliteFileOperationJournal {
+    pub(crate) fn from_catalog(catalog: SqliteCatalog) -> Self {
+        Self { catalog }
+    }
+
     pub fn open(path: PathBuf) -> Result<Self, ScanError> {
         Ok(Self {
             catalog: SqliteCatalogSession::validate(path)?.open_in_lane(LibraryChangeLane::Live)?,

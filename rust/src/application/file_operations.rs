@@ -12,10 +12,14 @@ use crate::ports::file_operations::{FileOperationControl, NativeFileOperations};
 
 #[cfg(all(test, windows))]
 mod native_tests;
+mod production;
 mod publication;
 mod recovery;
+mod task;
+pub use production::start_file_operation_task;
 pub use publication::publish_file_operation;
 pub use recovery::{FileOperationInspection, inspect_file_operation};
+pub use task::FileOperationTask;
 
 const MAX_NAME_CANDIDATES: u32 = 10_000;
 

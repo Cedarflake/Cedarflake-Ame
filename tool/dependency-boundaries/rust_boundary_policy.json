@@ -1,6 +1,17 @@
 {
   "activeIds": [],
   "retainedOwners": {
+    "file-operation-runtime": {
+      "responsibility": "Select the catalog and Windows engines for the joined file-operation task",
+      "reason": "The factory binds concrete resources behind operation ports; authority, execution and recovery stay in application owners.",
+      "lifetime": "One bounded task holds the process mutation lane and opens a validated catalog on its worker; close cancels and joins before resource replacement.",
+      "replacement": "Replace journal and native bindings together while preserving immutable authority, publication and joined cancellation.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#file-operation-runtime",
+      "coverage": [
+        "rust/src/adapters/sqlite_catalog/file_operations/tests/task.rs",
+        "rust/src/application/file_operations/native_tests.rs"
+      ]
+    },
     "file-operation-tool-export": {
       "responsibility": "Expose the Windows operation and durable journal constructors to scoped native and SQLite fixtures",
       "reason": "Fixtures exercise real adapters through NativeFileOperations and FileOperationJournal; the facade performs no authorization or execution.",
@@ -341,6 +352,26 @@
     }
   },
   "retained": [
+    {
+      "id": "file-operation-runtime-catalog",
+      "owner": "file-operation-runtime",
+      "dependency": {
+        "source": "rust/src/application/file_operations/production.rs",
+        "symbol": "crate::application::file_operations::production::open_journal",
+        "target": "crate::adapters::sqlite_catalog::file_operations::SqliteFileOperationJournal",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "file-operation-runtime-windows",
+      "owner": "file-operation-runtime",
+      "dependency": {
+        "source": "rust/src/application/file_operations/production.rs",
+        "symbol": "crate::application::file_operations::production::start_file_operation_task",
+        "target": "crate::adapters::windows_file_operations::WindowsFileOperations",
+        "rule": "concrete-adapter"
+      }
+    },
     {
       "id": "file-operation-tool-journal-adapter",
       "owner": "file-operation-tool-export",

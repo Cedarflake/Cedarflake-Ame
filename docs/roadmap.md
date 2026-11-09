@@ -41,8 +41,8 @@ feature. R9 is no longer a separate stage; R10 keeps its identifier. The
 [merged scope](product/organization-workflows.md#r8---file-organization-and-recovery) owns behavior;
 the [execution plan](plans/r8-file-organization.md) defines Windows-backed implementation slices;
 the [verification procedure](acceptance/r8-file-operations.md) defines guest-contained Windows Sandbox
-and hosted Windows fixture checks. R8-01 native adapter admission is recorded; R8-02 durable
-execution and recovery is in progress.
+and hosted Windows fixture checks. R8-01 native adapter admission and R8-02 durable execution,
+catalog publication and joined runtime have scoped evidence; desktop connection is next.
 
 ## Current stage and acceptance boundary
 
@@ -157,11 +157,11 @@ R8 implementation is active on `codex/r8-file-organization`. R8-01 Windows capab
 under [ADR 0042](architecture/0042-windows-file-operations.md) has scoped
 [native evidence](acceptance/r8-file-operations.md#r8-01-native-capability-admission--2026-11-09).
 R8-02 has its [durable journal and executor](acceptance/r8-file-operations.md#r8-02-durable-journal-foundation--2026-11-09)
-and [catalog/native recovery connection](acceptance/r8-file-operations.md#r8-02-catalog-publication-and-native-recovery--2026-11-09).
-Runtime ownership and integrated scan/operation concurrency remain in that slice.
-Continue through R8-02 to R8-05 in the
-[execution plan](plans/r8-file-organization.md#implementation-slices): connect durable
-execution and recovery, expose desktop actions, add organization rules, and complete integrated
+and [catalog/native recovery connection](acceptance/r8-file-operations.md#r8-02-catalog-publication-and-native-recovery--2026-11-09),
+including the [joined runtime and scan ordering](acceptance/r8-file-operations.md#r8-02-joined-runtime-and-scan-ordering--2026-11-09).
+Continue through R8-03 to R8-05 in the
+[execution plan](plans/r8-file-organization.md#implementation-slices): expose desktop actions,
+add organization rules, and complete integrated
 verification. Native behavior that cannot preserve the required source-safety guarantees blocks the
 affected action until resolved; it does not authorize a weaker fallback. Exit requires the connected
 workflow and scoped [verification](acceptance/r8-file-operations.md), without organization preview.
