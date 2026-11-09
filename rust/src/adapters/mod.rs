@@ -32,7 +32,11 @@ pub(crate) use journal_boundary::session_boundary_source;
 mod local_files;
 pub(crate) use local_files::LocalPublicationNamespaces;
 mod local_source_state;
+#[cfg(windows)]
+mod windows_file_operations;
 pub(crate) use local_source_state::LocalSourceState;
+#[cfg(windows)]
+pub use windows_file_operations::WindowsFileOperations;
 #[cfg(test)]
 mod local_metadata_inventory;
 mod media_inspector;

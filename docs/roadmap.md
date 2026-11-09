@@ -33,7 +33,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
 | R6 | Perceptual similarity review | Merged into `main` on 2026-11-05 |
 | R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
-| R8 | Authorized file organization and recovery | Planned after R7; incorporates former R9 |
+| R8 | Authorized file organization and recovery | In progress on `codex/r8-file-organization`; incorporates former R9 |
 | R10 | Large-library maturity and release readiness | Later work; infrastructure may support earlier stages |
 
 R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
@@ -41,7 +41,8 @@ feature. R9 is no longer a separate stage; R10 keeps its identifier. The
 [merged scope](product/organization-workflows.md#r8---file-organization-and-recovery) owns behavior;
 the [execution plan](plans/r8-file-organization.md) defines Windows-backed implementation slices;
 the [verification procedure](acceptance/r8-file-operations.md) defines guest-contained Windows Sandbox
-and hosted Windows fixture checks. Implementation has not started.
+and hosted Windows fixture checks. R8-01 native adapter admission is recorded; R8-02 durable
+execution and recovery is next.
 
 ## Current stage and acceptance boundary
 
@@ -65,19 +66,19 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 Release artifact reuse is implemented in [PR 56](https://github.com/Cedarflake/Cedarflake-Ame/pull/56).
 The [plan](plans/release-artifact-reuse.md) retains its scope; the
 [evidence](acceptance/unsigned-windows-release.md#release-artifact-continuation--2026-11-09)
-records scoped CI and read-only artifact reuse. R8 remains planned and has not started.
+records scoped CI and read-only artifact reuse.
 
 Gallery navigation stability was integrated on 2026-11-09 through
 [PR 55](https://github.com/Cedarflake/Cedarflake-Ame/pull/55). The
 [repair plan](plans/gallery-navigation-stability.md) retains its implementation boundaries; the
 [evidence and remaining limits](acceptance/image-rendering.md#continuous-timeline-dragging-and-coherent-layout-publication)
-own interaction, query-cost and hosted verification. R8 is the next planned stage and has not started.
+own interaction, query-cost and hosted verification.
 
 The standalone Material migration was integrated on 2026-11-08 through
 [PR 54](https://github.com/Cedarflake/Cedarflake-Ame/pull/54).
 [ADR 0001](architecture/0001-flutter-rust-desktop-stack.md#standalone-material-library)
 owns package compatibility and preserved desktop behavior; the [evidence record](acceptance/material-ui-migration.md)
-owns verification and the authorized merge before CI completion. R8 remains planned and has not started.
+owns verification and the authorized merge before CI completion.
 
 GPU analysis acceleration was merged into `main` on 2026-11-07 through
 [PR 52](https://github.com/Cedarflake/Cedarflake-Ame/pull/52). The
@@ -152,8 +153,11 @@ schedules no additional broad split.
 
 ## R8 implementation sequence
 
-R8 remains planned; its [execution plan](plans/r8-file-organization.md#implementation-slices) is ready
-for implementation. Execute R8-01 through R8-05 in order: admit Windows capabilities, connect durable
+R8 implementation is active on `codex/r8-file-organization`. R8-01 Windows capability admission
+under [ADR 0042](architecture/0042-windows-file-operations.md) has scoped
+[native evidence](acceptance/r8-file-operations.md#r8-01-native-capability-admission--2026-11-09).
+Continue through R8-02 to R8-05 in the
+[execution plan](plans/r8-file-organization.md#implementation-slices): connect durable
 execution and recovery, expose desktop actions, add organization rules, and complete integrated
 verification. Native behavior that cannot preserve the required source-safety guarantees blocks the
 affected action until resolved; it does not authorize a weaker fallback. Exit requires the connected
@@ -166,7 +170,7 @@ The [plan](plans/r7-semantic-discovery.md#implementation-slices) retains slice d
 the [integration record](acceptance/r7-semantic-discovery.md#integrated-verification--2026-11-08)
 owns review, desktop verification, CI provenance and the authorized merge before the latest CI
 finished. Preserve the measured partial-index coverage and deferred constrained-device limits in
-that acceptance record. R8 remains planned and has not started.
+that acceptance record.
 
 ## R4 implementation sequence
 

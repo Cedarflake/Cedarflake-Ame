@@ -9,6 +9,7 @@ pub mod classification_review;
 pub mod classification_selection;
 pub mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
+pub mod file_operations;
 pub mod image_features;
 mod path_display;
 pub(crate) mod semantic_discovery;

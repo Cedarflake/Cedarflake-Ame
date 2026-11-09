@@ -10,6 +10,13 @@ Both kinds reject new or stale dependencies. The fixed legacy inventory is never
 
 ## Native tool entrypoints
 
+The `file_operations` facade exposes the exact `WindowsFileOperations` adapter constructor for the
+Windows Sandbox admission probe under [ADR 0042](../0042-windows-file-operations.md). It allocates
+no native resources and grants no source-file authority. Calls use the `NativeFileOperations` port,
+retain namespace guards through execution, and join the Shell STA before returning. The probe owns
+only newly generated guest-local fixtures. Application callers cannot inherit this export's
+concrete-adapter exception; their production factory requires its own scoped admission.
+
 The classification facade retains three exact native exports for repository tools:
 `CuratedClassificationVocabulary`, `LocalClassificationVocabulary` and
 `SqliteClassificationFeatureCache`. The classification probe owns vocabulary/cache construction;

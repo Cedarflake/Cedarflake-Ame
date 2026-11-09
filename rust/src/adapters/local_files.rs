@@ -4,6 +4,10 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::fs::{File, Metadata};
 #[cfg(windows)]
+mod file_operation_source;
+#[cfg(windows)]
+pub(crate) use file_operation_source::operation_file_identity;
+#[cfg(windows)]
 use std::path::Prefix;
 use std::path::{Component, Path, PathBuf};
 #[cfg(test)]
@@ -4522,6 +4526,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "file_operations",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "frb_generated",
             visibility: "",
             attributes: &[],
@@ -4801,6 +4811,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             name: "file_revalidation",
             visibility: "",
             attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "file_operation_source",
+            visibility: "",
+            attributes: &["cfg(windows)"],
             is_inline: false,
         },
         AvailabilityModuleContract {
