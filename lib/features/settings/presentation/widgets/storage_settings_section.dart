@@ -361,7 +361,7 @@ class _StorageSettingsSectionState
               icon: Symbols.error_rounded,
               title: "无法读取存储设置",
               subtitle: Text(_settingsErrorMessage!),
-              trailing: OutlinedButton(
+              trailing: TextButton(
                 onPressed: () => unawaited(_load()),
                 child: const Text("重试"),
               ),
@@ -395,7 +395,7 @@ class _StorageSettingsSectionState
           ),
           trailing: widget.hasLibraryRoots
               ? const TextButton(onPressed: null, child: Text("已有图库时不可更改"))
-              : OutlinedButton(
+              : TextButton(
                   onPressed: _isSaving ? null : _chooseCatalogDirectory,
                   child: const Text("更改"),
                 ),
@@ -406,14 +406,14 @@ class _StorageSettingsSectionState
           title: _catalogReclamationTitle(catalogReclamation),
           subtitle: _catalogReclamationSubtitle(catalogReclamation),
           trailing: catalogReclamation.isActive
-              ? OutlinedButton(
+              ? TextButton(
                   onPressed: _reclamation.isActionPending
                       ? null
                       : _reclamationController.cancel,
                   child: Text(_reclamation.isActionPending ? "正在取消" : "取消"),
                 )
               : catalogReclamation.canRetry
-              ? OutlinedButton(
+              ? TextButton(
                   onPressed: _reclamation.isActionPending
                       ? null
                       : _reclamationController.start,
@@ -436,7 +436,7 @@ class _StorageSettingsSectionState
             "保存可随时重新生成的图片预览\n"
             "${status.configuredPreviewDisplayPath}",
           ),
-          trailing: OutlinedButton(
+          trailing: TextButton(
             onPressed: _isSaving ? null : _choosePreviewDirectory,
             child: const Text("更改"),
           ),
@@ -454,7 +454,7 @@ class _StorageSettingsSectionState
                 (_cleanupUpdate?.isActive ?? false) &&
                     _cleanupTargetPreviewRoot == retiredRoot.previewRoot
                 ? const TextButton(onPressed: null, child: Text("正在清理"))
-                : OutlinedButton(
+                : TextButton(
                     onPressed: _isSaving || (_cleanupUpdate?.isActive ?? false)
                         ? null
                         : () => _confirmPreviewCleanup(retiredRoot),
@@ -480,9 +480,8 @@ class _StorageSettingsSectionState
               Text("当前占用 ${_formatBytes(status.previewUsedBytes)}"),
             ],
           ),
-          trailing: AmeChoice<BigInt>(
+          trailing: AmeChoice<BigInt>.menu(
             value: status.previewBudgetBytes,
-            width: 144,
             selectedLabel: _formatBytes(status.previewBudgetBytes),
             enabled: !_isSaving,
             onSelected: (value) {
@@ -508,13 +507,13 @@ class _StorageSettingsSectionState
             targetDisplayPath: _cleanupTargetDisplayPath,
           ),
           trailing: _cleanupUpdate?.isActive ?? false
-              ? OutlinedButton(
+              ? TextButton(
                   onPressed: _isCancellingCleanup
                       ? null
                       : _cancelPreviewCleanup,
                   child: Text(_isCancellingCleanup ? "正在取消" : "取消"),
                 )
-              : OutlinedButton(
+              : TextButton(
                   onPressed: _isSaving ? null : () => _confirmPreviewCleanup(),
                   child: const Text("清理"),
                 ),
@@ -538,7 +537,7 @@ class _StorageSettingsSectionState
               _reclamation.errorMessage!,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
-            trailing: OutlinedButton(
+            trailing: TextButton(
               onPressed: _reclamationController.retry,
               child: const Text("重试"),
             ),

@@ -133,9 +133,8 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                 ),
-                AmeChoice<bool>(
+                AmeChoice<bool>.menu(
                   value: _showExports,
-                  width: 160,
                   entries: const [
                     AmeChoiceEntry(value: false, label: "文件记录"),
                     AmeChoiceEntry(value: true, label: "结果清单"),

@@ -176,7 +176,7 @@ void main() {
       expect(find.text("正在停止"), findsOneWidget);
       expect(
         tester
-            .widget<FilledButton>(
+            .widget<ButtonStyleButton>(
               find.byKey(const Key("settings-archive-export")),
             )
             .onPressed,
@@ -194,7 +194,7 @@ void main() {
       expect(tester.getTopLeft(find.text("清理未关联记录")), cleanupPosition);
       expect(
         tester
-            .widget<FilledButton>(
+            .widget<ButtonStyleButton>(
               find.byKey(const Key("settings-archive-export")),
             )
             .onPressed,

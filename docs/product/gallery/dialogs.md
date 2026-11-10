@@ -30,7 +30,8 @@ framework date picker retain their own interaction owners; they are not converte
   complete location in a tooltip or explicit details, and provide an implemented open-location action.
   Never turn a pathname into decorative button text or an unexplained paragraph.
 - Destination selection is a labeled object row with a choose/change action; organization rules
-  occupy their own aligned field. Preserve common field styling and menu motion.
+  and cleanup ranges use labeled text-menu choices. Preserve common menu motion. Date-type and
+  unit choices within a form retain the field styling of their adjacent inputs.
 - The permanent-deletion choice has no row-wide hover fill. Retain checkbox state, click feedback,
   keyboard focus and accessible labeling; every new confirmation starts unchecked.
 - New albums place an icon-selection button beside the name input. Expand icon choices on demand.

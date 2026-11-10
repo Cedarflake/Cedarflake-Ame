@@ -88,30 +88,14 @@ class _AlbumSettingsSectionState extends ConsumerState<AlbumSettingsSection> {
           icon: Symbols.bookmark_rounded,
           title: "默认加入的相册",
           subtitle: const Text("未设置时，会在加入前询问"),
-          trailing: SizedBox(
-            width: 176,
-            height: 56,
-            child: OutlinedButton(
+          trailing: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 176),
+            child: TextButton.icon(
               key: const Key("settings-default-album"),
               onPressed: _saving ? null : _choose,
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsetsDirectional.only(start: 16, end: 12),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(4)),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const Icon(Symbols.arrow_drop_down_rounded),
-                ],
-              ),
+              icon: const Icon(Symbols.chevron_right_rounded),
+              iconAlignment: IconAlignment.end,
+              label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
             ),
           ),
         ),

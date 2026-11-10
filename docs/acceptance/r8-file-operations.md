@@ -512,10 +512,15 @@ the underline starts at the name, and validation text does not change its vertic
 Rename remains single-file.
 Cancellation preserved the draft's source files and existing decisions.
 
-Copy/move organization selection now uses a Material text button and the shared Ame single-choice
-menu. The rebuilt Sandbox client showed all options on one line, updated the value and explanation
-after selection, retained the selected menu marker, and returned to the gallery on cancellation.
-Formatting, scoped analysis and the Debug build passed; this check submitted no file operation.
+Copy/move organization, standalone settings, cleanup range and history mode now share the Material
+text-button choice. Settings row actions also use text buttons; the album action retains its picker.
+The rebuilt Sandbox client verified selected markers, theme saving, album-picker dismissal, cleanup
+range refresh and cancellation, budget selection, and switching file records to result reports.
+The earlier organization check retained its value/explanation updates and cancellation behavior.
+Formatting, scoped analysis, the existing 27 settings regressions and the Debug build passed; these
+checks submitted no file operation. The updated screenshots are under
+`build/review/menu-controls-updated-2026-11-10`. Storage settings has 720 production lines and its
+dedicated settings-page test has 1,228 lines; no new tests or inline tests were added.
 
 A category copy with no classification produced one skipped item. A second direct copy held the
 synthetic source open for writing and produced Windows sharing violation 32. Both completion notices
