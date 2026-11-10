@@ -387,17 +387,20 @@ class _StorageSettingsSectionState
           key: const Key("catalog-location-setting"),
           icon: Symbols.storage_rounded,
           title: "图库数据位置",
-          subtitle: Text(
-            "保存图库索引和扫描结果\n"
-            "${status.configuredCatalogDisplayPath}\n"
-            "当前占用 ${_formatBytes(status.catalogUsedBytes)}"
-            "${status.catalogReclaimableBytes > BigInt.zero ? "\n有效数据约 ${_formatBytes(status.catalogLiveBytes)}，可回收 ${_formatBytes(status.catalogReclaimableBytes)}" : ""}",
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("保存图库索引和扫描结果\n${status.configuredCatalogDisplayPath}"),
+              Text(
+                "当前占用 ${_formatBytes(status.catalogUsedBytes)}"
+                "${status.catalogReclaimableBytes > BigInt.zero ? "，有效数据约 ${_formatBytes(status.catalogLiveBytes)}，可回收 ${_formatBytes(status.catalogReclaimableBytes)}" : ""}",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
           trailing: widget.hasLibraryRoots
-              ? const FilledButton.tonal(
-                  onPressed: null,
-                  child: Text("已有图库时不可更改"),
-                )
+              ? const Text("已有图库时不可更改")
               : FilledButton.tonal(
                   onPressed: _isSaving ? null : _chooseCatalogDirectory,
                   child: const Text("更改"),
@@ -429,7 +432,7 @@ class _StorageSettingsSectionState
                         : "重试",
                   ),
                 )
-              : const FilledButton.tonal(onPressed: null, child: Text("无需清理")),
+              : const Text("无需清理"),
         ),
         SettingsRow(
           key: const Key("preview-location-setting"),
@@ -456,7 +459,7 @@ class _StorageSettingsSectionState
             trailing:
                 (_cleanupUpdate?.isActive ?? false) &&
                     _cleanupTargetPreviewRoot == retiredRoot.previewRoot
-                ? const FilledButton.tonal(onPressed: null, child: Text("正在清理"))
+                ? const Text("正在清理")
                 : FilledButton.tonal(
                     onPressed: _isSaving || (_cleanupUpdate?.isActive ?? false)
                         ? null

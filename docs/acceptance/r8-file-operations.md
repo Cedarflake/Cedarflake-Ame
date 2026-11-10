@@ -519,10 +519,11 @@ range refresh and cancellation, budget selection, and switching file records to 
 The earlier organization check retained its value/explanation updates and cancellation behavior.
 Formatting, scoped analysis, the existing 27 settings regressions and the Debug build passed; these
 checks submitted no file operation. The updated screenshots are under
-`build/review/menu-controls-updated-2026-11-10`. Storage settings has 723 production lines and its
+`build/review/menu-controls-updated-2026-11-10`. Storage settings has 726 production lines and its
 dedicated settings-page test has 1,228 lines; no new tests or inline tests were added.
-The tonal-button follow-up passed scoped analysis and the Debug build; Sandbox verified filled
-enabled/disabled row actions and opening/cancelling cleanup. Existing action callbacks are unchanged.
+Sandbox verified filled actionable buttons, plain-text unavailable statuses, single-line catalog
+sizes, and opening/cancelling the `清理` action. Scoped analysis, the Debug build and the 20 existing
+cleanup/settings-page regressions passed. Existing action callbacks are unchanged.
 The format-chip row now reserves vertical paint space inside its horizontal viewport. The rebuilt
 Sandbox client verified light/dark selected and unselected edges, horizontal scrolling, and applying
 JPG with PNG. Its four existing filter regressions, scoped analysis and Debug build passed.

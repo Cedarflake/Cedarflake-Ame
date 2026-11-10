@@ -25,7 +25,7 @@ class OrganizationCleanupRow extends ConsumerWidget {
         onPressed: busy
             ? null
             : () => unawaited(inspectOrganizationCleanup(context)),
-        child: const Text("查看并清理"),
+        child: const Text("清理"),
       ),
     );
   }

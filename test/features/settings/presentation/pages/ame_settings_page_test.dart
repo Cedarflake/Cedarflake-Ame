@@ -83,7 +83,7 @@ void main() {
     expect(find.text("缩略图位置"), findsOneWidget);
     expect(find.text("清理未关联记录"), findsOneWidget);
     expect(find.byKey(const Key("settings-cleanup-age")), findsNothing);
-    expect(find.text("查看并清理"), findsOneWidget);
+    expect(find.byKey(const Key("settings-cleanup-inspect")), findsOneWidget);
     expect(find.text("已有图库时不可更改"), findsOneWidget);
     expect(find.textContaining("Settings file"), findsNothing);
     expect(
@@ -878,7 +878,7 @@ void main() {
 
     expect(find.text("缩略图清理完成"), findsOneWidget);
     expect(find.textContaining("已移除 2 个文件"), findsOneWidget);
-    expect(find.text("清理"), findsOneWidget);
+    expect(cleanupButton, findsOneWidget);
   });
 
   testWidgets("isolates and clears a preview cleanup transport error", (
