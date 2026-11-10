@@ -214,6 +214,10 @@ pub(super) fn delete(
     control: FileOperationControl,
     owner_window: Option<usize>,
 ) -> FileOperationResult {
+    let source_guard = scope
+        .source
+        .open_recycling_source(&scope.source_name, &request.source.state)
+        .map_err(|error| FileOperationIssue::new(Kind::SourceChanged, error.to_string()))?;
     // SAFETY: ADR 0042; this function runs only on its dedicated joined thread. The
     // apartment guard is created first and is therefore dropped after every COM interface.
     unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok() }.map_err(native_error)?;
@@ -266,6 +270,8 @@ pub(super) fn delete(
         (status, aborted)
     };
     drop(sink);
+    // A confirmed Shell permanent fallback finishes unlinking after the last handle closes.
+    drop(source_guard);
     let result = result.lock().map_err(|_| {
         FileOperationIssue::new(Kind::OutcomeUnknown, "The native result could not be read")
     })?;

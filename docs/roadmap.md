@@ -43,8 +43,8 @@ the [execution plan](plans/r8-file-organization.md) defines Windows-backed imple
 the [verification procedure](acceptance/r8-file-operations.md) defines guest-contained Windows Sandbox
 and hosted Windows fixture checks. R8-01 native admission, R8-02 durable execution and R8-03 desktop
 actions have scoped evidence; rule-based organization and result reports are connected. Integrated
-review and hosted checks have evidence; the remaining delivery blocker is the recycling identity
-boundary recorded below.
+review and hosted checks have evidence. The native recycling race has an accepted disposition and
+the write guard has scoped native evidence; finish current-head verification under R8-05.
 
 ## Current stage and acceptance boundary
 
@@ -164,13 +164,14 @@ including the [joined runtime and scan ordering](acceptance/r8-file-operations.m
 R8-03 connects desktop actions with [isolated interaction evidence](acceptance/r8-file-operations.md#r8-03-connected-desktop-actions--2026-11-10).
 R8-04 connects organization rules and result reports with
 [native and desktop evidence](acceptance/r8-file-operations.md#r8-04-organization-rules-and-result-reports--2026-11-10).
-Continue R8-05 in the [execution plan](plans/r8-file-organization.md#implementation-slices) by
-resolving the recycling boundary. The
+Continue R8-05 in the [execution plan](plans/r8-file-organization.md#implementation-slices) with
+final review and current-head verification. The
 [integrated review](acceptance/r8-file-operations.md#r8-05-integrated-review--2026-11-10)
-records passing hosted verification and a reproduced Shell recycling identity race. The selected
-policy preserves the confirmed file version and reports changed/unverifiable files as not deleted.
-Normal recycling remains required; a global disable does not fulfill this outcome. Resolve the
-post-validation replacement window before claiming identity-preserving recycling.
+records passing hosted verification and a reproduced Shell recycling identity race. On 2026-11-10,
+the user accepted retaining Windows recycling with that last-check replacement limit under
+[ADR 0042](architecture/0042-windows-file-operations.md#recycling-identity-boundary).
+Detected changed/unverifiable files remain undeleted with visible reasons. Normal recycling and
+its write guard remain required; the accepted race no longer blocks delivery.
 The deletion-scope adjustment and readable-path correction have
 [scoped client evidence](acceptance/r8-file-operations.md#merged-card-deletion-scope-and-readable-paths--2026-11-10).
 Ordinary merged-gallery cards target the complete confirmed group; group members and single-file
@@ -178,9 +179,8 @@ viewers retain explicit-file scope. The [interaction plan](plans/r8-file-organiz
 owns the details. The [dialog inventory](acceptance/r8-file-operations.md#dialog-screenshot-inventory--2026-11-10)
 records actual screenshots, including the scoped recovery and dark-theme checks, for layout review.
 The selected [dialog refinements](acceptance/r8-file-operations.md#dialog-templates-and-connected-actions--2026-11-10)
-follow the shared [templates](product/gallery/dialogs.md); they retain R8's native safety requirement.
-Native behavior that cannot preserve the required source-safety guarantees blocks delivery of the
-affected action until resolved; it does not authorize a weaker fallback. Exit requires the connected
+follow the shared [templates](product/gallery/dialogs.md). Preserve the agreed native safety boundary
+and permanent-deletion handle guarantee. Exit requires the connected
 workflow and scoped [verification](acceptance/r8-file-operations.md), without organization preview.
 
 ## R7 implementation sequence

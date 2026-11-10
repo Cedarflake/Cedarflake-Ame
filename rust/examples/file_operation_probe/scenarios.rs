@@ -262,10 +262,20 @@ fn deletion(engine: &WindowsFileOperations, source: &Path) -> ProbeResult {
         source: engine.inspect_source(source.to_str().ok_or("Invalid source encoding")?)?,
         destination: None,
     };
+    let writer = fs::OpenOptions::new().write(true).open(source)?;
+    assert_eq!(
+        engine
+            .execute(&request, &FileOperationControl::default())
+            .unwrap_err()
+            .kind,
+        Kind::SourceChanged
+    );
+    assert_eq!(fs::read(source)?, CONTENT);
+    drop(writer);
     let receipt = engine.execute(&request, &FileOperationControl::default())?;
     assert!(!source.exists());
     assert_eq!(receipt.recovery, FileOperationRecovery::SystemRecycleBin);
-    Ok("Recycled exact selected file through Windows".to_owned())
+    Ok("Active writer rejected unchanged; released fixture recycled through Windows".to_owned())
 }
 
 fn permanent_deletion(engine: &WindowsFileOperations, source: &Path) -> ProbeResult {

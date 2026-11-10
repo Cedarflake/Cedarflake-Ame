@@ -138,13 +138,20 @@ fallback is allowed. The [execution plan](../plans/r8-file-organization.md#plann
 owns the planned interaction details, system-interface admission and rollout.
 
 Deletion authorization applies to the file version the user selected and confirmed. An editor or
-synchronization program changing that file does not authorize deleting its replacement. Reject a
-changed or unverifiable item, preserve it, and require the user to view the current image and make
-a fresh selection and confirmation. Do not infer that an unchanged filename means unchanged intent.
+synchronization program changing that file does not authorize deleting its replacement. When
+pre-operation validation finds a changed or unverifiable item, preserve it and require the user to
+view the current image and make a fresh selection and confirmation. Do not infer that an unchanged
+filename means unchanged intent.
 Show the affected filename and reason in operation results; changed files must be identified as
 not deleted, not hidden behind an overall completion message. A partial batch retains separate
 completed and unresolved counts. Unknown native outcomes remain pending verification rather than
 being described as either deleted or preserved.
+
+Windows recycling retains an accepted platform limitation: another program can replace the same
+pathname after the final validation, and Windows may recycle that replacement. Ame holds a write
+guard during execution and reports detected changes, but does not promise to eliminate this race.
+The [native boundary](../architecture/0042-windows-file-operations.md#recycling-identity-boundary)
+owns the precise scope; explicit permanent deletion uses the verified file handle.
 
 Scope:
 
@@ -197,8 +204,9 @@ required outcomes; the system's internal copy algorithm and an Ame-specific quar
 product requirements.
 
 Preflight remains deterministic for the same trustworthy inputs and leaves source and target media
-unchanged. Execution changes only the authorized items, rejects stale evidence, and preserves
-applicable recovery without offering a restore for permanent deletion. The
+unchanged. Execution targets the authorized items, rejects detected stale evidence, and preserves
+applicable recovery within the recycling boundary above, without offering a restore for permanent
+deletion. The
 [filesystem verification procedure](../acceptance/r8-file-operations.md) owns disposable fixtures,
 failure checks, and Windows integration evidence.
 

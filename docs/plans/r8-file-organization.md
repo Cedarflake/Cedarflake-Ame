@@ -34,9 +34,13 @@ Keep exact-group single preference and similar-group multiple selections as grou
 | --- | --- |
 | Name already exists at the destination | Keep the extension and allocate `name(1).jpg`, `name(2).jpg`, and so on, using the first free number without overwriting existing files. Record the actual final name. |
 | Delete confirmation | Identify whole-group deletion when selected and show the affected physical-file count. Keep `永久删除` unchecked for every new request. Confirming normally requests the system Recycle Bin; checking the option and confirming explicitly authorizes permanent deletion. Cancel or close performs no deletion. |
-| File changed after selection or cannot be verified | Do not delete it. Show the affected file and reason, retain a recorded execution rejection, and require a new selection and confirmation after viewing the current image. Preparation failure is reported before execution; never claim every selected file was deleted. |
+| Pre-operation validation detects a changed or unverifiable file | Do not delete it. Show the affected file and reason, retain a recorded execution rejection, and require a new selection and confirmation after viewing the current image. Preparation failure is reported before execution; never claim every selected file was deleted. |
 | Windows cannot recycle, including an oversized file | Preserve the native Windows confirmation and follow the user's response. Permanent fallback requires an affirmative system confirmation; cancellation or a refusal leaves the file intact. Ame never answers the dialog or silently retries permanently. |
 | Multiple album destinations in album-based organization | Skip that image, continue the other items, and summarize skipped items at the end. Do not choose an album or create multiple copies implicitly. This does not change virtual album membership. |
+
+Preserve native recycling with the accepted
+[post-validation replacement limit](../architecture/0042-windows-file-operations.md#recycling-identity-boundary).
+Its write guard and rejection of detected changes remain required; this does not introduce staging.
 
 When an export/organization run has automatic renames, skipped items, failures or unfinished items,
 write one UTF-8 TXT explanation in the selected export root. Include the operation time, source

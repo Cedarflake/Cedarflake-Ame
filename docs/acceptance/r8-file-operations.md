@@ -1,6 +1,6 @@
 # R8 filesystem verification
 
-Status: verification procedure and scoped R8-01 through R8-04 evidence; integrated R8 acceptance is pending.
+Status: verification procedure and R8 native, application, desktop and integrated-review evidence.
 
 The [roadmap](../roadmap.md) owns activation and delivery status. The
 [merged product scope](../product/organization-workflows.md#r8---file-organization-and-recovery)
@@ -353,10 +353,11 @@ old path. Windows recycled the replacement, leaving the retained original intact
 directories and checking identity before callback return does not bind the subsequent Shell
 operation to that file. The probe executable SHA-256 was
 `891065c908534f664ca1db1a5c1c9c65e0dbe1f13f2d2a312df6aba7acc1130d`.
-System recycling requires a supported identity-bound implementation; normal recycling/restoration
-evidence does not cover it. The 2026-11-10 product clarification retains normal recycling and requires
-changed/unverifiable items to be preserved with visible reasons. Globally disabling recycling does
-not fulfill that requirement; the post-validation replacement race remains unresolved.
+This initially blocked identity-preserving recycling. The final 2026-11-10 product decision retains
+normal Windows recycling with the accepted post-validation replacement race under
+[ADR 0042](../architecture/0042-windows-file-operations.md#recycling-identity-boundary).
+Detected changed/unverifiable items still remain undeleted with visible reasons. The race remains
+a known limit rather than a repaired behavior; globally disabling recycling is not the selected outcome.
 `StorageFile` was not admitted as a replacement: Microsoft's
 [storage-object explanation](https://blogs.windows.com/windowsdeveloper/2014/06/20/common-questions-and-answers-about-files-and-app-data-part-2-files/)
 describes it as a path reference that does not hold the file open. No identity-bound recycling
@@ -372,6 +373,28 @@ metadata, without an identity-bound deletion contract. Probe SHA-256:
 `8463e5ac549fda03e5a3592026301ce4648ea1d716b16aa8f0ca0a5d1442a454`.
 This used guest-created files, read-only executable inputs and a separate empty receipt mapping;
 the owned Sandbox and scratch were retired. No product mutation route changed.
+
+A held-handle probe then compared read/delete sharing with read-only sharing. Normal recycling
+succeeded with delete sharing, while a concurrent write open failed with `os error 32`. The same-name
+replacement still succeeded and Windows recycled that replacement. Denying delete sharing preserved
+the file but also prevented normal recycling. Probe SHA-256:
+`a5ce6644981f6c8e9fa19f0ba89b56cac8fbea5e76f916bd1e61c1c910a7c5a8`.
+All fixtures were guest-created; the receipt-only output mapping, owned Sandbox and leased scratch
+retired after readback. This evidence supports the accepted limitation, not a claim that the race closed.
+
+The production adapter now holds that write-denying source handle through Shell execution and
+callback retirement. It releases the handle before checking the final path so an explicitly confirmed
+native permanent fallback can finish unlinking. The existing native probe rejected an active writer
+without changing bytes, then recycled the fixture after the writer closed. On a disposable 96-MiB
+guest volume, declining the native oversized-file prompt preserved all 24 MiB and their BLAKE3 hash;
+accepting the next fixture's prompt removed only that fixture and returned no recovery action.
+All three scenarios passed with production probe SHA-256
+`f504b8e4f55ccb0ff4d7239909c28b4582659b1c85f7b714a028669ca6b4948b`.
+The owned Sandbox and scratch retired. One source-guard regression passed using leased temporary
+storage: existing/new writers are denied, Shell-compatible renaming remains allowed, stale identity
+is rejected, and releasing the guard restores write access. No broad test suite was added.
+The source-opening owner contains 86 production lines and 59 inline-test lines; the Shell deletion
+owner contains 361 production lines and no inline tests, with its behavior covered by the guest probe.
 
 Explicit permanent deletion now uses the same guarded `FileDispositionInfo` removal owner as
 cross-volume move completion. In a fresh guest, cancellation and a stale request preserved both
@@ -411,8 +434,8 @@ verification, all-target/all-feature Clippy and Dart analysis passed locally.
 [Final full CI](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42707789166) passed on
 `cc330c179d2378f4354e2f43eae089c9582e175b`, finishing at 22:53 UTC on 2026-11-09. Static, all four Rust
 partitions, Flutter, Windows scan, native accessibility, Windows build verification and the aggregate
-Windows Gate succeeded. This resolves the hosted failures above. The recycling identity boundary
-remains unresolved and prevents R8 delivery; no merge or release was performed.
+Windows Gate succeeded. This resolves the hosted failures above. The native recycling race was
+subsequently accepted as the bounded limitation above; no merge or release was performed.
 
 ## Deletion feedback and confirmation — 2026-11-10
 
@@ -465,7 +488,7 @@ change; completion remains unavailable until native cleanup and catalog publicat
 [Full CI](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42738000957) passed on
 `500e551f5ce3aa051fce8b32db3bb61e9f1d01da` at 02:38 UTC on 2026-11-10. Static, all four Rust partitions,
 Flutter, Windows scan, accessibility, build verification and Windows Gate succeeded. This run
-precedes the dialog changes below; the unresolved recycling identity boundary still prevents R8 delivery.
+precedes the dialog changes below and does not cover their implementation or the later recycle guard.
 
 The selection facade and group expansion owner contain 255 and 98 production lines without inline
 tests. Authorization contains 229 production lines and 30 inline-test lines; its SQLite selection
@@ -586,4 +609,4 @@ UTF-8 reports, and no Flutter exception/overflow matches in the captured client 
 temporary lock, Sandbox and leased scratch retired. Formatting, scoped analysis, the focused six-case
 file-operation suite including the new regression, and the Debug build passed. File history
 contains 288 production lines without inline tests; its reused dedicated test file contains 341 lines.
-These scoped results leave the separate recycling identity blocker unchanged.
+These scoped results do not change the native recycling boundary recorded in the integrated review.

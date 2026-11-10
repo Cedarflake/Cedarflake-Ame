@@ -53,6 +53,26 @@ unavailable or escaping paths before submission and revalidate at the pre-operat
 Hold admitted directory namespaces through execution. Shell paths alone are not identity evidence.
 No callback may retarget an operation to a replacement duplicate representative.
 
+For recycling, hold the revalidated source handle from admission through native completion with
+`FILE_SHARE_READ | FILE_SHARE_DELETE`, without write sharing. This rejects an existing writer and
+blocks new content-writing handles while allowing Windows to move the file to the Recycle Bin.
+Retain the no-recall, no-reparse and opened-handle identity checks used by other file operations.
+
+### Recycling identity boundary
+
+`IFileOperation` resolves a Shell item by path rather than deleting through Ame's held file handle.
+Delete sharing permits another process to rename the original and put a replacement at that path
+after the final pre-delete check. Windows can then recycle the replacement. Denying delete sharing
+also prevents normal recycling; parser file-ID hints do not bind execution to the original.
+
+The accepted 2026-11-10 product decision retains Windows recycling and its original-location restore
+behavior with this residual race. Changes detected before submission or in `PreDeleteItem` still
+reject that item and remain visible in the results. The write guard narrows the exposure without
+claiming identity-bound recycling. Do not introduce private staging or disable recycling to hide
+this limit. Explicit permanent deletion retains its separate, exact-handle guarantee.
+
+### Native outcomes and recovery
+
 Use `IFileOperationProgressSink` for deletion admission, per-item results and pre-item cancellation.
 An overall successful return does not complete an item without its result; also inspect
 `GetAnyOperationsAborted`. Keep uncertain results for disk/catalog reconciliation rather than
