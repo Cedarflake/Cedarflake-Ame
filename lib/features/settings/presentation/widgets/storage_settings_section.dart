@@ -361,7 +361,7 @@ class _StorageSettingsSectionState
               icon: Symbols.error_rounded,
               title: "无法读取存储设置",
               subtitle: Text(_settingsErrorMessage!),
-              trailing: TextButton(
+              trailing: FilledButton.tonal(
                 onPressed: () => unawaited(_load()),
                 child: const Text("重试"),
               ),
@@ -394,8 +394,11 @@ class _StorageSettingsSectionState
             "${status.catalogReclaimableBytes > BigInt.zero ? "\n有效数据约 ${_formatBytes(status.catalogLiveBytes)}，可回收 ${_formatBytes(status.catalogReclaimableBytes)}" : ""}",
           ),
           trailing: widget.hasLibraryRoots
-              ? const TextButton(onPressed: null, child: Text("已有图库时不可更改"))
-              : TextButton(
+              ? const FilledButton.tonal(
+                  onPressed: null,
+                  child: Text("已有图库时不可更改"),
+                )
+              : FilledButton.tonal(
                   onPressed: _isSaving ? null : _chooseCatalogDirectory,
                   child: const Text("更改"),
                 ),
@@ -406,14 +409,14 @@ class _StorageSettingsSectionState
           title: _catalogReclamationTitle(catalogReclamation),
           subtitle: _catalogReclamationSubtitle(catalogReclamation),
           trailing: catalogReclamation.isActive
-              ? TextButton(
+              ? FilledButton.tonal(
                   onPressed: _reclamation.isActionPending
                       ? null
                       : _reclamationController.cancel,
                   child: Text(_reclamation.isActionPending ? "正在取消" : "取消"),
                 )
               : catalogReclamation.canRetry
-              ? TextButton(
+              ? FilledButton.tonal(
                   onPressed: _reclamation.isActionPending
                       ? null
                       : _reclamationController.start,
@@ -426,7 +429,7 @@ class _StorageSettingsSectionState
                         : "重试",
                   ),
                 )
-              : const TextButton(onPressed: null, child: Text("无需清理")),
+              : const FilledButton.tonal(onPressed: null, child: Text("无需清理")),
         ),
         SettingsRow(
           key: const Key("preview-location-setting"),
@@ -436,7 +439,7 @@ class _StorageSettingsSectionState
             "保存可随时重新生成的图片预览\n"
             "${status.configuredPreviewDisplayPath}",
           ),
-          trailing: TextButton(
+          trailing: FilledButton.tonal(
             onPressed: _isSaving ? null : _choosePreviewDirectory,
             child: const Text("更改"),
           ),
@@ -453,8 +456,8 @@ class _StorageSettingsSectionState
             trailing:
                 (_cleanupUpdate?.isActive ?? false) &&
                     _cleanupTargetPreviewRoot == retiredRoot.previewRoot
-                ? const TextButton(onPressed: null, child: Text("正在清理"))
-                : TextButton(
+                ? const FilledButton.tonal(onPressed: null, child: Text("正在清理"))
+                : FilledButton.tonal(
                     onPressed: _isSaving || (_cleanupUpdate?.isActive ?? false)
                         ? null
                         : () => _confirmPreviewCleanup(retiredRoot),
@@ -507,13 +510,13 @@ class _StorageSettingsSectionState
             targetDisplayPath: _cleanupTargetDisplayPath,
           ),
           trailing: _cleanupUpdate?.isActive ?? false
-              ? TextButton(
+              ? FilledButton.tonal(
                   onPressed: _isCancellingCleanup
                       ? null
                       : _cancelPreviewCleanup,
                   child: Text(_isCancellingCleanup ? "正在取消" : "取消"),
                 )
-              : TextButton(
+              : FilledButton.tonal(
                   onPressed: _isSaving ? null : () => _confirmPreviewCleanup(),
                   child: const Text("清理"),
                 ),
@@ -537,7 +540,7 @@ class _StorageSettingsSectionState
               _reclamation.errorMessage!,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
-            trailing: TextButton(
+            trailing: FilledButton.tonal(
               onPressed: _reclamationController.retry,
               child: const Text("重试"),
             ),

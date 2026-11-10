@@ -71,7 +71,7 @@ class _OrganizationArchiveSectionState
           icon: Symbols.file_upload_rounded,
           title: "导出整理记录",
           subtitle: const Text("备份相册、收藏和整理进度，不包含原图片"),
-          trailing: TextButton(
+          trailing: FilledButton.tonal(
             key: const Key("settings-archive-export"),
             onPressed: busy ? null : () => unawaited(_choose(exporting: true)),
             child: const Text("导出"),
@@ -81,7 +81,7 @@ class _OrganizationArchiveSectionState
           icon: Symbols.restore_page_rounded,
           title: "恢复整理记录",
           subtitle: const Text("从备份恢复，保留当前已作出的选择"),
-          trailing: TextButton(
+          trailing: FilledButton.tonal(
             key: const Key("settings-archive-inspect"),
             onPressed: busy
                 ? null

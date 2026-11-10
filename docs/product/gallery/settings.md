@@ -13,8 +13,8 @@ configuration pages. The visual pattern follows Microsoft Photos: a clear `è®¾ç½
 readable column, plain section headings, and full-width rows containing an icon, a user-facing
 title, one short explanation, and a control on the right.
 
-Row actions use Material text buttons. Fixed choices show the current value and a dropdown arrow
-through the shared Ame menu; the default-album text button opens its existing album picker.
+Row actions use Material filled tonal buttons. Fixed choices show the current value and a dropdown
+arrow through the shared Ame menu; the default-album text button opens its existing album picker.
 Use the standard button theme and preserve disabled, saving and keyboard states.
 
 Initial settings are limited to behavior that is understandable and connected end to end:

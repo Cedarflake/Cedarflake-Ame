@@ -86,7 +86,7 @@ class _AnalysisSettingsSectionState
           title: "GPU 加速",
           subtitle: Text(_description),
           trailing: _loadFailed
-              ? TextButton(
+              ? FilledButton.tonal(
                   onPressed: _loading ? null : _load,
                   child: const Text("重试"),
                 )

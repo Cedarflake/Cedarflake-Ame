@@ -513,14 +513,16 @@ Rename remains single-file.
 Cancellation preserved the draft's source files and existing decisions.
 
 Copy/move organization, standalone settings, cleanup range and history mode now share the Material
-text-button choice. Settings row actions also use text buttons; the album action retains its picker.
+text-button choice. Settings row actions use filled tonal buttons; the album action retains its picker.
 The rebuilt Sandbox client verified selected markers, theme saving, album-picker dismissal, cleanup
 range refresh and cancellation, budget selection, and switching file records to result reports.
 The earlier organization check retained its value/explanation updates and cancellation behavior.
 Formatting, scoped analysis, the existing 27 settings regressions and the Debug build passed; these
 checks submitted no file operation. The updated screenshots are under
-`build/review/menu-controls-updated-2026-11-10`. Storage settings has 720 production lines and its
+`build/review/menu-controls-updated-2026-11-10`. Storage settings has 723 production lines and its
 dedicated settings-page test has 1,228 lines; no new tests or inline tests were added.
+The tonal-button follow-up passed scoped analysis and the Debug build; Sandbox verified filled
+enabled/disabled row actions and opening/cancelling cleanup. Existing action callbacks are unchanged.
 The format-chip row now reserves vertical paint space inside its horizontal viewport. The rebuilt
 Sandbox client verified light/dark selected and unselected edges, horizontal scrolling, and applying
 JPG with PNG. Its four existing filter regressions, scoped analysis and Debug build passed.
