@@ -176,7 +176,7 @@ The deletion-scope adjustment and readable-path correction have
 Ordinary merged-gallery cards target the complete confirmed group; group members and single-file
 viewers retain explicit-file scope. The [interaction plan](plans/r8-file-organization.md#planned-interaction-decisions)
 owns the details. The [dialog inventory](acceptance/r8-file-operations.md#dialog-screenshot-inventory--2026-11-10)
-records actual screenshots and the remaining special-state captures for a separate layout review.
+records actual screenshots, including the scoped recovery and dark-theme checks, for layout review.
 The selected [dialog refinements](acceptance/r8-file-operations.md#dialog-templates-and-connected-actions--2026-11-10)
 follow the shared [templates](product/gallery/dialogs.md); they retain R8's native safety requirement.
 Native behavior that cannot preserve the required source-safety guarantees blocks delivery of the

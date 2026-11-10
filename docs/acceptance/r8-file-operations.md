@@ -464,8 +464,8 @@ change; completion remains unavailable until native cleanup and catalog publicat
 
 [Full CI](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42738000957) passed on
 `500e551f5ce3aa051fce8b32db3bb61e9f1d01da` at 02:38 UTC on 2026-11-10. Static, all four Rust partitions,
-Flutter, Windows scan, accessibility, build verification and Windows Gate succeeded. Later changes
-record evidence only; the unresolved recycling identity boundary still prevents R8 delivery.
+Flutter, Windows scan, accessibility, build verification and Windows Gate succeeded. This run
+precedes the dialog changes below; the unresolved recycling identity boundary still prevents R8 delivery.
 
 The selection facade and group expansion owner contain 255 and 98 production lines without inline
 tests. Authorization contains 229 production lines and 30 inline-test lines; its SQLite selection
@@ -482,9 +482,10 @@ modes, model installation, organization restoration/cleanup, thumbnail cleanup a
 Two earlier failure screenshots are labeled separately; superseded path/header screenshots are
 excluded from the current gallery. Images are unmodified, using the light theme and guest fixtures.
 
-The interrupted-move continuation confirmation has not been captured; failed-operation technical
-details retain an earlier-revision reference only. Other theme/loading/error variants are not
-exhaustive. This inventory supports the requested layout review without authorizing a redesign.
+The additional `build/review/dialogs-special-2026-11-10/index.html` captures the interrupted-move
+confirmation in both themes, restart/continuation, current error details, retry refresh and dark
+album validation. Other theme/loading/error variants are not exhaustive. These inventories support
+the requested layout review without authorizing a redesign.
 
 The guest-only session created a temporary album, exported its archive, generated one skipped-item
 TXT, and copied one sample. Restoration, cleanup and deletion confirmations were cancelled; model
@@ -533,7 +534,7 @@ were refreshed. Its six source hashes and sentinel were unchanged, one report de
 UTF-8, and no image copy was published; the client, lock, Sandbox and leased scratch retired.
 Scoped formatting, analysis and the Debug build passed for this follow-up.
 The final copy preserves the original `os error 32` text instead of shortening it to `OS: 32`;
-the captured error layout uses the earlier label. Formatting and scoped analysis passed again.
+the special-state inventory below captures that current text. Formatting and scoped analysis passed.
 
 Scoped Dart formatting, analysis, dependency verification, the Debug build, and retained album,
 sidebar-removal, archive-scroll and file-action lifetime regressions passed. An initial nested
@@ -543,3 +544,30 @@ production lines after extracting its 52-line cleanup confirmation. The filter s
 production lines, album navigation 250, file confirmation 258 and album editor 193, with no inline
 tests. The shared dialog/location/diagnostic/calendar files contain 77/99/32/15 production lines.
 The two adjusted dedicated test files contain 346 and 273 lines; no new test inventory was added.
+
+### Recovery and dark-state verification
+
+The continuation confirmation now uses `AmeDialog` and names the affected file. A guest-only SQLite
+trigger interrupted a real cross-volume move before source removal, retaining its durable `copied`
+state; no history rows were fabricated. After removing the trigger, cancelling confirmation kept
+both hashes unchanged. A normal client restart retained the continuation entry. In the dark theme,
+Tab/Enter completed the move and refreshed its record; the target matched the original hash and only
+that source location disappeared. Both confirmation themes appear in the 11-image special-state index.
+
+The same client reproduced a stale-history defect: retry submitted work, then refreshed before its
+completion. The history owner now joins the submission's existing completion future and loads the
+latest page. A delayed-worker regression catches the ordering gap. In the rebuilt client, retrying
+the real sharing-violation record displayed the new successful copy without reopening the tray;
+the actual numbered destination appeared while the older failure remained historical evidence.
+Failure details displayed `os error 32` separately from the localized explanation. The dark album
+form retained circular icons and input alignment with its empty-name error; cancellation created
+no album. An input-method check supplied a valid full-width question mark, so that rename and its
+reversal establish Unicode-name handling, not rejection of ASCII `?`.
+
+Final guest readback verified five retained sources, one moved image and two matching copies,
+the untouched sibling sentinel, six operation records (five published, one failed), three strict
+UTF-8 reports, and no Flutter exception/overflow matches in the captured client logs. The client,
+temporary lock, Sandbox and leased scratch retired. Formatting, scoped analysis, the focused six-case
+file-operation suite including the new regression, and the Debug build passed. File history
+contains 288 production lines without inline tests; its reused dedicated test file contains 341 lines.
+These scoped results leave the separate recycling identity blocker unchanged.

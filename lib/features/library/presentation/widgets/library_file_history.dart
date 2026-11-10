@@ -73,9 +73,20 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
     if (continueMove) {
       final accepted = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("继续移动这个文件？"),
-          content: const Text("将核对已保存的副本，然后移除原位置的文件。"),
+        builder: (context) => AmeDialog(
+          title: "继续移动这个文件？",
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AmeDialogItem(
+                icon: Symbols.drive_file_move_rounded,
+                title: item.source.split(RegExp(r"[\\/]")).last,
+              ),
+              const SizedBox(height: 20),
+              const Text("将核对已保存的副本，然后移除原位置的文件。"),
+            ],
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -97,7 +108,7 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
   }
 
   Future<void> _retry(LibraryFileRecord item) async {
-    await showLibraryFileAction(
+    final submitted = await showLibraryFileAction(
       context: context,
       ref: ref,
       selection: LibraryFilesAtLocations([item.target]),
@@ -106,7 +117,9 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
           : item.action,
       initialName: item.source.split(RegExp(r"[\\/]")).last,
     );
-    if (mounted) await _load(_before);
+    if (submitted == null) return;
+    await submitted.completion;
+    if (mounted) await _load();
   }
 
   @override

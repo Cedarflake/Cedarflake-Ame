@@ -9,6 +9,7 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization_batch.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_file_action_dialog.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_file_history.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_ui/material_ui.dart";
@@ -140,6 +141,59 @@ void main() {
   );
 
   testWidgets(
+    "history retry displays its new result after the worker retires",
+    (tester) async {
+      final backend = _Backend();
+      final released = Completer<void>();
+      backend.task.closing = released.future;
+      LibraryFileRecord record(int id, LibraryFileRecordPhase phase) =>
+          LibraryFileRecord(
+            id: BigInt.from(id),
+            action: LibraryFileAction.rename,
+            source: r"C:\samples\before.png",
+            destination: r"C:\samples\after.png",
+            phase: phase,
+            updatedAt: DateTime(2026, 11, 10),
+            canContinueMove: false,
+            canOpenRecycleBin: false,
+            target: selection.locations.single,
+            canRetry: phase == LibraryFileRecordPhase.failed,
+          );
+      final failed = record(1, LibraryFileRecordPhase.failed);
+      backend.records = [failed];
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [libraryFileOperationsProvider.overrideWithValue(backend)],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => showLibraryFileHistory(context),
+                  child: const Text("打开记录"),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text("打开记录"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("重试"));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), "after.png");
+      await tester.tap(find.widgetWithText(FilledButton, "重命名"));
+      await tester.pumpAndSettle();
+      expect(backend.commands.single.action, LibraryFileAction.rename);
+      expect(find.text("已完成"), findsNothing);
+      backend.records = [record(2, LibraryFileRecordPhase.published), failed];
+      released.complete();
+      await tester.pumpAndSettle();
+      expect(find.text("已完成"), findsOneWidget);
+      expect(find.text("未完成"), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     "each deletion requires confirmation and resets permanent deletion",
     (tester) async {
       final backend = _Backend()
@@ -214,6 +268,7 @@ class _Backend implements LibraryFileOperations {
       throw UnimplementedError();
   final task = _Task();
   final commands = <LibraryFileCommand>[];
+  List<LibraryFileRecord> records = [];
   Future<LibraryFileSelectionDraft>? opening;
   @override
   Future<LibraryFileSelectionDraft> open(
@@ -228,7 +283,7 @@ class _Backend implements LibraryFileOperations {
   Future<List<LibraryFileRecord>> history({
     BigInt? before,
     int limit = 40,
-  }) async => [];
+  }) async => records;
   @override
   Future<void> openRecycleBin() async => throw UnimplementedError();
 }
