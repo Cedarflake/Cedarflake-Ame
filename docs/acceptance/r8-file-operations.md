@@ -55,7 +55,7 @@ the system's internal copying algorithm.
 | Cancellation, database failure, process termination | Restart reconciles disk, journal and catalog without unapproved loss, repeating a completed mutation, or reporting unfinished work as complete |
 | Delete confirmation and supported system restoration | Each new confirmation defaults to recycling; cancel/close leaves files intact; an explicitly checked and confirmed permanent deletion is recorded without a restore action; unrelated files and Recycle Bin contents stay untouched |
 | Non-recyclable item and Windows fallback prompt | Declining or cancelling preserves the file; affirmative native confirmation permits only the confirmed deletion; absent confirmation cannot authorize permanent fallback |
-| Preferred file deleted in the ordinary gallery | Only the bound file is deleted; a remaining duplicate becomes the persisted preference and displayed representative, or the card disappears when none remain; unchanged failed/cancelled files keep their preference; a late callback cannot delete the replacement |
+| Merged-card deletion and explicit preferred-member deletion | A merged ordinary-gallery card deletes its confirmed frozen group; a group-member or single-file action deletes only its bound file. Remaining duplicates receive a persisted preference; empty groups disappear. Failed/cancelled files keep their preference, and late callbacks cannot delete a replacement |
 | Multiple album destinations and TXT result report | Ambiguous items are skipped without changing files or memberships; other items proceed; final feedback and one uniquely named report contain actual exceptional outcomes; clean runs create no report and report-write failure does not replay mutations |
 | Native completion and progress callbacks | Overall success with aborted or failed items is not reported as full success; actual renamed destinations reach the catalog; estimates and stopping states remain accurate |
 | Cloud-only or changed source | No implicit hydration; stale or unavailable evidence cannot authorize mutation |
@@ -361,6 +361,17 @@ not fulfill that requirement; the post-validation replacement race remains unres
 [storage-object explanation](https://blogs.windows.com/windowsdeveloper/2014/06/20/common-questions-and-answers-about-files-and-app-data-part-2-files/)
 describes it as a path reference that does not hold the file open. No identity-bound recycling
 guarantee was established for that alternative.
+
+A further isolated probe supplied the original file ID through `IFileSystemBindData2` and
+`STR_FILE_SYS_BIND_DATA_WIN7_FORMAT` before the same pre-delete replacement. Windows called
+`GetFileID` once, but still recycled the replacement: the original remained at its retained name,
+the replacement path disappeared, and the callback reported `0x00270008`. The parser's ID therefore
+does not close the execution race. The [interface](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-ifilesystembinddata2)
+and [binding keys](https://learn.microsoft.com/en-us/windows/win32/shell/str-constants) describe parsing
+metadata, without an identity-bound deletion contract. Probe SHA-256:
+`8463e5ac549fda03e5a3592026301ce4648ea1d716b16aa8f0ca0a5d1442a454`.
+This used guest-created files, read-only executable inputs and a separate empty receipt mapping;
+the owned Sandbox and scratch were retired. No product mutation route changed.
 
 Explicit permanent deletion now uses the same guarded `FileDispositionInfo` removal owner as
 cross-volume move completion. In a fresh guest, cancellation and a stale request preserved both
