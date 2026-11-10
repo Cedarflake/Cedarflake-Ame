@@ -35,6 +35,9 @@ class LibraryFileFeedback extends ConsumerWidget {
           progress.failure,
           action: activity.action,
         );
+      } else if (progress.isFinished &&
+          activity.purpose != LibraryFileActivityPurpose.report) {
+        message = LibraryFileStrings.result(progress, activity.action);
       } else if (activity.purpose != LibraryFileActivityPurpose.report) {
         message =
             "$title · ${progress.processed + progress.skipped}/${progress.total}";
@@ -47,21 +50,18 @@ class LibraryFileFeedback extends ConsumerWidget {
       );
     }
     final message = _message(progress);
-    final deletionResult =
-        progress.isFinished &&
-        progress.failure == null &&
-        (activity.action == LibraryFileAction.recycle ||
-            activity.action == LibraryFileAction.deletePermanently);
     return AmeFeedbackCard(
-      title: deletionResult ? message : title,
+      title: title,
       severity:
           progress.failure != null ||
               progress.failed > 0 ||
               progress.skipped > 0
           ? AmeNotificationSeverity.warning
           : AmeNotificationSeverity.info,
-      message: deletionResult ? null : message,
-      detail: progress.path?.split(RegExp(r"[\\/]")).last,
+      message: message,
+      detail: activity.busy
+          ? progress.path?.split(RegExp(r"[\\/]")).last
+          : null,
       progress: activity.busy
           ? LinearProgressIndicator(
               value:
@@ -87,7 +87,7 @@ class LibraryFileFeedback extends ConsumerWidget {
     );
   }
 
-  String _message(LibraryFileProgress progress) {
+  String? _message(LibraryFileProgress progress) {
     if (activity.purpose == LibraryFileActivityPurpose.report) {
       if (progress.failure != null) {
         return LibraryFileStrings.failure(progress.failure);
@@ -108,19 +108,7 @@ class LibraryFileFeedback extends ConsumerWidget {
       return "已核对 ${progress.processed} / ${progress.total} 个文件";
     }
     if (progress.isFinished) {
-      final skipped = progress.skipped > 0 ? "，已跳过 ${progress.skipped} 个" : "";
-      final report = progress.export?.reportPath != null
-          ? "\n结果清单已保存到目标文件夹。"
-          : "";
-      if (activity.action == LibraryFileAction.recycle ||
-          activity.action == LibraryFileAction.deletePermanently) {
-        final unfinished =
-            progress.failed + progress.cancelled + progress.skipped;
-        return unfinished == 0
-            ? "已删除 ${progress.published} 个文件。"
-            : "已删除 ${progress.published} 个，未完成 $unfinished 个。可查看记录了解原因。";
-      }
-      return "已完成 ${progress.published} 个，未完成 ${progress.failed} 个，已停止 ${progress.cancelled} 个$skipped$report";
+      return progress.export?.reportPath != null ? "结果清单已保存到目标文件夹。" : null;
     }
     return "已处理 ${progress.processed} / ${progress.total} 个文件";
   }

@@ -137,6 +137,11 @@
       "contract": "CatalogReclamationController and typed snapshot/save requests"
     },
     {
+      "source": "lib/features/settings/presentation/widgets/storage_preview_cleanup_confirmation.dart",
+      "target": "lib/features/library/application/library_platform_actions.dart",
+      "contract": "libraryPlatformActionsProvider for opening the confirmed retired preview directory"
+    },
+    {
       "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
       "target": "lib/features/storage/application/ports/storage_settings_gateway.dart",
       "contract": "StorageSettingsGateway"

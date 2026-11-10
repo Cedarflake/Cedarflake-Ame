@@ -1,5 +1,7 @@
 import "package:material_ui/material_ui.dart";
+import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_dialog.dart";
 import "../../application/library_sidebar_removal.dart";
 
 Future<Set<String>> showLibrarySidebarRemovalDialog({
@@ -8,6 +10,7 @@ Future<Set<String>> showLibrarySidebarRemovalDialog({
   required String title,
   required String detail,
   required String actionLabel,
+  Map<String, IconData> itemIcons = const {},
 }) async {
   await showDialog<void>(
     context: context,
@@ -17,6 +20,7 @@ Future<Set<String>> showLibrarySidebarRemovalDialog({
       title: title,
       detail: detail,
       actionLabel: actionLabel,
+      itemIcons: itemIcons,
     ),
   );
   final completed = removal.completed;
@@ -30,11 +34,13 @@ class _SidebarRemovalDialog extends StatefulWidget {
     required this.title,
     required this.detail,
     required this.actionLabel,
+    required this.itemIcons,
   });
   final LibrarySidebarRemoval removal;
   final String title;
   final String detail;
   final String actionLabel;
+  final Map<String, IconData> itemIcons;
 
   @override
   State<_SidebarRemovalDialog> createState() => _SidebarRemovalDialogState();
@@ -76,28 +82,33 @@ class _SidebarRemovalDialogState extends State<_SidebarRemovalDialog> {
     listenable: removal,
     builder: (context, _) => PopScope(
       canPop: !removal.isRunning,
-      child: AlertDialog(
+      child: AmeDialog(
         key: const Key("library-sidebar-removal-dialog"),
-        title: Text(widget.title),
+        title: widget.title,
         content: SizedBox(
           width: 400,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(widget.detail),
-              const SizedBox(height: 12),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 200),
+              SizedBox(
+                height: (removal.entries.length * 56.0).clamp(0.0, 200.0),
                 child: ListView.builder(
                   shrinkWrap: true,
                   itemCount: removal.entries.length,
                   itemBuilder: (context, index) => Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(removal.entries[index].name),
+                    child: AmeDialogItem(
+                      icon:
+                          widget.itemIcons[removal.entries[index].id] ??
+                          Symbols.folder_rounded,
+                      title: removal.entries[index].name,
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(height: 20),
+              Text(widget.detail),
               if (removal.error case final error?) ...[
                 const SizedBox(height: 12),
                 Text(

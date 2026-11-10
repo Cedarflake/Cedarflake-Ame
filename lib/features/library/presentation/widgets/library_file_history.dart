@@ -4,6 +4,9 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_dialog.dart";
+import "../../../../app/presentation/ame_dialog_diagnostic.dart";
+
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_choice.dart";
 import "../../application/library_file_operations.dart";
@@ -162,9 +165,11 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                             ? null
                             : () => showDialog<void>(
                                 context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text("文件操作详情"),
-                                  content: SelectableText(item.detail!),
+                                builder: (context) => AmeDialog(
+                                  title: "文件操作详情",
+                                  content: AmeDialogDiagnostic(
+                                    detail: item.detail!,
+                                  ),
                                   actions: [
                                     TextButton(
                                       onPressed: () => Navigator.pop(context),

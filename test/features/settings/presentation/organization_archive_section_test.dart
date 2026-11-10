@@ -95,7 +95,8 @@ void main() {
         find.byKey(const Key("organization-archive-confirmation")),
         findsOneWidget,
       );
-      expect(find.text("可关联 7 组，暂未关联 3 组"), findsOneWidget);
+      expect(find.text("可关联 7 组"), findsOneWidget);
+      expect(find.text("暂未关联 3 组"), findsOneWidget);
       expect(service.tasks.single.kind, "inspect");
       await tester.tap(find.text("取消").last);
       await tester.pumpAndSettle();
@@ -244,14 +245,15 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await host(tester, scale: 2);
     await inspect(tester);
-    expect(
-      tester
-          .widget<AlertDialog>(
-            find.byKey(const Key("organization-archive-confirmation")),
-          )
-          .scrollable,
-      isTrue,
+    await tester.drag(
+      find.descendant(
+        of: find.byKey(const Key("organization-archive-confirmation")),
+        matching: find.byType(SingleChildScrollView),
+      ),
+      const Offset(0, -1000),
     );
+    await tester.pumpAndSettle();
+    expect(find.text("暂未关联的记录会等待图片重新关联。").hitTestable(), findsOneWidget);
     expect(
       find
           .byKey(const Key("organization-archive-restore-confirm"))

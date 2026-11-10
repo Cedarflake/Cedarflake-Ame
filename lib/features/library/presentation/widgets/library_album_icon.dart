@@ -44,21 +44,24 @@ class LibraryAlbumIconPicker extends StatelessWidget {
   final ValueChanged<LibraryAlbumIcon>? onChanged;
 
   @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 16,
-    runSpacing: 8,
-    children: [
-      for (final icon in LibraryAlbumIcon.values)
-        SizedBox.square(
-          dimension: 48,
-          child: IconButton.filledTonal(
-            key: ValueKey("album-icon-${icon.name}"),
-            tooltip: libraryAlbumIconLabel(icon),
-            isSelected: value == icon,
-            onPressed: onChanged == null ? null : () => onChanged!(icon),
-            icon: Icon(libraryAlbumIcon(icon)),
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(maxWidth: 368),
+    child: Wrap(
+      spacing: 16,
+      runSpacing: 8,
+      children: [
+        for (final icon in LibraryAlbumIcon.values)
+          SizedBox.square(
+            dimension: 48,
+            child: IconButton.filledTonal(
+              key: ValueKey("album-icon-${icon.name}"),
+              tooltip: libraryAlbumIconLabel(icon),
+              isSelected: value == icon,
+              onPressed: onChanged == null ? null : () => onChanged!(icon),
+              icon: Icon(libraryAlbumIcon(icon)),
+            ),
           ),
-        ),
-    ],
+      ],
+    ),
   );
 }

@@ -11,6 +11,7 @@ import "../../../storage/application/storage_settings.dart";
 import "../../../storage/domain/storage_models.dart";
 import "../../../storage/application/catalog_reclamation_controller.dart";
 import "settings_section.dart";
+import "storage_preview_cleanup_confirmation.dart";
 
 enum _StorageErrorTarget { settings, catalogReclamation, previewCleanup }
 
@@ -210,28 +211,10 @@ class _StorageSettingsSectionState
     }
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(retiredRoot == null ? "清理缩略图？" : "清理旧缩略图目录？"),
-          content: Text(
-            retiredRoot == null
-                ? "这会删除可重新生成的缩略图缓存，不会删除或修改原图片。"
-                      "清理后，打开图库时可能需要一些时间重新生成缩略图。"
-                : "只会删除旧目录中由 Ame 管理的缩略图，不会删除原图片或目录中的其他文件。\n"
-                      "${retiredRoot.displayPath}",
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text("取消"),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text("开始清理"),
-            ),
-          ],
-        );
-      },
+      builder: (context) => StoragePreviewCleanupConfirmation(
+        retiredDirectory: retiredRoot?.previewRoot,
+        retiredDisplayPath: retiredRoot?.displayPath,
+      ),
     );
     if (confirmed != true || !mounted) {
       return;

@@ -6,6 +6,8 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../application/directory_picker.dart";
 import "../../../../app/presentation/ame_choice.dart";
+import "../../../../app/presentation/ame_dialog.dart";
+import "../../../../app/presentation/ame_dialog_location.dart";
 import "../../application/library_file_operations.dart";
 import "../../application/library_file_selection.dart";
 import "../../domain/library_file_operations.dart";
@@ -134,85 +136,90 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
         _failure == null &&
         !_picking &&
         (!destination || _directory != null) &&
-        (!rename || _name.text.trim().isNotEmpty);
+        (!rename || (_summary?.files == 1 && _name.text.trim().isNotEmpty));
     final label = LibraryFileStrings.action(widget.action);
-    return AlertDialog(
-      title: Text(
-        deletion && _summary != null
-            ? LibraryFileStrings.deletionTitle(_summary!)
-            : "$label图片",
-      ),
-      content: SizedBox(
-        width: 440,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_summary case final summary? when !deletion)
-              Text("${summary.files} 个文件")
-            else if (_summary == null && _failure == null)
-              const LinearProgressIndicator(),
-            if (_failure case final failure?) ...[
-              const SizedBox(height: 12),
-              Text(
-                LibraryFileStrings.failure(failure, action: widget.action),
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-            if (destination) ...[
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: _picking ? null : _pick,
-                icon: const Icon(Symbols.folder_open_rounded),
-                label: Text(
-                  _directory == null
-                      ? "选择目标文件夹"
-                      : displayLibraryPath(_directory!),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: AmeChoice<LibraryFileOrganizationRule>(
-                  label: "文件夹结构",
-                  width: 220,
-                  value: _rule,
-                  entries: [
-                    for (final rule in LibraryFileOrganizationRule.values)
-                      AmeChoiceEntry(
-                        value: rule,
-                        label: LibraryFileStrings.rule(rule),
+    return AmeDialog(
+      title: deletion && _summary != null
+          ? LibraryFileStrings.deletionTitle(_summary!)
+          : "$label图片",
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_summary case final summary?
+              when destination && summary.files > 1) ...[
+            Text("${summary.files} 个文件"),
+            const SizedBox(height: 20),
+          ] else if (_summary == null && _failure == null)
+            const LinearProgressIndicator(),
+          if (_failure case final failure?) ...[
+            const SizedBox(height: 12),
+            Text(
+              LibraryFileStrings.failure(failure, action: widget.action),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+          if (destination) ...[
+            AmeDialogField(
+              label: "目标文件夹",
+              child: _directory == null
+                  ? Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: _picking ? null : _pick,
+                        icon: const Icon(Symbols.folder_open_rounded),
+                        label: const Text("选择文件夹"),
                       ),
-                  ],
-                  onSelected: (value) {
-                    if (value != null) setState(() => _rule = value);
-                  },
-                ),
+                    )
+                  : AmeDialogPath(
+                      path: displayLibraryPath(_directory!),
+                      trailing: TextButton(
+                        onPressed: _picking ? null : _pick,
+                        child: const Text("更改"),
+                      ),
+                    ),
+            ),
+            const SizedBox(height: 20),
+            AmeDialogField(
+              label: "文件夹结构",
+              child: AmeChoice<LibraryFileOrganizationRule>(
+                width: 440,
+                value: _rule,
+                entries: [
+                  for (final rule in LibraryFileOrganizationRule.values)
+                    AmeChoiceEntry(
+                      value: rule,
+                      label: LibraryFileStrings.rule(rule),
+                    ),
+                ],
+                onSelected: (value) {
+                  if (value != null) setState(() => _rule = value);
+                },
               ),
-              if (_rule != LibraryFileOrganizationRule.direct) ...[
-                const SizedBox(height: 8),
-                Text(
-                  _rule == LibraryFileOrganizationRule.date
-                      ? "按图库日期建立 YYYY-MM 文件夹；缺少日期的文件会跳过。"
-                      : "无法确定目标的文件会跳过，并在目标文件夹中生成结果清单。",
-                ),
-              ],
-            ],
-            if (rename) ...[
-              const SizedBox(height: 16),
-              TextField(
-                controller: _name,
-                autofocus: true,
-                decoration: const InputDecoration(labelText: "文件名"),
-                onChanged: (_) => setState(() {}),
-              ),
-            ],
-            if (deletion) ...[
-              Text(_permanent ? "文件将被永久删除，无法从回收站恢复。" : "文件将移入 Windows 回收站。"),
+            ),
+            if (_rule != LibraryFileOrganizationRule.direct) ...[
               const SizedBox(height: 8),
-              CheckboxListTile(
+              Text(
+                _rule == LibraryFileOrganizationRule.date
+                    ? "按图库日期建立 YYYY-MM 文件夹；缺少日期的文件会跳过。"
+                    : "无法确定目标的文件会跳过，并在目标文件夹中生成结果清单。",
+              ),
+            ],
+          ],
+          if (rename) ...[
+            TextField(
+              controller: _name,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: "文件名"),
+              onChanged: (_) => setState(() {}),
+            ),
+          ],
+          if (deletion) ...[
+            Text(_permanent ? "文件将被永久删除，无法从回收站恢复。" : "文件将移入 Windows 回收站。"),
+            const SizedBox(height: 8),
+            Theme(
+              data: Theme.of(context).copyWith(hoverColor: Colors.transparent),
+              child: CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
                 title: const Text("永久删除"),
@@ -220,9 +227,9 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
                 onChanged: (value) =>
                     setState(() => _permanent = value ?? false),
               ),
-            ],
+            ),
           ],
-        ),
+        ],
       ),
       actions: [
         TextButton(

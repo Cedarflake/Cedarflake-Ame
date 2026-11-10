@@ -491,3 +491,45 @@ TXT, and copied one sample. Restoration, cleanup and deletion confirmations were
 download was not started. All six source SHA-256 values and the sibling sentinel remained unchanged;
 the sole copied image matched its source, and the report decoded as strict UTF-8. The client closed
 normally, then the owned Sandbox stopped and its leased staging directory was removed.
+
+## Dialog templates and connected actions — 2026-11-10
+
+The [dialog templates](../product/gallery/dialogs.md) now own confirmations, short forms, result
+locations and diagnostic details. `AmeDialog` composes the installed Material UI 1.10.0 `AlertDialog`
+with framework scrolling, focus, dismissal and styling. Its fields and object rows replace repeated
+layout composition; they add no dialog controller. The existing bottom trays remain unchanged.
+Official [dialogs](https://m3.material.io/components/dialogs/overview) and
+[`AlertDialog`](https://api.flutter.dev/flutter/material/AlertDialog-class.html) were reviewed;
+installed `InputDecoration.prefixIcon`, `CheckboxListTile`, `DatePickerThemeData` and
+`GregorianCalendarDelegate` provide the required controls without a custom calendar or input owner.
+
+The actual Debug client in Windows Sandbox verified inline album icon selection, saving and invalid
+name feedback, album deletion identity, copy destination/rule selection, single-file rename, default
+unchecked permanent deletion, and restoration contents with only nonzero rows. The album icon aligns
+inside the input's content area even when validation adds an error line. Rename remains single-file.
+Cancellation preserved the draft's source files and existing decisions.
+
+A category copy with no classification produced one skipped item. A second direct copy held the
+synthetic source open for writing and produced Windows sharing violation 32. Both completion notices
+placed status and the relevant count in their first line, with the saved-report message below.
+The actual failure details displayed the localized reason and a separately labeled error code.
+Opening report locations selected their TXT in Explorer; changing the preview cache and restarting
+exposed the old-directory confirmation, whose location action selected that directory in Explorer.
+Cleanup and restoration were cancelled. The date picker displayed the date and weekday separately,
+updated both when a different day was chosen, and returned the selected date to the filter draft.
+
+The local artifact `build/review/dialogs-update-2026-11-10/index.html` contains 18 unmodified client
+screenshots with entry points and coverage notes. The six synthetic source hashes and sibling
+sentinel were unchanged; three result reports decoded as strict UTF-8, no image copy was published,
+and the exported album archive remained available. The client and temporary lock retired, then the
+owned Sandbox stopped and its leased scratch was removed. This run used the light theme; it does
+not add evidence for the separate recycling identity race.
+
+Scoped Dart formatting, analysis, dependency verification, the Debug build, and retained album,
+sidebar-removal, archive-scroll and file-action lifetime regressions passed. An initial nested
+shrink-wrapped list could not supply intrinsic height to `AlertDialog`; the bounded item viewport
+resolved it while retaining the selection and cancellation checks. Storage settings contains 721
+production lines after extracting its 52-line cleanup confirmation. The filter sheet contains 396
+production lines, album navigation 250, file confirmation 258 and album editor 193, with no inline
+tests. The shared dialog/location/diagnostic/calendar files contain 77/99/32/15 production lines.
+The two adjusted dedicated test files contain 346 and 273 lines; no new test inventory was added.

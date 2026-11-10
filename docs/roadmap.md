@@ -177,7 +177,8 @@ Ordinary merged-gallery cards target the complete confirmed group; group members
 viewers retain explicit-file scope. The [interaction plan](plans/r8-file-organization.md#planned-interaction-decisions)
 owns the details. The [dialog inventory](acceptance/r8-file-operations.md#dialog-screenshot-inventory--2026-11-10)
 records actual screenshots and the remaining special-state captures for a separate layout review.
-This review does not authorize a dialog-wide redesign or replace R8's remaining native safety requirement.
+The selected [dialog refinements](acceptance/r8-file-operations.md#dialog-templates-and-connected-actions--2026-11-10)
+follow the shared [templates](product/gallery/dialogs.md); they retain R8's native safety requirement.
 Native behavior that cannot preserve the required source-safety guarantees blocks delivery of the
 affected action until resolved; it does not authorize a weaker fallback. Exit requires the connected
 workflow and scoped [verification](acceptance/r8-file-operations.md), without organization preview.

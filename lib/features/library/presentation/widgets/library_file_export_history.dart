@@ -8,6 +8,7 @@ import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_file_operations.dart";
 import "../../domain/library_file_operations.dart";
 import "library_path_text.dart";
+import "library_file_export_details.dart";
 
 class LibraryFileExportHistory extends ConsumerStatefulWidget {
   const LibraryFileExportHistory({super.key});
@@ -86,28 +87,27 @@ class _ExportHistoryState extends ConsumerState<LibraryFileExportHistory> {
                         LibraryFileReportState.written => "结果清单已保存",
                         LibraryFileReportState.failed => "清单写入失败，文件操作结果已保留",
                       };
+                      final counts = [
+                        if (item.selected > 0) "${item.selected} 个文件",
+                        if (item.skipped > 0) "已跳过 ${item.skipped} 个",
+                      ];
                       return ListTile(
                         contentPadding: const EdgeInsets.symmetric(vertical: 6),
                         leading: const Icon(Symbols.description_rounded),
                         title: Text(status),
                         subtitle: Text(
-                          "${item.selected} 个文件 · 已跳过 ${item.skipped} 个\n${displayLibraryPath(item.directory)}",
+                          [
+                            if (counts.isNotEmpty) counts.join(" · "),
+                            displayLibraryPath(item.directory),
+                          ].join("\n"),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
                         onTap: () => showDialog<void>(
                           context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text("结果清单"),
-                            content: SelectableText(
-                              "$status\n${item.createdAt}\n${displayLibraryPath(item.reportPath ?? item.directory)}${item.failure == null ? "" : "\n${item.failure!.detail}"}",
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text("知道了"),
-                              ),
-                            ],
+                          builder: (context) => LibraryFileExportDetails(
+                            item: item,
+                            status: status,
                           ),
                         ),
                         trailing:

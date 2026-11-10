@@ -26,6 +26,23 @@ abstract final class LibraryFileStrings {
     LibraryFileAction.recycle || LibraryFileAction.deletePermanently => "删除",
   };
 
+  static String result(
+    LibraryFileProgress progress,
+    LibraryFileAction? action,
+  ) {
+    final deletion =
+        action == LibraryFileAction.recycle ||
+        action == LibraryFileAction.deletePermanently;
+    final outcomes = [
+      if (progress.published > 0)
+        "${deletion ? '已删除' : '已完成'} ${progress.published} 个文件",
+      if (progress.failed > 0) "未完成 ${progress.failed} 个",
+      if (progress.cancelled > 0) "已停止 ${progress.cancelled} 个",
+      if (progress.skipped > 0) "已跳过 ${progress.skipped} 个",
+    ];
+    return outcomes.isEmpty ? "未处理任何文件。" : "${outcomes.join('，')}。";
+  }
+
   static String activity(LibraryFileActivity activity) {
     final progress = activity.progress!;
     if (activity.stopping) return "正在停止";
@@ -44,18 +61,25 @@ abstract final class LibraryFileStrings {
       LibraryFileActivityPurpose.recovery => "核对文件操作",
       LibraryFileActivityPurpose.report => "生成结果清单",
     };
-    return switch (progress.phase) {
+    final status = switch (progress.phase) {
       LibraryFileTaskPhase.preparing => "正在准备$verb",
       LibraryFileTaskPhase.running => "正在$verb",
       LibraryFileTaskPhase.refreshing => "正在更新图库",
       LibraryFileTaskPhase.stopping => "正在停止",
-      LibraryFileTaskPhase.finished =>
-        progress.failed > 0 || progress.skipped > 0
-            ? "$verb已结束，部分文件未处理"
-            : "$verb已完成",
+      LibraryFileTaskPhase.finished => "$verb已结束",
       LibraryFileTaskPhase.cancelled => "$verb已停止",
       LibraryFileTaskPhase.needsAttention => "文件操作需要处理",
     };
+    if (!progress.isFinished ||
+        progress.failure != null ||
+        activity.purpose == LibraryFileActivityPurpose.report) {
+      return status;
+    }
+    final summary = result(progress, activity.action);
+    return activity.action == LibraryFileAction.recycle ||
+            activity.action == LibraryFileAction.deletePermanently
+        ? summary
+        : "$status，$summary";
   }
 
   static String phase(LibraryFileRecordPhase phase) => switch (phase) {

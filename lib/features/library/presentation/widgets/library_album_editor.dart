@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_dialog.dart";
 import "../../application/library_album_requests.dart";
 import "../../application/library_organization_actions.dart";
 import "../../domain/library_organization.dart";
@@ -42,6 +43,7 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
     album: widget.album,
   );
   bool _saving = false;
+  bool _choosingIcon = false;
   String? _error;
 
   @override
@@ -102,55 +104,77 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
     if (_saving) actionLabel = "正在保存";
     return PopScope(
       canPop: !_saving,
-      child: AlertDialog(
+      child: AmeDialog(
         key: const Key("library-album-editor"),
-        title: Text(title),
-        content: SizedBox(
-          width: 400,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (widget.kind == LibraryAlbumEditKind.create ||
-                  changingIcon) ...[
-                if (!changingIcon) ...[
-                  Text("相册图标", style: Theme.of(context).textTheme.labelLarge),
-                  const SizedBox(height: 8),
-                ],
-                LibraryAlbumIconPicker(
-                  value: _icon,
-                  onChanged: _saving
-                      ? null
-                      : (icon) => setState(() => _icon = icon),
+        title: title,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (changingIcon)
+              LibraryAlbumIconPicker(
+                value: _icon,
+                onChanged: _saving
+                    ? null
+                    : (icon) => setState(() => _icon = icon),
+              ),
+            if (deleting) ...[
+              AmeDialogItem(
+                icon: libraryAlbumIcon(widget.album!.icon),
+                title: widget.album!.name,
+              ),
+              const SizedBox(height: 20),
+              const Text("其中的图片组将进入已忽略。图片文件和收藏状态会保留。"),
+            ] else if (!changingIcon)
+              TextField(
+                key: const Key("library-album-name"),
+                controller: _name,
+                autofocus: true,
+                enabled: !_saving,
+                decoration: InputDecoration(
+                  labelText: "相册名称",
+                  errorText: _error,
+                  prefixIcon: widget.kind == LibraryAlbumEditKind.create
+                      ? Padding(
+                          padding: const EdgeInsetsDirectional.only(end: 12),
+                          child: IconButton.filledTonal(
+                            key: const Key("library-album-choose-icon"),
+                            tooltip: "选择相册图标",
+                            isSelected: _choosingIcon,
+                            icon: Icon(libraryAlbumIcon(_icon)),
+                            onPressed: _saving
+                                ? null
+                                : () => setState(
+                                    () => _choosingIcon = !_choosingIcon,
+                                  ),
+                          ),
+                        )
+                      : null,
                 ),
-                if (!changingIcon) const SizedBox(height: 20),
-              ],
-              if (deleting)
-                Text("删除“${widget.album!.name}”后，其中的图片组将进入已忽略。图片文件和收藏状态会保留。")
-              else if (!changingIcon)
-                TextField(
-                  key: const Key("library-album-name"),
-                  controller: _name,
-                  autofocus: true,
-                  enabled: !_saving,
-                  decoration: InputDecoration(
-                    labelText: "相册名称",
-                    errorText: _error,
-                  ),
-                  onSubmitted: (_) => _save(),
-                ),
-              if ((deleting || changingIcon) && _error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(
-                    _error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ),
+                onSubmitted: (_) => _save(),
+              ),
+            if (widget.kind == LibraryAlbumEditKind.create &&
+                _choosingIcon) ...[
+              const SizedBox(height: 20),
+              LibraryAlbumIconPicker(
+                value: _icon,
+                onChanged: _saving
+                    ? null
+                    : (icon) => setState(() {
+                        _icon = icon;
+                        _choosingIcon = false;
+                      }),
+              ),
             ],
-          ),
+            if ((deleting || changingIcon) && _error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  _error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+          ],
         ),
         actions: [
           TextButton(
