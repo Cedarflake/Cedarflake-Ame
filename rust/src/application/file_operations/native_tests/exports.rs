@@ -80,12 +80,13 @@ fn file_operation_sandbox_organizes_files_and_retries_only_the_result_report() {
         )
         .unwrap();
     let locations = [selection(&assigned), selection(&other)];
-    let result = copy(
+    let result = transfer(
         &storage,
         &locations,
         &exports,
         "album-copy",
         FileOrganizationRule::Album,
+        FileAction::Copy,
     );
     assert_eq!((result.published_items, result.skipped_items), (1, 1));
     assert_eq!(
@@ -145,12 +146,13 @@ fn file_operation_sandbox_organizes_files_and_retries_only_the_result_report() {
             [],
         )
         .unwrap();
-    let clean = copy(
+    let clean = transfer(
         &storage,
         &locations,
         &dated,
         "date-copy",
         FileOrganizationRule::Date,
+        FileAction::Copy,
     );
     assert_eq!((clean.published_items, clean.skipped_items), (2, 0));
     assert!(matches!(
@@ -166,17 +168,90 @@ fn file_operation_sandbox_organizes_files_and_retries_only_the_result_report() {
     assert_eq!(fs::read(source.join("图片.png")).unwrap(), original);
     assert_eq!(fs::read(source.join("无相册.png")).unwrap(), unassigned);
     assert_eq!(journal.publication_roots().unwrap().len(), 1);
+    assert!(assigned.absolute_path.starts_with(r"\\?\"));
+    assert!(!source.to_str().unwrap().starts_with(r"\\?\"));
+    let same_folder = transfer(
+        &storage,
+        &[selection(&assigned)],
+        &source,
+        "same-folder-move",
+        FileOrganizationRule::Direct,
+        FileAction::Move,
+    );
+    assert_eq!(same_folder.phase, FileOperationTaskPhase::Finished);
+    assert_eq!(
+        (same_folder.published_items, same_folder.skipped_items),
+        (0, 1)
+    );
+    assert_eq!(journal.batch_count("same-folder-move").unwrap(), 0);
+    assert!(
+        fs::read_to_string(report_path(same_folder))
+            .unwrap()
+            .contains("文件已在目标位置")
+    );
+    assert_eq!(fs::read(source.join("图片.png")).unwrap(), original);
+    assert!(!source.join("图片(1).png").exists());
+
+    let same_folder_copy = transfer(
+        &storage,
+        &[selection(&assigned)],
+        &source,
+        "same-folder-copy",
+        FileOrganizationRule::Direct,
+        FileAction::Copy,
+    );
+    assert_eq!(
+        (
+            same_folder_copy.published_items,
+            same_folder_copy.skipped_items
+        ),
+        (1, 0)
+    );
+    assert_eq!(fs::read(source.join("图片.png")).unwrap(), original);
+    assert_eq!(fs::read(source.join("图片(1).png")).unwrap(), original);
+
+    let selected = FileOperationSelectionSession::for_catalog(
+        storage.catalog_path.clone(),
+        FileOperationSelectionScope::Locations,
+    )
+    .unwrap();
+    selected
+        .append_locations(vec![selection(&assigned)])
+        .unwrap();
+    let renamed = finish(
+        selected
+            .execute(
+                "case-only-rename".into(),
+                FileOperationCommand {
+                    action: FileAction::Rename,
+                    destination_directory: None,
+                    new_name: Some("图片.PNG".into()),
+                    organization_rule: FileOrganizationRule::Direct,
+                },
+                None,
+            )
+            .unwrap(),
+    );
+    selected.close().unwrap();
+    assert_eq!((renamed.published_items, renamed.skipped_items), (1, 0));
+    assert!(
+        fs::read_dir(&source)
+            .unwrap()
+            .any(|entry| entry.unwrap().file_name() == "图片.PNG")
+    );
+    assert_eq!(fs::read(source.join("图片.PNG")).unwrap(), original);
     println!(
-        "album subfolder, collision naming, skipped membership, UTF-8 report, unavailable-root report retry without media replay, date folder, clean-run omission and unchanged sources: PASS"
+        "album subfolder, collision naming, skipped membership, UTF-8 report, report-only retry, date folder, clean-run omission, same-folder move skip, same-folder copy and case-only rename: PASS"
     );
 }
 
-fn copy(
+fn transfer(
     storage: &StoragePaths,
     locations: &[OrganizationSelection],
     root: &std::path::Path,
     batch: &str,
     rule: FileOrganizationRule,
+    action: FileAction,
 ) -> FileOperationTaskProgress {
     let selected = FileOperationSelectionSession::for_catalog(
         storage.catalog_path.clone(),
@@ -188,7 +263,7 @@ fn copy(
         .execute(
             batch.into(),
             FileOperationCommand {
-                action: FileAction::Copy,
+                action,
                 destination_directory: Some(root.to_string_lossy().into_owned()),
                 new_name: None,
                 organization_rule: rule,

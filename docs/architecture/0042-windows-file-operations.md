@@ -25,6 +25,11 @@ Keep that handle until the destination identity and revision have been captured 
 An occupied destination returns to Ame's numbered-name allocation without overwriting it. Shell's
 automatic collision naming is localized and does not implement the required `(1)`, `(2)` policy.
 
+Before authorizing a move, identify an unchanged destination by the verified parent-directory
+identity and exact filename, not path spelling. Moving to the current directory is a recorded skip;
+ordinary and extended Windows paths denote the same destination. Same-directory copies still use
+numbered names, and an explicitly requested case-only rename remains a distinct operation.
+
 A rename that changes only filename case may address its own existing directory entry. Native
 inspection resolves the stored filename, then verifies the same file identity and revision under a
 write/replacement guard, retaining the admitted parent path. Matching identity alone is insufficient: another

@@ -70,8 +70,9 @@ pub(super) fn authorize(
         };
         let destination = FileOperationDestination { directory, name };
         if command.action != FileAction::Copy
-            && Path::new(&destination.directory.path).join(&destination.name)
-                == Path::new(&source.state.absolute_path)
+            && destination.directory.identity == source.parent.identity
+            && Path::new(&source.state.absolute_path).file_name()
+                == Some(std::ffi::OsStr::new(&destination.name))
         {
             return Err(ScanError::new(
                 "file_operation_same_destination",

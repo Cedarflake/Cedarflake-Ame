@@ -649,3 +649,18 @@ inventory passed in 34.43 seconds. Production line counts are 198 for applicatio
 facade, 45 for native content verification, 152 for the journal facade and 63 for proof lookup,
 with no inline tests. The added native and SQLite fixtures contain 196 and 97 dedicated test lines;
 the retained native fixture contains 364. Hosted current-head verification remains the PR owner.
+
+### Same-directory transfer admission
+
+Selection preparation compares verified parent identity and exact filename before authorizing a
+move, so ordinary and extended Windows path spellings cannot enter collision renaming for the same
+entry. The existing Sandbox export fixture was extended through the production selection/task path:
+an extended source path and ordinary destination directory yielded zero executable items, one skip
+with `文件已在目标位置`, unchanged original bytes/name and no numbered file. Same-directory copy still
+created a matching numbered copy, and an explicit `.png` to `.PNG` rename succeeded.
+
+That fixture, including retained organization/report checks, passed in 5.92 seconds with binary
+SHA-256 `bf00b8b1cfb45d326645434cbee48084f59986643776e287a953cd7408e3ad79`.
+Files and catalog were guest-local; the Sandbox stopped and leased staging was cleaned. Compilation,
+formatting and diff checks passed. Candidate admission has 106 production lines without inline tests;
+the reused dedicated native export fixture has 319 lines. No schema, bridge or UI change was needed.
