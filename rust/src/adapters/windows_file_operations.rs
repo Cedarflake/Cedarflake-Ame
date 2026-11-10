@@ -2,6 +2,7 @@ mod complete_move;
 mod copy;
 mod exports;
 mod output;
+mod recovery;
 mod remove;
 mod rename;
 mod scope;
@@ -10,9 +11,9 @@ mod shell_delete;
 use std::sync::{Mutex, MutexGuard, TryLockError};
 
 use crate::domain::file_operations::{
-    FileAction, FileOperationDestination, FileOperationDirectory, FileOperationIssue,
-    FileOperationIssueKind as Kind, FileOperationReceipt, FileOperationRecovery,
-    FileOperationRequest, FileOperationResult, FileOperationSource,
+    FileAction, FileOperationContentProof, FileOperationDestination, FileOperationDirectory,
+    FileOperationIssue, FileOperationIssueKind as Kind, FileOperationReceipt,
+    FileOperationRecovery, FileOperationRequest, FileOperationResult, FileOperationSource,
 };
 use crate::ports::file_operations::{FileOperationControl, NativeFileOperations};
 
@@ -51,6 +52,15 @@ impl NativeFileOperations for WindowsFileOperations {
         location: &FileOperationDestination,
     ) -> Result<Option<FileOperationSource>, FileOperationIssue> {
         scope::inspect_location(location)
+    }
+
+    fn verify_content(
+        &self,
+        source: &FileOperationSource,
+        proof: &FileOperationContentProof,
+        control: &FileOperationControl,
+    ) -> Result<(), FileOperationIssue> {
+        recovery::verify_content(source, proof, control)
     }
 
     fn complete_move(
@@ -171,7 +181,6 @@ fn transfer(
             return Err(FileOperationIssue::new(kind, error.to_string()));
         }
     };
-    drop(source);
     let observed = scope::inspect_guarded(target, &destination.directory, &destination.name)
         .map_err(|error| FileOperationIssue::new(Kind::OutcomeUnknown, error.message))?;
     if observed.state.file_size != request.source.state.file_size
@@ -182,6 +191,7 @@ fn transfer(
             "The native destination no longer matches the completed operation",
         ));
     }
+    drop(source);
     Ok(FileOperationReceipt {
         destination: Some(observed),
         recovery: FileOperationRecovery::None,

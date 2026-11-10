@@ -4,12 +4,14 @@ use crate::domain::file_operation_journal::{
     AuthorizedFileOperation, FILE_OPERATION_PAGE_SIZE, FileOperationEvent, FileOperationRecord,
     invalid,
 };
+use crate::domain::file_operations::FileOperationContentProof;
 use crate::domain::{LibraryChangeLane, ScanError};
 use crate::ports::file_operation_journal::FileOperationJournal;
 
 use super::{SqliteCatalog, SqliteCatalogSession, database_error};
 
 mod codec;
+mod content_proof;
 mod exports;
 pub(super) mod observed_removals;
 mod publication;
@@ -96,6 +98,13 @@ impl FileOperationJournal for SqliteFileOperationJournal {
 
     fn load(&self, id: u64) -> Result<FileOperationRecord, ScanError> {
         reads::load(&self.catalog.connection, id)
+    }
+
+    fn content_proof(
+        &self,
+        operation: &AuthorizedFileOperation,
+    ) -> Result<Option<FileOperationContentProof>, ScanError> {
+        content_proof::load(&self.catalog.connection, operation)
     }
 
     fn advance(

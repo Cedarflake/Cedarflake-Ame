@@ -2,6 +2,7 @@ use crate::domain::ScanError;
 use crate::domain::file_operation_journal::{
     AuthorizedFileOperation, FileOperationEvent, FileOperationRecord,
 };
+use crate::domain::file_operations::FileOperationContentProof;
 
 pub trait FileOperationJournal: Send {
     fn authorize(
@@ -9,6 +10,10 @@ pub trait FileOperationJournal: Send {
         items: &[AuthorizedFileOperation],
     ) -> Result<Vec<FileOperationRecord>, ScanError>;
     fn load(&self, id: u64) -> Result<FileOperationRecord, ScanError>;
+    fn content_proof(
+        &self,
+        operation: &AuthorizedFileOperation,
+    ) -> Result<Option<FileOperationContentProof>, ScanError>;
     fn advance(
         &mut self,
         id: u64,

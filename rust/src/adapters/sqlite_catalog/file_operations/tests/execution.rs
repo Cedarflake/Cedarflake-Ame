@@ -30,6 +30,15 @@ impl ControlledNative {
 }
 
 impl NativeFileOperations for ControlledNative {
+    fn verify_content(
+        &self,
+        _: &FileOperationSource,
+        _: &FileOperationContentProof,
+        _: &FileOperationControl,
+    ) -> Result<(), FileOperationIssue> {
+        unreachable!("copied-move recovery uses its durable receipt")
+    }
+
     fn inspect_source(&self, path: &str) -> Result<FileOperationSource, FileOperationIssue> {
         self.files
             .lock()

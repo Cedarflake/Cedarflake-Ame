@@ -38,6 +38,15 @@ impl crate::ports::file_operation_exports::NativeFileExports for BlockedNative {
 }
 
 impl NativeFileOperations for BlockedNative {
+    fn verify_content(
+        &self,
+        _: &FileOperationSource,
+        _: &FileOperationContentProof,
+        _: &FileOperationControl,
+    ) -> Result<(), FileOperationIssue> {
+        unreachable!()
+    }
+
     fn inspect_source(&self, _: &str) -> Result<FileOperationSource, FileOperationIssue> {
         unreachable!()
     }

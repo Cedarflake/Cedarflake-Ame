@@ -21,6 +21,7 @@ Use `CopyFile2` with `COPY_FILE_FAIL_IF_EXISTS` for copies and `SetFileInformati
 `FileRenameInfo` and `ReplaceIfExists = false` for same-volume moves and renames. Hold the exact
 revalidated source handle and guarded source/destination directory namespaces. The source handle
 denies concurrent content writes; a rename operates on that handle rather than reopening a path.
+Keep that handle until the destination identity and revision have been captured for the receipt.
 An occupied destination returns to Ame's numbered-name allocation without overwriting it. Shell's
 automatic collision naming is localized and does not implement the required `(1)`, `(2)` policy.
 
@@ -126,7 +127,14 @@ to 10,000 candidates per attempt. Copy receipts must commit before source-remova
 failure stops the workflow. An interrupted operation cannot reenter ordinary execution. Recovery
 inspects pinned parent directories and exact file evidence without mutation; a proven completed move
 can regain its receipt. A retained copy requires an explicit continuation before source removal.
-Missing or conflicting evidence remains uncertain. The runtime serializes recovery with active work.
+Without a durable same-volume move/rename receipt, matching identity, size and modification time
+only identify a recovery candidate. Require an existing full-content fingerprint tied to the original
+authorized generation, identity, revision and length, from analysis or durable organization evidence.
+Hash the candidate through a write/deletion-denying handle, within the existing fingerprint read
+budget and cancellation contract, and revalidate its captured revision before recording completion.
+Missing, unsupported or conflicting evidence, or changed content, remains uncertain. Recovery never
+attaches an old content fingerprint to a newly observed version on metadata alone. The runtime
+serializes recovery with active work.
 Inspection retires a request that never started as cancelled; retry requires a new selection and
 confirmation rather than replaying its old authorization.
 

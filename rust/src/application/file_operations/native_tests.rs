@@ -17,6 +17,7 @@ use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 
 use super::*;
 mod exports;
+mod recovery;
 
 #[test]
 #[ignore = "requires guest-local Windows Sandbox fixtures"]
@@ -70,6 +71,7 @@ fn file_operation_sandbox_recovers_native_move_and_publishes_copy_without_replay
         .load_incremental_location_by_relative_path(&root.root_id, "图片.png")
         .unwrap()
         .unwrap();
+    recovery::publish_fingerprint(&mut catalog, &root, &original, &original_bytes);
     let prepared = catalog
         .prepare_organization_selection(&[selection(&original)])
         .unwrap();

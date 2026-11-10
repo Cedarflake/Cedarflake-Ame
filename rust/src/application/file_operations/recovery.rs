@@ -14,6 +14,7 @@ use crate::ports::file_operations::NativeFileOperations;
 pub enum FileOperationInspection {
     NotStarted,
     CopyRetained,
+    UnverifiedTransfer(FileOperationSource),
     Completed(FileOperationReceipt),
     NeedsAttention(FileOperationIssue),
     Settled,
@@ -22,7 +23,13 @@ pub enum FileOperationInspection {
 impl super::FileOperationExecutor<'_> {
     pub fn reconcile(&mut self, id: u64) -> Result<FileOperationRecord, ScanError> {
         let record = self.journal.load(id)?;
-        match inspect_file_operation(&record, self.native) {
+        let inspection = match inspect_file_operation(&record, self.native) {
+            FileOperationInspection::UnverifiedTransfer(destination) => {
+                self.verify_transfer(&record, destination)?
+            }
+            inspection => inspection,
+        };
+        match inspection {
             FileOperationInspection::NotStarted => self.advance(&record, Event::Cancelled),
             FileOperationInspection::Completed(receipt)
                 if record.checkpoint.phase != Phase::NativeCompleted =>
@@ -50,6 +57,30 @@ impl super::FileOperationExecutor<'_> {
             }
             _ => Ok(record),
         }
+    }
+
+    fn verify_transfer(
+        &self,
+        record: &FileOperationRecord,
+        destination: FileOperationSource,
+    ) -> Result<FileOperationInspection, ScanError> {
+        let Some(proof) = self.journal.content_proof(&record.authorization)? else {
+            return Ok(FileOperationInspection::NeedsAttention(unknown(
+                "The interrupted transfer has no reliable original content evidence",
+            )));
+        };
+        Ok(
+            match self
+                .native
+                .verify_content(&destination, &proof, self.control)
+            {
+                Ok(()) => FileOperationInspection::Completed(FileOperationReceipt {
+                    destination: Some(destination),
+                    recovery: FileOperationRecovery::None,
+                }),
+                Err(issue) => FileOperationInspection::NeedsAttention(issue),
+            },
+        )
     }
 }
 
@@ -141,16 +172,12 @@ fn inspect(
     }
     if matches!(request.action, FileAction::Move | FileAction::Rename)
         && source_retired
-        && destination.as_ref().is_some_and(|actual| {
-            actual.state.file_identity == request.source.state.file_identity
-                && actual.state.file_size == request.source.state.file_size
-                && actual.state.modified_unix_ms == request.source.state.modified_unix_ms
-        })
+        && let Some(actual) = destination
+        && actual.state.file_identity == request.source.state.file_identity
+        && actual.state.file_size == request.source.state.file_size
+        && actual.state.modified_unix_ms == request.source.state.modified_unix_ms
     {
-        return Ok(FileOperationInspection::Completed(FileOperationReceipt {
-            destination,
-            recovery: FileOperationRecovery::None,
-        }));
+        return Ok(FileOperationInspection::UnverifiedTransfer(actual));
     }
     Err(unknown(
         "The interrupted native result requires inspection; no operation was replayed",

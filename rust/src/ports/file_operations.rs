@@ -2,8 +2,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use crate::domain::file_operations::{
-    FileOperationDestination, FileOperationDirectory, FileOperationIssue, FileOperationRequest,
-    FileOperationResult, FileOperationSource,
+    FileOperationContentProof, FileOperationDestination, FileOperationDirectory,
+    FileOperationIssue, FileOperationRequest, FileOperationResult, FileOperationSource,
 };
 
 #[derive(Clone, Default)]
@@ -20,6 +20,10 @@ impl FileOperationControl {
 
     pub fn is_cancelled(&self) -> bool {
         self.cancelled.load(Ordering::Acquire)
+    }
+
+    pub(crate) fn cancellation_flag(&self) -> &AtomicBool {
+        &self.cancelled
     }
 
     pub fn copy_progress(&self) -> (u64, u64) {
@@ -47,6 +51,13 @@ pub trait NativeFileOperations: Send + Sync {
         &self,
         location: &FileOperationDestination,
     ) -> Result<Option<FileOperationSource>, FileOperationIssue>;
+
+    fn verify_content(
+        &self,
+        source: &FileOperationSource,
+        proof: &FileOperationContentProof,
+        control: &FileOperationControl,
+    ) -> Result<(), FileOperationIssue>;
 
     /// The caller records this exact authorized item before invoking the native operation.
     /// A different-volume move is rejected unchanged; its copy/verify/remove stages belong to

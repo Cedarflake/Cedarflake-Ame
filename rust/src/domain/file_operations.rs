@@ -24,6 +24,13 @@ pub struct FileOperationSource {
     pub state: ExpectedFileState,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FileOperationContentProof {
+    pub scheme: String,
+    pub digest: String,
+    pub byte_length: u64,
+}
+
 #[derive(Clone, Debug)]
 pub struct FileOperationDestination {
     pub directory: FileOperationDirectory,

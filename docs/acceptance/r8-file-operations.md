@@ -617,3 +617,35 @@ both required `OutlinedButton` after the settings control became a standalone me
 the theme control's stable key while retaining menu interaction, retained-tree validation and native
 UIA checkpoints. Both cases in the affected Flutter semantics file passed locally; the native runner
 remains owned by the subsequent PR check run.
+
+### Interrupted transfer content continuity
+
+Recovery without a durable same-volume receipt now requires the original version's supported
+content fingerprint. The SQLite proof read uses the authorized generation, identity, revision and
+length, rejects conflicting analysis/organization evidence, and releases the read before native I/O.
+The adapter hashes the candidate under its existing write/deletion guard and retains the verified
+snapshot for publication. Normal move/rename execution keeps its source handle through receipt
+capture. No schema, bridge or ordinary-transfer hashing changes were introduced.
+
+A fresh Windows Sandbox ran the production journal, executor and native adapter against guest-only
+PNG files. An in-place edit preserved FileID, length and modification time but changed bytes and
+revision: reconciliation retained `Uncertain`, published no receipt or destination association,
+and left the edited bytes untouched. An unchanged transfer recovered and published successfully;
+subsequent fingerprint publication accepted its organization binding. A transfer lacking original
+content evidence remained uncertain. None of these recoveries replayed a native mutation.
+
+The retained native workflow also passed lost-receipt recovery, publication rollback, favorite
+continuity, numbered copy, case-only rename and collision checks. The recycling handle fixture
+passed in the same guest. Its workstation run had been rejected by the source namespace ACL guard
+before opening the tested handle; the other 15 selected non-guest cases passed locally. The new
+SQLite proof case covers absent evidence, stale revision, durable-binding fallback and conflict.
+The Sandbox fixtures finished in 6.13, 5.70 and 0.01 seconds. The binary SHA-256 was
+`d49bf015ce84c2c5cdfc9656a739831d9376fd5f0a879a10fb58e1452451715e`.
+The owned Sandbox stopped and its leased input/output staging was cleaned.
+
+An independent source review found no remaining issue within the repaired recovery and receipt
+capture boundaries. Warning-denying Clippy passed for all targets/features; the fixed Rust dependency
+inventory passed in 34.43 seconds. Production line counts are 198 for application recovery, 206 for the native
+facade, 45 for native content verification, 152 for the journal facade and 63 for proof lookup,
+with no inline tests. The added native and SQLite fixtures contain 196 and 97 dedicated test lines;
+the retained native fixture contains 364. Hosted current-head verification remains the PR owner.
