@@ -19,3 +19,19 @@ to the later connected-motion verification, not this package-only check.
 
 Sources: [official release notes](https://pub.dev/packages/material_ui/changelog#1110) and
 [official spring tokens](https://github.com/flutter/packages/blob/main/packages/material_ui/lib/src/generated/motion_defaults_m3e.g.dart).
+
+## Local state transitions
+
+The shared driver uses the installed official tokens and framework simulation. Folder/root symbols,
+expansion/menu arrows and review controls now consume it. Framework buttons still own hit targets,
+selection, focus and semantics. Root availability symbols and album selection behavior are retained.
+
+The focused shared-driver check initially exposed stale reduced-motion state when restoring
+animations and changing the target in the same frame. Reading the current inherited preference in
+the update path resolved it. Reversal now preserves displayed value and velocity, reaches exact
+endpoints, and reports dismissed/completed correctly; reduced motion and inactive surfaces retire
+their tickers. Existing folder navigation, selection-focus, header reversal and settings interaction
+checks passed. Settings arrow assertions now inspect the visible rotation rather than a replaced
+glyph; their keyboard, persistence and disabled-state assertions remain.
+
+Desktop interaction and hosted verification remain for the connected-motion slice.

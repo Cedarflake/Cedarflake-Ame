@@ -592,15 +592,20 @@ void main() {
         await tester.pump();
         await tester.sendKeyEvent(LogicalKeyboardKey.enter);
         await tester.pump();
-        expect(
-          find.descendant(
-            of: enabledChoice,
-            matching: find.byIcon(Symbols.arrow_drop_up_rounded),
-          ),
-          findsOneWidget,
-        );
         expect(find.byType(MenuAnchor), findsNothing);
         await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<RotationTransition>(
+                find.descendant(
+                  of: enabledChoice,
+                  matching: find.byType(RotationTransition),
+                ),
+              )
+              .turns
+              .value,
+          0.5,
+        );
         expect(
           tester
               .getSemantics(find.byKey(const ValueKey("menu-choice-当前")))
@@ -675,21 +680,31 @@ void main() {
     );
     await _openPopupMenu(tester, speedButton);
     expect(
-      find.descendant(
-        of: speedSetting,
-        matching: find.byIcon(Symbols.arrow_drop_up_rounded),
-      ),
-      findsOneWidget,
+      tester
+          .widget<RotationTransition>(
+            find.descendant(
+              of: speedSetting,
+              matching: find.byType(RotationTransition),
+            ),
+          )
+          .turns
+          .value,
+      0.5,
     );
     expect(find.byType(MenuAnchor), findsNothing);
     await _dismissPopupMenu(tester);
     expect(find.text("大").hitTestable(), findsNothing);
     expect(
-      find.descendant(
-        of: speedSetting,
-        matching: find.byIcon(Symbols.arrow_drop_down_rounded),
-      ),
-      findsOneWidget,
+      tester
+          .widget<RotationTransition>(
+            find.descendant(
+              of: speedSetting,
+              matching: find.byType(RotationTransition),
+            ),
+          )
+          .turns
+          .value,
+      0,
     );
 
     await _openPopupMenu(tester, speedButton);

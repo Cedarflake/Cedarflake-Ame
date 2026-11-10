@@ -8,6 +8,7 @@ import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/presentation/ame_typography.dart";
+import "../../../../app/presentation/ame_transition_icon.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_synchronization_models.dart";
 import "../library_pending_source.dart";
@@ -110,6 +111,15 @@ class _LibrarySourceNavigationTileState
       LibraryRootAvailability.inaccessible => Symbols.lock_rounded,
       LibraryRootAvailability.offline => Symbols.cloud_off_rounded,
     };
+    final iconWidget = switch (widget.root.availability) {
+      LibraryRootAvailability.available ||
+      LibraryRootAvailability.unknown => AmeCrossFadeIcon(
+        active: widget.isExpanded,
+        inactiveIcon: Symbols.folder_rounded,
+        activeIcon: Symbols.folder_open_rounded,
+      ),
+      _ => Icon(icon),
+    };
     final statusLabel = _statusLabel(
       widget.root,
       widget.synchronizationStatus,
@@ -132,7 +142,7 @@ class _LibrarySourceNavigationTileState
               focusNode: _focusNode,
               isSelected: widget.isSelected,
               onPressed: widget.isBrowseDisabled ? null : widget.onSelect,
-              icon: Icon(icon),
+              icon: iconWidget,
             ),
           )
         : _ExpandedSourceTile(
@@ -140,7 +150,7 @@ class _LibrarySourceNavigationTileState
             icon: icon,
             leading: LibrarySidebarSelectionIcon(
               key: ValueKey("library-sidebar-select-root-${widget.root.id}"),
-              icon: icon,
+              icon: iconWidget,
               name: librarySourceName(widget.root.displayPath),
               selected: widget.checked,
               onPressed: widget.onToggleSelection,
@@ -164,10 +174,9 @@ class _LibrarySourceNavigationTileState
                       child: IconButton(
                         key: ValueKey("source-expand-${widget.root.id}"),
                         onPressed: widget.onToggleExpansion,
-                        icon: Icon(
-                          widget.isExpanded
-                              ? Symbols.keyboard_arrow_up_rounded
-                              : Symbols.keyboard_arrow_down_rounded,
+                        icon: AmeExpansionIcon(
+                          expanded: widget.isExpanded,
+                          icon: Symbols.keyboard_arrow_down_rounded,
                         ),
                       ),
                     ),

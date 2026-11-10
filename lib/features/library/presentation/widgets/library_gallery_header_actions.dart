@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_motion.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "library_gallery_header_rows.dart";
 
@@ -26,9 +27,13 @@ class LibraryGalleryHeaderActions extends StatefulWidget {
 
 class _LibraryGalleryHeaderActionsState
     extends State<LibraryGalleryHeaderActions>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _controller;
+  late final AnimationController _opacity;
   Widget? _secondary;
+  bool get _skipMotion =>
+      MediaQuery.disableAnimationsOf(context) ||
+      !TickerMode.valuesOf(context).enabled;
 
   @override
   void initState() {
@@ -36,13 +41,20 @@ class _LibraryGalleryHeaderActionsState
     _secondary = widget.secondary;
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 260),
+      value: _secondary == null ? 0 : 1,
+    )..addStatusListener(_onStatusChanged);
+    _opacity = AnimationController(
+      vsync: this,
       value: _secondary == null ? 0 : 1,
     )..addStatusListener(_onStatusChanged);
   }
 
   void _onStatusChanged(AnimationStatus status) {
-    if (status == AnimationStatus.dismissed && widget.secondary == null) {
+    if (status == AnimationStatus.dismissed &&
+        widget.secondary == null &&
+        _controller.isDismissed &&
+        _opacity.isDismissed &&
+        _secondary != null) {
       setState(() => _secondary = null);
     }
   }
@@ -51,39 +63,31 @@ class _LibraryGalleryHeaderActionsState
   void didUpdateWidget(covariant LibraryGalleryHeaderActions oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.secondary != null) _secondary = widget.secondary;
-    final target = widget.secondary == null ? 0.0 : 1.0;
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _controller.value = target;
+    if (_skipMotion) {
+      _finish();
     } else if ((oldWidget.secondary == null) != (widget.secondary == null)) {
-      final duration =
-          _controller.duration! * (target - _controller.value).abs();
-      if (widget.secondary != null) {
-        _controller.animateTo(
-          target,
-          duration: duration,
-          curve: Curves.easeOutCubic,
-        );
-      } else {
-        _controller.animateBack(
-          target,
-          duration: duration,
-          curve: Curves.easeOutCubic,
-        );
-      }
+      final forward = widget.secondary != null;
+      AmeMotion.spatial.animate(_controller, forward: forward);
+      AmeMotion.effects.animate(_opacity, forward: forward);
     }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _controller.value = widget.secondary == null ? 0 : 1;
-    }
+    if (_skipMotion) _finish();
+  }
+
+  void _finish() {
+    final target = widget.secondary == null ? 0.0 : 1.0;
+    _controller.value = target;
+    _opacity.value = target;
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _opacity.dispose();
     super.dispose();
   }
 
@@ -105,7 +109,7 @@ class _LibraryGalleryHeaderActionsState
         excluding: widget.secondary == null,
         child: ExcludeSemantics(
           excluding: widget.secondary == null,
-          child: FadeTransition(opacity: _controller, child: controls),
+          child: FadeTransition(opacity: _opacity, child: controls),
         ),
       ),
     );

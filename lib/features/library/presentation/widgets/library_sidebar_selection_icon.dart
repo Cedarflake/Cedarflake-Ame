@@ -12,7 +12,7 @@ class LibrarySidebarSelectionIcon extends StatelessWidget {
     super.key,
   });
 
-  final IconData icon;
+  final Widget icon;
   final String name;
   final bool selected;
   final VoidCallback? onPressed;
@@ -32,7 +32,10 @@ class LibrarySidebarSelectionIcon extends StatelessWidget {
             maximumSize: const Size.square(40),
             padding: const EdgeInsets.all(8),
           ),
-          icon: Icon(icon, size: 24),
+          icon: IconTheme.merge(
+            data: const IconThemeData(size: 24),
+            child: icon,
+          ),
           selectedIcon: DecoratedBox(
             decoration: BoxDecoration(
               color: colors.primary,

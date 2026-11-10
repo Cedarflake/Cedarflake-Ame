@@ -8,6 +8,7 @@ import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/presentation/ame_typography.dart";
+import "../../../../app/presentation/ame_transition_icon.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
@@ -93,10 +94,10 @@ class _LibraryFolderNavigationTileState
           horizontalTitleGap: 12,
           leading: SizedBox(
             width: 24,
-            child: Icon(
-              widget.isExpanded
-                  ? Symbols.folder_open_rounded
-                  : Symbols.folder_rounded,
+            child: AmeCrossFadeIcon(
+              active: widget.isExpanded,
+              inactiveIcon: Symbols.folder_rounded,
+              activeIcon: Symbols.folder_open_rounded,
             ),
           ),
           title: DefaultTextStyle.merge(
@@ -125,10 +126,9 @@ class _LibraryFolderNavigationTileState
                     child: IconButton(
                       key: ValueKey("folder-expand-$keySuffix"),
                       onPressed: widget.onToggleExpansion,
-                      icon: Icon(
-                        widget.isExpanded
-                            ? Symbols.keyboard_arrow_up_rounded
-                            : Symbols.keyboard_arrow_down_rounded,
+                      icon: AmeExpansionIcon(
+                        expanded: widget.isExpanded,
+                        icon: Symbols.keyboard_arrow_down_rounded,
                       ),
                     ),
                   ),

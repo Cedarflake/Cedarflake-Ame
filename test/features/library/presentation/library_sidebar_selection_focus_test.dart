@@ -32,7 +32,7 @@ void main() {
                         focusNode: rowFocus,
                         onTap: () => setState(() => selected = !selected),
                         leading: LibrarySidebarSelectionIcon(
-                          icon: Symbols.folder_rounded,
+                          icon: Icon(Symbols.folder_rounded),
                           name: "Folder",
                           selected: selected,
                           onPressed: () => setState(() => selected = !selected),

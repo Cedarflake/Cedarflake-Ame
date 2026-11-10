@@ -126,6 +126,22 @@ updates. Rollback restores imports, delegates and the dependency lock together; 
 catalogs and original media are unchanged. The [migration evidence](../acceptance/material-ui-migration.md)
 owns actual compatibility and desktop results.
 
+### State motion
+
+Use the admitted package's Standard `Springs` with Flutter's `SpringSimulation` and bounded
+`AnimationController`. `AmeMotion` selects only the spatial/effects roles used by current consumers,
+retains the controller's displayed value and velocity on reversal, and snaps settled simulations to
+their exact endpoint. Opening and closing retain the framework's completed/dismissed lifecycle.
+`AmeStateTransition` handles decorative binary state and reads current reduced-motion/TickerMode
+settings; feature controllers retain surface lifetime, input retirement and layout ownership.
+
+Folder icons crossfade; expansion arrows rotate through the shared presentation components.
+Review controls use separate spatial and effects progress so opacity cannot inherit a spatial
+overshoot. Existing Material controls, themes and desktop overlay ownership remain in place.
+Future official component integration replaces the corresponding driver or removes the adapter,
+without moving feature state or introducing another motion engine. The
+[motion evidence](../acceptance/material-motion.md) records admitted consumers and verification.
+
 ## Validation gates
 
 This decision becomes Accepted only after R0 demonstrates:
