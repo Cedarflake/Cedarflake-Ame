@@ -36,8 +36,8 @@ framework date picker retain their own interaction owners; they are not converte
 - New albums place an icon-selection button beside the name input. Expand icon choices on demand.
   Keep the button square and outside the input border, aligned with its content rather than error
   text. Album deletion shows the actual album icon and name above the consequence.
-- Diagnostic codes retain their source, such as `OS: 32`, and complete hexadecimal values. Separate
-  them from the explanation without reducing a typed code to an unexplained number.
+- Diagnostic codes retain their original source text, such as `os error 32`, and complete hexadecimal
+  values. Separate them from the explanation without reducing a typed code to an unexplained number.
 - Restoration presents the backup identity, creation date and relevant nonzero contents as labeled
   rows. Keep conflicts and the effects on current decisions explicit without repeating paragraphs.
 - Separate the date and weekday deliberately in the date picker's landscape header. Preserve

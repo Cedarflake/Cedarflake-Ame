@@ -10,10 +10,9 @@ class AmeDialogDiagnostic extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final suffix = RegExp(
-      r"\s*\((?:os error (\d+)|(0x[0-9a-fA-F]+))\)\s*$",
+      r"\s*\((os error \d+|0x[0-9a-fA-F]+)\)\s*$",
     ).firstMatch(detail);
-    final osCode = suffix?.group(1);
-    final code = osCode == null ? suffix?.group(2) : "OS: $osCode";
+    final code = suffix?.group(1);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,

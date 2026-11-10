@@ -514,7 +514,7 @@ Cancellation preserved the draft's source files and existing decisions.
 A category copy with no classification produced one skipped item. A second direct copy held the
 synthetic source open for writing and produced Windows sharing violation 32. Both completion notices
 placed status and the relevant count in their first line, with the saved-report message below.
-The actual failure details displayed the localized reason and the separately labeled code `OS: 32`.
+The actual failure details displayed the localized reason and a separately labeled error code.
 Opening report locations selected their TXT in Explorer; changing the preview cache and restarting
 exposed the old-directory confirmation, whose location action selected that directory in Explorer.
 Cleanup and restoration were cancelled. The date picker displayed the date and weekday separately,
@@ -532,6 +532,8 @@ chosen icon, and reproduced the sharing violation with its `OS: 32` label. Scree
 were refreshed. Its six source hashes and sentinel were unchanged, one report decoded as strict
 UTF-8, and no image copy was published; the client, lock, Sandbox and leased scratch retired.
 Scoped formatting, analysis and the Debug build passed for this follow-up.
+The final copy preserves the original `os error 32` text instead of shortening it to `OS: 32`;
+the captured error layout uses the earlier label. Formatting and scoped analysis passed again.
 
 Scoped Dart formatting, analysis, dependency verification, the Debug build, and retained album,
 sidebar-removal, archive-scroll and file-action lifetime regressions passed. An initial nested
@@ -539,5 +541,5 @@ shrink-wrapped list could not supply intrinsic height to `AlertDialog`; the boun
 resolved it while retaining the selection and cancellation checks. Storage settings contains 721
 production lines after extracting its 52-line cleanup confirmation. The filter sheet contains 396
 production lines, album navigation 250, file confirmation 258 and album editor 193, with no inline
-tests. The shared dialog/location/diagnostic/calendar files contain 77/99/33/15 production lines.
+tests. The shared dialog/location/diagnostic/calendar files contain 77/99/32/15 production lines.
 The two adjusted dedicated test files contain 346 and 273 lines; no new test inventory was added.
