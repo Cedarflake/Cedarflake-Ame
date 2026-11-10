@@ -7677,6 +7677,12 @@ impl SseDecode for crate::domain::file_operation_selection::FileOperationSelecti
                 return crate::domain::file_operation_selection::FileOperationSelectionScope::Gallery{query: var_query, catalog_revision: var_catalogRevision, all_matching: var_allMatching};
             }
             1 => {
+                let mut var_query = <Box<crate::domain::GalleryQuery>>::sse_decode(deserializer);
+                let mut var_catalogRevision = <u64>::sse_decode(deserializer);
+                let mut var_allMatching = <bool>::sse_decode(deserializer);
+                return crate::domain::file_operation_selection::FileOperationSelectionScope::MergedGalleryGroups{query: var_query, catalog_revision: var_catalogRevision, all_matching: var_allMatching};
+            }
+            2 => {
                 return crate::domain::file_operation_selection::FileOperationSelectionScope::Locations;
             }
             _ => {
@@ -7691,9 +7697,11 @@ impl SseDecode for crate::domain::file_operation_selection::FileOperationSelecti
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_fileCount = <u64>::sse_decode(deserializer);
         let mut var_totalBytes = <u64>::sse_decode(deserializer);
+        let mut var_mergedGroupCount = <Option<u64>>::sse_decode(deserializer);
         return crate::domain::file_operation_selection::FileOperationSelectionSummary {
             file_count: var_fileCount,
             total_bytes: var_totalBytes,
+            merged_group_count: var_mergedGroupCount,
         };
     }
 }
@@ -13146,25 +13154,16 @@ impl flutter_rust_bridge::IntoDart
     for crate::domain::file_operation_selection::FileOperationSelectionScope
 {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        match self {
-            crate::domain::file_operation_selection::FileOperationSelectionScope::Gallery {
-                query,
-                catalog_revision,
-                all_matching,
-            } => [
-                0.into_dart(),
-                query.into_into_dart().into_dart(),
-                catalog_revision.into_into_dart().into_dart(),
-                all_matching.into_into_dart().into_dart(),
-            ]
-            .into_dart(),
-            crate::domain::file_operation_selection::FileOperationSelectionScope::Locations => {
-                [1.into_dart()].into_dart()
-            }
-            _ => {
-                unimplemented!("");
-            }
-        }
+        match self {crate::domain::file_operation_selection::FileOperationSelectionScope::Gallery{query,catalog_revision,all_matching} => { [0.into_dart(),
+query.into_into_dart().into_dart(),
+catalog_revision.into_into_dart().into_dart(),
+all_matching.into_into_dart().into_dart()].into_dart() }
+crate::domain::file_operation_selection::FileOperationSelectionScope::MergedGalleryGroups{query,catalog_revision,all_matching} => { [1.into_dart(),
+query.into_into_dart().into_dart(),
+catalog_revision.into_into_dart().into_dart(),
+all_matching.into_into_dart().into_dart()].into_dart() }
+crate::domain::file_operation_selection::FileOperationSelectionScope::Locations => { [2.into_dart()].into_dart() }
+ _ => { unimplemented!(""); }}
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
@@ -13190,6 +13189,7 @@ impl flutter_rust_bridge::IntoDart
         [
             self.file_count.into_into_dart().into_dart(),
             self.total_bytes.into_into_dart().into_dart(),
+            self.merged_group_count.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -17739,24 +17739,16 @@ impl SseEncode for crate::domain::file_operations::FileOperationRequest {
 impl SseEncode for crate::domain::file_operation_selection::FileOperationSelectionScope {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        match self {
-            crate::domain::file_operation_selection::FileOperationSelectionScope::Gallery {
-                query,
-                catalog_revision,
-                all_matching,
-            } => {
-                <i32>::sse_encode(0, serializer);
-                <Box<crate::domain::GalleryQuery>>::sse_encode(query, serializer);
-                <u64>::sse_encode(catalog_revision, serializer);
-                <bool>::sse_encode(all_matching, serializer);
-            }
-            crate::domain::file_operation_selection::FileOperationSelectionScope::Locations => {
-                <i32>::sse_encode(1, serializer);
-            }
-            _ => {
-                unimplemented!("");
-            }
-        }
+        match self {crate::domain::file_operation_selection::FileOperationSelectionScope::Gallery{query,catalog_revision,all_matching} => { <i32>::sse_encode(0, serializer); <Box<crate::domain::GalleryQuery>>::sse_encode(query, serializer);
+<u64>::sse_encode(catalog_revision, serializer);
+<bool>::sse_encode(all_matching, serializer);
+ }
+crate::domain::file_operation_selection::FileOperationSelectionScope::MergedGalleryGroups{query,catalog_revision,all_matching} => { <i32>::sse_encode(1, serializer); <Box<crate::domain::GalleryQuery>>::sse_encode(query, serializer);
+<u64>::sse_encode(catalog_revision, serializer);
+<bool>::sse_encode(all_matching, serializer);
+ }
+crate::domain::file_operation_selection::FileOperationSelectionScope::Locations => { <i32>::sse_encode(2, serializer);  }
+ _ => { unimplemented!(""); }}
     }
 }
 
@@ -17765,6 +17757,7 @@ impl SseEncode for crate::domain::file_operation_selection::FileOperationSelecti
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <u64>::sse_encode(self.file_count, serializer);
         <u64>::sse_encode(self.total_bytes, serializer);
+        <Option<u64>>::sse_encode(self.merged_group_count, serializer);
     }
 }
 

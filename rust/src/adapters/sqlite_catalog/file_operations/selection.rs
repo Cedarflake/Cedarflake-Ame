@@ -20,6 +20,7 @@ use super::super::{
     SqliteCatalog, database_error, gallery, load_catalog_revision, sqlite_integer, sqlite_unsigned,
 };
 
+mod groups;
 mod query;
 mod rules;
 
@@ -36,8 +37,11 @@ impl SqliteFileOperationSelection {
         scope: Scope,
         cancelled: Arc<AtomicBool>,
     ) -> Result<Self, ScanError> {
-        if let Scope::Gallery { query, .. } = &scope {
+        if let Scope::Gallery { query, .. } | Scope::MergedGalleryGroups { query, .. } = &scope {
             gallery::validate_gallery_query(query)?;
+        }
+        if let Scope::MergedGalleryGroups { query, .. } = &scope {
+            groups::validate_query(query)?;
         }
         catalog.connection.execute_batch(
             "PRAGMA temp_store = FILE; PRAGMA temp.cache_size = -2048;
@@ -83,7 +87,11 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
     }
     fn append_ids(&mut self, ids: &[String]) -> Result<(), ScanError> {
         self.require_collecting()?;
-        if !matches!(self.scope, Scope::Gallery { .. }) || ids.len() > 256 {
+        if !matches!(
+            self.scope,
+            Scope::Gallery { .. } | Scope::MergedGalleryGroups { .. }
+        ) || ids.len() > 256
+        {
             return Err(stale_selection());
         }
         let transaction = self
@@ -151,6 +159,9 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
             .map_err(database_error)?;
         if let Scope::Gallery {
             catalog_revision, ..
+        }
+        | Scope::MergedGalleryGroups {
+            catalog_revision, ..
         } = self.scope
             && load_catalog_revision(&transaction)? != catalog_revision
         {
@@ -159,6 +170,11 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
         let selected = query::selected(&self.scope)?;
         transaction.execute(&format!("INSERT INTO temp.file_operation_selection(asset_id, location_id, source_generation, root_generation, file_size) {}", selected.sql), params_from_iter(selected.parameters)).map_err(database_error)?;
         query::require_all_inputs(&transaction, &self.scope)?;
+        let merged_group_count = if matches!(self.scope, Scope::MergedGalleryGroups { .. }) {
+            Some(groups::expand(&transaction)?)
+        } else {
+            None
+        };
         let (count, bytes) = transaction
             .query_row(
                 "SELECT COUNT(*), COALESCE(SUM(file_size), 0) FROM temp.file_operation_selection",
@@ -172,6 +188,7 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
         let summary = FileOperationSelectionSummary {
             file_count: sqlite_unsigned(count, "selected count")?,
             total_bytes: sqlite_unsigned(bytes, "selected bytes")?,
+            merged_group_count,
         };
         transaction.commit().map_err(database_error)?;
         self.prepared = Some(summary.clone());

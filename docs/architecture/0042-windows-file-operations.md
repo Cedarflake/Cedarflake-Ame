@@ -80,6 +80,13 @@ are separate durable transitions, never one atomic transaction.
 
 ## Durable intent and outcome journal
 
+Ordinary merged-gallery deletion uses a distinct selection scope. Resolve its selected cards through
+the current gallery query, then freeze the badge's compatible exact-duplicate members in the bounded,
+disk-backed selection table. Include current members in other folders; reject groups with retained
+unverified evidence. Confirmation receives the frozen group and file counts. That selection admits
+only recycle or explicit permanent-delete commands. Explicit locations and other file actions retain
+their existing scope. Repeated preparation and later preference changes cannot expand the snapshot.
+
 Schema v79 keeps physical-operation authorization and append-only transition snapshots in the
 existing catalog, separate from virtual-organization history and filesystem-notification work.
 Authorization binds a batch ordinal to the exact asset, location, source/root generations, native

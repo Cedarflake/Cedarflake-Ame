@@ -8,6 +8,7 @@ import "../../application/library_file_operations.dart";
 import "../../domain/library_file_operations.dart";
 import "../library_file_strings.dart";
 import "library_file_history.dart";
+import "library_path_text.dart";
 import "library_viewer_notice.dart";
 
 class LibraryFileFeedback extends ConsumerWidget {
@@ -45,15 +46,21 @@ class LibraryFileFeedback extends ConsumerWidget {
         onAction: activity.busy && !canStop ? null : action,
       );
     }
+    final message = _message(progress);
+    final deletionResult =
+        progress.isFinished &&
+        progress.failure == null &&
+        (activity.action == LibraryFileAction.recycle ||
+            activity.action == LibraryFileAction.deletePermanently);
     return AmeFeedbackCard(
-      title: title,
+      title: deletionResult ? message : title,
       severity:
           progress.failure != null ||
               progress.failed > 0 ||
               progress.skipped > 0
           ? AmeNotificationSeverity.warning
           : AmeNotificationSeverity.info,
-      message: _message(progress),
+      message: deletionResult ? null : message,
       detail: progress.path?.split(RegExp(r"[\\/]")).last,
       progress: activity.busy
           ? LinearProgressIndicator(
@@ -88,7 +95,8 @@ class LibraryFileFeedback extends ConsumerWidget {
       if (progress.export?.reportState == LibraryFileReportState.notNeeded) {
         return "没有特殊结果，无需生成清单。";
       }
-      return progress.export?.reportPath ?? "正在读取操作记录";
+      final path = progress.export?.reportPath;
+      return path == null ? "正在读取操作记录" : displayLibraryPath(path);
     }
     if (progress.failure != null) {
       return LibraryFileStrings.failure(

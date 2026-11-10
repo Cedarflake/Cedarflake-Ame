@@ -2,9 +2,12 @@ import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_file_operations.dart";
 import "package:cedarflake_ame/features/library/application/library_file_selection.dart";
+import "package:cedarflake_ame/features/library/application/library_file_selection_scope.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_file_operations.dart";
 import "package:cedarflake_ame/features/library/domain/library_file_operations.dart";
+import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
+import "package:cedarflake_ame/features/library/domain/library_organization_batch.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_file_action_dialog.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -20,6 +23,43 @@ void main() {
   ]);
 
   test(
+    "merged gallery deletion expands groups while file actions retain locations",
+    () {
+      final gallery = LibraryOrganizationSelection(
+        query: const LibraryGalleryQuery(
+          duplicateMode: LibraryGalleryDuplicateMode.merged,
+        ),
+        catalogRevision: BigInt.one,
+        allMatching: false,
+        assetIds: ["asset"],
+      );
+      for (final action in LibraryFileAction.values) {
+        final result = selectGalleryFilesForAction(
+          action: action,
+          selection: gallery,
+          location: selection.locations.single,
+        );
+        if (action == LibraryFileAction.recycle ||
+            action == LibraryFileAction.deletePermanently) {
+          expect(result, isA<LibraryFileGroupsInGallery>());
+        } else {
+          expect(
+            (result as LibraryFilesAtLocations).locations,
+            selection.locations,
+          );
+        }
+      }
+      expect(
+        selectGalleryFilesForAction(
+          action: LibraryFileAction.recycle,
+          selection: gallery,
+        ),
+        isA<LibraryFileGroupsInGallery>(),
+      );
+    },
+  );
+
+  test(
     "shutdown joins a completed native worker before exposing completion",
     () async {
       final backend = _Backend();
@@ -29,7 +69,10 @@ void main() {
         overrides: [libraryFileOperationsProvider.overrideWithValue(backend)],
       );
       final actions = container.read(libraryFileActionsProvider.notifier);
-      final running = actions.recover([BigInt.one]);
+      final running = actions.execute(
+        LibraryFileSelectionSession(backend, selection),
+        const LibraryFileCommand(LibraryFileAction.recycle),
+      );
       await Future<void>.delayed(Duration.zero);
       expect(container.read(libraryFileActionsProvider).busy, isTrue);
       var closed = false;
@@ -38,7 +81,8 @@ void main() {
       expect(backend.task.cancelled, isTrue);
       expect(closed, isFalse);
       released.complete();
-      await running;
+      final result = await running;
+      expect(result?.phase, LibraryFileTaskPhase.finished);
       await closing;
       expect(
         container.read(libraryFileActionsProvider).progress!.isFinished,
@@ -98,7 +142,8 @@ void main() {
   testWidgets(
     "each deletion requires confirmation and resets permanent deletion",
     (tester) async {
-      final backend = _Backend();
+      final backend = _Backend()
+        ..summary = const LibraryFileSelectionSummary(2, 40, mergedGroups: 1);
       await tester.pumpWidget(
         ProviderScope(
           overrides: [libraryFileOperationsProvider.overrideWithValue(backend)],
@@ -121,6 +166,7 @@ void main() {
       );
       await tester.tap(find.text("打开删除确认"));
       await tester.pumpAndSettle();
+      expect(find.text("删除这组图片的全部 2 个文件？"), findsOneWidget);
       expect(
         tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
         isFalse,
@@ -154,6 +200,10 @@ void main() {
 }
 
 class _Backend implements LibraryFileOperations {
+  LibraryFileSelectionSummary summary = const LibraryFileSelectionSummary(
+    1,
+    20,
+  );
   @override
   Future<List<LibraryFileExport>> exports({
     BigInt? before,
@@ -194,15 +244,14 @@ class _Draft implements LibraryFileSelectionDraft {
     List<LibraryOrganizationTarget> locations,
   ) async {}
   @override
-  Future<LibraryFileSelectionSummary> prepare() async =>
-      const LibraryFileSelectionSummary(1, 20);
+  Future<LibraryFileSelectionSummary> prepare() async => backend.summary;
   @override
   Future<LibraryFileTask> execute(
     String batchId,
     LibraryFileCommand command,
   ) async {
     backend.commands.add(command);
-    return _Task();
+    return backend.task;
   }
 
   @override

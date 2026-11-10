@@ -14,7 +14,6 @@ import "../../application/library_organization_batch.dart";
 import "../../application/library_organization_requests.dart";
 import "../../application/library_selection_session.dart";
 import "../../domain/library_models.dart";
-import "../../domain/library_file_operations.dart";
 import "../../domain/library_organization.dart";
 import "../../domain/library_organization_batch.dart";
 import "../../domain/library_review.dart";
@@ -380,15 +379,14 @@ class _LibrarySelectionActionsState
               ),
             LibraryFileMenu(
               enabled: enabled,
-              selection: LibraryFilesInGallery(
-                LibraryOrganizationSelection(
-                  query: widget.query,
-                  catalogRevision: widget.catalogRevision,
-                  allMatching: widget.selection.isAllMatching,
-                  assetIds: widget.selection.isAllMatching
-                      ? widget.selection.excludedAssetIds
-                      : widget.selection.includedAssetIds,
-                ),
+              onCommitted: widget.onCommitted,
+              selection: LibraryOrganizationSelection(
+                query: widget.query,
+                catalogRevision: widget.catalogRevision,
+                allMatching: widget.selection.isAllMatching,
+                assetIds: widget.selection.isAllMatching
+                    ? widget.selection.excludedAssetIds
+                    : widget.selection.includedAssetIds,
               ),
             ),
             TextButton.icon(

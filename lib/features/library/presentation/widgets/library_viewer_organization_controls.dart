@@ -8,7 +8,6 @@ import "../../application/library_classification_settings.dart";
 import "../../application/library_organization_actions.dart";
 import "../../application/library_operation_notice.dart";
 import "../../application/library_file_operations.dart";
-import "../../domain/library_file_operations.dart";
 import "../../domain/library_organization.dart";
 import "../../domain/library_models.dart";
 import "../coordination/library_organization_mode.dart";
@@ -18,7 +17,7 @@ import "library_organization_feedback.dart";
 import "library_review_actions.dart";
 import "library_review_mode_notice.dart";
 import "library_viewer_classification.dart";
-import "library_file_action_dialog.dart";
+import "library_delete_file_button.dart";
 import "library_file_feedback.dart";
 
 class LibraryViewerOrganizationControls extends ConsumerWidget {
@@ -57,20 +56,10 @@ class LibraryViewerOrganizationControls extends ConsumerWidget {
         else if (entry != null && entry.target == target)
           LibraryReviewActions(mode: mode, entry: entry),
         LibraryViewerClassification(target: target),
-        AmeTooltip(
-          message: "删除",
-          child: IconButton(
-            key: const Key("viewer-delete-file"),
-            onPressed: mode.busy || ref.watch(libraryFileActionsProvider).busy
-                ? null
-                : () => showLibraryFileAction(
-                    context: context,
-                    ref: ref,
-                    selection: LibraryFilesAtLocations([target]),
-                    action: LibraryFileAction.recycle,
-                  ),
-            icon: const Icon(Symbols.delete_rounded, semanticLabel: "删除"),
-          ),
+        LibraryDeleteFileButton(
+          target: target,
+          enabled: !mode.busy,
+          buttonKey: const Key("viewer-delete-file"),
         ),
         if (needsRetry)
           AmeTooltip(

@@ -1,5 +1,7 @@
 use std::sync::{Arc, atomic::AtomicBool};
 
+use rusqlite::params;
+
 use super::*;
 use crate::domain::exact_duplicate_review::{ExactDuplicatePreference, ExactDuplicateReviewKey};
 use crate::domain::exact_duplicates::{
@@ -24,7 +26,7 @@ fn open(path: &std::path::Path, scope: Scope) -> SqliteFileOperationSelection {
 }
 
 #[test]
-fn file_operation_selection_freezes_visible_files_without_expanding_duplicate_groups() {
+fn file_operation_selection_freezes_visible_files_or_explicitly_selected_groups() {
     let (directory, mut journal, _) = fixture();
     super::super::super::tests::publish_gallery_fixture(
         &mut journal.catalog,
@@ -115,6 +117,31 @@ fn file_operation_selection_freezes_visible_files_without_expanding_duplicate_gr
         .append_ids(std::slice::from_ref(&first.asset_id))
         .unwrap();
     assert_eq!(selected.prepare().unwrap().file_count, 1);
+    let mut group_query = query.clone();
+    group_query.root_id = Some(first.root_id.clone());
+    let mut group = open(
+        &path,
+        Scope::MergedGalleryGroups {
+            query: Box::new(group_query.clone()),
+            catalog_revision: revision,
+            all_matching: false,
+        },
+    );
+    group
+        .append_ids(std::slice::from_ref(&first.asset_id))
+        .unwrap();
+    let summary = group.prepare().unwrap();
+    assert_eq!(summary.file_count, 2);
+    assert_eq!(summary.merged_group_count, Some(1));
+    assert_eq!(
+        group
+            .page(None)
+            .unwrap()
+            .iter()
+            .map(|item| item.location.location_id.as_str())
+            .collect::<Vec<_>>(),
+        ["photo-a", "photo-b"],
+    );
     let second = journal
         .catalog
         .load_active_location("photo-b")
@@ -135,6 +162,7 @@ fn file_operation_selection_freezes_visible_files_without_expanding_duplicate_gr
         selected.page(None).unwrap()[0].location.location_id,
         first.location_id
     );
+    assert_eq!(group.prepare().unwrap().file_count, 2);
     let revision = journal
         .catalog
         .connection
@@ -142,23 +170,64 @@ fn file_operation_selection_freezes_visible_files_without_expanding_duplicate_gr
             row.get::<_, i64>(0)
         })
         .unwrap() as u64;
-    let mut all = open(
-        &path,
+    for scope in [
         Scope::Gallery {
+            query: Box::new(query.clone()),
+            catalog_revision: revision,
+            all_matching: true,
+        },
+        Scope::MergedGalleryGroups {
             query: Box::new(query),
             catalog_revision: revision,
             all_matching: true,
         },
-    );
-    all.append_ids(std::slice::from_ref(&second.asset_id))
-        .unwrap();
-    assert_eq!(all.prepare().unwrap().file_count, 1);
-    assert_eq!(all.page(None).unwrap()[0].location.location_id, "photo-c");
+    ] {
+        let mut all = open(&path, scope);
+        all.append_ids(std::slice::from_ref(&second.asset_id))
+            .unwrap();
+        assert_eq!(all.prepare().unwrap().file_count, 1);
+        assert_eq!(all.page(None).unwrap()[0].location.location_id, "photo-c");
+    }
     journal.catalog.connection.execute(
-        "UPDATE asset_locations SET source_generation = source_generation + 1 WHERE location_id = ?1",
+        "UPDATE asset_locations SET source_generation = source_generation + 100 WHERE location_id = ?1",
         [&first.location_id],
     ).unwrap();
+    journal
+        .catalog
+        .connection
+        .execute(
+            "UPDATE catalog_state SET next_source_generation = next_source_generation + 100",
+            [],
+        )
+        .unwrap();
     assert!(selected.page(None).is_err());
+    assert!(group.page(None).is_err());
+    journal
+        .catalog
+        .connection
+        .execute(
+            "INSERT INTO gallery_retained_fingerprints VALUES (?1, ?2, 'blake3-256-full-v1')",
+            params![
+                (first.source_generation + 100) as i64,
+                first.source_generation as i64
+            ],
+        )
+        .unwrap();
+    let mut pending = open(
+        &path,
+        Scope::MergedGalleryGroups {
+            query: Box::new(group_query),
+            catalog_revision: revision,
+            all_matching: false,
+        },
+    );
+    pending
+        .append_ids(std::slice::from_ref(&first.asset_id))
+        .unwrap();
+    assert_eq!(
+        pending.prepare().unwrap_err().code,
+        "organization_evidence_pending"
+    );
 }
 
 #[test]

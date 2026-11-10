@@ -14,6 +14,11 @@ pub(super) fn selected(scope: &Scope) -> Result<gallery::BuiltGalleryQuery, Scan
             query,
             all_matching,
             ..
+        }
+        | Scope::MergedGalleryGroups {
+            query,
+            all_matching,
+            ..
         } => {
             gallery::validate_gallery_query(query)?;
             let source = gallery::gallery_source(query, &mut parameters);
@@ -59,6 +64,9 @@ pub(super) fn require_all_inputs(connection: &Connection, scope: &Scope) -> Resu
     if matches!(
         scope,
         Scope::Gallery {
+            all_matching: true,
+            ..
+        } | Scope::MergedGalleryGroups {
             all_matching: true,
             ..
         }

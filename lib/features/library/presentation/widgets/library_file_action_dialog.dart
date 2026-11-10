@@ -10,8 +10,14 @@ import "../../application/library_file_operations.dart";
 import "../../application/library_file_selection.dart";
 import "../../domain/library_file_operations.dart";
 import "../library_file_strings.dart";
+import "library_path_text.dart";
 
-Future<void> showLibraryFileAction({
+class LibraryFileActionSubmission {
+  const LibraryFileActionSubmission(this.completion);
+  final Future<LibraryFileProgress?> completion;
+}
+
+Future<LibraryFileActionSubmission?> showLibraryFileAction({
   required BuildContext context,
   required WidgetRef ref,
   required LibraryFileSelection selection,
@@ -19,7 +25,7 @@ Future<void> showLibraryFileAction({
   String? initialName,
 }) async {
   final commands = ref.read(libraryFileActionsProvider.notifier);
-  if (ref.read(libraryFileActionsProvider).busy) return;
+  if (ref.read(libraryFileActionsProvider).busy) return null;
   final session = LibraryFileSelectionSession(
     ref.read(libraryFileOperationsProvider),
     selection,
@@ -34,8 +40,9 @@ Future<void> showLibraryFileAction({
   );
   if (command == null) {
     await session.close();
+    return null;
   } else {
-    unawaited(commands.execute(session, command));
+    return LibraryFileActionSubmission(commands.execute(session, command));
   }
 }
 
@@ -132,7 +139,7 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
     return AlertDialog(
       title: Text(
         deletion && _summary != null
-            ? "删除 ${_summary!.files} 个文件？"
+            ? LibraryFileStrings.deletionTitle(_summary!)
             : "$label图片",
       ),
       content: SizedBox(
@@ -158,7 +165,9 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
                 onPressed: _picking ? null : _pick,
                 icon: const Icon(Symbols.folder_open_rounded),
                 label: Text(
-                  _directory ?? "选择目标文件夹",
+                  _directory == null
+                      ? "选择目标文件夹"
+                      : displayLibraryPath(_directory!),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),

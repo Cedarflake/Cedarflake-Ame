@@ -55,11 +55,12 @@ extension FileOperationSelectionScopePatterns on FileOperationSelectionScope {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( FileOperationSelectionScope_Gallery value)?  gallery,TResult Function( FileOperationSelectionScope_Locations value)?  locations,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( FileOperationSelectionScope_Gallery value)?  gallery,TResult Function( FileOperationSelectionScope_MergedGalleryGroups value)?  mergedGalleryGroups,TResult Function( FileOperationSelectionScope_Locations value)?  locations,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery() when gallery != null:
-return gallery(_that);case FileOperationSelectionScope_Locations() when locations != null:
+return gallery(_that);case FileOperationSelectionScope_MergedGalleryGroups() when mergedGalleryGroups != null:
+return mergedGalleryGroups(_that);case FileOperationSelectionScope_Locations() when locations != null:
 return locations(_that);case _:
   return orElse();
 
@@ -78,11 +79,12 @@ return locations(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( FileOperationSelectionScope_Gallery value)  gallery,required TResult Function( FileOperationSelectionScope_Locations value)  locations,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( FileOperationSelectionScope_Gallery value)  gallery,required TResult Function( FileOperationSelectionScope_MergedGalleryGroups value)  mergedGalleryGroups,required TResult Function( FileOperationSelectionScope_Locations value)  locations,}){
 final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery():
-return gallery(_that);case FileOperationSelectionScope_Locations():
+return gallery(_that);case FileOperationSelectionScope_MergedGalleryGroups():
+return mergedGalleryGroups(_that);case FileOperationSelectionScope_Locations():
 return locations(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
@@ -97,11 +99,12 @@ return locations(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( FileOperationSelectionScope_Gallery value)?  gallery,TResult? Function( FileOperationSelectionScope_Locations value)?  locations,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( FileOperationSelectionScope_Gallery value)?  gallery,TResult? Function( FileOperationSelectionScope_MergedGalleryGroups value)?  mergedGalleryGroups,TResult? Function( FileOperationSelectionScope_Locations value)?  locations,}){
 final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery() when gallery != null:
-return gallery(_that);case FileOperationSelectionScope_Locations() when locations != null:
+return gallery(_that);case FileOperationSelectionScope_MergedGalleryGroups() when mergedGalleryGroups != null:
+return mergedGalleryGroups(_that);case FileOperationSelectionScope_Locations() when locations != null:
 return locations(_that);case _:
   return null;
 
@@ -119,10 +122,11 @@ return locations(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  gallery,TResult Function()?  locations,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  gallery,TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  mergedGalleryGroups,TResult Function()?  locations,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery() when gallery != null:
-return gallery(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_Locations() when locations != null:
+return gallery(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_MergedGalleryGroups() when mergedGalleryGroups != null:
+return mergedGalleryGroups(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_Locations() when locations != null:
 return locations();case _:
   return orElse();
 
@@ -141,10 +145,11 @@ return locations();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)  gallery,required TResult Function()  locations,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)  gallery,required TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)  mergedGalleryGroups,required TResult Function()  locations,}) {final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery():
-return gallery(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_Locations():
+return gallery(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_MergedGalleryGroups():
+return mergedGalleryGroups(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_Locations():
 return locations();}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -159,10 +164,11 @@ return locations();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  gallery,TResult? Function()?  locations,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  gallery,TResult? Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  mergedGalleryGroups,TResult? Function()?  locations,}) {final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery() when gallery != null:
-return gallery(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_Locations() when locations != null:
+return gallery(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_MergedGalleryGroups() when mergedGalleryGroups != null:
+return mergedGalleryGroups(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_Locations() when locations != null:
 return locations();case _:
   return null;
 
@@ -231,6 +237,76 @@ class _$FileOperationSelectionScope_GalleryCopyWithImpl<$Res>
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') $Res call({Object? query = null,Object? catalogRevision = null,Object? allMatching = null,}) {
   return _then(FileOperationSelectionScope_Gallery(
+query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
+as GalleryQuery,catalogRevision: null == catalogRevision ? _self.catalogRevision : catalogRevision // ignore: cast_nullable_to_non_nullable
+as BigInt,allMatching: null == allMatching ? _self.allMatching : allMatching // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class FileOperationSelectionScope_MergedGalleryGroups extends FileOperationSelectionScope {
+  const FileOperationSelectionScope_MergedGalleryGroups({required this.query, required this.catalogRevision, required this.allMatching}): super._();
+
+
+ final  GalleryQuery query;
+ final  BigInt catalogRevision;
+ final  bool allMatching;
+
+/// Create a copy of FileOperationSelectionScope
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$FileOperationSelectionScope_MergedGalleryGroupsCopyWith<FileOperationSelectionScope_MergedGalleryGroups> get copyWith => _$FileOperationSelectionScope_MergedGalleryGroupsCopyWithImpl<FileOperationSelectionScope_MergedGalleryGroups>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope_MergedGalleryGroups&&(identical(other.query, query) || other.query == query)&&(identical(other.catalogRevision, catalogRevision) || other.catalogRevision == catalogRevision)&&(identical(other.allMatching, allMatching) || other.allMatching == allMatching));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,query,catalogRevision,allMatching);
+
+@override
+String toString() {
+  return 'FileOperationSelectionScope.mergedGalleryGroups(query: $query, catalogRevision: $catalogRevision, allMatching: $allMatching)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $FileOperationSelectionScope_MergedGalleryGroupsCopyWith<$Res> implements $FileOperationSelectionScopeCopyWith<$Res> {
+  factory $FileOperationSelectionScope_MergedGalleryGroupsCopyWith(FileOperationSelectionScope_MergedGalleryGroups value, $Res Function(FileOperationSelectionScope_MergedGalleryGroups) _then) = _$FileOperationSelectionScope_MergedGalleryGroupsCopyWithImpl;
+@useResult
+$Res call({
+ GalleryQuery query, BigInt catalogRevision, bool allMatching
+});
+
+
+
+
+}
+/// @nodoc
+class _$FileOperationSelectionScope_MergedGalleryGroupsCopyWithImpl<$Res>
+    implements $FileOperationSelectionScope_MergedGalleryGroupsCopyWith<$Res> {
+  _$FileOperationSelectionScope_MergedGalleryGroupsCopyWithImpl(this._self, this._then);
+
+  final FileOperationSelectionScope_MergedGalleryGroups _self;
+  final $Res Function(FileOperationSelectionScope_MergedGalleryGroups) _then;
+
+/// Create a copy of FileOperationSelectionScope
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? query = null,Object? catalogRevision = null,Object? allMatching = null,}) {
+  return _then(FileOperationSelectionScope_MergedGalleryGroups(
 query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as GalleryQuery,catalogRevision: null == catalogRevision ? _self.catalogRevision : catalogRevision // ignore: cast_nullable_to_non_nullable
 as BigInt,allMatching: null == allMatching ? _self.allMatching : allMatching // ignore: cast_nullable_to_non_nullable

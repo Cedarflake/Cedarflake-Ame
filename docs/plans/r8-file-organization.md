@@ -18,18 +18,22 @@ engine. A system capability gap first receives a bounded Windows API evaluation.
 
 ## Planned interaction decisions
 
-Ordinary gallery and viewer deletion acts on the explicitly selected physical file, including a
-preferred file. A preferred/selected marker is not a global deletion lock. A merged duplicate card
-does not authorize deleting its hidden copies. After verified deletion, automatically choose and
-persist a new preferred file from the remaining exact duplicates and refresh the card; remove the
-card when no copies remain. A cancelled or failed deletion that leaves the file intact preserves
-the original preference. Keep exact-group single preference and similar-group multiple selections
-as group-cleanup defaults; unselected membership alone does not authorize deletion.
+Deleting a merged card in the ordinary gallery selects the complete exact-duplicate group,
+including its preferred file and current copies in other folders counted by the group badge.
+Freeze that membership before showing the confirmation and display the actual affected file count.
+Unverified retained membership cannot authorize a partial group. New members discovered after
+confirmation are outside the frozen selection. Copy, move and rename retain their physical-file scope.
+
+Inside a group or a single-file viewer, deletion affects only the explicitly selected files.
+A preferred/selected marker is not a deletion lock. After verified partial deletion, automatically
+choose and persist a new preferred file from remaining exact duplicates; remove the card when none
+remain. A cancelled or failed deletion preserves the files and preferences it did not change.
+Keep exact-group single preference and similar-group multiple selections as group-cleanup defaults.
 
 | Situation | Planned behavior |
 | --- | --- |
 | Name already exists at the destination | Keep the extension and allocate `name(1).jpg`, `name(2).jpg`, and so on, using the first free number without overwriting existing files. Record the actual final name. |
-| Delete confirmation | Show the affected file count and a `永久删除` checkbox, unchecked for every new request. Confirming normally requests the system Recycle Bin; checking the option and confirming explicitly authorizes permanent deletion. Cancel or close performs no deletion. |
+| Delete confirmation | Identify whole-group deletion when selected and show the affected physical-file count. Keep `永久删除` unchecked for every new request. Confirming normally requests the system Recycle Bin; checking the option and confirming explicitly authorizes permanent deletion. Cancel or close performs no deletion. |
 | File changed after selection or cannot be verified | Do not delete it. Show the affected file and reason, retain a recorded execution rejection, and require a new selection and confirmation after viewing the current image. Preparation failure is reported before execution; never claim every selected file was deleted. |
 | Windows cannot recycle, including an oversized file | Preserve the native Windows confirmation and follow the user's response. Permanent fallback requires an affirmative system confirmation; cancellation or a refusal leaves the file intact. Ame never answers the dialog or silently retries permanently. |
 | Multiple album destinations in album-based organization | Skip that image, continue the other items, and summarize skipped items at the end. Do not choose an album or create multiple copies implicitly. This does not change virtual album membership. |

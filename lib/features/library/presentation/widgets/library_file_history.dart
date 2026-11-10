@@ -11,6 +11,7 @@ import "../../domain/library_file_operations.dart";
 import "../library_file_strings.dart";
 import "library_file_action_dialog.dart";
 import "library_file_export_history.dart";
+import "library_path_text.dart";
 
 Future<void> showLibraryFileHistory(BuildContext context) =>
     showModalBottomSheet<void>(
@@ -184,7 +185,9 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                           children: [
                             Text(status),
                             Text(
-                              item.destination ?? item.source,
+                              displayLibraryPath(
+                                item.destination ?? item.source,
+                              ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),

@@ -52,12 +52,12 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
     return const LibraryFileActivity();
   }
 
-  Future<void> execute(
+  Future<LibraryFileProgress?> execute(
     LibraryFileSelectionSession selection,
     LibraryFileCommand command,
   ) {
     if (_closing || _running != null) {
-      return selection.close();
+      return selection.close().then((_) => null);
     }
     _selection = selection;
     _stopping = false;
@@ -68,9 +68,11 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
         phase: LibraryFileTaskPhase.preparing,
       ),
     );
-    return _running = _run(
+    final running = _run(
       () => selection.execute(newOrganizationOperationId(), command),
     );
+    _running = running;
+    return running;
   }
 
   Future<void> recover(List<BigInt> ids, {bool continueMove = false}) =>
@@ -102,7 +104,9 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
     return _running = _run(start);
   }
 
-  Future<void> _run(Future<LibraryFileTask> Function() start) async {
+  Future<LibraryFileProgress?> _run(
+    Future<LibraryFileTask> Function() start,
+  ) async {
     Timer? preparationTimer;
     LibraryFileProgress? completed;
     var readingPreparation = false;
@@ -166,26 +170,26 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
       final failure = error is LibraryFileFailure
           ? error
           : LibraryFileFailure("file_operation_failed", error.toString());
-      _accept(
-        LibraryFileProgress(
-          phase: cancelledPreparation
-              ? LibraryFileTaskPhase.cancelled
-              : LibraryFileTaskPhase.needsAttention,
-          total: previous?.total ?? 0,
-          processed: previous?.processed ?? 0,
-          published: previous?.published ?? 0,
-          failed: previous?.failed ?? 0,
-          cancelled: previous?.cancelled ?? 0,
-          skipped: previous?.skipped ?? 0,
-          export: previous?.export,
-          failure: cancelledPreparation ? null : failure,
-        ),
+      completed = LibraryFileProgress(
+        phase: cancelledPreparation
+            ? LibraryFileTaskPhase.cancelled
+            : LibraryFileTaskPhase.needsAttention,
+        total: previous?.total ?? 0,
+        processed: previous?.processed ?? 0,
+        published: previous?.published ?? 0,
+        failed: previous?.failed ?? 0,
+        cancelled: previous?.cancelled ?? 0,
+        skipped: previous?.skipped ?? 0,
+        export: previous?.export,
+        failure: cancelledPreparation ? null : failure,
       );
+      _accept(completed);
     } finally {
       _task = null;
       _selection = null;
       _running = null;
     }
+    return completed;
   }
 
   void _accept(LibraryFileProgress progress) {

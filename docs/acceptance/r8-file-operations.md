@@ -419,3 +419,40 @@ Scoped Dart analysis, the existing four confirmation/lifecycle tests and the Win
 passed. These checks cover the desktop change; they do not resolve the separate recycling race.
 The mapping, confirmation, feedback and history owners contain 166, 242, 119 and 267 production-file
 lines with no inline tests; the existing dedicated test file contains 237 lines.
+
+## Merged-card deletion scope and readable paths — 2026-11-10
+
+Ordinary merged-gallery deletion now freezes the complete compatible group before confirmation,
+including current copies in other folders. Its typed selection cannot authorize copy, move or
+rename. Group-member buttons and single-file viewers retain explicit-location deletion. The existing
+SQLite selection regression covers cross-folder membership, all-matching exclusions, preference
+changes, stale generations and rejection of retained unverified membership. The focused command
+admission check and 19 affected Flutter checks passed, including confirmation reset and cancellation.
+Bridge hashes and 39 asynchronous contracts, Dart dependency boundaries, handwritten Dart analysis
+and the Windows Debug build passed.
+
+The actual Debug client used six guest-local synthetic files in a fresh Windows Sandbox. Deleting
+one member of a two-file group showed a one-file confirmation, recycled only that file and retained
+the other member as preferred. Deleting a different merged gallery card showed a two-file whole-group
+confirmation, recycled both files and removed that card. The system Recycle Bin displayed exactly
+these three files; Ame history displayed three completed records with readable drive-letter paths.
+The remaining three files matched their baseline SHA-256 values and the sibling sentinel was
+unchanged. Host inputs were read-only; the Sandbox stopped and its leased scratch was removed.
+Display-only path normalization leaves native execution paths intact. This workflow does not resolve
+the separate post-validation Shell replacement race above.
+
+Completed deletion feedback uses the affected-file summary as its single result line, omitting the
+redundant completion heading while retaining the file detail and history/dismissal actions.
+The selection toolbar joins its submitted operation, then retires that selection after a published
+result. Cancellation or a zero-result failure retains selection; the existing intent/query guard
+preserves newer selections. In a second Sandbox client, deleting a selected two-file group restored
+the gallery heading and two remaining images, while the notice showed only the affected-file summary.
+Both remaining file hashes and the sibling sentinel matched their baseline. The owned Sandbox and
+scratch were retired. Existing application and selection regressions passed after the lifecycle
+change; completion remains unavailable until native cleanup and catalog publication finish.
+
+The selection facade and group expansion owner contain 255 and 98 production lines without inline
+tests. Authorization contains 229 production lines and 30 inline-test lines; its SQLite selection
+fixture contains 253 dedicated-test lines. The confirmation, history and group-card owners contain
+251, 270 and 247 production lines without inline tests. File-action lifetime, selection toolbar and
+feedback contain 232, 421 and 127 production lines; the affected application test file has 286 lines.

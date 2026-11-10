@@ -56,7 +56,7 @@ class LibraryDuplicateResults extends StatelessWidget {
       itemCount: workspace.itemCount,
       singleColumn: workspace.hasMembers,
       selectable: workspace.hasMembers,
-      memberActions: workspace.isSimilar ? 3 : 2,
+      memberActions: 3,
       onVisibleRange: workspace.ensureRange,
       assetAt: workspace.assetAt,
       itemBuilder: (context, index) {

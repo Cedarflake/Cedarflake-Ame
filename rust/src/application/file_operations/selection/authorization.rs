@@ -140,6 +140,17 @@ fn validate(
     command: &FileOperationCommand,
     summary: &FileOperationSelectionSummary,
 ) -> Result<(), ScanError> {
+    if summary.merged_group_count.is_some()
+        && !matches!(
+            command.action,
+            FileAction::Recycle | FileAction::DeletePermanently
+        )
+    {
+        return Err(ScanError::new(
+            "file_operation_command_invalid",
+            "A whole-group deletion selection cannot authorize another file action",
+        ));
+    }
     let valid = match command.action {
         FileAction::Copy | FileAction::Move => {
             command
@@ -214,4 +225,35 @@ fn now() -> i64 {
         .ok()
         .and_then(|value| i64::try_from(value.as_millis()).ok())
         .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn expanded_group_authority_is_limited_to_confirmed_deletion() {
+        let mut summary = FileOperationSelectionSummary {
+            file_count: 2,
+            total_bytes: 40,
+            merged_group_count: Some(1),
+        };
+        let mut command = FileOperationCommand {
+            action: FileAction::Recycle,
+            destination_directory: None,
+            new_name: None,
+            organization_rule: FileOrganizationRule::Direct,
+        };
+        assert!(validate(&command, &summary).is_ok());
+        command.action = FileAction::DeletePermanently;
+        assert!(validate(&command, &summary).is_ok());
+        command.action = FileAction::Copy;
+        command.destination_directory = Some("D:\\Export".into());
+        assert_eq!(
+            validate(&command, &summary).unwrap_err().code,
+            "file_operation_command_invalid"
+        );
+        summary.merged_group_count = None;
+        assert!(validate(&command, &summary).is_ok());
+    }
 }

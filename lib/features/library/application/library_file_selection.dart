@@ -30,7 +30,8 @@ class LibraryFileSelectionSession {
       _check();
     }
     switch (selection) {
-      case LibraryFilesInGallery(:final selection):
+      case LibraryFilesInGallery(:final selection) ||
+          LibraryFileGroupsInGallery(:final selection):
         for (var start = 0; start < selection.assetIds.length; start += 256) {
           _check();
           await draft.appendIds(

@@ -7,6 +7,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_file_operations.dart";
 import "../../domain/library_file_operations.dart";
+import "library_path_text.dart";
 
 class LibraryFileExportHistory extends ConsumerStatefulWidget {
   const LibraryFileExportHistory({super.key});
@@ -90,7 +91,7 @@ class _ExportHistoryState extends ConsumerState<LibraryFileExportHistory> {
                         leading: const Icon(Symbols.description_rounded),
                         title: Text(status),
                         subtitle: Text(
-                          "${item.selected} 个文件 · 已跳过 ${item.skipped} 个\n${item.directory}",
+                          "${item.selected} 个文件 · 已跳过 ${item.skipped} 个\n${displayLibraryPath(item.directory)}",
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -99,7 +100,7 @@ class _ExportHistoryState extends ConsumerState<LibraryFileExportHistory> {
                           builder: (context) => AlertDialog(
                             title: const Text("结果清单"),
                             content: SelectableText(
-                              "$status\n${item.createdAt}\n${item.reportPath ?? item.directory}${item.failure == null ? "" : "\n${item.failure!.detail}"}",
+                              "$status\n${item.createdAt}\n${displayLibraryPath(item.reportPath ?? item.directory)}${item.failure == null ? "" : "\n${item.failure!.detail}"}",
                             ),
                             actions: [
                               TextButton(

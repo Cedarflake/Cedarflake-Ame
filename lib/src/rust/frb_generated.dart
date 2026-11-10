@@ -8163,6 +8163,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           allMatching: dco_decode_bool(raw[3]),
         );
       case 1:
+        return FileOperationSelectionScope_MergedGalleryGroups(
+          query: dco_decode_box_gallery_query(raw[1]),
+          catalogRevision: dco_decode_u_64(raw[2]),
+          allMatching: dco_decode_bool(raw[3]),
+        );
+      case 2:
         return FileOperationSelectionScope_Locations();
       default:
         throw Exception("unreachable");
@@ -8175,11 +8181,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return FileOperationSelectionSummary(
       fileCount: dco_decode_u_64(arr[0]),
       totalBytes: dco_decode_u_64(arr[1]),
+      mergedGroupCount: dco_decode_opt_box_autoadd_u_64(arr[2]),
     );
   }
 
@@ -12584,6 +12591,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           allMatching: var_allMatching,
         );
       case 1:
+        var var_query = sse_decode_box_gallery_query(deserializer);
+        var var_catalogRevision = sse_decode_u_64(deserializer);
+        var var_allMatching = sse_decode_bool(deserializer);
+        return FileOperationSelectionScope_MergedGalleryGroups(
+          query: var_query,
+          catalogRevision: var_catalogRevision,
+          allMatching: var_allMatching,
+        );
+      case 2:
         return FileOperationSelectionScope_Locations();
       default:
         throw UnimplementedError('');
@@ -12597,9 +12613,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_fileCount = sse_decode_u_64(deserializer);
     var var_totalBytes = sse_decode_u_64(deserializer);
+    var var_mergedGroupCount = sse_decode_opt_box_autoadd_u_64(deserializer);
     return FileOperationSelectionSummary(
       fileCount: var_fileCount,
       totalBytes: var_totalBytes,
+      mergedGroupCount: var_mergedGroupCount,
     );
   }
 
@@ -17681,8 +17699,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_box_gallery_query(query, serializer);
         sse_encode_u_64(catalogRevision, serializer);
         sse_encode_bool(allMatching, serializer);
-      case FileOperationSelectionScope_Locations():
+      case FileOperationSelectionScope_MergedGalleryGroups(
+        query: final query,
+        catalogRevision: final catalogRevision,
+        allMatching: final allMatching,
+      ):
         sse_encode_i_32(1, serializer);
+        sse_encode_box_gallery_query(query, serializer);
+        sse_encode_u_64(catalogRevision, serializer);
+        sse_encode_bool(allMatching, serializer);
+      case FileOperationSelectionScope_Locations():
+        sse_encode_i_32(2, serializer);
     }
   }
 
@@ -17694,6 +17721,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_u_64(self.fileCount, serializer);
     sse_encode_u_64(self.totalBytes, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.mergedGroupCount, serializer);
   }
 
   @protected

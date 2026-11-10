@@ -23,6 +23,12 @@ class RustLibraryFileOperations implements LibraryFileOperations {
               catalogRevision: selection.catalogRevision,
               allMatching: selection.allMatching,
             ),
+          LibraryFileGroupsInGallery(:final selection) =>
+            dto.FileOperationSelectionScope.mergedGalleryGroups(
+              query: mapLibraryGalleryQueryToRust(selection.query),
+              catalogRevision: selection.catalogRevision,
+              allMatching: selection.allMatching,
+            ),
           LibraryFilesAtLocations() =>
             const dto.FileOperationSelectionScope.locations(),
         };
@@ -98,6 +104,7 @@ class _Draft implements LibraryFileSelectionDraft {
     return LibraryFileSelectionSummary(
       result.fileCount.toInt(),
       result.totalBytes.toInt(),
+      mergedGroups: result.mergedGroupCount?.toInt(),
     );
   });
   @override

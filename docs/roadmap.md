@@ -171,8 +171,12 @@ records passing hosted verification and a reproduced Shell recycling identity ra
 policy preserves the confirmed file version and reports changed/unverifiable files as not deleted.
 Normal recycling remains required; a global disable does not fulfill this outcome. Resolve the
 post-validation replacement window before claiming identity-preserving recycling.
-After the current deletion-feedback change, collect actual Ame dialog screenshots with their
-entry points and relevant states for a separate layout review. This review does not authorize a
+The deletion-scope adjustment and readable-path correction have
+[scoped client evidence](acceptance/r8-file-operations.md#merged-card-deletion-scope-and-readable-paths--2026-11-10).
+Ordinary merged-gallery cards target the complete confirmed group; group members and single-file
+viewers retain explicit-file scope. The [interaction plan](plans/r8-file-organization.md#planned-interaction-decisions)
+owns the details. Collect actual Ame dialog screenshots with their entry points and relevant states
+for a separate layout review. This review does not authorize a
 dialog-wide redesign or replace R8's remaining native safety requirement.
 Native behavior that cannot preserve the required source-safety guarantees blocks delivery of the
 affected action until resolved; it does not authorize a weaker fallback. Exit requires the connected

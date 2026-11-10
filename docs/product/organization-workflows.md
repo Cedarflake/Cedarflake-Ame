@@ -160,10 +160,15 @@ Scope:
 - an internal immutable `OperationPlan` containing source, destination and collision policy, action
   kind, reason, expected source state and fingerprint evidence, target preconditions, conflicts,
   warnings, and estimated space impact;
-- explicit resolution of the physical locations affected when one gallery item represents exact
-  duplicates; grouping alone never authorizes removing or moving every copy;
-- ordinary gallery deletion may remove the preferred file; successful deletion chooses a new
-  preferred file from remaining duplicates, or removes the card when none remain;
+- confirmed deletion of an ordinary gallery's merged card includes its complete exact-duplicate
+  group; the confirmation identifies that scope and physical-file count, including copies in other
+  folders. Freeze the selected membership before confirmation; later discoveries do not expand it;
+- deletion inside a group or a single-file viewer affects only explicitly selected files. Preferred
+  files can be deleted; remaining duplicates receive a new preferred file, and an empty group retires.
+  Grouping does not expand copy, move or rename authorization;
+- completed file actions with published results exit their original gallery selection and restore
+  the collection heading/count. Cancellation or no successful result retains selection; a later
+  user selection is not cleared by the earlier action;
 - fresh action authorization bound to one immutable `OperationPlan`; background preparation never
   authorizes execution, and a changed scope, destination root, deletion mode or collision policy
   requires renewed authorization rather than modification of the earlier evidence;

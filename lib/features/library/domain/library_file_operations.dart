@@ -14,6 +14,11 @@ class LibraryFilesInGallery extends LibraryFileSelection {
   final LibraryOrganizationSelection selection;
 }
 
+class LibraryFileGroupsInGallery extends LibraryFileSelection {
+  const LibraryFileGroupsInGallery(this.selection);
+  final LibraryOrganizationSelection selection;
+}
+
 class LibraryFilesAtLocations extends LibraryFileSelection {
   LibraryFilesAtLocations(Iterable<LibraryOrganizationTarget> locations)
     : locations = List.unmodifiable(locations);
@@ -34,9 +39,14 @@ class LibraryFileCommand {
 }
 
 class LibraryFileSelectionSummary {
-  const LibraryFileSelectionSummary(this.files, this.bytes);
+  const LibraryFileSelectionSummary(
+    this.files,
+    this.bytes, {
+    this.mergedGroups,
+  });
   final int files;
   final int bytes;
+  final int? mergedGroups;
 }
 
 enum LibraryFileTaskPhase {

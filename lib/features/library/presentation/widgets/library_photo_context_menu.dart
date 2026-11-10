@@ -7,10 +7,12 @@ import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_album_requests.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_file_operations.dart";
+import "../../application/library_file_selection_scope.dart";
 import "../../domain/library_file_operations.dart";
 import "../../application/library_organization.dart";
 import "../../application/library_organization_actions.dart";
 import "../../domain/library_organization.dart";
+import "../../domain/library_organization_batch.dart";
 import "../library_strings.dart";
 import "../library_search_strings.dart";
 import "library_album_picker.dart";
@@ -41,7 +43,9 @@ class LibraryPhotoContextMenu {
   }) async {
     if (_disposed || _isOpen) return;
     _isOpen = true;
-    final query = ref.read(libraryControllerProvider).query;
+    final library = ref.read(libraryControllerProvider);
+    final query = library.query;
+    final catalogRevision = library.catalogRevision;
     bool owns() =>
         !_disposed &&
         context.mounted &&
@@ -74,7 +78,8 @@ class LibraryPhotoContextMenu {
             .resolve("photo-menu-inspection");
       }
       final busy = ref.read(libraryOrganizationActionsProvider).saving;
-      final filesBusy = ref.read(libraryFileActionsProvider).busy;
+      final filesBusy =
+          ref.read(libraryFileActionsProvider).busy || catalogRevision == null;
       final entries = _entries(decision, onFindRelated != null);
       final action = await showAmePopupMenu<_PhotoAction>(
         context: context,
@@ -112,17 +117,28 @@ class LibraryPhotoContextMenu {
         case _PhotoAction.moveFile:
         case _PhotoAction.renameFile:
         case _PhotoAction.deleteFile:
+          if (catalogRevision == null) return;
+          final fileAction = switch (action) {
+            _PhotoAction.copyFile => LibraryFileAction.copy,
+            _PhotoAction.moveFile => LibraryFileAction.move,
+            _PhotoAction.renameFile => LibraryFileAction.rename,
+            _ => LibraryFileAction.recycle,
+          };
           await showLibraryFileAction(
             context: context,
             ref: ref,
-            selection: LibraryFilesAtLocations([target]),
+            selection: selectGalleryFilesForAction(
+              action: fileAction,
+              selection: LibraryOrganizationSelection(
+                query: query,
+                catalogRevision: catalogRevision,
+                allMatching: false,
+                assetIds: [target.assetId],
+              ),
+              location: target,
+            ),
             initialName: fileName,
-            action: switch (action) {
-              _PhotoAction.copyFile => LibraryFileAction.copy,
-              _PhotoAction.moveFile => LibraryFileAction.move,
-              _PhotoAction.renameFile => LibraryFileAction.rename,
-              _ => LibraryFileAction.recycle,
-            },
+            action: fileAction,
           );
         case _PhotoAction.favorite:
           await commands.favorite(target, !decision!.favorite);

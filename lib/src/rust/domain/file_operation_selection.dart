@@ -81,6 +81,11 @@ sealed class FileOperationSelectionScope with _$FileOperationSelectionScope {
     required BigInt catalogRevision,
     required bool allMatching,
   }) = FileOperationSelectionScope_Gallery;
+  const factory FileOperationSelectionScope.mergedGalleryGroups({
+    required GalleryQuery query,
+    required BigInt catalogRevision,
+    required bool allMatching,
+  }) = FileOperationSelectionScope_MergedGalleryGroups;
   const factory FileOperationSelectionScope.locations() =
       FileOperationSelectionScope_Locations;
 }
@@ -88,14 +93,17 @@ sealed class FileOperationSelectionScope with _$FileOperationSelectionScope {
 class FileOperationSelectionSummary {
   final BigInt fileCount;
   final BigInt totalBytes;
+  final BigInt? mergedGroupCount;
 
   const FileOperationSelectionSummary({
     required this.fileCount,
     required this.totalBytes,
+    this.mergedGroupCount,
   });
 
   @override
-  int get hashCode => fileCount.hashCode ^ totalBytes.hashCode;
+  int get hashCode =>
+      fileCount.hashCode ^ totalBytes.hashCode ^ mergedGroupCount.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -103,5 +111,6 @@ class FileOperationSelectionSummary {
       other is FileOperationSelectionSummary &&
           runtimeType == other.runtimeType &&
           fileCount == other.fileCount &&
-          totalBytes == other.totalBytes;
+          totalBytes == other.totalBytes &&
+          mergedGroupCount == other.mergedGroupCount;
 }

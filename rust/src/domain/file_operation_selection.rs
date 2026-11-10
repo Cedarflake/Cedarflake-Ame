@@ -9,6 +9,11 @@ pub enum FileOperationSelectionScope {
         catalog_revision: u64,
         all_matching: bool,
     },
+    MergedGalleryGroups {
+        query: Box<GalleryQuery>,
+        catalog_revision: u64,
+        all_matching: bool,
+    },
     Locations,
 }
 
@@ -16,6 +21,7 @@ pub enum FileOperationSelectionScope {
 pub struct FileOperationSelectionSummary {
     pub file_count: u64,
     pub total_bytes: u64,
+    pub merged_group_count: Option<u64>,
 }
 
 #[derive(Clone, Debug)]

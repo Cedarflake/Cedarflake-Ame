@@ -4,7 +4,9 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_file_operations.dart";
+import "../../application/library_file_selection_scope.dart";
 import "../../domain/library_file_operations.dart";
+import "../../domain/library_organization_batch.dart";
 import "../library_file_strings.dart";
 import "library_file_action_dialog.dart";
 
@@ -12,10 +14,12 @@ class LibraryFileMenu extends ConsumerWidget {
   const LibraryFileMenu({
     required this.selection,
     required this.enabled,
+    required this.onCommitted,
     super.key,
   });
-  final LibraryFileSelection selection;
+  final LibraryOrganizationSelection selection;
   final bool enabled;
+  final VoidCallback onCommitted;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,12 +45,19 @@ class LibraryFileMenu extends ConsumerWidget {
             ),
           ),
       ],
-      onSelected: (action) => showLibraryFileAction(
-        context: context,
-        ref: ref,
-        selection: selection,
-        action: action,
-      ),
+      onSelected: (action) async {
+        final submitted = await showLibraryFileAction(
+          context: context,
+          ref: ref,
+          selection: selectGalleryFilesForAction(
+            action: action,
+            selection: selection,
+          ),
+          action: action,
+        );
+        final result = await submitted?.completion;
+        if (context.mounted && (result?.published ?? 0) > 0) onCommitted();
+      },
       builder: (context, openMenu) => TextButton.icon(
         onPressed: enabled && !busy ? openMenu : null,
         icon: const Icon(Symbols.folder_rounded),

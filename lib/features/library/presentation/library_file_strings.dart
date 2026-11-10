@@ -3,6 +3,15 @@ import "../domain/library_file_operations.dart";
 
 abstract final class LibraryFileStrings {
   static const changedBeforeDeletion = "文件已更改，未删除。请查看最新图片后重新选择并确认。";
+  static String deletionTitle(LibraryFileSelectionSummary summary) {
+    final groups = summary.mergedGroups;
+    if (groups == null || summary.files == groups) {
+      return "删除 ${summary.files} 个文件？";
+    }
+    if (groups == 1) return "删除这组图片的全部 ${summary.files} 个文件？";
+    return "删除 $groups 组图片，共 ${summary.files} 个文件？";
+  }
+
   static String rule(LibraryFileOrganizationRule rule) => switch (rule) {
     LibraryFileOrganizationRule.direct => "直接放入目标文件夹",
     LibraryFileOrganizationRule.category => "按分类",
@@ -66,6 +75,7 @@ abstract final class LibraryFileStrings {
     LibraryFileFailure? failure, {
     LibraryFileAction? action,
   }) => switch (failure?.code) {
+    "organization_evidence_pending" => "重复组尚未核对完成，请稍后重试。",
     "organization_selection_changed" ||
     "file_operation_selection_changed" => "所选图片已变化，请查看当前图库后重新选择。",
     "file_operation_source_changed" =>
