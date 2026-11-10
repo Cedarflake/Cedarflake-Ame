@@ -83,7 +83,7 @@ void main() {
     expect(find.text("缩略图位置"), findsOneWidget);
     expect(find.text("清理未关联记录"), findsOneWidget);
     expect(find.byKey(const Key("settings-cleanup-age")), findsNothing);
-    expect(find.text("查看并清理"), findsOneWidget);
+    expect(find.byKey(const Key("settings-cleanup-inspect")), findsOneWidget);
     expect(find.text("已有图库时不可更改"), findsOneWidget);
     expect(find.textContaining("Settings file"), findsNothing);
     expect(
@@ -114,7 +114,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const Key("settings-default-album")),
-        matching: find.byIcon(Symbols.arrow_drop_down_rounded),
+        matching: find.byIcon(Symbols.chevron_right_rounded),
       ),
       findsOneWidget,
     );
@@ -543,7 +543,7 @@ void main() {
             home: Scaffold(
               body: Column(
                 children: [
-                  AmeChoice<int>(
+                  AmeChoice<int>.menu(
                     key: const Key("enabled-settings-choice"),
                     value: 1,
                     entries: const [
@@ -552,11 +552,10 @@ void main() {
                     ],
                     onSelected: (value) => selected = value,
                   ),
-                  AmeChoice<int>(
+                  AmeChoice<int>.menu(
                     key: const Key("disabled-settings-choice"),
                     value: 3,
                     enabled: false,
-                    width: 144,
                     entries: const [
                       AmeChoiceEntry(value: 3, label: "已禁用"),
                       AmeChoiceEntry(value: 4, label: "不可选择"),
@@ -572,9 +571,10 @@ void main() {
         final enabledChoice = find.byKey(const Key("enabled-settings-choice"));
         final enabledButton = find.descendant(
           of: enabledChoice,
-          matching: find.byType(OutlinedButton),
+          matching: find.byWidgetPredicate(
+            (widget) => widget is ButtonStyleButton,
+          ),
         );
-        expect(tester.getSize(enabledButton), const Size(176, 56));
         expect(
           tester.getSemantics(enabledButton),
           matchesSemantics(
@@ -603,14 +603,13 @@ void main() {
         await tester.pumpAndSettle();
         expect(
           tester
-              .getSemantics(find.byKey(const ValueKey("ame-choice-option-1")))
+              .getSemantics(find.byKey(const ValueKey("menu-choice-当前")))
               .flagsCollection
               .isChecked,
           CheckedState.isTrue,
         );
         final option = find.byKey(const ValueKey("ame-choice-option-2"));
         final route = ModalRoute.of(tester.element(option));
-        expect(tester.getSize(option).width, 176);
         expect(route?.transitionDuration, AmeMenuTransition.duration);
         expect(route?.reverseTransitionDuration, AmeMenuTransition.duration);
         await tester.tap(option);
@@ -622,9 +621,10 @@ void main() {
         );
         final disabledButton = find.descendant(
           of: disabledChoice,
-          matching: find.byType(OutlinedButton),
+          matching: find.byWidgetPredicate(
+            (widget) => widget is ButtonStyleButton,
+          ),
         );
-        expect(tester.getSize(disabledButton), const Size(144, 56));
         expect(
           tester.getSemantics(disabledButton),
           matchesSemantics(
@@ -671,7 +671,7 @@ void main() {
     final speedSetting = find.byKey(const Key("preview-loading-speed-setting"));
     final speedButton = find.descendant(
       of: speedSetting,
-      matching: find.byType(OutlinedButton),
+      matching: find.byWidgetPredicate((widget) => widget is ButtonStyleButton),
     );
     await _openPopupMenu(tester, speedButton);
     expect(
@@ -729,10 +729,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final themeMenu = find.byType(AmeChoice<AmeThemePreference>);
-    await _openPopupMenu(
-      tester,
-      find.descendant(of: themeMenu, matching: find.byType(OutlinedButton)),
-    );
+    await _openPopupMenu(tester, themeMenu);
     await _selectPopupMenuItem(tester, _popupMenuItemTarget("浅色"));
 
     final container = ProviderScope.containerOf(
@@ -774,7 +771,7 @@ void main() {
     final budgetSetting = find.byKey(const Key("preview-budget-setting"));
     final budgetButton = find.descendant(
       of: budgetSetting,
-      matching: find.byType(OutlinedButton),
+      matching: find.byWidgetPredicate((widget) => widget is ButtonStyleButton),
     );
     await _openPopupMenu(tester, budgetButton);
     expect(_popupMenuItemTarget("8 GB").hitTestable(), findsOneWidget);
@@ -881,7 +878,7 @@ void main() {
 
     expect(find.text("缩略图清理完成"), findsOneWidget);
     expect(find.textContaining("已移除 2 个文件"), findsOneWidget);
-    expect(find.text("清理"), findsOneWidget);
+    expect(cleanupButton, findsOneWidget);
   });
 
   testWidgets("isolates and clears a preview cleanup transport error", (
@@ -983,7 +980,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text("清理旧缩略图目录？"), findsOneWidget);
-    expect(find.textContaining("不会删除原图片或目录中的其他文件"), findsOneWidget);
+    expect(find.textContaining("原图片和其他文件会保留"), findsOneWidget);
     await tester.tap(find.text("开始清理"));
     await tester.pump();
 

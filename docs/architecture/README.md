@@ -56,3 +56,4 @@ Recorded decisions:
 - [ADR 0039: Default-enabled GPU image classification](0039-gpu-classification-execution.md)
 - [ADR 0040: Durable shared image features for discovery](0040-durable-discovery-features.md)
 - [ADR 0041: Resource-aware image and text scheduling](0041-resource-aware-analysis-scheduling.md)
+- [ADR 0042: Execute authorized file operations through Windows APIs](0042-windows-file-operations.md)

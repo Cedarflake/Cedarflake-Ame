@@ -33,9 +33,10 @@ deadline or latency assertion. Hosted Daily partitions remain isolated from one 
 `quality_test_rust.ps1` owns this complete Cargo invocation. With no arguments it runs the entire
 suite once, serially, under the same repository lock. Only the hosted workflow fans out work onto
 separate runners; no local entrypoint starts jobs, parallel shells or concurrent test processes.
-Its hosted partitions separate schema migrations plus change queue, remaining catalog tests,
-synchronization plus scan tests, and all remaining tests. Each runner first enumerates the complete
-compiled all-target/all-feature inventory and requires every item to have exactly one partition.
+Its four hosted partitions separate schema migrations, change queue and organization; remaining
+catalog tests; synchronization, scan and classification; and all remaining tests. Each runner first
+enumerates the complete compiled all-target/all-feature inventory and requires every item to have
+exactly one partition.
 New modules enter the remaining partition automatically; duplicate names across targets retain
 their multiplicity. Each partition then runs native libtest filters with `--test-threads=1` and
 the existing ignore policy. Coverage, argument, matrix and local serial-lock guardrails run in lint.

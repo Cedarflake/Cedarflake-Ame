@@ -10,7 +10,7 @@ use crate::domain::organization::{
 use super::super::{database_error, exact_duplicates::read_unsigned, sqlite_integer};
 use super::selection;
 
-pub(super) fn load(
+pub(in crate::adapters::sqlite_catalog) fn load(
     connection: &Connection,
     selections: &[OrganizationSelection],
 ) -> Result<OrganizationInspection, ScanError> {

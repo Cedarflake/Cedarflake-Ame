@@ -1,6 +1,31 @@
 {
   "activeIds": [],
   "retainedOwners": {
+    "file-operation-runtime": {
+      "responsibility": "Select the catalog and Windows engines for the joined file-operation task",
+      "reason": "The factory binds concrete resources behind operation ports; authority, execution and recovery stay in application owners.",
+      "lifetime": "One bounded task holds the process mutation lane and opens a validated catalog on its worker; close cancels and joins before resource replacement.",
+      "replacement": "Replace journal and native bindings together while preserving immutable authority, publication and joined cancellation.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#file-operation-runtime",
+      "coverage": [
+        "rust/src/adapters/sqlite_catalog/file_operations/tests/task.rs",
+        "rust/src/adapters/sqlite_catalog/file_operations/tests/selection.rs",
+        "rust/src/application/file_operations/native_tests.rs"
+      ]
+    },
+    "file-operation-tool-export": {
+      "responsibility": "Expose the Windows operation and durable journal constructors to scoped native and SQLite fixtures",
+      "reason": "Fixtures exercise real adapters through NativeFileOperations and FileOperationJournal; the facade performs no authorization or execution.",
+      "lifetime": "Each synchronous call owns guarded namespaces and file handles; Shell deletion owns a dedicated STA that joins before returning.",
+      "replacement": "Replace the adapter and its native contract fixture together while preserving typed requests and outcomes.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#native-tool-entrypoints",
+      "coverage": [
+        "rust/examples/file_operation_probe.rs",
+        "rust/examples/file_operation_probe/scenarios.rs",
+        "rust/examples/file_operation_probe/volumes.rs",
+        "rust/src/adapters/sqlite_catalog/file_operations/tests.rs"
+      ]
+    },
     "classification-tool-exports": {
       "responsibility": "Expose the three native vocabulary and feature-cache constructors used by repository tools",
       "reason": "Existing classification probe and cache-export entrypoints select these concrete implementations; alias resolution still identifies them as adapters for all consumers.",
@@ -328,6 +353,66 @@
     }
   },
   "retained": [
+    {
+      "id": "file-operation-selection-catalog",
+      "owner": "file-operation-runtime",
+      "dependency": {
+        "source": "rust/src/application/file_operations/production.rs",
+        "symbol": "crate::application::file_operations::production::open_selection",
+        "target": "crate::adapters::sqlite_catalog::file_operations::selection::SqliteFileOperationSelection",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "file-operation-selection-inspector",
+      "owner": "file-operation-runtime",
+      "dependency": {
+        "source": "rust/src/application/file_operations/production.rs",
+        "symbol": "crate::application::file_operations::production::source_inspector",
+        "target": "crate::adapters::windows_file_operations::WindowsFileOperations",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "file-operation-runtime-catalog",
+      "owner": "file-operation-runtime",
+      "dependency": {
+        "source": "rust/src/application/file_operations/production.rs",
+        "symbol": "crate::application::file_operations::production::open_journal",
+        "target": "crate::adapters::sqlite_catalog::file_operations::SqliteFileOperationJournal",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "file-operation-runtime-windows",
+      "owner": "file-operation-runtime",
+      "dependency": {
+        "source": "rust/src/application/file_operations/production.rs",
+        "symbol": "crate::application::file_operations::production::start_file_operation_task",
+        "target": "crate::adapters::windows_file_operations::WindowsFileOperations",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "file-operation-tool-journal-adapter",
+      "owner": "file-operation-tool-export",
+      "dependency": {
+        "source": "rust/src/file_operations.rs",
+        "symbol": "crate::file_operations::export::SqliteFileOperationJournal",
+        "target": "crate::adapters::sqlite_catalog::file_operations::SqliteFileOperationJournal",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "file-operation-tool-windows-adapter",
+      "owner": "file-operation-tool-export",
+      "dependency": {
+        "source": "rust/src/file_operations.rs",
+        "symbol": "crate::file_operations::export::WindowsFileOperations",
+        "target": "crate::adapters::windows_file_operations::WindowsFileOperations",
+        "rule": "concrete-adapter"
+      }
+    },
     {
       "id": "classification-tool-curated-vocabulary",
       "owner": "classification-tool-exports",

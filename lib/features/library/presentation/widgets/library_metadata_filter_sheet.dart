@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_choice.dart";
+import "../../../../app/presentation/ame_date_picker_calendar.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_metadata_filter.dart";
 import "../coordination/library_metadata_filter_draft.dart";
@@ -104,6 +105,21 @@ class _LibraryMetadataFilterSheetState
     final date = await showDatePicker(
       context: context,
       helpText: label,
+      calendarDelegate: AmeDatePickerCalendar(
+        separateWeekday:
+            MediaQuery.orientationOf(context) == Orientation.landscape,
+      ),
+      builder: (context, child) {
+        final theme = Theme.of(context);
+        return Theme(
+          data: theme.copyWith(
+            datePickerTheme: theme.datePickerTheme.copyWith(
+              headerHeadlineStyle: theme.textTheme.headlineSmall,
+            ),
+          ),
+          child: child!,
+        );
+      },
       initialDate:
           parseLibraryFilterDate(controller.text.trim()) ?? DateTime.now(),
       firstDate: DateTime(1),

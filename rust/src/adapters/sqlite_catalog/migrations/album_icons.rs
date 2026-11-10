@@ -74,6 +74,7 @@ fn invalid() -> ScanError {
 
 #[cfg(test)]
 pub(super) fn downgrade_for_test(connection: &Connection) {
+    super::file_operations::downgrade_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() == 78 {
         connection.execute_batch("DROP TABLE organization_album_icons; UPDATE schema_info SET version = 77; PRAGMA user_version = 77;").unwrap();
     }

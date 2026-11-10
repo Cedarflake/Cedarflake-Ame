@@ -2016,6 +2016,7 @@ dependencies = [
  "thiserror",
  "tokenizers",
  "windows",
+ "windows-core",
  "windows-sys 0.61.2",
  "zune-core",
  "zune-jpeg",

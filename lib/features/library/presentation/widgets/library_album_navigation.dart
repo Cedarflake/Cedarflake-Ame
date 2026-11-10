@@ -12,6 +12,7 @@ import "../../domain/library_gallery_collection.dart";
 import "../../domain/library_organization.dart";
 import "../coordination/library_sidebar_selection.dart";
 import "library_album_editor.dart";
+import "library_album_icon.dart";
 import "library_album_navigation_tile.dart";
 import "library_sidebar_reorder_list.dart";
 import "library_sidebar_section_header.dart";
@@ -69,6 +70,9 @@ class _LibraryAlbumNavigationState
       title: "删除 ${albums.length} 个相册？",
       detail: "这些相册中的图片组将进入已忽略。图片文件和收藏状态会保留。",
       actionLabel: "删除相册",
+      itemIcons: {
+        for (final album in albums) album.id: libraryAlbumIcon(album.icon),
+      },
     );
     if (!mounted) return;
     setState(() {

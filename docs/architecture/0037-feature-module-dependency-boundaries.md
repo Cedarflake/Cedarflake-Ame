@@ -71,6 +71,10 @@ state and submits intents without owning task handles or publication. Album pref
 live in `tool/dependency-boundaries/dart_boundary_policy.json`; this admits no other library internals
 or cross-feature widget imports.
 
+The Settings preview-cleanup confirmation consumes `libraryPlatformActionsProvider` only to open
+the displayed retired preview directory. Cleanup authority remains with the storage application;
+the shared dialog location component receives a callback and has no feature or filesystem dependency.
+
 The Settings analysis row consumes `libraryClassificationConfigurationProvider` and
 `LibraryClassificationAcceleration`. The library application owns retirement, preference saving and
 replacement; Settings only renders the selected preference/device and submits the requested change.

@@ -63,7 +63,7 @@ void main() {
     "inspection shows affected decisions and cancellation performs no cleanup",
     (tester) async {
       await host(tester);
-      expect(find.text("查看并清理"), findsOneWidget);
+      expect(find.byKey(const Key("settings-cleanup-inspect")), findsOneWidget);
       expect(find.text("检查"), findsNothing);
       expect(find.byKey(const Key("settings-cleanup-age")), findsNothing);
       await tester.tap(find.byKey(const Key("settings-cleanup-inspect")));
@@ -96,7 +96,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(service.tasks, hasLength(1));
-      expect(find.text("查看并清理"), findsOneWidget);
+      expect(find.byKey(const Key("settings-cleanup-inspect")), findsOneWidget);
       expect(find.byKey(const Key("settings-cleanup-age")), findsNothing);
       expect(
         container.read(libraryCleanupControllerProvider),
@@ -162,7 +162,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key("settings-cleanup-age")));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(CheckedPopupMenuItem<int>, "全部未关联记录"));
+    await tester.tap(find.text("全部未关联记录").hitTestable());
     await tester.pump();
     expect(service.tasks, hasLength(2));
     expect(service.tasks.last.cutoffUnixMs, isNull);
@@ -211,7 +211,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
     expect(service.tasks.single.operationId, isNull);
-    expect(find.text("查看并清理"), findsOneWidget);
+    expect(find.byKey(const Key("settings-cleanup-inspect")), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

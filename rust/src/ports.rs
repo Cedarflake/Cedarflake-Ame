@@ -27,6 +27,12 @@ pub(crate) mod classification_vocabulary;
 pub(crate) mod classification_work;
 pub(crate) mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
+pub(crate) mod file_operation_catalog;
+pub(crate) mod file_operation_exports;
+pub(crate) mod file_operation_journal;
+pub(crate) mod file_operation_output;
+pub(crate) mod file_operation_selection;
+pub(crate) mod file_operations;
 mod gallery_query;
 pub(crate) mod journal_baseline;
 #[cfg(windows)]

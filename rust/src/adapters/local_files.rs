@@ -4,6 +4,10 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::fs::{File, Metadata};
 #[cfg(windows)]
+mod file_operation_source;
+#[cfg(windows)]
+pub(crate) use file_operation_source::operation_file_identity;
+#[cfg(windows)]
 use std::path::Prefix;
 use std::path::{Component, Path, PathBuf};
 #[cfg(test)]
@@ -116,10 +120,6 @@ pub(crate) use directory_enumeration::instrumentation::{
     source_peak_staged_window,
 };
 pub use file_revalidation::revalidate_file_state;
-#[cfg(windows)]
-use file_revalidation::revalidate_file_state_values;
-#[cfg(not(windows))]
-use file_revalidation::revalidate_file_state_with_metadata;
 pub(crate) use file_revalidation::revalidate_open_preview_source;
 use metadata_inventory_evidence::metadata_inventory_entry_from_checked_directory_entry;
 pub(crate) use preview_cache_namespace::PreviewCacheNamespace;
@@ -719,66 +719,6 @@ impl FileDiscovery {
         let relative_path_value = validated_relative_path(&entry.relative_path)?;
         let path = self.root.join(relative_path_value);
         metadata_inventory_entry_from_checked_directory_entry(entry, &path)
-    }
-
-    pub fn revalidate_relative_file_state(
-        &self,
-        relative_path: &str,
-        expected: &ExpectedFileState,
-    ) -> Result<(), ScanIssue> {
-        let relative_path = validated_relative_path(relative_path)?;
-        #[cfg(windows)]
-        {
-            let path = self.canonical_root.join(relative_path);
-            let file = open_root_relative_handle_with_options(
-                &self.root_proof.handle,
-                relative_path,
-                FILE_READ_ATTRIBUTES,
-                Some(false),
-                true,
-                true,
-            )
-            .map_err(|error| path_metadata_issue(&path, error))?;
-            let info = file_attribute_tag_info_from_handle(&file).map_err(|error| ScanIssue {
-                path: Some(path_text(&path)),
-                code: "source_revalidation_failed".to_owned(),
-                message: error.to_string(),
-            })?;
-            validate_present_file_revalidation_attributes(&path, &info)?;
-            let metadata = file
-                .metadata()
-                .map_err(|error| path_metadata_issue(&path, error))?;
-            let actual_identity = file_identity_from_handle(&file).map_err(|error| ScanIssue {
-                path: Some(path_text(&path)),
-                code: "source_identity_unavailable".to_owned(),
-                message: error.to_string(),
-            })?;
-            let actual_revision =
-                source_revision_from_handle(&file).map_err(|error| ScanIssue {
-                    path: Some(path_text(&path)),
-                    code: "source_revision_unavailable".to_owned(),
-                    message: error.to_string(),
-                })?;
-            revalidate_file_state_values(
-                expected,
-                &metadata,
-                actual_identity,
-                Some(actual_revision),
-            )
-        }
-        #[cfg(not(windows))]
-        {
-            let (path, metadata) = self.checked_existing_path(relative_path)?;
-            let evidence = checked_directory_entry_from_metadata(
-                relative_path_text(relative_path),
-                &path,
-                metadata,
-            )?;
-            if !evidence.metadata.is_file() || evidence.reparse_kind == ReparseKind::Other {
-                return Err(path_containment_issue(&path));
-            }
-            revalidate_file_state_with_metadata(expected, &path, &evidence)
-        }
     }
 
     fn checked_existing_path(
@@ -4522,6 +4462,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "file_operations",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "frb_generated",
             visibility: "",
             attributes: &[],
@@ -4801,6 +4747,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             name: "file_revalidation",
             visibility: "",
             attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "file_operation_source",
+            visibility: "",
+            attributes: &["cfg(windows)"],
             is_inline: false,
         },
         AvailabilityModuleContract {

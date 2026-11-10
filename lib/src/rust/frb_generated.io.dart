@@ -12,6 +12,7 @@ import 'api/classification_review.dart';
 import 'api/classification_settings.dart';
 import 'api/exact_duplicate_review.dart';
 import 'api/exact_duplicates.dart';
+import 'api/file_operations.dart';
 import 'api/organization.dart';
 import 'api/organization_archive.dart';
 import 'api/organization_batch.dart';
@@ -39,6 +40,11 @@ import 'domain/classification_review.dart';
 import 'domain/classification_selection.dart';
 import 'domain/exact_duplicate_review.dart';
 import 'domain/exact_duplicates.dart';
+import 'domain/file_operation_exports.dart';
+import 'domain/file_operation_journal.dart';
+import 'domain/file_operation_selection.dart';
+import 'domain/file_operation_task.dart';
+import 'domain/file_operations.dart';
 import 'domain/gallery_metadata_filter.dart';
 import 'domain/gallery_query_snapshot.dart';
 import 'domain/gallery_scroll_section.dart';
@@ -80,6 +86,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallationPtr;
 
   CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_FileActionTaskPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTaskPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_FileSelectionDraftPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraftPtr;
+
+  CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_OrganizationArchiveTaskPtr => wire
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTaskPtr;
 
@@ -119,6 +133,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   DesktopModelInstallation
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation(
+    dynamic raw,
+  );
+
+  @protected
+  FileActionTask
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+    dynamic raw,
+  );
+
+  @protected
+  FileSelectionDraft
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
     dynamic raw,
   );
 
@@ -177,6 +203,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  FileActionTask
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+    dynamic raw,
+  );
+
+  @protected
+  FileSelectionDraft
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
+    dynamic raw,
+  );
+
+  @protected
   OrganizationArchiveTask
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
     dynamic raw,
@@ -227,6 +265,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   DesktopModelInstallation
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation(
+    dynamic raw,
+  );
+
+  @protected
+  FileActionTask
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+    dynamic raw,
+  );
+
+  @protected
+  FileSelectionDraft
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
     dynamic raw,
   );
 
@@ -298,6 +348,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AssetLocationView dco_decode_asset_location_view(dynamic raw);
 
   @protected
+  AuthorizedFileOperation dco_decode_authorized_file_operation(dynamic raw);
+
+  @protected
   bool dco_decode_bool(dynamic raw);
 
   @protected
@@ -359,9 +412,37 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  FileExportRecord dco_decode_box_autoadd_file_export_record(dynamic raw);
+
+  @protected
   FileIdentityEvidence dco_decode_box_autoadd_file_identity_evidence(
     dynamic raw,
   );
+
+  @protected
+  FileOperationCommand dco_decode_box_autoadd_file_operation_command(
+    dynamic raw,
+  );
+
+  @protected
+  FileOperationDestination dco_decode_box_autoadd_file_operation_destination(
+    dynamic raw,
+  );
+
+  @protected
+  FileOperationIssue dco_decode_box_autoadd_file_operation_issue(dynamic raw);
+
+  @protected
+  FileOperationReceipt dco_decode_box_autoadd_file_operation_receipt(
+    dynamic raw,
+  );
+
+  @protected
+  FileOperationSelectionScope
+  dco_decode_box_autoadd_file_operation_selection_scope(dynamic raw);
+
+  @protected
+  FileOperationSource dco_decode_box_autoadd_file_operation_source(dynamic raw);
 
   @protected
   GalleryLayoutManifestCursor
@@ -471,6 +552,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RecoverableScan dco_decode_box_autoadd_recoverable_scan(dynamic raw);
 
   @protected
+  ScanError dco_decode_box_autoadd_scan_error(dynamic raw);
+
+  @protected
   ScanIssue dco_decode_box_autoadd_scan_issue(dynamic raw);
 
   @protected
@@ -523,6 +607,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ViewerSourceRequest dco_decode_box_autoadd_viewer_source_request(dynamic raw);
+
+  @protected
+  GalleryQuery dco_decode_box_gallery_query(dynamic raw);
 
   @protected
   CameraMetadata dco_decode_camera_metadata(dynamic raw);
@@ -690,7 +777,91 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ExpectedFileState dco_decode_expected_file_state(dynamic raw);
+
+  @protected
+  FileAction dco_decode_file_action(dynamic raw);
+
+  @protected
+  FileExportBatch dco_decode_file_export_batch(dynamic raw);
+
+  @protected
+  FileExportRecord dco_decode_file_export_record(dynamic raw);
+
+  @protected
+  FileExportReport dco_decode_file_export_report(dynamic raw);
+
+  @protected
   FileIdentityEvidence dco_decode_file_identity_evidence(dynamic raw);
+
+  @protected
+  FileOperationCatalogBinding dco_decode_file_operation_catalog_binding(
+    dynamic raw,
+  );
+
+  @protected
+  FileOperationCheckpoint dco_decode_file_operation_checkpoint(dynamic raw);
+
+  @protected
+  FileOperationCommand dco_decode_file_operation_command(dynamic raw);
+
+  @protected
+  FileOperationDestination dco_decode_file_operation_destination(dynamic raw);
+
+  @protected
+  FileOperationDirectory dco_decode_file_operation_directory(dynamic raw);
+
+  @protected
+  FileOperationIssue dco_decode_file_operation_issue(dynamic raw);
+
+  @protected
+  FileOperationIssueKind dco_decode_file_operation_issue_kind(dynamic raw);
+
+  @protected
+  FileOperationPhase dco_decode_file_operation_phase(dynamic raw);
+
+  @protected
+  FileOperationPreparationProgress
+  dco_decode_file_operation_preparation_progress(dynamic raw);
+
+  @protected
+  FileOperationReceipt dco_decode_file_operation_receipt(dynamic raw);
+
+  @protected
+  FileOperationRecord dco_decode_file_operation_record(dynamic raw);
+
+  @protected
+  FileOperationRecovery dco_decode_file_operation_recovery(dynamic raw);
+
+  @protected
+  FileOperationRequest dco_decode_file_operation_request(dynamic raw);
+
+  @protected
+  FileOperationSelectionScope dco_decode_file_operation_selection_scope(
+    dynamic raw,
+  );
+
+  @protected
+  FileOperationSelectionSummary dco_decode_file_operation_selection_summary(
+    dynamic raw,
+  );
+
+  @protected
+  FileOperationSource dco_decode_file_operation_source(dynamic raw);
+
+  @protected
+  FileOperationTaskKind dco_decode_file_operation_task_kind(dynamic raw);
+
+  @protected
+  FileOperationTaskPhase dco_decode_file_operation_task_phase(dynamic raw);
+
+  @protected
+  FileOperationTaskProgress dco_decode_file_operation_task_progress(
+    dynamic raw,
+  );
+
+  @protected
+  FileOrganizationRule dco_decode_file_organization_rule(dynamic raw);
 
   @protected
   GalleryCollection dco_decode_gallery_collection(dynamic raw);
@@ -871,6 +1042,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_list_exact_duplicate_review_location(dynamic raw);
 
   @protected
+  List<FileExportRecord> dco_decode_list_file_export_record(dynamic raw);
+
+  @protected
+  List<FileOperationRecord> dco_decode_list_file_operation_record(dynamic raw);
+
+  @protected
   List<GalleryDuplicateAnnotation> dco_decode_list_gallery_duplicate_annotation(
     dynamic raw,
   );
@@ -927,6 +1104,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint16List dco_decode_list_prim_u_16_strict(dynamic raw);
+
+  @protected
+  Uint64List dco_decode_list_prim_u_64_strict(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
@@ -1003,7 +1183,29 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_opt_box_autoadd_exact_duplicate_preference(dynamic raw);
 
   @protected
+  FileExportRecord? dco_decode_opt_box_autoadd_file_export_record(dynamic raw);
+
+  @protected
   FileIdentityEvidence? dco_decode_opt_box_autoadd_file_identity_evidence(
+    dynamic raw,
+  );
+
+  @protected
+  FileOperationDestination?
+  dco_decode_opt_box_autoadd_file_operation_destination(dynamic raw);
+
+  @protected
+  FileOperationIssue? dco_decode_opt_box_autoadd_file_operation_issue(
+    dynamic raw,
+  );
+
+  @protected
+  FileOperationReceipt? dco_decode_opt_box_autoadd_file_operation_receipt(
+    dynamic raw,
+  );
+
+  @protected
+  FileOperationSource? dco_decode_opt_box_autoadd_file_operation_source(
     dynamic raw,
   );
 
@@ -1061,6 +1263,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RecoverableScan? dco_decode_opt_box_autoadd_recoverable_scan(dynamic raw);
+
+  @protected
+  ScanError? dco_decode_opt_box_autoadd_scan_error(dynamic raw);
 
   @protected
   SemanticIndexStatus? dco_decode_opt_box_autoadd_semantic_index_status(
@@ -1395,6 +1600,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  FileActionTask
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileSelectionDraft
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   OrganizationArchiveTask
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
     SseDeserializer deserializer,
@@ -1449,6 +1666,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  FileActionTask
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileSelectionDraft
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   OrganizationArchiveTask
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
     SseDeserializer deserializer,
@@ -1499,6 +1728,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   DesktopModelInstallation
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileActionTask
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileSelectionDraft
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
     SseDeserializer deserializer,
   );
 
@@ -1580,6 +1821,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  AuthorizedFileOperation sse_decode_authorized_file_operation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
@@ -1653,7 +1899,43 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  FileExportRecord sse_decode_box_autoadd_file_export_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   FileIdentityEvidence sse_decode_box_autoadd_file_identity_evidence(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationCommand sse_decode_box_autoadd_file_operation_command(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationDestination sse_decode_box_autoadd_file_operation_destination(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationIssue sse_decode_box_autoadd_file_operation_issue(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationReceipt sse_decode_box_autoadd_file_operation_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationSelectionScope
+  sse_decode_box_autoadd_file_operation_selection_scope(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationSource sse_decode_box_autoadd_file_operation_source(
     SseDeserializer deserializer,
   );
 
@@ -1811,6 +2093,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ScanError sse_decode_box_autoadd_scan_error(SseDeserializer deserializer);
+
+  @protected
   ScanIssue sse_decode_box_autoadd_scan_issue(SseDeserializer deserializer);
 
   @protected
@@ -1871,6 +2156,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ViewerSourceRequest sse_decode_box_autoadd_viewer_source_request(
     SseDeserializer deserializer,
   );
+
+  @protected
+  GalleryQuery sse_decode_box_gallery_query(SseDeserializer deserializer);
 
   @protected
   CameraMetadata sse_decode_camera_metadata(SseDeserializer deserializer);
@@ -2080,7 +2368,123 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ExpectedFileState sse_decode_expected_file_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileAction sse_decode_file_action(SseDeserializer deserializer);
+
+  @protected
+  FileExportBatch sse_decode_file_export_batch(SseDeserializer deserializer);
+
+  @protected
+  FileExportRecord sse_decode_file_export_record(SseDeserializer deserializer);
+
+  @protected
+  FileExportReport sse_decode_file_export_report(SseDeserializer deserializer);
+
+  @protected
   FileIdentityEvidence sse_decode_file_identity_evidence(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationCatalogBinding sse_decode_file_operation_catalog_binding(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationCheckpoint sse_decode_file_operation_checkpoint(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationCommand sse_decode_file_operation_command(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationDestination sse_decode_file_operation_destination(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationDirectory sse_decode_file_operation_directory(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationIssue sse_decode_file_operation_issue(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationIssueKind sse_decode_file_operation_issue_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationPhase sse_decode_file_operation_phase(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationPreparationProgress
+  sse_decode_file_operation_preparation_progress(SseDeserializer deserializer);
+
+  @protected
+  FileOperationReceipt sse_decode_file_operation_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationRecord sse_decode_file_operation_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationRecovery sse_decode_file_operation_recovery(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationRequest sse_decode_file_operation_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationSelectionScope sse_decode_file_operation_selection_scope(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationSelectionSummary sse_decode_file_operation_selection_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationSource sse_decode_file_operation_source(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationTaskKind sse_decode_file_operation_task_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationTaskPhase sse_decode_file_operation_task_phase(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationTaskProgress sse_decode_file_operation_task_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOrganizationRule sse_decode_file_organization_rule(
     SseDeserializer deserializer,
   );
 
@@ -2305,6 +2709,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   sse_decode_list_exact_duplicate_review_location(SseDeserializer deserializer);
 
   @protected
+  List<FileExportRecord> sse_decode_list_file_export_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<FileOperationRecord> sse_decode_list_file_operation_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<GalleryDuplicateAnnotation> sse_decode_list_gallery_duplicate_annotation(
     SseDeserializer deserializer,
   );
@@ -2371,6 +2785,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint16List sse_decode_list_prim_u_16_strict(SseDeserializer deserializer);
+
+  @protected
+  Uint64List sse_decode_list_prim_u_64_strict(SseDeserializer deserializer);
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
@@ -2467,7 +2884,33 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  FileExportRecord? sse_decode_opt_box_autoadd_file_export_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   FileIdentityEvidence? sse_decode_opt_box_autoadd_file_identity_evidence(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationDestination?
+  sse_decode_opt_box_autoadd_file_operation_destination(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationIssue? sse_decode_opt_box_autoadd_file_operation_issue(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationReceipt? sse_decode_opt_box_autoadd_file_operation_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FileOperationSource? sse_decode_opt_box_autoadd_file_operation_source(
     SseDeserializer deserializer,
   );
 
@@ -2537,6 +2980,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RecoverableScan? sse_decode_opt_box_autoadd_recoverable_scan(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ScanError? sse_decode_opt_box_autoadd_scan_error(
     SseDeserializer deserializer,
   );
 
@@ -2975,6 +3423,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+    FileActionTask self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
+    FileSelectionDraft self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
     OrganizationArchiveTask self,
     SseSerializer serializer,
@@ -3038,6 +3500,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+    FileActionTask self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
+    FileSelectionDraft self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
     OrganizationArchiveTask self,
     SseSerializer serializer,
@@ -3096,6 +3572,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation(
     DesktopModelInstallation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+    FileActionTask self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
+    FileSelectionDraft self,
     SseSerializer serializer,
   );
 
@@ -3188,6 +3678,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_authorized_file_operation(
+    AuthorizedFileOperation self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
@@ -3272,8 +3768,50 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_file_export_record(
+    FileExportRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_file_identity_evidence(
     FileIdentityEvidence self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_file_operation_command(
+    FileOperationCommand self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_file_operation_destination(
+    FileOperationDestination self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_file_operation_issue(
+    FileOperationIssue self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_file_operation_receipt(
+    FileOperationReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_file_operation_selection_scope(
+    FileOperationSelectionScope self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_file_operation_source(
+    FileOperationSource self,
     SseSerializer serializer,
   );
 
@@ -3449,6 +3987,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_scan_error(
+    ScanError self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_scan_issue(
     ScanIssue self,
     SseSerializer serializer,
@@ -3523,6 +4067,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_viewer_source_request(
     ViewerSourceRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_gallery_query(
+    GalleryQuery self,
     SseSerializer serializer,
   );
 
@@ -3782,8 +4332,155 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_expected_file_state(
+    ExpectedFileState self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_action(FileAction self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_file_export_batch(
+    FileExportBatch self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_export_record(
+    FileExportRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_export_report(
+    FileExportReport self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_file_identity_evidence(
     FileIdentityEvidence self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_catalog_binding(
+    FileOperationCatalogBinding self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_checkpoint(
+    FileOperationCheckpoint self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_command(
+    FileOperationCommand self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_destination(
+    FileOperationDestination self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_directory(
+    FileOperationDirectory self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_issue(
+    FileOperationIssue self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_issue_kind(
+    FileOperationIssueKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_phase(
+    FileOperationPhase self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_preparation_progress(
+    FileOperationPreparationProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_receipt(
+    FileOperationReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_record(
+    FileOperationRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_recovery(
+    FileOperationRecovery self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_request(
+    FileOperationRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_selection_scope(
+    FileOperationSelectionScope self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_selection_summary(
+    FileOperationSelectionSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_source(
+    FileOperationSource self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_task_kind(
+    FileOperationTaskKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_task_phase(
+    FileOperationTaskPhase self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_operation_task_progress(
+    FileOperationTaskProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_organization_rule(
+    FileOrganizationRule self,
     SseSerializer serializer,
   );
 
@@ -4067,6 +4764,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_file_export_record(
+    List<FileExportRecord> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_file_operation_record(
+    List<FileOperationRecord> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_gallery_duplicate_annotation(
     List<GalleryDuplicateAnnotation> self,
     SseSerializer serializer,
@@ -4147,6 +4856,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_prim_u_16_strict(
     Uint16List self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_prim_u_64_strict(
+    Uint64List self,
     SseSerializer serializer,
   );
 
@@ -4259,8 +4974,38 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_file_export_record(
+    FileExportRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_file_identity_evidence(
     FileIdentityEvidence? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_file_operation_destination(
+    FileOperationDestination? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_file_operation_issue(
+    FileOperationIssue? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_file_operation_receipt(
+    FileOperationReceipt? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_file_operation_source(
+    FileOperationSource? self,
     SseSerializer serializer,
   );
 
@@ -4342,6 +5087,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_recoverable_scan(
     RecoverableScan? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_scan_error(
+    ScanError? self,
     SseSerializer serializer,
   );
 
@@ -4930,6 +5681,74 @@ class RustLibWire implements BaseWire {
       );
   late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallation =
       _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopModelInstallationPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTaskPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_cedarflake_ame_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTaskPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTaskPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_cedarflake_ame_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTask =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileActionTaskPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraftPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_cedarflake_ame_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraftPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraftPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_cedarflake_ame_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraft =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerFileSelectionDraftPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void

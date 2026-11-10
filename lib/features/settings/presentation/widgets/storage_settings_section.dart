@@ -11,6 +11,7 @@ import "../../../storage/application/storage_settings.dart";
 import "../../../storage/domain/storage_models.dart";
 import "../../../storage/application/catalog_reclamation_controller.dart";
 import "settings_section.dart";
+import "storage_preview_cleanup_confirmation.dart";
 
 enum _StorageErrorTarget { settings, catalogReclamation, previewCleanup }
 
@@ -210,28 +211,10 @@ class _StorageSettingsSectionState
     }
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(retiredRoot == null ? "清理缩略图？" : "清理旧缩略图目录？"),
-          content: Text(
-            retiredRoot == null
-                ? "这会删除可重新生成的缩略图缓存，不会删除或修改原图片。"
-                      "清理后，打开图库时可能需要一些时间重新生成缩略图。"
-                : "只会删除旧目录中由 Ame 管理的缩略图，不会删除原图片或目录中的其他文件。\n"
-                      "${retiredRoot.displayPath}",
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text("取消"),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text("开始清理"),
-            ),
-          ],
-        );
-      },
+      builder: (context) => StoragePreviewCleanupConfirmation(
+        retiredDirectory: retiredRoot?.previewRoot,
+        retiredDisplayPath: retiredRoot?.displayPath,
+      ),
     );
     if (confirmed != true || !mounted) {
       return;
@@ -378,7 +361,7 @@ class _StorageSettingsSectionState
               icon: Symbols.error_rounded,
               title: "无法读取存储设置",
               subtitle: Text(_settingsErrorMessage!),
-              trailing: OutlinedButton(
+              trailing: FilledButton.tonal(
                 onPressed: () => unawaited(_load()),
                 child: const Text("重试"),
               ),
@@ -404,15 +387,21 @@ class _StorageSettingsSectionState
           key: const Key("catalog-location-setting"),
           icon: Symbols.storage_rounded,
           title: "图库数据位置",
-          subtitle: Text(
-            "保存图库索引和扫描结果\n"
-            "${status.configuredCatalogDisplayPath}\n"
-            "当前占用 ${_formatBytes(status.catalogUsedBytes)}"
-            "${status.catalogReclaimableBytes > BigInt.zero ? "\n有效数据约 ${_formatBytes(status.catalogLiveBytes)}，可回收 ${_formatBytes(status.catalogReclaimableBytes)}" : ""}",
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("保存图库索引和扫描结果\n${status.configuredCatalogDisplayPath}"),
+              Text(
+                "当前占用 ${_formatBytes(status.catalogUsedBytes)}"
+                "${status.catalogReclaimableBytes > BigInt.zero ? "，有效数据约 ${_formatBytes(status.catalogLiveBytes)}，可回收 ${_formatBytes(status.catalogReclaimableBytes)}" : ""}",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
           trailing: widget.hasLibraryRoots
-              ? const TextButton(onPressed: null, child: Text("已有图库时不可更改"))
-              : OutlinedButton(
+              ? const Text("已有图库时不可更改")
+              : FilledButton.tonal(
                   onPressed: _isSaving ? null : _chooseCatalogDirectory,
                   child: const Text("更改"),
                 ),
@@ -423,14 +412,14 @@ class _StorageSettingsSectionState
           title: _catalogReclamationTitle(catalogReclamation),
           subtitle: _catalogReclamationSubtitle(catalogReclamation),
           trailing: catalogReclamation.isActive
-              ? OutlinedButton(
+              ? FilledButton.tonal(
                   onPressed: _reclamation.isActionPending
                       ? null
                       : _reclamationController.cancel,
                   child: Text(_reclamation.isActionPending ? "正在取消" : "取消"),
                 )
               : catalogReclamation.canRetry
-              ? OutlinedButton(
+              ? FilledButton.tonal(
                   onPressed: _reclamation.isActionPending
                       ? null
                       : _reclamationController.start,
@@ -443,7 +432,7 @@ class _StorageSettingsSectionState
                         : "重试",
                   ),
                 )
-              : const TextButton(onPressed: null, child: Text("无需清理")),
+              : const Text("无需清理"),
         ),
         SettingsRow(
           key: const Key("preview-location-setting"),
@@ -453,7 +442,7 @@ class _StorageSettingsSectionState
             "保存可随时重新生成的图片预览\n"
             "${status.configuredPreviewDisplayPath}",
           ),
-          trailing: OutlinedButton(
+          trailing: FilledButton.tonal(
             onPressed: _isSaving ? null : _choosePreviewDirectory,
             child: const Text("更改"),
           ),
@@ -470,8 +459,8 @@ class _StorageSettingsSectionState
             trailing:
                 (_cleanupUpdate?.isActive ?? false) &&
                     _cleanupTargetPreviewRoot == retiredRoot.previewRoot
-                ? const TextButton(onPressed: null, child: Text("正在清理"))
-                : OutlinedButton(
+                ? const Text("正在清理")
+                : FilledButton.tonal(
                     onPressed: _isSaving || (_cleanupUpdate?.isActive ?? false)
                         ? null
                         : () => _confirmPreviewCleanup(retiredRoot),
@@ -497,9 +486,8 @@ class _StorageSettingsSectionState
               Text("当前占用 ${_formatBytes(status.previewUsedBytes)}"),
             ],
           ),
-          trailing: AmeChoice<BigInt>(
+          trailing: AmeChoice<BigInt>.menu(
             value: status.previewBudgetBytes,
-            width: 144,
             selectedLabel: _formatBytes(status.previewBudgetBytes),
             enabled: !_isSaving,
             onSelected: (value) {
@@ -525,13 +513,13 @@ class _StorageSettingsSectionState
             targetDisplayPath: _cleanupTargetDisplayPath,
           ),
           trailing: _cleanupUpdate?.isActive ?? false
-              ? OutlinedButton(
+              ? FilledButton.tonal(
                   onPressed: _isCancellingCleanup
                       ? null
                       : _cancelPreviewCleanup,
                   child: Text(_isCancellingCleanup ? "正在取消" : "取消"),
                 )
-              : OutlinedButton(
+              : FilledButton.tonal(
                   onPressed: _isSaving ? null : () => _confirmPreviewCleanup(),
                   child: const Text("清理"),
                 ),
@@ -555,7 +543,7 @@ class _StorageSettingsSectionState
               _reclamation.errorMessage!,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
-            trailing: OutlinedButton(
+            trailing: FilledButton.tonal(
               onPressed: _reclamationController.retry,
               child: const Text("重试"),
             ),

@@ -91,9 +91,13 @@ class _LibraryFolderNavigationTileState
           ),
           minLeadingWidth: 24,
           horizontalTitleGap: 12,
-          leading: const SizedBox(
+          leading: SizedBox(
             width: 24,
-            child: Icon(Symbols.folder_rounded),
+            child: Icon(
+              widget.isExpanded
+                  ? Symbols.folder_open_rounded
+                  : Symbols.folder_rounded,
+            ),
           ),
           title: DefaultTextStyle.merge(
             style: TextStyle(

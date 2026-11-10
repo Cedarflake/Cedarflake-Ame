@@ -93,7 +93,10 @@ void main() {
         find.byKey(const Key("library-album-name")),
         "Other",
       );
+      await tester.tap(find.byKey(const Key("library-album-choose-icon")));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey("album-icon-nature")));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key("library-album-save")));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key("library-album-editor")), findsNothing);

@@ -113,6 +113,10 @@ and evidence; this product contract does not duplicate that inventory or record 
 
 ## Content and action wording
 
+Task confirmations, short forms and detail dialogs follow the
+[dialog templates](gallery/dialogs.md). Their shared presentation owners preserve Material behavior
+while keeping object rows, fields, locations and diagnostic information consistent.
+
 - Before editing, verify where the text appears, what triggers it, its adjacent titles and buttons,
   and the states before and after the action. When a change affects interpretation or presentation,
   check it in the actual interface for meaning, wrapping, truncation, and its relationship to the

@@ -4,7 +4,7 @@ use crate::domain::ScanError;
 
 use super::super::database_error;
 
-pub(super) fn remove(
+pub(in super::super) fn remove(
     transaction: &Transaction<'_>,
     active_scan_id: &str,
     running_scan_id: Option<&str>,

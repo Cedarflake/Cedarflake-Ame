@@ -102,8 +102,10 @@ class _LibrarySourceNavigationTileState
   @override
   Widget build(BuildContext context) {
     final icon = switch (widget.root.availability) {
-      LibraryRootAvailability.available ||
-      LibraryRootAvailability.unknown => Symbols.folder_rounded,
+      LibraryRootAvailability.available || LibraryRootAvailability.unknown =>
+        widget.isExpanded
+            ? Symbols.folder_open_rounded
+            : Symbols.folder_rounded,
       LibraryRootAvailability.missing => Symbols.folder_off_rounded,
       LibraryRootAvailability.inaccessible => Symbols.lock_rounded,
       LibraryRootAvailability.offline => Symbols.cloud_off_rounded,

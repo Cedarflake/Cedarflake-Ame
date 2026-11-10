@@ -6,12 +6,17 @@ import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_album_requests.dart";
 import "../../application/library_controller.dart";
+import "../../application/library_file_operations.dart";
+import "../../application/library_file_selection_scope.dart";
+import "../../domain/library_file_operations.dart";
 import "../../application/library_organization.dart";
 import "../../application/library_organization_actions.dart";
 import "../../domain/library_organization.dart";
+import "../../domain/library_organization_batch.dart";
 import "../library_strings.dart";
 import "../library_search_strings.dart";
 import "library_album_picker.dart";
+import "library_file_action_dialog.dart";
 
 class LibraryPhotoContextMenu {
   bool _isOpen = false;
@@ -33,11 +38,14 @@ class LibraryPhotoContextMenu {
     required VoidCallback onInformation,
     required VoidCallback onCopyPath,
     required VoidCallback onReveal,
+    String? fileName,
     VoidCallback? onFindRelated,
   }) async {
     if (_disposed || _isOpen) return;
     _isOpen = true;
-    final query = ref.read(libraryControllerProvider).query;
+    final library = ref.read(libraryControllerProvider);
+    final query = library.query;
+    final catalogRevision = library.catalogRevision;
     bool owns() =>
         !_disposed &&
         context.mounted &&
@@ -70,6 +78,8 @@ class LibraryPhotoContextMenu {
             .resolve("photo-menu-inspection");
       }
       final busy = ref.read(libraryOrganizationActionsProvider).saving;
+      final filesBusy =
+          ref.read(libraryFileActionsProvider).busy || catalogRevision == null;
       final entries = _entries(decision, onFindRelated != null);
       final action = await showAmePopupMenu<_PhotoAction>(
         context: context,
@@ -77,11 +87,14 @@ class LibraryPhotoContextMenu {
         labels: [for (final entry in entries) entry.label],
         items: [
           for (final entry in entries) ...[
-            if (entry.action == _PhotoAction.copyPath)
+            if (entry.action == _PhotoAction.copyPath ||
+                entry.action == _PhotoAction.copyFile)
               const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
             PopupMenuItem(
               value: entry.action,
-              enabled: !busy || !entry.action.changesOrganization,
+              enabled:
+                  (!busy || !entry.action.changesOrganization) &&
+                  (!filesBusy || !entry.action.changesFiles),
               child: AmeMenuItemContent(icon: entry.icon, label: entry.label),
             ),
           ],
@@ -100,6 +113,33 @@ class LibraryPhotoContextMenu {
           onReveal();
         case _PhotoAction.related:
           onFindRelated?.call();
+        case _PhotoAction.copyFile:
+        case _PhotoAction.moveFile:
+        case _PhotoAction.renameFile:
+        case _PhotoAction.deleteFile:
+          if (catalogRevision == null) return;
+          final fileAction = switch (action) {
+            _PhotoAction.copyFile => LibraryFileAction.copy,
+            _PhotoAction.moveFile => LibraryFileAction.move,
+            _PhotoAction.renameFile => LibraryFileAction.rename,
+            _ => LibraryFileAction.recycle,
+          };
+          await showLibraryFileAction(
+            context: context,
+            ref: ref,
+            selection: selectGalleryFilesForAction(
+              action: fileAction,
+              selection: LibraryOrganizationSelection(
+                query: query,
+                catalogRevision: catalogRevision,
+                allMatching: false,
+                assetIds: [target.assetId],
+              ),
+              location: target,
+            ),
+            initialName: fileName,
+            action: fileAction,
+          );
         case _PhotoAction.favorite:
           await commands.favorite(target, !decision!.favorite);
         case _PhotoAction.removeAlbum:
@@ -174,6 +214,18 @@ class LibraryPhotoContextMenu {
       Symbols.info_rounded,
     ),
     const _PhotoEntry(
+      _PhotoAction.copyFile,
+      "复制到文件夹",
+      Symbols.content_copy_rounded,
+    ),
+    const _PhotoEntry(
+      _PhotoAction.moveFile,
+      "移动到文件夹",
+      Symbols.drive_file_move_rounded,
+    ),
+    const _PhotoEntry(_PhotoAction.renameFile, "重命名", Symbols.edit_rounded),
+    const _PhotoEntry(_PhotoAction.deleteFile, "删除", Symbols.delete_rounded),
+    const _PhotoEntry(
       _PhotoAction.copyPath,
       LibraryStrings.copyPath,
       Symbols.content_copy_rounded,
@@ -199,11 +251,19 @@ enum _PhotoAction {
   album,
   removeAlbum,
   information,
+  copyFile,
+  moveFile,
+  renameFile,
+  deleteFile,
   copyPath,
   reveal;
 
   bool get changesOrganization => switch (this) {
     favorite || album || removeAlbum => true,
+    _ => false,
+  };
+  bool get changesFiles => switch (this) {
+    copyFile || moveFile || renameFile || deleteFile => true,
     _ => false,
   };
 }

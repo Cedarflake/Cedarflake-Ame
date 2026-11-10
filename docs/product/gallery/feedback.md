@@ -53,6 +53,11 @@ is capped at 360 pixels and scrolls through the existing list owner. Bottom feed
 24 pixels above the window edge in ordinary and organization modes; the upper organization toolbar
 does not add a bottom offset.
 
+File-operation completion places its status and nonzero outcome counts together in the title;
+an available result report gets one separate message. Omit a generic partial-result heading and
+zero completed, skipped, failed or stopped counts. If nothing ran, say so directly. Completed
+deletion retains its single affected-file summary. Progress may still show zero before work completes.
+
 Top notices retain the compact viewport layout: 16-pixel top/side inset, 48-pixel minimum height,
 8-pixel icon gap, `bodyMedium`, and the existing optional retry/undo action. Text wraps within the
 width bound without moving the image. Notices without an action use symmetric 14-pixel horizontal

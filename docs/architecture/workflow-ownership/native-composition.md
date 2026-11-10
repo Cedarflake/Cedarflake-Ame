@@ -10,6 +10,16 @@ Both kinds reject new or stale dependencies. The fixed legacy inventory is never
 
 ## Native tool entrypoints
 
+The `file_operations` facade exposes the exact `WindowsFileOperations` adapter constructor for the
+Windows Sandbox admission probe under [ADR 0042](../0042-windows-file-operations.md). It allocates
+no native resources and grants no source-file authority. Calls use the `NativeFileOperations` port,
+retain namespace guards through execution, and join the Shell STA before returning. The probe owns
+only newly generated guest-local fixtures. Application callers cannot inherit this export's
+concrete-adapter exception; their production factory requires its own scoped admission.
+The same facade exposes `SqliteFileOperationJournal` for scoped persistence and recovery fixtures.
+It owns one ordinary catalog connection, uses the existing write admission and migrations, and
+implements `FileOperationJournal`; opening it never executes a recorded file operation.
+
 The classification facade retains three exact native exports for repository tools:
 `CuratedClassificationVocabulary`, `LocalClassificationVocabulary` and
 `SqliteClassificationFeatureCache`. The classification probe owns vocabulary/cache construction;
@@ -25,6 +35,24 @@ including feature-gated targets, and distinguishes a binary's own `crate::` path
 public aliases. Native entrypoints cannot call back into application or bridge policy. The existing
 production synchronization owner retains observation startup and shutdown; no separate public
 observer wrapper selects another factory.
+
+## File-operation runtime
+
+`file_operations/production::open_journal` selects the existing validated catalog session and binds
+it to the operation journal/catalog ports. `start_file_operation_task` constructs the Windows adapter
+and opens the catalog inside the joined worker. Its bounded request names already authorized durable
+items; the factory adds no selection or mutation authority.
+
+`open_selection` binds a bounded selection session to the same validated catalog. Its temporary
+tables freeze visible physical locations, including offscreen selections, without expanding hidden
+duplicate members. `source_inspector` binds the native admission port used before recording that
+selection's immutable authority. Closing a selection cancels its work and releases its catalog;
+neither factory starts file mutations. Preparation completes before the joined task is submitted.
+
+One process-wide task lane serializes execution and recovery. Cancellation remains stopping while a
+native call is active; close joins that worker before resources can be replaced. A completed native
+result is still published after late cancellation, and interrupted work remains in durable history.
+Replacing either adapter preserves these lifetimes and the port-level authorization checks.
 
 ## Validated catalog session
 

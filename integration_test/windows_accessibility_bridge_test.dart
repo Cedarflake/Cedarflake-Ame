@@ -604,7 +604,7 @@ void main() {
       final settingsPage = find.byKey(const Key("ame-settings-page"));
       await _pumpUntil(tester, () => settingsPage.evaluate().isNotEmpty);
       expect(settingsPage, findsOneWidget);
-      final themeChoice = find.widgetWithText(OutlinedButton, "跟随系统");
+      final themeChoice = find.byKey(const Key("ame-theme-choice"));
       expect(themeChoice, findsOneWidget);
       await tester.tap(themeChoice.hitTestable());
       final lightThemeLabel = find.text("浅色");

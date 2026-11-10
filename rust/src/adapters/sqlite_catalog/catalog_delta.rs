@@ -27,7 +27,7 @@ const MAX_CATCH_UP_LINEAGE_PER_CHANGE: usize = 64;
 const MAX_INCREMENTAL_PATH_WINDOW: usize = 4_096;
 
 pub(super) mod location_mutation;
-mod location_removal;
+pub(super) mod location_removal;
 mod terminal_evidence_scope;
 use terminal_evidence_scope::{CompletedLeasePaths, invalidate_changed_paths};
 
@@ -1676,7 +1676,7 @@ pub(super) fn retain_scan_handoff_snapshots(
     Ok(())
 }
 
-fn load_affected_state(
+pub(super) fn load_affected_state(
     transaction: &rusqlite::Transaction<'_>,
     scan_id: &str,
     root_id: &str,
@@ -1791,7 +1791,7 @@ fn count_affected_locations(
     Ok(count)
 }
 
-fn mark_affected_preview_artifacts_stale(
+pub(super) fn mark_affected_preview_artifacts_stale(
     transaction: &rusqlite::Transaction<'_>,
     artifact_keys: &HashSet<String>,
 ) -> Result<(), ScanError> {
@@ -1822,7 +1822,7 @@ fn mark_affected_preview_artifacts_stale(
     Ok(())
 }
 
-fn delete_affected_orphan_assets(
+pub(super) fn delete_affected_orphan_assets(
     transaction: &rusqlite::Transaction<'_>,
     asset_ids: &HashSet<String>,
 ) -> Result<(), ScanError> {

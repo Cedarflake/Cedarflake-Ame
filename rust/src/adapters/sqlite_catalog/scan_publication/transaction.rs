@@ -195,6 +195,10 @@ fn publish_transaction(
         authority.previous_active_scan.as_deref(),
         completed_unix_ms,
     )?;
+    let file_removals = super::super::file_operations::scan_removals::ScanFileRemovals::capture(
+        &transaction,
+        root_id,
+    )?;
     super::complete_scan_and_replace_projection(
         &transaction,
         scan_id,
@@ -213,6 +217,7 @@ fn publish_transaction(
         completed_unix_ms,
         interruption,
     )?;
+    file_removals.publish(&transaction)?;
     super::settle_change_lineage(
         &transaction,
         scan_id,

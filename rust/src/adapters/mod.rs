@@ -32,7 +32,11 @@ pub(crate) use journal_boundary::session_boundary_source;
 mod local_files;
 pub(crate) use local_files::LocalPublicationNamespaces;
 mod local_source_state;
+#[cfg(windows)]
+mod windows_file_operations;
 pub(crate) use local_source_state::LocalSourceState;
+#[cfg(windows)]
+pub use windows_file_operations::WindowsFileOperations;
 #[cfg(test)]
 mod local_metadata_inventory;
 mod media_inspector;
@@ -50,6 +54,7 @@ pub(crate) use preview_cache_storage::LocalPreviewCacheStorage;
 mod similar_image_reader;
 mod sqlite_catalog;
 pub(crate) use similar_image_reader::GuardedSimilarImageReader;
+pub(crate) use sqlite_catalog::SqliteFileOperationSelection;
 mod storage_settings;
 #[cfg(windows)]
 mod windows_identity_journal;
@@ -106,7 +111,7 @@ pub(crate) use preview_cache::{
     replace_file_atomically_for_test, seed_legacy_jpeg_preview,
 };
 pub(crate) use sqlite_catalog::MetadataInventorySpoolExecution;
-pub use sqlite_catalog::SqliteCatalog;
+pub use sqlite_catalog::{SqliteCatalog, SqliteFileOperationJournal};
 pub(crate) use sqlite_catalog::{
     SqliteCatalogReadExecutor, SqliteCatalogSession, SqliteCatalogSpaceMaintenance,
     SqliteOrganizationBatch,

@@ -10,6 +10,7 @@ import "app/bootstrap/ame_provider_assembly.dart";
 import "app/bootstrap/ame_startup_orchestrator.dart";
 import "app/bootstrap/library_classification_bindings.dart";
 import "app/bootstrap/library_duplicate_bindings.dart";
+import "app/bootstrap/library_file_bindings.dart";
 import "app/bootstrap/library_organization_bindings.dart";
 import "app/bootstrap/library_platform_bindings.dart";
 import "app/bootstrap/library_read_bindings.dart";
@@ -30,6 +31,7 @@ import "features/library/application/library_catalog.dart";
 import "features/library/application/library_classification_lifecycle.dart";
 import "features/library/application/library_controller.dart";
 import "features/library/application/library_foreground_reads.dart";
+import "features/library/application/library_file_operations.dart";
 import "features/library/application/library_scan_shutdown.dart";
 import "features/library/domain/library_models.dart";
 import "features/library/domain/library_state.dart";
@@ -143,6 +145,7 @@ Future<void> main() async {
             ...libraryExactAnalysisRequirements,
             ...librarySimilarAnalysisRequirements,
             ...libraryOrganizationRequirements,
+            ...libraryFileRequirements,
             ...libraryClassificationRequirements,
             ...librarySynchronizationRequirements,
           ],
@@ -163,6 +166,7 @@ Future<void> main() async {
             ...exactAnalysisBindings.overrides,
             ...similarAnalysisBindings.overrides,
             ...libraryOrganizationBindings(),
+            ...libraryFileBindings(),
             ...synchronizationBindings.overrides,
             ...classificationBindings.overrides,
             ameWindowActionsProvider.overrideWithValue(windowActions),
@@ -171,6 +175,9 @@ Future<void> main() async {
             ),
             initialLibraryStateProvider.overrideWithValue(initialState),
           ],
+        );
+        shutdownCoordinator.register(
+          container.read(libraryFileActionsProvider.notifier).close,
         );
         return UncontrolledProviderScope(
           container: container,

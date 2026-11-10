@@ -11,6 +11,7 @@ import "../library_strings.dart";
 import "library_gallery_header_actions.dart";
 import "library_sidebar_content.dart";
 import "library_workbench_metrics.dart";
+import "library_file_history.dart";
 
 class LibraryGalleryHeader extends StatelessWidget {
   const LibraryGalleryHeader({
@@ -487,6 +488,7 @@ class _MoreMenu extends StatelessWidget {
     return AmePopupMenuButton<_MoreMenuAction>(
       labels: [
         LibraryStrings.selectAll,
+        "文件操作记录",
         if (onToggleReview != null) reviewLabel,
       ],
       shortcuts: const ["Ctrl+A"],
@@ -498,6 +500,13 @@ class _MoreMenu extends StatelessWidget {
             icon: Symbols.select_all_rounded,
             label: LibraryStrings.selectAll,
             shortcut: "Ctrl+A",
+          ),
+        ),
+        const PopupMenuItem(
+          value: _MoreMenuAction.fileHistory,
+          child: AmeMenuItemContent(
+            icon: Symbols.history_rounded,
+            label: "文件操作记录",
           ),
         ),
         if (onToggleReview != null)
@@ -515,6 +524,8 @@ class _MoreMenu extends StatelessWidget {
             onSelectAll();
           case _MoreMenuAction.review:
             onToggleReview?.call();
+          case _MoreMenuAction.fileHistory:
+            showLibraryFileHistory(context);
         }
       },
       builder: (context, openMenu) => AmeTooltip(
@@ -541,4 +552,4 @@ enum _SortMenuAction {
 
 enum _LayoutMenuAction { equalHeight, square, small, medium, large }
 
-enum _MoreMenuAction { selectAll, review }
+enum _MoreMenuAction { selectAll, review, fileHistory }

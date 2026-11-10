@@ -137,6 +137,22 @@ recycling is unavailable; no silent
 fallback is allowed. The [execution plan](../plans/r8-file-organization.md#planned-interaction-decisions)
 owns the planned interaction details, system-interface admission and rollout.
 
+Deletion authorization applies to the file version the user selected and confirmed. An editor or
+synchronization program changing that file does not authorize deleting its replacement. When
+pre-operation validation finds a changed or unverifiable item, preserve it and require the user to
+view the current image and make a fresh selection and confirmation. Do not infer that an unchanged
+filename means unchanged intent.
+Show the affected filename and reason in operation results; changed files must be identified as
+not deleted, not hidden behind an overall completion message. A partial batch retains separate
+completed and unresolved counts. Unknown native outcomes remain pending verification rather than
+being described as either deleted or preserved.
+
+Windows recycling retains an accepted platform limitation: another program can replace the same
+pathname after the final validation, and Windows may recycle that replacement. Ame holds a write
+guard during execution and reports detected changes, but does not promise to eliminate this race.
+The [native boundary](../architecture/0042-windows-file-operations.md#recycling-identity-boundary)
+owns the precise scope; explicit permanent deletion uses the verified file handle.
+
 Scope:
 
 - organization rules based on effective category, selected virtual albums, date, source, or explicit
@@ -151,10 +167,15 @@ Scope:
 - an internal immutable `OperationPlan` containing source, destination and collision policy, action
   kind, reason, expected source state and fingerprint evidence, target preconditions, conflicts,
   warnings, and estimated space impact;
-- explicit resolution of the physical locations affected when one gallery item represents exact
-  duplicates; grouping alone never authorizes removing or moving every copy;
-- ordinary gallery deletion may remove the preferred file; successful deletion chooses a new
-  preferred file from remaining duplicates, or removes the card when none remain;
+- confirmed deletion of an ordinary gallery's merged card includes its complete exact-duplicate
+  group; the confirmation identifies that scope and physical-file count, including copies in other
+  folders. Freeze the selected membership before confirmation; later discoveries do not expand it;
+- deletion inside a group or a single-file viewer affects only explicitly selected files. Preferred
+  files can be deleted; remaining duplicates receive a new preferred file, and an empty group retires.
+  Grouping does not expand copy, move or rename authorization;
+- completed file actions with published results exit their original gallery selection and restore
+  the collection heading/count. Cancellation or no successful result retains selection; a later
+  user selection is not cleared by the earlier action;
 - fresh action authorization bound to one immutable `OperationPlan`; background preparation never
   authorizes execution, and a changed scope, destination root, deletion mode or collision policy
   requires renewed authorization rather than modification of the earlier evidence;
@@ -183,8 +204,9 @@ required outcomes; the system's internal copy algorithm and an Ame-specific quar
 product requirements.
 
 Preflight remains deterministic for the same trustworthy inputs and leaves source and target media
-unchanged. Execution changes only the authorized items, rejects stale evidence, and preserves
-applicable recovery without offering a restore for permanent deletion. The
+unchanged. Execution targets the authorized items, rejects detected stale evidence, and preserves
+applicable recovery within the recycling boundary above, without offering a restore for permanent
+deletion. The
 [filesystem verification procedure](../acceptance/r8-file-operations.md) owns disposable fixtures,
 failure checks, and Windows integration evidence.
 

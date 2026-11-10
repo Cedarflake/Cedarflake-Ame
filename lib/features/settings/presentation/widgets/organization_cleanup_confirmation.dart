@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/presentation/ame_choice.dart";
+import "../../../../app/presentation/ame_dialog.dart";
 import "../../../library/application/library_cleanup_controller.dart";
 import "../../../library/application/library_cleanup_state.dart";
 import "../../../library/domain/library_organization_cleanup.dart";
@@ -70,20 +71,25 @@ class _OrganizationCleanupConfirmation extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AmeChoice<int>(
-              key: const Key("settings-cleanup-age"),
-              value: minimumAgeDays,
-              width: 260,
-              enabled: state is! LibraryCleanupWorking,
-              entries: const [
-                AmeChoiceEntry(value: 90, label: "未关联超过 90 天"),
-                AmeChoiceEntry(value: 30, label: "未关联超过 30 天"),
-                AmeChoiceEntry(value: 0, label: "全部未关联记录"),
-              ],
-              onSelected: (value) {
-                if (value == null || value == minimumAgeDays) return;
-                unawaited(controller.inspect(value == 0 ? null : value));
-              },
+            AmeDialogField(
+              label: "清理范围",
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: AmeChoice<int>.menu(
+                  key: const Key("settings-cleanup-age"),
+                  value: minimumAgeDays,
+                  enabled: state is! LibraryCleanupWorking,
+                  entries: const [
+                    AmeChoiceEntry(value: 90, label: "未关联超过 90 天"),
+                    AmeChoiceEntry(value: 30, label: "未关联超过 30 天"),
+                    AmeChoiceEntry(value: 0, label: "全部未关联记录"),
+                  ],
+                  onSelected: (value) {
+                    if (value == null || value == minimumAgeDays) return;
+                    unawaited(controller.inspect(value == 0 ? null : value));
+                  },
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             switch (state) {

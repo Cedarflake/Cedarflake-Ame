@@ -24,6 +24,7 @@ import "../library_progress_controls.dart";
 import "library_album_picker.dart";
 import "library_organization_menu.dart";
 import "library_selection_progress.dart";
+import "library_file_menu.dart";
 
 class LibrarySelectionActions extends ConsumerStatefulWidget {
   const LibrarySelectionActions({
@@ -376,6 +377,18 @@ class _LibrarySelectionActionsState
                 error,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
+            LibraryFileMenu(
+              enabled: enabled,
+              onCommitted: widget.onCommitted,
+              selection: LibraryOrganizationSelection(
+                query: widget.query,
+                catalogRevision: widget.catalogRevision,
+                allMatching: widget.selection.isAllMatching,
+                assetIds: widget.selection.isAllMatching
+                    ? widget.selection.excludedAssetIds
+                    : widget.selection.includedAssetIds,
+              ),
+            ),
             TextButton.icon(
               key: const Key("library-cancel-selection"),
               onPressed: widget.onCancel,

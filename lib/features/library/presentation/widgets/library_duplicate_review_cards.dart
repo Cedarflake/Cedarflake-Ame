@@ -3,11 +3,14 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_duplicate_review.dart";
+import "../../domain/library_exact_duplicates.dart";
 import "../../domain/library_models.dart";
+import "../../domain/library_organization.dart";
 import "../library_asset_summary.dart";
 import "../library_duplicate_strings.dart";
 import "library_duplicate_reveal_action.dart";
 import "library_duplicate_review_metrics.dart";
+import "library_delete_file_button.dart";
 import "library_path_text.dart";
 import "library_viewer_filmstrip_thumbnail.dart";
 
@@ -122,6 +125,12 @@ class LibraryDuplicateMemberCard extends StatelessWidget {
               ),
             ),
           ),
+        ),
+        LibraryDeleteFileButton(
+          target: LibraryOrganizationTarget.fromAsset(member.asset),
+          enabled: member.availability == LibraryDuplicateAvailability.local,
+          style: LibraryDuplicateReviewMetrics.iconActionStyle,
+          buttonKey: ValueKey("delete-file-${member.asset.locationId}"),
         ),
       ],
     );

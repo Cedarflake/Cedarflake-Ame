@@ -6,7 +6,8 @@ function Get-AmeRustTestPartitions {
             Name = "catalog_history"
             Include = @(
                 "adapters::sqlite_catalog::migrations::",
-                "adapters::sqlite_catalog::change_queue::"
+                "adapters::sqlite_catalog::change_queue::",
+                "adapters::sqlite_catalog::organization::"
             )
             Exclude = @()
         },
@@ -15,14 +16,17 @@ function Get-AmeRustTestPartitions {
             Include = @("adapters::sqlite_catalog::")
             Exclude = @(
                 "adapters::sqlite_catalog::migrations::",
-                "adapters::sqlite_catalog::change_queue::"
+                "adapters::sqlite_catalog::change_queue::",
+                "adapters::sqlite_catalog::organization::",
+                "adapters::sqlite_catalog::classification::"
             )
         },
         [pscustomobject]@{
             Name = "sync_scan"
             Include = @(
                 "application::library_synchronization::",
-                "application::scan_library::"
+                "application::scan_library::",
+                "adapters::sqlite_catalog::classification::"
             )
             Exclude = @()
         },

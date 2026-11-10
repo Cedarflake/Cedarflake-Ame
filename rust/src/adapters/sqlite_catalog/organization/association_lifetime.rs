@@ -6,7 +6,7 @@ use super::super::{database_error, unix_time_ms};
 
 const WINDOW: usize = 256;
 
-pub(super) fn restore_generation(
+pub(in crate::adapters::sqlite_catalog) fn restore_generation(
     connection: &Connection,
     source_generation: i64,
 ) -> Result<(), ScanError> {

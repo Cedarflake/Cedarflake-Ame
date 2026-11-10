@@ -13,6 +13,12 @@ configuration pages. The visual pattern follows Microsoft Photos: a clear `设�
 readable column, plain section headings, and full-width rows containing an icon, a user-facing
 title, one short explanation, and a control on the right.
 
+Row actions use Material filled tonal buttons. Fixed choices show the current value and a dropdown
+arrow through the shared Ame menu; the default-album text button opens its existing album picker.
+Use the standard button theme and preserve saving and keyboard states. Non-actionable statuses such
+as `已有图库时不可更改` and `无需清理` are plain text without a button background. Keep catalog usage,
+live-data size and reclaimable size on one line.
+
 Initial settings are limited to behavior that is understandable and connected end to end:
 
 ```text
@@ -34,7 +40,7 @@ Initial settings are limited to behavior that is understandable and connected en
 整理记录（R4 接通后）
   导出整理记录             导出
   恢复整理记录             选择文件
-  清理未关联记录           查看并清理
+  清理未关联记录           清理
 
 存储
   图库数据位置             当前路径 | 更改

@@ -13,6 +13,7 @@ use crate::ports::exact_duplicate_review::{
 use super::exact_duplicates::queries::{COMPATIBLE_FINGERPRINT, CURRENT_LOCATIONS};
 use super::{SqliteCatalog, database_error, sqlite_integer, unix_time_ms};
 
+pub(super) mod file_operations;
 mod groups;
 
 pub(super) const DECISION_JOIN: &str = "LEFT JOIN exact_duplicate_decisions AS decision

@@ -24,7 +24,7 @@ void main() {
               width: 48,
               child: LibraryPathText(
                 text: "Documents",
-                path: readablePath,
+                path: r"\\?\C:\Users\Example\Documents",
                 textKey: Key("truncated-path"),
               ),
             ),

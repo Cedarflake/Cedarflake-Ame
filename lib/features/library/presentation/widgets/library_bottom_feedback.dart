@@ -8,10 +8,12 @@ import "../../application/library_controller.dart";
 import "../../application/library_operation_notice.dart";
 import "../../application/library_organization_outcome.dart";
 import "../../application/library_update_controller.dart";
+import "../../application/library_file_operations.dart";
 import "../library_task_surface_selection.dart";
 import "../library_workbench_destinations.dart";
 import "library_model_installation_feedback.dart";
 import "library_task_feedback.dart";
+import "library_file_feedback.dart";
 
 class LibraryBottomFeedback extends ConsumerWidget {
   const LibraryBottomFeedback({
@@ -33,7 +35,10 @@ class LibraryBottomFeedback extends ConsumerWidget {
     final notifications = ref.watch(ameNotificationControllerProvider);
     final outcome = ref.watch(libraryOperationOutcomeProvider);
     final notification = notifications.current ?? outcome;
-    Widget? feedback = ref.read(libraryRecordFeedbackProvider)(context, ref);
+    final files = ref.watch(libraryFileActionsProvider);
+    Widget? feedback = files.progress == null
+        ? ref.read(libraryRecordFeedbackProvider)(context, ref)
+        : LibraryFileFeedback(activity: files);
     if (feedback == null && (tasks.showPrimary || tasks.showUpdates)) {
       feedback = LibraryTaskFeedback(onRetryPrimary: onRetryPrimary);
     }

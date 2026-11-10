@@ -174,7 +174,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.byType(MenuAnchor), findsNothing);
+    expect(find.byType(AmeMenuItemContent), findsNothing);
 
     await tester.tap(
       find.byType(LibraryPhotoTile),
@@ -182,8 +182,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(AmeMenuItemContent), findsNWidgets(6));
-    expect(find.byType(MenuAnchor), findsNothing);
+    expect(find.text(LibraryStrings.copyPath), findsOneWidget);
 
     await tester.tap(find.text(LibraryStrings.copyPath));
     await tester.pumpAndSettle();
@@ -196,7 +195,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
     await tester.pumpAndSettle();
 
-    expect(find.byType(AmeMenuItemContent), findsNWidgets(6));
+    expect(find.text(LibraryStrings.copyPath), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
   });

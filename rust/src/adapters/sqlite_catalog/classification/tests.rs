@@ -10,6 +10,7 @@ use super::*;
 
 mod archives;
 mod authority;
+mod file_export_rules;
 mod lifecycle;
 mod queries;
 mod review;

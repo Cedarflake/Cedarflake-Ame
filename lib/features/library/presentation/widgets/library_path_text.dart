@@ -37,12 +37,22 @@ class LibraryPathText extends StatelessWidget {
         if (!alwaysShowPathTooltip && !painter.didExceedMaxLines) {
           content = label;
         } else {
-          content = AmeTooltip(message: path, child: label);
+          content = AmeTooltip(message: displayLibraryPath(path), child: label);
         }
         return Align(alignment: Alignment.centerLeft, child: content);
       },
     );
   }
+}
+
+String displayLibraryPath(String path) {
+  if (path.startsWith(r"\\?\UNC\")) {
+    return r"\\" + path.substring(8);
+  }
+  if (RegExp(r"^\\\\\?\\[A-Za-z]:\\").hasMatch(path)) {
+    return path.substring(4);
+  }
+  return path;
 }
 
 String displayLibraryFolderPath(String rootPath, String relativePath) {

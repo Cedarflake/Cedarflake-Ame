@@ -6,6 +6,7 @@ pub mod classification;
 #[cfg(feature = "classification-worker")]
 pub mod classification_worker;
 mod domain;
+pub mod file_operations;
 mod frb_generated;
 pub mod journal_broker;
 #[cfg(test)]
