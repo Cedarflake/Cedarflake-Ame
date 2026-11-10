@@ -75,17 +75,9 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
         context: context,
         builder: (context) => AmeDialog(
           title: "继续移动这个文件？",
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AmeDialogItem(
-                icon: Symbols.drive_file_move_rounded,
-                title: item.source.split(RegExp(r"[\\/]")).last,
-              ),
-              const SizedBox(height: 20),
-              const Text("将核对已保存的副本，然后移除原位置的文件。"),
-            ],
+          content: AmeDialogItem(
+            icon: Symbols.drive_file_move_rounded,
+            title: item.source.split(RegExp(r"[\\/]")).last,
           ),
           actions: [
             TextButton(

@@ -87,7 +87,7 @@ abstract final class LibraryFileStrings {
     LibraryFileRecordPhase.nameOccupied => "尚未开始",
     LibraryFileRecordPhase.executing ||
     LibraryFileRecordPhase.removingSource => "需要核对结果",
-    LibraryFileRecordPhase.copied => "副本已保存，原文件尚未移除",
+    LibraryFileRecordPhase.copied => "移动未完成",
     LibraryFileRecordPhase.nativeCompleted => "文件已处理，图库尚未更新",
     LibraryFileRecordPhase.published => "已完成",
     LibraryFileRecordPhase.failed => "未完成",

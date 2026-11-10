@@ -117,7 +117,7 @@ fn exception(record: &FileOperationRecord) -> Option<String> {
         FileOperationPhase::Failed => "文件操作未完成",
         FileOperationPhase::Cancelled => "操作已停止",
         FileOperationPhase::NativeCompleted => "文件操作已完成，图库记录尚待更新",
-        FileOperationPhase::Copied => "目标副本已保存，原文件尚未移除",
+        FileOperationPhase::Copied => "移动未完成",
         _ => "结果尚未确认，需要检查操作记录",
     };
     let mut text = format!(
