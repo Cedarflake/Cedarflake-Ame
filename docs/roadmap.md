@@ -71,6 +71,8 @@ The [motion plan](plans/material-motion.md) is active on `codex/material-motion`
 `fd57185f`. Implement M1–M4 in order: official package update, local state transitions, sidebar/viewer
 integration and scoped acceptance. Preserve the plan's direct-input and source-safety boundaries.
 R8 retains its own delivery status; this branch has no merge authorization.
+The [acceptance record](acceptance/material-motion.md) retains package admission and subsequent
+interaction evidence.
 
 ### Existing delivery records
 

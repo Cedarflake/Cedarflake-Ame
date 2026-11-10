@@ -101,7 +101,7 @@ when changing either path.
 
 ## Standalone Material library
 
-Pin the official `material_ui` package to 1.10.0; the dependency lock also records its required
+Pin the official `material_ui` package to 1.11.0; the dependency lock also records its required
 `cupertino_ui` 1.1.6 dependency. Both retain Flutter's BSD-3-Clause license. Material components,
 themes and translated delegates come from `package:material_ui/material_ui.dart`; framework
 foundation, widgets, rendering and input primitives remain in the Flutter SDK. New UI libraries

@@ -1,0 +1,21 @@
+# Official Material motion adoption
+
+The [roadmap](../roadmap.md#material-motion-adoption) owns disposition and the
+[execution plan](../plans/material-motion.md) owns scope and order.
+
+## Package admission — 2026-11-10
+
+The branch starts from R8 head `fd57185f`; plan commit `f7b94ec1` records its boundary.
+`flutter pub get` resolved `material_ui` 1.11.0 with archive digest
+`474c135fd46b56ff1d35ca982155e8863d28fbc6464d1192acf4ee53a738680e`.
+Only that dependency changed. Its BSD-3-Clause license, required Dart 3.13/Flutter 3.47 minimum,
+and installed public `Springs` API were checked against the existing Flutter 3.47.8/Dart 3.13.7
+toolchain. Application language mode, renderer and native contracts remain unchanged.
+
+The retained theme and menu suites passed through the serial repository entrypoint. They cover
+both brightness variants, typography, popup animation, keyboard navigation, dismissal and tooltip
+lifecycle. This establishes scoped package compatibility; desktop and full hosted results belong
+to the later connected-motion verification, not this package-only check.
+
+Sources: [official release notes](https://pub.dev/packages/material_ui/changelog#1110) and
+[official spring tokens](https://github.com/flutter/packages/blob/main/packages/material_ui/lib/src/generated/motion_defaults_m3e.g.dart).
