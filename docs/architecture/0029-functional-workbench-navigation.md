@@ -35,7 +35,12 @@ Library and Albums use one section-heading component below their Library and Fav
 The heading's trailing plus imports a root or creates an album. Flutter 3.47.8's
 `ReorderableListView.builder`, `ReorderableDragStartListener` and `onReorderItem` provide lazy rows,
 drag geometry, scrolling and reorder semantics. Only the imported root row starts a folder drag;
-its expanded descendants remain ordinary navigation. The presentation order owner serializes saves,
+its expanded descendants remain ordinary navigation. `LibraryFolderReorderItem` collapses the branch
+when the framework recognizer accepts a drag, then hands the drag to the list after the next layout.
+This prevents the expanded subtree from becoming an oversized drag target. A pointer released or
+canceled during that handoff retires it; dropping leaves the branch collapsed. The reorder list's
+local `Overlay.wrap` owns proxy coordinates and clipping within the sidebar, below route-only
+captured themes. The presentation order owner serializes saves,
 retains current item identities through metadata updates, appends new items and restores the prior
 order on failure through the shared feedback surface. It does not reorder gallery images or mutate
 physical folders.

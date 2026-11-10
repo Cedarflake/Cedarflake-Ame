@@ -46,6 +46,8 @@ of this plan.
   owner. Starting an operation never waits for decorative animation.
 - Folder children appear as one block, without per-item delays. Retain only the closing branch
   until its transition finishes; reopening uses the current progress and current branch data.
+  Starting a root-row drag collapses its children before framework drag measurement. The row
+  remains collapsed after dropping; an ordinary click still selects or expands normally.
 - Duplicate transitions operate on visible/mounted cards, not the entire query. Keep a bounded
   visual exit for removed cards, with no input, focus or source-operation authority. Continuous
   background results retarget/coalesce visual work instead of queuing animations or catalog reads.

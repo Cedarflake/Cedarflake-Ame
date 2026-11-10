@@ -63,7 +63,7 @@ test bodies were relocated to satisfy a line limit.
 `LibraryFolderDisclosure` owns one branch's spatial/effects controllers and closing-child lifetime.
 Closing immediately excludes input, focus and semantics; reversal resumes the current progress,
 and completion releases the retained subtree. The navigation owner only composes root and nested
-branches, preserving its existing page limits. It has 539 production lines and no inline tests.
+branches, preserving its existing page limits. It has 546 production lines and no inline tests.
 
 Desktop review reproduced selection ink remaining after a selected child's text faded. Material
 was painting that ink on the outer sidebar, outside the disclosure's clipping/opacity. A pixel
@@ -71,10 +71,18 @@ regression reproduced blue ink in the unrevealed area; placing its transparent M
 the transition makes both opening and closing clip the ink. Reversal, retirement, reduced motion,
 nested navigation and replacement/failure/empty paging checks pass. The updated Windows client
 retains the selected folder's gallery while closing its branch, without the detached selection patch.
-Blank-area click followed by expansion, selected-child reopening and rapid reversal showed no
-displaced folder/header in the updated client. These point-in-time captures do not cover every
-frame of the reported intermittent flash; continue observing it during M4. The disclosure owner
-has 103 production lines and its focused suite has 174 dedicated test lines, without inline tests.
+The reported displacement was subsequently reproduced by dragging an expanded root row: its proxy
+appeared near the top center of the application. The application scroll theme inserted a render
+wrapper around the captured drag proxy, breaking its overlay positioning. A sidebar-local overlay
+keeps that proxy below route-only themes. The same regression exposed the framework auto-scroller's
+oversized-target assertion for expanded branches. `LibraryFolderReorderItem` now collapses the root
+before framework drag measurement, with a one-frame handoff that retires on early release or list
+replacement. The sidebar regression fails on the previous implementation and passes with correct
+row coordinates, no retained children, preserved relative-order writes and failure rollback.
+The updated client automatically collapses an expanded root dragged by its label and allows it to
+be reopened after dropping. Repeating from its arrow with a child selected retains that child's
+gallery; neither path displaces the folder proxy over the gallery. The disclosure owner has 109 production lines, the drag owner 158,
+and their dedicated suites 174 and 201 lines respectively, without inline tests.
 
 The format picker no longer offers custom extension entry or unsupported AVIF/HEIC choices. BMP,
 TIF/TIFF and ICO join the existing supported choices; already selected legacy extensions remain

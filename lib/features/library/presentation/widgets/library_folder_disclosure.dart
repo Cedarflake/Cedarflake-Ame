@@ -3,9 +3,14 @@ import "package:material_ui/material_ui.dart";
 import "../../../../app/presentation/ame_motion.dart";
 
 class LibraryFolderDisclosure extends StatefulWidget {
-  const LibraryFolderDisclosure({required this.child, super.key});
+  const LibraryFolderDisclosure({
+    required this.child,
+    this.animate = true,
+    super.key,
+  });
 
   final Widget? child;
+  final bool animate;
 
   @override
   State<LibraryFolderDisclosure> createState() =>
@@ -29,6 +34,7 @@ class _LibraryFolderDisclosureState extends State<LibraryFolderDisclosure>
   }
 
   bool get _skipMotion =>
+      !widget.animate ||
       MediaQuery.disableAnimationsOf(context) ||
       !TickerMode.valuesOf(context).enabled;
 

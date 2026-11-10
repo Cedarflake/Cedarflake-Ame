@@ -86,24 +86,28 @@ class _LibrarySidebarReorderListState<T extends Object>
       final ids = _ordering.ids;
       final draggable =
           widget.enabled && widget.onReorder != null && !_ordering.saving;
-      return AmeScrollMotion(
-        child: ReorderableListView.builder(
-          key: ValueKey(_itemsRevision),
-          padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
-          buildDefaultDragHandles: false,
-          itemCount: ids.length,
-          onReorderItem: (from, to) {
-            if (draggable) unawaited(_reorder(from, to));
-          },
-          header: widget.header(_ordering.saving),
-          footer: widget.footer?.call(_ordering.saving),
-          itemBuilder: (context, index) => KeyedSubtree(
-            key: ValueKey(ids[index]),
-            child: widget.itemBuilder(
-              context,
-              items[ids[index]]!,
-              index,
-              draggable,
+      // Keep the drag proxy inside the sidebar, below route-only captured
+      // themes such as AmeScrollMotionTheme.
+      return Overlay.wrap(
+        child: AmeScrollMotion(
+          child: ReorderableListView.builder(
+            key: ValueKey(_itemsRevision),
+            padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+            buildDefaultDragHandles: false,
+            itemCount: ids.length,
+            onReorderItem: (from, to) {
+              if (draggable) unawaited(_reorder(from, to));
+            },
+            header: widget.header(_ordering.saving),
+            footer: widget.footer?.call(_ordering.saving),
+            itemBuilder: (context, index) => KeyedSubtree(
+              key: ValueKey(ids[index]),
+              child: widget.itemBuilder(
+                context,
+                items[ids[index]]!,
+                index,
+                draggable,
+              ),
             ),
           ),
         ),

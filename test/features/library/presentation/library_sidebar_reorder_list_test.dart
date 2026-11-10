@@ -1,12 +1,105 @@
 import "dart:async";
 
+import "package:cedarflake_ame/app/presentation/ame_scroll_motion_theme.dart";
 import "package:cedarflake_ame/features/library/domain/library_sidebar_order.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_folder_reorder_item.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_sidebar_reorder_list.dart";
 import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets("expanded folder drag stays anchored inside the sidebar", (
+    tester,
+  ) async {
+    final writes = <LibrarySidebarMove>[];
+    final expanded = ValueNotifier(true);
+    addTearDown(expanded.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AmeScrollMotionTheme(
+          child: Scaffold(
+            body: Stack(
+              children: [
+                Positioned(
+                  left: 80,
+                  top: 64,
+                  width: 260,
+                  height: 400,
+                  child: ValueListenableBuilder(
+                    valueListenable: expanded,
+                    builder: (context, value, _) =>
+                        LibrarySidebarReorderList<String>(
+                          items: const ["folder"],
+                          itemId: (item) => item,
+                          header: (_) => const SizedBox(height: 80),
+                          onReorder: (move) async => writes.add(move),
+                          itemBuilder: (_, item, index, draggable) =>
+                              LibraryFolderReorderItem(
+                                index: index,
+                                enabled: draggable,
+                                onCollapse: () => expanded.value = false,
+                                header: ListTile(
+                                  title: Text(item),
+                                  onTap: () {},
+                                ),
+                                child: value
+                                    ? Column(
+                                        children: List.generate(
+                                          12,
+                                          (index) => ListTile(
+                                            title: Text("child $index"),
+                                          ),
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final row = find.text("folder");
+    final before = tester.getTopLeft(row);
+    final pointer = await tester.startGesture(
+      tester.getCenter(row),
+      kind: PointerDeviceKind.mouse,
+    );
+    await pointer.moveBy(const Offset(0, 24));
+    await tester.pump();
+    await tester.pump();
+    expect(expanded.value, isFalse);
+    expect(tester.getTopLeft(row).dx, closeTo(before.dx, 0.1));
+    expect(tester.getTopLeft(row).dy, greaterThanOrEqualTo(before.dy));
+    expect(find.text("child 0"), findsNothing);
+    await pointer.up();
+    await tester.pumpAndSettle();
+    expect(writes, isEmpty);
+    expect(tester.getTopLeft(row).dx, closeTo(before.dx, 0.1));
+    expect(tester.takeException(), isNull);
+
+    expanded.value = true;
+    await tester.pumpAndSettle();
+    final quickDrag = await tester.startGesture(
+      tester.getCenter(row),
+      kind: PointerDeviceKind.mouse,
+    );
+    await quickDrag.moveBy(const Offset(0, 24));
+    await quickDrag.up();
+    await tester.pumpAndSettle();
+    expect(find.text("child 0"), findsNothing);
+    expect(writes, isEmpty);
+    expanded.value = true;
+    await tester.pumpAndSettle();
+    expect(find.text("child 0"), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     "a real drag saves relative identities and preserves the new order",
     (tester) async {
@@ -82,16 +175,13 @@ Widget _list(
         itemId: (item) => item,
         header: (_) => const Text("相册"),
         onReorder: save,
-        itemBuilder: (_, item, index, draggable) =>
-            ReorderableDragStartListener(
-              index: index,
-              enabled: draggable,
-              child: ListTile(
-                title: Text(item),
-                onTap: () {},
-                minTileHeight: 60,
-              ),
-            ),
+        itemBuilder: (_, item, index, draggable) => LibraryFolderReorderItem(
+          index: index,
+          enabled: draggable,
+          onCollapse: () {},
+          child: null,
+          header: ListTile(title: Text(item), onTap: () {}, minTileHeight: 60),
+        ),
       ),
     ),
   ),
