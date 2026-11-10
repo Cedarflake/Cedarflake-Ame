@@ -66,12 +66,11 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ### Material motion adoption
 
-The [motion plan](plans/material-motion.md) is active on `codex/material-motion`, based on R8 head
-`fd57185f`. Implement M1–M4 in order, including M3a folder-child disclosure and M3b duplicate-display
-transitions added during desktop review. Preserve direct input, bounded rendering and source safety.
-R8 retains its own delivery status; this branch has no merge authorization.
-The [acceptance record](acceptance/material-motion.md) retains package admission and subsequent
-interaction evidence.
+The [motion plan](plans/material-motion.md) M1–M4 is complete on `codex/material-motion`, including
+M3a folder-child disclosure and M3b duplicate-display transitions. The branch remains unmerged.
+The [delivery record](acceptance/material-motion.md#branch-delivery--2026-11-11) retains package
+admission, desktop interaction, source review and final hosted verification. R8 was integrated
+separately; this motion branch has no merge authorization.
 
 ### Existing delivery records
 

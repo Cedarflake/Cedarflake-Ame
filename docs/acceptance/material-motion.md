@@ -147,4 +147,20 @@ it through identity resolution. All existing filter-restoration expectations pas
 with query lifetime, held-drag and scroll synchronization checks. A rebuilt isolated Windows client
 also restored the exact December 2016 viewport after filtering 700 fixture images to 70 PNG images,
 which had clamped the filtered viewport to its bottom. Content and timeline remained at the restored
-position after settling. Current-head hosted results remain pending branch publication.
+position after settling.
+
+## Branch delivery — 2026-11-11
+
+The [full CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42861922144) for
+`c3a68fd83eec329a87a0e749ff4c8f2f623d86a4` completed successfully: Static, all four Rust partitions,
+Flutter, Windows Scan, Windows Accessibility, Build Verification and the aggregate Windows Gate.
+Release and synthetic workloads were not selected for this presentation scope.
+
+Final source review covered spring reversal/status, closing-child input and focus retirement,
+the root-drag handoff and click tolerance, bounded exit-pixel disposal, and query-scoped duplicate
+anchoring. No remaining issue was identified within those boundaries. The native interaction and
+unchanged-fixture evidence above remain applicable to this product revision.
+
+Subsequent changes synchronize R8's integration record and close out documentation only. UTF-8,
+local-link and whitespace checks passed; the delivered product tree matches the tested commit.
+M1–M4 is delivered on `codex/material-motion`; the branch has been pushed and remains unmerged.
