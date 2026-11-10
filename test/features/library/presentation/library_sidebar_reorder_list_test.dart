@@ -14,6 +14,8 @@ void main() {
   ) async {
     final writes = <LibrarySidebarMove>[];
     final expanded = ValueNotifier(true);
+    var selections = 0;
+    var menuClicks = 0;
     addTearDown(expanded.dispose);
     await tester.pumpWidget(
       MaterialApp(
@@ -41,7 +43,12 @@ void main() {
                                 onCollapse: () => expanded.value = false,
                                 header: ListTile(
                                   title: Text(item),
-                                  onTap: () {},
+                                  onTap: () => selections++,
+                                  trailing: IconButton(
+                                    key: const Key("folder-more"),
+                                    icon: const Icon(Icons.more_vert),
+                                    onPressed: () => menuClicks++,
+                                  ),
                                 ),
                                 child: value
                                     ? Column(
@@ -66,6 +73,22 @@ void main() {
     await tester.pumpAndSettle();
     final row = find.text("folder");
     final before = tester.getTopLeft(row);
+    for (final target in [row, find.byKey(const Key("folder-more"))]) {
+      final click = await tester.startGesture(
+        tester.getCenter(target),
+        kind: PointerDeviceKind.mouse,
+      );
+      await click.moveBy(const Offset(4, 3));
+      await tester.pump();
+      expect(expanded.value, isTrue);
+      await click.up();
+      await tester.pumpAndSettle();
+      expect(expanded.value, isTrue);
+      expect(find.text("child 0"), findsOneWidget);
+    }
+    expect(selections, 1);
+    expect(menuClicks, 1);
+    expect(writes, isEmpty);
     final pointer = await tester.startGesture(
       tester.getCenter(row),
       kind: PointerDeviceKind.mouse,

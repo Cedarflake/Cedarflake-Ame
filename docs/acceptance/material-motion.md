@@ -81,8 +81,14 @@ replacement. The sidebar regression fails on the previous implementation and pas
 row coordinates, no retained children, preserved relative-order writes and failure rollback.
 The updated client automatically collapses an expanded root dragged by its label and allows it to
 be reopened after dropping. Repeating from its arrow with a child selected retains that child's
-gallery; neither path displaces the folder proxy over the gallery. The disclosure owner has 109 production lines, the drag owner 158,
-and their dedicated suites 174 and 201 lines respectively, without inline tests.
+gallery; neither path displaces the folder proxy over the gallery. A follow-up regression reproduced
+accidental collapse after a five-logical-pixel mouse movement over the label or a button. Folder
+sorting now uses the framework's Material tap tolerance, including device gesture settings, before
+starting its collapse/handoff. The existing click, drag, stale-order and rollback checks pass.
+The rebuilt isolated client also accepts five-pixel movements on the expansion button, more button
+and folder label as clicks, while an explicit longer drag collapses the branch before sorting.
+The disclosure owner has 109 production lines, the drag owner 195, and their dedicated suites 174
+and 224 lines respectively, without inline tests.
 
 The format picker no longer offers custom extension entry or unsupported AVIF/HEIC choices. BMP,
 TIF/TIFF and ICO join the existing supported choices; already selected legacy extensions remain

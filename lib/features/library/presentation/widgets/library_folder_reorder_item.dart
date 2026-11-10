@@ -79,6 +79,10 @@ class _FolderDragRecognizer extends ImmediateMultiDragGestureRecognizer {
   _PreparedFolderDrag? _pending;
 
   @override
+  MultiDragPointerState createNewPointerState(PointerDownEvent event) =>
+      _FolderPointerState(event.position, event.kind, gestureSettings);
+
+  @override
   set onStart(GestureMultiDragStartCallback? start) {
     super.onStart = start == null
         ? null
@@ -98,6 +102,39 @@ class _FolderDragRecognizer extends ImmediateMultiDragGestureRecognizer {
   void dispose() {
     _pending?.retire();
     super.dispose();
+  }
+}
+
+class _FolderPointerState extends MultiDragPointerState {
+  _FolderPointerState(super.initialPosition, super.kind, super.gestureSettings);
+
+  GestureMultiDragStartCallback? _acceptedStart;
+
+  // Match Material taps: a mouse's one-pixel drag slop is too small for a row
+  // that contains buttons and collapses when sorting starts.
+  bool get _passedClickTolerance =>
+      pendingDelta!.distance > (gestureSettings?.touchSlop ?? kTouchSlop);
+
+  @override
+  void checkForResolutionAfterMove() {
+    if (!_passedClickTolerance) return;
+    final start = _acceptedStart;
+    if (start == null) {
+      resolve(GestureDisposition.accepted);
+    } else {
+      _acceptedStart = null;
+      start(initialPosition);
+    }
+  }
+
+  @override
+  void accepted(GestureMultiDragStartCallback starter) {
+    if (_passedClickTolerance) {
+      starter(initialPosition);
+    } else {
+      // Winning an otherwise empty arena does not establish drag intent.
+      _acceptedStart = starter;
+    }
   }
 }
 
