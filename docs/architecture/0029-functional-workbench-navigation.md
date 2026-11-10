@@ -150,8 +150,9 @@ longest edge to 512 pixels, and releases them after the effects spring or interr
 Chronological duplicate publication keeps the current date vicinity when its browsed copy disappears
 and the representative belongs to a different date. The presentation position owner uses the coherent
 compact manifests, without catalog policy changes or extra source reads. Existing positions and
-explicit viewer identity retain their normal resolution; query publication preserves a current
-scroll edge. The time rail continues to derive its position from the actual gallery viewport.
+explicit viewer identity retain their normal resolution. Capture a scroll edge with its browse
+position, so temporary filter clamping cannot replace the saved browsing intent. The time rail
+continues to derive its position from the actual gallery viewport.
 Viewport anchors capture start/end position from the published layout's scroll range as well as
 the image fraction. Resizing or sidebar toggling retains that edge; an intervening user scroll
 recaptures the current position through the existing pending-reflow owner.

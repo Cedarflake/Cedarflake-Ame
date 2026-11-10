@@ -256,6 +256,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
         globalItemIndex: resolution.ordinal!,
         itemFraction: frozen.itemFraction,
         viewportFraction: frozen.viewportFraction,
+        scrollEdge: frozen.scrollEdge,
       );
     }
     // A viewer-centered read may resolve a different anchor while still loading
@@ -274,6 +275,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
         globalItemIndex: state.windowStartItemOffset + loadedIndex,
         itemFraction: frozen.itemFraction,
         viewportFraction: frozen.viewportFraction,
+        scrollEdge: frozen.scrollEdge,
       );
     }
     return LibraryGalleryVisiblePosition(
@@ -285,6 +287,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
       globalItemIndex: state.windowStartItemOffset,
       itemFraction: 0,
       viewportFraction: 0,
+      scrollEdge: frozen?.scrollEdge,
     );
   }
 

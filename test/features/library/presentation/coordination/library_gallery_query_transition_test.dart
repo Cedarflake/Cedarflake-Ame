@@ -8,6 +8,7 @@ import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_gallery_query_transition.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_filmstrip_position.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_reflow.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
@@ -16,6 +17,11 @@ void main() {
       "merging keeps the browsed date instead of a distant representative, background=$background",
       () async {
         final fixture = _Fixture()..viewer = null;
+        if (background) {
+          fixture.position = fixture.position.withScrollEdge(
+            LibraryGalleryScrollEdge.end,
+          );
+        }
         fixture.state = fixture.state.copyWith(
           query: LibraryGalleryQuery(
             duplicateMode: background
@@ -51,6 +57,7 @@ void main() {
         expect(retained.monthKey, "2013-08");
         expect(retained.itemFraction, fixture.position.itemFraction);
         expect(retained.viewportFraction, fixture.position.viewportFraction);
+        expect(retained.scrollEdge, fixture.position.scrollEdge);
       },
     );
   }
@@ -503,7 +510,7 @@ class _Fixture {
   LibraryAsset? viewer;
   bool hasLayout = true;
   final filmstrip = LibraryFilmstripPosition();
-  final position = LibraryGalleryVisiblePosition(
+  var position = LibraryGalleryVisiblePosition(
     queryId: "query",
     revision: BigInt.one,
     monthKey: "2013-08",

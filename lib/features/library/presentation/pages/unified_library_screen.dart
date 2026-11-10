@@ -1304,7 +1304,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           position: nextPosition,
           scrollPosition: _attachedGalleryScrollPosition,
           scrollEdge: publication.preservePosition
-              ? LibraryGalleryScrollEdge.capture(_attachedGalleryScrollPosition)
+              ? nextPosition.scrollEdge
               : LibraryGalleryScrollEdge.start,
         );
       }
@@ -1407,13 +1407,15 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   ) {
     if (_galleryScrollController.hasClients) {
       final scrollPosition = _galleryScrollController.position;
-      return _galleryPositionResolver.resolve(
-        queryId: state.queryId,
-        revision: state.catalogRevision,
-        scrollOffset: scrollPosition.pixels,
-        viewportDimension: scrollPosition.viewportDimension,
-        manifest: state.layoutManifest,
-      );
+      return _galleryPositionResolver
+          .resolve(
+            queryId: state.queryId,
+            revision: state.catalogRevision,
+            scrollOffset: scrollPosition.pixels,
+            viewportDimension: scrollPosition.viewportDimension,
+            manifest: state.layoutManifest,
+          )
+          ?.withScrollEdge(LibraryGalleryScrollEdge.capture(scrollPosition));
     }
     return null;
   }
@@ -1443,6 +1445,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
       globalItemIndex: position.globalItemIndex,
       itemFraction: position.itemFraction,
       viewportFraction: position.viewportFraction,
+      scrollEdge: position.scrollEdge,
     );
   }
 

@@ -79,5 +79,6 @@ LibraryGalleryVisiblePosition? resolveDuplicateBrowsePosition({
     globalItemIndex: nearest,
     itemFraction: frozen.itemFraction,
     viewportFraction: frozen.viewportFraction,
+    scrollEdge: frozen.scrollEdge,
   );
 }

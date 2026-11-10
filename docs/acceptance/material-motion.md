@@ -120,10 +120,11 @@ ordinary/group viewer, choice-menu and folder drag checks remain applicable. No 
 original-library source was used. The client closed normally with exit code 0; all 10,000 fixture
 lengths/modification times were unchanged and the isolated derived storage was removed.
 
-Production ownership is 56 lines for publication admission, 83 for duplicate browse position,
-108 for exit pixels and 358 for motion. The gallery wall (1,580) and screen (1,995) receive composition
+Production ownership is 56 lines for publication admission, 84 for duplicate browse position,
+108 for exit pixels and 358 for motion. The gallery wall (1,580) and screen (1,998) receive composition
 changes only. Dedicated motion, production-wall and query-transition suites contain 328, 161 and
-572 lines; these owners contain no inline tests.
+579 lines; these owners contain no inline tests. The visible-position value/resolver owner has 193
+production lines and carries the captured scroll edge with the saved location and fractions.
 
 ## Hosted verification
 
@@ -132,4 +133,12 @@ passed Static, the Windows build, all four Rust partitions and Windows Scan. Flu
 Accessibility exposed viewer-exit assertions tied to the superseded 120/128-ms duration.
 Their existing checks now wait for viewer retirement within bounded frame loops, retaining immediate
 input exclusion and per-frame geometry assertions. All five local viewer-geometry checks pass.
-Current-head hosted results remain pending branch publication.
+The [run for `8dbbb356`](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42851228865)
+passed Windows Accessibility and Windows Scan. Its Flutter batch exposed four filter-restoration
+regressions: sampling the edge at publication used the filtered/clamped position instead of the
+saved browsing intent. The visible-position value now captures that edge before the query and carries
+it through identity resolution. All existing filter-restoration expectations pass unchanged, together
+with query lifetime, held-drag and scroll synchronization checks. A rebuilt isolated Windows client
+also restored the exact December 2016 viewport after filtering 700 fixture images to 70 PNG images,
+which had clamped the filtered viewport to its bottom. Content and timeline remained at the restored
+position after settling. Current-head hosted results remain pending branch publication.
