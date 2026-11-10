@@ -192,7 +192,11 @@ void main() {
           expect(find.byKey(const Key("timeline-slider")), findsNothing);
         }
         await tester.tap(find.byKey(const Key("viewer-back-button")));
-        for (var frame = 0; frame < 8; frame++) {
+        for (
+          var frame = 0;
+          frame < 60 && find.byType(LibraryImageViewer).evaluate().isNotEmpty;
+          frame++
+        ) {
           await tester.pump(const Duration(milliseconds: 16));
           expect(find.byType(LibraryImageViewer).hitTestable(), findsNothing);
           expect(
@@ -218,7 +222,11 @@ void main() {
       expect(resizedWall.width, wallRect.width - 20);
       expect(resizedWall.overlaps(resizedAnchor), isTrue);
       await tester.tap(find.byKey(const Key("viewer-back-button")));
-      for (var frame = 0; frame < 8; frame++) {
+      for (
+        var frame = 0;
+        frame < 60 && find.byType(LibraryImageViewer).evaluate().isNotEmpty;
+        frame++
+      ) {
         await tester.pump(const Duration(milliseconds: 16));
         expect(find.byType(LibraryImageViewer).hitTestable(), findsNothing);
         expect(tester.getRect(wall), resizedWall);
@@ -331,7 +339,11 @@ void main() {
         if (!closeBeforePublication) {
           await tester.tap(find.byKey(const Key("viewer-back-button")));
         }
-        for (var frame = 0; frame < 8; frame++) {
+        for (
+          var frame = 0;
+          frame < 60 && find.byType(LibraryImageViewer).evaluate().isNotEmpty;
+          frame++
+        ) {
           await tester.pump(const Duration(milliseconds: 16));
           expect(find.byType(LibraryImageViewer).hitTestable(), findsNothing);
           expect(tester.getRect(anchor), originalRect);

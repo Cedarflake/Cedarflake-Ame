@@ -124,3 +124,12 @@ Production ownership is 56 lines for publication admission, 83 for duplicate bro
 108 for exit pixels and 358 for motion. The gallery wall (1,580) and screen (1,995) receive composition
 changes only. Dedicated motion, production-wall and query-transition suites contain 328, 161 and
 572 lines; these owners contain no inline tests.
+
+## Hosted verification
+
+The [full run for `6e6b3806`](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42829360806)
+passed Static, the Windows build, all four Rust partitions and Windows Scan. Flutter and Windows
+Accessibility exposed viewer-exit assertions tied to the superseded 120/128-ms duration.
+Their existing checks now wait for viewer retirement within bounded frame loops, retaining immediate
+input exclusion and per-frame geometry assertions. All five local viewer-geometry checks pass.
+Current-head hosted results remain pending branch publication.

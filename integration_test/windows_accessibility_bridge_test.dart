@@ -592,7 +592,10 @@ void main() {
         await tester.tap(viewerBack);
         await tester.pump();
         expect(viewerBack.hitTestable(), findsNothing);
-        await tester.pump(const Duration(milliseconds: 120));
+        await _pumpUntil(tester, () {
+          expect(viewerBack.hitTestable(), findsNothing);
+          return viewerBack.evaluate().isEmpty;
+        });
         expect(viewerBack, findsNothing);
         expect(find.byType(LibraryPhotoTile), findsWidgets);
       }
