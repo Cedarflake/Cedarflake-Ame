@@ -32,6 +32,7 @@ class LibraryFilterFormatChoices extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
             children: [
               for (final format in formats) ...[

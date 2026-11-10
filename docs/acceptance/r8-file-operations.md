@@ -521,6 +521,9 @@ Formatting, scoped analysis, the existing 27 settings regressions and the Debug 
 checks submitted no file operation. The updated screenshots are under
 `build/review/menu-controls-updated-2026-11-10`. Storage settings has 720 production lines and its
 dedicated settings-page test has 1,228 lines; no new tests or inline tests were added.
+The format-chip row now reserves vertical paint space inside its horizontal viewport. The rebuilt
+Sandbox client verified light/dark selected and unselected edges, horizontal scrolling, and applying
+JPG with PNG. Its four existing filter regressions, scoped analysis and Debug build passed.
 
 A category copy with no classification produced one skipped item. A second direct copy held the
 synthetic source open for writing and produced Windows sharing violation 32. Both completion notices
