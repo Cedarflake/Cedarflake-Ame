@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-10
+Last planning update: 2026-11-11
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -33,7 +33,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
 | R6 | Perceptual similarity review | Merged into `main` on 2026-11-05 |
 | R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
-| R8 | Authorized file organization and recovery | In progress on `codex/r8-file-organization`; incorporates former R9 |
+| R8 | Authorized file organization and recovery | Merged into `main` on 2026-11-11 through [PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57); incorporates former R9 |
 | R10 | Large-library maturity and release readiness | Later work; infrastructure may support earlier stages |
 
 R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
@@ -41,10 +41,9 @@ feature. R9 is no longer a separate stage; R10 keeps its identifier. The
 [merged scope](product/organization-workflows.md#r8---file-organization-and-recovery) owns behavior;
 the [execution plan](plans/r8-file-organization.md) defines Windows-backed implementation slices;
 the [verification procedure](acceptance/r8-file-operations.md) defines guest-contained Windows Sandbox
-and hosted Windows fixture checks. R8-01 native admission, R8-02 durable execution and R8-03 desktop
-actions have scoped evidence; rule-based organization and result reports are connected. Integrated
-review and hosted checks have evidence. The native recycling race has an accepted disposition and
-the write guard has scoped native evidence; finish current-head verification under R8-05.
+and hosted Windows fixture checks. R8-01 through R8-05 are integrated; the
+[closeout record](acceptance/r8-file-operations.md#r8-integration--2026-11-11) retains final review,
+current-head verification and the accepted Windows recycling limit.
 
 ## Current stage and acceptance boundary
 
@@ -166,33 +165,14 @@ schedules no additional broad split.
 
 ## R8 implementation sequence
 
-R8 implementation is active on `codex/r8-file-organization`. R8-01 Windows capability admission
-under [ADR 0042](architecture/0042-windows-file-operations.md) has scoped
-[native evidence](acceptance/r8-file-operations.md#r8-01-native-capability-admission--2026-11-09).
-R8-02 has its [durable journal and executor](acceptance/r8-file-operations.md#r8-02-durable-journal-foundation--2026-11-09)
-and [catalog/native recovery connection](acceptance/r8-file-operations.md#r8-02-catalog-publication-and-native-recovery--2026-11-09),
-including the [joined runtime and scan ordering](acceptance/r8-file-operations.md#r8-02-joined-runtime-and-scan-ordering--2026-11-09).
-R8-03 connects desktop actions with [isolated interaction evidence](acceptance/r8-file-operations.md#r8-03-connected-desktop-actions--2026-11-10).
-R8-04 connects organization rules and result reports with
-[native and desktop evidence](acceptance/r8-file-operations.md#r8-04-organization-rules-and-result-reports--2026-11-10).
-Continue R8-05 in the [execution plan](plans/r8-file-organization.md#implementation-slices) with
-final review and current-head verification. The
-[integrated review](acceptance/r8-file-operations.md#r8-05-integrated-review--2026-11-10)
-records passing hosted verification and a reproduced Shell recycling identity race. On 2026-11-10,
-the user accepted retaining Windows recycling with that last-check replacement limit under
-[ADR 0042](architecture/0042-windows-file-operations.md#recycling-identity-boundary).
-Detected changed/unverifiable files remain undeleted with visible reasons. Normal recycling and
-its write guard remain required; the accepted race no longer blocks delivery.
-The deletion-scope adjustment and readable-path correction have
-[scoped client evidence](acceptance/r8-file-operations.md#merged-card-deletion-scope-and-readable-paths--2026-11-10).
-Ordinary merged-gallery cards target the complete confirmed group; group members and single-file
-viewers retain explicit-file scope. The [interaction plan](plans/r8-file-organization.md#planned-interaction-decisions)
-owns the details. The [dialog inventory](acceptance/r8-file-operations.md#dialog-screenshot-inventory--2026-11-10)
-records actual screenshots, including the scoped recovery and dark-theme checks, for layout review.
-The selected [dialog refinements](acceptance/r8-file-operations.md#dialog-templates-and-connected-actions--2026-11-10)
-follow the shared [templates](product/gallery/dialogs.md). Preserve the agreed native safety boundary
-and permanent-deletion handle guarantee. Exit requires the connected
-workflow and scoped [verification](acceptance/r8-file-operations.md), without organization preview.
+R8-01 through R8-05 are integrated through [PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57).
+The [plan](plans/r8-file-organization.md#implementation-slices) retains the combined R8/R9 scope;
+the [integration record](acceptance/r8-file-operations.md#r8-integration--2026-11-11) owns review,
+Sandbox and desktop evidence, final CI and the merged revision. Preserve the explicit deletion scope,
+changed-file rejection and permanent-deletion handle guarantee under
+[ADR 0042](architecture/0042-windows-file-operations.md), including its accepted last-check recycling
+race. Organization preview remains excluded. The [dialog inventory](acceptance/r8-file-operations.md#dialog-screenshot-inventory--2026-11-10)
+retains the reviewed surfaces; the shared [templates](product/gallery/dialogs.md) own their requirements.
 
 ## R7 implementation sequence
 

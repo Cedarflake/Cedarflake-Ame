@@ -664,3 +664,19 @@ SHA-256 `bf00b8b1cfb45d326645434cbee48084f59986643776e287a953cd7408e3ad79`.
 Files and catalog were guest-local; the Sandbox stopped and leased staging was cleaned. Compilation,
 formatting and diff checks passed. Candidate admission has 106 production lines without inline tests;
 the reused dedicated native export fixture has 319 lines. No schema, bridge or UI change was needed.
+
+## R8 integration — 2026-11-11
+
+[PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57) integrated R8-01 through R8-05 into
+`main` at `49ff7ed7f5599c3cfeb2a58e41ade8858c551d9b`. Its tree matches the reviewed branch head
+`fd57185f60cd47365e94af735b7e44cafabb09c6`. That exact head passed
+[Quality / CI](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42820691759): Static,
+all four Rust partitions, Flutter, Windows Scan, Windows Accessibility, Build Verification and
+the aggregate Windows Gate. Optional release and synthetic jobs were not selected.
+
+The integrated review above retains the Windows Sandbox, desktop and recovery evidence. The final
+recovery-content and same-directory-move findings are resolved by the verified changes recorded in
+their scoped sections. The accepted last-check replacement race in Windows recycling remains under
+[ADR 0042](../architecture/0042-windows-file-operations.md#recycling-identity-boundary); detected
+changed or unverifiable files are still skipped, and permanent deletion retains handle-based identity.
+Material motion continues separately on `codex/material-motion` and is not included in this merge.
