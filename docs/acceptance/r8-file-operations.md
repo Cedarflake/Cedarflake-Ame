@@ -462,8 +462,32 @@ Both remaining file hashes and the sibling sentinel matched their baseline. The 
 scratch were retired. Existing application and selection regressions passed after the lifecycle
 change; completion remains unavailable until native cleanup and catalog publication finish.
 
+[Full CI](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42738000957) passed on
+`500e551f5ce3aa051fce8b32db3bb61e9f1d01da` at 02:38 UTC on 2026-11-10. Static, all four Rust partitions,
+Flutter, Windows scan, accessibility, build verification and Windows Gate succeeded. Later changes
+record evidence only; the unresolved recycling identity boundary still prevents R8 delivery.
+
 The selection facade and group expansion owner contain 255 and 98 production lines without inline
 tests. Authorization contains 229 production lines and 30 inline-test lines; its SQLite selection
 fixture contains 253 dedicated-test lines. The confirmation, history and group-card owners contain
 251, 270 and 247 production lines without inline tests. File-action lifetime, selection toolbar and
 feedback contain 232, 421 and 127 production lines; the affected application test file has 286 lines.
+
+## Dialog screenshot inventory — 2026-11-10
+
+The ignored local artifact `build/review/dialogs-2026-11-10/index.html` groups 37 actual-client
+screenshots from `500e551f`, with entry points, states and a matching Markdown/JSON index. It covers
+file confirmations, operation/report history, albums, folder removal/update, filtering and both date
+modes, model installation, organization restoration/cleanup, thumbnail cleanup and notifications.
+Two earlier failure screenshots are labeled separately; superseded path/header screenshots are
+excluded from the current gallery. Images are unmodified, using the light theme and guest fixtures.
+
+The interrupted-move continuation confirmation has not been captured; failed-operation technical
+details retain an earlier-revision reference only. Other theme/loading/error variants are not
+exhaustive. This inventory supports the requested layout review without authorizing a redesign.
+
+The guest-only session created a temporary album, exported its archive, generated one skipped-item
+TXT, and copied one sample. Restoration, cleanup and deletion confirmations were cancelled; model
+download was not started. All six source SHA-256 values and the sibling sentinel remained unchanged;
+the sole copied image matched its source, and the report decoded as strict UTF-8. The client closed
+normally, then the owned Sandbox stopped and its leased staging directory was removed.
