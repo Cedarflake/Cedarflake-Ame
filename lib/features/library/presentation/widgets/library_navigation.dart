@@ -14,6 +14,7 @@ import "../library_pending_source.dart";
 import "../library_strings.dart";
 import "../coordination/library_sidebar_selection.dart";
 import "library_folder_navigation_tile.dart";
+import "library_folder_disclosure.dart";
 import "library_source_navigation_tile.dart";
 import "library_sidebar_section_header.dart";
 import "library_sidebar_reorder_list.dart";
@@ -382,8 +383,11 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           onRemove: () => _requestRemoveRoot(root),
                         ),
                       ),
-                      if (!widget.isCompact && _isExpanded(root.id, ""))
-                        ..._buildFolderBranch(root, "", 1),
+                      LibraryFolderDisclosure(
+                        child: !widget.isCompact && _isExpanded(root.id, "")
+                            ? Column(children: _buildFolderBranch(root, "", 1))
+                            : null,
+                      ),
                       if (!widget.isCompact &&
                           !_isExpanded(root.id, "") &&
                           widget.folderTree.branch(root.id, "").errorMessage !=
@@ -453,9 +457,20 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
           onOpen: () => widget.onOpenFolder(root, folder),
         ),
       );
-      if (isExpanded && folder.hasChildFolders) {
-        children.addAll(
-          _buildFolderBranch(root, folder.relativePath, depth + 1),
+      if (folder.hasChildFolders) {
+        children.add(
+          LibraryFolderDisclosure(
+            key: ValueKey((root.id, folder.relativePath)),
+            child: isExpanded
+                ? Column(
+                    children: _buildFolderBranch(
+                      root,
+                      folder.relativePath,
+                      depth + 1,
+                    ),
+                  )
+                : null,
+          ),
         );
       }
     }

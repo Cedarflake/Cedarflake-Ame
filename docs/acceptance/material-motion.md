@@ -57,3 +57,25 @@ The largest changed production owner, `library_source_navigation_tile.dart`, has
 lines and no inline tests; its change is limited to icon composition. The existing settings
 presentation suite has 1,243 dedicated test lines and no production code. No responsibilities or
 test bodies were relocated to satisfy a line limit.
+
+## Folder children and format choices
+
+`LibraryFolderDisclosure` owns one branch's spatial/effects controllers and closing-child lifetime.
+Closing immediately excludes input, focus and semantics; reversal resumes the current progress,
+and completion releases the retained subtree. The navigation owner only composes root and nested
+branches, preserving its existing page limits. It has 539 production lines and no inline tests.
+
+Desktop review reproduced selection ink remaining after a selected child's text faded. Material
+was painting that ink on the outer sidebar, outside the disclosure's clipping/opacity. A pixel
+regression reproduced blue ink in the unrevealed area; placing its transparent Material host inside
+the transition makes both opening and closing clip the ink. Reversal, retirement, reduced motion,
+nested navigation and replacement/failure/empty paging checks pass. The updated Windows client
+retains the selected folder's gallery while closing its branch, without the detached selection patch.
+Blank-area click followed by expansion, selected-child reopening and rapid reversal showed no
+displaced folder/header in the updated client. These point-in-time captures do not cover every
+frame of the reported intermittent flash; continue observing it during M4. The disclosure owner
+has 103 production lines and its focused suite has 174 dedicated test lines, without inline tests.
+
+The format picker no longer offers custom extension entry or unsupported AVIF/HEIC choices. BMP,
+TIF/TIFF and ICO join the existing supported choices; already selected legacy extensions remain
+visible and removable. Existing combined-filter apply/cancel/clear checks pass.
