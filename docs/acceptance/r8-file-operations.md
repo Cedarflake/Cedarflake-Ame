@@ -512,6 +512,11 @@ the underline starts at the name, and validation text does not change its vertic
 Rename remains single-file.
 Cancellation preserved the draft's source files and existing decisions.
 
+Copy/move organization selection now uses a Material text button and the shared Ame single-choice
+menu. The rebuilt Sandbox client showed all options on one line, updated the value and explanation
+after selection, retained the selected menu marker, and returned to the gallery on cancellation.
+Formatting, scoped analysis and the Debug build passed; this check submitted no file operation.
+
 A category copy with no classification produced one skipped item. A second direct copy held the
 synthetic source open for writing and produced Windows sharing violation 32. Both completion notices
 placed status and the relevant count in their first line, with the saved-report message below.

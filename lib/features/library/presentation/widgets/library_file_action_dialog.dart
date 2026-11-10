@@ -5,9 +5,10 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../application/directory_picker.dart";
-import "../../../../app/presentation/ame_choice.dart";
 import "../../../../app/presentation/ame_dialog.dart";
 import "../../../../app/presentation/ame_dialog_location.dart";
+import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../application/library_file_operations.dart";
 import "../../application/library_file_selection.dart";
 import "../../domain/library_file_operations.dart";
@@ -182,19 +183,31 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
             const SizedBox(height: 20),
             AmeDialogField(
               label: "文件夹结构",
-              child: AmeChoice<LibraryFileOrganizationRule>(
-                width: 440,
-                value: _rule,
-                entries: [
-                  for (final rule in LibraryFileOrganizationRule.values)
-                    AmeChoiceEntry(
-                      value: rule,
-                      label: LibraryFileStrings.rule(rule),
-                    ),
-                ],
-                onSelected: (value) {
-                  if (value != null) setState(() => _rule = value);
-                },
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: AmePopupMenuButton<LibraryFileOrganizationRule>(
+                  labels: LibraryFileOrganizationRule.values.map(
+                    LibraryFileStrings.rule,
+                  ),
+                  initialValue: _rule,
+                  hasContentIcon: false,
+                  leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
+                  items: [
+                    for (final rule in LibraryFileOrganizationRule.values)
+                      ameMenuChoice(
+                        value: rule,
+                        isSelected: rule == _rule,
+                        label: LibraryFileStrings.rule(rule),
+                      ),
+                  ],
+                  onSelected: (value) => setState(() => _rule = value),
+                  builder: (context, openMenu) => TextButton.icon(
+                    onPressed: openMenu,
+                    icon: const Icon(Symbols.arrow_drop_down_rounded),
+                    iconAlignment: IconAlignment.end,
+                    label: Text(LibraryFileStrings.rule(_rule)),
+                  ),
+                ),
               ),
             ),
             if (_rule != LibraryFileOrganizationRule.direct) ...[
