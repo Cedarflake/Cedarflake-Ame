@@ -68,8 +68,8 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 ### Material motion adoption
 
 The [motion plan](plans/material-motion.md) is active on `codex/material-motion`, based on R8 head
-`fd57185f`. Implement M1–M4 in order: official package update, local state transitions, sidebar/viewer
-integration and scoped acceptance. Preserve the plan's direct-input and source-safety boundaries.
+`fd57185f`. Implement M1–M4 in order, including M3a folder-child disclosure and M3b duplicate-display
+transitions added during desktop review. Preserve direct input, bounded rendering and source safety.
 R8 retains its own delivery status; this branch has no merge authorization.
 The [acceptance record](acceptance/material-motion.md) retains package admission and subsequent
 interaction evidence.
