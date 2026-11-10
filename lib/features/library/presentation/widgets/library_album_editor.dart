@@ -134,9 +134,9 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
                 decoration: InputDecoration(
                   labelText: "相册名称",
                   errorText: _error,
-                  prefixIcon: widget.kind == LibraryAlbumEditKind.create
-                      ? Padding(
-                          padding: const EdgeInsetsDirectional.only(end: 12),
+                  icon: widget.kind == LibraryAlbumEditKind.create
+                      ? SizedBox.square(
+                          dimension: 48,
                           child: IconButton.filledTonal(
                             key: const Key("library-album-choose-icon"),
                             tooltip: "选择相册图标",

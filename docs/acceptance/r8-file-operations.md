@@ -500,19 +500,21 @@ with framework scrolling, focus, dismissal and styling. Its fields and object ro
 layout composition; they add no dialog controller. The existing bottom trays remain unchanged.
 Official [dialogs](https://m3.material.io/components/dialogs/overview) and
 [`AlertDialog`](https://api.flutter.dev/flutter/material/AlertDialog-class.html) were reviewed;
-installed `InputDecoration.prefixIcon`, `CheckboxListTile`, `DatePickerThemeData` and
+installed `InputDecoration.icon`, `CheckboxListTile`, `DatePickerThemeData` and
 `GregorianCalendarDelegate` provide the required controls without a custom calendar or input owner.
 
 The actual Debug client in Windows Sandbox verified inline album icon selection, saving and invalid
 name feedback, album deletion identity, copy destination/rule selection, single-file rename, default
-unchecked permanent deletion, and restoration contents with only nonzero rows. The album icon aligns
-inside the input's content area even when validation adds an error line. Rename remains single-file.
+unchecked permanent deletion, and restoration contents with only nonzero rows. The album icon uses
+the input's external icon slot with square constraints: its selected background stays circular,
+the underline starts at the name, and validation text does not change its vertical alignment.
+Rename remains single-file.
 Cancellation preserved the draft's source files and existing decisions.
 
 A category copy with no classification produced one skipped item. A second direct copy held the
 synthetic source open for writing and produced Windows sharing violation 32. Both completion notices
 placed status and the relevant count in their first line, with the saved-report message below.
-The actual failure details displayed the localized reason and a separately labeled error code.
+The actual failure details displayed the localized reason and the separately labeled code `OS: 32`.
 Opening report locations selected their TXT in Explorer; changing the preview cache and restarting
 exposed the old-directory confirmation, whose location action selected that directory in Explorer.
 Cleanup and restoration were cancelled. The date picker displayed the date and weekday separately,
@@ -525,11 +527,17 @@ and the exported album archive remained available. The client and temporary lock
 owned Sandbox stopped and its leased scratch was removed. This run used the light theme; it does
 not add evidence for the separate recycling identity race.
 
+A fresh Sandbox rechecked the external icon's default, selected and invalid-name states, saved the
+chosen icon, and reproduced the sharing violation with its `OS: 32` label. Screenshots 01–03 and 18
+were refreshed. Its six source hashes and sentinel were unchanged, one report decoded as strict
+UTF-8, and no image copy was published; the client, lock, Sandbox and leased scratch retired.
+Scoped formatting, analysis and the Debug build passed for this follow-up.
+
 Scoped Dart formatting, analysis, dependency verification, the Debug build, and retained album,
 sidebar-removal, archive-scroll and file-action lifetime regressions passed. An initial nested
 shrink-wrapped list could not supply intrinsic height to `AlertDialog`; the bounded item viewport
 resolved it while retaining the selection and cancellation checks. Storage settings contains 721
 production lines after extracting its 52-line cleanup confirmation. The filter sheet contains 396
 production lines, album navigation 250, file confirmation 258 and album editor 193, with no inline
-tests. The shared dialog/location/diagnostic/calendar files contain 77/99/32/15 production lines.
+tests. The shared dialog/location/diagnostic/calendar files contain 77/99/33/15 production lines.
 The two adjusted dedicated test files contain 346 and 273 lines; no new test inventory was added.
