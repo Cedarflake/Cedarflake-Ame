@@ -47,3 +47,13 @@ retirement, interrupted reopening, retained semantics and reduced motion. Comple
 settle the spring rather than assume the superseded fixed duration; intermediate opacity and fixed
 content bounds are still checked. Scoped static analysis passed. Desktop interaction and hosted
 verification remain for M4.
+
+Review found that the choice trigger's value-based key recreated its arrow on selection. A focused
+reproduction observed an immediate reset to zero instead of a closing transition. Retaining trigger
+identity preserves the arrow and focus while publishing the new choice immediately; both field and
+menu presentations now exercise this path.
+
+The largest changed production owner, `library_source_navigation_tile.dart`, has 528 production
+lines and no inline tests; its change is limited to icon composition. The existing settings
+presentation suite has 1,243 dedicated test lines and no production code. No responsibilities or
+test bodies were relocated to satisfy a line limit.

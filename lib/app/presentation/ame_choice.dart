@@ -111,7 +111,6 @@ class _AmeChoiceState<T> extends State<AmeChoice<T>> {
       builder: (context, openMenu) {
         if (widget._isMenu) {
           return TextButton.icon(
-            key: ValueKey(widget.value),
             onPressed: widget.enabled ? openMenu : null,
             icon: AmeExpansionIcon(expanded: _isMenuOpen),
             iconAlignment: IconAlignment.end,
@@ -128,7 +127,6 @@ class _AmeChoiceState<T> extends State<AmeChoice<T>> {
             SizedBox(
               height: _height,
               child: OutlinedButton(
-                key: ValueKey(widget.value),
                 onPressed: widget.enabled ? openMenu : null,
                 style: OutlinedButton.styleFrom(
                   alignment: AlignmentDirectional.centerStart,

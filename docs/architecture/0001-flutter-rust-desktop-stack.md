@@ -210,7 +210,7 @@ without measured failure evidence.
 - <https://docs.flutter.dev/perf/impeller#windows>
 - <https://docs.flutter.dev/cookbook/design/themes>
 - <https://docs.flutter.dev/release/breaking-changes/material-ui-and-cupertino-ui>
-- <https://pub.dev/packages/material_ui/versions/1.10.0>
+- <https://pub.dev/packages/material_ui/versions/1.11.0>
 - <https://api.flutter.dev/flutter/widgets/SliverGrid-class.html>
 - <https://github.com/fzyzcjy/flutter_rust_bridge>
 - <https://github.com/material-components/material-web>

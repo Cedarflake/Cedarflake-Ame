@@ -1,8 +1,59 @@
+import "package:cedarflake_ame/app/presentation/ame_choice.dart";
 import "package:cedarflake_ame/app/presentation/ame_motion.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets("changing a choice retains its closing arrow transition", (
+    tester,
+  ) async {
+    for (final menu in [false, true]) {
+      final selected = ValueNotifier(1);
+      const entries = [
+        AmeChoiceEntry(value: 1, label: "One"),
+        AmeChoiceEntry(value: 2, label: "Two"),
+      ];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ValueListenableBuilder(
+              valueListenable: selected,
+              builder: (context, value, _) => menu
+                  ? AmeChoice<int>.menu(
+                      value: value,
+                      entries: entries,
+                      onSelected: (value) => selected.value = value!,
+                    )
+                  : AmeChoice<int>(
+                      value: value,
+                      entries: entries,
+                      onSelected: (value) => selected.value = value!,
+                    ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text("One"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey("ame-choice-option-2")));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 40));
+      expect(selected.value, 2);
+      final arrow = find.descendant(
+        of: find.byType(AmeChoice<int>),
+        matching: find.byType(RotationTransition),
+      );
+      expect(
+        tester.widget<RotationTransition>(arrow).turns.value,
+        inExclusiveRange(0, 0.5),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.widget<RotationTransition>(arrow).turns.value, 0);
+      await tester.pumpWidget(const SizedBox.shrink());
+      selected.dispose();
+    }
+  });
+
   testWidgets("reversal retains velocity and retires at the exact endpoint", (
     tester,
   ) async {
