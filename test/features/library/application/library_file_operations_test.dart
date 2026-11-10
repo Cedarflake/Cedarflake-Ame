@@ -126,9 +126,15 @@ void main() {
         isFalse,
       );
       expect(backend.commands, isEmpty);
+      expect(
+        tester
+            .widget<FilledButton>(find.widgetWithText(FilledButton, "删除"))
+            .onPressed,
+        isNotNull,
+      );
       await tester.tap(find.text("永久删除"));
       await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, "删除"));
+      await tester.tap(find.widgetWithText(FilledButton, "永久删除"));
       await tester.pumpAndSettle();
       expect(
         backend.commands.single.action,

@@ -28,11 +28,19 @@ class LibraryFileFeedback extends ConsumerWidget {
         !activity.stopping && progress.phase != LibraryFileTaskPhase.refreshing;
     if (viewer) {
       final action = activity.busy ? commands.cancel : commands.dismiss;
+      var message = title;
+      if (progress.failure != null) {
+        message = LibraryFileStrings.failure(
+          progress.failure,
+          action: activity.action,
+        );
+      } else if (activity.purpose != LibraryFileActivityPurpose.report) {
+        message =
+            "$title · ${progress.processed + progress.skipped}/${progress.total}";
+      }
       return LibraryViewerNotice(
         icon: Symbols.folder_rounded,
-        message: activity.purpose == LibraryFileActivityPurpose.report
-            ? title
-            : "$title · ${progress.processed + progress.skipped}/${progress.total}",
+        message: message,
         actionLabel: activity.busy ? "停止" : "知道了",
         onAction: activity.busy && !canStop ? null : action,
       );
@@ -83,7 +91,10 @@ class LibraryFileFeedback extends ConsumerWidget {
       return progress.export?.reportPath ?? "正在读取操作记录";
     }
     if (progress.failure != null) {
-      return LibraryFileStrings.failure(progress.failure);
+      return LibraryFileStrings.failure(
+        progress.failure,
+        action: activity.action,
+      );
     }
     if (progress.phase == LibraryFileTaskPhase.preparing) {
       return "已核对 ${progress.processed} / ${progress.total} 个文件";
@@ -93,6 +104,14 @@ class LibraryFileFeedback extends ConsumerWidget {
       final report = progress.export?.reportPath != null
           ? "\n结果清单已保存到目标文件夹。"
           : "";
+      if (activity.action == LibraryFileAction.recycle ||
+          activity.action == LibraryFileAction.deletePermanently) {
+        final unfinished =
+            progress.failed + progress.cancelled + progress.skipped;
+        return unfinished == 0
+            ? "已删除 ${progress.published} 个文件。"
+            : "已删除 ${progress.published} 个，未完成 $unfinished 个。可查看记录了解原因。";
+      }
       return "已完成 ${progress.published} 个，未完成 ${progress.failed} 个，已停止 ${progress.cancelled} 个$skipped$report";
     }
     return "已处理 ${progress.processed} / ${progress.total} 个文件";

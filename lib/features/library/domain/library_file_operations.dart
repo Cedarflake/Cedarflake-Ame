@@ -125,6 +125,7 @@ class LibraryFileRecord {
     required this.canRetry,
     this.destination,
     this.detail,
+    this.failure,
   });
   final BigInt id;
   final LibraryFileAction action;
@@ -137,6 +138,7 @@ class LibraryFileRecord {
   final LibraryOrganizationTarget target;
   final bool canRetry;
   final String? detail;
+  final LibraryFileFailure? failure;
 }
 
 class LibraryFileFailure implements Exception {

@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-09
+Last planning update: 2026-11-10
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -167,8 +167,13 @@ R8-04 connects organization rules and result reports with
 Continue R8-05 in the [execution plan](plans/r8-file-organization.md#implementation-slices) by
 resolving the recycling boundary. The
 [integrated review](acceptance/r8-file-operations.md#r8-05-integrated-review--2026-11-10)
-records passing hosted verification and a reproduced Shell recycling identity race. Recycling requires
-a supported fix or an explicit concurrency-boundary decision before delivery.
+records passing hosted verification and a reproduced Shell recycling identity race. The selected
+policy preserves the confirmed file version and reports changed/unverifiable files as not deleted.
+Normal recycling remains required; a global disable does not fulfill this outcome. Resolve the
+post-validation replacement window before claiming identity-preserving recycling.
+After the current deletion-feedback change, collect actual Ame dialog screenshots with their
+entry points and relevant states for a separate layout review. This review does not authorize a
+dialog-wide redesign or replace R8's remaining native safety requirement.
 Native behavior that cannot preserve the required source-safety guarantees blocks delivery of the
 affected action until resolved; it does not authorize a weaker fallback. Exit requires the connected
 workflow and scoped [verification](acceptance/r8-file-operations.md), without organization preview.

@@ -96,6 +96,12 @@ LibraryFileExport fileExportFromRust(exports.FileExportRecord value) =>
 LibraryFileRecord fileRecordFromRust(journal.FileOperationRecord value) {
   final head = value.checkpoint;
   final target = head.destination;
+  final changedDeletion =
+      {
+        native.FileAction.recycle,
+        native.FileAction.deletePermanently,
+      }.contains(value.authorization.request.action) &&
+      head.issue?.kind == native.FileOperationIssueKind.sourceChanged;
   return LibraryFileRecord(
     id: value.id,
     action: fileActionFromRust(value.authorization.request.action),
@@ -136,11 +142,18 @@ LibraryFileRecord fileRecordFromRust(journal.FileOperationRecord value) {
     ),
     canRetry:
         head.copied == null &&
+        !changedDeletion &&
         {
           journal.FileOperationPhase.failed,
           journal.FileOperationPhase.cancelled,
         }.contains(head.phase),
     detail: head.issue?.message,
+    failure: changedDeletion
+        ? LibraryFileFailure(
+            "file_operation_source_unverified",
+            head.issue!.message,
+          )
+        : null,
   );
 }
 

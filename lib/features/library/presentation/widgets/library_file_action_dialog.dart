@@ -130,21 +130,25 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
         (!rename || _name.text.trim().isNotEmpty);
     final label = LibraryFileStrings.action(widget.action);
     return AlertDialog(
-      title: Text("$label图片"),
+      title: Text(
+        deletion && _summary != null
+            ? "删除 ${_summary!.files} 个文件？"
+            : "$label图片",
+      ),
       content: SizedBox(
         width: 440,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (_summary case final summary?)
+            if (_summary case final summary? when !deletion)
               Text("${summary.files} 个文件")
-            else if (_failure == null)
+            else if (_summary == null && _failure == null)
               const LinearProgressIndicator(),
             if (_failure case final failure?) ...[
               const SizedBox(height: 12),
               Text(
-                LibraryFileStrings.failure(failure),
+                LibraryFileStrings.failure(failure, action: widget.action),
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],
@@ -197,13 +201,11 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
               ),
             ],
             if (deletion) ...[
-              const SizedBox(height: 12),
-              Text(
-                _permanent ? "这些文件将被永久删除，无法从回收站恢复。" : "这些文件将移入 Windows 回收站。",
-              ),
+              Text(_permanent ? "文件将被永久删除，无法从回收站恢复。" : "文件将移入 Windows 回收站。"),
               const SizedBox(height: 8),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
                 title: const Text("永久删除"),
                 value: _permanent,
                 onChanged: (value) =>
@@ -232,7 +234,7 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
                   ),
                 )
               : null,
-          child: Text(label),
+          child: Text(_permanent ? "永久删除" : label),
         ),
       ],
     );

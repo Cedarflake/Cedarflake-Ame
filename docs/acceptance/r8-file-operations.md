@@ -353,8 +353,10 @@ old path. Windows recycled the replacement, leaving the retained original intact
 directories and checking identity before callback return does not bind the subsequent Shell
 operation to that file. The probe executable SHA-256 was
 `891065c908534f664ca1db1a5c1c9c65e0dbe1f13f2d2a312df6aba7acc1130d`.
-System recycling remains a delivery blocker pending an explicit concurrency-boundary decision or
-a supported identity-bound implementation; normal recycling/restoration evidence does not cover it.
+System recycling requires a supported identity-bound implementation; normal recycling/restoration
+evidence does not cover it. The 2026-11-10 product clarification retains normal recycling and requires
+changed/unverifiable items to be preserved with visible reasons. Globally disabling recycling does
+not fulfill that requirement; the post-validation replacement race remains unresolved.
 `StorageFile` was not admitted as a replacement: Microsoft's
 [storage-object explanation](https://blogs.windows.com/windowsdeveloper/2014/06/20/common-questions-and-answers-about-files-and-app-data-part-2-files/)
 describes it as a path reference that does not hold the file open. No identity-bound recycling
@@ -400,3 +402,20 @@ verification, all-target/all-feature Clippy and Dart analysis passed locally.
 partitions, Flutter, Windows scan, native accessibility, Windows build verification and the aggregate
 Windows Gate succeeded. This resolves the hosted failures above. The recycling identity boundary
 remains unresolved and prevents R8 delivery; no merge or release was performed.
+
+## Deletion feedback and confirmation — 2026-11-10
+
+The confirmation now places the file count in its title, keeps the destination explanation on one
+line, and places the unchecked permanent-deletion option before its label. Checking it changes
+the action to permanent deletion. Changed/unverifiable deletion records show their reason directly
+and require a fresh selection rather than retrying the previous confirmation.
+
+In the actual Debug client inside Windows Sandbox, the normal recycling action remained enabled.
+Holding a synthetic source open for writing made explicit permanent deletion fail with Windows
+sharing violation 32. Feedback reported zero deleted and one unfinished; history displayed the
+preserved-file explanation without opening technical details and offered no retry. All five source
+SHA-256 values and the sibling sentinel remained unchanged after releasing the handles.
+Scoped Dart analysis, the existing four confirmation/lifecycle tests and the Windows Debug build
+passed. These checks cover the desktop change; they do not resolve the separate recycling race.
+The mapping, confirmation, feedback and history owners contain 166, 242, 119 and 267 production-file
+lines with no inline tests; the existing dedicated test file contains 237 lines.

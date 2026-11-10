@@ -137,6 +137,15 @@ recycling is unavailable; no silent
 fallback is allowed. The [execution plan](../plans/r8-file-organization.md#planned-interaction-decisions)
 owns the planned interaction details, system-interface admission and rollout.
 
+Deletion authorization applies to the file version the user selected and confirmed. An editor or
+synchronization program changing that file does not authorize deleting its replacement. Reject a
+changed or unverifiable item, preserve it, and require the user to view the current image and make
+a fresh selection and confirmation. Do not infer that an unchanged filename means unchanged intent.
+Show the affected filename and reason in operation results; changed files must be identified as
+not deleted, not hidden behind an overall completion message. A partial batch retains separate
+completed and unresolved counts. Unknown native outcomes remain pending verification rather than
+being described as either deleted or preserved.
+
 Scope:
 
 - organization rules based on effective category, selected virtual albums, date, source, or explicit

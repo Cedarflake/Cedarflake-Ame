@@ -2,6 +2,7 @@ import "../application/library_file_operations.dart";
 import "../domain/library_file_operations.dart";
 
 abstract final class LibraryFileStrings {
+  static const changedBeforeDeletion = "文件已更改，未删除。请查看最新图片后重新选择并确认。";
   static String rule(LibraryFileOrganizationRule rule) => switch (rule) {
     LibraryFileOrganizationRule.direct => "直接放入目标文件夹",
     LibraryFileOrganizationRule.category => "按分类",
@@ -61,10 +62,22 @@ abstract final class LibraryFileStrings {
     LibraryFileRecordPhase.uncertain => "结果待核对",
   };
 
-  static String failure(LibraryFileFailure? failure) => switch (failure?.code) {
+  static String failure(
+    LibraryFileFailure? failure, {
+    LibraryFileAction? action,
+  }) => switch (failure?.code) {
     "organization_selection_changed" ||
-    "file_operation_selection_changed" ||
-    "file_operation_source_changed" => "所选文件已变化，请刷新图库后重新选择。",
+    "file_operation_selection_changed" => "所选图片已变化，请查看当前图库后重新选择。",
+    "file_operation_source_changed" =>
+      action == LibraryFileAction.recycle ||
+              action == LibraryFileAction.deletePermanently
+          ? changedBeforeDeletion
+          : "所选文件已变化，未执行操作。请查看最新文件后重新选择。",
+    "file_operation_source_unverified" =>
+      action == LibraryFileAction.recycle ||
+              action == LibraryFileAction.deletePermanently
+          ? "文件已变化或无法核对，未删除。请查看最新图片后重新选择并确认。"
+          : "文件已变化或无法核对，未执行操作。请查看最新文件后重新选择。",
     "file_operation_locations_ambiguous" => "所选图片有多个文件位置，请取消多选后，分别在图片右键菜单中操作。",
     "file_operation_same_destination" => "目标位置与原文件相同，请选择其他文件夹或名称。",
     "file_operation_destination_unavailable" => "无法打开目标文件夹，请重新选择。",

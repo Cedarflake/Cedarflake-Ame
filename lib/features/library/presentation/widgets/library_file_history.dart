@@ -150,6 +150,12 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                     itemCount: _items.length,
                     itemBuilder: (context, index) {
                       final item = _items[index];
+                      final status = item.failure == null
+                          ? LibraryFileStrings.phase(item.phase)
+                          : LibraryFileStrings.failure(
+                              item.failure,
+                              action: item.action,
+                            );
                       return ListTile(
                         onTap: item.detail == null
                             ? null
@@ -173,10 +179,16 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        subtitle: Text(
-                          "${LibraryFileStrings.phase(item.phase)}\n${item.destination ?? item.source}",
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(status),
+                            Text(
+                              item.destination ?? item.source,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
