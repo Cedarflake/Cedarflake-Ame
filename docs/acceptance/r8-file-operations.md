@@ -610,3 +610,10 @@ temporary lock, Sandbox and leased scratch retired. Formatting, scoped analysis,
 file-operation suite including the new regression, and the Debug build passed. File history
 contains 288 production lines without inline tests; its reused dedicated test file contains 341 lines.
 These scoped results do not change the native recycling boundary recorded in the integrated review.
+
+The `d2665ffe` [PR check run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42803484954)
+reached two obsolete theme-control locators in Flutter and native Windows accessibility checks:
+both required `OutlinedButton` after the settings control became a standalone menu. They now use
+the theme control's stable key while retaining menu interaction, retained-tree validation and native
+UIA checkpoints. Both cases in the affected Flutter semantics file passed locally; the native runner
+remains owned by the subsequent PR check run.

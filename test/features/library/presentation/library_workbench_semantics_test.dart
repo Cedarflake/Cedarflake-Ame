@@ -75,7 +75,7 @@ void main() {
         await tester.tap(settings);
         await tester.pumpAndSettle();
         expect(find.byType(Slider, skipOffstage: false), findsNothing);
-        final themeChoice = find.widgetWithText(OutlinedButton, "跟随系统");
+        final themeChoice = find.byKey(const Key("ame-theme-choice"));
         await mouse.moveTo(tester.getCenter(themeChoice));
         await tester.tap(themeChoice);
         await tester.pumpAndSettle();

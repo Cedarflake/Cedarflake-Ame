@@ -63,6 +63,7 @@ class AmeSettingsPage extends ConsumerWidget {
                               title: "应用主题",
                               subtitle: const Text("选择明暗外观，主题色跟随 Windows"),
                               trailing: AmeChoice<AmeThemePreference>.menu(
+                                key: const Key("ame-theme-choice"),
                                 value: preferences.theme,
                                 entries: const [
                                   AmeChoiceEntry(
