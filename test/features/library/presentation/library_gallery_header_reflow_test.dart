@@ -121,7 +121,13 @@ void main() {
             await expectAttachedFrame();
           }
         }
-        await tester.pump(const Duration(milliseconds: 300));
+        for (
+          var frame = 0;
+          frame < 60 && tester.binding.transientCallbackCount > 0;
+          frame++
+        ) {
+          await expectAttachedFrame();
+        }
         await expectAttachedFrame();
         expect(tester.binding.transientCallbackCount, 0);
         expect(controller.nextPageRequests, 0);
