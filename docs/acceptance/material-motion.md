@@ -46,7 +46,7 @@ The existing viewer checks passed for immediate gallery input/position restorati
 retirement, interrupted reopening, retained semantics and reduced motion. Completion assertions
 settle the spring rather than assume the superseded fixed duration; intermediate opacity and fixed
 content bounds are still checked. Scoped static analysis passed. Desktop interaction and hosted
-verification remain for M4.
+verification are recorded below.
 
 Review found that the choice trigger's value-based key recreated its arrow on selection. A focused
 reproduction observed an immediate reset to zero instead of a closing transition. Retaining trigger
@@ -87,3 +87,40 @@ and their dedicated suites 174 and 201 lines respectively, without inline tests.
 The format picker no longer offers custom extension entry or unsupported AVIF/HEIC choices. BMP,
 TIF/TIFF and ICO join the existing supported choices; already selected legacy extensions remain
 visible and removable. Existing combined-filter apply/cancel/clear checks pass.
+
+## Duplicate transitions and browse continuity — 2026-11-11
+
+The bounded gallery motion owner admits explicit duplicate-display switches and same-scope
+background merges. Departing cards retain painted pixels only; their controls and source leases
+retire immediately. Captures are bounded to 64 visible cards and 4,194,304 pixels, coalesce during
+continuous updates, and dispose on completion, interruption or unmount. Existing resize, reversal,
+direct-scroll and reduced-motion checks pass. Production-wall checks cover both layouts, including
+monotonic retained-card movement and an offscreen merge that leaves visible cards still.
+
+The reported date jump was traced to anchor resolution following a removed copy's representative,
+which can belong to another date. Chronological duplicate publication now keeps the browsed date
+vicinity from the coherent compact manifests and preserves an existing top/bottom edge. The query
+transition regressions cover manual/background merging alongside stale completions, new navigation
+and separate viewer identity. Existing first-click, held-drag and scroll/rail synchronization checks
+pass; no timeline seek or scrolling algorithm was replaced.
+
+Windows verification used the existing 10,000-file isolated corpus and a Debug client built from
+`356fbc95` plus this change. Its optimized-debug native DLL digest is
+`8CC805B913002FEF51A17D48BEE4BB192CE7A13056BB0AFD676F083859CEA54C`.
+After automatic duplicate analysis reduced the displayed set to 72, the viewport remained at the
+newest date and the rail at the top. In equal-height layout, expanding and merging at July 2017
+retained that vicinity; grid layout retained July 2013. New scrolling and rail navigation worked
+after each publication. A bounded live trace confirmed that rail values continued to identify the
+same date vicinity while its tick distribution changed. Native input exposes short drag strokes;
+continuous held-pointer behavior retains its focused automated regression.
+
+The format tray displayed supported extensions, allowed JPG and PNG together, and cancelled without
+changing the query. The album-confirmation switch changed both ways. The earlier native sidebar/search,
+ordinary/group viewer, choice-menu and folder drag checks remain applicable. No normal catalog or
+original-library source was used. The client closed normally with exit code 0; all 10,000 fixture
+lengths/modification times were unchanged and the isolated derived storage was removed.
+
+Production ownership is 56 lines for publication admission, 83 for duplicate browse position,
+108 for exit pixels and 358 for motion. The gallery wall (1,580) and screen (1,995) receive composition
+changes only. Dedicated motion, production-wall and query-transition suites contain 328, 161 and
+572 lines; these owners contain no inline tests.

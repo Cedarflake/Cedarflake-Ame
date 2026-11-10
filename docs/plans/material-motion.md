@@ -53,6 +53,9 @@ of this plan.
   background results retarget/coalesce visual work instead of queuing animations or catalog reads.
 - Query snapshots, deduplication decisions and scroll anchors keep their existing owners. Unrelated
   scope/filter/sort changes, direct scrolling and reduced motion retire merge animation immediately.
+- Background merging retains the browsed date vicinity and scroll edge instead of following a
+  removed copy's representative to another date. Verify content and timeline continuity together,
+  including new scrolling and date navigation during publication.
 
 ## Exclusions
 

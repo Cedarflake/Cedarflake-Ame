@@ -1,6 +1,8 @@
 import "dart:async";
+import "dart:typed_data";
 
 import "package:cedarflake_ame/features/library/application/library_query_refresh.dart";
+import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_gallery_query_transition.dart";
@@ -9,6 +11,49 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_gal
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  for (final background in [false, true]) {
+    test(
+      "merging keeps the browsed date instead of a distant representative, background=$background",
+      () async {
+        final fixture = _Fixture()..viewer = null;
+        fixture.state = fixture.state.copyWith(
+          query: LibraryGalleryQuery(
+            duplicateMode: background
+                ? LibraryGalleryDuplicateMode.merged
+                : LibraryGalleryDuplicateMode.all,
+          ),
+          layoutManifest: _datedManifest(1, [
+            for (var i = 0; i < 24; i++) ("previous-$i", "2013-09-01"),
+            ("old-location", "2013-08-12"),
+            ("nearby", "2013-08-12"),
+            ("new-location", "2011-01-01"),
+          ]),
+          timeline: _mergeTimeline(1, 27),
+        );
+        await fixture.transition.publish((anchor) async {
+          expect(anchor?.requestedLocationId, "old-location");
+          fixture.state = _state(revision: 2, resolved: true).copyWith(
+            query: const LibraryGalleryQuery(
+              duplicateMode: LibraryGalleryDuplicateMode.merged,
+            ),
+            layoutManifest: _datedManifest(2, [
+              ("previous", "2013-09-01"),
+              ("nearby", "2013-08-12"),
+              ("new-location", "2011-01-01"),
+            ]),
+            timeline: _mergeTimeline(2, 3),
+          );
+          return LibraryQueryUpdateOutcome.applied;
+        });
+        final retained = fixture.published.single.position!;
+        expect(retained.locationId, "nearby");
+        expect(retained.globalItemIndex, 1);
+        expect(retained.monthKey, "2013-08");
+        expect(retained.itemFraction, fixture.position.itemFraction);
+        expect(retained.viewportFraction, fixture.position.viewportFraction);
+      },
+    );
+  }
   for (final stale in [false, true]) {
     test(
       "date result retains its target before layout; stale=$stale",
@@ -392,6 +437,51 @@ void main() {
     },
   );
 }
+
+LibraryGalleryLayoutManifest _datedManifest(
+  int version,
+  List<(String, String)> items,
+) {
+  final revision = BigInt.from(version);
+  final dates = items.map((item) => item.$2).toSet().toList();
+  final builder = LibraryGalleryLayoutManifestBuilder(
+    revision: revision,
+    queryId: "query",
+    totalItems: items.length,
+  );
+  builder.append(
+    LibraryGalleryLayoutManifestChunk(
+      revision: revision,
+      queryId: "query",
+      totalItems: items.length,
+      startOrdinal: 0,
+      locationIds: [for (final item in items) item.$1],
+      aspectRatioMilli: Uint16List.fromList(List.filled(items.length, 1000)),
+      dateGroupIndices: Uint16List.fromList([
+        for (final item in items) dates.indexOf(item.$2),
+      ]),
+      dateGroups: dates,
+      flags: Uint8List.fromList(
+        List.filled(items.length, libraryGalleryLayoutDimensionsKnownFlag),
+      ),
+    ),
+  );
+  return builder.build();
+}
+
+LibraryTimeline _mergeTimeline(int version, int count) => LibraryTimeline(
+  revision: BigInt.from(version),
+  queryId: "query",
+  totalItems: count,
+  totalSourceItems: 27,
+  buckets: [
+    LibraryTimeBucket(
+      monthKey: "2013-08",
+      itemCount: count,
+      aspectRatioSum: count.toDouble(),
+    ),
+  ],
+);
 
 class _Fixture {
   _Fixture() {

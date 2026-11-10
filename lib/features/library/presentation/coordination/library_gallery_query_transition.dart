@@ -6,6 +6,7 @@ import "../../domain/library_models.dart";
 import "../../domain/library_query_snapshot.dart";
 import "../../domain/library_state.dart";
 import "../widgets/library_gallery_wall.dart";
+import "library_duplicate_browse_position.dart";
 import "library_time_navigation_position.dart";
 
 typedef LibraryGalleryQueryPublication = ({
@@ -192,7 +193,16 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
         return outcome;
       }
     }
-    final position = _resolvePosition(readState(), frozen, anchor);
+    final current = readState();
+    final duplicatePosition = viewer == null
+        ? resolveDuplicateBrowsePosition(
+            before: before,
+            current: current,
+            frozen: frozen,
+          )
+        : null;
+    final position =
+        duplicatePosition ?? _resolvePosition(current, frozen, anchor);
     _pendingPosition = null;
     onPublished((
       generation: generation,

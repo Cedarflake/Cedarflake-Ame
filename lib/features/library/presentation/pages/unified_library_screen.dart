@@ -1304,7 +1304,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           position: nextPosition,
           scrollPosition: _attachedGalleryScrollPosition,
           scrollEdge: publication.preservePosition
-              ? null
+              ? LibraryGalleryScrollEdge.capture(_attachedGalleryScrollPosition)
               : LibraryGalleryScrollEdge.start,
         );
       }
