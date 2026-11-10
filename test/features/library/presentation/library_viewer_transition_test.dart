@@ -45,7 +45,7 @@ void main() {
       await tester.pumpWidget(_host(gallery, viewer));
       await tester.pump(const Duration(milliseconds: 200));
       await tester.pumpWidget(_host(gallery, null));
-      await tester.pump(const Duration(milliseconds: 120));
+      await tester.pumpAndSettle();
       RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
         trace: "viewer retired",
       );
@@ -92,7 +92,7 @@ void main() {
       expect(galleryTaps, 1);
       expect(viewerTaps, 0);
       expect(scroll.offset, 200);
-      await tester.pump(const Duration(milliseconds: 120));
+      await tester.pumpAndSettle();
       expect(find.text("viewer"), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
     },
@@ -114,7 +114,7 @@ void main() {
         LibraryViewerActivity.isActiveOf(tester.element(find.text("second"))),
         isTrue,
       );
-      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pumpAndSettle();
       expect(find.text("second"), findsOneWidget);
       expect(
         tester
@@ -170,7 +170,7 @@ void main() {
       await tester.pump();
       expect(lease.closes, 1);
       expect(bufferReads, 0);
-      await tester.pump(const Duration(milliseconds: 120));
+      await tester.pumpAndSettle();
       expect(find.byType(LibraryViewerImage), findsNothing);
       expect(tester.takeException(), isNull);
       PaintingBinding.instance.imageCache.clear();

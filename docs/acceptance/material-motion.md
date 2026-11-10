@@ -34,4 +34,16 @@ their tickers. Existing folder navigation, selection-focus, header reversal and 
 checks passed. Settings arrow assertions now inspect the visible rotation rather than a replaced
 glyph; their keyboard, persistence and disabled-state assertions remain.
 
-Desktop interaction and hosted verification remain for the connected-motion slice.
+## Connected sidebar and viewer motion
+
+Sidebar geometry now uses the shared spatial driver while retaining one progress value for its
+boundary, heading and search alignment. The existing multi-width/text-scale checks passed: gallery
+layout receives destination widths only, right-edge controls stay fixed, and reversal starts at the
+current boundary. Normal and group viewer entry/exit share effects springs. The installed Flutter
+route simulation hook retains framework navigation and dismissal ownership.
+
+The existing viewer checks passed for immediate gallery input/position restoration, closing-source
+retirement, interrupted reopening, retained semantics and reduced motion. Completion assertions
+settle the spring rather than assume the superseded fixed duration; intermediate opacity and fixed
+content bounds are still checked. Scoped static analysis passed. Desktop interaction and hosted
+verification remain for M4.

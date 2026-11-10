@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_motion.dart";
 import "library_main_surface.dart";
 import "library_navigation_resize_handle.dart";
 import "library_sidebar_content.dart";
@@ -33,25 +34,23 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _progress;
-  bool _skipMotion = false;
+  bool get _skipMotion =>
+      MediaQuery.disableAnimationsOf(context) ||
+      !TickerMode.valuesOf(context).enabled;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 180),
       value: widget.expanded ? 1 : 0,
     );
-    _progress = _controller.drive(CurveTween(curve: Curves.easeInOutCubic));
+    _progress = _controller.view;
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _skipMotion =
-        MediaQuery.disableAnimationsOf(context) ||
-        !TickerMode.valuesOf(context).enabled;
     if (_skipMotion) _finish();
   }
 
@@ -61,11 +60,7 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
     if (_skipMotion) {
       _finish();
     } else if (widget.expanded != oldWidget.expanded) {
-      if (widget.expanded) {
-        _controller.forward();
-      } else {
-        _controller.reverse();
-      }
+      AmeMotion.spatial.animate(_controller, forward: widget.expanded);
     }
   }
 

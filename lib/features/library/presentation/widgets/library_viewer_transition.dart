@@ -22,7 +22,9 @@ class _LibraryViewerTransitionState extends State<LibraryViewerTransition>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   Widget? _retainedViewer;
-  bool _skipMotion = false;
+  bool get _skipMotion =>
+      MediaQuery.disableAnimationsOf(context) ||
+      !TickerMode.valuesOf(context).enabled;
 
   @override
   void initState() {
@@ -30,8 +32,6 @@ class _LibraryViewerTransitionState extends State<LibraryViewerTransition>
     _retainedViewer = widget.viewer;
     _controller = AnimationController(
       vsync: this,
-      duration: LibraryViewerFade.enterDuration,
-      reverseDuration: LibraryViewerFade.exitDuration,
       value: widget.viewer == null ? 0 : 1,
     )..addStatusListener(_handleStatus);
   }
@@ -39,9 +39,6 @@ class _LibraryViewerTransitionState extends State<LibraryViewerTransition>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _skipMotion =
-        MediaQuery.disableAnimationsOf(context) ||
-        !TickerMode.valuesOf(context).enabled;
     if (_skipMotion) _finishTransition();
   }
 
@@ -52,9 +49,9 @@ class _LibraryViewerTransitionState extends State<LibraryViewerTransition>
     if (_skipMotion) {
       _finishTransition();
     } else if (oldWidget.viewer == null && widget.viewer != null) {
-      _controller.forward();
+      LibraryViewerFade.enterMotion.animate(_controller, forward: true);
     } else if (oldWidget.viewer != null && widget.viewer == null) {
-      _controller.reverse();
+      LibraryViewerFade.exitMotion.animate(_controller, forward: false);
     }
   }
 

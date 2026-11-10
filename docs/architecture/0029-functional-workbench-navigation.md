@@ -104,7 +104,8 @@ The shell retains both sidebars and one gallery subtree through the existing vis
 owners; the unselected Albums destination uses the shared empty-state component. No additional
 gallery controller, database, package or navigation primitive is introduced.
 
-Compose its 180-millisecond transition from the pinned SDK's `AnimationController`, `AnimatedBuilder`,
+Compose its bounded spatial transition through the shared official Material motion driver and the
+pinned SDK's `AnimationController`, `AnimatedBuilder`,
 `ClipRect`/`ClipRRect` and `OverflowBox`. The gallery transition clips its backing surface to the
 same rounded boundary as `LibraryMainSurface`. The sidebar boundary and gallery's left clip move
 together; the destination-width gallery remains right-aligned inside that clip. Left alignment
