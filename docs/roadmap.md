@@ -65,6 +65,15 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
+### Material motion adoption
+
+The [motion plan](plans/material-motion.md) is active on `codex/material-motion`, based on R8 head
+`fd57185f`. Implement M1–M4 in order: official package update, local state transitions, sidebar/viewer
+integration and scoped acceptance. Preserve the plan's direct-input and source-safety boundaries.
+R8 retains its own delivery status; this branch has no merge authorization.
+
+### Existing delivery records
+
 Release artifact reuse is implemented in [PR 56](https://github.com/Cedarflake/Cedarflake-Ame/pull/56).
 The [plan](plans/release-artifact-reuse.md) retains its scope; the
 [evidence](acceptance/unsigned-windows-release.md#release-artifact-continuation--2026-11-09)
