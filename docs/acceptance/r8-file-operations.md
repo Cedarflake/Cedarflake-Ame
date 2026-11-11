@@ -731,5 +731,7 @@ kind cleared it. The shared album sidebar icon selected and cancelled with its c
 existing count/controls. The extended Flutter scope regression also covers empty return and
 similarity-degree changes. Its seven affected file-operation cases passed after this change.
 The [full hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42945787064) for
-`e6b5c455` passed all selected gates. This follow-up is not part of the earlier R8 merge; subsequent
-viewer/loading changes retain their own verification in the [motion record](material-motion.md).
+`e6b5c455` passed all selected gates. This follow-up was subsequently integrated through
+[PR 58](https://github.com/Cedarflake/Cedarflake-Ame/pull/58), separately from the earlier R8 merge;
+the [motion integration record](material-motion.md#integration--2026-11-11) retains the combined
+revision, hosted verification status and remaining interaction limit.

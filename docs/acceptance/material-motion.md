@@ -163,7 +163,7 @@ unchanged-fixture evidence above remain applicable to this product revision.
 
 Subsequent changes synchronize R8's integration record and close out documentation only. UTF-8,
 local-link and whitespace checks passed; the delivered product tree matches the tested commit.
-M1–M4 is delivered on `codex/material-motion`; the branch has been pushed and remains unmerged.
+M1–M4 was delivered on `codex/material-motion`; its later integration is recorded below.
 
 ## Held timeline marker — 2026-11-11
 
@@ -244,3 +244,17 @@ The storage section (723) and screen (1,995) receive presentation composition ch
 inline tests. Dedicated loading timing, geometry and feedback suites contain 135, 173 and 220 lines.
 The [full run for `e6b5c455`](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42945787064)
 passed; subsequent viewer/loading changes retain their own final-head hosted verification boundary.
+
+## Integration — 2026-11-11
+
+[PR 58](https://github.com/Cedarflake/Cedarflake-Ame/pull/58) merged the cleanup and inherited motion
+work at `ca82d675a4281f7b2bb1f79ee9a76af3af4a2b07`. Both `codex/duplicate-cleanup` and
+`codex/material-motion` were verified as ancestors, then deleted locally and remotely; local `main`
+was synchronized. The user explicitly selected integration before final CI completion.
+
+At integration, the [combined-head run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42955596711)
+for `b4a4531c` remained in progress without a reported failure, and the
+[merge run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42956932239) had started.
+The focused and desktop evidence above remains scoped to its recorded revisions. Continuous
+multi-second desktop holding remains unverified as recorded under
+[held timeline marker](#held-timeline-marker--2026-11-11).

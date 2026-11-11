@@ -29,8 +29,8 @@ R8 file-operation behavior and its merge disposition are unchanged by this branc
 
 Each independently usable slice is committed and pushed before the next one. The dependency update
 and its compatibility record are one rollback unit; local state motion and the geometry/viewer
-integration remain separately reversible. Do not merge either this branch or its R8 parent as part
-of this plan.
+integration remain separately reversible. Branch integration follows the separately authorized
+delivery disposition in the [roadmap](../roadmap.md#material-motion-adoption).
 
 ## Motion mapping
 

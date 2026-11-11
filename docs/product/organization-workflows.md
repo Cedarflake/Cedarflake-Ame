@@ -237,8 +237,9 @@ Scope:
 - regression comparison against recorded Lap behavior without importing Lap code.
 
 Code signing is optional, not an R10 exit criterion or a prerequisite for verified unsigned
-Windows distribution. The existing automated GitHub publication pipeline remains a separately
-selected signed channel; it does not provide unsigned automated publication.
+Windows distribution. The existing publication pipeline supports unsigned releases by default and
+a separately selected signed channel; every release includes both MSI and portable ZIP packages
+under [ADR 0015](../architecture/0015-windows-release-distribution.md).
 
 Release packaging, hosted quality workflows, and portable-archive verification may be built earlier
 as cross-cutting infrastructure. Their existence does not make R10 complete or turn release work

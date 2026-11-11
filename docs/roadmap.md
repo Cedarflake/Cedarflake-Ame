@@ -64,32 +64,25 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
+R8 and its follow-ups are integrated. R10 is the next planned stage; its
+[product scope](product/organization-workflows.md#r10---large-library-maturity-and-release-readiness)
+has not yet been decomposed into an execution plan or started.
+
 ### Duplicate cleanup entry points
 
-The [R8 follow-up](plans/r8-file-organization.md#duplicate-cleanup-entry-points) is active on
-`codex/duplicate-cleanup`, based on the completed motion branch. It connects group cleanup,
-all-group cleanup and thumbnail-selected group cleanup to the existing confirmed file workflow.
-Group thumbnails and sidebar selection share a bounded flip transition. Implementation and desktop
-verification are delivered in `e6b5c455`; its full hosted checks passed. Selected groups survive
-entering and returning from a group; an empty selection returns to ordinary browsing.
-The R8 merge remains integrated; this addition and its inherited motion changes remain unmerged.
-
-The held-marker loading displacement is repaired with
-[focused and desktop evidence](acceptance/material-motion.md#held-timeline-marker--2026-11-11).
-The card-to-viewer position/size transition is implemented and verified in the isolated Windows
-client; its [evidence](acceptance/material-motion.md#card-to-viewer-motion--2026-11-11) includes
-opaque image return and adjacent-image navigation. Keep these repairs separately reviewable from cleanup.
-The application-wide loading audit now shares delayed visibility and stable progress geometry;
-the [evidence](acceptance/material-motion.md#loading-feedback--2026-11-11) records affected surfaces
-and checks. Final combined-head hosted verification remains before this branch's delivery closeout.
+The [R8 follow-up](plans/r8-file-organization.md#duplicate-cleanup-entry-points) was merged through
+[PR 58](https://github.com/Cedarflake/Cedarflake-Ame/pull/58) on 2026-11-11. Its
+[acceptance record](acceptance/r8-file-operations.md#duplicate-cleanup-follow-up--2026-11-11)
+owns group/member/all-group cleanup and retained selection evidence. The
+[integration record](acceptance/material-motion.md#integration--2026-11-11) retains the authorized
+merge before final CI completion and the remaining continuous held-drag observation gap.
 
 ### Material motion adoption
 
-The [motion plan](plans/material-motion.md) M1–M4 is complete on `codex/material-motion`, including
-M3a folder-child disclosure and M3b duplicate-display transitions. The branch remains unmerged.
-The [delivery record](acceptance/material-motion.md#branch-delivery--2026-11-11) retains package
-admission, desktop interaction, source review and final hosted verification. R8 was integrated
-separately; this motion branch has no merge authorization.
+The [motion plan](plans/material-motion.md) M1–M4 and the subsequent viewer, timeline and loading
+changes were merged through [PR 58](https://github.com/Cedarflake/Cedarflake-Ame/pull/58).
+The [integration record](acceptance/material-motion.md#integration--2026-11-11) links their
+verification boundaries. Both work branches have been deleted locally and remotely.
 
 ### Existing delivery records
 
