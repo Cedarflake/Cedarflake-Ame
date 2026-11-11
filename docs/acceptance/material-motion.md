@@ -453,3 +453,24 @@ The layout, navigation and projection owners contain 455, 774 and 99 production 
 and wall contain 2,002 and 1,582, with no inline tests. Their changes pass existing edge intent to
 the layout owner without adding another lifecycle flag. The focused navigation and projection suites
 contain 250 and 148 dedicated test lines; startup coverage reuses the filter-position fixture.
+
+### Classification navigation and foreground reads
+
+Saved settings and category navigation no longer wait for the classification runtime to open.
+Navigation publishes completed reads while coalescing intervening catalog/model updates into one
+subsequent read. A catalog with no explicit legacy category choices checks for a current location
+per predicted category; catalogs with those choices retain the existing precedence query. The
+read-only paired catalog probe returned the same seven categories in 675 ms versus 1,223 ms.
+Automatic curated expansion and immutable prediction compatibility remain unchanged.
+
+Gallery snapshot, timeline, review-page and category reads use the existing foreground-read lease.
+Background analysis yields at its existing admission/cancellation boundaries while these reads run;
+completion and failure release only the corresponding lease. This does not forcibly terminate an
+already executing native call. The current client rebuild will establish observed switching latency.
+
+The 25 existing native classification query cases pass, including legacy choices, conflicts, removed
+sources and retained display evidence. The Dart lifecycle cases and 20 affected navigation/review
+checks pass.
+The navigation reader/configuration/provider/foreground owners contain 44/86/62/73 production lines;
+native navigation/projection contain 71/157, with no inline tests. The new reader has 60 dedicated
+test lines; existing interaction, snapshot and lifecycle fixtures supply the remaining coverage.

@@ -3,6 +3,8 @@ import "dart:math" as math;
 
 import "package:flutter/foundation.dart";
 
+import "library_foreground_reads.dart";
+
 class LibraryDuplicateReviewSlice<T, C> {
   const LibraryDuplicateReviewSlice({
     required this.items,
@@ -144,7 +146,7 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
         final seek = _seek;
         final LibraryDuplicateReviewSlice<T, C> slice;
         if (seek != null && start < missing) {
-          final range = await seek(missing);
+          final range = await libraryForegroundReads.run(() => seek(missing));
           start = range.startIndex;
           slice = range.slice;
           if (start < 0 ||
@@ -156,7 +158,9 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
             );
           }
         } else {
-          slice = await _load(data.checkpoints[start]);
+          slice = await libraryForegroundReads.run(
+            () => _load(data.checkpoints[start]),
+          );
         }
         if (_disposed || generation != _generation) return;
         if (slice.items.isEmpty && slice.next != null) {

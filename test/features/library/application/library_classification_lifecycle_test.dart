@@ -14,6 +14,32 @@ import "package:cedarflake_ame/features/library/domain/library_classification_co
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets(
+    "saved categories remain readable while runtime startup is pending",
+    (tester) async {
+      final fixture = _Fixture();
+      final backend = _SetupConfiguration();
+      final configuration = LibraryClassificationConfiguration(
+        backend,
+        fixture.owner,
+      );
+      fixture.owner.startInBackground();
+      final reads = Future.wait([
+        configuration.load(),
+        configuration.loadNavigation(),
+      ]);
+      var completed = false;
+      reads.then((_) => completed = true);
+      await tester.pump();
+      expect(completed, isTrue);
+      expect(await reads, [backend.settings, backend.settings]);
+      fixture.service.opened.complete(null);
+      await tester.pump();
+      await fixture.owner.close();
+      fixture.dispose();
+    },
+  );
+
   testWidgets("attachment failure remains visible after a successful open", (
     tester,
   ) async {

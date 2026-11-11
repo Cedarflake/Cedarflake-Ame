@@ -7,6 +7,15 @@ use crate::domain::{GalleryCollection, GalleryQuery, ScanError};
 use super::duplicates::{DISPLAY_FINGERPRINTS, compatible_fingerprint};
 use super::organization::record_expression;
 
+const LATEST_PREDICTIONS: &str = "compatible_predictions AS MATERIALIZED (
+       SELECT prediction.* FROM classification_prediction_projection AS prediction
+       JOIN (
+         SELECT MAX(publication_id) AS publication_id
+         FROM classification_prediction_projection
+         GROUP BY fingerprint_scheme, digest, byte_length
+       ) AS latest USING(publication_id)
+     ),";
+
 #[derive(Clone, Copy)]
 pub(in crate::adapters::sqlite_catalog) enum PredictionReadStrategy {
     Shared,
@@ -90,17 +99,7 @@ pub(in crate::adapters::sqlite_catalog) fn effective_projection(
     let record = record_expression(location);
     let fingerprint = compatible_fingerprint(location);
     let (shared, predictions) = match scope {
-        PredictionReadStrategy::Shared => (
-            "compatible_predictions AS MATERIALIZED (
-               SELECT prediction.* FROM classification_prediction_projection AS prediction
-               JOIN (
-                 SELECT MAX(publication_id) AS publication_id
-                 FROM classification_prediction_projection
-                 GROUP BY fingerprint_scheme, digest, byte_length
-               ) AS latest USING(publication_id)
-             ),",
-            "compatible_predictions",
-        ),
+        PredictionReadStrategy::Shared => (LATEST_PREDICTIONS, "compatible_predictions"),
         PredictionReadStrategy::Indexed => ("", "classification_prediction_projection"),
     };
     // The projection shares the gallery's published/retained display membership.
@@ -132,5 +131,27 @@ pub(in crate::adapters::sqlite_catalog) fn effective_projection(
                prediction.publication_id
              FROM (SELECT 1) AS subject LEFT JOIN human ON 1 LEFT JOIN prediction ON 1
            )"
+    )
+}
+
+pub(in crate::adapters::sqlite_catalog) fn automatic_categories_query() -> String {
+    let fingerprint = compatible_fingerprint("locations");
+    // With no explicit category choices, one current location proves each category is populated.
+    format!(
+        "WITH {LATEST_PREDICTIONS} wanted AS (
+            SELECT value AS category_id FROM json_each(?1)
+         )
+         SELECT wanted.category_id FROM wanted
+         WHERE EXISTS (
+           SELECT 1 FROM compatible_predictions AS prediction
+           CROSS JOIN {DISPLAY_FINGERPRINTS}
+             ON f.scheme = prediction.fingerprint_scheme AND f.digest = prediction.digest
+               AND f.byte_length = prediction.byte_length
+           CROSS JOIN asset_locations AS locations INDEXED BY asset_locations_exact_source
+             ON {fingerprint}
+           JOIN library_roots AS roots
+             ON roots.id = locations.root_id AND roots.active_scan_id = locations.scan_id
+           WHERE prediction.category_id = wanted.category_id
+         ) LIMIT ?2"
     )
 }

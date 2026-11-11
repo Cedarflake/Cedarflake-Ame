@@ -1,6 +1,7 @@
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
+import "library_foreground_reads.dart";
 import "ports/library_catalog.dart";
 import "../domain/library_time_snapshot.dart";
 import "library_time_navigation_requests.dart";
@@ -17,10 +18,12 @@ class LibraryTimeSnapshotReader {
     required Future<void> Function() recoverPassive,
   }) async {
     try {
-      final snapshot = await _catalog.loadAtTime(
-        maxItems: libraryTimelineWindow,
-        query: request.query,
-        anchor: request.anchor,
+      final snapshot = await libraryForegroundReads.run(
+        () => _catalog.loadAtTime(
+          maxItems: libraryTimelineWindow,
+          query: request.query,
+          anchor: request.anchor,
+        ),
       );
       if (!canPublish()) {
         return null;
@@ -51,12 +54,14 @@ class LibraryTimeSnapshotReader {
           return null;
         }
       }
-      final result = await _catalog.resolveTimeIntent(
-        maxItems: libraryTimelineWindow,
-        query: request.query,
-        intent: LibraryTimeIntent(
-          monthKey: request.anchor.monthKey,
-          itemOffset: request.anchor.itemOffset,
+      final result = await libraryForegroundReads.run(
+        () => _catalog.resolveTimeIntent(
+          maxItems: libraryTimelineWindow,
+          query: request.query,
+          intent: LibraryTimeIntent(
+            monthKey: request.anchor.monthKey,
+            itemOffset: request.anchor.itemOffset,
+          ),
         ),
       );
       if (!canPublish() || !ownsExplicitIntent()) {

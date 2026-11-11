@@ -4,7 +4,7 @@ import "package:flutter/foundation.dart";
 
 import "ports/library_foreground_read_activity.dart";
 
-/// Keeps background analysis idle until all foreground media reads release ownership.
+/// Keeps background analysis idle until foreground catalog and media reads finish.
 class LibraryForegroundReads extends ChangeNotifier
     implements LibraryForegroundReadActivity {
   int _active = 0;
@@ -12,6 +12,15 @@ class LibraryForegroundReads extends ChangeNotifier
   bool _disposed = false;
 
   bool get isBusy => _active > 0;
+
+  Future<T> run<T>(Future<T> Function() read) async {
+    final lease = acquire();
+    try {
+      return await read();
+    } finally {
+      lease.close();
+    }
+  }
 
   @override
   LibraryForegroundReadLease acquire() {
