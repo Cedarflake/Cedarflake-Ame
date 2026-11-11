@@ -54,9 +54,6 @@ similar-group cleanup retain your keep choices, or the automatic representative 
 and confirm the number of files before deletion. Operation records show results and support
 recovery of interrupted work where applicable.
 
-The [roadmap](docs/roadmap.md) schedules **R9: moving album files into year-based folders**, followed
-by **R10: large-library maturity and the Beta release phase**.
-
 ## Run from source
 
 Ame is still in development. To build it, use Windows 11 x64, Flutter **3.47.8**, the Rust toolchain
