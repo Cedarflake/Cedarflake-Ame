@@ -69,12 +69,15 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 The [R8 follow-up](plans/r8-file-organization.md#duplicate-cleanup-entry-points) is active on
 `codex/duplicate-cleanup`, based on the completed motion branch. It connects group cleanup,
 all-group cleanup and thumbnail-selected group cleanup to the existing confirmed file workflow.
-Group thumbnails and sidebar selection share a bounded flip transition.
+Group thumbnails and sidebar selection share a bounded flip transition. Implementation and desktop
+verification are delivered in `e6b5c455`; its full hosted checks are running. Selected groups survive
+entering and returning from a group; an empty selection returns to ordinary browsing.
 The R8 merge remains integrated; this addition and its inherited motion changes remain unmerged.
 
-After this follow-up, investigate the newly reported timeline-marker jumps during held dragging
-and loading. Then implement the requested card-to-viewer position/size transition; the existing
-viewer fade does not provide that effect. Keep these repairs separately reviewable from cleanup.
+The held-marker loading displacement is repaired with
+[focused and desktop evidence](acceptance/material-motion.md#held-timeline-marker--2026-11-11).
+Next implement the requested card-to-viewer position/size transition; the existing viewer fade does
+not provide that effect. Keep these repairs separately reviewable from cleanup.
 
 ### Material motion adoption
 

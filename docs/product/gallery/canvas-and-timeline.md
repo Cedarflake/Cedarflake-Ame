@@ -14,9 +14,11 @@ shared principles; the roadmap owns current delivery order and acceptance status
   agrees with the gallery extent. Temporary window estimates cannot replace that complete frame;
   estimates remain available on first load and after a query change. Retained paint grants no
   stale navigation authority. New clicks, drags and keyboard input resolve the visible date through
-  the current result, without waiting for complete layout geometry. Geometry replacement retires
-  interrupted gestures and their position override, while ordinary gallery scrolling remains native
-  and immediate.
+  the current result, without waiting for complete layout geometry. A held pointer retains its
+  painted scale and position across same-query loading and geometry updates; new input resolves
+  through the current query without round-tripping the marker through loaded row offsets.
+  Query, layout-kind or controller replacement retires the interrupted gesture. Ordinary gallery
+  scrolling remains native and immediate.
 - Material 3 defines a vertical standard `Slider` with an optional stops configuration. The Slider
   owns pointer, keyboard, focus, hover, handle, track, and semantic behavior; Ame must not recreate
   those behaviors in a parallel custom control.

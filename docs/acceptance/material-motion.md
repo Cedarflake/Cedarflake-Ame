@@ -164,3 +164,19 @@ unchanged-fixture evidence above remain applicable to this product revision.
 Subsequent changes synchronize R8's integration record and close out documentation only. UTF-8,
 local-link and whitespace checks passed; the delivered product tree matches the tested commit.
 M1–M4 is delivered on `codex/material-motion`; the branch has been pushed and remains unmerged.
+
+## Held timeline marker — 2026-11-11
+
+The same-query publication regression reproduced a stationary held marker moving from 300 to
+332.7 logical pixels when the complete layout temporarily became estimated. Reprojecting the
+displayed value through layout rows introduced the displacement. The rail now retains the actual
+pointer value in its gesture scale while navigation continues through the current query projection.
+Query, layout-kind and controller replacement still retire that input authority.
+
+The extended existing regression preserves the marker through both estimated and complete
+publication; all 18 publication and drag cases pass, covering equal-height and square layouts.
+Formatting and affected-owner analysis pass. The isolated 700-file Windows client also displayed
+immediate distant placeholders in both layouts, filled them without moving the date or marker,
+and accepted a reverse drag. Native tooling supplies short drag strokes; continuous multi-second
+desktop holding remains unverified. The controlled regression holds through both publications.
+No source file operation was executed during these checks.
