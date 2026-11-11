@@ -20,7 +20,6 @@ import "package:cedarflake_ame/features/settings/application/ame_preferences.dar
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:material_symbols_icons/symbols.dart";
 
 import "../support/library_batch_fixture.dart";
 import "../support/library_organization_fixture.dart";
@@ -122,10 +121,15 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> favorite(WidgetTester tester, bool value) async {
+  Future<void> chooseFavorite(WidgetTester tester, bool value) async {
     await tester.tap(find.byKey(const Key("library-selection-favorite")));
     await tester.pumpAndSettle();
     await tester.tap(find.text(value ? "加入收藏夹" : "取消收藏"));
+    await tester.pump();
+  }
+
+  Future<void> favorite(WidgetTester tester, bool value) async {
+    await chooseFavorite(tester, value);
     await tester.pumpAndSettle();
   }
 
@@ -223,49 +227,43 @@ void main() {
   }
 
   for (final favorites in [0, 1, 3]) {
-    testWidgets("favorite action reflects $favorites of three groups", (
-      tester,
-    ) async {
-      batches.create = () => OrganizationBatchFixture()
-        ..summary = LibraryBatchSummary(
-          groups: 3,
-          favorites: favorites,
-          assigned: 0,
-          conflicts: 0,
-        );
-      await host(tester);
-      expect(batches.selections, isEmpty);
-      await tester.tap(find.byKey(const Key("library-selection-favorite")));
-      await tester.pumpAndSettle();
-      if (favorites == 1) {
-        expect(find.text("收藏/取消收藏"), findsOneWidget);
+    testWidgets(
+      "explicit favorite intent is retained with $favorites of three groups",
+      (tester) async {
+        batches.create = () => OrganizationBatchFixture()
+          ..summary = LibraryBatchSummary(
+            groups: 3,
+            favorites: favorites,
+            assigned: 0,
+            conflicts: 0,
+          );
+        await host(tester);
+        expect(batches.selections, isEmpty);
+        await tester.tap(find.byKey(const Key("library-selection-favorite")));
+        await tester.pumpAndSettle();
         expect(find.text("加入收藏夹"), findsOneWidget);
         expect(find.text("取消收藏"), findsOneWidget);
-        expect(find.byIcon(Symbols.heart_minus_rounded), findsOneWidget);
-        expect(
-          find.descendant(
-            of: find.byKey(const Key("library-selection-favorite")),
-            matching: find.byIcon(Symbols.arrow_drop_down_rounded),
-          ),
-          findsOneWidget,
-        );
-        expect(batches.batches.single.writes, isEmpty);
+        expect(batches.selections, isEmpty);
         await tester.tap(find.text("加入收藏夹"));
         await tester.pumpAndSettle();
-      } else {
-        expect(find.byType(PopupMenuItem<bool>), findsNothing);
-      }
-      expect(batches.batches, hasLength(1));
-      expect(batches.batches.single.preparations, 1);
-      expect(
-        (batches.batches.single.writes.single.action as LibraryBatchFavorite)
-            .favorite,
-        favorites != 3,
-      );
-    });
+        expect(batches.batches, hasLength(1));
+        expect(batches.batches.single.preparations, 1);
+        expect(
+          (batches.batches.single.writes.single.action as LibraryBatchFavorite)
+              .favorite,
+          isTrue,
+        );
+        await favorite(tester, false);
+        expect(
+          (batches.batches.last.writes.single.action as LibraryBatchFavorite)
+              .favorite,
+          isFalse,
+        );
+      },
+    );
   }
 
-  testWidgets("a changed selection retires a pending direct favorite", (
+  testWidgets("a changed selection retires a pending favorite command", (
     tester,
   ) async {
     final earlier = OrganizationBatchFixture()
@@ -278,8 +276,7 @@ void main() {
       ..preparing = Completer<LibraryBatchSummary>();
     batches.create = () => earlier;
     await host(tester);
-    await tester.tap(find.byKey(const Key("library-selection-favorite")));
-    await tester.pump();
+    await chooseFavorite(tester, true);
     selection = selection.toggle("another");
     await host(tester);
     earlier.preparing!.complete(earlier.summary);
@@ -298,8 +295,7 @@ void main() {
         conflicts: 0,
       );
     batches.create = () => current;
-    await tester.tap(find.byKey(const Key("library-selection-favorite")));
-    await tester.pumpAndSettle();
+    await favorite(tester, false);
     expect(
       (current.writes.single.action as LibraryBatchFavorite).favorite,
       isFalse,
@@ -307,7 +303,7 @@ void main() {
     expect(committed, 1);
   });
 
-  testWidgets("dismissed mixed menu keeps its label until selection changes", (
+  testWidgets("dismissing the favorite menu requires no batch preparation", (
     tester,
   ) async {
     await host(tester);
@@ -315,9 +311,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(find.text("收藏/取消收藏"), findsOneWidget);
-    expect(batches.batches.single.writes, isEmpty);
-    expect(batches.batches.single.closes, 1);
+    expect(batches.selections, isEmpty);
     selection = selection.toggle("another");
     await host(tester);
     expect(find.text("收藏/取消收藏"), findsNothing);
@@ -510,6 +504,10 @@ void main() {
       expect(find.text(notice!.message), findsNothing);
       expect(container.read(librarySelectionActivityProvider), isNull);
       expect(batch.closes, 1);
+      selection = selection.toggle("another");
+      revision.value++;
+      await tester.pumpAndSettle();
+      expect(container.read(ameNotificationControllerProvider).current, isNull);
       expect(tester.takeException(), isNull);
     },
   );
@@ -644,8 +642,7 @@ void main() {
         ..preparing = Completer<LibraryBatchSummary>();
       batches.create = () => batch;
       await host(tester);
-      await tester.tap(find.byKey(const Key("library-selection-favorite")));
-      await tester.pump();
+      await chooseFavorite(tester, true);
       visible.value = false;
       await tester.pump();
       batch.preparing!.complete(batch.summary);

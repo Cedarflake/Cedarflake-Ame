@@ -64,6 +64,10 @@ authority. Background publications cannot cancel an unchanged explicit selection
 task/notification feedback instead of putting status text or progress under toolbar actions.
 Organization-mode entry and continuation reads must publish usable results despite repeated
 background updates, without holding the mode transition open for continuation metadata.
+The same follow-up makes Favorite intent explicit before preparation, keeps exit available during
+mode reads, retains known single-image actions during refresh, and lets completed file feedback
+yield to new organization notices. Selection changes clear their old failure; mode failures name
+the operation that actually failed.
 
 Use existing progress, gallery and dialog regressions, adding only missing lifecycle/coordination
 coverage. The deletion follow-up also needs bounded native query and anchor checks, with read-only

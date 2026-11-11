@@ -4,6 +4,7 @@ import "package:flutter/foundation.dart";
 
 import "../../application/ports/library_review.dart";
 import "../../application/library_review_session.dart";
+import "../../application/library_review_continuation_reader.dart";
 import "../../application/library_organization_publication.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_organization.dart";
@@ -42,7 +43,12 @@ abstract interface class LibraryReviewSurface {
 /// Retains ordinary browsing while the shared gallery visits review queues.
 class LibraryOrganizationMode extends ChangeNotifier
     implements LibraryOrganizationProjection {
-  LibraryOrganizationMode(this.service, this.surface);
+  LibraryOrganizationMode(this.service, this.surface) {
+    _continuationReader = LibraryReviewContinuationReader(
+      (query) => service.continuation(query: query),
+      _acceptContinuation,
+    );
+  }
   final LibraryReview service;
   final LibraryReviewSurface surface;
   LibraryReviewBrowseState? _ordinary;
@@ -50,8 +56,7 @@ class LibraryOrganizationMode extends ChangeNotifier
   LibraryReviewContinuation? _continuation;
   final _transition = LibraryOrganizationTransition();
   bool _disposed = false;
-  int _read = 0;
-  Future<void>? _continuationRead;
+  late final LibraryReviewContinuationReader _continuationReader;
   int _viewerIntent = 0;
   ({String message, Future<void> Function()? retry})? _problem;
 
@@ -99,33 +104,39 @@ class LibraryOrganizationMode extends ChangeNotifier
         (applied || surface.library.query.collection != collection);
   }
 
-  Future<void> enter() => _run(() async {
+  Future<void> enter() => _run((intent) async {
     if (isActive || !canEnter) return;
     final saved = surface.captureBrowse();
     final boundary = await service.admissionBoundary();
-    if (_disposed || surface.library.query != saved.query) return;
+    if (!_owns(intent) || surface.library.query != saved.query) return;
     final query = saved.query.copyWith(
       organizationQueue: LibraryOrganizationQueue.pending,
       newSinceAdmission: boundary,
     );
-    if (!await surface.showReviewQuery(query) || _disposed) return;
+    unawaited(_continuationReader.refresh(query));
+    if (!await surface.showReviewQuery(query) || !_owns(intent)) return;
     _ordinary = saved;
     _session = LibraryReviewSession(service, query);
-    await refreshContinuation();
-  });
+    _acceptContinuation();
+  }, failureMessage: "无法进入整理模式，请重试。");
 
-  Future<void> exit() => _run(_exit);
+  Future<void> exit() =>
+      _run(_exit, failureMessage: "无法返回图库，请重试。", supersede: true);
 
-  Future<void> _exit() async {
+  Future<void> _exit(int intent) async {
     final saved = _ordinary;
     if (saved == null) return;
+    _viewerIntent++;
+    _session?.clearCurrent();
+    _continuationReader.invalidate();
     if (!await surface.showReviewQuery(saved.query, position: saved.position) ||
-        _disposed) {
+        !_owns(intent)) {
       return;
     }
-    await _replaceSession(null);
+    _replaceSession(null);
     _ordinary = null;
     _continuation = null;
+    _continuationReader.invalidate();
     surface.restoreReviewBrowse(saved);
   }
 
@@ -141,7 +152,7 @@ class LibraryOrganizationMode extends ChangeNotifier
 
   Future<void> leaveWorkspace() {
     assert(_transition.isNavigating && !_transition.isRunning);
-    return _guard(_exit);
+    return _guard(_exit, "无法返回图库，请重试。");
   }
 
   bool restoreWorkspace(LibraryReviewBrowseState ordinary) {
@@ -163,7 +174,7 @@ class LibraryOrganizationMode extends ChangeNotifier
 
   Future<bool> changeQuery(LibraryGalleryQuery requested) async {
     var applied = false;
-    await _run(() async {
+    await _run((intent) async {
       if (!isActive || requested.collection is! LibraryAllCollection) return;
       final query = requested.copyWith(
         organizationQueue: requested.organizationQueue ?? queue,
@@ -176,17 +187,18 @@ class LibraryOrganizationMode extends ChangeNotifier
             sortDirection: query.sortDirection,
           ) ==
           query;
+      unawaited(_continuationReader.refresh(query));
       if (!await surface.showReviewQuery(
             query,
             position: onlyOrderingChanged ? browse.position : null,
           ) ||
-          _disposed) {
+          !_owns(intent)) {
         return;
       }
       applied = true;
-      await _replaceSession(query);
-      await refreshContinuation();
-    });
+      _replaceSession(query);
+      _acceptContinuation();
+    }, failureMessage: "无法切换整理范围，请重试。");
     return applied;
   }
 
@@ -194,22 +206,23 @@ class LibraryOrganizationMode extends ChangeNotifier
     await changeQuery(surface.library.query.copyWith(organizationQueue: queue));
   }
 
-  Future<void> showConflicts() => _run(() async {
+  Future<void> showConflicts() => _run((intent) async {
     final saved = _ordinary ?? surface.captureBrowse();
     final boundary = isActive
         ? surface.library.query.newSinceAdmission
         : await service.admissionBoundary();
-    if (_disposed) return;
+    if (!_owns(intent)) return;
     final query = LibraryGalleryQuery(
       organizationQueue: LibraryOrganizationQueue.deferred,
       newSinceAdmission: boundary,
     );
-    if (!await surface.showReviewQuery(query) || _disposed) return;
+    unawaited(_continuationReader.refresh(query));
+    if (!await surface.showReviewQuery(query) || !_owns(intent)) return;
     surface.closeReviewImage();
     _ordinary = saved;
-    await _replaceSession(query);
-    await refreshContinuation();
-  });
+    _replaceSession(query);
+    _acceptContinuation();
+  }, failureMessage: "无法打开归属冲突的图片，请重试。");
 
   void open(LibraryAsset asset) {
     final session = _session;
@@ -254,69 +267,62 @@ class LibraryOrganizationMode extends ChangeNotifier
 
   Future<void> refreshContinuation() {
     if (!isActive || _disposed) return Future.value();
-    _read++;
-    return _continuationRead ??= _readContinuation();
+    return _continuationReader.refresh(surface.library.query);
   }
 
-  Future<void> _readContinuation() async {
-    try {
-      while (isActive && !_disposed) {
-        final read = _read;
-        try {
-          final result = await service.continuation(
-            query: surface.library.query,
-          );
-          if (_disposed || !isActive) return;
-          if (read != _read) continue;
-          _continuation = result;
-        } on Object {
-          if (_disposed || !isActive) return;
-          if (read != _read) continue;
-          _problem = (message: "无法读取整理位置，请重试。", retry: refreshContinuation);
-        }
-        notifyListeners();
-        return;
-      }
-    } finally {
-      _continuationRead = null;
+  void _acceptContinuation() {
+    final snapshot = _continuationReader.latest;
+    if (_disposed || !isActive || snapshot?.query != surface.library.query) {
+      return;
     }
+    if (snapshot!.failed) {
+      _problem = (message: "无法读取整理位置，请重试。", retry: refreshContinuation);
+    } else {
+      _continuation = snapshot.value;
+    }
+    notifyListeners();
   }
 
-  Future<void> resume() => _run(() async {
+  Future<void> resume() => _run((intent) async {
     if (!isActive) return;
     final saved = await service.continuation(query: surface.library.query);
-    if (_disposed) return;
+    if (!_owns(intent)) return;
     final result = saved.forScope(surface.library.query);
     _continuation = result;
-    if (result.canResume) await _showContinuation(result);
-  });
+    if (result.canResume) await _showContinuation(result, intent);
+  }, failureMessage: "无法恢复整理位置，请重试。");
 
-  Future<void> afterSave(LibraryReviewEntry entry) => _run(() async {
+  Future<void> afterSave(LibraryReviewEntry entry) => _run((intent) async {
     final session = _session;
     if (session == null || !session.owns(entry) || !entry.committed) return;
     final saved = await service.continuation(query: surface.library.query);
-    if (_disposed || !session.owns(entry)) return;
+    if (!_owns(intent) || !session.owns(entry)) return;
     final result = saved.forScope(surface.library.query);
     _continuation = result;
     if (result.canResume) {
-      await _showContinuation(result);
+      await _showContinuation(result, intent);
     } else {
       closeCurrent();
       surface.closeReviewImage();
     }
-  });
+  }, failureMessage: "更改已保存，无法打开下一张图片，请重试。");
 
-  Future<void> _showContinuation(LibraryReviewContinuation result) async {
+  Future<void> _showContinuation(
+    LibraryReviewContinuation result,
+    int command,
+  ) async {
     final intent = _viewerIntent;
     final query = result.query!.copyWith(
       newSinceAdmission: surface.library.query.newSinceAdmission,
     );
     final target = result.target!;
-    if (!await surface.showReviewQuery(query, target: target) || _disposed) {
+    final applied = await surface.showReviewQuery(query, target: target);
+    if (!_owns(command)) return;
+    if (!applied) {
       throw StateError("The review query could not be restored");
     }
     if (intent != _viewerIntent) return;
-    if (_session?.query != query) await _replaceSession(query);
+    if (_session?.query != query) _replaceSession(query);
     if (_disposed || intent != _viewerIntent) return;
     final asset = surface.library.assets
         .where((asset) => LibraryOrganizationTarget.fromAsset(asset) == target)
@@ -363,29 +369,48 @@ class LibraryOrganizationMode extends ChangeNotifier
     notifyListeners();
   }
 
-  Future<void> _replaceSession(LibraryGalleryQuery? query) async {
+  void _replaceSession(LibraryGalleryQuery? query) {
     final previous = _session;
-    _session = null;
-    await previous?.close();
-    if (!_disposed && query != null) {
-      _session = LibraryReviewSession(service, query);
-    }
+    _session = !_disposed && query != null
+        ? LibraryReviewSession(service, query)
+        : null;
+    unawaited(
+      previous?.close().catchError((Object error) {
+        debugPrint("[Ame organization] review retirement failed: $error");
+      }),
+    );
   }
 
-  Future<void> _run(Future<void> Function() operation) async {
-    if (_disposed || busy) return;
-    await _transition.run(() => _guard(operation));
+  bool _owns(int intent) => !_disposed && _transition.owns(intent);
+
+  Future<void> _run(
+    Future<void> Function(int) operation, {
+    required String failureMessage,
+    bool supersede = false,
+  }) async {
+    if (_disposed) return;
+    await _transition.run(
+      () => _guard(operation, failureMessage),
+      supersede: supersede,
+    );
     if (!_disposed) notifyListeners();
   }
 
-  Future<void> _guard(Future<void> Function() operation) async {
+  Future<void> _guard(
+    Future<void> Function(int) operation,
+    String failureMessage,
+  ) async {
+    final intent = _transition.generation;
     _problem = null;
     notifyListeners();
     try {
-      await operation();
+      await operation(intent);
     } on Object {
-      if (!_disposed) {
-        _problem = (message: "无法恢复整理位置，请重试。", retry: () => _run(operation));
+      if (_owns(intent)) {
+        _problem = (
+          message: failureMessage,
+          retry: () => _run(operation, failureMessage: failureMessage),
+        );
       }
     } finally {
       if (!_disposed) {
@@ -397,7 +422,7 @@ class LibraryOrganizationMode extends ChangeNotifier
   @override
   void dispose() {
     _disposed = true;
-    _read++;
+    _continuationReader.close();
     unawaited(
       _session?.close().catchError((Object error) {
         debugPrint("[Ame organization] review retirement failed: $error");

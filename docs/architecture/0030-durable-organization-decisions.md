@@ -399,6 +399,12 @@ carry their catalog/query authority and are revalidated through bounded anchor r
 collection changes, preserving the currently displayed source. A fallback ordinal cannot prove that
 an image still belongs to a collection.
 
+Selection Favorite actions expose explicit add/remove commands before preparing the batch; the
+prepared summary cannot reverse that intent. Same-target status refreshes retain known decisions
+and their actions until an actual read failure; command admission still validates current targets.
+Active file work keeps its viewer feedback, while a completed file result yields to an organization
+failure or transient result. Changing selection resolves its previous preparation failure.
+
 Album navigation and destination dialogs read 64-album keyset pages. A separate indexed read resolves
 one saved default or selected album by ID; finding it does not traverse the list or create an
 operation. Retired albums are absent from both read contracts. Prompt and default-destination
@@ -460,6 +466,15 @@ preserved by the existing bounded query; album and Favorite browsing cannot ente
 Continuation admission compares the saved source, folder and descendant policy to the active scope
 before offering or restoring it. Incompatible historical collection positions remain stored but
 cannot reopen organization mode in a collection or replace the selected source scope.
+Continuation metadata loads alongside the destination gallery query and does not hold its mode
+transition open. Its reader publishes completed same-query results even when another catalog
+publication requests a follow-up; scope changes and exit retire old results. Restoring a saved
+image still resolves current continuation authority when the user invokes the action.
+Exit supersedes a pending mode query or continuation read. Its transition generation rejects old
+session, viewer and failure publication; the shared query owner admits the return query separately.
+Session retirement revokes save authority immediately and completes native cleanup asynchronously.
+Mode failure feedback identifies entry, scope change, exit or continuation instead of attributing
+every failure to saved-position recovery.
 Workspace navigation retains an organizing Library's active browse snapshot and ordinary return
 context while Albums uses the gallery. Query restoration precedes review-session reactivation on
 return. Duplicates and Settings retain the active organization session behind their surfaces;
@@ -483,9 +498,8 @@ geometry publication nor restart photo reflow; width and row-layout changes reta
 motion ownership. The retiring row loses pointer, keyboard and
 semantic input immediately. `ameMenuChoice` supplies the same dot marker and exclusive-selection
 semantics to sorting, layout and organization menus. Material buttons and popup items retain
-focus, selection and accessible names. The pinned SDK's `AbsorbPointer` removes pointer-related semantic
-actions during a mode operation without repainting the controls as disabled; the existing mode
-guard also rejects repeated keyboard commands. Published empty content remains mounted during
+focus, selection and accessible names. Pending mode work disables duplicate queue and continuation
+commands while leaving exit available to pointer, keyboard and semantic input. Published empty content remains mounted during
 query replacement. `LibraryGalleryLoadingRegion` owns the optional feedback delay and cancels its
 timer when loading ends or the region is disposed. Query and mode composition selects the delay;
 direct positioning remains immediate. These presentation changes do not alter query admission,

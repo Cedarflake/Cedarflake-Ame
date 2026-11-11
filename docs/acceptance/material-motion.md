@@ -306,12 +306,44 @@ Five focused native admission/source-selection checks and the changed batch case
 receipt replay and transactional rejection. All 25 selection-action widget checks passed; preparation
 survives a same-intent catalog publication, cancellation retires it, and failures use notifications.
 The toolbar no longer paints an error or progress line. Slow preparation uses the shared bottom
-feedback host after 500 ms. Affected Dart static analysis and formatting pass; rebuilt-client
-observation and final-head hosted checks remain pending for this follow-up.
+feedback host after 500 ms. The rebuilt normal `local-primary` Debug client opens the album picker
+for a selected screenshot and shows preparation in the bottom host without adding toolbar content.
+The picker was cancelled without submitting membership or source-file changes. Affected static
+analysis and formatting pass. Commit `cda7a999` was pushed; its hosted workflow was pending at the
+last observation, and the follow-up below has its own final-head check.
 
 The native admission owner has 77 production lines; batch orchestration has 275 and no inline tests.
 The selection widget has 425 lines, its activity owner 35 and no inline tests. Reused selection-action
 checks contain 732 dedicated lines; native admission and batch-mutation files contain 65 and 322.
+
+### Organization waiting, intent and feedback ownership
+
+Continuation metadata now reads alongside the gallery query. Completed same-scope results are
+published before a coalesced follow-up, while scope changes reject old results. Exit supersedes
+pending queue or continuation reads without waiting for them; their late successes and failures
+cannot reopen the viewer, replace the current session or display a stale error. Native session
+retirement continues after its local authority has been revoked.
+
+Favorite menus offer explicit add/remove commands before batch preparation, including selections
+that are entirely favorited. Known single-image decisions remain actionable during background
+refresh. Completed file feedback yields to organization failures and results; running file work
+retains priority. Changing a selection clears its previous preparation notice. Entry, scope change,
+exit and continuation failures now identify their corresponding operation.
+
+Affected interaction checks pass for pending-read exit, stale result/error rejection, concurrent
+catalog refresh, explicit Favorite intent, selection cancellation, notification precedence and
+workspace restoration. The previous test requiring a busy Exit to ignore input was replaced with
+an exit-during-query regression. Static analysis, formatting and the Windows Debug build pass.
+The normal `local-primary` client displayed 63,072 images, entered organization with a usable
+continuation button, and returned to its original gallery. Exit was visually complete in a 2,486 ms
+observation including an intentional 1,800 ms wait and capture. The Favorite menu was visible in
+457 ms including a 250 ms wait; opening it submitted no write. A mode-entry capture at 1,751 ms
+still showed query loading; a later capture showed the complete controls. These are sampled
+observations, not isolated query timings or proof that large-library reads are instantaneous.
+The client remains open on ordinary browsing; no physical file operation was submitted.
+
+The continuation reader, transition, mode and selection owners contain 70/43/433/353 production
+lines and no inline tests. The reused mode/widget suites contain 529/708 dedicated test lines.
 
 ### Dialog and viewer follow-up
 

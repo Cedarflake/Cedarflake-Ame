@@ -59,7 +59,6 @@ class _LibrarySelectionActionsState
   bool _dialogOwnsSession = false;
   Timer? _timer;
   bool _readingProgress = false;
-  LibrarySelectionAvailability? _favoriteAvailability;
 
   @override
   void initState() {
@@ -75,7 +74,8 @@ class _LibrarySelectionActionsState
         oldWidget.query == widget.query) {
       return;
     }
-    _favoriteAvailability = null;
+    final notifications = ref.read(ameNotificationControllerProvider.notifier);
+    scheduleMicrotask(() => notifications.resolve("library-selection-prepare"));
     if (!_dialogOwnsSession && _session?.hasCommitted != true) {
       _retire();
     }
@@ -150,68 +150,18 @@ class _LibrarySelectionActionsState
     }
   }
 
-  Future<void> _activateFavorite(VoidCallback openMenu) async {
-    if (_working || !widget.enabled) return;
-    final session = _start();
-    try {
-      final summary = await session.prepare();
-      if (!_owns(session)) return;
-      if (!widget.enabled) {
-        setState(_retire);
-        return;
-      }
-      final availability = LibrarySelectionAvailability(summary);
-      setState(() {
-        _working = false;
-        _favoriteAvailability = availability;
-      });
-      if (availability.canFavorite && availability.canUnfavorite) {
-        _timer?.cancel();
-        _activity.finish(session);
-        await WidgetsBinding.instance.endOfFrame;
-        if (_owns(session) && widget.enabled) openMenu();
-      } else if (availability.canFavorite || availability.canUnfavorite) {
-        await _setFavorite(availability.canFavorite);
-      } else {
-        _retire();
-      }
-    } on Object catch (error) {
-      if (!_owns(session)) return;
-      _timer?.cancel();
-      _activity.finish(session);
-      setState(() => _working = false);
-      _reportFailure(error);
-    }
-  }
-
-  Future<void> _setFavorite(bool favorite) async {
-    final session = _session;
-    if (session?.summary == null) return;
-    await _apply(
-      (session) => LibraryBatchFavoriteRequest(session, favorite),
-      prepared: session,
-    );
-  }
+  Future<void> _setFavorite(bool favorite) =>
+      _apply((session) => LibraryBatchFavoriteRequest(session, favorite));
 
   Future<void> _setProgress(LibraryProgressAction action) =>
       _apply((session) => LibraryBatchProgressRequest(session, action));
 
   Future<void> _apply(
-    LibraryOrganizationRequest Function(LibrarySelectionSession) create, {
-    LibrarySelectionSession? prepared,
-  }) async {
+    LibraryOrganizationRequest Function(LibrarySelectionSession) create,
+  ) async {
     if (!mounted || _working || !widget.enabled) return;
     final onCommitted = widget.onCommitted;
-    final session = prepared ?? _start();
-    if (prepared != null) {
-      setState(() => _working = true);
-      _activity.start(session);
-      _timer?.cancel();
-      _timer = Timer.periodic(
-        const Duration(milliseconds: 250),
-        (_) => _poll(session),
-      );
-    }
+    final session = _start();
     final request = create(session);
     _pendingRequest = request;
     final result = await _actions.submit(request);
@@ -321,13 +271,6 @@ class _LibrarySelectionActionsState
     );
     final enabled = widget.enabled && !busy && !_working;
     final summary = _session?.summary;
-    final availability = _favoriteAvailability;
-    final mixedFavorites =
-        availability?.canFavorite == true &&
-        availability?.canUnfavorite == true;
-    final onlyFavorites =
-        availability?.canFavorite == false &&
-        availability?.canUnfavorite == true;
     final queue = widget.query.organizationQueue;
     final controls = queue == null
         ? null
@@ -342,47 +285,32 @@ class _LibrarySelectionActionsState
         AmePopupMenuButton<bool>(
           labels: const ["加入收藏夹", "取消收藏"],
           onSelected: _setFavorite,
-          onOpenChanged: (open) {
-            if (!open && !_working) _retire();
-          },
-          items: [
-            if (availability?.canFavorite == true)
-              const PopupMenuItem(
-                value: true,
-                child: AmeMenuItemContent(
-                  label: "加入收藏夹",
-                  icon: Symbols.favorite_rounded,
-                ),
+          items: const [
+            PopupMenuItem(
+              value: true,
+              child: AmeMenuItemContent(
+                label: "加入收藏夹",
+                icon: Symbols.favorite_rounded,
               ),
-            if (availability?.canUnfavorite == true)
-              const PopupMenuItem(
-                value: false,
-                child: AmeMenuItemContent(
-                  label: "取消收藏",
-                  icon: Symbols.heart_minus_rounded,
-                ),
+            ),
+            PopupMenuItem(
+              value: false,
+              child: AmeMenuItemContent(
+                label: "取消收藏",
+                icon: Symbols.heart_minus_rounded,
               ),
+            ),
           ],
           builder: (context, openMenu) => TextButton.icon(
             key: const Key("library-selection-favorite"),
-            onPressed: enabled ? () => _activateFavorite(openMenu) : null,
-            icon: Icon(
-              onlyFavorites
-                  ? Symbols.heart_minus_rounded
-                  : Symbols.favorite_rounded,
-            ),
-            label: Row(
+            onPressed: enabled ? openMenu : null,
+            icon: const Icon(Symbols.favorite_rounded),
+            label: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(switch ((mixedFavorites, onlyFavorites)) {
-                  (true, _) => "收藏/取消收藏",
-                  (_, true) => "取消收藏",
-                  _ => "收藏",
-                }),
-                if (mixedFavorites) ...[
-                  const SizedBox(width: 4),
-                  const Icon(Symbols.arrow_drop_down_rounded, size: 20),
-                ],
+                Text("收藏"),
+                SizedBox(width: 4),
+                Icon(Symbols.arrow_drop_down_rounded, size: 20),
               ],
             ),
           ),

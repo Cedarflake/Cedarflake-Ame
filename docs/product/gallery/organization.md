@@ -59,8 +59,9 @@ also contains earlier images. Keep a visible range stroke at small scales, and p
 when it collides with the earlier-range label; annotation positions and scroll targets stay exact.
 
 Mode entry, queue changes and exit retain published content while the replacement query loads.
-An existing empty result does not flash a loading page or an hourglass, and the controls keep their
-normal colors while blocking repeated commands. Query and mode waits show the shared top loading
+An existing empty result does not flash a loading page or an hourglass. Pending work disables repeated
+queue and continuation commands; `退出整理` remains available and supersedes the pending navigation.
+Query and mode waits show the shared top loading
 line after 250 milliseconds; shorter waits stay quiet. Direct scrolling and positioning keep their
 immediate feedback, and an initial catalog load without a published result retains its loading state.
 

@@ -89,7 +89,7 @@ class _LibraryReviewActionsState extends ConsumerState<LibraryReviewActions> {
     final entry = widget.entry;
     final target = entry.target;
     final inspection = ref.watch(libraryOrganizationInspectionProvider(target));
-    final decision = inspection.isLoading || inspection.hasError
+    final decision = inspection.hasError
         ? null
         : inspection.value?.decisions.singleOrNull;
     final controls = decision == null

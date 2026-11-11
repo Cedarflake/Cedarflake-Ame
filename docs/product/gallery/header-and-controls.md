@@ -82,11 +82,10 @@ Button bounds stay stable through preparation, tray opening and dismissal.
 - the production control remains absent until membership persistence, settings, errors, undo, and
   the complete user path are connected.
 
-Activating Favorite reads the current selected groups once: all unfavorited directly adds Favorites,
-and all favorited directly removes Favorites. Only a mixed selection opens a dropdown offering
-`加入收藏夹` and `取消收藏`; its trigger reads `收藏/取消收藏` with a dropdown arrow. Both paths reuse
-the prepared guarded command target; a cancelled or changed selection cannot apply an earlier
-action to new images.
+The selection toolbar's `收藏` dropdown immediately offers `加入收藏夹` and `取消收藏`.
+Prepare the batch after the user chooses an action; its current Favorite counts never reverse the
+chosen action. Both commands use the guarded target; a cancelled or changed selection cannot apply
+an earlier action to new images.
 Unfavorite uses the heart-minus icon. Favorite changes leave album
 assignments and organization progress intact. Album removal and movement retain distinct labels
 and results.

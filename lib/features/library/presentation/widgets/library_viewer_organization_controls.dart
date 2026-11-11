@@ -96,15 +96,18 @@ class LibraryViewerOrganizationNotice extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notice = ref.watch(libraryViewerOperationNoticeProvider);
     final files = ref.watch(libraryFileActionsProvider);
-    if (files.progress != null) {
+    if (files.busy) {
       return LibraryFileFeedback(activity: files, viewer: true);
     }
     final saving = ref.watch(libraryOrganizationActionsProvider).saving;
     if (mode.isActive && mode.problem != null) {
       return LibraryReviewModeNotice(mode: mode, enabled: !saving);
     }
-    return notice == null
-        ? const SizedBox.shrink()
-        : LibraryOrganizationFeedback(notification: notice);
+    if (notice != null) {
+      return LibraryOrganizationFeedback(notification: notice);
+    }
+    return files.progress != null
+        ? LibraryFileFeedback(activity: files, viewer: true)
+        : const SizedBox.shrink();
   }
 }
