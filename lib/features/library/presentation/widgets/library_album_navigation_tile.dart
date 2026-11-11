@@ -129,7 +129,7 @@ class _LibraryAlbumNavigationTileState
         horizontalTitleGap: 4,
         leading: LibrarySidebarSelectionIcon(
           key: ValueKey("library-sidebar-select-album-${widget.album.id}"),
-          icon: libraryAlbumIcon(widget.album.icon),
+          icon: Icon(libraryAlbumIcon(widget.album.icon)),
           name: widget.album.name,
           selected: widget.checked,
           onPressed: widget.onToggleSelection,

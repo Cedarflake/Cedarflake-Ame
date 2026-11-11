@@ -19,6 +19,7 @@ class LibraryViewerFilmstripThumbnail extends ConsumerStatefulWidget {
     required this.isSelected,
     required this.onPressed,
     this.previewWidth = 94,
+    this.imageAnchorKey,
     super.key,
   });
 
@@ -26,6 +27,7 @@ class LibraryViewerFilmstripThumbnail extends ConsumerStatefulWidget {
   final bool isSelected;
   final VoidCallback onPressed;
   final double previewWidth;
+  final Key? imageAnchorKey;
 
   @override
   ConsumerState<LibraryViewerFilmstripThumbnail> createState() =>
@@ -209,6 +211,7 @@ class _LibraryViewerFilmstripThumbnailState
               padding: const EdgeInsets.all(3),
               child: ExcludeSemantics(
                 child: Builder(
+                  key: widget.imageAnchorKey,
                   builder: (context) {
                     final resolved = _controller.resolvePreview(widget.asset);
                     if (resolved.previewStatus != LibraryPreviewStatus.ready) {

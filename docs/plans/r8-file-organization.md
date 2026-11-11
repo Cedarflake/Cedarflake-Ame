@@ -4,6 +4,32 @@ Status: scoped execution plan. The [roadmap](../roadmap.md#r8-implementation-seq
 order and delivery status; the [product scope](../product/organization-workflows.md#r8---file-organization-and-recovery)
 owns supported behavior. This plan schedules no source-file changes by itself.
 
+## Duplicate cleanup entry points
+
+Add three entry points in exact and similar review: delete the remaining pictures inside a group,
+clean all active groups in the current kind/degree, and clean only thumbnail-selected group cards.
+Click a group thumbnail to select it and flip the thumbnail into a checkmark; clicking again
+reverses the selection. Keep group opening on the remaining card surface and its view action.
+Reuse the shared flip for sidebar selection icons, preserving their existing target sizes and
+selection scope. Selection takes effect immediately; interrupted motion reverses from its displayed
+state, and reduced motion switches directly. Retain thumbnail state while its reverse face is shown.
+Card selection is independent of the two-image comparison selection. Entering a group and returning
+to the same list preserves selected groups; with no selected groups, return to the ordinary list.
+Changing group kind or similarity degree clears the selection. Ignored groups are excluded.
+Retain explicit exact preferences and every selected
+similar content. Without a manual choice, retain the automatically displayed representative;
+similar cleanup preserves every physical copy of that content. Include physical copies of all
+other content in the deletion selection.
+
+Freeze a disk-backed physical selection when preparing the existing deletion confirmation. Show
+`即将删除 N 张图片` as the title, without a repeated count row, group or retained counts; no source mutation
+occurs until confirmation. Preserve Windows recycling, unchecked permanent deletion, existing
+revalidation, history and cancellation. Place cleanup actions after the group menus and use
+`删除重复图片` or `删除相似图片` for the current review kind.
+Use a typed cleanup selection owner, the generated bridge and shared review cards; add no parallel
+file executor or source mutation during local UI validation. Verify retention, explicit group scope,
+ignored/unselected groups, changed choices and both review surfaces before delivery.
+
 ## Delivery approach
 
 Use Windows to perform file operations and manage the system Recycle Bin. Ame owns the selected

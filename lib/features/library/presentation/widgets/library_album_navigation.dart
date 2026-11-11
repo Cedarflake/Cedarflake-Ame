@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../application/library_album_pages.dart";
 import "../../application/library_album_requests.dart";
 import "../../application/library_organization_actions.dart";
@@ -224,7 +225,7 @@ class _LibraryAlbumNavigationState
             _header(null, true),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: LinearProgressIndicator(),
+              child: AmeLinearProgress(),
             ),
             if (widget.footer != null) widget.footer!,
           ],

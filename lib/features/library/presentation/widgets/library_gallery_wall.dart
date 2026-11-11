@@ -7,6 +7,7 @@ import "../../domain/gallery_layout_manifest.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_state.dart";
 import "../coordination/gallery_selection.dart";
+import "../coordination/library_gallery_motion_publication.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
 import "library_cover_preview_size.dart";
@@ -36,6 +37,10 @@ class _LibraryGalleryScrollViewKey extends GlobalObjectKey {
 
 class _LibraryGalleryInteractionKey extends GlobalObjectKey {
   const _LibraryGalleryInteractionKey(super.value);
+}
+
+class _LibraryGalleryMotionKey extends GlobalObjectKey {
+  const _LibraryGalleryMotionKey(super.value);
 }
 
 class LibraryGalleryWall extends StatelessWidget {
@@ -484,6 +489,12 @@ class LibraryGalleryWall extends StatelessWidget {
           ),
         );
         return LibraryGalleryLayoutMotion(
+          key: _LibraryGalleryMotionKey(scrollController),
+          duplicatePublication: LibraryGalleryMotionPublication.forState(
+            state,
+            layoutIdentity: (layoutShape, thumbnailSize),
+          ),
+          contentOffset: const Offset(horizontalPadding, 0),
           queryIdentity: (
             state.queryId,
             state.catalogRevision,
@@ -1042,13 +1053,23 @@ class _ManifestLibraryGalleryWallState
           ),
         );
         return LibraryGalleryLayoutMotion(
+          key: _LibraryGalleryMotionKey(widget.scrollController),
+          duplicatePublication: LibraryGalleryMotionPublication.forState(
+            widget.state,
+            layoutIdentity: (widget.layoutShape, widget.thumbnailSize),
+          ),
+          contentOffset: const Offset(horizontalPadding, 0),
           queryIdentity: (
             widget.state.queryId,
             widget.state.catalogRevision,
             widget.layoutShape,
             widget.thumbnailSize,
           ),
-          geometryIdentity: snapshot.availableWidth,
+          geometryIdentity: (
+            snapshot.availableWidth,
+            widget.layoutShape,
+            widget.thumbnailSize,
+          ),
           scrollController: widget.scrollController,
           scrollOffsetCorrection: _layoutCorrection?.delta ?? 0,
           child: content,

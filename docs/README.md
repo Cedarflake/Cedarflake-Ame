@@ -15,6 +15,7 @@ only the contracts, execution details, and evidence that own the task.
 | What is planned for similar images in Duplicates? | [R6 implementation plan](plans/r6-similar-images.md), including planned interaction; the roadmap owns activation. |
 | How are semantic search and composed filters implemented? | [R7 implementation plan](plans/r7-semantic-discovery.md); the [roadmap](roadmap.md#r7-implementation-sequence) owns current slice disposition. |
 | How will R8 use Windows file operations and verify recovery? | [R8 execution plan](plans/r8-file-organization.md), [product scope](product/organization-workflows.md#r8---file-organization-and-recovery) and [filesystem verification](acceptance/r8-file-operations.md) |
+| Where will official Material spring motion be adopted? | [Material motion plan](plans/material-motion.md) and [roadmap disposition](roadmap.md#material-motion-adoption) |
 | How will project organization be refactored after R5? | [Organization execution plan](plans/project-organization.md), activated by the [roadmap](roadmap.md#project-organization-after-r5) |
 | Where are organization changes and their verification recorded? | [Initial, catalog, scan and preview evidence](acceptance/project-organization.md); [incremental and synchronization evidence](acceptance/project-organization-continuity.md) |
 | How should the accepted gallery and controls behave, and why? | [Gallery UI contract and rationale](product/gallery-ui.md#design-principles-and-rationale), under the accepted UI ADRs |

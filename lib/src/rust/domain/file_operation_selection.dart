@@ -6,6 +6,7 @@
 import '../domain.dart';
 import '../frb_generated.dart';
 import 'classification_review.dart';
+import 'exact_duplicate_review.dart';
 import 'file_operation_exports.dart';
 import 'file_operations.dart';
 import 'gallery_metadata_filter.dart';
@@ -14,7 +15,54 @@ import 'organization_queue.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 import 'semantic_results.dart';
+import 'similar_images/review.dart';
 part 'file_operation_selection.freezed.dart';
+
+@freezed
+sealed class DuplicateCleanupGroup with _$DuplicateCleanupGroup {
+  const DuplicateCleanupGroup._();
+
+  const factory DuplicateCleanupGroup.exact({
+    required ExactDuplicateReviewKey key,
+  }) = DuplicateCleanupGroup_Exact;
+  const factory DuplicateCleanupGroup.similar({required String groupId}) =
+      DuplicateCleanupGroup_Similar;
+}
+
+@freezed
+sealed class DuplicateCleanupKind with _$DuplicateCleanupKind {
+  const DuplicateCleanupKind._();
+
+  const factory DuplicateCleanupKind.exact() = DuplicateCleanupKind_Exact;
+  const factory DuplicateCleanupKind.similar({
+    required SimilarityDegree degree,
+  }) = DuplicateCleanupKind_Similar;
+}
+
+class DuplicateCleanupSummary {
+  final BigInt groupCount;
+  final BigInt skippedGroups;
+  final BigInt keptFiles;
+
+  const DuplicateCleanupSummary({
+    required this.groupCount,
+    required this.skippedGroups,
+    required this.keptFiles,
+  });
+
+  @override
+  int get hashCode =>
+      groupCount.hashCode ^ skippedGroups.hashCode ^ keptFiles.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DuplicateCleanupSummary &&
+          runtimeType == other.runtimeType &&
+          groupCount == other.groupCount &&
+          skippedGroups == other.skippedGroups &&
+          keptFiles == other.keptFiles;
+}
 
 class FileOperationCommand {
   final FileAction action;
@@ -88,22 +136,31 @@ sealed class FileOperationSelectionScope with _$FileOperationSelectionScope {
   }) = FileOperationSelectionScope_MergedGalleryGroups;
   const factory FileOperationSelectionScope.locations() =
       FileOperationSelectionScope_Locations;
+  const factory FileOperationSelectionScope.duplicateCleanup({
+    required DuplicateCleanupKind kind,
+    required bool allGroups,
+  }) = FileOperationSelectionScope_DuplicateCleanup;
 }
 
 class FileOperationSelectionSummary {
   final BigInt fileCount;
   final BigInt totalBytes;
   final BigInt? mergedGroupCount;
+  final DuplicateCleanupSummary? cleanup;
 
   const FileOperationSelectionSummary({
     required this.fileCount,
     required this.totalBytes,
     this.mergedGroupCount,
+    this.cleanup,
   });
 
   @override
   int get hashCode =>
-      fileCount.hashCode ^ totalBytes.hashCode ^ mergedGroupCount.hashCode;
+      fileCount.hashCode ^
+      totalBytes.hashCode ^
+      mergedGroupCount.hashCode ^
+      cleanup.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -112,5 +169,6 @@ class FileOperationSelectionSummary {
           runtimeType == other.runtimeType &&
           fileCount == other.fileCount &&
           totalBytes == other.totalBytes &&
-          mergedGroupCount == other.mergedGroupCount;
+          mergedGroupCount == other.mergedGroupCount &&
+          cleanup == other.cleanup;
 }

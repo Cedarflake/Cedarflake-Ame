@@ -7,6 +7,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../../../app/window/ame_window_fullscreen.dart";
 import "library_viewer_controls.dart";
+import "library_viewer_chrome.dart";
 import "library_viewer_transition.dart";
 
 class LibraryViewerFrame extends ConsumerStatefulWidget {
@@ -107,43 +108,52 @@ class _LibraryViewerFrameState extends ConsumerState<LibraryViewerFrame> {
         const SingleActivator(LogicalKeyboardKey.browserBack): _back,
         const SingleActivator(LogicalKeyboardKey.f11): _toggleFullscreen,
       },
-      child: Column(
-        children: [
-          if (!isFullscreen) ...[
-            LibraryViewerTopBar(
-              title: widget.title,
-              onBack: () => unawaited(_back()),
-              backLabel: widget.backLabel,
-              organizationActions: actions,
-            ),
-            const Divider(height: 1),
-          ],
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                widget.builder(
-                  context,
-                  isFullscreen,
-                  fullscreen == null || fullscreen.isChanging
-                      ? null
-                      : _toggleFullscreen,
-                  () => unawaited(_back()),
+      child: LibraryViewerBackdrop(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        child: Column(
+          children: [
+            if (!isFullscreen) ...[
+              LibraryViewerChrome(
+                child: LibraryViewerTopBar(
+                  title: widget.title,
+                  onBack: () => unawaited(_back()),
+                  backLabel: widget.backLabel,
+                  organizationActions: actions,
                 ),
-                if (isFullscreen && actions != null)
-                  Positioned(
-                    top: 12,
-                    right: 20,
-                    child: Material(
-                      color: Theme.of(context).colorScheme.surfaceContainerLow,
-                      shape: const StadiumBorder(),
-                      child: actions,
-                    ),
+              ),
+              const LibraryViewerChrome(child: Divider(height: 1)),
+            ],
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  widget.builder(
+                    context,
+                    isFullscreen,
+                    fullscreen == null || fullscreen.isChanging
+                        ? null
+                        : _toggleFullscreen,
+                    () => unawaited(_back()),
                   ),
-              ],
+                  if (isFullscreen && actions != null)
+                    Positioned(
+                      top: 12,
+                      right: 20,
+                      child: LibraryViewerChrome(
+                        child: Material(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerLow,
+                          shape: const StadiumBorder(),
+                          child: actions,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

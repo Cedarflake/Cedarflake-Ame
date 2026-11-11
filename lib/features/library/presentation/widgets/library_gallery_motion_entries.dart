@@ -37,6 +37,7 @@ class LibraryGalleryMotionRow extends StatelessWidget {
         LibraryGalleryMotionItem(
           key: ValueKey(identity),
           identity: identity,
+          retainExit: true,
           rect: Rect.fromLTWH(left, offset, cellWidths[index], height),
           builder: (context, size) => builder(index, size),
         ),

@@ -10,6 +10,7 @@ pub(super) fn selected(scope: &Scope) -> Result<gallery::BuiltGalleryQuery, Scan
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
     let source = match scope {
+        Scope::DuplicateCleanup { .. } => return Err(stale_selection()),
         Scope::Gallery {
             query,
             all_matching,

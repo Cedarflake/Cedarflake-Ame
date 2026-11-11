@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_feedback_card.dart";
 import "../../domain/library_state.dart";
@@ -93,7 +94,7 @@ class LibraryTaskSurface extends StatelessWidget {
           ),
       ],
       progress: state.isTaskProcessing
-          ? LinearProgressIndicator(
+          ? AmeLinearProgress(
               value:
                   state.status == LibraryStatus.scanning &&
                       state.scanPhase == LibraryScanPhase.finalizing &&

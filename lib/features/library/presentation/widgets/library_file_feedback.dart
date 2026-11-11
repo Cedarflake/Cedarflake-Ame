@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_feedback_card.dart";
 import "../../application/library_file_operations.dart";
@@ -63,7 +64,7 @@ class LibraryFileFeedback extends ConsumerWidget {
           ? progress.path?.split(RegExp(r"[\\/]")).last
           : null,
       progress: activity.busy
-          ? LinearProgressIndicator(
+          ? AmeLinearProgress(
               value:
                   activity.purpose != LibraryFileActivityPurpose.report &&
                       progress.total > 0

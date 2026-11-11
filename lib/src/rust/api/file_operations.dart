@@ -5,6 +5,7 @@
 
 import '../domain.dart';
 import '../domain/classification_review.dart';
+import '../domain/exact_duplicate_review.dart';
 import '../domain/file_operation_exports.dart';
 import '../domain/file_operation_journal.dart';
 import '../domain/file_operation_selection.dart';
@@ -14,6 +15,7 @@ import '../domain/gallery_metadata_filter.dart';
 import '../domain/organization.dart';
 import '../domain/organization_queue.dart';
 import '../domain/semantic_results.dart';
+import '../domain/similar_images/review.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
@@ -72,6 +74,8 @@ abstract class FileActionTask implements RustOpaqueInterface {
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<FileSelectionDraft>>
 abstract class FileSelectionDraft implements RustOpaqueInterface {
+  Future<void> appendGroups({required List<DuplicateCleanupGroup> groups});
+
   Future<void> appendIds({required List<String> assetIds});
 
   Future<void> appendLocations({

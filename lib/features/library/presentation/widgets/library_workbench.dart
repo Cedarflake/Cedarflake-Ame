@@ -315,6 +315,11 @@ class _FunctionRail extends ConsumerWidget {
                   Symbols.settings_rounded,
                   size: LibraryWorkbenchMetrics.iconSize,
                 ),
+                selectedIcon: const Icon(
+                  Symbols.settings_rounded,
+                  size: LibraryWorkbenchMetrics.iconSize,
+                  fill: 1,
+                ),
               ),
             ),
           ],

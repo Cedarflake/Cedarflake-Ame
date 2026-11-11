@@ -57,6 +57,8 @@ abstract final class LibraryDuplicateStrings {
   static const saveFailed = "未能保存选择，请重试";
   static String groups(int count) => "$count 个组";
   static String similarImages(int count) => "$count 张图片";
+  static String selectGroup(String name, {required bool selected}) =>
+      selected ? "取消选择图片组：$name" : "选择图片组：$name";
 
   // Gallery header filter and the local location list opened from a photo badge.
   static const filter = "筛选";

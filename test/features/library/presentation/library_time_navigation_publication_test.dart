@@ -248,8 +248,12 @@ void main() {
     final gesture = await tester.startGesture(bounds.center);
     await tester.pump();
     final initialPosition = fixture.controller.offset;
+    final marker = find.byKey(const Key("timeline-current-line"));
+    final heldLine = tester.getCenter(marker);
     await fixture.show();
+    expect(tester.getCenter(marker), heldLine);
     await fixture.show(isQueryWide: true);
+    expect(tester.getCenter(marker), heldLine);
     await gesture.moveTo(
       Offset(bounds.center.dx, bounds.top + bounds.height * 0.75),
     );

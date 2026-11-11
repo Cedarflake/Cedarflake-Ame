@@ -4,6 +4,7 @@ import "package:flutter/services.dart";
 
 import "../../../settings/domain/ame_preferences.dart";
 import "../coordination/library_viewer_zoom.dart";
+import "library_viewer_launch.dart";
 
 Map<ShortcutActivator, VoidCallback> libraryViewerZoomShortcuts(
   LibraryViewerZoom zoom,
@@ -72,31 +73,41 @@ class _LibraryViewerImageInteractionState
   }
 
   @override
-  Widget build(BuildContext context) => Listener(
-    onPointerSignal: _handlePointerSignal,
-    child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onDoubleTap: widget.zoom.toggleMode,
-      child: InteractiveViewer(
-        key: widget.interactiveKey,
-        transformationController: widget.zoom.transform,
-        alignment: Alignment.topLeft,
-        boundaryMargin: const EdgeInsets.all(double.infinity),
-        minScale: widget.zoom.minimumScale,
-        maxScale: widget.zoom.maximumScale,
-        scaleFactor: 180,
-        scaleEnabled: widget.wheelBehavior == ImageViewerWheelBehavior.zoom,
-        trackpadScrollCausesScale: true,
-        onInteractionStart: widget.zoom.interactionStarted,
-        child: SizedBox(
-          width: widget.zoom.viewport.width,
-          height: widget.zoom.viewport.height,
-          child: RotatedBox(
-            quarterTurns: widget.zoom.quarterTurns,
-            child: widget.child,
+  Widget build(BuildContext context) {
+    final animation = LibraryViewerFlightScope.of(context)?.animation;
+    return AnimatedBuilder(
+      animation: animation ?? const AlwaysStoppedAnimation(1.0),
+      child: widget.child,
+      builder: (context, image) => Listener(
+        onPointerSignal: _handlePointerSignal,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onDoubleTap: widget.zoom.toggleMode,
+          child: InteractiveViewer(
+            clipBehavior: animation != null && animation.value < 1
+                ? Clip.none
+                : Clip.hardEdge,
+            key: widget.interactiveKey,
+            transformationController: widget.zoom.transform,
+            alignment: Alignment.topLeft,
+            boundaryMargin: const EdgeInsets.all(double.infinity),
+            minScale: widget.zoom.minimumScale,
+            maxScale: widget.zoom.maximumScale,
+            scaleFactor: 180,
+            scaleEnabled: widget.wheelBehavior == ImageViewerWheelBehavior.zoom,
+            trackpadScrollCausesScale: true,
+            onInteractionStart: widget.zoom.interactionStarted,
+            child: SizedBox(
+              width: widget.zoom.viewport.width,
+              height: widget.zoom.viewport.height,
+              child: RotatedBox(
+                quarterTurns: widget.zoom.quarterTurns,
+                child: image,
+              ),
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }

@@ -1,5 +1,6 @@
 import "library_organization.dart";
 import "library_organization_batch.dart";
+import "library_similar_review.dart";
 
 enum LibraryFileAction { copy, move, rename, recycle, deletePermanently }
 
@@ -25,6 +26,62 @@ class LibraryFilesAtLocations extends LibraryFileSelection {
   final List<LibraryOrganizationTarget> locations;
 }
 
+enum LibraryCleanupKind { exact, similar }
+
+class LibraryDuplicateCleanup extends LibraryFileSelection {
+  LibraryDuplicateCleanup({
+    required this.kind,
+    required this.allGroups,
+    this.degree = LibrarySimilarityDegree.standard,
+    Iterable<LibraryCleanupGroup> groups = const [],
+  }) : groups = List.unmodifiable(groups);
+
+  final LibraryCleanupKind kind;
+  final bool allGroups;
+  final LibrarySimilarityDegree degree;
+  final List<LibraryCleanupGroup> groups;
+}
+
+sealed class LibraryCleanupGroup {
+  const LibraryCleanupGroup();
+}
+
+class LibraryExactCleanupGroup extends LibraryCleanupGroup {
+  const LibraryExactCleanupGroup(this.digest, this.byteLength);
+  final String digest;
+  final int byteLength;
+
+  @override
+  bool operator ==(Object other) =>
+      other is LibraryExactCleanupGroup &&
+      digest == other.digest &&
+      byteLength == other.byteLength;
+  @override
+  int get hashCode => Object.hash(digest, byteLength);
+}
+
+class LibrarySimilarCleanupGroup extends LibraryCleanupGroup {
+  const LibrarySimilarCleanupGroup(this.id);
+  final String id;
+
+  @override
+  bool operator ==(Object other) =>
+      other is LibrarySimilarCleanupGroup && id == other.id;
+  @override
+  int get hashCode => id.hashCode;
+}
+
+class LibraryDuplicateCleanupSummary {
+  const LibraryDuplicateCleanupSummary({
+    required this.groups,
+    required this.skippedGroups,
+    required this.keptFiles,
+  });
+  final int groups;
+  final int skippedGroups;
+  final int keptFiles;
+}
+
 class LibraryFileCommand {
   const LibraryFileCommand(
     this.action, {
@@ -43,10 +100,12 @@ class LibraryFileSelectionSummary {
     this.files,
     this.bytes, {
     this.mergedGroups,
+    this.cleanup,
   });
   final int files;
   final int bytes;
   final int? mergedGroups;
+  final LibraryDuplicateCleanupSummary? cleanup;
 }
 
 enum LibraryFileTaskPhase {

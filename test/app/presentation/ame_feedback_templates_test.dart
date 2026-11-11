@@ -69,21 +69,28 @@ void main() {
       tester,
     ) async {
       var retries = 0;
+      final working = ValueNotifier(true);
+      addTearDown(working.dispose);
       final theme = buildAmeTheme(brightness: brightness);
       await tester.pumpWidget(
         MaterialApp(
           theme: theme,
           home: Scaffold(
             body: Center(
-              child: AmeFeedbackCard(
-                title: "更新受阻",
-                message: "这个文件夹暂时无法访问，请重试。",
-                detail: "已保留现有图片",
-                severity: AmeNotificationSeverity.error,
-                actions: [
-                  AmeFeedbackAction(label: "重试", onPressed: () => retries++),
-                ],
-                progress: const LinearProgressIndicator(value: 0.5),
+              child: ValueListenableBuilder<bool>(
+                valueListenable: working,
+                builder: (context, active, child) => AmeFeedbackCard(
+                  title: "更新受阻",
+                  message: "这个文件夹暂时无法访问，请重试。",
+                  detail: "已保留现有图片",
+                  severity: AmeNotificationSeverity.error,
+                  actions: [
+                    AmeFeedbackAction(label: "重试", onPressed: () => retries++),
+                  ],
+                  progress: active
+                      ? const LinearProgressIndicator(value: 0.5)
+                      : null,
+                ),
               ),
             ),
           ),
@@ -122,6 +129,17 @@ void main() {
       );
       await tester.tap(find.text("重试"));
       expect(retries, 1);
+      final workingHeight = tester.getSize(card).height;
+      working.value = false;
+      await tester.pump();
+      expect(tester.getSize(card).height, workingHeight);
+      await tester.pump(const Duration(milliseconds: 100));
+      final retiringHeight = tester.getSize(card).height;
+      await tester.pumpAndSettle();
+      expect(
+        retiringHeight,
+        inExclusiveRange(tester.getSize(card).height, workingHeight),
+      );
       expect(tester.takeException(), isNull);
     });
 

@@ -17,6 +17,8 @@ import "library_image_reveal.dart";
 import "library_photo_context_menu.dart";
 import "library_photo_tile_actions.dart";
 import "library_preview_feedback.dart";
+import "library_viewer_launch.dart";
+import "library_viewer_card_overlays.dart";
 
 int libraryPreviewDecodeWidth(double logicalWidth, double devicePixelRatio) {
   final requestedWidth = (logicalWidth * devicePixelRatio).round().clamp(
@@ -113,76 +115,86 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
     final colorScheme = Theme.of(context).colorScheme;
     final isSelectionVisible =
         _isHovered || _isFocused || widget.isSelecting || widget.isSelected;
-    return SizedBox(
-      width: widget.width,
-      height: widget.height,
-      child: CallbackShortcuts(
-        bindings: {
-          const SingleActivator(LogicalKeyboardKey.contextMenu):
-              _openKeyboardMenu,
-          const SingleActivator(LogicalKeyboardKey.f10, shift: true):
-              _openKeyboardMenu,
-        },
-        child: Focus(
-          focusNode: _focusNode,
-          onFocusChange: (value) => setState(() => _isFocused = value),
-          child: MouseRegion(
-            onEnter: (_) => setState(() => _isHovered = true),
-            onExit: (_) => setState(() => _isHovered = false),
-            child: GestureDetector(
-              // Secondary-click handling must not compete with InkWell's primary action.
-              excludeFromSemantics: true,
-              behavior: HitTestBehavior.opaque,
-              onSecondaryTapDown: (details) {
-                final position = amePopupMenuAtGlobalPosition(
-                  context: context,
-                  globalPosition: details.globalPosition,
-                );
-                if (position != null) {
-                  unawaited(_showContextMenu(position));
-                }
-              },
-              child: Semantics(
-                label: widget.asset.relativePath,
-                selected: widget.isSelected,
-                button: true,
-                child: Material(
-                  color: colorScheme.surfaceContainerHighest,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    side: widget.isSelected
-                        ? BorderSide(color: colorScheme.primary, width: 3)
-                        : BorderSide.none,
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () =>
-                        widget.onOpen(_controller.resolvePreview(widget.asset)),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        _buildPreview(context),
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: LibraryConflictLabel(
-                            locationId: widget.asset.locationId,
+    return LibraryViewerLaunch(
+      locationId: widget.asset.locationId,
+      onOpen: () => widget.onOpen(_controller.resolvePreview(widget.asset)),
+      builder: (context, thumbnailKey, open) => SizedBox(
+        width: widget.width,
+        height: widget.height,
+        child: CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.contextMenu):
+                _openKeyboardMenu,
+            const SingleActivator(LogicalKeyboardKey.f10, shift: true):
+                _openKeyboardMenu,
+          },
+          child: Focus(
+            focusNode: _focusNode,
+            onFocusChange: (value) => setState(() => _isFocused = value),
+            child: MouseRegion(
+              onEnter: (_) => setState(() => _isHovered = true),
+              onExit: (_) => setState(() => _isHovered = false),
+              child: GestureDetector(
+                // Secondary-click handling must not compete with InkWell's primary action.
+                excludeFromSemantics: true,
+                behavior: HitTestBehavior.opaque,
+                onSecondaryTapDown: (details) {
+                  final position = amePopupMenuAtGlobalPosition(
+                    context: context,
+                    globalPosition: details.globalPosition,
+                  );
+                  if (position != null) {
+                    unawaited(_showContextMenu(position));
+                  }
+                },
+                child: Semantics(
+                  label: widget.asset.relativePath,
+                  selected: widget.isSelected,
+                  button: true,
+                  child: Material(
+                    color: colorScheme.surfaceContainerHighest,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      side: widget.isSelected
+                          ? BorderSide(color: colorScheme.primary, width: 3)
+                          : BorderSide.none,
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: open,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          KeyedSubtree(
+                            key: thumbnailKey,
+                            child: _buildPreview(context),
                           ),
-                        ),
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          child: LibraryPhotoTileActions(
-                            locationId: widget.asset.locationId,
-                            isSelectionVisible: isSelectionVisible,
-                            isSelected: widget.isSelected,
-                            onToggleSelection: () =>
-                                widget.onToggleSelection(widget.asset),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: LibraryViewerCardOverlays(
+                              child: LibraryConflictLabel(
+                                locationId: widget.asset.locationId,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            child: LibraryViewerCardOverlays(
+                              child: LibraryPhotoTileActions(
+                                locationId: widget.asset.locationId,
+                                isSelectionVisible: isSelectionVisible,
+                                isSelected: widget.isSelected,
+                                onToggleSelection: () =>
+                                    widget.onToggleSelection(widget.asset),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

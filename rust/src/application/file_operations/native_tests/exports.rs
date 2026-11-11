@@ -297,7 +297,7 @@ fn report_path(progress: FileOperationTaskProgress) -> String {
     }
 }
 
-fn finish(task: FileOperationTask) -> FileOperationTaskProgress {
+pub(super) fn finish(task: FileOperationTask) -> FileOperationTaskProgress {
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
     loop {
         let progress = task.snapshot();

@@ -13,7 +13,6 @@ abstract final class LibraryFilterStrings {
   static const dateHint = "年-月-日";
   static const file = "文件属性";
   static const fileFormat = "文件格式";
-  static const otherFormat = "其他格式";
   static const any = "不限";
   static const custom = "自定义";
   static const fileSize = "文件大小";
@@ -21,8 +20,6 @@ abstract final class LibraryFilterStrings {
   static const height = "高度";
   static const minimum = "最小值";
   static const maximum = "最大值";
-  static const extension = "扩展名";
-  static const extensionHint = "例如 tif、bmp，用逗号分隔";
   static const minimumBytes = "最小文件大小";
   static const maximumBytes = "最大文件大小";
   static const unit = "单位";

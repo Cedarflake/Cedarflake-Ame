@@ -9,6 +9,7 @@ import "../../domain/library_similar_review.dart";
 import "../coordination/library_duplicate_workspace.dart";
 import "../library_duplicate_strings.dart";
 import "library_duplicate_review_cards.dart";
+import "library_duplicate_group_thumbnail.dart";
 import "library_duplicate_review_grid.dart";
 import "library_gallery_message.dart";
 import "library_similar_review_cards.dart";
@@ -65,6 +66,7 @@ class LibraryDuplicateResults extends StatelessWidget {
           return switch (entry) {
             LibraryExactGroupEntry(:final group) => LibraryDuplicateGroupCard(
               entry: group,
+              thumbnail: _groupThumbnail(entry),
               kindLabel: workspace.view == LibraryDuplicateView.ignored
                   ? LibraryDuplicateStrings.pendingGroups
                   : null,
@@ -73,6 +75,7 @@ class LibraryDuplicateResults extends StatelessWidget {
             LibrarySimilarGroupEntry(:final group) => LibrarySimilarGroupCard(
               key: ValueKey("similar-group-${group.id}"),
               group: group,
+              thumbnail: _groupThumbnail(entry),
               onOpen: () => unawaited(workspace.openGroup(entry)),
             ),
             null => const Card(margin: EdgeInsets.zero),
@@ -129,4 +132,14 @@ class LibraryDuplicateResults extends StatelessWidget {
         ? (_) => workspace.toggleComparison(asset)
         : null,
   );
+
+  Widget? _groupThumbnail(LibraryReviewGroupEntry entry) {
+    if (workspace.view == LibraryDuplicateView.ignored) return null;
+    return LibraryDuplicateGroupThumbnail(
+      key: ValueKey(entry.cleanupKey),
+      asset: entry.representative,
+      selected: workspace.cleanupSelection.contains(entry.cleanupKey),
+      onPressed: () => workspace.cleanupSelection.toggle(entry.cleanupKey),
+    );
+  }
 }

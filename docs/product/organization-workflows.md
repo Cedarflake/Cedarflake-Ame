@@ -173,6 +173,15 @@ Scope:
 - deletion inside a group or a single-file viewer affects only explicitly selected files. Preferred
   files can be deleted; remaining duplicates receive a new preferred file, and an empty group retires.
   Grouping does not expand copy, move or rename authorization;
+- duplicate cleanup is a separate action available inside a group, across the current group list,
+  and for thumbnail-selected group cards. The thumbnail flips into a checkmark when selected;
+  clicking it again cancels selection. Entering a group and returning to its list preserves the
+  selected groups; changing group kind or similarity degree clears them.
+  Exact cleanup retains the explicitly preferred file;
+  similar cleanup retains every physical copy of selected content at the current similarity degree.
+  Without a manual choice, retain the currently displayed automatic representative instead, including
+  all of its physical copies for similar cleanup. Exclude ignored groups. Freeze physical targets
+  for confirmation, reject changed keep choices, and verify retained files before starting deletion;
 - completed file actions with published results exit their original gallery selection and restore
   the collection heading/count. Cancellation or no successful result retains selection; a later
   user selection is not cleared by the earlier action;

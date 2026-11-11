@@ -2,6 +2,8 @@ import "dart:math" as math;
 
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
+
 class LibraryLoadingIndicator extends StatelessWidget {
   const LibraryLoadingIndicator({
     this.maximumDimension = 32,
@@ -37,7 +39,7 @@ class LibraryLoadingIndicator extends StatelessWidget {
         return Center(
           child: SizedBox.square(
             dimension: dimension,
-            child: CircularProgressIndicator(strokeWidth: strokeWidth),
+            child: AmeCircularProgress(strokeWidth: strokeWidth),
           ),
         );
       },

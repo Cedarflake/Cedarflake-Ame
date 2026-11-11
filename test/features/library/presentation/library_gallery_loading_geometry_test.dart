@@ -17,74 +17,80 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final controller = _LoadingFeedbackController();
-    final container = ProviderContainer(
-      overrides: applicationTestOverrides([
-        initialLibraryStateProvider.overrideWithValue(_populatedState()),
-        libraryControllerProvider.overrideWith(() => controller),
-      ]),
-    );
-    addTearDown(container.dispose);
-    await tester.pumpWidget(
-      UncontrolledProviderScope(container: container, child: const AmeApp()),
-    );
-    await tester.pump();
-    await tester.pump();
-
-    final wall = find.byKey(const Key("library-photo-wall"));
-    final scrollable = find.descendant(
-      of: wall,
-      matching: find.byType(Scrollable),
-    );
-    final position = tester.state<ScrollableState>(scrollable).position;
-    expect(position.maxScrollExtent, greaterThan(0));
-    position.jumpTo(position.maxScrollExtent / 2);
-    await tester.pump();
-    await tester.pump();
-    final idleBounds = tester.getRect(wall);
-    final idleOffset = position.pixels;
-    final idleExtent = position.viewportDimension;
-    final visibleTile = tester
-        .widgetList<LibraryPhotoTile>(find.byType(LibraryPhotoTile))
-        .firstWhere((tile) {
-          final bounds = tester.getRect(find.byWidget(tile));
-          return idleBounds.contains(bounds.center);
-        });
-    final tile = find.byKey(ValueKey(visibleTile.asset.locationId));
-    final idleTileBounds = tester.getRect(tile);
-    final loadingBar = find.byKey(const Key("library-top-loading"));
-
-    for (final activity in _LoadingActivity.values) {
-      controller.showLoading(activity);
+    final semantics = tester.ensureSemantics();
+    try {
+      final controller = _LoadingFeedbackController();
+      final container = ProviderContainer(
+        overrides: applicationTestOverrides([
+          initialLibraryStateProvider.overrideWithValue(_populatedState()),
+          libraryControllerProvider.overrideWith(() => controller),
+        ]),
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: const AmeApp()),
+      );
       await tester.pump();
-      if (activity == _LoadingActivity.query) {
-        expect(loadingBar, findsNothing);
+      await tester.pump();
+
+      final wall = find.byKey(const Key("library-photo-wall"));
+      final scrollable = find.descendant(
+        of: wall,
+        matching: find.byType(Scrollable),
+      );
+      final position = tester.state<ScrollableState>(scrollable).position;
+      expect(position.maxScrollExtent, greaterThan(0));
+      position.jumpTo(position.maxScrollExtent / 2);
+      await tester.pump();
+      await tester.pump();
+      final idleBounds = tester.getRect(wall);
+      final idleOffset = position.pixels;
+      final idleExtent = position.viewportDimension;
+      final visibleTile = tester
+          .widgetList<LibraryPhotoTile>(find.byType(LibraryPhotoTile))
+          .firstWhere((tile) {
+            final bounds = tester.getRect(find.byWidget(tile));
+            return idleBounds.contains(bounds.center);
+          });
+      final tile = find.byKey(ValueKey(visibleTile.asset.locationId));
+      final idleTileBounds = tester.getRect(tile);
+      final loadingBar = find.byKey(const Key("library-top-loading"));
+
+      for (final activity in _LoadingActivity.values) {
+        controller.showLoading(activity);
+        await tester.pump();
+        expect(find.semantics.byLabel(RegExp("正在加载图片")), findsNothing);
         await tester.pump(const Duration(milliseconds: 250));
-      }
-      expect(loadingBar, findsOneWidget);
-      expect(tester.getRect(wall), idleBounds, reason: activity.name);
-      expect(position.viewportDimension, idleExtent, reason: activity.name);
-      expect(position.pixels, idleOffset, reason: activity.name);
-      expect(tester.getRect(tile), idleTileBounds, reason: activity.name);
-      expect(
-        tester.widget<LinearProgressIndicator>(loadingBar).semanticsLabel,
-        "正在加载图片",
-      );
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(loadingBar, findsOneWidget);
+        expect(tester.getRect(wall), idleBounds, reason: activity.name);
+        expect(position.viewportDimension, idleExtent, reason: activity.name);
+        expect(position.pixels, idleOffset, reason: activity.name);
+        expect(tester.getRect(tile), idleTileBounds, reason: activity.name);
+        expect(
+          find.semantics.byLabel(RegExp("正在加载图片")),
+          findsOne,
+          reason: activity.name,
+        );
 
-      controller.showLoading(null);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(loadingBar, findsNothing);
-      expect(
-        tester.state<ScrollableState>(scrollable).position,
-        same(position),
-      );
-      expect(tester.getRect(wall), idleBounds, reason: activity.name);
-      expect(position.viewportDimension, idleExtent, reason: activity.name);
-      expect(position.pixels, idleOffset, reason: activity.name);
-      expect(tester.getRect(tile), idleTileBounds, reason: activity.name);
+        controller.showLoading(null);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+        expect(find.semantics.byLabel(RegExp("正在加载图片")), findsNothing);
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(
+          tester.state<ScrollableState>(scrollable).position,
+          same(position),
+        );
+        expect(tester.getRect(wall), idleBounds, reason: activity.name);
+        expect(position.viewportDimension, idleExtent, reason: activity.name);
+        expect(position.pixels, idleOffset, reason: activity.name);
+        expect(tester.getRect(tile), idleTileBounds, reason: activity.name);
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+    } finally {
+      semantics.dispose();
     }
-    await tester.pumpWidget(const SizedBox.shrink());
   });
 }
 
@@ -97,6 +103,14 @@ enum _LoadingActivity {
 }
 
 class _LoadingFeedbackController extends LibraryController {
+  @override
+  void ensureVisibleRange({
+    required int startItemOffset,
+    required int endItemOffsetExclusive,
+  }) {
+    // This fixture owns each loading interval until showLoading completes it.
+  }
+
   void showLoading(_LoadingActivity? activity) {
     state = state.copyWith(
       queryActivity: activity == _LoadingActivity.query

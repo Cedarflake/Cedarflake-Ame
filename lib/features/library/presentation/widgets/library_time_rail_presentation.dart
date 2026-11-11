@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "annotated_time_rail.dart";
@@ -56,7 +57,11 @@ class LibraryTimeRailPresentation extends StatefulWidget {
 class _LibraryTimeRailPresentationState
     extends State<LibraryTimeRailPresentation> {
   LibraryTimeRailFrame? _retainedFrame;
-  ({LibraryTimelineProjection paint, LibraryTimelineProjection input})?
+  ({
+    LibraryTimelineProjection paint,
+    LibraryTimelineProjection input,
+    double value,
+  })?
   _gesture;
 
   @override
@@ -119,16 +124,13 @@ class _LibraryTimeRailPresentationState
   @override
   Widget build(BuildContext context) {
     final retained = _retainedFrame;
-    final gestureProjection = _gesture?.paint;
-    final frame = retained == null || gestureProjection == null
+    final gesture = _gesture;
+    final frame = gesture == null
         ? retained
         : LibraryTimeRailFrame(
-            projection: gestureProjection,
-            value: gestureProjection.valueFromProjection(
-              retained.projection,
-              retained.value,
-            ),
-            origin: retained.origin,
+            projection: gesture.paint,
+            value: gesture.value,
+            origin: LibraryTimeRailPositionOrigin.interaction,
           );
     if (frame == null) {
       return SizedBox(
@@ -137,7 +139,7 @@ class _LibraryTimeRailPresentationState
             ? const Center(
                 child: SizedBox.square(
                   dimension: 24,
-                  child: CircularProgressIndicator(strokeWidth: 3),
+                  child: AmeCircularProgress(strokeWidth: 3),
                 ),
               )
             : null,
@@ -148,8 +150,8 @@ class _LibraryTimeRailPresentationState
         currentNavigation != null && _ownsInput(currentNavigation)
         ? currentNavigation
         : null;
-    // Keep Material's pointer and painted date scale for the gesture. Every
-    // callback resolves that date through the current query projection.
+    // Keep pointer paint in the gesture's scale; a layout round-trip can snap it
+    // to a different row. Navigation still resolves through the current query.
     return AnnotatedTimeRail(
       interactionKey: ValueKey((
         widget.timeline?.queryId,
@@ -166,7 +168,11 @@ class _LibraryTimeRailPresentationState
           ? (value) {
               if (_ownsInput(navigation)) {
                 setState(
-                  () => _gesture = (paint: frame.projection, input: navigation),
+                  () => _gesture = (
+                    paint: frame.projection,
+                    input: navigation,
+                    value: value,
+                  ),
                 );
                 widget.onChangeStart(
                   navigation.valueFromProjection(frame.projection, value),
@@ -177,6 +183,15 @@ class _LibraryTimeRailPresentationState
       onChanged: navigation != null && widget.onChanged != null
           ? (value) {
               if (_ownsInput(navigation)) {
+                if (_gesture case final gesture?) {
+                  setState(
+                    () => _gesture = (
+                      paint: gesture.paint,
+                      input: gesture.input,
+                      value: value,
+                    ),
+                  );
+                }
                 widget.onChanged?.call(
                   navigation.valueFromProjection(frame.projection, value),
                 );

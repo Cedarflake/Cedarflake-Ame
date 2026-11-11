@@ -13,6 +13,7 @@ class LibraryGalleryVisiblePosition {
     required this.globalItemIndex,
     required this.itemFraction,
     required this.viewportFraction,
+    this.scrollEdge,
   });
 
   final String queryId;
@@ -23,6 +24,21 @@ class LibraryGalleryVisiblePosition {
   final int globalItemIndex;
   final double itemFraction;
   final double viewportFraction;
+  final LibraryGalleryScrollEdge? scrollEdge;
+
+  LibraryGalleryVisiblePosition withScrollEdge(
+    LibraryGalleryScrollEdge? edge,
+  ) => LibraryGalleryVisiblePosition(
+    queryId: queryId,
+    revision: revision,
+    monthKey: monthKey,
+    locationId: locationId,
+    assetId: assetId,
+    globalItemIndex: globalItemIndex,
+    itemFraction: itemFraction,
+    viewportFraction: viewportFraction,
+    scrollEdge: edge,
+  );
 }
 
 LibraryGalleryVisiblePosition? rebaseLibraryGalleryPosition(
@@ -52,6 +68,7 @@ LibraryGalleryVisiblePosition? rebaseLibraryGalleryPosition(
     globalItemIndex: index,
     itemFraction: position.itemFraction,
     viewportFraction: position.viewportFraction,
+    scrollEdge: position.scrollEdge,
   );
 }
 

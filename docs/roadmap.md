@@ -64,6 +64,35 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
+### Duplicate cleanup entry points
+
+The [R8 follow-up](plans/r8-file-organization.md#duplicate-cleanup-entry-points) is active on
+`codex/duplicate-cleanup`, based on the completed motion branch. It connects group cleanup,
+all-group cleanup and thumbnail-selected group cleanup to the existing confirmed file workflow.
+Group thumbnails and sidebar selection share a bounded flip transition. Implementation and desktop
+verification are delivered in `e6b5c455`; its full hosted checks passed. Selected groups survive
+entering and returning from a group; an empty selection returns to ordinary browsing.
+The R8 merge remains integrated; this addition and its inherited motion changes remain unmerged.
+
+The held-marker loading displacement is repaired with
+[focused and desktop evidence](acceptance/material-motion.md#held-timeline-marker--2026-11-11).
+The card-to-viewer position/size transition is implemented and verified in the isolated Windows
+client; its [evidence](acceptance/material-motion.md#card-to-viewer-motion--2026-11-11) includes
+opaque image return and adjacent-image navigation. Keep these repairs separately reviewable from cleanup.
+The application-wide loading audit now shares delayed visibility and stable progress geometry;
+the [evidence](acceptance/material-motion.md#loading-feedback--2026-11-11) records affected surfaces
+and checks. Final combined-head hosted verification remains before this branch's delivery closeout.
+
+### Material motion adoption
+
+The [motion plan](plans/material-motion.md) M1–M4 is complete on `codex/material-motion`, including
+M3a folder-child disclosure and M3b duplicate-display transitions. The branch remains unmerged.
+The [delivery record](acceptance/material-motion.md#branch-delivery--2026-11-11) retains package
+admission, desktop interaction, source review and final hosted verification. R8 was integrated
+separately; this motion branch has no merge authorization.
+
+### Existing delivery records
+
 Release artifact reuse is implemented in [PR 56](https://github.com/Cedarflake/Cedarflake-Ame/pull/56).
 The [plan](plans/release-artifact-reuse.md) retains its scope; the
 [evidence](acceptance/unsigned-windows-release.md#release-artifact-continuation--2026-11-09)

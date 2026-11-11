@@ -39,24 +39,12 @@ class _LibraryMetadataFilterSheetState
   late final _initial = LibraryMetadataFilterDraft.fromFilter(widget.filter);
   late final _fields = {
     for (final field in LibraryFilterField.values)
-      field: TextEditingController(
-        text: field == LibraryFilterField.extension
-            ? widget.filter.extensions
-                  .where(
-                    (value) =>
-                        !LibraryFilterFormatChoices.formats.contains(value),
-                  )
-                  .join(", ")
-            : _initial.values[field],
-      ),
+      if (field != LibraryFilterField.extension)
+        field: TextEditingController(text: _initial.values[field]),
   };
-  late final _formats = widget.filter.extensions
-      .where(LibraryFilterFormatChoices.formats.contains)
-      .toSet();
+  late final _formats = widget.filter.extensions.toSet();
   late var _sizeUnit = _initial.sizeUnit;
   late var _dateField = _initial.dateField;
-  late var _showCustomFormats =
-      _fields[LibraryFilterField.extension]!.text.isNotEmpty;
   Map<LibraryFilterField, String> _errors = {};
 
   @override
@@ -73,10 +61,7 @@ class _LibraryMetadataFilterSheetState
     final result = LibraryMetadataFilterDraft(
       values: {
         for (final entry in _fields.entries) entry.key: entry.value.text,
-        LibraryFilterField.extension: [
-          ..._formats,
-          _fields[LibraryFilterField.extension]!.text,
-        ].join(","),
+        LibraryFilterField.extension: _formats.join(","),
       },
       sizeUnit: _sizeUnit,
       dateField: _dateField,
@@ -85,12 +70,7 @@ class _LibraryMetadataFilterSheetState
       Navigator.of(context).pop(filter);
       return;
     }
-    setState(() {
-      _errors = result.errors;
-      if (_errors.containsKey(LibraryFilterField.extension)) {
-        _showCustomFormats = true;
-      }
-    });
+    setState(() => _errors = result.errors);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final invalid = _form.currentState?.validateGranularly();
@@ -184,18 +164,6 @@ class _LibraryMetadataFilterSheetState
                                 }
                                 _errors = {};
                               }),
-                              customController:
-                                  _fields[LibraryFilterField.extension]!,
-                              showCustom: _showCustomFormats,
-                              onShowCustomChanged: (value) => setState(() {
-                                _showCustomFormats = value;
-                                if (!value) {
-                                  _fields[LibraryFilterField.extension]!
-                                      .clear();
-                                }
-                                _errors = {};
-                              }),
-                              error: _errors[LibraryFilterField.extension],
                             ),
                           ),
                           const SizedBox(height: 20),

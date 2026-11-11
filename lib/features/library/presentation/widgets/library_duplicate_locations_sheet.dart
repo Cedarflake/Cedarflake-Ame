@@ -4,6 +4,7 @@ import "dart:math" as math;
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_duplicate_review_window.dart";
@@ -132,9 +133,13 @@ class _LibraryDuplicateLocationsSheetState
             ),
             SizedBox(
               height: 2,
-              child: _locations.loading
-                  ? const LinearProgressIndicator(minHeight: 2)
-                  : const Divider(height: 2),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  const Divider(height: 2),
+                  AmeLinearProgress(active: _locations.loading, minHeight: 2),
+                ],
+              ),
             ),
             if (_locations.failed)
               Padding(

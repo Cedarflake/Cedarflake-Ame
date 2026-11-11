@@ -2,8 +2,8 @@ use crate::application::file_operations::{FileOperationSelectionSession, FileOpe
 use crate::domain::ScanError;
 use crate::domain::file_operation_journal::FileOperationRecord;
 use crate::domain::file_operation_selection::{
-    FileOperationCommand, FileOperationPreparationProgress, FileOperationSelectionScope,
-    FileOperationSelectionSummary,
+    DuplicateCleanupGroup, FileOperationCommand, FileOperationPreparationProgress,
+    FileOperationSelectionScope, FileOperationSelectionSummary,
 };
 use crate::domain::file_operation_task::FileOperationTaskProgress;
 use crate::domain::organization::OrganizationSelection;
@@ -60,6 +60,9 @@ pub fn recover_file_operations(
 }
 
 impl FileSelectionDraft {
+    pub fn append_groups(&self, groups: Vec<DuplicateCleanupGroup>) -> Result<(), ScanError> {
+        self.inner.append_groups(groups)
+    }
     pub fn append_ids(&self, asset_ids: Vec<String>) -> Result<(), ScanError> {
         self.inner.append_ids(asset_ids)
     }

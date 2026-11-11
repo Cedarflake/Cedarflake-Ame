@@ -101,7 +101,7 @@ when changing either path.
 
 ## Standalone Material library
 
-Pin the official `material_ui` package to 1.10.0; the dependency lock also records its required
+Pin the official `material_ui` package to 1.11.0; the dependency lock also records its required
 `cupertino_ui` 1.1.6 dependency. Both retain Flutter's BSD-3-Clause license. Material components,
 themes and translated delegates come from `package:material_ui/material_ui.dart`; framework
 foundation, widgets, rendering and input primitives remain in the Flutter SDK. New UI libraries
@@ -125,6 +125,47 @@ Freezed syntax and is a separate generator/toolchain change. Migration uses the 
 updates. Rollback restores imports, delegates and the dependency lock together; Rust contracts,
 catalogs and original media are unchanged. The [migration evidence](../acceptance/material-ui-migration.md)
 owns actual compatibility and desktop results.
+
+### State motion
+
+Use the admitted package's Standard `Springs` with Flutter's `SpringSimulation` and bounded
+`AnimationController`. `AmeMotion` selects only the spatial/effects roles used by current consumers,
+retains the controller's displayed value and velocity on reversal, and snaps settled simulations to
+their exact endpoint. Opening and closing retain the framework's completed/dismissed lifecycle.
+`AmeStateTransition` handles decorative binary state and reads current reduced-motion/TickerMode
+settings; feature controllers retain surface lifetime, input retirement and layout ownership.
+
+Folder icons crossfade; expansion arrows rotate through the shared presentation components.
+`AmeFlipTransition` owns decorative front/back switching for group thumbnails and sidebar selection.
+It follows the draw-only Y-axis rotation in the
+[Compose graphics API](https://developer.android.com/develop/ui/compose/graphics/draw/modifiers#rotation)
+and the edge-on face exchange in Android's
+[card-flip example](https://developer.android.com/develop/ui/views/animations/reveal-or-hide-view#CreateFlip).
+The pinned `IconButton` swaps selected content immediately, and `AnimatedSwitcher` defaults to fading;
+neither supplies this flip. Compose the existing state driver with Flutter `Transform` and
+`IndexedStack`, retaining both faces and stable layout. Material buttons own input, selection and
+semantics outside the decorative transform. This adds no dependency or copied Android implementation.
+Review controls use separate spatial and effects progress so opacity cannot inherit a spatial
+overshoot. Existing Material controls, themes and desktop overlay ownership remain in place.
+Future official component integration replaces the corresponding driver or removes the adapter,
+without moving feature state or introducing another motion engine. The
+[motion evidence](../acceptance/material-motion.md) records admitted consumers and verification.
+
+`LibraryViewerLaunch` captures one activated thumbnail's bounds and identity. The shared viewer
+surface/route passes that origin with its existing animation to `LibraryViewerImageFlight`.
+Flutter's `Hero` requires a Navigator route pair; Ame's gallery viewer is an in-place surface that
+retains gallery geometry and owns immediate source retirement. Replacing that lifecycle solely for
+motion would broaden navigation behavior. A small `RenderProxyBox` therefore composes framework
+clip and transform painting around the current image. It interpolates the crop and uniformly scales
+pixels without changing layout, decoding another image or moving controls. The installed SDK
+provides these public rendering primitives and `HeroController` remains a `NavigatorObserver`.
+The surface registry holds geometry suppliers for mounted lazy thumbnails, never pixels or catalog
+rows. Return geometry resolves the current image to a mounted, visible thumbnail, including after
+adjacent navigation; a missing/stale anchor uses the fade. Disposal removes that supplier immediately.
+`LibraryViewerChrome` fades backgrounds and controls separately so the travelling image remains
+opaque. The interaction clip opens only during transition painting and resumes for ordinary zoom.
+This presentation-only adapter can be replaced by an official in-place shared-element component
+without changing source, zoom, navigation or application contracts.
 
 ## Validation gates
 
@@ -194,7 +235,7 @@ without measured failure evidence.
 - <https://docs.flutter.dev/perf/impeller#windows>
 - <https://docs.flutter.dev/cookbook/design/themes>
 - <https://docs.flutter.dev/release/breaking-changes/material-ui-and-cupertino-ui>
-- <https://pub.dev/packages/material_ui/versions/1.10.0>
+- <https://pub.dev/packages/material_ui/versions/1.11.0>
 - <https://api.flutter.dev/flutter/widgets/SliverGrid-class.html>
 - <https://github.com/fzyzcjy/flutter_rust_bridge>
 - <https://github.com/material-components/material-web>

@@ -381,15 +381,23 @@ void main() {
     final bounds = controls.map(tester.getRect).toList();
     await tester.tap(find.byKey(const Key("library-selection-album")));
     await tester.pump();
-    expect(find.byKey(const Key("library-selection-progress")), findsNothing);
+    final progress = find.byKey(const Key("library-selection-progress"));
+    final fade = find.descendant(
+      of: progress,
+      matching: find.byType(FadeTransition),
+    );
+    expect(tester.widget<FadeTransition>(fade).opacity.value, 0);
     await tester.pump(const Duration(milliseconds: 499));
-    expect(find.byKey(const Key("library-selection-progress")), findsNothing);
+    expect(tester.widget<FadeTransition>(fade).opacity.value, 0);
     await tester.pump(const Duration(milliseconds: 1));
     expect(controls.map(tester.getRect).toList(), bounds);
     expect(
       tester
           .widget<LinearProgressIndicator>(
-            find.byKey(const Key("library-selection-progress")),
+            find.descendant(
+              of: progress,
+              matching: find.byType(LinearProgressIndicator),
+            ),
           )
           .semanticsLabel,
       "正在准备（0/3）",
@@ -422,7 +430,11 @@ void main() {
     await tester.tap(find.byKey(const Key("library-selection-album")));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.byKey(const Key("library-selection-progress")), findsNothing);
+    final fade = find.descendant(
+      of: find.byKey(const Key("library-selection-progress")),
+      matching: find.byType(FadeTransition),
+    );
+    expect(tester.widget<FadeTransition>(fade).opacity.value, 0);
     batch.preparing!.complete(batch.summary);
     await tester.pumpAndSettle();
     await tester.pump(const Duration(milliseconds: 600));

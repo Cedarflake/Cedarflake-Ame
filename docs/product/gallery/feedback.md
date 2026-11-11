@@ -26,6 +26,20 @@ Bottom notifications and import feedback share one Material surface contract for
 corner radius, elevation, and placement. The same event must not produce competing gray and white
 notification surfaces.
 
+### Loading visibility and geometry
+
+`AmeProgressVisibility` owns the visual delay for Material loading indicators. A request completed
+within 250 ms shows its result without displaying progress; longer work fades the indicator in.
+The existing 500-ms selection-preparation threshold remains. Admission, cancellation, completion
+and recovery actions never wait for this visual delay. Active phase/progress changes do not restart
+the interval, and a short interruption reverses an existing fade instead of flashing a new indicator.
+
+Keep the indicator's slot stable in galleries, search controls, settings rows and history lists.
+Filmstrip paging retains its existing edge placeholder. Task-card progress slots collapse smoothly
+when the terminal result replaces progress. Hidden indicators stop ticking and expose no stale
+loading semantics; reduced motion skips the fade while retaining the quiet interval. Storage-usage
+gauges describe measured capacity and are not delayed as loading feedback.
+
 ### Feedback templates
 
 New feedback must use the template for its surface. Feature code supplies wording, severity,

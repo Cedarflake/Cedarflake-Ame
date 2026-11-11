@@ -35,7 +35,12 @@ Library and Albums use one section-heading component below their Library and Fav
 The heading's trailing plus imports a root or creates an album. Flutter 3.47.8's
 `ReorderableListView.builder`, `ReorderableDragStartListener` and `onReorderItem` provide lazy rows,
 drag geometry, scrolling and reorder semantics. Only the imported root row starts a folder drag;
-its expanded descendants remain ordinary navigation. The presentation order owner serializes saves,
+its expanded descendants remain ordinary navigation. `LibraryFolderReorderItem` collapses the branch
+when the framework recognizer accepts a drag, then hands the drag to the list after the next layout.
+This prevents the expanded subtree from becoming an oversized drag target. A pointer released or
+canceled during that handoff retires it; dropping leaves the branch collapsed. The reorder list's
+local `Overlay.wrap` owns proxy coordinates and clipping within the sidebar, below route-only
+captured themes. The presentation order owner serializes saves,
 retains current item identities through metadata updates, appends new items and restores the prior
 order on failure through the shared feedback surface. It does not reorder gallery images or mutate
 physical folders.
@@ -104,7 +109,8 @@ The shell retains both sidebars and one gallery subtree through the existing vis
 owners; the unselected Albums destination uses the shared empty-state component. No additional
 gallery controller, database, package or navigation primitive is introduced.
 
-Compose its 180-millisecond transition from the pinned SDK's `AnimationController`, `AnimatedBuilder`,
+Compose its bounded spatial transition through the shared official Material motion driver and the
+pinned SDK's `AnimationController`, `AnimatedBuilder`,
 `ClipRect`/`ClipRRect` and `OverflowBox`. The gallery transition clips its backing surface to the
 same rounded boundary as `LibraryMainSurface`. The sidebar boundary and gallery's left clip move
 together; the destination-width gallery remains right-aligned inside that clip. Left alignment
@@ -132,9 +138,21 @@ rectangles for sidebar and window-size changes. The installed SDK's AnimatedBuil
 OverflowBox retain the existing scroll, input and semantic primitives; AnimatedSize alone cannot
 carry an item across lazy rows, and a whole-wall scale would distort icons and rounded corners.
 Resize each tile with interpolated constraints rather than scaling its rendered contents. Retarget
-from the displayed rectangle, retire item records on unmount, and clear motion on query changes,
-direct scrolling or reduced motion. The existing geometry owner supplies its pending scroll
+from the displayed rectangle and retire item records on unmount. Duplicate-display switches and
+same-scope background duplicate publication may reuse that bounded reflow; unrelated queries,
+direct scrolling and reduced motion retire it. The existing geometry owner supplies its pending scroll
 correction so the first animated frame accounts for the sliver's later layout correction.
+Departing duplicate cards retain only painted pixels, never live providers, focus or actions.
+The exit owner captures at most 64 visible cards and four million pixels, limits each image's
+longest edge to 512 pixels, and releases them after the effects spring or interruption. Its narrow
+`RenderRepaintBoundary` subclass only checks for an existing paint layer before the installed SDK's
+`toImageSync`; Flutter continues to own rendering. Repeated publications coalesce these visuals.
+Chronological duplicate publication keeps the current date vicinity when its browsed copy disappears
+and the representative belongs to a different date. The presentation position owner uses the coherent
+compact manifests, without catalog policy changes or extra source reads. Existing positions and
+explicit viewer identity retain their normal resolution. Capture a scroll edge with its browse
+position, so temporary filter clamping cannot replace the saved browsing intent. The time rail
+continues to derive its position from the actual gallery viewport.
 Viewport anchors capture start/end position from the published layout's scroll range as well as
 the image fraction. Resizing or sidebar toggling retains that edge; an intervening user scroll
 recaptures the current position through the existing pending-reflow owner.

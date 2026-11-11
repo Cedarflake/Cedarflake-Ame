@@ -5,8 +5,8 @@ use std::sync::{
 
 use crate::domain::ScanError;
 use crate::domain::file_operation_selection::{
-    FileOperationCommand, FileOperationPreparationProgress, FileOperationSelectionScope,
-    FileOperationSelectionSummary,
+    DuplicateCleanupGroup, FileOperationCommand, FileOperationPreparationProgress,
+    FileOperationSelectionScope, FileOperationSelectionSummary,
 };
 use crate::domain::file_operation_task::{
     FileOperationTaskKind, FileOperationTaskRequest, FileOperationTaskTarget,
@@ -18,6 +18,7 @@ use super::{FileOperationTask, production};
 
 mod authorization;
 mod candidate;
+mod retained;
 
 static OPEN_SELECTIONS: AtomicUsize = AtomicUsize::new(0);
 
@@ -120,6 +121,13 @@ impl FileOperationSelectionSession {
                 .total_files = summary.file_count;
             Ok(summary)
         })
+    }
+
+    pub(crate) fn append_groups(
+        &self,
+        groups: Vec<DuplicateCleanupGroup>,
+    ) -> Result<(), ScanError> {
+        self.with_selection(|selected| selected.repository.append_groups(&groups))
     }
 
     pub(crate) fn execute(

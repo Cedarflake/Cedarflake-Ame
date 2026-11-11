@@ -1,8 +1,8 @@
 import "package:material_ui/material_ui.dart";
-import "package:material_symbols_icons/symbols.dart";
 
 import "ame_menu.dart";
 import "ame_menu_choice.dart";
+import "ame_transition_icon.dart";
 import "ame_typography.dart";
 
 @immutable
@@ -111,13 +111,8 @@ class _AmeChoiceState<T> extends State<AmeChoice<T>> {
       builder: (context, openMenu) {
         if (widget._isMenu) {
           return TextButton.icon(
-            key: ValueKey(widget.value),
             onPressed: widget.enabled ? openMenu : null,
-            icon: Icon(
-              _isMenuOpen
-                  ? Symbols.arrow_drop_up_rounded
-                  : Symbols.arrow_drop_down_rounded,
-            ),
+            icon: AmeExpansionIcon(expanded: _isMenuOpen),
             iconAlignment: IconAlignment.end,
             label: Text(
               selectedLabel,
@@ -132,7 +127,6 @@ class _AmeChoiceState<T> extends State<AmeChoice<T>> {
             SizedBox(
               height: _height,
               child: OutlinedButton(
-                key: ValueKey(widget.value),
                 onPressed: widget.enabled ? openMenu : null,
                 style: OutlinedButton.styleFrom(
                   alignment: AlignmentDirectional.centerStart,
@@ -152,11 +146,7 @@ class _AmeChoiceState<T> extends State<AmeChoice<T>> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Icon(
-                      _isMenuOpen
-                          ? Symbols.arrow_drop_up_rounded
-                          : Symbols.arrow_drop_down_rounded,
-                    ),
+                    AmeExpansionIcon(expanded: _isMenuOpen),
                   ],
                 ),
               ),

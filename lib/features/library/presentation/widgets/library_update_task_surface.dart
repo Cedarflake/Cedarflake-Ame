@@ -1,6 +1,8 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
+import "../../../../app/presentation/ame_motion.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_feedback_card.dart";
 import "../../application/library_update_controller.dart";
@@ -157,23 +159,34 @@ class _LibraryRootUpdateRow extends StatelessWidget {
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
-        if (task.isActive) ...[
-          const SizedBox(height: 8),
-          Semantics(
-            container: true,
-            label: "$rootName 更新进度",
-            value: feedback.progressSemanticsValue,
-            child: ExcludeSemantics(
-              child: LinearProgressIndicator(
-                value:
-                    task.phase == LibraryRootUpdatePhase.finalizing &&
-                        task.validationItemCount > 0
-                    ? task.validatedItems / task.validationItemCount
-                    : null,
-              ),
-            ),
+        AmeStateTransition(
+          active: task.isActive,
+          motion: AmeMotion.fastSpatial,
+          builder: (context, animation, child) => SizeTransition(
+            sizeFactor: animation,
+            alignment: Alignment.bottomCenter,
+            child: child,
           ),
-        ],
+          child: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: task.isActive
+                ? Semantics(
+                    container: true,
+                    label: "$rootName 更新进度",
+                    value: feedback.progressSemanticsValue,
+                    child: ExcludeSemantics(
+                      child: AmeLinearProgress(
+                        value:
+                            task.phase == LibraryRootUpdatePhase.finalizing &&
+                                task.validationItemCount > 0
+                            ? task.validatedItems / task.validationItemCount
+                            : null,
+                      ),
+                    ),
+                  )
+                : const SizedBox(height: 4),
+          ),
+        ),
       ],
     );
   }

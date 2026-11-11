@@ -3,6 +3,7 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_feedback_card.dart";
 import "../../../library/application/library_archive_controller.dart";
@@ -102,7 +103,7 @@ class _RecordFeedback extends StatelessWidget {
         if (onDismiss != null)
           AmeFeedbackAction(onPressed: onDismiss, label: "关闭"),
       ],
-      progress: working ? const LinearProgressIndicator() : null,
+      progress: working ? const AmeLinearProgress() : null,
     ),
   );
 }

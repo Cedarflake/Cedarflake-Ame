@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 
 import "../../../../app/presentation/ame_feedback_style.dart";
+import "library_viewer_chrome.dart";
 
 class LibraryViewerNotice extends StatelessWidget {
   const LibraryViewerNotice({
@@ -23,38 +24,40 @@ class LibraryViewerNotice extends StatelessWidget {
     left: ameViewerNoticeInset,
     right: ameViewerNoticeInset,
     top: ameViewerNoticeInset,
-    child: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: ameNotificationWidth,
-          minHeight: kMinInteractiveDimension,
-        ),
-        child: Semantics(
-          liveRegion: true,
-          child: AmeFeedbackSurface(
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: 14,
-                right: actionLabel == null ? 14 : 6,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: ameNotificationIconSize),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      message,
-                      style: Theme.of(context).textTheme.bodyMedium,
+    child: LibraryViewerChrome(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: ameNotificationWidth,
+            minHeight: kMinInteractiveDimension,
+          ),
+          child: Semantics(
+            liveRegion: true,
+            child: AmeFeedbackSurface(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 14,
+                  right: actionLabel == null ? 14 : 6,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, size: ameNotificationIconSize),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        message,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
                     ),
-                  ),
-                  if (actionLabel case final label?)
-                    AmeFeedbackAction(
-                      key: actionKey,
-                      onPressed: onAction,
-                      label: label,
-                    ).build(),
-                ],
+                    if (actionLabel case final label?)
+                      AmeFeedbackAction(
+                        key: actionKey,
+                        onPressed: onAction,
+                        label: label,
+                      ).build(),
+                  ],
+                ),
               ),
             ),
           ),
