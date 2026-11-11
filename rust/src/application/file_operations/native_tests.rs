@@ -16,6 +16,7 @@ use crate::ports::organization::OrganizationRepository;
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 
 use super::*;
+mod cleanup;
 mod exports;
 mod recovery;
 

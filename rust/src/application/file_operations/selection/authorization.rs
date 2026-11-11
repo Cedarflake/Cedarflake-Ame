@@ -34,6 +34,9 @@ pub(super) fn record(
         ));
     }
     validate(command, summary)?;
+    if summary.cleanup.is_some() {
+        super::retained::validate(selection, native, session)?;
+    }
     let directory = command
         .destination_directory
         .as_deref()
@@ -140,7 +143,7 @@ fn validate(
     command: &FileOperationCommand,
     summary: &FileOperationSelectionSummary,
 ) -> Result<(), ScanError> {
-    if summary.merged_group_count.is_some()
+    if (summary.merged_group_count.is_some() || summary.cleanup.is_some())
         && !matches!(
             command.action,
             FileAction::Recycle | FileAction::DeletePermanently
@@ -149,6 +152,12 @@ fn validate(
         return Err(ScanError::new(
             "file_operation_command_invalid",
             "A whole-group deletion selection cannot authorize another file action",
+        ));
+    }
+    if summary.file_count == 0 {
+        return Err(ScanError::new(
+            "file_operation_selection_empty",
+            "There are no files to delete",
         ));
     }
     let valid = match command.action {
@@ -237,6 +246,7 @@ mod tests {
             file_count: 2,
             total_bytes: 40,
             merged_group_count: Some(1),
+            cleanup: None,
         };
         let mut command = FileOperationCommand {
             action: FileAction::Recycle,

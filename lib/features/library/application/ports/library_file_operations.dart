@@ -20,6 +20,7 @@ abstract interface class LibraryFileOperations {
 
 abstract interface class LibraryFileSelectionDraft {
   Future<void> appendIds(List<String> ids);
+  Future<void> appendGroups(List<LibraryCleanupGroup> groups);
   Future<void> appendLocations(List<LibraryOrganizationTarget> locations);
   Future<LibraryFileSelectionSummary> prepare();
   Future<LibraryFileTask> execute(String batchId, LibraryFileCommand command);

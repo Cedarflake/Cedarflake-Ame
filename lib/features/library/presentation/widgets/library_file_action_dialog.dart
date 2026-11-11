@@ -133,6 +133,7 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
     final canSubmit =
         !ref.watch(libraryFileActionsProvider).busy &&
         _summary != null &&
+        _summary!.files > 0 &&
         _failure == null &&
         !_picking &&
         (!destination || _directory != null) &&
@@ -217,19 +218,23 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
             ),
           ],
           if (deletion) ...[
-            Text(_permanent ? "文件将被永久删除，无法从回收站恢复。" : "文件将移入 Windows 回收站。"),
-            const SizedBox(height: 8),
-            Theme(
-              data: Theme.of(context).copyWith(hoverColor: Colors.transparent),
-              child: CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                title: const Text("永久删除"),
-                value: _permanent,
-                onChanged: (value) =>
-                    setState(() => _permanent = value ?? false),
+            if (_summary == null || _summary!.files > 0) ...[
+              Text(_permanent ? "文件将被永久删除，无法从回收站恢复。" : "文件将移入 Windows 回收站。"),
+              const SizedBox(height: 8),
+              Theme(
+                data: Theme.of(
+                  context,
+                ).copyWith(hoverColor: Colors.transparent),
+                child: CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: const Text("永久删除"),
+                  value: _permanent,
+                  onChanged: (value) =>
+                      setState(() => _permanent = value ?? false),
+                ),
               ),
-            ),
+            ],
           ],
         ],
       ),

@@ -8,7 +8,8 @@ use rusqlite::{params, params_from_iter};
 use crate::domain::ScanError;
 use crate::domain::file_operation_journal::FILE_OPERATION_PAGE_SIZE;
 use crate::domain::file_operation_selection::{
-    FileOperationCandidate, FileOperationSelectionScope as Scope, FileOperationSelectionSummary,
+    DuplicateCleanupGroup, FileOperationCandidate, FileOperationSelectionScope as Scope,
+    FileOperationSelectionSummary,
 };
 use crate::domain::organization::{
     OrganizationSelection, stale_selection, validate_identifier, validate_selections,
@@ -20,6 +21,7 @@ use super::super::{
     SqliteCatalog, database_error, gallery, load_catalog_revision, sqlite_integer, sqlite_unsigned,
 };
 
+mod cleanup;
 mod groups;
 mod query;
 mod rules;
@@ -55,6 +57,9 @@ impl SqliteFileOperationSelection {
              CREATE INDEX temp.file_operation_selection_asset ON file_operation_selection(asset_id);"
         ).map_err(database_error)?;
         let sql_cancelled = Arc::clone(&cancelled);
+        if matches!(scope, Scope::DuplicateCleanup { .. }) {
+            cleanup::initialize(&catalog.connection)?;
+        }
         catalog
             .connection
             .progress_handler(1000, Some(move || sql_cancelled.load(Ordering::Acquire)))
@@ -82,6 +87,9 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
     ) -> Result<(), ScanError> {
         if self.prepared.is_none() {
             return Err(stale_selection());
+        }
+        if let Scope::DuplicateCleanup { kind, .. } = &self.scope {
+            cleanup::validate(&self.catalog.connection, kind)?;
         }
         rules::freeze(&self.catalog.connection, rule, &self.cancelled)
     }
@@ -167,9 +175,14 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
         {
             return Err(stale_selection());
         }
-        let selected = query::selected(&self.scope)?;
-        transaction.execute(&format!("INSERT INTO temp.file_operation_selection(asset_id, location_id, source_generation, root_generation, file_size) {}", selected.sql), params_from_iter(selected.parameters)).map_err(database_error)?;
-        query::require_all_inputs(&transaction, &self.scope)?;
+        let cleanup = if let Scope::DuplicateCleanup { kind, all_groups } = &self.scope {
+            Some(cleanup::prepare(&transaction, kind, *all_groups)?)
+        } else {
+            let selected = query::selected(&self.scope)?;
+            transaction.execute(&format!("INSERT INTO temp.file_operation_selection(asset_id, location_id, source_generation, root_generation, file_size) {}", selected.sql), params_from_iter(selected.parameters)).map_err(database_error)?;
+            query::require_all_inputs(&transaction, &self.scope)?;
+            None
+        };
         let merged_group_count = if matches!(self.scope, Scope::MergedGalleryGroups { .. }) {
             Some(groups::expand(&transaction)?)
         } else {
@@ -182,17 +195,43 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
                 |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
             )
             .map_err(database_error)?;
-        if count == 0 {
+        if count == 0 && cleanup.is_none() {
             return Err(stale_selection());
         }
         let summary = FileOperationSelectionSummary {
             file_count: sqlite_unsigned(count, "selected count")?,
             total_bytes: sqlite_unsigned(bytes, "selected bytes")?,
             merged_group_count,
+            cleanup,
         };
         transaction.commit().map_err(database_error)?;
         self.prepared = Some(summary.clone());
         Ok(summary)
+    }
+
+    fn append_groups(&mut self, groups: &[DuplicateCleanupGroup]) -> Result<(), ScanError> {
+        self.require_collecting()?;
+        let Scope::DuplicateCleanup {
+            kind,
+            all_groups: false,
+        } = &self.scope
+        else {
+            return Err(stale_selection());
+        };
+        cleanup::append(&self.catalog.connection, kind, groups)
+    }
+
+    fn retained_page(
+        &self,
+        after_location: &str,
+    ) -> Result<Vec<crate::domain::AssetLocationView>, ScanError> {
+        if self.prepared.is_none() {
+            return Err(stale_selection());
+        }
+        if !matches!(self.scope, Scope::DuplicateCleanup { .. }) {
+            return Ok(Vec::new());
+        }
+        cleanup::retained_page(&self.catalog, after_location)
     }
 
     fn page(&self, after_ordinal: Option<u64>) -> Result<Vec<FileOperationCandidate>, ScanError> {

@@ -51,6 +51,11 @@ owns serial refresh, retry and projection lifetimes; the
 [mode regression](../../../test/features/library/presentation/coordination/library_organization_mode_test.dart)
 owns active and retained scope transitions.
 
+Group thumbnails and sidebar selection use the shared
+[flip transition](../../../lib/app/presentation/ame_flip_transition.dart), with
+[reversal and reduced-motion coverage](../../../test/app/presentation/ame_flip_transition_test.dart).
+Check selection/cancellation, unchanged target geometry, retained thumbnails and keyboard input.
+
 Inspect the complete changed path before delivery, including meaningful neighboring states and
 return/dismissal behavior. Compare geometry and wording in the running client; use screenshots for
 layout comparison and actual interaction for motion, focus and continuity. Add boundary regressions

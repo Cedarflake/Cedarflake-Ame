@@ -1,23 +1,19 @@
 use std::path::Path;
 
-use crate::domain::ScanError;
 use crate::domain::file_operation_exports::FileOrganizationDestination;
 use crate::domain::file_operation_journal::{AuthorizedFileOperation, FileOperationCatalogBinding};
 use crate::domain::file_operation_selection::{FileOperationCandidate, FileOperationCommand};
 use crate::domain::file_operations::{
     FileAction, FileOperationDestination, FileOperationDirectory, FileOperationRequest,
+    FileOperationSource,
 };
+use crate::domain::{AssetLocationView, ScanError};
 use crate::ports::file_operation_exports::NativeFilePreparation;
 
-pub(super) fn authorize(
-    candidate: &FileOperationCandidate,
-    command: &FileOperationCommand,
-    root: Option<&FileOperationDirectory>,
+pub(super) fn inspect_source(
+    location: &AssetLocationView,
     native: &dyn NativeFilePreparation,
-    batch_id: &str,
-    authorized_unix_ms: i64,
-) -> Result<AuthorizedFileOperation, ScanError> {
-    let location = &candidate.location;
+) -> Result<FileOperationSource, ScanError> {
     let source = native
         .inspect_source(&location.absolute_path)
         .map_err(|error| ScanError::new("file_operation_source_unavailable", error.message))?;
@@ -31,6 +27,19 @@ pub(super) fn authorize(
             "The selected file changed; refresh its selection before retrying",
         ));
     }
+    Ok(source)
+}
+
+pub(super) fn authorize(
+    candidate: &FileOperationCandidate,
+    command: &FileOperationCommand,
+    root: Option<&FileOperationDirectory>,
+    native: &dyn NativeFilePreparation,
+    batch_id: &str,
+    authorized_unix_ms: i64,
+) -> Result<AuthorizedFileOperation, ScanError> {
+    let location = &candidate.location;
+    let source = inspect_source(location, native)?;
     let destination = if matches!(
         command.action,
         FileAction::Copy | FileAction::Move | FileAction::Rename

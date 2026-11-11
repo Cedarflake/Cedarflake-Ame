@@ -30,6 +30,13 @@ class LibraryFileSelectionSession {
       _check();
     }
     switch (selection) {
+      case LibraryDuplicateCleanup(:final groups):
+        for (var start = 0; start < groups.length; start += 256) {
+          _check();
+          await draft.appendGroups(
+            groups.sublist(start, (start + 256).clamp(0, groups.length)),
+          );
+        }
       case LibraryFilesInGallery(:final selection) ||
           LibraryFileGroupsInGallery(:final selection):
         for (var start = 0; start < selection.assetIds.length; start += 256) {

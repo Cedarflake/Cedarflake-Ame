@@ -2,10 +2,13 @@ import "package:flutter_rust_bridge/flutter_rust_bridge.dart" show Uint64List;
 
 import "../../../../src/rust/api/file_operations.dart" as api;
 import "../../../../src/rust/domain/file_operation_selection.dart" as dto;
+import "../../../../src/rust/domain/exact_duplicate_review.dart" as exact;
+import "../../../../src/rust/domain/similar_images/review.dart" as similar;
 import "../../../../src/rust/domain/organization.dart" as organization;
 import "../../application/ports/library_file_operations.dart";
 import "../../domain/library_file_operations.dart";
 import "../../domain/library_organization.dart";
+import "../../domain/library_similar_review.dart";
 import "library_gallery_query_mapping.dart";
 import "rust_library_file_mapping.dart";
 
@@ -14,26 +17,43 @@ class RustLibraryFileOperations implements LibraryFileOperations {
   final LibraryFileOperationPlatform platform;
 
   @override
-  Future<LibraryFileSelectionDraft> open(LibraryFileSelection selection) =>
-      fileOperationCall(() async {
-        final scope = switch (selection) {
-          LibraryFilesInGallery(:final selection) =>
-            dto.FileOperationSelectionScope.gallery(
-              query: mapLibraryGalleryQueryToRust(selection.query),
-              catalogRevision: selection.catalogRevision,
-              allMatching: selection.allMatching,
+  Future<LibraryFileSelectionDraft> open(
+    LibraryFileSelection selection,
+  ) => fileOperationCall(() async {
+    final scope = switch (selection) {
+      LibraryDuplicateCleanup(:final kind, :final allGroups, :final degree) =>
+        dto.FileOperationSelectionScope.duplicateCleanup(
+          kind: switch (kind) {
+            LibraryCleanupKind.exact => const dto.DuplicateCleanupKind.exact(),
+            LibraryCleanupKind.similar => dto.DuplicateCleanupKind.similar(
+              degree: switch (degree) {
+                LibrarySimilarityDegree.strict =>
+                  similar.SimilarityDegree.strict,
+                LibrarySimilarityDegree.standard =>
+                  similar.SimilarityDegree.standard,
+                LibrarySimilarityDegree.broad => similar.SimilarityDegree.broad,
+              },
             ),
-          LibraryFileGroupsInGallery(:final selection) =>
-            dto.FileOperationSelectionScope.mergedGalleryGroups(
-              query: mapLibraryGalleryQueryToRust(selection.query),
-              catalogRevision: selection.catalogRevision,
-              allMatching: selection.allMatching,
-            ),
-          LibraryFilesAtLocations() =>
-            const dto.FileOperationSelectionScope.locations(),
-        };
-        return _Draft(await api.openFileSelection(scope: scope), platform);
-      });
+          },
+          allGroups: allGroups,
+        ),
+      LibraryFilesInGallery(:final selection) =>
+        dto.FileOperationSelectionScope.gallery(
+          query: mapLibraryGalleryQueryToRust(selection.query),
+          catalogRevision: selection.catalogRevision,
+          allMatching: selection.allMatching,
+        ),
+      LibraryFileGroupsInGallery(:final selection) =>
+        dto.FileOperationSelectionScope.mergedGalleryGroups(
+          query: mapLibraryGalleryQueryToRust(selection.query),
+          catalogRevision: selection.catalogRevision,
+          allMatching: selection.allMatching,
+        ),
+      LibraryFilesAtLocations() =>
+        const dto.FileOperationSelectionScope.locations(),
+    };
+    return _Draft(await api.openFileSelection(scope: scope), platform);
+  });
 
   @override
   Future<List<LibraryFileRecord>> history({BigInt? before, int limit = 40}) =>
@@ -85,6 +105,26 @@ class _Draft implements LibraryFileSelectionDraft {
   Future<void> appendIds(List<String> ids) =>
       fileOperationCall(() => value.appendIds(assetIds: ids));
   @override
+  Future<void> appendGroups(List<LibraryCleanupGroup> groups) =>
+      fileOperationCall(
+        () => value.appendGroups(
+          groups: [
+            for (final group in groups)
+              switch (group) {
+                LibraryExactCleanupGroup(:final digest, :final byteLength) =>
+                  dto.DuplicateCleanupGroup.exact(
+                    key: exact.ExactDuplicateReviewKey(
+                      digest: digest,
+                      byteLength: BigInt.from(byteLength),
+                    ),
+                  ),
+                LibrarySimilarCleanupGroup(:final id) =>
+                  dto.DuplicateCleanupGroup.similar(groupId: id),
+              },
+          ],
+        ),
+      );
+  @override
   Future<void> appendLocations(List<LibraryOrganizationTarget> locations) =>
       fileOperationCall(
         () => value.appendLocations(
@@ -105,6 +145,13 @@ class _Draft implements LibraryFileSelectionDraft {
       result.fileCount.toInt(),
       result.totalBytes.toInt(),
       mergedGroups: result.mergedGroupCount?.toInt(),
+      cleanup: result.cleanup == null
+          ? null
+          : LibraryDuplicateCleanupSummary(
+              groups: result.cleanup!.groupCount.toInt(),
+              skippedGroups: result.cleanup!.skippedGroups.toInt(),
+              keptFiles: result.cleanup!.keptFiles.toInt(),
+            ),
     );
   });
   @override

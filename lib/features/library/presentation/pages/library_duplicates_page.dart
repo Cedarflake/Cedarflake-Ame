@@ -19,6 +19,7 @@ import "../coordination/library_duplicate_workspace.dart";
 import "../coordination/library_similar_results_refresh.dart";
 import "../library_duplicate_strings.dart";
 import "../widgets/library_duplicate_group_menus.dart";
+import "../widgets/library_duplicate_cleanup_action.dart";
 import "../widgets/library_duplicate_locations_sheet.dart";
 import "../widgets/library_duplicate_results.dart";
 import "../widgets/library_duplicate_review_header.dart";
@@ -259,24 +260,33 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
                     ? null
                     : () => unawaited(_workspace.showView(_workspace.view)),
                 actions: !_workspace.hasMembers
-                    ? LibraryDuplicateGroupMenus(
+                    ? Wrap(
                         key: const Key("duplicate-review-actions"),
-                        view: _workspace.view,
-                        degree: _workspace.similar.degree,
-                        onViewChanged: (view) =>
-                            unawaited(_workspace.showView(view)),
-                        onDegreeChanged: (degree) => unawaited(
-                          _workspace.showView(
-                            LibraryDuplicateView.similar,
-                            degree: degree,
+                        alignment: WrapAlignment.end,
+                        spacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          LibraryDuplicateGroupMenus(
+                            view: _workspace.view,
+                            degree: _workspace.similar.degree,
+                            onViewChanged: (view) =>
+                                unawaited(_workspace.showView(view)),
+                            onDegreeChanged: (degree) => unawaited(
+                              _workspace.showView(
+                                LibraryDuplicateView.similar,
+                                degree: degree,
+                              ),
+                            ),
                           ),
-                        ),
+                          LibraryDuplicateCleanupAction(workspace: _workspace),
+                        ],
                       )
                     : Wrap(
                         key: const Key("duplicate-review-actions"),
                         alignment: WrapAlignment.end,
                         spacing: 8,
                         children: [
+                          LibraryDuplicateCleanupAction(workspace: _workspace),
                           TextButton.icon(
                             onPressed: _workspace.comparison.length == 2
                                 ? () => unawaited(_compare())

@@ -397,6 +397,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_box_autoadd_classification_review_reason(dynamic raw);
 
   @protected
+  DuplicateCleanupKind dco_decode_box_autoadd_duplicate_cleanup_kind(
+    dynamic raw,
+  );
+
+  @protected
+  DuplicateCleanupSummary dco_decode_box_autoadd_duplicate_cleanup_summary(
+    dynamic raw,
+  );
+
+  @protected
   ExactDuplicateGroupCursor dco_decode_box_autoadd_exact_duplicate_group_cursor(
     dynamic raw,
   );
@@ -715,6 +725,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ConsolidatedLibraryRoot dco_decode_consolidated_library_root(dynamic raw);
 
   @protected
+  DuplicateCleanupGroup dco_decode_duplicate_cleanup_group(dynamic raw);
+
+  @protected
+  DuplicateCleanupKind dco_decode_duplicate_cleanup_kind(dynamic raw);
+
+  @protected
+  DuplicateCleanupSummary dco_decode_duplicate_cleanup_summary(dynamic raw);
+
+  @protected
   DuplicateLocationAvailability dco_decode_duplicate_location_availability(
     dynamic raw,
   );
@@ -1025,6 +1044,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<DuplicateCleanupGroup> dco_decode_list_duplicate_cleanup_group(
+    dynamic raw,
+  );
+
+  @protected
   List<ExactDuplicateGroup> dco_decode_list_exact_duplicate_group(dynamic raw);
 
   @protected
@@ -1173,6 +1197,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ClassificationReviewReason?
   dco_decode_opt_box_autoadd_classification_review_reason(dynamic raw);
+
+  @protected
+  DuplicateCleanupSummary? dco_decode_opt_box_autoadd_duplicate_cleanup_summary(
+    dynamic raw,
+  );
 
   @protected
   ExactDuplicateGroupCursor?
@@ -1884,6 +1913,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  DuplicateCleanupKind sse_decode_box_autoadd_duplicate_cleanup_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DuplicateCleanupSummary sse_decode_box_autoadd_duplicate_cleanup_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ExactDuplicateGroupCursor sse_decode_box_autoadd_exact_duplicate_group_cursor(
     SseDeserializer deserializer,
   );
@@ -2284,6 +2323,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ConsolidatedLibraryRoot sse_decode_consolidated_library_root(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DuplicateCleanupGroup sse_decode_duplicate_cleanup_group(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DuplicateCleanupKind sse_decode_duplicate_cleanup_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DuplicateCleanupSummary sse_decode_duplicate_cleanup_summary(
     SseDeserializer deserializer,
   );
 
@@ -2690,6 +2744,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<DuplicateCleanupGroup> sse_decode_list_duplicate_cleanup_group(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<ExactDuplicateGroup> sse_decode_list_exact_duplicate_group(
     SseDeserializer deserializer,
   );
@@ -2868,6 +2927,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ClassificationReviewReason?
   sse_decode_opt_box_autoadd_classification_review_reason(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DuplicateCleanupSummary? sse_decode_opt_box_autoadd_duplicate_cleanup_summary(
     SseDeserializer deserializer,
   );
 
@@ -3750,6 +3814,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_duplicate_cleanup_kind(
+    DuplicateCleanupKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_duplicate_cleanup_summary(
+    DuplicateCleanupSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_exact_duplicate_group_cursor(
     ExactDuplicateGroupCursor self,
     SseSerializer serializer,
@@ -4232,6 +4308,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_consolidated_library_root(
     ConsolidatedLibraryRoot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_duplicate_cleanup_group(
+    DuplicateCleanupGroup self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_duplicate_cleanup_kind(
+    DuplicateCleanupKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_duplicate_cleanup_summary(
+    DuplicateCleanupSummary self,
     SseSerializer serializer,
   );
 
@@ -4740,6 +4834,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_duplicate_cleanup_group(
+    List<DuplicateCleanupGroup> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_exact_duplicate_group(
     List<ExactDuplicateGroup> self,
     SseSerializer serializer,
@@ -4958,6 +5058,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_classification_review_reason(
     ClassificationReviewReason? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_duplicate_cleanup_summary(
+    DuplicateCleanupSummary? self,
     SseSerializer serializer,
   );
 

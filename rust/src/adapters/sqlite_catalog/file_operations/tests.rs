@@ -9,6 +9,7 @@ use crate::domain::file_operations::{
 use crate::domain::{ExpectedFileState, FileIdentityEvidence};
 use crate::ports::CatalogRepository;
 
+mod cleanup;
 mod content_proof;
 mod execution;
 mod exports;

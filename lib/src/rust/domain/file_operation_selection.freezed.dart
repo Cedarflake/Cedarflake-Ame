@@ -12,6 +12,556 @@ part of 'file_operation_selection.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
+mixin _$DuplicateCleanupGroup {
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupGroup);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'DuplicateCleanupGroup()';
+}
+
+
+}
+
+/// @nodoc
+class $DuplicateCleanupGroupCopyWith<$Res>  {
+$DuplicateCleanupGroupCopyWith(DuplicateCleanupGroup _, $Res Function(DuplicateCleanupGroup) __);
+}
+
+
+/// Adds pattern-matching-related methods to [DuplicateCleanupGroup].
+extension DuplicateCleanupGroupPatterns on DuplicateCleanupGroup {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( DuplicateCleanupGroup_Exact value)?  exact,TResult Function( DuplicateCleanupGroup_Similar value)?  similar,required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case DuplicateCleanupGroup_Exact() when exact != null:
+return exact(_that);case DuplicateCleanupGroup_Similar() when similar != null:
+return similar(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( DuplicateCleanupGroup_Exact value)  exact,required TResult Function( DuplicateCleanupGroup_Similar value)  similar,}){
+final _that = this;
+switch (_that) {
+case DuplicateCleanupGroup_Exact():
+return exact(_that);case DuplicateCleanupGroup_Similar():
+return similar(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( DuplicateCleanupGroup_Exact value)?  exact,TResult? Function( DuplicateCleanupGroup_Similar value)?  similar,}){
+final _that = this;
+switch (_that) {
+case DuplicateCleanupGroup_Exact() when exact != null:
+return exact(_that);case DuplicateCleanupGroup_Similar() when similar != null:
+return similar(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ExactDuplicateReviewKey key)?  exact,TResult Function( String groupId)?  similar,required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case DuplicateCleanupGroup_Exact() when exact != null:
+return exact(_that.key);case DuplicateCleanupGroup_Similar() when similar != null:
+return similar(_that.groupId);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ExactDuplicateReviewKey key)  exact,required TResult Function( String groupId)  similar,}) {final _that = this;
+switch (_that) {
+case DuplicateCleanupGroup_Exact():
+return exact(_that.key);case DuplicateCleanupGroup_Similar():
+return similar(_that.groupId);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ExactDuplicateReviewKey key)?  exact,TResult? Function( String groupId)?  similar,}) {final _that = this;
+switch (_that) {
+case DuplicateCleanupGroup_Exact() when exact != null:
+return exact(_that.key);case DuplicateCleanupGroup_Similar() when similar != null:
+return similar(_that.groupId);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class DuplicateCleanupGroup_Exact extends DuplicateCleanupGroup {
+  const DuplicateCleanupGroup_Exact({required this.key}): super._();
+
+
+ final  ExactDuplicateReviewKey key;
+
+/// Create a copy of DuplicateCleanupGroup
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DuplicateCleanupGroup_ExactCopyWith<DuplicateCleanupGroup_Exact> get copyWith => _$DuplicateCleanupGroup_ExactCopyWithImpl<DuplicateCleanupGroup_Exact>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupGroup_Exact&&(identical(other.key, key) || other.key == key));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,key);
+
+@override
+String toString() {
+  return 'DuplicateCleanupGroup.exact(key: $key)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DuplicateCleanupGroup_ExactCopyWith<$Res> implements $DuplicateCleanupGroupCopyWith<$Res> {
+  factory $DuplicateCleanupGroup_ExactCopyWith(DuplicateCleanupGroup_Exact value, $Res Function(DuplicateCleanupGroup_Exact) _then) = _$DuplicateCleanupGroup_ExactCopyWithImpl;
+@useResult
+$Res call({
+ ExactDuplicateReviewKey key
+});
+
+
+
+
+}
+/// @nodoc
+class _$DuplicateCleanupGroup_ExactCopyWithImpl<$Res>
+    implements $DuplicateCleanupGroup_ExactCopyWith<$Res> {
+  _$DuplicateCleanupGroup_ExactCopyWithImpl(this._self, this._then);
+
+  final DuplicateCleanupGroup_Exact _self;
+  final $Res Function(DuplicateCleanupGroup_Exact) _then;
+
+/// Create a copy of DuplicateCleanupGroup
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? key = null,}) {
+  return _then(DuplicateCleanupGroup_Exact(
+key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
+as ExactDuplicateReviewKey,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class DuplicateCleanupGroup_Similar extends DuplicateCleanupGroup {
+  const DuplicateCleanupGroup_Similar({required this.groupId}): super._();
+
+
+ final  String groupId;
+
+/// Create a copy of DuplicateCleanupGroup
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DuplicateCleanupGroup_SimilarCopyWith<DuplicateCleanupGroup_Similar> get copyWith => _$DuplicateCleanupGroup_SimilarCopyWithImpl<DuplicateCleanupGroup_Similar>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupGroup_Similar&&(identical(other.groupId, groupId) || other.groupId == groupId));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,groupId);
+
+@override
+String toString() {
+  return 'DuplicateCleanupGroup.similar(groupId: $groupId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DuplicateCleanupGroup_SimilarCopyWith<$Res> implements $DuplicateCleanupGroupCopyWith<$Res> {
+  factory $DuplicateCleanupGroup_SimilarCopyWith(DuplicateCleanupGroup_Similar value, $Res Function(DuplicateCleanupGroup_Similar) _then) = _$DuplicateCleanupGroup_SimilarCopyWithImpl;
+@useResult
+$Res call({
+ String groupId
+});
+
+
+
+
+}
+/// @nodoc
+class _$DuplicateCleanupGroup_SimilarCopyWithImpl<$Res>
+    implements $DuplicateCleanupGroup_SimilarCopyWith<$Res> {
+  _$DuplicateCleanupGroup_SimilarCopyWithImpl(this._self, this._then);
+
+  final DuplicateCleanupGroup_Similar _self;
+  final $Res Function(DuplicateCleanupGroup_Similar) _then;
+
+/// Create a copy of DuplicateCleanupGroup
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? groupId = null,}) {
+  return _then(DuplicateCleanupGroup_Similar(
+groupId: null == groupId ? _self.groupId : groupId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+mixin _$DuplicateCleanupKind {
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupKind);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'DuplicateCleanupKind()';
+}
+
+
+}
+
+/// @nodoc
+class $DuplicateCleanupKindCopyWith<$Res>  {
+$DuplicateCleanupKindCopyWith(DuplicateCleanupKind _, $Res Function(DuplicateCleanupKind) __);
+}
+
+
+/// Adds pattern-matching-related methods to [DuplicateCleanupKind].
+extension DuplicateCleanupKindPatterns on DuplicateCleanupKind {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( DuplicateCleanupKind_Exact value)?  exact,TResult Function( DuplicateCleanupKind_Similar value)?  similar,required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case DuplicateCleanupKind_Exact() when exact != null:
+return exact(_that);case DuplicateCleanupKind_Similar() when similar != null:
+return similar(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( DuplicateCleanupKind_Exact value)  exact,required TResult Function( DuplicateCleanupKind_Similar value)  similar,}){
+final _that = this;
+switch (_that) {
+case DuplicateCleanupKind_Exact():
+return exact(_that);case DuplicateCleanupKind_Similar():
+return similar(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( DuplicateCleanupKind_Exact value)?  exact,TResult? Function( DuplicateCleanupKind_Similar value)?  similar,}){
+final _that = this;
+switch (_that) {
+case DuplicateCleanupKind_Exact() when exact != null:
+return exact(_that);case DuplicateCleanupKind_Similar() when similar != null:
+return similar(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  exact,TResult Function( SimilarityDegree degree)?  similar,required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case DuplicateCleanupKind_Exact() when exact != null:
+return exact();case DuplicateCleanupKind_Similar() when similar != null:
+return similar(_that.degree);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  exact,required TResult Function( SimilarityDegree degree)  similar,}) {final _that = this;
+switch (_that) {
+case DuplicateCleanupKind_Exact():
+return exact();case DuplicateCleanupKind_Similar():
+return similar(_that.degree);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  exact,TResult? Function( SimilarityDegree degree)?  similar,}) {final _that = this;
+switch (_that) {
+case DuplicateCleanupKind_Exact() when exact != null:
+return exact();case DuplicateCleanupKind_Similar() when similar != null:
+return similar(_that.degree);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class DuplicateCleanupKind_Exact extends DuplicateCleanupKind {
+  const DuplicateCleanupKind_Exact(): super._();
+
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupKind_Exact);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'DuplicateCleanupKind.exact()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class DuplicateCleanupKind_Similar extends DuplicateCleanupKind {
+  const DuplicateCleanupKind_Similar({required this.degree}): super._();
+
+
+ final  SimilarityDegree degree;
+
+/// Create a copy of DuplicateCleanupKind
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DuplicateCleanupKind_SimilarCopyWith<DuplicateCleanupKind_Similar> get copyWith => _$DuplicateCleanupKind_SimilarCopyWithImpl<DuplicateCleanupKind_Similar>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupKind_Similar&&(identical(other.degree, degree) || other.degree == degree));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,degree);
+
+@override
+String toString() {
+  return 'DuplicateCleanupKind.similar(degree: $degree)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DuplicateCleanupKind_SimilarCopyWith<$Res> implements $DuplicateCleanupKindCopyWith<$Res> {
+  factory $DuplicateCleanupKind_SimilarCopyWith(DuplicateCleanupKind_Similar value, $Res Function(DuplicateCleanupKind_Similar) _then) = _$DuplicateCleanupKind_SimilarCopyWithImpl;
+@useResult
+$Res call({
+ SimilarityDegree degree
+});
+
+
+
+
+}
+/// @nodoc
+class _$DuplicateCleanupKind_SimilarCopyWithImpl<$Res>
+    implements $DuplicateCleanupKind_SimilarCopyWith<$Res> {
+  _$DuplicateCleanupKind_SimilarCopyWithImpl(this._self, this._then);
+
+  final DuplicateCleanupKind_Similar _self;
+  final $Res Function(DuplicateCleanupKind_Similar) _then;
+
+/// Create a copy of DuplicateCleanupKind
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? degree = null,}) {
+  return _then(DuplicateCleanupKind_Similar(
+degree: null == degree ? _self.degree : degree // ignore: cast_nullable_to_non_nullable
+as SimilarityDegree,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$FileOperationSelectionScope {
 
 
@@ -55,13 +605,14 @@ extension FileOperationSelectionScopePatterns on FileOperationSelectionScope {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( FileOperationSelectionScope_Gallery value)?  gallery,TResult Function( FileOperationSelectionScope_MergedGalleryGroups value)?  mergedGalleryGroups,TResult Function( FileOperationSelectionScope_Locations value)?  locations,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( FileOperationSelectionScope_Gallery value)?  gallery,TResult Function( FileOperationSelectionScope_MergedGalleryGroups value)?  mergedGalleryGroups,TResult Function( FileOperationSelectionScope_Locations value)?  locations,TResult Function( FileOperationSelectionScope_DuplicateCleanup value)?  duplicateCleanup,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery() when gallery != null:
 return gallery(_that);case FileOperationSelectionScope_MergedGalleryGroups() when mergedGalleryGroups != null:
 return mergedGalleryGroups(_that);case FileOperationSelectionScope_Locations() when locations != null:
-return locations(_that);case _:
+return locations(_that);case FileOperationSelectionScope_DuplicateCleanup() when duplicateCleanup != null:
+return duplicateCleanup(_that);case _:
   return orElse();
 
 }
@@ -79,13 +630,14 @@ return locations(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( FileOperationSelectionScope_Gallery value)  gallery,required TResult Function( FileOperationSelectionScope_MergedGalleryGroups value)  mergedGalleryGroups,required TResult Function( FileOperationSelectionScope_Locations value)  locations,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( FileOperationSelectionScope_Gallery value)  gallery,required TResult Function( FileOperationSelectionScope_MergedGalleryGroups value)  mergedGalleryGroups,required TResult Function( FileOperationSelectionScope_Locations value)  locations,required TResult Function( FileOperationSelectionScope_DuplicateCleanup value)  duplicateCleanup,}){
 final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery():
 return gallery(_that);case FileOperationSelectionScope_MergedGalleryGroups():
 return mergedGalleryGroups(_that);case FileOperationSelectionScope_Locations():
-return locations(_that);}
+return locations(_that);case FileOperationSelectionScope_DuplicateCleanup():
+return duplicateCleanup(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -99,13 +651,14 @@ return locations(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( FileOperationSelectionScope_Gallery value)?  gallery,TResult? Function( FileOperationSelectionScope_MergedGalleryGroups value)?  mergedGalleryGroups,TResult? Function( FileOperationSelectionScope_Locations value)?  locations,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( FileOperationSelectionScope_Gallery value)?  gallery,TResult? Function( FileOperationSelectionScope_MergedGalleryGroups value)?  mergedGalleryGroups,TResult? Function( FileOperationSelectionScope_Locations value)?  locations,TResult? Function( FileOperationSelectionScope_DuplicateCleanup value)?  duplicateCleanup,}){
 final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery() when gallery != null:
 return gallery(_that);case FileOperationSelectionScope_MergedGalleryGroups() when mergedGalleryGroups != null:
 return mergedGalleryGroups(_that);case FileOperationSelectionScope_Locations() when locations != null:
-return locations(_that);case _:
+return locations(_that);case FileOperationSelectionScope_DuplicateCleanup() when duplicateCleanup != null:
+return duplicateCleanup(_that);case _:
   return null;
 
 }
@@ -122,12 +675,13 @@ return locations(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  gallery,TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  mergedGalleryGroups,TResult Function()?  locations,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  gallery,TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  mergedGalleryGroups,TResult Function()?  locations,TResult Function( DuplicateCleanupKind kind,  bool allGroups)?  duplicateCleanup,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery() when gallery != null:
 return gallery(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_MergedGalleryGroups() when mergedGalleryGroups != null:
 return mergedGalleryGroups(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_Locations() when locations != null:
-return locations();case _:
+return locations();case FileOperationSelectionScope_DuplicateCleanup() when duplicateCleanup != null:
+return duplicateCleanup(_that.kind,_that.allGroups);case _:
   return orElse();
 
 }
@@ -145,12 +699,13 @@ return locations();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)  gallery,required TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)  mergedGalleryGroups,required TResult Function()  locations,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)  gallery,required TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)  mergedGalleryGroups,required TResult Function()  locations,required TResult Function( DuplicateCleanupKind kind,  bool allGroups)  duplicateCleanup,}) {final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery():
 return gallery(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_MergedGalleryGroups():
 return mergedGalleryGroups(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_Locations():
-return locations();}
+return locations();case FileOperationSelectionScope_DuplicateCleanup():
+return duplicateCleanup(_that.kind,_that.allGroups);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -164,12 +719,13 @@ return locations();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  gallery,TResult? Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  mergedGalleryGroups,TResult? Function()?  locations,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  gallery,TResult? Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  mergedGalleryGroups,TResult? Function()?  locations,TResult? Function( DuplicateCleanupKind kind,  bool allGroups)?  duplicateCleanup,}) {final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery() when gallery != null:
 return gallery(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_MergedGalleryGroups() when mergedGalleryGroups != null:
 return mergedGalleryGroups(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_Locations() when locations != null:
-return locations();case _:
+return locations();case FileOperationSelectionScope_DuplicateCleanup() when duplicateCleanup != null:
+return duplicateCleanup(_that.kind,_that.allGroups);case _:
   return null;
 
 }
@@ -348,5 +904,82 @@ String toString() {
 
 
 
+
+/// @nodoc
+
+
+class FileOperationSelectionScope_DuplicateCleanup extends FileOperationSelectionScope {
+  const FileOperationSelectionScope_DuplicateCleanup({required this.kind, required this.allGroups}): super._();
+
+
+ final  DuplicateCleanupKind kind;
+ final  bool allGroups;
+
+/// Create a copy of FileOperationSelectionScope
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$FileOperationSelectionScope_DuplicateCleanupCopyWith<FileOperationSelectionScope_DuplicateCleanup> get copyWith => _$FileOperationSelectionScope_DuplicateCleanupCopyWithImpl<FileOperationSelectionScope_DuplicateCleanup>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope_DuplicateCleanup&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.allGroups, allGroups) || other.allGroups == allGroups));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,kind,allGroups);
+
+@override
+String toString() {
+  return 'FileOperationSelectionScope.duplicateCleanup(kind: $kind, allGroups: $allGroups)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $FileOperationSelectionScope_DuplicateCleanupCopyWith<$Res> implements $FileOperationSelectionScopeCopyWith<$Res> {
+  factory $FileOperationSelectionScope_DuplicateCleanupCopyWith(FileOperationSelectionScope_DuplicateCleanup value, $Res Function(FileOperationSelectionScope_DuplicateCleanup) _then) = _$FileOperationSelectionScope_DuplicateCleanupCopyWithImpl;
+@useResult
+$Res call({
+ DuplicateCleanupKind kind, bool allGroups
+});
+
+
+$DuplicateCleanupKindCopyWith<$Res> get kind;
+
+}
+/// @nodoc
+class _$FileOperationSelectionScope_DuplicateCleanupCopyWithImpl<$Res>
+    implements $FileOperationSelectionScope_DuplicateCleanupCopyWith<$Res> {
+  _$FileOperationSelectionScope_DuplicateCleanupCopyWithImpl(this._self, this._then);
+
+  final FileOperationSelectionScope_DuplicateCleanup _self;
+  final $Res Function(FileOperationSelectionScope_DuplicateCleanup) _then;
+
+/// Create a copy of FileOperationSelectionScope
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? kind = null,Object? allGroups = null,}) {
+  return _then(FileOperationSelectionScope_DuplicateCleanup(
+kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
+as DuplicateCleanupKind,allGroups: null == allGroups ? _self.allGroups : allGroups // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+/// Create a copy of FileOperationSelectionScope
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DuplicateCleanupKindCopyWith<$Res> get kind {
+
+  return $DuplicateCleanupKindCopyWith<$Res>(_self.kind, (value) {
+    return _then(_self.copyWith(kind: value));
+  });
+}
+}
 
 // dart format on

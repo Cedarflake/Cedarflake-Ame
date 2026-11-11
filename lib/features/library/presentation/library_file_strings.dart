@@ -4,6 +4,9 @@ import "../domain/library_file_operations.dart";
 abstract final class LibraryFileStrings {
   static const changedBeforeDeletion = "文件已更改，未删除。请查看最新图片后重新选择并确认。";
   static String deletionTitle(LibraryFileSelectionSummary summary) {
+    if (summary.cleanup != null) {
+      return summary.files == 0 ? "没有可删除的图片" : "即将删除 ${summary.files} 张图片";
+    }
     final groups = summary.mergedGroups;
     if (groups == null || summary.files == groups) {
       return "删除 ${summary.files} 个文件？";
@@ -116,6 +119,7 @@ abstract final class LibraryFileStrings {
     "file_operation_same_destination" => "目标位置与原文件相同，请选择其他文件夹或名称。",
     "file_operation_destination_unavailable" => "无法打开目标文件夹，请重新选择。",
     "file_operation_source_unavailable" => "无法读取所选文件，请刷新图库后重新选择。",
+    "file_operation_keep_unavailable" => "要保留的图片已变化或无法读取，尚未删除文件。请重新选择保留图片。",
     "file_operation_name_invalid" => "文件名不可用，请换一个名称。",
     "file_operation_preparation_failed" => "未能准备文件操作，请重新选择后重试。",
     "file_operation_busy" ||

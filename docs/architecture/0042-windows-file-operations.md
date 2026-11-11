@@ -106,6 +106,15 @@ are separate durable transitions, never one atomic transaction.
 
 ## Durable intent and outcome journal
 
+Duplicate cleanup uses its own typed selection scope. Resolve explicit group keys or the active
+kind/degree into disk-backed temporary membership and retention tables. Exclude ignored groups.
+Use the review projection's automatic representative when no manual choice exists; protect all
+copies of retained similar content and retained physical aliases. Confirmation freezes the deletion
+set. Revalidate affected membership and keep
+decisions, then inspect retained files before authorizing native operations. New discoveries cannot
+enlarge the confirmed set. Use the existing deletion journal and executor, without another mutation
+path or persistent schema. The product workflow owns the three entry points and keep semantics.
+
 Ordinary merged-gallery deletion uses a distinct selection scope. Resolve its selected cards through
 the current gallery query, then freeze the badge's compatible exact-duplicate members in the bounded,
 disk-backed selection table. Include current members in other folders; reject groups with retained

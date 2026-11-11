@@ -20,12 +20,12 @@ const NOT_EXCLUDED: &str = "NOT EXISTS (
     WHERE excluded.group_id = m.group_id AND excluded.fingerprint_scheme = e.fingerprint_scheme
       AND excluded.digest = e.digest AND excluded.byte_length = e.byte_length)";
 
-pub(super) enum MemberScope {
+pub(in crate::adapters::sqlite_catalog) enum MemberScope {
     AllGroups,
     Group,
 }
 
-pub(super) fn members_cte(scope: MemberScope) -> String {
+pub(in crate::adapters::sqlite_catalog) fn members_cte(scope: MemberScope) -> String {
     let representative = representative_expression("l");
     let (sources, group_predicate) = match scope {
         MemberScope::AllGroups => (

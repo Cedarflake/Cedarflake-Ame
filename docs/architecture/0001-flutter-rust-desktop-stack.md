@@ -136,6 +136,15 @@ their exact endpoint. Opening and closing retain the framework's completed/dismi
 settings; feature controllers retain surface lifetime, input retirement and layout ownership.
 
 Folder icons crossfade; expansion arrows rotate through the shared presentation components.
+`AmeFlipTransition` owns decorative front/back switching for group thumbnails and sidebar selection.
+It follows the draw-only Y-axis rotation in the
+[Compose graphics API](https://developer.android.com/develop/ui/compose/graphics/draw/modifiers#rotation)
+and the edge-on face exchange in Android's
+[card-flip example](https://developer.android.com/develop/ui/views/animations/reveal-or-hide-view#CreateFlip).
+The pinned `IconButton` swaps selected content immediately, and `AnimatedSwitcher` defaults to fading;
+neither supplies this flip. Compose the existing state driver with Flutter `Transform` and
+`IndexedStack`, retaining both faces and stable layout. Material buttons own input, selection and
+semantics outside the decorative transform. This adds no dependency or copied Android implementation.
 Review controls use separate spatial and effects progress so opacity cannot inherit a spatial
 overshoot. Existing Material controls, themes and desktop overlay ownership remain in place.
 Future official component integration replaces the corresponding driver or removes the adapter,

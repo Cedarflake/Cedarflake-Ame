@@ -13,14 +13,17 @@ class LibrarySimilarGroupCard extends StatelessWidget {
   const LibrarySimilarGroupCard({
     required this.group,
     required this.onOpen,
+    this.thumbnail,
     super.key,
   });
   final LibrarySimilarGroup group;
   final VoidCallback onOpen;
+  final Widget? thumbnail;
 
   @override
   Widget build(BuildContext context) => LibraryDuplicateReviewCard(
     asset: group.representative,
+    thumbnail: thumbnail,
     onOpen: onOpen,
     details: Text(
       "${LibraryDuplicateStrings.similarGroups} · ${LibraryDuplicateStrings.similarImages(group.memberCount)}",

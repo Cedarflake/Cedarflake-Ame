@@ -680,3 +680,54 @@ their scoped sections. The accepted last-check replacement race in Windows recyc
 [ADR 0042](../architecture/0042-windows-file-operations.md#recycling-identity-boundary); detected
 changed or unverifiable files are still skipped, and permanent deletion retains handle-based identity.
 Material motion continues separately on `codex/material-motion` and is not included in this merge.
+
+## Duplicate cleanup follow-up — 2026-11-11
+
+The SQLite selection regressions cover automatic representatives, manual exact/similar retention,
+physical copies, selected groups, ignored/unselected groups, frozen targets and changed keep
+decisions. Both passed in 7.68 seconds in the repository scratch directory. The initial attempt
+could not create its system temporary fixture; no test body ran until scratch storage was used.
+
+The guest-local Windows fixture exercised selected-group permanent deletion and all-group
+recycling through the production selection/task path, including automatic retention and catalog
+publication. Unselected/ignored groups and retained image bytes remained intact; a missing retained
+file prevented any deletion. It passed in 6.63 seconds with test-binary SHA-256
+`1464917f676398672eeca408e9a5dde29a27a186526c6055cedb616e91fba144`.
+Its earlier attempt correctly rejected a retained file moved away and restored under an old
+selection: Windows had changed its source revision. The successful-deletion and stale-retention
+scenarios now use separate groups. The owned Sandbox and leased staging were retired.
+
+Focused Flutter checks passed for confirmation/default recycling, all/selected/member scope,
+cancellation, completion ownership and unchanged selection after failure. Layout checks passed at
+400–1280 logical pixels and 1–2x text scale. The operation-region key now covers the complete action
+container after placing cleanup to the right of the group menus; alignment assertions are unchanged.
+Dart analysis found no issues.
+
+Affected Rust production owners contain 294 lines for selection, 188 for cleanup, 74 for cleanup
+queries, 229 for application selection, 238 for authorization plus 31 inline-test lines, and 27 for
+retained-file admission. Dedicated cleanup tests contain 209 SQLite lines and 228 native lines.
+The Dart cleanup action and selection owner contain 110 and 26 production lines; the extended
+file-operation test file contains 563 lines.
+
+The group checkbox was replaced by a selectable thumbnail using `AmeFlipTransition`; sidebar root
+and album selection use the same component. The pinned Material icon button retains input and
+selection semantics, while Flutter transforms only the decorative faces. A focused flip regression
+passed for reversal from the current angle, immediate selection, stable target geometry, retained
+front content and reduced motion. The existing cleanup/layout and sidebar selection/focus checks
+also passed (19 cases across the affected files).
+
+The updated Windows Debug build completed in 24.9 seconds. Its isolated client displayed 700 fixture
+files in six exact groups. Root-icon selection/cancellation and group-thumbnail selection were
+observed, including the side-on frame and final checkmark. An attached hot restart could not resolve
+`AssetManifest.bin`; normal closure and launching the complete built bundle restored asset loading.
+That closed run retained the baseline metadata for all 10,000 reusable fixture files. The current
+client remains open for inspection; no physical deletion was requested through its UI.
+
+Cleanup confirmation uses `即将删除 N 张图片` without a repeated count row. The hot-reloaded client
+confirmed 209 files for one selected exact group and 490 files for the similar group, retaining
+the automatic representative's 210 physical copies. Both groups retained their thumbnail selection
+after entering members and returning; cancellation left their selection intact. Changing group
+kind cleared it. The shared album sidebar icon selected and cancelled with its check face and
+existing count/controls. The extended Flutter scope regression also covers empty return and
+similarity-degree changes. Its seven affected file-operation cases passed after this change.
+Final hosted verification remains pending; this follow-up is not part of the earlier R8 merge.

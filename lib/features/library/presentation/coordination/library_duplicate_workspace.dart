@@ -3,8 +3,10 @@ import "package:flutter/foundation.dart";
 import "../../application/library_duplicate_review_controller.dart";
 import "../../application/library_similar_review_controller.dart";
 import "../../domain/library_duplicate_review.dart";
+import "../../domain/library_file_operations.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_similar_review.dart";
+import "library_duplicate_cleanup_selection.dart";
 
 enum LibraryDuplicateView { exact, similar, ignored }
 
@@ -13,6 +15,7 @@ enum LibraryDuplicateKind { exact, similar }
 sealed class LibraryReviewGroupEntry {
   const LibraryReviewGroupEntry();
   LibraryAsset get representative;
+  LibraryCleanupGroup get cleanupKey;
 }
 
 class LibraryExactGroupEntry extends LibraryReviewGroupEntry {
@@ -20,6 +23,9 @@ class LibraryExactGroupEntry extends LibraryReviewGroupEntry {
   final LibraryDuplicateReviewGroup group;
   @override
   LibraryAsset get representative => group.representative;
+  @override
+  LibraryCleanupGroup get cleanupKey =>
+      LibraryExactCleanupGroup(group.group.digest, group.group.byteLength);
 }
 
 class LibrarySimilarGroupEntry extends LibraryReviewGroupEntry {
@@ -27,15 +33,19 @@ class LibrarySimilarGroupEntry extends LibraryReviewGroupEntry {
   final LibrarySimilarGroup group;
   @override
   LibraryAsset get representative => group.representative;
+  @override
+  LibraryCleanupGroup get cleanupKey => LibrarySimilarCleanupGroup(group.id);
 }
 
 class LibraryDuplicateWorkspace extends ChangeNotifier {
   LibraryDuplicateWorkspace({required this.exact, required this.similar}) {
     exact.addListener(notifyListeners);
     similar.addListener(notifyListeners);
+    cleanupSelection.addListener(notifyListeners);
   }
   final LibraryDuplicateReviewController exact;
   final LibrarySimilarReviewController similar;
+  final cleanupSelection = LibraryDuplicateCleanupSelection();
   LibraryDuplicateView view = LibraryDuplicateView.exact;
   LibraryDuplicateKind? memberKind;
   final Map<String, LibraryAsset> _comparison = {};
@@ -113,6 +123,9 @@ class LibraryDuplicateWorkspace extends ChangeNotifier {
     LibraryDuplicateView next, {
     LibrarySimilarityDegree? degree,
   }) async {
+    if (next != view || (degree != null && degree != similar.degree)) {
+      cleanupSelection.clear();
+    }
     view = next;
     memberKind = null;
     _comparison.clear();
@@ -204,6 +217,7 @@ class LibraryDuplicateWorkspace extends ChangeNotifier {
 
   @override
   void dispose() {
+    cleanupSelection.dispose();
     exact.dispose();
     similar.dispose();
     super.dispose();

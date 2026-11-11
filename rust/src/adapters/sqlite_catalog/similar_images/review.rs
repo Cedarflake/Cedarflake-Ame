@@ -10,7 +10,7 @@ use crate::ports::similar_images::review::{SimilarMemberCandidates, SimilarRevie
 use super::super::{SqliteCatalog, database_error};
 
 mod decisions;
-mod projection;
+pub(in crate::adapters::sqlite_catalog) mod projection;
 mod queries;
 
 impl SimilarReviewRepository for SqliteCatalog {

@@ -19,15 +19,18 @@ class LibraryDuplicateGroupCard extends StatelessWidget {
     required this.entry,
     required this.onOpen,
     this.kindLabel,
+    this.thumbnail,
     super.key,
   });
   final LibraryDuplicateReviewGroup entry;
   final VoidCallback onOpen;
   final String? kindLabel;
+  final Widget? thumbnail;
 
   @override
   Widget build(BuildContext context) => LibraryDuplicateReviewCard(
     asset: entry.representative,
+    thumbnail: thumbnail,
     onOpen: onOpen,
     details: Text(
       [
@@ -146,6 +149,7 @@ class LibraryDuplicateReviewCard extends StatelessWidget {
     required this.actions,
     this.inlineActions = false,
     this.selection,
+    this.thumbnail,
     super.key,
   });
   final LibraryAsset asset;
@@ -154,6 +158,7 @@ class LibraryDuplicateReviewCard extends StatelessWidget {
   final List<Widget> actions;
   final bool inlineActions;
   final Widget? selection;
+  final Widget? thumbnail;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -173,21 +178,22 @@ class LibraryDuplicateReviewCard extends StatelessWidget {
               width: LibraryDuplicateReviewMetrics.selectionExtent,
               child: selection,
             ),
-          ExcludeFocus(
-            child: ExcludeSemantics(
-              child: IgnorePointer(
-                child: SizedBox.square(
-                  dimension: LibraryDuplicateReviewMetrics.thumbnailExtent,
-                  child: LibraryViewerFilmstripThumbnail(
-                    asset: asset,
-                    isSelected: false,
-                    onPressed: onOpen,
-                    previewWidth: 144,
+          thumbnail ??
+              ExcludeFocus(
+                child: ExcludeSemantics(
+                  child: IgnorePointer(
+                    child: SizedBox.square(
+                      dimension: LibraryDuplicateReviewMetrics.thumbnailExtent,
+                      child: LibraryViewerFilmstripThumbnail(
+                        asset: asset,
+                        isSelected: false,
+                        onPressed: onOpen,
+                        previewWidth: 144,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

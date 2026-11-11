@@ -1,5 +1,7 @@
 import "dart:async";
 
+import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_group_thumbnail.dart";
+
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
@@ -105,6 +107,12 @@ void main() {
             tester.getTopLeft(cards.first).dx,
           );
         }
+        await tester.tap(find.byType(LibraryDuplicateGroupThumbnail).first);
+        await tester.pumpAndSettle();
+        expect(find.text("取消选择"), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.text("取消选择"));
+        await tester.pumpAndSettle();
         final categoryTop = tester.getTopLeft(category).dy;
         service.pendingGroups = Completer();
         await tester.tap(category);
