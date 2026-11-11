@@ -294,6 +294,25 @@ The renderer, progress facade, dialog helper and gallery loading region contain 
 changes; none of these owners contains inline tests. Dedicated renderer/priority tests contain 50
 and 195 lines; existing dialog and review tests retain their behavioral checks.
 
+### Selection admission and feedback
+
+Album/Favorite writes validate the frozen groups and affected decision field inside the write
+transaction. Unrelated catalog/album changes and independent Favorite changes no longer veto an
+album write. Selected content, membership, representative and later same-field decisions still
+reject stale authority. Initial all-matching preparation retains its catalog guard; explicit file
+operations already resolve current selected state before confirmation and revalidate each file.
+
+Five focused native admission/source-selection checks and the changed batch cases passed, including
+receipt replay and transactional rejection. All 25 selection-action widget checks passed; preparation
+survives a same-intent catalog publication, cancellation retires it, and failures use notifications.
+The toolbar no longer paints an error or progress line. Slow preparation uses the shared bottom
+feedback host after 500 ms. Affected Dart static analysis and formatting pass; rebuilt-client
+observation and final-head hosted checks remain pending for this follow-up.
+
+The native admission owner has 77 production lines; batch orchestration has 275 and no inline tests.
+The selection widget has 425 lines, its activity owner 35 and no inline tests. Reused selection-action
+checks contain 732 dedicated lines; native admission and batch-mutation files contain 65 and 322.
+
 ### Dialog and viewer follow-up
 
 Preparation feedback now occupies the content center; its visibility owner stays mounted through

@@ -58,6 +58,13 @@ curated-category expansion, current source validation and cached image features 
 redundant update work. Measure category-list, collection-switch and review reads on the established
 library, including active classification, rather than using loading feedback as completion evidence.
 
+The selection follow-up narrows album/Favorite admission to selected membership, source state and
+the affected decision field, preserving the initial all-matching guard and frozen file-operation
+authority. Background publications cannot cancel an unchanged explicit selection. Reuse bottom
+task/notification feedback instead of putting status text or progress under toolbar actions.
+Organization-mode entry and continuation reads must publish usable results despite repeated
+background updates, without holding the mode transition open for continuation metadata.
+
 Use existing progress, gallery and dialog regressions, adding only missing lifecycle/coordination
 coverage. The deletion follow-up also needs bounded native query and anchor checks, with read-only
 timings from the established library. Verify the affected Windows surfaces and inspect normal branch

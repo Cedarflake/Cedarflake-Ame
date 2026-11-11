@@ -14,7 +14,10 @@ use crate::ports::organization_batch::{OrganizationBatchControl, OrganizationBat
 
 use super::super::exact_duplicates::read_unsigned;
 use super::super::{SqliteCatalog, database_error, gallery};
-use super::{albums, authority, changes, favorites, inspection, operations, selection};
+use super::write_admission::DecisionField;
+use super::{
+    albums, authority, changes, favorites, inspection, operations, selection, write_admission,
+};
 
 mod preparation;
 use gallery::selection_staging as staging;
@@ -107,12 +110,16 @@ impl SqliteOrganizationBatch {
             prepared.summary.organization_revision,
             &[&prepared.authority, &payload],
         );
+        let field = match action {
+            OrganizationBatchAction::Favorite { .. } => DecisionField::Favorite,
+            OrganizationBatchAction::Organize { .. } => DecisionField::Organization,
+        };
         let transaction = self.catalog.begin_user_interactive_write()?;
-        let revision = match operations::admit(
+        let revision = match write_admission::admit(
             &transaction,
             operation_id,
             &digest,
-            kind,
+            field,
             prepared.summary.organization_revision,
         )? {
             operations::Admission::Replayed(receipt) => {
@@ -121,9 +128,6 @@ impl SqliteOrganizationBatch {
             }
             operations::Admission::New { revision } => revision,
         };
-        if revisions(&transaction)?.0 != prepared.summary.catalog_revision {
-            return Err(stale_selection());
-        }
         if let OrganizationBatchAction::Organize { action } = action
             && let Some(album_id) = action.decision().1
         {
@@ -143,9 +147,12 @@ impl SqliteOrganizationBatch {
             }
             for group in groups {
                 self.control.check()?;
-                if group.target.as_ref() != Some(&selection::target(&transaction, &group.key)?) {
-                    return Err(stale_selection());
-                }
+                write_admission::validate_group(
+                    &transaction,
+                    group.target.as_ref().ok_or_else(stale_selection)?,
+                    prepared.summary.organization_revision,
+                    field,
+                )?;
                 let result = match action {
                     OrganizationBatchAction::Favorite { favorite } => favorites::apply_group(
                         &transaction,

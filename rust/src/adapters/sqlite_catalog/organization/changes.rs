@@ -3,12 +3,13 @@ use rusqlite::{Connection, params};
 use crate::domain::ScanError;
 use crate::domain::organization::{
     OrganizationAction, OrganizationGroupKey, OrganizationPreparedSelection,
-    OrganizationWriteReceipt, stale_selection,
+    OrganizationWriteReceipt,
 };
 
 use super::super::{database_error, unix_time_ms};
 use super::operations::{self, Admission, GroupWrite};
-use super::{albums, authority, inspection, records, selection};
+use super::write_admission::DecisionField;
+use super::{albums, authority, inspection, records, write_admission};
 
 pub(super) fn save(
     connection: &Connection,
@@ -17,19 +18,17 @@ pub(super) fn save(
     action: &OrganizationAction,
 ) -> Result<OrganizationWriteReceipt, ScanError> {
     let digest = authority::change_request(prepared, action);
-    let revision = match operations::admit(
+    let revision = match write_admission::admit(
         connection,
         operation_id,
         &digest,
-        "organization",
+        DecisionField::Organization,
         prepared.organization_revision,
     )? {
         Admission::Replayed(receipt) => return Ok(receipt),
         Admission::New { revision } => revision,
     };
-    if &selection::prepare(connection, &prepared.selections)? != prepared {
-        return Err(stale_selection());
-    }
+    write_admission::validate_selection(connection, prepared, DecisionField::Organization)?;
     let (_, album_id) = action.decision();
     if let Some(album_id) = album_id {
         albums::require_active(connection, album_id)?;

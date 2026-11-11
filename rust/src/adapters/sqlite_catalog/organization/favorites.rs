@@ -2,12 +2,13 @@ use rusqlite::{Connection, params};
 
 use crate::domain::ScanError;
 use crate::domain::organization::{
-    OrganizationGroupKey, OrganizationPreparedSelection, OrganizationWriteReceipt, stale_selection,
+    OrganizationGroupKey, OrganizationPreparedSelection, OrganizationWriteReceipt,
 };
 
 use super::super::{database_error, unix_time_ms};
 use super::operations::{self, Admission, GroupWrite};
-use super::{authority, records, selection};
+use super::write_admission::DecisionField;
+use super::{authority, records, write_admission};
 
 pub(super) fn save(
     connection: &Connection,
@@ -16,19 +17,17 @@ pub(super) fn save(
     favorite: bool,
 ) -> Result<OrganizationWriteReceipt, ScanError> {
     let digest = authority::favorite_request(prepared, favorite);
-    let next_revision = match operations::admit(
+    let next_revision = match write_admission::admit(
         connection,
         operation_id,
         &digest,
-        "favorite",
+        DecisionField::Favorite,
         prepared.organization_revision,
     )? {
         Admission::Replayed(receipt) => return Ok(receipt),
         Admission::New { revision } => revision,
     };
-    if &selection::prepare(connection, &prepared.selections)? != prepared {
-        return Err(stale_selection());
-    }
+    write_admission::validate_selection(connection, prepared, DecisionField::Favorite)?;
     let mut changed_groups = 0_u64;
     let mut reconciled = false;
     for group in &prepared.groups {

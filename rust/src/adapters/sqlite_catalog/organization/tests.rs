@@ -28,6 +28,7 @@ mod retained_profile;
 mod review;
 mod transitions;
 mod undo;
+mod write_admission;
 
 pub(in crate::adapters::sqlite_catalog) fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
     let directory = tempfile::tempdir().unwrap();

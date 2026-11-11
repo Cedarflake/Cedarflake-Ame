@@ -293,9 +293,12 @@ deduplicates repeated members and selects the current global representative, hon
 preference. R3 visible selection, folder scope and physical-location inspection retain their rules.
 
 A prepared command carries the catalog and organization revisions and selected asset/location/
-generation identities. Commit rechecks these authorities inside the write transaction. A changed
-representative, membership, content version or intervening decision rejects the stale command;
-the client refreshes its proposal. A pending retained display relationship is not a confirmed
+generation identities. Commit rechecks selected groups inside the write transaction: representative,
+membership, content version and the field being changed. A later decision on that field rejects
+the stale command; unrelated catalog publications, other groups' decisions and independent Favorite
+changes do not reject an album/progress write. Global revisions sequence receipts and publications,
+rather than vetoing an otherwise unchanged selection. The client refreshes a rejected proposal.
+A pending retained display relationship is not a confirmed
 singleton and cannot admit a group write. Resolution and virtual mutations perform no filesystem
 reads, scans, decoding or hydration.
 
@@ -416,8 +419,10 @@ connection-local SQLite temporary tables backed by bounded caches, outside origi
 No transaction remains open while a destination dialog waits. The existing gallery predicates own
 visible query membership, including folded representatives, folders, search and collection scopes.
 
-Preparation returns scalar counts and common-assignment information. Commit revalidates the observed
-catalog/decision revisions and each group's content/membership authority, then applies all selected
+Preparation returns scalar counts and common-assignment information. Explicit IDs resolve current
+groups at preparation; an unfrozen all-matching selection retains its catalog revision guard so
+new results cannot silently enter a select-all gesture. Commit revalidates each frozen group's
+content/membership authority and the affected decision field, then applies all selected
 groups under one operation and one transaction. Cancellation or a later failure rolls back the whole
 operation; receipt replay remains independent of later catalog changes. Progress and cancellation
 are session-owned, and closing or dropping a session releases its temporary data. Pending selections

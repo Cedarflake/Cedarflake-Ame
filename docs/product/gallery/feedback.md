@@ -40,6 +40,10 @@ when the terminal result replaces progress. Hidden indicators stop ticking and e
 loading semantics; reduced motion skips the fade while retaining the quiet interval. Storage-usage
 gauges describe measured capacity and are not delayed as loading feedback.
 
+Gallery selection preparation and saves use the existing bottom feedback host after their quiet
+interval. Preparation failures use its notification template. Selection toolbars contain actions;
+they do not add an inline error sentence or a separate progress line under the buttons.
+
 `AmeLoadingProgress` supplies Expressive shape feedback for short content reads. Initial gallery and
 review loading share one visibility owner for the centered indicator and top line; brief work shows
 neither. Usable content remains during continuation/background reads, with the top line alone.
