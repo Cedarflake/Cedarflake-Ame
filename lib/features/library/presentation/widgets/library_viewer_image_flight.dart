@@ -123,7 +123,9 @@ class RenderLibraryViewerImageFlight extends RenderProxyBox {
     return targetOrigin;
   }
 
-  ({Matrix4 transform, RRect clip})? _frame(LibraryViewerOrigin? targetOrigin) {
+  ({Matrix4 transform, RRect clip, Rect visibleClip})? _frame(
+    LibraryViewerOrigin? targetOrigin,
+  ) {
     final animation = _animation;
     if (targetOrigin == null ||
         animation == null ||
@@ -131,12 +133,16 @@ class RenderLibraryViewerImageFlight extends RenderProxyBox {
         !hasSize) {
       return null;
     }
-    final globalBounds = targetOrigin.bounds;
+    final geometry = targetOrigin.geometry;
     final progress = animation.value.clamp(0.0, 1.0);
     if (progress == 1 || size.isEmpty) return null;
     final inverse = Matrix4.tryInvert(getTransformTo(null));
     if (inverse == null) return null;
-    final sourceBox = MatrixUtils.transformRect(inverse, globalBounds);
+    final sourceBox = MatrixUtils.transformRect(inverse, geometry.bounds);
+    final visibleSource = MatrixUtils.transformRect(
+      inverse,
+      geometry.visibleBounds,
+    );
     final source = Alignment.center.inscribe(
       applyBoxFit(targetOrigin.fit, _imageSize, sourceBox.size).destination,
       sourceBox,
@@ -158,10 +164,18 @@ class RenderLibraryViewerImageFlight extends RenderProxyBox {
       ..translateByDouble(-target.center.dx, -target.center.dy, 0, 1);
     return (
       transform: transform,
-      clip: RRect.fromRectAndRadius(
-        Rect.lerp(source, target, progress)!,
-        Radius.circular(targetOrigin.radius * (1 - progress)),
-      ),
+      visibleClip: Rect.lerp(visibleSource, target, progress)!,
+      clip: RRect.lerp(
+        RRect.fromRectAndRadius(
+          sourceBox,
+          Radius.elliptical(
+            targetOrigin.radius * sourceBox.width / geometry.bounds.width,
+            targetOrigin.radius * sourceBox.height / geometry.bounds.height,
+          ),
+        ),
+        RRect.fromRectAndRadius(target, Radius.zero),
+        progress,
+      )!,
     );
   }
 
@@ -181,16 +195,21 @@ class RenderLibraryViewerImageFlight extends RenderProxyBox {
       }
       return;
     }
-    context.pushClipRRect(
+    context.pushClipRect(
       needsCompositing,
       offset,
-      frame.clip.outerRect,
-      frame.clip,
-      (context, offset) => context.pushTransform(
+      frame.visibleClip,
+      (context, offset) => context.pushClipRRect(
         needsCompositing,
         offset,
-        frame.transform,
-        super.paint,
+        frame.clip.outerRect,
+        frame.clip,
+        (context, offset) => context.pushTransform(
+          needsCompositing,
+          offset,
+          frame.transform,
+          super.paint,
+        ),
       ),
     );
   }

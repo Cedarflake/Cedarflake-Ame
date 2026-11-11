@@ -11,6 +11,7 @@ class LibraryImageReveal extends StatefulWidget {
     this.frameBuilder,
     this.placeholder,
     this.errorBuilder,
+    this.deferReveal = false,
     this.duration = const Duration(milliseconds: 120),
     super.key,
   });
@@ -23,6 +24,7 @@ class LibraryImageReveal extends StatefulWidget {
   final ImageFrameBuilder? frameBuilder;
   final Widget? placeholder;
   final ImageErrorWidgetBuilder? errorBuilder;
+  final bool deferReveal;
   final Duration duration;
 
   @override
@@ -44,7 +46,7 @@ class _LibraryImageRevealState extends State<LibraryImageReveal>
     _controller = AnimationController(
       vsync: this,
       duration: widget.duration,
-      value: 1,
+      value: widget.deferReveal ? 0 : 1,
     );
     _opacity = _controller.drive(CurveTween(curve: Curves.easeOut));
   }
@@ -73,7 +75,13 @@ class _LibraryImageRevealState extends State<LibraryImageReveal>
     _controller.duration = widget.duration;
     if (oldWidget.revealIdentity != widget.revealIdentity) {
       _hasFrame = false;
-      _controller.value = 1;
+      _controller.value = widget.deferReveal ? 0 : 1;
+    }
+    if (widget.deferReveal) {
+      _controller.stop();
+      if (!_hasFrame) _controller.value = 0;
+    } else if (oldWidget.deferReveal && _hasFrame && _controller.value < 1) {
+      _controller.forward();
     }
   }
 
@@ -90,13 +98,13 @@ class _LibraryImageRevealState extends State<LibraryImageReveal>
     int? frame,
     bool synchronous,
   ) {
-    if (!_hasFrame && (frame != null || synchronous)) {
+    if (!_hasFrame && !widget.deferReveal && (frame != null || synchronous)) {
       _hasFrame = true;
       final lastScrollAt = _lastScrollAt;
       final recentlyScrolled =
           lastScrollAt != null &&
           DateTime.now().difference(lastScrollAt) < widget.duration;
-      if (synchronous ||
+      if ((synchronous && _controller.value != 0) ||
           _skipMotion ||
           recentlyScrolled ||
           _position?.isScrollingNotifier.value == true) {
@@ -132,7 +140,11 @@ class _LibraryImageRevealState extends State<LibraryImageReveal>
     gaplessPlayback: true,
     opacity: _opacity,
     frameBuilder: _buildFrame,
-    errorBuilder: widget.errorBuilder,
+    errorBuilder: widget.errorBuilder == null
+        ? null
+        : (context, error, stackTrace) => widget.deferReveal && !_hasFrame
+              ? _buildFrame(context, const SizedBox.shrink(), null, false)
+              : widget.errorBuilder!(context, error, stackTrace),
   );
 
   @override

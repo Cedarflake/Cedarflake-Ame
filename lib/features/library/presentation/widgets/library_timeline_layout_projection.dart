@@ -25,10 +25,11 @@ class LibraryTimelineLayoutProjection {
         <({TimelineRailBucket bucket, double offset, int itemOffset})>[];
     for (var index = 0; index < buckets.length; index++) {
       final bucket = buckets[index];
-      final offset =
-          monthOffsets[bucket.id] ??
-          metrics.offsetForGlobalItemIndex(itemOffset) ??
-          metrics.contentExtent;
+      final offset = index == 0
+          ? 0.0
+          : monthOffsets[bucket.id] ??
+                metrics.offsetForGlobalItemIndex(itemOffset) ??
+                metrics.contentExtent;
       starts.add((bucket: bucket, offset: offset, itemOffset: itemOffset));
       itemOffset += timeline.buckets[index].itemCount;
     }

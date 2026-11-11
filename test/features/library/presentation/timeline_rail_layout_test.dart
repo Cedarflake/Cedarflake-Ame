@@ -32,11 +32,28 @@ void main() {
     expect(layout.labelIds, isEmpty);
     expect(layout.markerIds, isEmpty);
   });
+
+  test("the endpoint replaces a nearby dot without moving its date label", () {
+    final layout = _layout([
+      _anchor("first", 0, isYearStart: true),
+      _anchor("last-month", 0.98, isYearStart: true),
+    ], includeEndMarker: true);
+    expect(layout.labelIds, {"first", "last-month"});
+    expect(layout.markerIds, {"first"});
+    expect(layout.showEndMarker, isTrue);
+    final aligned = _layout([
+      _anchor("first", 0, isYearStart: true),
+      _anchor("last-month", 1, isYearStart: true),
+    ], includeEndMarker: true);
+    expect(aligned.markerIds, {"first", "last-month"});
+    expect(aligned.showEndMarker, isFalse);
+  });
 }
 
 TimelineRailLayout _layout(
   List<TimelineRailAnchor> anchors, {
   double railExtent = 300,
+  bool includeEndMarker = false,
 }) => TimelineRailLayout(
   anchors: anchors,
   railExtent: railExtent,
@@ -44,6 +61,7 @@ TimelineRailLayout _layout(
   labelExtent: 24,
   markerExtent: 4,
   markerMinimumGap: 6,
+  includeEndMarker: includeEndMarker,
 );
 
 TimelineRailAnchor _anchor(

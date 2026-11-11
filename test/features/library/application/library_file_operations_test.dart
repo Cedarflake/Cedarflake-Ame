@@ -1,9 +1,12 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_group_thumbnail.dart";
+import "package:cedarflake_ame/app/presentation/ame_dialog.dart";
+import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
 
 import "package:cedarflake_ame/features/library/application/library_file_operations.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/application/library_duplicate_review_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_similar_review_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_file_selection.dart";
@@ -16,6 +19,7 @@ import "package:cedarflake_ame/features/library/domain/library_organization_batc
 import "package:cedarflake_ame/features/library/domain/library_similar_review.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_file_action_dialog.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_file_history.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_context_menu.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_duplicate_workspace.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_cleanup_action.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_results.dart";
@@ -25,8 +29,76 @@ import "package:material_ui/material_ui.dart";
 import "../../../support/application_test_bindings.dart";
 import "../../../support/duplicate_review_fixtures.dart";
 import "../../../support/similar_review_fixtures.dart";
+import "../support/library_organization_fixture.dart";
 
 void main() {
+  testWidgets(
+    "file selection uses the revision when the menu action is chosen",
+    (tester) async {
+      final backend = _Backend();
+      final menu = LibraryPhotoContextMenu();
+      final container = ProviderContainer(
+        overrides: applicationTestOverrides([
+          libraryControllerProvider.overrideWith(_RefreshingLibrary.new),
+          libraryOrganizationProvider.overrideWithValue(
+            OrganizationServiceFixture(),
+          ),
+          libraryFileOperationsProvider.overrideWithValue(backend),
+        ]),
+      );
+      addTearDown(menu.dispose);
+      addTearDown(container.dispose);
+      final library =
+          container.read(libraryControllerProvider.notifier)
+              as _RefreshingLibrary;
+      library.showMergedGallery();
+      var current = true;
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, _) => TextButton(
+                  child: const Text("打开菜单"),
+                  onPressed: () => menu.open(
+                    context: context,
+                    ref: ref,
+                    position: const RelativeRect.fromLTRB(10, 40, 500, 0),
+                    target: organizationTarget("one"),
+                    isCurrent: () => current,
+                    onOpen: () {},
+                    onInformation: () {},
+                    onCopyPath: () {},
+                    onReveal: () {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text("打开菜单"));
+      await tester.pumpAndSettle();
+      library.publishRevision(BigInt.two);
+      await tester.tap(find.text("删除"));
+      await tester.pumpAndSettle();
+      final selected = backend.selections.single as LibraryFileGroupsInGallery;
+      expect(selected.selection.catalogRevision, BigInt.two);
+      expect(selected.selection.assetIds, ["asset-one"]);
+      expect(backend.commands, isEmpty);
+      await tester.tap(find.text("取消"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("打开菜单"));
+      await tester.pumpAndSettle();
+      current = false;
+      await tester.tap(find.text("删除"));
+      await tester.pumpAndSettle();
+      expect(backend.selections, hasLength(1));
+      expect(backend.commands, isEmpty);
+    },
+  );
+
   testWidgets(
     "cleanup scopes and completion preserve group selection authority",
     (tester) async {
@@ -461,8 +533,63 @@ void main() {
       await tester.tap(find.text("取消"));
       await tester.pumpAndSettle();
       expect(backend.commands, hasLength(1));
+      final opening = Completer<LibraryFileSelectionDraft>();
+      backend.opening = opening.future;
+      await tester.tap(find.text("打开删除确认"));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 200));
+      final progressFade = find
+          .ancestor(
+            of: find.byType(AmeLoadingIndicator),
+            matching: find.byType(FadeTransition),
+          )
+          .first;
+      final opacity = tester.widget<FadeTransition>(progressFade).opacity;
+      expect(opacity.value, greaterThan(0.99));
+      expect(
+        tester.getCenter(find.byType(AmeLoadingIndicator)),
+        tester.getCenter(find.byType(AmeDialogContent)),
+      );
+      expect(find.text("永久删除").hitTestable(), findsNothing);
+      opening.completeError(
+        const LibraryFileFailure(
+          "organization_selection_changed",
+          "Stale selection",
+        ),
+      );
+      await tester.pump();
+      expect(
+        tester.widget<FadeTransition>(progressFade).opacity,
+        same(opacity),
+      );
+      expect(opacity.value, greaterThan(0));
+      expect(find.text("返回").hitTestable(), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(opacity.value, 0);
+      expect(find.text("所选图片已变化，请查看当前图库后重新选择。"), findsOneWidget);
+      expect(find.text("文件将移入 Windows 回收站。"), findsNothing);
+      expect(find.byType(CheckboxListTile), findsNothing);
+      expect(find.byType(FilledButton), findsNothing);
+      await tester.tap(find.text("返回"));
+      await tester.pumpAndSettle();
+      expect(backend.commands, hasLength(1));
     },
   );
+}
+
+class _RefreshingLibrary extends OrganizationLibraryFixture {
+  void showMergedGallery() {
+    state = state.copyWith(
+      query: state.query.copyWith(
+        duplicateMode: LibraryGalleryDuplicateMode.merged,
+      ),
+    );
+  }
+
+  void publishRevision(BigInt revision) {
+    state = state.copyWith(catalogRevision: revision);
+  }
 }
 
 class _Backend implements LibraryFileOperations {

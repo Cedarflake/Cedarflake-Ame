@@ -9,6 +9,7 @@ class TimelineRailLayout {
     required double labelExtent,
     required double markerExtent,
     required double markerMinimumGap,
+    bool includeEndMarker = false,
   }) {
     final labels = layoutTimelineAnnotations(
       [
@@ -55,9 +56,25 @@ class TimelineRailLayout {
       endInset: endpointInset,
       minimumGap: markerMinimumGap,
     );
-    markerIds = Set.unmodifiable({...labelIds, ...markers});
+    final visibleMarkers = {...labelIds, ...markers};
+    showEndMarker =
+        includeEndMarker &&
+        usableExtent >= markerExtent &&
+        !anchors.any(
+          (anchor) =>
+              anchor.value == 1 && visibleMarkers.contains(anchor.bucket.id),
+        );
+    if (showEndMarker) {
+      for (final anchor in anchors) {
+        if ((1 - anchor.value) * usableExtent < reservedDistance) {
+          visibleMarkers.remove(anchor.bucket.id);
+        }
+      }
+    }
+    markerIds = Set.unmodifiable(visibleMarkers);
   }
 
   late final Set<String> labelIds;
   late final Set<String> markerIds;
+  late final bool showEndMarker;
 }

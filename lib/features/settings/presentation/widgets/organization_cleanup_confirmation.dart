@@ -67,70 +67,69 @@ class _OrganizationCleanupConfirmation extends ConsumerWidget {
       scrollable: true,
       content: SizedBox(
         width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AmeDialogField(
-              label: "清理范围",
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: AmeChoice<int>.menu(
-                  key: const Key("settings-cleanup-age"),
-                  value: minimumAgeDays,
-                  enabled: state is! LibraryCleanupWorking,
-                  entries: const [
-                    AmeChoiceEntry(value: 90, label: "未关联超过 90 天"),
-                    AmeChoiceEntry(value: 30, label: "未关联超过 30 天"),
-                    AmeChoiceEntry(value: 0, label: "全部未关联记录"),
-                  ],
-                  onSelected: (value) {
-                    if (value == null || value == minimumAgeDays) return;
-                    unawaited(controller.inspect(value == 0 ? null : value));
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            switch (state) {
-              LibraryCleanupReady(:final inspection) => _inspection(inspection),
-              LibraryCleanupWorking() => const SizedBox.shrink(),
-              LibraryCleanupFailed() => const Text("未能完成检查，请重试。"),
-              LibraryCleanupFinished() => const Text("检查已取消"),
-              LibraryCleanupIdle() => const SizedBox.shrink(),
-            },
-          ],
-        ),
-      ),
-      actions: [
-        AmeDialogActions(
-          width: 420,
+        child: AmeDialogContent(
           isLoading: state is LibraryCleanupWorking,
           loadingLabel: state is LibraryCleanupWorking && state.stopping
               ? "正在停止"
               : "正在检查记录",
-          actions: [
-            TextButton(
-              autofocus: true,
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("取消"),
-            ),
-            if (state is LibraryCleanupFailed)
-              FilledButton(
-                key: const Key("organization-cleanup-retry"),
-                onPressed: () => unawaited(controller.retry()),
-                child: const Text("重试"),
-              )
-            else
-              FilledButton(
-                key: const Key("organization-cleanup-confirm"),
-                onPressed: ready != null && ready.inspection.total > 0
-                    ? () => Navigator.of(context).pop(ready)
-                    : null,
-                child: const Text("清理记录"),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AmeDialogField(
+                label: "清理范围",
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: AmeChoice<int>.menu(
+                    key: const Key("settings-cleanup-age"),
+                    value: minimumAgeDays,
+                    enabled: state is! LibraryCleanupWorking,
+                    entries: const [
+                      AmeChoiceEntry(value: 90, label: "未关联超过 90 天"),
+                      AmeChoiceEntry(value: 30, label: "未关联超过 30 天"),
+                      AmeChoiceEntry(value: 0, label: "全部未关联记录"),
+                    ],
+                    onSelected: (value) {
+                      if (value == null || value == minimumAgeDays) return;
+                      unawaited(controller.inspect(value == 0 ? null : value));
+                    },
+                  ),
+                ),
               ),
-          ],
+              const SizedBox(height: 16),
+              switch (state) {
+                LibraryCleanupReady(:final inspection) => _inspection(
+                  inspection,
+                ),
+                LibraryCleanupWorking() => const SizedBox.shrink(),
+                LibraryCleanupFailed() => const Text("未能完成检查，请重试。"),
+                LibraryCleanupFinished() => const Text("检查已取消"),
+                LibraryCleanupIdle() => const SizedBox.shrink(),
+              },
+            ],
+          ),
         ),
+      ),
+      actions: [
+        TextButton(
+          autofocus: true,
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text("取消"),
+        ),
+        if (state is LibraryCleanupFailed)
+          FilledButton(
+            key: const Key("organization-cleanup-retry"),
+            onPressed: () => unawaited(controller.retry()),
+            child: const Text("重试"),
+          )
+        else
+          FilledButton(
+            key: const Key("organization-cleanup-confirm"),
+            onPressed: ready != null && ready.inspection.total > 0
+                ? () => Navigator.of(context).pop(ready)
+                : null,
+            child: const Text("清理记录"),
+          ),
       ],
     );
   }

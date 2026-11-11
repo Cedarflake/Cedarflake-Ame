@@ -51,8 +51,9 @@ Only a rail waiting independently of available content shows its own circle. The
 divider; its width, hit targets and navigation behavior stay unchanged. Compact search/sidebar
 controls, filmstrip edge cards, task progress and capacity gauges retain their existing indicators.
 
-Confirmation reads use a small indicator at the left of the action row, retaining the buttons
-and their admission rules at the right. List trays use centered feedback on an initial read and a
+Confirmation reads center the indicator in the content area, retaining the buttons and their
+admission rules below. The indicator remains mounted through its dismissal fade; completing a read
+does not abruptly remove its visibility owner. List trays use centered feedback on an initial read and a
 small indicator beside the title or paging actions when retaining an existing list.
 Loading icons have accessible status labels, without visible loading captions beside or below them.
 

@@ -231,6 +231,98 @@ fn file_operation_selection_freezes_visible_files_or_explicitly_selected_groups(
 }
 
 #[test]
+fn file_operation_selection_reads_current_state_before_freezing_confirmation() {
+    let (directory, journal, _) = fixture();
+    let connection = &journal.catalog.connection;
+    let original = journal
+        .catalog
+        .load_active_location("photo-a")
+        .unwrap()
+        .unwrap();
+    let revision = connection
+        .query_row("SELECT revision FROM catalog_state", [], |row| {
+            row.get::<_, i64>(0)
+        })
+        .unwrap() as u64;
+    let path = directory.path().join("catalog.sqlite3");
+    let query = GalleryQuery {
+        duplicate_mode: GalleryDuplicateMode::Merged,
+        ..GalleryQuery::default()
+    };
+    connection.execute_batch(
+        "UPDATE catalog_state SET revision = revision + 1, next_source_generation = next_source_generation + 1;
+         UPDATE asset_locations SET source_generation = source_generation + 1, file_size = 45;",
+    ).unwrap();
+    for scope in [
+        Scope::Gallery {
+            query: Box::new(query.clone()),
+            catalog_revision: revision,
+            all_matching: false,
+        },
+        Scope::MergedGalleryGroups {
+            query: Box::new(query.clone()),
+            catalog_revision: revision,
+            all_matching: false,
+        },
+        Scope::Locations,
+    ] {
+        let locations = matches!(scope, Scope::Locations);
+        let mut selected = open(&path, scope);
+        if locations {
+            selected
+                .append_locations(&[OrganizationSelection {
+                    asset_id: original.asset_id.clone(),
+                    location_id: original.location_id.clone(),
+                    source_generation: original.source_generation,
+                }])
+                .unwrap();
+        } else {
+            selected
+                .append_ids(std::slice::from_ref(&original.asset_id))
+                .unwrap();
+        }
+        let summary = selected.prepare().unwrap();
+        assert_eq!((summary.file_count, summary.total_bytes), (1, 45));
+        let frozen = selected.page(None).unwrap();
+        assert_eq!(frozen[0].location.location_id, original.location_id);
+        assert_eq!(
+            frozen[0].location.source_generation,
+            original.source_generation + 1
+        );
+        connection
+            .execute("UPDATE catalog_state SET revision = revision + 1", [])
+            .unwrap();
+        assert_eq!(selected.prepare().unwrap(), summary);
+        assert_eq!(selected.page(None).unwrap().len(), 1);
+        connection
+            .execute(
+                "UPDATE asset_locations SET source_generation = source_generation + 1",
+                [],
+            )
+            .unwrap();
+        assert!(selected.page(None).is_err());
+        connection
+            .execute(
+                "UPDATE asset_locations SET source_generation = source_generation - 1",
+                [],
+            )
+            .unwrap();
+    }
+    let mut all = open(
+        &path,
+        Scope::Gallery {
+            query: Box::new(query),
+            catalog_revision: revision,
+            all_matching: true,
+        },
+    );
+    assert_eq!(
+        all.prepare().unwrap_err().code,
+        "organization_selection_changed"
+    );
+}
+
+#[test]
 fn file_operation_selection_rejects_conflicting_physical_generations() {
     let (directory, journal, _) = fixture();
     let location = journal

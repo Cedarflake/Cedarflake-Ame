@@ -1,7 +1,7 @@
 # Loading indicator adoption
 
 The [roadmap](../roadmap.md#loading-feedback) owns delivery status. This plan defines one
-presentation-only change on `codex/loading-indicator`.
+presentation change on `codex/loading-indicator`.
 
 ## Outcome
 
@@ -14,13 +14,14 @@ The existing delay suppresses brief loading feedback; completed work never waits
 | Slice | Scope | Verification |
 | --- | --- | --- |
 | L1 | Adapt the indeterminate animation from `flutter/packages` PR 13429 at `9eaa17df4e0ba4b067a7203e857953e3d4bc04bd`, using installed Material shapes; retain attribution and notices behind an Ame component | Fixed geometry, reduced motion, hidden/disposed ticker retirement and the existing quiet interval |
-| L2 | Replace preparation bars in file-action and cleanup confirmations with an action-row indicator; replace album, location and history tray read bars with content/header feedback | Delayed reads, completion, failure/retry and cancellation retain their actions and layout |
+| L2 | Replace preparation bars in file-action and cleanup confirmations with a centered content indicator; replace album, location and history tray read bars with content/header feedback | Delayed reads, completion, failure/retry and cancellation retain their actions and layout |
 | L3 | Coordinate gallery/review loading, remove the review's empty-card wall and remove the timeline divider | First load/scope change, retained content, continuation demand and mutual exclusion of content/timeline indicators |
 
 ## Surface decisions
 
-- Confirmation dialogs reserve a small loading icon on the left of the action row, with existing
-  cancel/confirm actions on the right. Selection preparation still gates confirmation.
+- Confirmation dialogs center the loading icon in the content area, replacing the pending content.
+  Existing actions stay below; selection preparation still gates confirmation. Preparation failures
+  replace the pending form with a readable explanation and a return action.
 - Loading indicators have no visible loading captions. Keep accessible status labels and existing
   surface titles, consequences and recovery text.
 - List trays show the indicator in empty content while reading, and beside the title when retaining
@@ -39,6 +40,12 @@ The existing delay suppresses brief loading feedback; completed work never waits
   current components. This is not a global replacement of every circular/linear indicator.
 
 ## Delivery and replacement
+
+The follow-up scope also covers viewer quality/corner continuity, partial-card return clipping,
+the filter-menu affordance, compact confirmation states and short-gallery rail endpoints.
+Explicit file selection retains its mode during same-scope updates and resolves its current
+state before confirmation under [ADR 0042](../architecture/0042-windows-file-operations.md), with
+focused native selection verification in addition to the presentation checks below.
 
 Use existing progress, gallery and dialog regressions, adding only missing lifecycle/coordination
 coverage. Verify the affected Windows surfaces and inspect normal branch CI; do not run native

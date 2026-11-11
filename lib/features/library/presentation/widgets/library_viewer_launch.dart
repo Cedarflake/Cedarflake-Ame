@@ -1,32 +1,33 @@
-import "package:flutter/rendering.dart";
 import "package:material_ui/material_ui.dart";
+
+typedef LibraryViewerGeometry = ({Rect bounds, Rect visibleBounds});
 
 /// A single visible thumbnail, with no image lease or catalog authority.
 class LibraryViewerOrigin {
   const LibraryViewerOrigin({
     required this.locationId,
-    required this.bounds,
-    required this.currentBounds,
+    required this.geometry,
+    required this.currentGeometry,
     required this.fit,
     required this.radius,
     this.findTarget,
   });
 
   final String locationId;
-  final Rect bounds;
-  final Rect? Function() currentBounds;
+  final LibraryViewerGeometry geometry;
+  final LibraryViewerGeometry? Function() currentGeometry;
   final BoxFit fit;
   final double radius;
   final LibraryViewerOrigin? Function(String)? findTarget;
 
   LibraryViewerOrigin? resolve() {
-    final current = currentBounds();
+    final current = currentGeometry();
     return current == null
         ? null
         : LibraryViewerOrigin(
             locationId: locationId,
-            bounds: current,
-            currentBounds: currentBounds,
+            geometry: current,
+            currentGeometry: currentGeometry,
             fit: fit,
             radius: radius,
             findTarget: findTarget,
@@ -114,7 +115,7 @@ class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
     super.dispose();
   }
 
-  Rect? _bounds(String locationId) {
+  LibraryViewerGeometry? _geometry(String locationId) {
     if (!mounted || widget.locationId != locationId) return null;
     final box = _thumbnailKey.currentContext?.findRenderObject();
     if (box is! RenderBox ||
@@ -127,27 +128,34 @@ class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
       box.getTransformTo(null),
       Offset.zero & box.size,
     );
-    final RenderObject? viewport = RenderAbstractViewport.maybeOf(box);
-    if (viewport is RenderBox &&
-        !bounds.overlaps(
-          MatrixUtils.transformRect(
-            viewport.getTransformTo(null),
-            Offset.zero & viewport.size,
-          ),
-        )) {
-      return null;
+    if (!bounds.isFinite || bounds.isEmpty) return null;
+    var visibleBounds = bounds;
+    RenderObject descendant = box;
+    for (
+      var ancestor = box.parent;
+      ancestor != null;
+      ancestor = ancestor.parent
+    ) {
+      final clip = ancestor.describeApproximatePaintClip(descendant);
+      if (clip != null) {
+        visibleBounds = visibleBounds.intersect(
+          MatrixUtils.transformRect(ancestor.getTransformTo(null), clip),
+        );
+        if (!visibleBounds.isFinite || visibleBounds.isEmpty) return null;
+      }
+      descendant = ancestor;
     }
-    return bounds.isFinite && !bounds.isEmpty ? bounds : null;
+    return (bounds: bounds, visibleBounds: visibleBounds);
   }
 
   LibraryViewerOrigin? _origin(String locationId) {
-    final bounds = _bounds(locationId);
-    return bounds == null
+    final geometry = _geometry(locationId);
+    return geometry == null
         ? null
         : LibraryViewerOrigin(
             locationId: locationId,
-            bounds: bounds,
-            currentBounds: () => _bounds(locationId),
+            geometry: geometry,
+            currentGeometry: () => _geometry(locationId),
             fit: widget.fit,
             radius: widget.radius,
             findTarget: _origins?.find,

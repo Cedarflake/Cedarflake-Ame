@@ -163,7 +163,13 @@ class _LibraryGalleryFilterState extends State<LibraryGalleryFilter> {
           key: const Key("library-filter-menu"),
           onPressed: openMenu,
           isSelected: active,
-          icon: const Icon(Symbols.filter_list_rounded),
+          icon: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Symbols.filter_list_rounded),
+              Icon(Symbols.arrow_drop_down_rounded, size: 18),
+            ],
+          ),
         ),
       ),
     );

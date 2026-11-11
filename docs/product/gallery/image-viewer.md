@@ -26,12 +26,15 @@ Closing immediately retires viewer input, accessibility focus and
 source-read authority; at most one non-interactive closing surface remains for the visual exit.
 Reopening replaces that surface, and further pointer input finishes entry immediately. Disabled
 animations use an immediate transition. Original pixels reveal over the same image's small preview
-in 100 ms without resetting the zoom transform. The existing preview element stays mounted across
+in 100 ms after entry finishes, without resetting the zoom transform. A return freezes any active
+quality blend; decoded source arrival cannot replace the travelling preview. The existing preview element stays mounted across
 the original's first frame, including after cache eviction, and is released when the reveal finishes.
 The viewer captures its activated thumbnail and tracks geometry suppliers only for mounted lazy
 cards. Returning to a still-visible matching card reverses the image transition, including after
 adjacent navigation. A removed/offscreen card or rotated viewing direction uses the shared fade
 instead. Missing launch geometry also falls back to the fade.
+The image clip follows the card's full bounds and corner radius in screen coordinates, including
+under viewer zoom; the visible viewport clips partial cards throughout the return.
 These transitions reuse the current image element and source lifecycle, without another decode,
 image buffer, layout interpolation or queue of outgoing full-resolution images. Duplicate review
 uses the same image transition from its member thumbnail; comparison retains the surface fade.

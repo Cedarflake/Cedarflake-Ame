@@ -105,6 +105,8 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                   labelExtent: _labelExtent,
                   markerExtent: _markerExtent,
                   markerMinimumGap: _markerMinimumGap,
+                  includeEndMarker:
+                      anchors.isNotEmpty && projection.maximumOffset > 0,
                 );
                 final currentBucketId = anchors.isEmpty
                     ? null
@@ -182,6 +184,20 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                             child: const TimelineRailTicks(
                               endpointInset: _endpointInset,
                             ),
+                          ),
+                        if (layout.showEndMarker)
+                          TimelineRailPosition(
+                            key: const Key("timeline-end-marker"),
+                            geometry: geometry,
+                            isInteracting: _isDragging,
+                            rect: Rect.fromLTWH(
+                              _axisX - _markerExtent / 2,
+                              _topForValue(1, constraints.maxHeight) -
+                                  _markerExtent / 2,
+                              _markerExtent,
+                              _markerExtent,
+                            ),
+                            child: const TimelineRailMarker(),
                           ),
                         for (final anchor in anchors)
                           ..._buildAnnotation(

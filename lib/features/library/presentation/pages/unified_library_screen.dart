@@ -421,12 +421,13 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     }
     setState(() {
       if (_selectionStableQueryId == next.stableQueryId) {
+        _isSelecting = _isSelecting && !_selection.isAllMatching;
         _selection = _selection.rebind(next.queryId);
       } else {
         _selection = GallerySelection.empty(next.queryId);
+        _isSelecting = false;
       }
       _selectionStableQueryId = next.stableQueryId;
-      _isSelecting = !_selection.isEmpty;
     });
   }
 

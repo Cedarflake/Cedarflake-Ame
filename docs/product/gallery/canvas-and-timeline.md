@@ -120,6 +120,9 @@ shared principles; the roadmap owns current delivery order and acceptance status
   may cluster. Year-text collision handling never redistributes the scroll axis or month points;
   marker thinning uses only dot collisions because text has a separate column. The current-position
   indicator has a fixed visual height and does not represent the viewport height.
+- The first date maps to the top scroll position, excluding decorative content padding. A scrollable
+  rail also marks the bottom endpoint when no date marker already occupies it; nearby dots are
+  thinned without moving their date labels. Intermediate dates retain their actual scroll offsets.
 - Layout changes interpolate retained date labels, month points and the current-position line over
   180 ms. Sidebar changes, resized viewports, gallery layout changes and query-condition changes
   share this behavior. Wheel, slider and keyboard position input stays immediate; reduced motion

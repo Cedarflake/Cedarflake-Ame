@@ -26,6 +26,10 @@ framework date picker retain their own interaction owners; they are not converte
 
 - Show counts when they explain batch scope or a consequence. Single-file rename has no redundant
   count; it remains a single-file action, not a batch-rename editor.
+- Preparation uses a centered, icon-only loading indicator in the content area. A failed read shows
+  its explanation there instead of leaving unavailable form controls and consequences underneath.
+- Size short confirmations and error states to their content. Keep related controls compact; do not
+  reserve a tall empty loading panel or add blank rows for unavailable information.
 - Give time and location values labels. Show a folder or filename in the normal layout, retain the
   complete location in a tooltip or explicit details, and provide an implemented open-location action.
   Never turn a pathname into decorative button text or an unexplained paragraph.

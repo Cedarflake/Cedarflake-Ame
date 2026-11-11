@@ -44,7 +44,7 @@ void main() {
             LibraryGalleryDateAnchor(
               id: "2026-10-01",
               label: "October",
-              scrollOffset: 0,
+              scrollOffset: 18,
               year: 2026,
               isUnknown: false,
             ),
@@ -120,6 +120,20 @@ void main() {
         expect(
           tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).value,
           closeTo(0.5, 0.000001),
+        );
+        await tester.drag(find.byType(ListView), const Offset(0, 1000));
+        await tester.pumpAndSettle();
+        expect(controller.offset, 0);
+        expect(
+          tester.getCenter(find.byKey(const Key("timeline-current-line"))),
+          tester.getCenter(find.byKey(const ValueKey("time-marker-2026-10"))),
+        );
+        await tester.drag(find.byType(ListView), const Offset(0, -2000));
+        await tester.pumpAndSettle();
+        expect(controller.offset, controller.position.maxScrollExtent);
+        expect(
+          tester.getCenter(find.byKey(const Key("timeline-current-line"))),
+          tester.getCenter(find.byKey(const Key("timeline-end-marker"))),
         );
         await tester.pumpWidget(const SizedBox.shrink());
       },

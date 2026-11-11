@@ -86,6 +86,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text("Last conflict（已删除）"), findsOneWidget);
         expect(conflicts.requests, [null, "page-one"]);
+        await tester.ensureVisible(find.text("上一页"));
         await tester.tap(find.text("上一页"));
         await tester.pumpAndSettle();
         expect(find.text("Conflict 0"), findsOneWidget);

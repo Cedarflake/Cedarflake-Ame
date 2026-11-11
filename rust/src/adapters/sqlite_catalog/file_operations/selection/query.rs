@@ -1,8 +1,8 @@
 use rusqlite::Connection;
 
-use crate::domain::ScanError;
 use crate::domain::file_operation_selection::FileOperationSelectionScope as Scope;
 use crate::domain::organization::stale_selection;
+use crate::domain::{GalleryDuplicateMode, ScanError};
 
 use super::super::super::{database_error, gallery};
 
@@ -22,8 +22,20 @@ pub(super) fn selected(scope: &Scope) -> Result<gallery::BuiltGalleryQuery, Scan
             ..
         } => {
             gallery::validate_gallery_query(query)?;
-            let source = gallery::gallery_source(query, &mut parameters);
-            gallery::push_gallery_filters(query, &mut clauses, &mut parameters);
+            let mut query = query.clone();
+            if matches!(
+                scope,
+                Scope::MergedGalleryGroups {
+                    all_matching: false,
+                    ..
+                }
+            ) {
+                // An explicitly selected card still identifies its group after the display
+                // representative changes. Expansion freezes current members before confirmation.
+                query.duplicate_mode = GalleryDuplicateMode::All;
+            }
+            let source = gallery::gallery_source(&query, &mut parameters);
+            gallery::push_gallery_filters(&query, &mut clauses, &mut parameters);
             let membership = if *all_matching {
                 "NOT EXISTS"
             } else {
@@ -34,8 +46,7 @@ pub(super) fn selected(scope: &Scope) -> Result<gallery::BuiltGalleryQuery, Scan
         }
         Scope::Locations => {
             clauses.push("EXISTS(SELECT 1 FROM temp.file_operation_selection_input AS selected
-                WHERE selected.asset_id = locations.asset_id AND selected.location_id = locations.location_id
-                  AND selected.source_generation = locations.source_generation)".into());
+                WHERE selected.asset_id = locations.asset_id AND selected.location_id = locations.location_id)".into());
             "FROM library_roots AS roots JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id".into()
         }
     };
@@ -75,7 +86,7 @@ pub(super) fn require_all_inputs(connection: &Connection, scope: &Scope) -> Resu
         return Ok(());
     }
     let location = if matches!(scope, Scope::Locations) {
-        "AND actual.location_id = selected.location_id AND actual.source_generation = selected.source_generation"
+        "AND actual.location_id = selected.location_id"
     } else {
         ""
     };

@@ -293,3 +293,34 @@ The renderer, progress facade, dialog helper and gallery loading region contain 
 90 production lines respectively. The screen (1,998) and review page (387) receive composition-only
 changes; none of these owners contains inline tests. Dedicated renderer/priority tests contain 50
 and 195 lines; existing dialog and review tests retain their behavioral checks.
+
+### Dialog and viewer follow-up
+
+Preparation feedback now occupies the content center; its visibility owner stays mounted through
+completion so a short fade cannot be cut off by the dialog. Failed file preparation shows only its
+explanation and return action. The controlled file-action check covers delayed preparation,
+failure during the fade, immediate action availability and final indicator retirement. Existing
+cleanup, image reveal, timeline endpoint and conflict-pagination checks pass. The earlier hosted
+Flutter failure was an offscreen `Previous` test tap; scrolling that existing control into view
+retains the paging assertion, which passes at both text scales.
+
+The source-image check publishes the original during entry: the preview stays unchanged until
+entry completes, then the original blends over it. Return freezes an incomplete quality blend.
+Pixel regressions cover continuous clipping at a partially hidden card and corner geometry under
+viewer scaling; existing cancellation, unreadable-source fallback and interrupted-return checks pass.
+The Windows Debug client on `local-primary` verified full and partially clipped cards opening and
+returning with visible image pixels, retained gallery position and rounded card edges. Slow motion
+was restored to 1 afterward. Frame-timing guarantees come from the controlled checks; desktop
+screenshots are sampled observations. No physical file operation was submitted.
+
+The local review artifact `build/review/dialog-errors-2026-11-11/index.html` contains 24 abnormal
+states in both themes, with cropped images and full-window originals. These are current production
+widgets rendered with isolated fixtures and Windows fonts, not native-client captures. They cover
+file preparation/destination errors, album forms, removal, cleanup, history/report reads, operation
+and notification details, filter/date validation and unavailable roots. Shared error templates are
+represented once per distinct layout; Windows-owned system prompts are outside this inventory.
+
+The dialog, image reveal, source-image, image-flight and origin owners contain 133, 156, 274, 222 and
+192 production lines, with no inline tests. Their reused file-action, source-image and transition
+suites contain 690, 488 and 533 dedicated test lines. The final Debug build and affected static
+analysis pass; current-head hosted results belong to the normal branch workflow.

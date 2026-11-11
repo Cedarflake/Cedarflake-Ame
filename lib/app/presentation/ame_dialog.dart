@@ -1,6 +1,5 @@
 import "package:material_ui/material_ui.dart";
 
-import "ame_loading_indicator.dart";
 import "ame_progress.dart";
 
 class AmeDialog extends StatelessWidget {
@@ -23,54 +22,56 @@ class AmeDialog extends StatelessWidget {
   Widget build(BuildContext context) => AlertDialog(
     title: Text(title),
     scrollable: true,
-    content: SizedBox(width: 440, child: content),
-    actions: loadingLabel == null
-        ? actions
-        : [
-            AmeDialogActions(
+    content: SizedBox(
+      width: 440,
+      child: loadingLabel == null
+          ? content
+          : AmeDialogContent(
               isLoading: isLoading,
               loadingLabel: loadingLabel!,
-              actions: actions,
+              child: content,
             ),
-          ],
+    ),
+    actions: actions,
   );
 }
 
-class AmeDialogActions extends StatelessWidget {
-  const AmeDialogActions({
+class AmeDialogContent extends StatelessWidget {
+  const AmeDialogContent({
     required this.isLoading,
     required this.loadingLabel,
-    required this.actions,
-    this.width = 440,
+    required this.child,
     super.key,
   });
 
   final bool isLoading;
   final String loadingLabel;
-  final List<Widget> actions;
-  final double width;
+  final Widget child;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: width,
-    child: Row(
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(minHeight: 48),
+    child: Stack(
+      alignment: Alignment.center,
       children: [
-        Expanded(
-          child: Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: AmeProgressVisibility(
-              active: isLoading,
-              child: Semantics(
-                liveRegion: true,
-                child: AmeLoadingIndicator(
-                  size: 24,
-                  semanticsLabel: loadingLabel,
-                ),
+        Visibility(
+          visible: !isLoading,
+          maintainSize: true,
+          maintainState: true,
+          maintainAnimation: true,
+          child: child,
+        ),
+        Positioned.fill(
+          child: Center(
+            child: Semantics(
+              liveRegion: true,
+              child: AmeLoadingProgress(
+                active: isLoading,
+                semanticsLabel: loadingLabel,
               ),
             ),
           ),
         ),
-        for (final action in actions) ...[const SizedBox(width: 8), action],
       ],
     ),
   );
