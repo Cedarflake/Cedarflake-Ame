@@ -74,7 +74,9 @@ has not yet been decomposed into an execution plan or started.
 The [loading-indicator plan](plans/loading-indicator.md), dialog/viewer follow-ups and bounded
 deletion preparation are implemented on `codex/loading-indicator`, with focused and Windows client
 verification in the [scoped evidence](acceptance/material-motion.md#expressive-loading--2026-11-11).
-The branch awaits integration and final-head hosted verification. The
+The branch also has an active smart-album/review responsiveness follow-up: reduce category and
+collection switching waits and keep foreground reads independent of background classification,
+while preserving automatic category expansion. It awaits integration and final-head hosted verification. The
 [deletion measurements](acceptance/material-motion.md#file-operation-preparation-and-publication)
 retain the approximately two-second full-gallery refresh as a remaining performance limitation.
 The [review-read evidence](acceptance/material-motion.md#review-refresh-during-classification)

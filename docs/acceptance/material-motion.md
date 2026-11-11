@@ -424,6 +424,16 @@ rebuild the scoped similarity projection; that remaining cost is not reduced by 
 repair. The classification queue was processing a new taxonomy after automatic discovery added
 `代码截图`; this observation does not change category-discovery policy.
 
+The subsequent SQL repair admits groups from two current, non-excluded contents and computes
+representatives only for the requested page. A single read-only snapshot of `local-primary`
+returned identical counts and both first/second pages for 3,427 groups. Count/first-page reads fell
+from 3,222/2,679 ms to 377/177 ms; the empty ignored view fell from 1,762/2,056 ms to 5/2 ms.
+These are SQLite query timings, not end-to-end client latency. Existing preference, exclusion,
+pagination and seek checks pass; the bounded-read regression also covers group and ignored reads
+against unrelated fingerprints. The query/projection owners contain 193/147 production lines,
+with no inline tests; the reused dedicated suite contains 464 lines. Client verification follows
+the next native-library rebuild. No schema, source-file or cleanup authorization changed.
+
 The review-window owner contains 237 production lines with no inline tests; its reused suite has
 229 dedicated test lines. The client checks submitted no source-file or organization operation.
 

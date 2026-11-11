@@ -52,6 +52,12 @@ Explicit file selection retains its mode during same-scope updates and resolves 
 state before confirmation under [ADR 0042](../architecture/0042-windows-file-operations.md), with
 focused native selection verification in addition to the presentation checks below.
 
+The response-time follow-up reduces smart-album navigation/category reads and duplicate-review
+switching cost. Foreground navigation must not wait for background classification. Preserve automatic
+curated-category expansion, current source validation and cached image features while reducing
+redundant update work. Measure category-list, collection-switch and review reads on the established
+library, including active classification, rather than using loading feedback as completion evidence.
+
 Use existing progress, gallery and dialog regressions, adding only missing lifecycle/coordination
 coverage. The deletion follow-up also needs bounded native query and anchor checks, with read-only
 timings from the established library. Verify the affected Windows surfaces and inspect normal branch
