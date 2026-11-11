@@ -91,6 +91,9 @@ action are on the right; full screen is the last action. The strip starts hidden
 visibility. It uses bounded catalog paging and lazily creates visible thumbnails; selecting one opens
 that image in the current query order. Its ordinary mouse wheel moves horizontally through the native
 scroll position, alongside native horizontal-wheel, touchpad and scrollbar input.
+The strip overlays the bottom of the image viewport, immediately above the fixed toolbar. Opening
+and closing slide the strip through the shared Standard spatial motion without reserving image
+height or changing the main image's position or zoom. Reduced motion switches it immediately.
 
 Rotation changes the current viewing direction by 90 degrees without changing the original file,
 EXIF, preview cache or catalog dimensions. It reuses the existing image interaction and sampling:
@@ -104,7 +107,8 @@ New thumbnail pixels retain the placeholder until decoding finishes; a larger pr
 source retains the already decoded image, and scrolling skips the first-frame fade.
 
 The strip is first created when expanded. Collapsing retains its lazy visible elements until the
-viewer closes, while removing its preview demand, focus and animation activity. Every expansion
+viewer closes, while immediately removing its preview demand, input, focus and child animation
+activity. The closing surface remains painted only until the slide ends. Every expansion
 centers the current image within the natural scroll bounds while reusing compatible previews.
 Near the start or end, the strip aligns to that boundary without adding empty space to force
 centering. Selection changes while the strip remains open only scroll

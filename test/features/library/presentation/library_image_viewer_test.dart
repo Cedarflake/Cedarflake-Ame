@@ -33,7 +33,7 @@ void main() {
     addTearDown(_sourceScheduler.dispose);
   });
   testWidgets(
-    "actual size survives filmstrip and fullscreen while Escape restores the viewer",
+    "filmstrip overlays fit and actual size while fullscreen preserves the viewer",
     (tester) async {
       tester.view.physicalSize = const Size(1000, 700);
       tester.view.devicePixelRatio = 1;
@@ -92,6 +92,37 @@ void main() {
       expect(actionRect.left, greaterThanOrEqualTo(dragRect.right));
       await tester.tap(organizationAction);
       expect(organizationActions, 1);
+      final imageViewport = find.byKey(
+        const Key("library-image-interactive-viewer"),
+      );
+      final viewportBounds = tester.getRect(imageViewport);
+      final fitTransform = tester
+          .widget<InteractiveViewer>(imageViewport)
+          .transformationController!
+          .value
+          .clone();
+      final filmstrip = find.byKey(const Key("test-filmstrip"));
+      final stripToggle = find.byKey(const Key("viewer-filmstrip-toggle"));
+      await tester.tap(stripToggle);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      final enteringTop = tester.getTopLeft(filmstrip).dy;
+      expect(tester.getRect(imageViewport), viewportBounds);
+      expect(
+        tester
+            .widget<InteractiveViewer>(imageViewport)
+            .transformationController!
+            .value,
+        fitTransform,
+      );
+      await tester.pumpAndSettle();
+      expect(enteringTop, greaterThan(tester.getTopLeft(filmstrip).dy));
+      expect(tester.getBottomRight(filmstrip).dy, viewportBounds.bottom);
+      expect(tester.getRect(imageViewport), viewportBounds);
+      await tester.tap(stripToggle);
+      await tester.pumpAndSettle();
+      expect(filmstrip, findsNothing);
+      expect(tester.getRect(imageViewport), viewportBounds);
       await tester.tap(find.byKey(const Key("viewer-zoom-mode")));
       await tester.pumpAndSettle();
       expect(find.text("100%"), findsOneWidget);

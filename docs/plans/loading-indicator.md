@@ -43,6 +43,8 @@ The existing delay suppresses brief loading feedback; completed work never waits
 
 The follow-up scope also covers viewer quality/corner continuity, partial-card return clipping,
 the filter-menu affordance, compact confirmation states and short-gallery rail endpoints.
+The thumbnail strip opens and closes with shared spatial motion as an overlay above the viewer
+toolbar; it preserves the main image's viewport, position and zoom.
 The dialog review also aligns failure content, spacing and error colors across dialogs and trays,
 preserves the weekday in compact date input, and matches sidebar drag surfaces to their rows.
 The deletion follow-up bounds explicit selection and duplicate evidence reads to the chosen files,

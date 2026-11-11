@@ -373,6 +373,15 @@ returning with visible image pixels, retained gallery position and rounded card 
 was restored to 1 afterward. Frame-timing guarantees come from the controlled checks; desktop
 screenshots are sampled observations. No physical file operation was submitted.
 
+The 2026-11-12 filmstrip follow-up places the strip above the fixed toolbar without reserving image
+height. The existing `AmeStateTransition` drives a clipped vertical translation; retained thumbnail
+elements lose input, focus, preview demand and child ticking as closing starts. The existing viewer
+and filmstrip-frame suites passed 18 checks, including unchanged image geometry during entry,
+actual-size/fullscreen preservation, closing frames, retained pixels and hidden repair retirement.
+In the rebuilt normal Windows client, opening and closing the strip kept the same square image at
+65% with unchanged upper/side bounds. The image viewer and strip slot contain 326/77 production
+lines with no inline tests; their reused viewer/frame suites contain 1007/320 dedicated test lines.
+
 The local review artifact `build/review/dialog-errors-2026-11-11/index.html` contains 24 abnormal
 states in both themes, with cropped images and full-window originals. These are current production
 widgets rendered with isolated fixtures and Windows fonts, not native-client captures. They cover
