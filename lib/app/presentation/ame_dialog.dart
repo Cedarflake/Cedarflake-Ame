@@ -1,23 +1,78 @@
 import "package:material_ui/material_ui.dart";
 
+import "ame_loading_indicator.dart";
+import "ame_progress.dart";
+
 class AmeDialog extends StatelessWidget {
   const AmeDialog({
     required this.title,
     required this.content,
     required this.actions,
+    this.loadingLabel,
+    this.isLoading = false,
     super.key,
   });
 
   final String title;
   final Widget content;
   final List<Widget> actions;
+  final String? loadingLabel;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: Text(title),
     scrollable: true,
     content: SizedBox(width: 440, child: content),
-    actions: actions,
+    actions: loadingLabel == null
+        ? actions
+        : [
+            AmeDialogActions(
+              isLoading: isLoading,
+              loadingLabel: loadingLabel!,
+              actions: actions,
+            ),
+          ],
+  );
+}
+
+class AmeDialogActions extends StatelessWidget {
+  const AmeDialogActions({
+    required this.isLoading,
+    required this.loadingLabel,
+    required this.actions,
+    this.width = 440,
+    super.key,
+  });
+
+  final bool isLoading;
+  final String loadingLabel;
+  final List<Widget> actions;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: width,
+    child: Row(
+      children: [
+        Expanded(
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: AmeProgressVisibility(
+              active: isLoading,
+              child: Semantics(
+                liveRegion: true,
+                child: AmeLoadingIndicator(
+                  size: 24,
+                  semanticsLabel: loadingLabel,
+                ),
+              ),
+            ),
+          ),
+        ),
+        for (final action in actions) ...[const SizedBox(width: 8), action],
+      ],
+    ),
   );
 }
 

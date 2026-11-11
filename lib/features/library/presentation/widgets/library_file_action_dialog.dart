@@ -4,7 +4,6 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
-import "../../../../app/presentation/ame_progress.dart";
 import "../../application/directory_picker.dart";
 import "../../../../app/presentation/ame_choice.dart";
 import "../../../../app/presentation/ame_dialog.dart";
@@ -141,6 +140,8 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
         (!rename || (_summary?.files == 1 && _name.text.trim().isNotEmpty));
     final label = LibraryFileStrings.action(widget.action);
     return AmeDialog(
+      isLoading: _summary == null && _failure == null,
+      loadingLabel: "正在读取图片",
       title: deletion && _summary != null
           ? LibraryFileStrings.deletionTitle(_summary!)
           : "$label图片",
@@ -153,7 +154,6 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
             Text("${summary.files} 个文件"),
             const SizedBox(height: 20),
           ],
-          AmeLinearProgress(active: _summary == null && _failure == null),
           if (_failure case final failure?) ...[
             const SizedBox(height: 12),
             Text(

@@ -39,5 +39,6 @@ flutter:
   assets:
     - assets/licenses/similarity.txt
     - assets/licenses/classification_schema.txt
+    - assets/licenses/material_loading_indicator.txt
     - assets/branding/ame_light.png
     - assets/branding/ame_outline.png

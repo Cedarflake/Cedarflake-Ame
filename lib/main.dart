@@ -18,7 +18,7 @@ import "app/bootstrap/library_scan_bindings.dart";
 import "app/bootstrap/library_similarity_bindings.dart";
 import "app/bootstrap/library_synchronization_bindings.dart";
 import "app/bootstrap/library_synchronization_lifecycle_owner.dart";
-import "app/bootstrap/native_licenses.dart";
+import "app/bootstrap/dependency_licenses.dart";
 import "app/bootstrap/rust_library_loader.dart";
 import "app/bootstrap/settings_bindings.dart";
 import "app/bootstrap/storage_bindings.dart";
@@ -38,7 +38,7 @@ import "features/library/domain/library_state.dart";
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  registerNativeLicenses();
+  registerDependencyLicenses();
   final preferenceStores = AmePreferenceStores.production();
   final shutdownCoordinator = AmeShutdownCoordinator();
   final amePreferences = await preferenceStores.application

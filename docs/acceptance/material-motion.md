@@ -258,3 +258,38 @@ for `b4a4531c` remained in progress without a reported failure, and the
 The focused and desktop evidence above remains scoped to its recorded revisions. Continuous
 multi-second desktop holding remains unverified as recorded under
 [held timeline marker](#held-timeline-marker--2026-11-11).
+
+## Expressive loading — 2026-11-11
+
+The [loading plan](../plans/loading-indicator.md) adds the shared temporary Material renderer,
+icon-only preparation feedback in dialogs/trays, and coordinated gallery/review loading. The
+timeline retains its circular indicator and geometry without the left divider. Review lists retain
+their virtual extent and demand while omitting blank-card decoration. No native, catalog or source
+operation contract changes are included.
+
+Focused checks pass for hidden/reduced-motion ticker retirement, delayed admission, quick completion,
+fade reversal, unchanged viewport geometry, content/timeline exclusion, pending-read cancellation,
+retry and retained/batched location lists. Existing review layouts and cleanup-confirmation checks
+also pass, including unchanged action admission. A bounded rendering probe sampled 28 frames across
+one complete morph cycle; the largest painted extent was 44 pixels within the 48-pixel allocation.
+This rendering probe establishes shape bounds, not Windows interaction acceptance.
+
+The rebuilt Windows Debug client imported the existing 700-file subset into isolated derived
+storage. Gallery/timeline layout, six duplicate groups, member-list continuation, the 210-location
+tray, album selection and both history-list empty states remained usable. The deletion confirmation
+showed its 694-image count without the former horizontal bar; it was cancelled without submitting
+a file operation. Fast reads settled without a retained loading indicator.
+
+A temporary 12-second preparation delay allowed native-window observation of the small morphing
+icon in the action row, disabled confirmation and unchanged button positions in dark mode. No
+loading caption appeared. The delay was removed and the production code hot-reloaded afterward.
+The previous light theme was restored. The client then exited normally with code 0, all 700 source
+file lengths/modification times matched, and scratch storage was retired. Content/timeline mutual
+exclusion and reduced motion are covered by the controlled regressions above; the fixture's fast
+native queries did not provide a long simultaneous-wait observation. Final-head hosted checks
+remain owned by the pushed commit.
+
+The renderer, progress facade, dialog helper and gallery loading region contain 142, 208, 132 and
+90 production lines respectively. The screen (1,998) and review page (387) receive composition-only
+changes; none of these owners contains inline tests. Dedicated renderer/priority tests contain 50
+and 195 lines; existing dialog and review tests retain their behavioral checks.

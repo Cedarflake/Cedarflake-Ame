@@ -4,6 +4,7 @@ import "../../../../app/presentation/ame_progress.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "annotated_time_rail.dart";
+import "library_gallery_loading_region.dart";
 import "library_timeline_projection.dart";
 
 enum LibraryTimeRailPositionOrigin { gallery, interaction }
@@ -135,7 +136,10 @@ class _LibraryTimeRailPresentationState
     if (frame == null) {
       return SizedBox(
         width: AnnotatedTimeRail.width,
-        child: widget.isLoading && widget.timeline == null
+        child:
+            widget.isLoading &&
+                widget.timeline == null &&
+                !LibraryGalleryLoadingRegion.showsContentIndicatorOf(context)
             ? const Center(
                 child: SizedBox.square(
                   dimension: 24,

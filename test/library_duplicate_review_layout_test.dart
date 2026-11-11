@@ -207,7 +207,11 @@ void main() {
         service.pendingSave = Completer();
         await tester.tap(find.byKey(const ValueKey("prefer-one")));
         await tester.pump();
-        expect(find.byType(LinearProgressIndicator), findsNothing);
+        final feedback = find.descendant(
+          of: find.byKey(const Key("library-loading-feedback")),
+          matching: find.byType(FadeTransition),
+        );
+        expect(tester.widget<FadeTransition>(feedback).opacity.value, 0);
         service.pendingSave!.complete(
           const LibraryDuplicateDecision(
             preferredLocationId: "one",
@@ -220,6 +224,10 @@ void main() {
         service.pendingMembers = Completer();
         await tester.tap(find.text("查看重复图片").first);
         await tester.pump();
+        expect(tester.widget<FadeTransition>(feedback).opacity.value, 0);
+        await tester.pump(const Duration(milliseconds: 250));
+        await tester.pump(const Duration(seconds: 1));
+        expect(tester.widget<FadeTransition>(feedback).opacity.value, 1);
         final progress = find.byKey(const Key("library-top-loading"));
         expect(tester.getSize(progress).height, 2);
         expect(tester.widget<LinearProgressIndicator>(progress).minHeight, 2);
@@ -236,7 +244,7 @@ void main() {
         expect(tester.getTopLeft(progress).dy, tester.getTopLeft(grid).dy - 12);
         service.pendingMembers!.complete(service.members);
         await tester.pumpAndSettle();
-        expect(progress, findsNothing);
+        expect(tester.widget<FadeTransition>(feedback).opacity.value, 0);
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
       });

@@ -40,6 +40,22 @@ when the terminal result replaces progress. Hidden indicators stop ticking and e
 loading semantics; reduced motion skips the fade while retaining the quiet interval. Storage-usage
 gauges describe measured capacity and are not delayed as loading feedback.
 
+`AmeLoadingProgress` supplies Expressive shape feedback for short content reads. Initial gallery and
+review loading share one visibility owner for the centered indicator and top line; brief work shows
+neither. Usable content remains during continuation/background reads, with the top line alone.
+Review pages keep virtual geometry and paging demand but do not paint empty placeholder cards.
+Gallery cards retain their final rectangles for timeline navigation under ADR 0014.
+
+Content waiting takes priority over the timeline's compact circular feedback before visual admission.
+Only a rail waiting independently of available content shows its own circle. The rail has no left
+divider; its width, hit targets and navigation behavior stay unchanged. Compact search/sidebar
+controls, filmstrip edge cards, task progress and capacity gauges retain their existing indicators.
+
+Confirmation reads use a small indicator at the left of the action row, retaining the buttons
+and their admission rules at the right. List trays use centered feedback on an initial read and a
+small indicator beside the title or paging actions when retaining an existing list.
+Loading icons have accessible status labels, without visible loading captions beside or below them.
+
 ### Feedback templates
 
 New feedback must use the template for its surface. Feature code supplies wording, severity,

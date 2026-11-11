@@ -71,66 +71,78 @@ class _ExportHistoryState extends ConsumerState<LibraryFileExportHistory> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AmeLinearProgress(active: _loading),
         if (_error case final error?)
           TextButton(onPressed: () => _load(_before), child: Text(error)),
         Expanded(
-          child: _items.isEmpty && !_loading
-              ? const Center(child: Text("暂无导出记录"))
-              : AmeScrollMotion(
-                  child: ListView.builder(
-                    itemCount: _items.length,
-                    itemBuilder: (context, index) {
-                      final item = _items[index];
-                      final status = switch (item.reportState) {
-                        LibraryFileReportState.pending => "清单尚未生成",
-                        LibraryFileReportState.notNeeded => "没有特殊结果，无需清单",
-                        LibraryFileReportState.written => "结果清单已保存",
-                        LibraryFileReportState.failed => "清单写入失败，文件操作结果已保留",
-                      };
-                      final counts = [
-                        if (item.selected > 0) "${item.selected} 个文件",
-                        if (item.skipped > 0) "已跳过 ${item.skipped} 个",
-                      ];
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(vertical: 6),
-                        leading: const Icon(Symbols.description_rounded),
-                        title: Text(status),
-                        subtitle: Text(
-                          [
-                            if (counts.isNotEmpty) counts.join(" · "),
-                            displayLibraryPath(item.directory),
-                          ].join("\n"),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        onTap: () => showDialog<void>(
-                          context: context,
-                          builder: (context) => LibraryFileExportDetails(
-                            item: item,
-                            status: status,
+          child: AmeLoadingContent(
+            isLoading: _loading && _items.isEmpty,
+            semanticsLabel: "正在读取结果清单",
+            child: _items.isEmpty && !_loading
+                ? const Center(child: Text("暂无导出记录"))
+                : AmeScrollMotion(
+                    child: ListView.builder(
+                      itemCount: _items.length,
+                      itemBuilder: (context, index) {
+                        final item = _items[index];
+                        final status = switch (item.reportState) {
+                          LibraryFileReportState.pending => "清单尚未生成",
+                          LibraryFileReportState.notNeeded => "没有特殊结果，无需清单",
+                          LibraryFileReportState.written => "结果清单已保存",
+                          LibraryFileReportState.failed => "清单写入失败，文件操作结果已保留",
+                        };
+                        final counts = [
+                          if (item.selected > 0) "${item.selected} 个文件",
+                          if (item.skipped > 0) "已跳过 ${item.skipped} 个",
+                        ];
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 6,
                           ),
-                        ),
-                        trailing:
-                            item.reportState == LibraryFileReportState.notNeeded
-                            ? null
-                            : TextButton(
-                                onPressed: busy ? null : () => _write(item),
-                                child: Text(
-                                  item.reportState ==
-                                          LibraryFileReportState.pending
-                                      ? "生成清单"
-                                      : "重新生成",
+                          leading: const Icon(Symbols.description_rounded),
+                          title: Text(status),
+                          subtitle: Text(
+                            [
+                              if (counts.isNotEmpty) counts.join(" · "),
+                              displayLibraryPath(item.directory),
+                            ].join("\n"),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () => showDialog<void>(
+                            context: context,
+                            builder: (context) => LibraryFileExportDetails(
+                              item: item,
+                              status: status,
+                            ),
+                          ),
+                          trailing:
+                              item.reportState ==
+                                  LibraryFileReportState.notNeeded
+                              ? null
+                              : TextButton(
+                                  onPressed: busy ? null : () => _write(item),
+                                  child: Text(
+                                    item.reportState ==
+                                            LibraryFileReportState.pending
+                                        ? "生成清单"
+                                        : "重新生成",
+                                  ),
                                 ),
-                              ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
+          ),
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
+            AmeLoadingProgress(
+              active: _loading && _items.isNotEmpty,
+              size: 24,
+              semanticsLabel: "正在更新结果清单",
+            ),
+            const Spacer(),
             TextButton(
               onPressed: _loading || _before == null ? null : () => _load(),
               child: const Text("最新记录"),

@@ -1,6 +1,7 @@
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_states.dart";
+import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
@@ -64,7 +65,7 @@ void main() {
         ),
       ),
     );
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(AmeLoadingIndicator), findsOneWidget);
     expect(find.byKey(const Key("library-empty-state")), findsNothing);
   });
 }

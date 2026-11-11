@@ -64,9 +64,17 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-R8 and its follow-ups are integrated. R10 is the next planned stage; its
+R8 and its follow-ups are integrated. The scoped loading-feedback update below is active.
+R10 is the next planned stage; its
 [product scope](product/organization-workflows.md#r10---large-library-maturity-and-release-readiness)
 has not yet been decomposed into an execution plan or started.
+
+### Loading feedback
+
+The [loading-indicator plan](plans/loading-indicator.md) is implemented on
+`codex/loading-indicator`, with focused and Windows client verification recorded in the
+[scoped evidence](acceptance/material-motion.md#expressive-loading--2026-11-11). The branch awaits
+integration; its final pushed commit owns the applicable hosted checks.
 
 ### Duplicate cleanup entry points
 

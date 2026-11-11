@@ -126,6 +126,27 @@ updates. Rollback restores imports, delegates and the dependency lock together; 
 catalogs and original media are unchanged. The [migration evidence](../acceptance/material-ui-migration.md)
 owns actual compatibility and desktop results.
 
+### Loading indicator compatibility
+
+`AmeLoadingIndicator` temporarily adapts the indeterminate renderer from
+[flutter/packages PR 13429](https://github.com/flutter/packages/pull/13429) at
+`9eaa17df4e0ba4b067a7203e857953e3d4bc04bd`. The installed `material_ui` 1.11.0 exports
+`MaterialShapes` and `MaterialShapeBorder`, but not `LoadingIndicator` or its internal `Morph`.
+Use public shape-border interpolation, its bounded morph cache and the upstream morph/rotation
+timing instead of private imports, another animation dependency or a package fork.
+Keep the BSD-3-Clause attribution in source and the packaged dependency-license registry.
+
+The temporary port supports only indeterminate feedback. `AmeProgressVisibility` retains delay and
+fade ownership; the renderer stops its clock in inactive/reduced-motion scopes and shares immutable
+shape definitions across instances. Existing small circular and determinate progress controls remain
+available. Short operations, retained-content updates and content/timeline priority are owned by
+the [feedback contract](../product/gallery/feedback.md#loading-visibility-and-geometry).
+
+The upstream PR is not a released API. Keep this renderer behind the shared Ame boundary and replace
+it with the stable official widget once available, removing the temporary implementation and notice.
+Check the affected light/dark, reduced-motion and loading-lifetime paths before that substitution.
+Rollback restores circular feedback at the same boundary without changing request execution.
+
 ### State motion
 
 Use the admitted package's Standard `Springs` with Flutter's `SpringSimulation` and bounded

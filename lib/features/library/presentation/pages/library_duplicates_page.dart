@@ -342,6 +342,7 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
                       Expanded(
                         child: LibraryGalleryLoadingRegion(
                           isLoading: _workspace.loading,
+                          showContentIndicator: !_workspace.hasLoadedContent,
                           child: Padding(
                             padding: const EdgeInsets.only(top: 12),
                             child: _workspace.loadFailed

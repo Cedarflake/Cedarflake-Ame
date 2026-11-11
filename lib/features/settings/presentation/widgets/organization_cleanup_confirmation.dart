@@ -3,7 +3,6 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_choice.dart";
 import "../../../../app/presentation/ame_dialog.dart";
 import "../../../library/application/library_cleanup_controller.dart";
@@ -95,17 +94,7 @@ class _OrganizationCleanupConfirmation extends ConsumerWidget {
             const SizedBox(height: 16),
             switch (state) {
               LibraryCleanupReady(:final inspection) => _inspection(inspection),
-              LibraryCleanupWorking() => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Semantics(
-                    liveRegion: true,
-                    child: Text(state.stopping ? "正在停止" : "正在检查未关联记录"),
-                  ),
-                  const SizedBox(height: 12),
-                  const AmeLinearProgress(),
-                ],
-              ),
+              LibraryCleanupWorking() => const SizedBox.shrink(),
               LibraryCleanupFailed() => const Text("未能完成检查，请重试。"),
               LibraryCleanupFinished() => const Text("检查已取消"),
               LibraryCleanupIdle() => const SizedBox.shrink(),
@@ -114,25 +103,34 @@ class _OrganizationCleanupConfirmation extends ConsumerWidget {
         ),
       ),
       actions: [
-        TextButton(
-          autofocus: true,
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text("取消"),
+        AmeDialogActions(
+          width: 420,
+          isLoading: state is LibraryCleanupWorking,
+          loadingLabel: state is LibraryCleanupWorking && state.stopping
+              ? "正在停止"
+              : "正在检查记录",
+          actions: [
+            TextButton(
+              autofocus: true,
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("取消"),
+            ),
+            if (state is LibraryCleanupFailed)
+              FilledButton(
+                key: const Key("organization-cleanup-retry"),
+                onPressed: () => unawaited(controller.retry()),
+                child: const Text("重试"),
+              )
+            else
+              FilledButton(
+                key: const Key("organization-cleanup-confirm"),
+                onPressed: ready != null && ready.inspection.total > 0
+                    ? () => Navigator.of(context).pop(ready)
+                    : null,
+                child: const Text("清理记录"),
+              ),
+          ],
         ),
-        if (state is LibraryCleanupFailed)
-          FilledButton(
-            key: const Key("organization-cleanup-retry"),
-            onPressed: () => unawaited(controller.retry()),
-            child: const Text("重试"),
-          )
-        else
-          FilledButton(
-            key: const Key("organization-cleanup-confirm"),
-            onPressed: ready != null && ready.inspection.total > 0
-                ? () => Navigator.of(context).pop(ready)
-                : null,
-            child: const Text("清理记录"),
-          ),
       ],
     );
   }

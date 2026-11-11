@@ -3,6 +3,7 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 
 import "ame_motion.dart";
+import "ame_loading_indicator.dart";
 
 const ameProgressDelay = Duration(milliseconds: 250);
 
@@ -153,5 +154,55 @@ class AmeCircularProgress extends StatelessWidget {
       strokeWidth: strokeWidth,
       semanticsLabel: semanticsLabel,
     ),
+  );
+}
+
+class AmeLoadingProgress extends StatelessWidget {
+  const AmeLoadingProgress({
+    this.active = true,
+    this.size = 48,
+    this.semanticsLabel = "正在加载",
+    this.delay = ameProgressDelay,
+    super.key,
+  });
+
+  final bool active;
+  final double size;
+  final String semanticsLabel;
+  final Duration delay;
+
+  @override
+  Widget build(BuildContext context) => AmeProgressVisibility(
+    active: active,
+    delay: delay,
+    child: AmeLoadingIndicator(size: size, semanticsLabel: semanticsLabel),
+  );
+}
+
+/// Keeps list geometry and demand mounted while an initial read is pending.
+class AmeLoadingContent extends StatelessWidget {
+  const AmeLoadingContent({
+    required this.isLoading,
+    required this.child,
+    this.semanticsLabel = "正在加载",
+    super.key,
+  });
+
+  final bool isLoading;
+  final Widget child;
+  final String semanticsLabel;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
+    children: [
+      child,
+      Center(
+        child: AmeLoadingProgress(
+          active: isLoading,
+          semanticsLabel: semanticsLabel,
+        ),
+      ),
+    ],
   );
 }

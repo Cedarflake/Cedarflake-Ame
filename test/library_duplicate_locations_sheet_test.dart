@@ -8,6 +8,7 @@ import "package:cedarflake_ame/features/library/application/library_exact_duplic
 import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_locations_sheet.dart";
+import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -139,7 +140,7 @@ void main() {
     first.complete(service.page(0));
     await tester.pump();
     expect(find.text("image-0.png"), findsNothing);
-    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(find.byType(AmeLoadingIndicator), findsWidgets);
     await tester.pumpWidget(const SizedBox());
     second.complete(service.page(0));
     await tester.pump();

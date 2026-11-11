@@ -940,6 +940,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           isEmpty: state.assets.isEmpty,
           isLoading:
               _review.busy ||
+              (state.assets.isEmpty &&
+                  (state.status == LibraryStatus.refreshing ||
+                      state.isLoadingTimeline)) ||
               state.isRefreshingQuery ||
               state.isLoadingPage ||
               state.isLoadingPreviousPage ||

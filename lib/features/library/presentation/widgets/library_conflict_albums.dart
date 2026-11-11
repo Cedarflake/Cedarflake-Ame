@@ -36,7 +36,8 @@ class _LibraryConflictAlbumsViewState
       padding: const EdgeInsets.only(bottom: 16),
       child: page.when(
         skipLoadingOnRefresh: false,
-        loading: () => const AmeLinearProgress(),
+        loading: () =>
+            const Center(child: AmeLoadingProgress(semanticsLabel: "正在读取相册归属")),
         error: (_, _) => Row(
           children: [
             const Expanded(child: Text("无法读取冲突涉及的相册。")),
