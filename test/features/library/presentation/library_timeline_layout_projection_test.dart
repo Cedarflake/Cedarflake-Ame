@@ -27,7 +27,7 @@ void main() {
     expect(projection.railBuckets.first.contentExtent, 350);
     expect(
       projection.valueForGlobalItemOffset(3),
-      closeTo(400 / 900, 0.000001),
+      closeTo(350 / 900, 0.000001),
     );
     expect(projection.targetForValue(0.5).globalItemOffset, 3);
     expect(projection.targetForValue(350 / 900).bucket.monthKey, "2025-01");
@@ -41,6 +41,11 @@ void main() {
       maximumScrollOffset: 900,
     );
     expect(projection.targetForValue(800 / 900).globalItemOffset, 4);
+    expect(projection.targetForValue(750 / 900).globalItemOffset, 4);
+    expect(
+      projection.valueForGlobalItemOffset(4),
+      closeTo(750 / 900, 0.000001),
+    );
     expect(
       projection.valueForGlobalItemOffset(4),
       projection.valueForGlobalItemOffset(5),
@@ -126,6 +131,13 @@ LibraryGalleryLayoutMetrics _metrics({bool isQueryWide = true}) =>
           id: "2025-01-01",
           label: "January",
           scrollOffset: 350,
+          year: 2025,
+          isUnknown: false,
+        ),
+        LibraryGalleryDateAnchor(
+          id: "2025-01-02",
+          label: "January 2",
+          scrollOffset: 750,
           year: 2025,
           isUnknown: false,
         ),

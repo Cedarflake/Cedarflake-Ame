@@ -426,3 +426,20 @@ repair. The classification queue was processing a new taxonomy after automatic d
 
 The review-window owner contains 237 production lines with no inline tests; its reused suite has
 229 dedicated test lines. The client checks submitted no source-file or organization operation.
+
+### Date headings after navigation and first entry
+
+An admitted date read aligned its first photo row rather than the preceding heading. Date-navigation
+offsets now include that heading, with day-level targets inside each month; continuous rail movement
+retains its exact pixel offset. Initial complete snapshots separately retain the start-edge intent
+through the wall's first correction instead of placing the first photo above its date.
+
+Focused checks cover delayed date reads in both layouts, same-month date targets, continuous held
+input, publication, endpoint alignment and complete-snapshot startup. Existing filter and smart-album
+position checks pass. The rebuilt Windows Debug client on `local-primary` displayed the first date
+on startup and after a far-position seek followed by return to the top. No source operation was run.
+
+The layout, navigation and projection owners contain 455, 774 and 99 production lines; the screen
+and wall contain 2,002 and 1,582, with no inline tests. Their changes pass existing edge intent to
+the layout owner without adding another lifecycle flag. The focused navigation and projection suites
+contain 250 and 148 dedicated test lines; startup coverage reuses the filter-position fixture.

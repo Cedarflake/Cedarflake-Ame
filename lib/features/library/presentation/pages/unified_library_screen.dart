@@ -1900,6 +1900,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
       globalItemIndex: state.windowStartItemOffset,
       itemFraction: 0,
       viewportFraction: 0,
+      scrollEdge: state.windowStartItemOffset == 0
+          ? LibraryGalleryScrollEdge.start
+          : null,
     );
   }
 
