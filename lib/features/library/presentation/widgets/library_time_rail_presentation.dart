@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "annotated_time_rail.dart";
@@ -138,7 +139,7 @@ class _LibraryTimeRailPresentationState
             ? const Center(
                 child: SizedBox.square(
                   dimension: 24,
-                  child: CircularProgressIndicator(strokeWidth: 3),
+                  child: AmeCircularProgress(strokeWidth: 3),
                 ),
               )
             : null,

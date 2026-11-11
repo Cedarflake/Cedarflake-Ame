@@ -938,9 +938,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
               ? LibraryReviewModeNotice(mode: _review)
               : null,
           isEmpty: state.assets.isEmpty,
-          loadingDelay: state.isRefreshingQuery || _review.busy
-              ? const Duration(milliseconds: 250)
-              : Duration.zero,
           isLoading:
               _review.busy ||
               state.isRefreshingQuery ||

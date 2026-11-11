@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 
 import "../notifications/ame_notification_controller.dart";
 import "ame_feedback_style.dart";
+import "ame_motion.dart";
 
 export "ame_feedback_style.dart" show AmeFeedbackAction;
 
@@ -97,10 +98,19 @@ class AmeFeedbackCard extends StatelessWidget {
                 for (final action in actions) action.build(),
               ],
             ),
-            if (progress case final indicator?) ...[
-              const SizedBox(height: 10),
-              indicator,
-            ],
+            AmeStateTransition(
+              active: progress != null,
+              motion: AmeMotion.fastSpatial,
+              builder: (context, animation, child) => SizeTransition(
+                sizeFactor: animation,
+                alignment: Alignment.bottomCenter,
+                child: child,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: progress ?? const SizedBox(height: 4),
+              ),
+            ),
             if (items case final list?) ...[
               const SizedBox(height: 8),
               Flexible(child: list),

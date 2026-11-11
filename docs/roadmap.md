@@ -70,7 +70,7 @@ The [R8 follow-up](plans/r8-file-organization.md#duplicate-cleanup-entry-points)
 `codex/duplicate-cleanup`, based on the completed motion branch. It connects group cleanup,
 all-group cleanup and thumbnail-selected group cleanup to the existing confirmed file workflow.
 Group thumbnails and sidebar selection share a bounded flip transition. Implementation and desktop
-verification are delivered in `e6b5c455`; its full hosted checks are running. Selected groups survive
+verification are delivered in `e6b5c455`; its full hosted checks passed. Selected groups survive
 entering and returning from a group; an empty selection returns to ordinary browsing.
 The R8 merge remains integrated; this addition and its inherited motion changes remain unmerged.
 
@@ -79,9 +79,9 @@ The held-marker loading displacement is repaired with
 The card-to-viewer position/size transition is implemented and verified in the isolated Windows
 client; its [evidence](acceptance/material-motion.md#card-to-viewer-motion--2026-11-11) includes
 opaque image return and adjacent-image navigation. Keep these repairs separately reviewable from cleanup.
-Next audit loading indicators across the application: suppress brief flashes and repeated pulses,
-and prevent their appearance or removal from shifting content. Preserve immediate operation
-admission, actual progress and existing error/recovery actions.
+The application-wide loading audit now shares delayed visibility and stable progress geometry;
+the [evidence](acceptance/material-motion.md#loading-feedback--2026-11-11) records affected surfaces
+and checks. Final combined-head hosted verification remains before this branch's delivery closeout.
 
 ### Material motion adoption
 

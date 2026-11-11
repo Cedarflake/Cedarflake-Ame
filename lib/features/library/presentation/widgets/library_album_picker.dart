@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_album_pages.dart";
 import "../../application/library_album_requests.dart";
@@ -317,7 +318,7 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
                               ),
                               loading: () => const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 24),
-                                child: LinearProgressIndicator(),
+                                child: AmeLinearProgress(),
                               ),
                               error: (error, stack) => Column(
                                 mainAxisSize: MainAxisSize.min,

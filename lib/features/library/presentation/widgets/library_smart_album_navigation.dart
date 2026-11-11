@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../application/library_classification_settings.dart";
 import "../../application/library_model_installation.dart";
@@ -139,7 +140,7 @@ class _LibrarySmartAlbumNavigationState
                 child: Center(
                   child: SizedBox.square(
                     dimension: 24,
-                    child: CircularProgressIndicator(
+                    child: AmeCircularProgress(
                       strokeWidth: 2,
                       semanticsLabel: "正在加载智能相册",
                     ),

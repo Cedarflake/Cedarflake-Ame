@@ -239,7 +239,11 @@ void main() {
     await tester.pump();
     expect(fixture.state.isRefreshingQuery, isTrue);
     final loading = find.byKey(const Key("library-top-loading"));
-    expect(loading, findsNothing);
+    final fade = find.descendant(
+      of: loading,
+      matching: find.byType(FadeTransition),
+    );
+    expect(tester.widget<FadeTransition>(fade).opacity.value, 0);
     expect(find.byType(LibraryTaskSurface), findsNothing);
     final updateSurface = find.byKey(const Key("library-update-task-surface"));
     expect(updateSurface, findsOneWidget);
@@ -251,10 +255,11 @@ void main() {
       findsOneWidget,
     );
     await tester.pump(const Duration(milliseconds: 249));
-    expect(loading, findsNothing);
+    expect(tester.widget<FadeTransition>(fade).opacity.value, 0);
     expect(updateSurface, findsOneWidget);
     await tester.pump(const Duration(milliseconds: 1));
-    expect(loading, findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.widget<FadeTransition>(fade).opacity.value, greaterThan(0));
     expect(updateSurface, findsOneWidget);
     pending.complete(
       fixture.catalog.snapshot(const LibraryGalleryQuery(rootId: "other")),
@@ -263,7 +268,8 @@ void main() {
     await tester.pump();
     expect(fixture.state.query.rootId, "other");
     expect(fixture.state.isRefreshingQuery, isFalse);
-    expect(loading, findsNothing);
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(tester.widget<FadeTransition>(fade).opacity.value, 0);
     expect(find.byType(LibraryTaskSurface), findsNothing);
     expect(updateSurface, findsOneWidget);
     expect(fixture.scanner.startedRoots, ["C:\\Other"]);

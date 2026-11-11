@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_dialog.dart";
 import "../../../../app/presentation/ame_dialog_diagnostic.dart";
 
@@ -146,7 +147,7 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
               ],
             ),
             const SizedBox(height: 16),
-            if (_loading && !_showExports) const LinearProgressIndicator(),
+            AmeLinearProgress(active: _loading && !_showExports),
             if (_error case final error? when !_showExports)
               TextButton(onPressed: () => _load(_before), child: Text(error)),
             Expanded(

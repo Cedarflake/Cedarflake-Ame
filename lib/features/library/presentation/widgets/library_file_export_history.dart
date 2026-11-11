@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_file_operations.dart";
 import "../../domain/library_file_operations.dart";
@@ -70,7 +71,7 @@ class _ExportHistoryState extends ConsumerState<LibraryFileExportHistory> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_loading) const LinearProgressIndicator(),
+        AmeLinearProgress(active: _loading),
         if (_error case final error?)
           TextButton(onPressed: () => _load(_before), child: Text(error)),
         Expanded(

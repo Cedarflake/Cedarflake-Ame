@@ -69,7 +69,7 @@ void main() {
       expect(catalog.timeAnchors.last.itemOffset, greaterThan(80));
       final loadingBar = find.byKey(const Key("library-top-loading"));
       expect(loadingBar, findsOneWidget);
-      expect(tester.widget<LinearProgressIndicator>(loadingBar).minHeight, 2);
+      expect(tester.getSize(loadingBar).height, 2);
       expect(
         find.byKey(const Key("library-visible-range-loading")),
         findsNothing,
@@ -78,7 +78,7 @@ void main() {
   );
 
   testWidgets(
-    "shows the restored top loading line on the first unloaded timeline frame",
+    "reserves the top loading line on the first unloaded timeline frame",
     (tester) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1;
@@ -121,7 +121,7 @@ void main() {
       expect(catalog.timeAnchors.single.itemOffset, greaterThan(0));
       final loadingBar = find.byKey(const Key("library-top-loading"));
       expect(loadingBar, findsOneWidget);
-      expect(tester.widget<LinearProgressIndicator>(loadingBar).minHeight, 2);
+      expect(tester.getSize(loadingBar).height, 2);
       expect(
         find.byKey(const Key("library-visible-range-loading")),
         findsNothing,

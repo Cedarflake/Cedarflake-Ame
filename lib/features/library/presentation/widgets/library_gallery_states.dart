@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_state.dart";
 import "../library_first_import_feedback.dart";
@@ -150,13 +151,15 @@ class GalleryLoadingState extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       key: Key("library-query-loading"),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text(LibraryStrings.loadingLibrary),
-        ],
+      child: AmeProgressVisibility(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text(LibraryStrings.loadingLibrary),
+          ],
+        ),
       ),
     );
   }

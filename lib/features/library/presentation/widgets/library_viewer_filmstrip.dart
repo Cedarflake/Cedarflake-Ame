@@ -5,6 +5,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_browse_admission.dart";
 import "../../application/library_controller.dart";
@@ -220,7 +221,7 @@ class _LibraryViewerFilmstripState
           )
         : const SizedBox.square(
             dimension: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
+            child: AmeCircularProgress(strokeWidth: 2),
           ),
   );
 

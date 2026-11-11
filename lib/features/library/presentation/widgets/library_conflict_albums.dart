@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_organization_conflicts.dart";
 import "../../domain/library_organization.dart";
@@ -35,7 +36,7 @@ class _LibraryConflictAlbumsViewState
       padding: const EdgeInsets.only(bottom: 16),
       child: page.when(
         skipLoadingOnRefresh: false,
-        loading: () => const LinearProgressIndicator(),
+        loading: () => const AmeLinearProgress(),
         error: (_, _) => Row(
           children: [
             const Expanded(child: Text("无法读取冲突涉及的相册。")),

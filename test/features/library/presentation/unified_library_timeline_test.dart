@@ -253,7 +253,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 250));
 
       expect(galleryScrollPosition(tester).pixels, greaterThan(0));
-      expect(find.byKey(const Key("library-top-loading")), findsNothing);
+      final loadingFade = find.descendant(
+        of: find.byKey(const Key("library-top-loading")),
+        matching: find.byType(FadeTransition),
+      );
+      expect(tester.widget<FadeTransition>(loadingFade).opacity.value, 0);
       expect(
         find.byKey(ValueKey(initialState.assets.single.locationId)),
         findsOneWidget,

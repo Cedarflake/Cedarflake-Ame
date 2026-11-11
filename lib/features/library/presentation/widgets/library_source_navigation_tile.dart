@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
@@ -422,7 +423,7 @@ class PendingLibrarySourceTile extends StatelessWidget {
                   bottom: -5,
                   child: SizedBox.square(
                     dimension: 12,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: AmeCircularProgress(strokeWidth: 2),
                   ),
                 ),
             ],
@@ -449,7 +450,7 @@ class PendingLibrarySourceTile extends StatelessWidget {
                     child: SizedBox.square(
                       key: Key("pending-source-progress"),
                       dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                      child: AmeCircularProgress(strokeWidth: 2.5),
                     ),
                   ),
                 ),

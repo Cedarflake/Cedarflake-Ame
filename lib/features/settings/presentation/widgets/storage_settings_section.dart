@@ -5,6 +5,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_choice.dart";
 import "../../../storage/application/ports/storage_settings_gateway.dart";
 import "../../../storage/application/storage_settings.dart";
@@ -352,7 +353,7 @@ class _StorageSettingsSectionState
               subtitle: Text("正在检查图库数据与缩略图的保存位置"),
               trailing: SizedBox.square(
                 dimension: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: AmeCircularProgress(strokeWidth: 2),
               ),
             )
           else
@@ -566,7 +567,7 @@ class _StorageSettingsSectionState
             subtitle: Text("完成前不会改变当前正在使用的存储位置"),
             trailing: SizedBox.square(
               dimension: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: AmeCircularProgress(strokeWidth: 2),
             ),
           ),
       ],
@@ -630,10 +631,8 @@ Widget _catalogReclamationSubtitle(CatalogReclamationModel reclamation) {
           "当前可用 ${_formatBytes(reclamation.availableTemporaryBytes!)}",
         ),
       ],
-      if (reclamation.isActive) ...[
-        const SizedBox(height: 8),
-        LinearProgressIndicator(value: progress),
-      ],
+      const SizedBox(height: 8),
+      AmeLinearProgress(active: reclamation.isActive, value: progress),
     ],
   );
 }
@@ -683,10 +682,8 @@ Widget _cleanupSubtitle(
         const SizedBox(height: 4),
       ],
       Text(status),
-      if (update.isActive) ...[
-        const SizedBox(height: 8),
-        LinearProgressIndicator(value: progress),
-      ],
+      const SizedBox(height: 8),
+      AmeLinearProgress(active: update.isActive, value: progress),
       if (update.issueCount > BigInt.zero) ...[
         const SizedBox(height: 6),
         Text("${update.issueCount} 个文件未能清理"),

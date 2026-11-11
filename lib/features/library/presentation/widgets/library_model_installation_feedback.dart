@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_feedback_card.dart";
 import "../../../../app/presentation/ame_notifications.dart";
@@ -42,7 +43,7 @@ Widget? buildLibraryModelInstallationFeedback(
     title: entry.title,
     detail: entry.message.isEmpty ? null : entry.message,
     severity: entry.severity,
-    progress: LinearProgressIndicator(value: fraction),
+    progress: AmeLinearProgress(value: fraction),
     actions: [
       AmeFeedbackAction(
         label: "取消",

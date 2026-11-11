@@ -3,6 +3,7 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_choice.dart";
 import "../../../../app/presentation/ame_dialog.dart";
 import "../../../library/application/library_cleanup_controller.dart";
@@ -102,7 +103,7 @@ class _OrganizationCleanupConfirmation extends ConsumerWidget {
                     child: Text(state.stopping ? "正在停止" : "正在检查未关联记录"),
                   ),
                   const SizedBox(height: 12),
-                  const LinearProgressIndicator(),
+                  const AmeLinearProgress(),
                 ],
               ),
               LibraryCleanupFailed() => const Text("未能完成检查，请重试。"),

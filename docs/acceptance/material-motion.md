@@ -211,3 +211,36 @@ input/focus exclusion and tooltip retirement remain active. The existing transit
 checks the ordered fade, including no badge visibility while the image is returning. Badge behavior
 and retained duplicate-viewer semantics were also checked. The isolated desktop client showed
 badges during the opening fade and hidden during return, then restored on the unchanged cards.
+
+## Loading feedback — 2026-11-11
+
+Gallery refresh and paging previously changed the display delay while work remained active,
+restarting visibility. The shared presentation owner now keeps one active interval, hides work
+finished within 250 ms, fades longer work and reverses short interrupted fades. The 500-ms selection
+preparation rule remains; no request, completion or cancellation waits for an animation.
+
+All loading-indicator constructors in feature presentation now use this owner, including previews,
+filmstrip, gallery/time rail, folders/albums, search, file-operation dialogs/history, model/scan/update
+feedback and storage/organization settings. The initial-gallery message uses the same gate around
+its existing label and spinner; the persistent storage-capacity gauge remains unchanged. Gallery
+overlays, search status, history lists, duplicate locations and settings retain fixed progress slots.
+Task-card progress space collapses through the existing spatial spring.
+
+Focused checks cover short completion, uninterrupted phase changes, fade reversal, disposal, reduced
+motion, actual accessibility exclusion, unchanged viewport/tile/scroll geometry and connected input.
+Existing selection, retained-scan, timeline, filmstrip, smart-album, settings and feedback checks pass.
+The feedback regression checks intermediate card heights in both themes. Formatting, affected-owner
+analysis and whitespace checks pass. These checks do not run new downloads or physical file actions.
+
+The rebuilt isolated Windows Debug client completed import of the existing 700-file subset, retained
+its gallery position, and displayed the completed album/sidebar and settings states. Long import
+progress remained visible; quick sidebar reads settled into content without a retained spinner.
+Timing boundaries are established by the controlled regressions, not native screenshot sampling.
+The native DLL is unchanged from the viewer verification above. The preceding client closed with
+exit code 0, preserved all 10,000 fixture file lengths/modification times and retired scratch storage.
+
+The shared visibility owner contains 157 production lines; the feedback template contains 123.
+The storage section (723) and screen (1,995) receive presentation composition changes only, with no
+inline tests. Dedicated loading timing, geometry and feedback suites contain 135, 173 and 220 lines.
+The [full run for `e6b5c455`](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42945787064)
+passed; subsequent viewer/loading changes retain their own final-head hosted verification boundary.

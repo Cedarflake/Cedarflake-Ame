@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:flutter/semantics.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "library_gallery_loading_region.dart";
 import "library_sidebar_content.dart";
 
@@ -12,7 +13,7 @@ class LibraryGalleryViewport extends StatelessWidget {
     required this.isLoading,
     this.failure,
     this.notice,
-    this.loadingDelay = Duration.zero,
+    this.loadingDelay = ameProgressDelay,
     super.key,
   });
 

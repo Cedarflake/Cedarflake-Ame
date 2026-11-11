@@ -3,6 +3,7 @@ import "dart:math" as math;
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../library_strings.dart";
 
@@ -75,7 +76,7 @@ class LibraryPreviewFeedback extends StatelessWidget {
                     SizedBox.square(
                       key: ValueKey("preview-retry-progress-$locationId"),
                       dimension: _iconExtent,
-                      child: const CircularProgressIndicator(strokeWidth: 2.5),
+                      child: const AmeCircularProgress(strokeWidth: 2.5),
                     ),
                     if (showText) ...[
                       const SizedBox(height: 8),

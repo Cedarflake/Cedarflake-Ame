@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
@@ -44,21 +45,31 @@ class LibrarySearchBar extends StatelessWidget {
           ? const Icon(Symbols.search_rounded)
           : _SearchMenu(search: search, enabled: enabled),
       trailing: [
-        if (search?.loading ?? false)
-          const SizedBox.square(
-            dimension: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          )
-        else if (search != null && (search.hasUpdates || search.error != null))
-          AmeTooltip(
-            message: search.error != null
-                ? LibrarySearchStrings.retry
-                : LibrarySearchStrings.update,
-            child: IconButton(
-              onPressed: enabled ? search.retry : null,
-              icon: const Icon(Symbols.refresh_rounded),
-            ),
-          ),
+        SizedBox.square(
+          dimension: 40,
+          child:
+              search != null &&
+                  !search.loading &&
+                  (search.hasUpdates || search.error != null)
+              ? AmeTooltip(
+                  message: search.error != null
+                      ? LibrarySearchStrings.retry
+                      : LibrarySearchStrings.update,
+                  child: IconButton(
+                    onPressed: enabled ? search.retry : null,
+                    icon: const Icon(Symbols.refresh_rounded),
+                  ),
+                )
+              : Center(
+                  child: SizedBox.square(
+                    dimension: 18,
+                    child: AmeCircularProgress(
+                      active: search?.loading ?? false,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                ),
+        ),
         if (controller.text.isNotEmpty || (search?.related ?? false))
           AmeTooltip(
             message: LibraryStrings.clearSearch,

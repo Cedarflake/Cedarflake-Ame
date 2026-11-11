@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
@@ -191,7 +192,7 @@ class LibraryFolderLoadingTile extends StatelessWidget {
       child: Center(
         child: SizedBox.square(
           dimension: 18,
-          child: CircularProgressIndicator(strokeWidth: 2.5),
+          child: AmeCircularProgress(strokeWidth: 2.5),
         ),
       ),
     );

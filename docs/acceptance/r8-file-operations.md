@@ -730,4 +730,6 @@ after entering members and returning; cancellation left their selection intact. 
 kind cleared it. The shared album sidebar icon selected and cancelled with its check face and
 existing count/controls. The extended Flutter scope regression also covers empty return and
 similarity-degree changes. Its seven affected file-operation cases passed after this change.
-Final hosted verification remains pending; this follow-up is not part of the earlier R8 merge.
+The [full hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/42945787064) for
+`e6b5c455` passed all selected gates. This follow-up is not part of the earlier R8 merge; subsequent
+viewer/loading changes retain their own verification in the [motion record](material-motion.md).
