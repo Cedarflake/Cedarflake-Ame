@@ -2,7 +2,7 @@
 
 Ame is a local-first Windows app for browsing, searching, and organizing large image collections.
 Add the folders you already use, find duplicates and similar images, and organize your collection
-with favorites, albums, or file operations. Browsing and analysis leave your originals untouched.
+with favorites, albums, or file operations.
 
 ![Ame's Windows gallery with image cards, folder navigation, and a date timeline](docs/images/ame-gallery.png)
 
@@ -23,8 +23,8 @@ for changes and known limits.
 ## Browse your collection
 
 Scroll through a photo wall or a square grid and jump to a date with the timeline.
-Open an image for a closer look, compare two images, or rotate the viewing direction without
-editing the file. The thumbnail strip overlays the image without changing its viewing size.
+Open an image for a closer look, compare two images, or rotate the viewing direction.
+An expandable thumbnail strip lets you browse nearby images over the main preview.
 Return from the viewer to the same place in the gallery.
 Folders from different drives appear in one library, and you can narrow the view to a single source.
 
@@ -41,24 +41,18 @@ supported devices and can be switched off in settings.
 Exact duplicate detection finds files with identical contents. Fold their copies into one gallery
 item, inspect the individual locations, or open the duplicate view to compare them. You can choose
 which copy represents a group and ignore groups you want to keep. Similar-image groups use a
-separate visual comparison with an adjustable similarity level; similarity is not proof that files
-are identical.
+separate visual comparison with an adjustable similarity level.
 
 ## Organize your collection
 
-Favorites and albums organize images without moving files. Choose album icons, add images to
-albums, and resume reviewing images from your saved place.
+Choose album icons, collect favorites, add images to albums, and resume reviewing images from
+your saved place.
 
 When you want to change files, Ame supports copying, moving, renaming, and deletion through Windows.
 Deletion defaults to the Recycle Bin; permanent deletion requires an explicit choice. Duplicate and
 similar-group cleanup retain your keep choices, or the automatic representative when none was chosen,
 and confirm the number of files before deletion. Operation records show results and support
 recovery of interrupted work where applicable.
-
-Cataloging and analysis run locally. The database and thumbnail cache are stored separately from
-your pictures; browsing and duplicate review leave the originals untouched. Cloud-only files are
-left online. Large-library queries can still take noticeable time, and automatic classification,
-similarity, and semantic search can miss or misidentify images.
 
 The [roadmap](docs/roadmap.md) schedules **R9: moving album files into year-based folders**, followed
 by **R10: large-library maturity and the Beta release phase**.
