@@ -35,8 +35,8 @@ destination before group assignments are changed. The selection toolbar keeps Fa
 More last; ignore and defer appear inside More only in organization mode.
 R4's organization actions in More, including chronological undo and redo, are limited to organization
 mode. Ordinary selection and viewing retain their applicable browsing and later classification actions.
-Preparation lasting over 500 milliseconds uses a progress line below the existing controls without
-inserting text into their row. Short preparation shows no indicator; completion removes it immediately.
+Preparation lasting over 500 milliseconds uses the existing bottom task feedback, outside the
+toolbar. Short preparation shows no indicator; completion removes it immediately.
 Button bounds stay stable through preparation, tray opening and dismissal.
 
 ```text
@@ -82,10 +82,13 @@ Button bounds stay stable through preparation, tray opening and dismissal.
 - the production control remains absent until membership persistence, settings, errors, undo, and
   the complete user path are connected.
 
-The selection toolbar's `收藏` dropdown immediately offers `加入收藏夹` and `取消收藏`.
-Prepare the batch after the user chooses an action; its current Favorite counts never reverse the
-chosen action. Both commands use the guarded target; a cancelled or changed selection cannot apply
-an earlier action to new images.
+Selection quietly reads the current groups to show `收藏` when all are unfavorited and `取消收藏`
+when all are favorited. These uniform selections act directly on activation. Only a mixed selection
+opens a dropdown offering `加入收藏夹` and `取消收藏`; its trigger retains `收藏` with a dropdown arrow.
+The summary read does not disable album, file or cancel controls, and label changes retain button
+bounds. Activation reuses the prepared guarded target; no decision changes before the user acts.
+A cancelled or changed selection cannot apply an earlier action to new images. A chosen
+mixed-selection command retains that intent through commit.
 Unfavorite uses the heart-minus icon. Favorite changes leave album
 assignments and organization progress intact. Album removal and movement retain distinct labels
 and results.

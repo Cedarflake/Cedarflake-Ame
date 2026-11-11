@@ -124,8 +124,10 @@ void main() {
   Future<void> chooseFavorite(WidgetTester tester, bool value) async {
     await tester.tap(find.byKey(const Key("library-selection-favorite")));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(value ? "加入收藏夹" : "取消收藏"));
-    await tester.pump();
+    if (find.byType(PopupMenuItem<bool>).evaluate().isNotEmpty) {
+      await tester.tap(find.text(value ? "加入收藏夹" : "取消收藏"));
+      await tester.pump();
+    }
   }
 
   Future<void> favorite(WidgetTester tester, bool value) async {
@@ -228,7 +230,7 @@ void main() {
 
   for (final favorites in [0, 1, 3]) {
     testWidgets(
-      "explicit favorite intent is retained with $favorites of three groups",
+      "favorite action resolves $favorites of three groups automatically",
       (tester) async {
         batches.create = () => OrganizationBatchFixture()
           ..summary = LibraryBatchSummary(
@@ -238,27 +240,34 @@ void main() {
             conflicts: 0,
           );
         await host(tester);
-        expect(batches.selections, isEmpty);
+        expect(batches.batches.single.preparations, 1);
+        expect(batches.batches.single.writes, isEmpty);
+        expect(
+          find.descendant(
+            of: find.byKey(const Key("library-selection-favorite")),
+            matching: find.text(favorites == 3 ? "取消收藏" : "收藏"),
+          ),
+          findsOneWidget,
+        );
         await tester.tap(find.byKey(const Key("library-selection-favorite")));
         await tester.pumpAndSettle();
-        expect(find.text("加入收藏夹"), findsOneWidget);
-        expect(find.text("取消收藏"), findsOneWidget);
-        expect(batches.selections, isEmpty);
-        await tester.tap(find.text("加入收藏夹"));
-        await tester.pumpAndSettle();
+        if (favorites == 1) {
+          expect(find.text("加入收藏夹"), findsOneWidget);
+          expect(find.text("取消收藏"), findsOneWidget);
+          expect(batches.batches.single.writes, isEmpty);
+          await tester.tap(find.text("加入收藏夹"));
+          await tester.pumpAndSettle();
+        } else {
+          expect(find.byType(PopupMenuItem<bool>), findsNothing);
+        }
         expect(batches.batches, hasLength(1));
         expect(batches.batches.single.preparations, 1);
         expect(
           (batches.batches.single.writes.single.action as LibraryBatchFavorite)
               .favorite,
-          isTrue,
+          favorites != 3,
         );
-        await favorite(tester, false);
-        expect(
-          (batches.batches.last.writes.single.action as LibraryBatchFavorite)
-              .favorite,
-          isFalse,
-        );
+        expect(committed, 1);
       },
     );
   }
@@ -276,7 +285,16 @@ void main() {
       ..preparing = Completer<LibraryBatchSummary>();
     batches.create = () => earlier;
     await host(tester);
-    await chooseFavorite(tester, true);
+    await tester.tap(find.byKey(const Key("library-selection-favorite")));
+    await tester.pump();
+    final current = OrganizationBatchFixture()
+      ..summary = const LibraryBatchSummary(
+        groups: 1,
+        favorites: 1,
+        assigned: 0,
+        conflicts: 0,
+      );
+    batches.create = () => current;
     selection = selection.toggle("another");
     await host(tester);
     earlier.preparing!.complete(earlier.summary);
@@ -287,14 +305,7 @@ void main() {
     expect(find.byType(PopupMenuItem<bool>), findsNothing);
     expect(committed, 0);
 
-    final current = OrganizationBatchFixture()
-      ..summary = const LibraryBatchSummary(
-        groups: 1,
-        favorites: 1,
-        assigned: 0,
-        conflicts: 0,
-      );
-    batches.create = () => current;
+    expect(find.text("取消收藏"), findsOneWidget);
     await favorite(tester, false);
     expect(
       (current.writes.single.action as LibraryBatchFavorite).favorite,
@@ -303,21 +314,24 @@ void main() {
     expect(committed, 1);
   });
 
-  testWidgets("dismissing the favorite menu requires no batch preparation", (
-    tester,
-  ) async {
-    await host(tester);
-    await tester.tap(find.byKey(const Key("library-selection-favorite")));
-    await tester.pumpAndSettle();
-    await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
-    expect(batches.selections, isEmpty);
-    selection = selection.toggle("another");
-    await host(tester);
-    expect(find.text("收藏/取消收藏"), findsNothing);
-    expect(find.text("收藏"), findsOneWidget);
-    expect(committed, 0);
-  });
+  testWidgets(
+    "dismissing a mixed favorite menu retires its prepared selection",
+    (tester) async {
+      await host(tester);
+      await tester.tap(find.byKey(const Key("library-selection-favorite")));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(batches.batches.single.preparations, 1);
+      expect(batches.batches.single.closes, 1);
+      expect(batches.batches.single.writes, isEmpty);
+      selection = selection.toggle("another");
+      await host(tester);
+      expect(find.text("收藏/取消收藏"), findsNothing);
+      expect(find.text("收藏"), findsOneWidget);
+      expect(committed, 0);
+    },
+  );
 
   for (final assigned in [0, 1, 3]) {
     testWidgets("album tray reflects $assigned assigned groups", (
@@ -642,7 +656,8 @@ void main() {
         ..preparing = Completer<LibraryBatchSummary>();
       batches.create = () => batch;
       await host(tester);
-      await chooseFavorite(tester, true);
+      await tester.tap(find.byKey(const Key("library-selection-favorite")));
+      await tester.pump();
       visible.value = false;
       await tester.pump();
       batch.preparing!.complete(batch.summary);

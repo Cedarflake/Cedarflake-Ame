@@ -324,26 +324,35 @@ pending queue or continuation reads without waiting for them; their late success
 cannot reopen the viewer, replace the current session or display a stale error. Native session
 retirement continues after its local authority has been revoked.
 
-Favorite menus offer explicit add/remove commands before batch preparation, including selections
-that are entirely favorited. Known single-image decisions remain actionable during background
-refresh. Completed file feedback yields to organization failures and results; running file work
-retains priority. Changing a selection clears its previous preparation notice. Entry, scope change,
-exit and continuation failures now identify their corresponding operation.
+Selection quietly prepares its summary, updates the Favorite label before activation and reuses
+that target on activation: uniform selections act directly, while mixed selections offer add/remove
+choices. The always-open menu introduced in `348588d1` was withdrawn. The Material `IndexedStack`
+reserves the label variants' bounds so the neighboring actions do not shift when the read completes.
+The existing 25 selection checks cover uniform and mixed Favorite actions, album add/move/removal,
+defer/ignore restoration, cancellation and unrelated catalog publication. Known single-image
+decisions remain actionable during background refresh. Completed file feedback yields to organization
+failures and results; running file work retains priority. Changing a selection clears its previous
+preparation notice. Entry, scope change, exit and continuation failures now identify their
+corresponding operation.
 
 Affected interaction checks pass for pending-read exit, stale result/error rejection, concurrent
-catalog refresh, explicit Favorite intent, selection cancellation, notification precedence and
+catalog refresh, automatic Favorite choice, selection cancellation, notification precedence and
 workspace restoration. The previous test requiring a busy Exit to ignore input was replaced with
 an exit-during-query regression. Static analysis, formatting and the Windows Debug build pass.
 The normal `local-primary` client displayed 63,072 images, entered organization with a usable
 continuation button, and returned to its original gallery. Exit was visually complete in a 2,486 ms
-observation including an intentional 1,800 ms wait and capture. The Favorite menu was visible in
-457 ms including a 250 ms wait; opening it submitted no write. A mode-entry capture at 1,751 ms
+observation including an intentional 1,800 ms wait and capture. A mode-entry capture at 1,751 ms
 still showed query loading; a later capture showed the complete controls. These are sampled
 observations, not isolated query timings or proof that large-library reads are instantaneous.
-The client remains open on ordinary browsing; no physical file operation was submitted.
+The normal-client Favorite follow-up verified a previously unfavorited image becoming favorited by
+direct activation, the selected favorited image showing `取消收藏`, and a mixed selection opening
+only the two applicable commands. Direct unfavorite restored that image's original decision.
+The assigned image's album picker retained `移出相册` and `移至其他相册`, selected its current album,
+and disabled a redundant move to that same album. The picker was dismissed without assignment changes.
+No physical file operation was submitted.
 
-The continuation reader, transition, mode and selection owners contain 70/43/433/353 production
-lines and no inline tests. The reused mode/widget suites contain 529/708 dedicated test lines.
+The continuation reader, transition, mode and selection owners contain 70/43/433/458 production
+lines and no inline tests. The reused mode/widget suites contain 529/744 dedicated test lines.
 
 ### Dialog and viewer follow-up
 

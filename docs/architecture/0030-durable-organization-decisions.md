@@ -399,9 +399,11 @@ carry their catalog/query authority and are revalidated through bounded anchor r
 collection changes, preserving the currently displayed source. A fallback ordinal cannot prove that
 an image still belongs to a collection.
 
-Selection Favorite actions expose explicit add/remove commands before preparing the batch; the
-prepared summary cannot reverse that intent. Same-target status refreshes retain known decisions
-and their actions until an actual read failure; command admission still validates current targets.
+Selection Favorite labels and actions use the prepared current group summary: uniformly unfavorited
+groups are added and uniformly favorited groups are removed without a menu. Mixed groups offer
+explicit add/remove commands against that same prepared selection. Same-target status refreshes
+retain known decisions and their actions until an actual read failure; command admission still
+validates current targets.
 Active file work keeps its viewer feedback, while a completed file result yields to an organization
 failure or transient result. Changing selection resolves its previous preparation failure.
 
@@ -448,9 +450,12 @@ outside the original selection; an intervening target decision or content change
 Refresh is unavailable after a write attempt, so an uncertain receipt keeps its original digest and
 operation ID for replay. Decision-version evidence shares the existing group inspection query.
 
-The gallery selection owner uploads bounded inclusion/exclusion chunks only on an explicit action.
-It releases pending preparation when selection changes or the toolbar is disposed. Once the album
-picker opens, that dialog owns the batch independently of toolbar publication; creating an album
+The gallery selection owner quietly prepares bounded inclusion/exclusion chunks when selection
+changes, so action labels reflect the selected groups before activation. This read does not block
+other controls or write decisions; explicit actions reuse its prepared target. A failed background
+read remains retryable by the explicit action, which owns error feedback. The owner releases pending
+preparation when selection changes or the toolbar is disposed. Once the album picker opens, that
+dialog owns the batch independently of toolbar publication; creating an album
 cannot retire its own pending assignment. The shared picker exposes save cancellation only when
 its membership command supports it, waits for retirement, and preserves a commit that wins the race.
 Ordinary favorite and unfavorite successes use the same transient receipt and undo path as the viewer.
