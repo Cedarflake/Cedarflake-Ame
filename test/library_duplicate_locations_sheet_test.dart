@@ -8,6 +8,7 @@ import "package:cedarflake_ame/features/library/application/library_exact_duplic
 import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_locations_sheet.dart";
+import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -17,63 +18,67 @@ import "support/duplicate_review_fixtures.dart";
 import "support/application_test_bindings.dart";
 
 void main() {
-  testWidgets(
-    "pending members retain rows until the current verification page is admitted",
-    (tester) async {
-      final events = StreamController<LibraryExactAnalysisProgress>();
-      final service = _Locations()
-        ..pendingCount = 2
-        ..analysisEvents = events.stream;
-      final library = _RevisionLibrary();
-      final analysis = LibraryExactAnalysisController(service);
-      final scheduler = LibraryExactAnalysisScheduler(analysis);
-      addTearDown(() async {
-        scheduler.dispose();
-        analysis.dispose();
-        await events.close();
-      });
-      await tester.pumpWidget(
-        _host(
-          service,
-          library: library,
-          analysis: analysis,
-          scheduler: scheduler,
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text("200 张重复图片"), findsOneWidget);
-      expect(find.text("等待后台"), findsOneWidget);
-      expect(find.text("当前图片"), findsOneWidget);
-      scheduler.setPaused(true);
-      await tester.pumpAndSettle();
-      expect(find.text("已暂停"), findsOneWidget);
-      scheduler.setPaused(false);
-      analysis.start();
-      await tester.pump();
-      expect(find.text("正在更新"), findsOneWidget);
-      expect(find.text("等待后台"), findsNothing);
-      final oldRead = Completer<LibraryDuplicateLocationPage>();
-      service.pending = oldRead;
-      library.publishRevision(1);
-      await tester.pump();
-      final latestRead = Completer<LibraryDuplicateLocationPage>();
-      service.pending = latestRead;
-      library.publishRevision(2);
-      await tester.pump();
-      service.pendingCount = 0;
-      latestRead.complete(service.page(0));
-      await tester.pumpAndSettle();
-      expect(find.text("200 张重复图片"), findsOneWidget);
-      expect(find.text("正在更新"), findsNothing);
-      service.pendingCount = 2;
-      oldRead.complete(service.page(0));
-      await tester.pumpAndSettle();
-      expect(find.text("200 张重复图片"), findsOneWidget);
-      expect(find.text("正在更新"), findsNothing);
-      expect(find.text("image-0.png"), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+  testWidgets("verification refreshes coalesce while retaining current rows", (
+    tester,
+  ) async {
+    final events = StreamController<LibraryExactAnalysisProgress>();
+    final service = _Locations()
+      ..pendingCount = 2
+      ..analysisEvents = events.stream;
+    final library = _RevisionLibrary();
+    final analysis = LibraryExactAnalysisController(service);
+    final scheduler = LibraryExactAnalysisScheduler(analysis);
+    addTearDown(() async {
+      scheduler.dispose();
+      analysis.dispose();
+      await events.close();
+    });
+    await tester.pumpWidget(
+      _host(
+        service,
+        library: library,
+        analysis: analysis,
+        scheduler: scheduler,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text("200 张重复图片"), findsOneWidget);
+    expect(find.text("等待后台"), findsOneWidget);
+    expect(find.text("当前图片"), findsOneWidget);
+    scheduler.setPaused(true);
+    await tester.pumpAndSettle();
+    expect(find.text("已暂停"), findsOneWidget);
+    scheduler.setPaused(false);
+    analysis.start();
+    await tester.pump();
+    expect(find.text("正在更新"), findsOneWidget);
+    expect(find.text("等待后台"), findsNothing);
+    final oldRead = Completer<LibraryDuplicateLocationPage>();
+    service.pending = oldRead;
+    library.publishRevision(1);
+    await tester.pump();
+    final latestRead = Completer<LibraryDuplicateLocationPage>();
+    service.pending = latestRead;
+    library.publishRevision(2);
+    await tester.pump();
+    library.publishRevision(3);
+    await tester.pump();
+    expect(service.cursors, [null, null]);
+    expect(find.text("image-0.png"), findsOneWidget);
+    oldRead.complete(service.page(0));
+    await tester.pumpAndSettle();
+    expect(service.cursors, [null, null, null]);
+    expect(find.text("200 张重复图片"), findsOneWidget);
+    expect(find.text("正在更新"), findsOneWidget);
+    expect(find.text("image-0.png"), findsOneWidget);
+    service.pendingCount = 0;
+    latestRead.complete(service.page(0));
+    await tester.pumpAndSettle();
+    expect(find.text("200 张重复图片"), findsOneWidget);
+    expect(find.text("正在更新"), findsNothing);
+    expect(find.text("image-0.png"), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets("scrolling crosses batches and retries a failed continuation", (
     tester,
@@ -139,7 +144,7 @@ void main() {
     first.complete(service.page(0));
     await tester.pump();
     expect(find.text("image-0.png"), findsNothing);
-    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(find.byType(AmeLoadingIndicator), findsWidgets);
     await tester.pumpWidget(const SizedBox());
     second.complete(service.page(0));
     await tester.pump();

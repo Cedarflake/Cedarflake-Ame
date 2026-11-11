@@ -51,7 +51,7 @@ void main() {
           libraryScannerProvider.overrideWithValue(const NoopLibraryScanner()),
           libraryClassificationSettingsProvider.overrideWith((ref) => settings),
           libraryClassificationNavigationProvider.overrideWith(
-            (ref) => navigation,
+            (ref) => navigation.asStream(),
           ),
         ]),
       );
@@ -222,7 +222,7 @@ void main() {
               (ref) async => _settings("插画"),
             ),
             libraryClassificationNavigationProvider.overrideWith(
-              (ref) async => _settings("插画"),
+              (ref) => Stream.value(_settings("插画")),
             ),
           ]),
           child: const AmeApp(),
@@ -252,7 +252,7 @@ void main() {
       ProviderScope(
         overrides: applicationTestOverrides([
           libraryClassificationNavigationProvider.overrideWith(
-            (ref) => pending.future,
+            (ref) => pending.future.asStream(),
           ),
         ]),
         child: MaterialApp(

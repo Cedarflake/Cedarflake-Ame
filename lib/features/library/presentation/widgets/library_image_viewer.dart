@@ -154,25 +154,33 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
             ),
             viewport: Size(
               constraints.maxWidth,
-              math.max(
-                0,
-                constraints.maxHeight -
-                    LibraryViewerToolbar.height -
-                    (showFilmstrip ? LibraryViewerFilmstripSlot.height : 0),
-              ),
+              math.max(0, constraints.maxHeight - LibraryViewerToolbar.height),
             ),
             opening: widget.openBehavior,
           );
           return Column(
             children: [
-              Expanded(child: _buildImageViewport(goBack)),
-              if (widget.filmstrip case final filmstrip?)
-                LibraryViewerChrome(
-                  child: LibraryViewerFilmstripSlot(
-                    visible: showFilmstrip,
-                    child: filmstrip,
-                  ),
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  clipBehavior: Clip.none,
+                  children: [
+                    _buildImageViewport(goBack),
+                    if (widget.filmstrip case final filmstrip?)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: LibraryViewerChrome(
+                          child: LibraryViewerFilmstripSlot(
+                            visible: showFilmstrip,
+                            child: filmstrip,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
+              ),
               LibraryViewerChrome(
                 child: LibraryViewerToolbar(
                   asset: widget.asset,

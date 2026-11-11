@@ -6,7 +6,9 @@ use crate::domain::similar_images::SIMILARITY_SCHEME;
 use crate::domain::similar_images::review::{SimilarMemberSelection, SimilarReviewContext};
 
 use super::super::super::exact_duplicate_review::{DECISION_JOIN, representative_expression};
-use super::super::super::exact_duplicates::queries::{COMPATIBLE_FINGERPRINT, CURRENT_LOCATIONS};
+use super::super::super::exact_duplicates::queries::{
+    COMPATIBLE_FINGERPRINT, CURRENT_LOCATIONS, CURRENT_LOCATIONS_BY_GENERATION,
+};
 use super::super::super::{database_error, sqlite_integer};
 
 const ELIGIBLE_CONTENT: &str = "JOIN similarity_evidence AS e
@@ -23,16 +25,51 @@ const NOT_EXCLUDED: &str = "NOT EXISTS (
 pub(in crate::adapters::sqlite_catalog) enum MemberScope {
     AllGroups,
     Group,
+    Page,
+}
+
+pub(super) fn eligible_groups_cte() -> String {
+    // Eligibility needs two current contents, not every location or its representative.
+    format!(
+        "WITH eligible_groups AS (
+            SELECT g.group_id FROM similarity_groups AS g
+            WHERE g.scheme = ?2
+              AND COALESCE((SELECT ignored FROM similarity_decisions
+                WHERE group_id = g.group_id), 0) = ?5
+              AND EXISTS (
+                SELECT 1 FROM similarity_members AS m
+                JOIN similarity_evidence AS e ON e.evidence_id = m.evidence_id
+                WHERE m.group_id = g.group_id AND e.scheme = ?2 AND e.disposition = 'ready'
+                  AND m.distance <= ?3 AND {NOT_EXCLUDED}
+                  AND EXISTS (
+                    SELECT 1 FROM content_fingerprints AS f
+                    CROSS JOIN {CURRENT_LOCATIONS_BY_GENERATION}
+                    WHERE f.scheme = e.fingerprint_scheme AND f.digest = e.digest
+                      AND f.byte_length = e.byte_length AND {COMPATIBLE_FINGERPRINT})
+                LIMIT 1 OFFSET 1)
+        )"
+    )
 }
 
 pub(in crate::adapters::sqlite_catalog) fn members_cte(scope: MemberScope) -> String {
     let representative = representative_expression("l");
+    let prefix = if matches!(scope, MemberScope::Page) {
+        format!(
+            "{}, page_groups AS MATERIALIZED (
+                SELECT group_id FROM eligible_groups
+                WHERE group_id > ?6 ORDER BY group_id LIMIT ?7 OFFSET ?8
+            ),",
+            eligible_groups_cte()
+        )
+    } else {
+        "WITH".to_owned()
+    };
     let (sources, group_predicate) = match scope {
         MemberScope::AllGroups => (
             format!("{CURRENT_LOCATIONS} JOIN content_fingerprints AS f {ELIGIBLE_CONTENT}"),
             "",
         ),
-        MemberScope::Group => (
+        MemberScope::Group | MemberScope::Page => (
             format!(
                 "similarity_members AS m
                  JOIN similarity_evidence AS e ON e.evidence_id = m.evidence_id
@@ -41,13 +78,17 @@ pub(in crate::adapters::sqlite_catalog) fn members_cte(scope: MemberScope) -> St
                  CROSS JOIN content_fingerprints AS f
                    ON f.scheme = e.fingerprint_scheme AND f.digest = e.digest
                      AND f.byte_length = e.byte_length
-                 CROSS JOIN {CURRENT_LOCATIONS}"
+                 CROSS JOIN {CURRENT_LOCATIONS_BY_GENERATION}"
             ),
-            "AND m.group_id = ?4",
+            if matches!(scope, MemberScope::Group) {
+                "AND m.group_id = ?4"
+            } else {
+                "AND m.group_id IN (SELECT group_id FROM page_groups)"
+            },
         ),
     };
     format!(
-        "WITH visible_members AS (
+        "{prefix} visible_members AS (
             SELECT m.group_id, e.fingerprint_scheme AS content_scheme, e.digest AS content_digest,
                    e.byte_length AS content_bytes, m.distance, COUNT(*) AS location_count,
                    {representative} AS representative,

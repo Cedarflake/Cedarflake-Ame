@@ -17,7 +17,7 @@ mod publication;
 mod selection;
 mod task;
 
-fn fixture() -> (
+pub(super) fn fixture() -> (
     tempfile::TempDir,
     SqliteFileOperationJournal,
     AuthorizedFileOperation,

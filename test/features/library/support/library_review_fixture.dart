@@ -101,6 +101,7 @@ class ReviewSurfaceFixture implements LibraryReviewSurface {
   final opened = <LibraryAsset>[];
   int closes = 0;
   Future<bool> Function()? publishing;
+  int _queryGeneration = 0;
 
   @override
   LibraryReviewBrowseState captureBrowse() => LibraryReviewBrowseState(
@@ -127,10 +128,12 @@ class ReviewSurfaceFixture implements LibraryReviewSurface {
     LibraryOrganizationTarget? target,
     LibraryGalleryVisiblePosition? position,
   }) async {
+    final generation = ++_queryGeneration;
     queries.add(query);
     targets.add(target);
     positions.add(position);
     final applies = await (publishing?.call() ?? Future.value(true));
+    if (generation != _queryGeneration) return false;
     if (applies) library = library.copyWith(query: query);
     return applies;
   }

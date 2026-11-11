@@ -735,3 +735,27 @@ The [full hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/
 [PR 58](https://github.com/Cedarflake/Cedarflake-Ame/pull/58), separately from the earlier R8 merge;
 the [motion integration record](material-motion.md#integration--2026-11-11) retains the combined
 revision, hosted verification status and remaining interaction limit.
+
+## Current explicit selection — 2026-11-11
+
+The selection adapter now resolves explicitly selected asset/location identities against current
+catalog state before freezing confirmation. Three focused SQLite regressions pass for existing
+group scope, refreshed file generations, unrelated catalog publications, frozen post-confirmation
+targets and conflicting physical inputs. Query-wide select-all retains its revision guard.
+The first compile exhausted memory; disabling debug symbols only for this test crate allowed the
+same regression to compile. A system-Temp access failure was resolved by the repository scratch
+owner; its fixtures and lease were cleaned after the successful run.
+
+The file-action widget checks pass for cancellation, default recycling, current menu-time revision
+and preparation failure without available destructive controls. These checks execute no physical
+deletion. The selection facade and SQL owner contain 298 and 108 production lines, with no inline
+tests; the SQLite selection suite contains 345 dedicated test lines.
+
+The current Windows client on `local-primary` also reproduced empty selection mode disappearing
+during a same-scope catalog publication. Preserving that explicit mode retains the first checkbox
+interaction while full-query selection still expires on publication. The connected regression
+checks empty/selected mode, cancellation and select-all invalidation; existing scope-navigation
+checks pass. Native-window repetition retained the selected screenshot, opened an enabled one-file
+recycle confirmation and cancelled with selection intact. No physical deletion was submitted.
+The screen retains its existing selection owner at 1,999 production lines without inline tests;
+the reused dedicated selection suite contains 251 lines.

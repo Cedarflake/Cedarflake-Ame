@@ -10,12 +10,111 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_viewer_source_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_image_reveal.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_fade.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_launch.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_transition.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_notice.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  for (final route in [false, true]) {
+    testWidgets(
+      "${route ? 'review route' : 'gallery'} starts with the card's decoded thumbnail",
+      (tester) async {
+        final bytes = await tester.runAsync(() => _png(Colors.red));
+        final thumbnail = ResizeImage(MemoryImage(bytes!), width: 1);
+        final scheduler = LibrarySourceReadScheduler(
+          reader: const _SourceReader(),
+        );
+        addTearDown(scheduler.dispose);
+        final asset = _asset("pending-source.png").withPreview(
+          previewPath: "uncached-preview.png",
+          width: 2,
+          height: 2,
+          previewStatus: LibraryPreviewStatus.ready,
+        );
+        var open = false;
+        Widget viewer() => LibraryViewerImage(
+          asset: asset,
+          previewImages: (_) => throw StateError("The card already has pixels"),
+          sourceReadScheduler: scheduler,
+          sourceBufferLoader: (_) => ui.ImmutableBuffer.fromUint8List(bytes),
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, update) => LibraryViewerTransition(
+                  viewer: open ? viewer() : null,
+                  gallery: Builder(
+                    builder: (context) => Center(
+                      child: LibraryViewerLaunch(
+                        locationId: asset.locationId,
+                        onOpen: () {
+                          if (route) {
+                            unawaited(
+                              Navigator.of(context).push<void>(
+                                LibraryViewerRoute(
+                                  context: context,
+                                  origin: LibraryViewerOriginScope.of(
+                                    context,
+                                  )?.take(),
+                                  builder: (_) => viewer(),
+                                ),
+                              ),
+                            );
+                          } else {
+                            update(() => open = true);
+                          }
+                        },
+                        builder: (context, imageKey, onOpen) => GestureDetector(
+                          onTap: onOpen,
+                          child: SizedBox.square(
+                            dimension: 100,
+                            child: LibraryImageReveal(
+                              key: imageKey,
+                              image: thumbnail,
+                              revealIdentity: asset.locationId,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await _waitForFrame(
+          tester,
+          () => tester.widget<RawImage>(find.byType(RawImage)).image != null,
+        );
+        final pixels = tester.widget<RawImage>(find.byType(RawImage)).image!;
+        await tester.tap(find.byType(LibraryViewerLaunch));
+        await tester.pump();
+        await tester.pump();
+        final preview = find.descendant(
+          of: find.byType(LibraryViewerImage),
+          matching: find.byWidgetPredicate(
+            (widget) => widget is Image && widget.image == thumbnail,
+          ),
+        );
+        final visible = tester.widget<RawImage>(
+          find.descendant(of: preview, matching: find.byType(RawImage)),
+        );
+        expect(visible.image!.isCloneOf(pixels), isTrue);
+        expect(visible.filterQuality, FilterQuality.low);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+        await thumbnail.evict();
+      },
+    );
+  }
+
   testWidgets(
     "source notices take the shared top slot before organization feedback",
     (tester) async {
@@ -174,59 +273,90 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets("source arrival retains an evicted but visible preview", (
-    tester,
-  ) async {
-    final directory = Directory.systemTemp.createTempSync(
-      "ame-viewer-handoff-",
-    );
-    addTearDown(() => directory.deleteSync(recursive: true));
-    final preview = File(
-      "${directory.path}${Platform.pathSeparator}preview.png",
-    );
-    final red = await tester.runAsync(() => _png(Colors.red));
-    preview.writeAsBytesSync(red!);
-    final source = Completer<ui.ImmutableBuffer>();
-    final asset = _asset("pending-source.png").withPreview(
-      previewPath: preview.path,
-      width: 2,
-      height: 2,
-      previewStatus: LibraryPreviewStatus.ready,
-    );
-    await tester.pumpWidget(_viewer(asset, bufferLoader: (_) => source.future));
-    final previewFinder = find.byWidgetPredicate(
-      (widget) => widget is Image && widget.image == FileImage(preview),
-    );
-    await _waitForFrame(tester, () {
-      final images = tester.widgetList<RawImage>(
-        find.descendant(of: previewFinder, matching: find.byType(RawImage)),
+  testWidgets(
+    "source upgrade waits for flight and retains its visible preview",
+    (tester) async {
+      final directory = Directory.systemTemp.createTempSync(
+        "ame-viewer-handoff-",
       );
-      return images.length == 1 && images.single.image != null;
-    });
-    final previewElement = tester.element(previewFinder);
-    await FileImage(preview).evict();
-    final blue = await tester.runAsync(() => _png(Colors.blue));
-    final buffer = await tester.runAsync(
-      () => ui.ImmutableBuffer.fromUint8List(blue!),
-    );
-    source.complete(buffer!);
-    await _waitForFrame(
-      tester,
-      () => find.byKey(const Key("viewer-image-loading")).evaluate().isEmpty,
-    );
-    expect(tester.element(previewFinder), same(previewElement));
-    expect(
-      tester
-          .widget<RawImage>(
-            find.descendant(of: previewFinder, matching: find.byType(RawImage)),
-          )
-          .image,
-      isNotNull,
-    );
-    expect(await _visiblePixel(tester), [33, 150, 243, 255]);
-    await tester.pumpWidget(const SizedBox.shrink());
-    expect(tester.takeException(), isNull);
-  });
+      addTearDown(() => directory.deleteSync(recursive: true));
+      final preview = File(
+        "${directory.path}${Platform.pathSeparator}preview.png",
+      );
+      final red = await tester.runAsync(() => _png(Colors.red));
+      preview.writeAsBytesSync(red!);
+      final source = Completer<ui.ImmutableBuffer>();
+      final flight = AnimationController(
+        vsync: tester,
+        duration: const Duration(seconds: 20),
+      )..forward();
+      addTearDown(flight.dispose);
+      final asset = _asset("pending-source.png").withPreview(
+        previewPath: preview.path,
+        width: 2,
+        height: 2,
+        previewStatus: LibraryPreviewStatus.ready,
+      );
+      await tester.pumpWidget(
+        _viewer(asset, bufferLoader: (_) => source.future, flight: flight),
+      );
+      final previewFinder = find.byWidgetPredicate(
+        (widget) => widget is Image && widget.image == FileImage(preview),
+      );
+      await _waitForFrame(tester, () {
+        final images = tester.widgetList<RawImage>(
+          find.descendant(of: previewFinder, matching: find.byType(RawImage)),
+        );
+        return images.length == 1 && images.single.image != null;
+      });
+      final previewElement = tester.element(previewFinder);
+      await FileImage(preview).evict();
+      final blue = await tester.runAsync(() => _png(Colors.blue));
+      final buffer = await tester.runAsync(
+        () => ui.ImmutableBuffer.fromUint8List(blue!),
+      );
+      source.complete(buffer!);
+      await _waitForFrame(
+        tester,
+        () => find.byKey(const Key("viewer-image-loading")).evaluate().isEmpty,
+      );
+      expect(tester.element(previewFinder), same(previewElement));
+      expect(
+        tester
+            .widget<RawImage>(
+              find.descendant(
+                of: previewFinder,
+                matching: find.byType(RawImage),
+              ),
+            )
+            .image,
+        isNotNull,
+      );
+      final sourceImage = find.byWidgetPredicate(
+        (widget) => widget is Image && widget.image is LibrarySourceImage,
+      );
+      double opacity() => tester.widget<Image>(sourceImage).opacity!.value;
+      expect(opacity(), 0);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(opacity(), 0);
+      expect(tester.element(previewFinder), same(previewElement));
+      flight.value = 1;
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 30));
+      final blending = opacity();
+      expect(blending, inExclusiveRange(0, 1));
+      flight.reverse();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 120));
+      expect(opacity(), blending);
+      expect(tester.element(previewFinder), same(previewElement));
+      flight.value = 1;
+      await tester.pump();
+      expect(await _visiblePixel(tester), [33, 150, 243, 255]);
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     "confirmed removal replaces fallback retry without moving the image",
@@ -349,15 +479,20 @@ Widget _viewer(
   LibrarySourceBufferLoader? bufferLoader,
   Widget? notice,
   Widget? operationNotice,
+  Animation<double> flight = const AlwaysStoppedAnimation(1),
 }) => MaterialApp(
   home: Scaffold(
-    body: LibraryViewerImage(
-      previewImages: createLibraryPreviewImage,
-      asset: asset,
-      sourceReadScheduler: _sourceScheduler,
-      sourceBufferLoader: bufferLoader,
-      notice: notice,
-      operationNotice: operationNotice,
+    body: LibraryViewerFlightScope(
+      origin: null,
+      animation: flight,
+      child: LibraryViewerImage(
+        previewImages: createLibraryPreviewImage,
+        asset: asset,
+        sourceReadScheduler: _sourceScheduler,
+        sourceBufferLoader: bufferLoader,
+        notice: notice,
+        operationNotice: operationNotice,
+      ),
     ),
   ),
 );

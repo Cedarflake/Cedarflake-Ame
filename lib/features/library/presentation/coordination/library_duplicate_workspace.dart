@@ -86,6 +86,17 @@ class LibraryDuplicateWorkspace extends ChangeNotifier {
     LibraryDuplicateKind.similar => similar.itemCount,
     null => groupCount,
   };
+  bool get hasLoadedContent => switch (memberKind) {
+    LibraryDuplicateKind.exact => exact.memberWindow.cachedItemCount > 0,
+    LibraryDuplicateKind.similar => similar.memberWindow.cachedItemCount > 0,
+    null => switch (view) {
+      LibraryDuplicateView.exact => exact.groupWindow.cachedItemCount > 0,
+      LibraryDuplicateView.similar => similar.groupWindow.cachedItemCount > 0,
+      LibraryDuplicateView.ignored =>
+        exact.groupWindow.cachedItemCount > 0 ||
+            similar.groupWindow.cachedItemCount > 0,
+    },
+  };
   bool get ignored =>
       isSimilar ? similar.decision.ignored : exact.decision.ignored;
   LibraryAsset? get representative => switch (memberKind) {

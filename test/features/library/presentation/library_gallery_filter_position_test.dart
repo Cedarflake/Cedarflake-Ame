@@ -114,6 +114,21 @@ void main() {
   });
 
   for (final shape in GalleryLayoutShape.values) {
+    testWidgets("$shape opens a complete snapshot at the date heading", (
+      tester,
+    ) async {
+      await _openGallery(
+        tester,
+        shape,
+        useManifest: true,
+        initialManifest: true,
+      );
+      expect(_scroll(tester).pixels, 0);
+      final wall = tester.getRect(find.byKey(const Key("library-photo-wall")));
+      final heading = tester.getRect(find.text("2020年9月2日").first);
+      expect(heading.top, greaterThanOrEqualTo(wall.top));
+      expect(heading.bottom, lessThan(wall.bottom));
+    });
     for (final filter in ["one", "bottom", "excluded", "empty"]) {
       testWidgets("$shape restores middle pixels after filter $filter", (
         tester,
@@ -208,6 +223,7 @@ Future<_Catalog> _openGallery(
   WidgetTester tester,
   GalleryLayoutShape shape, {
   bool useManifest = false,
+  bool initialManifest = false,
 }) async {
   tester.view.physicalSize = const Size(1280, 800);
   tester.view.devicePixelRatio = 1;
@@ -228,9 +244,12 @@ Future<_Catalog> _openGallery(
             return catalog.manifest(request.query);
           }),
         initialLibraryStateProvider.overrideWithValue(
-          LibraryState.fromSnapshot(
-            initial.snapshot,
-          ).copyWith(timeline: initial.timeline),
+          LibraryState.fromSnapshot(initial.snapshot).copyWith(
+            timeline: initial.timeline,
+            layoutManifest: initialManifest
+                ? catalog.manifest(const LibraryGalleryQuery())
+                : null,
+          ),
         ),
         initialLibraryViewPreferencesProvider.overrideWithValue(
           LibraryViewPreferences(layoutShape: shape),

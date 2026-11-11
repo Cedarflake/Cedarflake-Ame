@@ -14,6 +14,54 @@ import "../support/library_organization_fixture.dart";
 import "../../../support/application_test_bindings.dart";
 
 void main() {
+  testWidgets("catalog refresh preserves explicit selection mode", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final container = ProviderContainer(
+      overrides: applicationTestOverrides([
+        initialLibraryStateProvider.overrideWithValue(
+          populatedScreenState(totalItems: 1),
+        ),
+        libraryControllerProvider.overrideWith(_RefreshingLibrary.new),
+      ]),
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const AmeApp()),
+    );
+    await tester.pumpAndSettle();
+    final library =
+        container.read(libraryControllerProvider.notifier)
+            as _RefreshingLibrary;
+    await tester.tap(find.byKey(const Key("library-select-button")));
+    await tester.pump();
+    library.publishRevision();
+    await tester.pump();
+    expect(find.text("已选择 0 个项目"), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey("select-location-1")));
+    await tester.pump();
+    library.publishRevision();
+    await tester.pump();
+    expect(find.text("已选择 1 个项目"), findsOneWidget);
+    await tester.tap(find.byKey(const Key("library-cancel-selection")));
+    await tester.pump();
+    library.publishRevision();
+    await tester.pump();
+    expect(find.byKey(const Key("library-selection-toolbar")), findsNothing);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    expect(find.text("已选择 1 个项目"), findsOneWidget);
+    library.publishRevision();
+    await tester.pump();
+    expect(find.byKey(const Key("library-selection-toolbar")), findsNothing);
+  });
+
   testWidgets("keyboard select all uses the complete query", (tester) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;
@@ -192,4 +240,12 @@ void main() {
     expect(find.text("已选择 79013 个项目"), findsOneWidget);
     expect(find.byKey(const Key("library-cancel-selection")), findsOneWidget);
   });
+}
+
+class _RefreshingLibrary extends LibraryController {
+  void publishRevision() {
+    state = state.copyWith(
+      catalogRevision: state.catalogRevision! + BigInt.one,
+    );
+  }
 }

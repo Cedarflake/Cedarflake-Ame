@@ -421,12 +421,13 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     }
     setState(() {
       if (_selectionStableQueryId == next.stableQueryId) {
+        _isSelecting = _isSelecting && !_selection.isAllMatching;
         _selection = _selection.rebind(next.queryId);
       } else {
         _selection = GallerySelection.empty(next.queryId);
+        _isSelecting = false;
       }
       _selectionStableQueryId = next.stableQueryId;
-      _isSelecting = !_selection.isEmpty;
     });
   }
 
@@ -940,6 +941,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           isEmpty: state.assets.isEmpty,
           isLoading:
               _review.busy ||
+              (state.assets.isEmpty &&
+                  (state.status == LibraryStatus.refreshing ||
+                      state.isLoadingTimeline)) ||
               state.isRefreshingQuery ||
               state.isLoadingPage ||
               state.isLoadingPreviousPage ||
@@ -1896,6 +1900,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
       globalItemIndex: state.windowStartItemOffset,
       itemFraction: 0,
       viewportFraction: 0,
+      scrollEdge: state.windowStartItemOffset == 0
+          ? LibraryGalleryScrollEdge.start
+          : null,
     );
   }
 

@@ -402,7 +402,7 @@ fn group_pages_and_seeks_are_bounded_and_exclusions_remain_group_scoped() {
 }
 
 #[test]
-fn member_reads_do_not_walk_unrelated_fingerprints() {
+fn review_reads_do_not_walk_unrelated_fingerprints() {
     let (_directory, mut catalog, run) = evidence_fixture();
     finish(&mut catalog, &run);
     let group = catalog
@@ -425,6 +425,8 @@ fn member_reads_do_not_walk_unrelated_fingerprints() {
             .unwrap();
         let result =
             catalog.load_similar_members(&group.group_id, SimilarityDegree::Standard, None);
+        let groups = catalog.load_similar_groups(SimilarityDegree::Standard, false, "");
+        let ignored = catalog.load_similar_groups(SimilarityDegree::Standard, true, "");
         catalog
             .connection
             .progress_handler(0, None::<fn() -> bool>)
@@ -432,6 +434,12 @@ fn member_reads_do_not_walk_unrelated_fingerprints() {
         let page = result.unwrap();
         assert_eq!(page.total_members, 2);
         assert_eq!(page.members.len(), 2);
+        let groups = groups.unwrap();
+        assert_eq!(groups.total_groups, 1);
+        assert_eq!(groups.groups[0].group_id, group.group_id);
+        let ignored = ignored.unwrap();
+        assert_eq!(ignored.total_groups, 0);
+        assert!(ignored.groups.is_empty());
         steps.load(Ordering::Relaxed)
     };
     let before = measure();
@@ -451,6 +459,6 @@ fn member_reads_do_not_walk_unrelated_fingerprints() {
     let after = measure();
     assert!(
         after <= before + 1000,
-        "reading the same two members must not walk 4096 unrelated fingerprints: {before} -> {after}"
+        "reading the same groups and members must not walk 4096 unrelated fingerprints: {before} -> {after}"
     );
 }

@@ -1185,11 +1185,13 @@ class _ManifestLibraryGalleryWallState
       globalItemIndex: position.globalItemIndex,
       itemFraction: position.itemFraction,
       viewportFraction: position.viewportFraction,
-      scrollEdge: transition?.edgeForScrollPosition(
-        widget.scrollController.hasClients
-            ? widget.scrollController.position
-            : null,
-      ),
+      scrollEdge: transition == null
+          ? position.scrollEdge
+          : transition.edgeForScrollPosition(
+              widget.scrollController.hasClients
+                  ? widget.scrollController.position
+                  : null,
+            ),
     ).scrollOffsetFor(snapshot, viewportExtent);
     if (target == null) {
       if (transition == null) {

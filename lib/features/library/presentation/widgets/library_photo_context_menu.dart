@@ -117,7 +117,10 @@ class LibraryPhotoContextMenu {
         case _PhotoAction.moveFile:
         case _PhotoAction.renameFile:
         case _PhotoAction.deleteFile:
-          if (catalogRevision == null) return;
+          final currentRevision = ref
+              .read(libraryControllerProvider)
+              .catalogRevision;
+          if (currentRevision == null) return;
           final fileAction = switch (action) {
             _PhotoAction.copyFile => LibraryFileAction.copy,
             _PhotoAction.moveFile => LibraryFileAction.move,
@@ -131,7 +134,7 @@ class LibraryPhotoContextMenu {
               action: fileAction,
               selection: LibraryOrganizationSelection(
                 query: query,
-                catalogRevision: catalogRevision,
+                catalogRevision: currentRevision,
                 allMatching: false,
                 assetIds: [target.assetId],
               ),

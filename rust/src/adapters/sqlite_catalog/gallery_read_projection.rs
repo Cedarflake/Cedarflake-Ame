@@ -3,8 +3,9 @@ use std::collections::BTreeMap;
 use rusqlite::{Transaction, params_from_iter};
 
 use crate::domain::{
-    CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk, GalleryQuery, GallerySortDirection,
-    GallerySortKey, GalleryTimeBucket, GalleryTimeline, ScanError,
+    CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk, GalleryLocationAnchorResolution,
+    GalleryQuery, GalleryQueryAnchor, GallerySortDirection, GallerySortKey, GalleryTimeBucket,
+    GalleryTimeline, ScanError,
 };
 
 use super::gallery::{
@@ -211,6 +212,41 @@ impl GalleryReadProjection {
                 .then(|| selected.last().map(|item| self.cursor(item)))
                 .flatten(),
             query_anchor_resolution: None,
+        })
+    }
+
+    pub(super) fn resolve_anchor(
+        &self,
+        transaction: &Transaction<'_>,
+        query: &GalleryQuery,
+        anchor: &GalleryQueryAnchor,
+        max_items: u32,
+    ) -> Result<GalleryLocationAnchorResolution, ScanError> {
+        let target = super::gallery::find_gallery_query_anchor(
+            transaction,
+            self.timeline.revision,
+            query,
+            &self.timeline.query_id,
+            anchor,
+        )?;
+        let ordinal = match target {
+            Some(cursor) => Some(self.items.iter().position(|item| {
+                item.location_id == cursor.location_id && item.root_id == cursor.root_id
+            }).ok_or_else(|| ScanError::new(
+                "catalog_query_snapshot_invalid",
+                "The resolved gallery anchor is outside its transaction's ordered projection",
+            ))? as u64),
+            None if anchor.asset_id.is_some() && !self.items.is_empty() => {
+                Some(anchor.fallback_ordinal.min(self.items.len() as u64 - 1))
+            }
+            None => None,
+        };
+        Ok(GalleryLocationAnchorResolution {
+            requested_location_id: anchor.requested_location_id.clone(),
+            location_id: ordinal.map(|index| self.items[index as usize].location_id.clone()),
+            ordinal,
+            window_start_ordinal: ordinal
+                .map_or(0, |index| index.saturating_sub(u64::from(max_items / 2))),
         })
     }
 

@@ -4,6 +4,7 @@ import "package:cedarflake_ame/features/library/application/ports/library_catalo
 import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/domain/library_time_snapshot.dart";
 import "package:cedarflake_ame/features/library/application/library_query_snapshot_reader.dart";
+import "package:cedarflake_ame/features/library/application/library_foreground_reads.dart";
 import "package:cedarflake_ame/features/library/application/library_viewport_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
@@ -51,6 +52,7 @@ void main() {
         anchor: null,
         canPublish: () => generation == 1,
       );
+      expect(libraryForegroundReads.isBusy, isTrue);
       generation = 2;
       final newRead = await reader.loadCurrent(
         query: const LibraryGalleryQuery(
@@ -59,6 +61,7 @@ void main() {
         anchor: null,
         canPublish: () => generation == 2,
       );
+      expect(libraryForegroundReads.isBusy, isTrue);
       final previous = _querySnapshot(7, queryId: "pending");
       pending.complete(
         LibraryQuerySnapshot(
@@ -69,6 +72,7 @@ void main() {
       );
       expect(newRead?.organizationCounts, same(currentCounts));
       expect(await oldRead, isNull);
+      expect(libraryForegroundReads.isBusy, isFalse);
     },
   );
 

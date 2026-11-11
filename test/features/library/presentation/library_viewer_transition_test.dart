@@ -21,6 +21,125 @@ void main() {
   RetainedSemanticsUpdateBinding();
   setUp(RetainedSemanticsUpdateValidator.instance.reset);
 
+  testWidgets("card corners retain their screen radius under viewer zoom", (
+    tester,
+  ) async {
+    const bounds = Rect.fromLTWH(100, 80, 120, 120);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RepaintBoundary(
+          key: const Key("rounded-flight"),
+          child: ColoredBox(
+            color: Colors.white,
+            child: LibraryViewerFlightScope(
+              origin: LibraryViewerOrigin(
+                locationId: "photo",
+                geometry: (bounds: bounds, visibleBounds: bounds),
+                currentGeometry: () => (bounds: bounds, visibleBounds: bounds),
+                fit: BoxFit.cover,
+                radius: 20,
+              ),
+              animation: const AlwaysStoppedAnimation(0),
+              child: Transform.scale(
+                scale: 2,
+                child: const LibraryViewerImageFlight(
+                  locationId: "photo",
+                  imageSize: Size(400, 200),
+                  child: ColoredBox(color: Colors.blue),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final boundary = tester.renderObject<RenderRepaintBoundary>(
+      find.byKey(const Key("rounded-flight")),
+    );
+    await tester.runAsync(() async {
+      final capture = await boundary.toImage();
+      try {
+        final bytes = (await capture.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        ))!;
+        int redAt(int x, int y) => bytes.getUint8((y * capture.width + x) * 4);
+        expect(redAt(101, 81), 255);
+        expect(redAt(110, 90), (Colors.blue.r * 255).round());
+      } finally {
+        capture.dispose();
+      }
+    });
+  });
+
+  testWidgets(
+    "return clips the travelling image before reaching a partial card",
+    (tester) async {
+      final scroll = ScrollController(initialScrollOffset: 140);
+      addTearDown(scroll.dispose);
+      final gallery = Stack(
+        children: [
+          Positioned(
+            top: 120,
+            left: 0,
+            width: 320,
+            height: 180,
+            child: SingleChildScrollView(
+              controller: scroll,
+              child: SizedBox(height: 600, child: _launchCard()),
+            ),
+          ),
+        ],
+      );
+      final image = find.byKey(const Key("flight-image"));
+      await tester.pumpWidget(_host(gallery, null));
+      await tester.tapAt(const Offset(160, 150));
+      await tester.pumpWidget(_host(gallery, _flightViewer()));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(_host(gallery, null));
+      for (
+        var frame = 0;
+        frame < 30 &&
+            image.evaluate().isNotEmpty &&
+            tester.getRect(image).width > 300;
+        frame++
+      ) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(image, findsOneWidget);
+      expect(tester.getRect(image).top, lessThan(120));
+      final boundary = tester.renderObject<RenderRepaintBoundary>(
+        find.byKey(const Key("flight-capture")),
+      );
+      await tester.runAsync(() async {
+        final capture = await boundary.toImage();
+        try {
+          final bytes = (await capture.toByteData(
+            format: ui.ImageByteFormat.rawRgba,
+          ))!;
+          int? firstBlueRow;
+          for (var y = 0; y < capture.height && firstBlueRow == null; y++) {
+            for (var x = 0; x < capture.width; x++) {
+              final offset = (y * capture.width + x) * 4;
+              if (bytes.getUint8(offset) == (Colors.blue.r * 255).round() &&
+                  bytes.getUint8(offset + 1) == (Colors.blue.g * 255).round() &&
+                  bytes.getUint8(offset + 2) == (Colors.blue.b * 255).round()) {
+                firstBlueRow = y;
+                break;
+              }
+            }
+          }
+          expect(firstBlueRow, isNotNull);
+          expect(firstBlueRow, greaterThanOrEqualTo(120));
+        } finally {
+          capture.dispose();
+        }
+      });
+      await tester.pumpAndSettle();
+      expect(image, findsNothing);
+      expect(scroll.offset, 140);
+    },
+  );
+
   testWidgets("image travels from its card and back while chrome stays still", (
     tester,
   ) async {

@@ -130,6 +130,20 @@ fn query_anchor_resolution_matches_the_published_window() {
                     "resolved anchor and window must share one ordinal: {query:?}, {ordinal}",
                 );
             }
+            let fallback = GalleryQueryAnchor {
+                requested_location_id: "deleted-location".into(),
+                asset_id: Some("deleted-asset".into()),
+                fallback_ordinal: 1006,
+            };
+            let result = catalog
+                .load_query_snapshot(500, &query, TEST_QUERY_ID, Some(&fallback))
+                .expect("deleted anchor retains its ordinal in the current projection");
+            let resolution = result.snapshot.query_anchor_resolution.unwrap();
+            assert_eq!(resolution.ordinal, Some(1006));
+            assert_eq!(
+                location_ids(&result.snapshot.assets),
+                location_ids(&complete.assets[756..1256])
+            );
         }
     }
 }

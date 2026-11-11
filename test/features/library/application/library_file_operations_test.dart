@@ -1,12 +1,16 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_group_thumbnail.dart";
+import "package:cedarflake_ame/app/presentation/ame_dialog.dart";
+import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
 
 import "package:cedarflake_ame/features/library/application/library_file_operations.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/application/library_duplicate_review_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_similar_review_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_file_selection.dart";
+import "package:cedarflake_ame/features/library/application/library_file_publication.dart";
 import "package:cedarflake_ame/features/library/application/library_file_selection_scope.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_file_operations.dart";
 import "package:cedarflake_ame/features/library/domain/library_file_operations.dart";
@@ -16,6 +20,7 @@ import "package:cedarflake_ame/features/library/domain/library_organization_batc
 import "package:cedarflake_ame/features/library/domain/library_similar_review.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_file_action_dialog.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_file_history.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_context_menu.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_duplicate_workspace.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_cleanup_action.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_results.dart";
@@ -25,8 +30,76 @@ import "package:material_ui/material_ui.dart";
 import "../../../support/application_test_bindings.dart";
 import "../../../support/duplicate_review_fixtures.dart";
 import "../../../support/similar_review_fixtures.dart";
+import "../support/library_organization_fixture.dart";
 
 void main() {
+  testWidgets(
+    "file selection uses the revision when the menu action is chosen",
+    (tester) async {
+      final backend = _Backend();
+      final menu = LibraryPhotoContextMenu();
+      final container = ProviderContainer(
+        overrides: applicationTestOverrides([
+          libraryControllerProvider.overrideWith(_RefreshingLibrary.new),
+          libraryOrganizationProvider.overrideWithValue(
+            OrganizationServiceFixture(),
+          ),
+          libraryFileOperationsProvider.overrideWithValue(backend),
+        ]),
+      );
+      addTearDown(menu.dispose);
+      addTearDown(container.dispose);
+      final library =
+          container.read(libraryControllerProvider.notifier)
+              as _RefreshingLibrary;
+      library.showMergedGallery();
+      var current = true;
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: Consumer(
+                builder: (context, ref, _) => TextButton(
+                  child: const Text("打开菜单"),
+                  onPressed: () => menu.open(
+                    context: context,
+                    ref: ref,
+                    position: const RelativeRect.fromLTRB(10, 40, 500, 0),
+                    target: organizationTarget("one"),
+                    isCurrent: () => current,
+                    onOpen: () {},
+                    onInformation: () {},
+                    onCopyPath: () {},
+                    onReveal: () {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text("打开菜单"));
+      await tester.pumpAndSettle();
+      library.publishRevision(BigInt.two);
+      await tester.tap(find.text("删除"));
+      await tester.pumpAndSettle();
+      final selected = backend.selections.single as LibraryFileGroupsInGallery;
+      expect(selected.selection.catalogRevision, BigInt.two);
+      expect(selected.selection.assetIds, ["asset-one"]);
+      expect(backend.commands, isEmpty);
+      await tester.tap(find.text("取消"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("打开菜单"));
+      await tester.pumpAndSettle();
+      current = false;
+      await tester.tap(find.text("删除"));
+      await tester.pumpAndSettle();
+      expect(backend.selections, hasLength(1));
+      expect(backend.commands, isEmpty);
+    },
+  );
+
   testWidgets(
     "cleanup scopes and completion preserve group selection authority",
     (tester) async {
@@ -89,7 +162,11 @@ void main() {
           isTrue,
         );
         expect(
-          tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+          tester
+              .widget<Checkbox>(
+                find.byKey(const Key("library-file-permanent-delete")),
+              )
+              .value,
           isFalse,
         );
         await tester.tap(find.text("取消"));
@@ -273,14 +350,30 @@ void main() {
   );
 
   test(
-    "shutdown joins a completed native worker before exposing completion",
+    "shutdown joins the native worker and gallery before exposing completion",
     () async {
       final backend = _Backend();
+      backend.task.result = const LibraryFileProgress(
+        phase: LibraryFileTaskPhase.finished,
+        total: 1,
+        processed: 1,
+        published: 1,
+      );
       final released = Completer<void>();
+      final refreshed = Completer<bool>();
       backend.task.closing = released.future;
       final container = ProviderContainer(
-        overrides: [libraryFileOperationsProvider.overrideWithValue(backend)],
+        overrides: [
+          libraryFileOperationsProvider.overrideWithValue(backend),
+          libraryControllerProvider.overrideWith(
+            OrganizationLibraryFixture.new,
+          ),
+        ],
       );
+      final library =
+          container.read(libraryControllerProvider.notifier)
+              as OrganizationLibraryFixture;
+      library.pendingRefresh = refreshed;
       final actions = container.read(libraryFileActionsProvider.notifier);
       final running = actions.execute(
         LibraryFileSelectionSession(backend, selection),
@@ -294,6 +387,11 @@ void main() {
       expect(backend.task.cancelled, isTrue);
       expect(closed, isFalse);
       released.complete();
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(libraryFileActionsProvider).busy, isTrue);
+      expect(library.refreshes, 1);
+      expect(closed, isFalse);
+      refreshed.complete(true);
       final result = await running;
       expect(result?.phase, LibraryFileTaskPhase.finished);
       await closing;
@@ -302,6 +400,48 @@ void main() {
         isTrue,
       );
       container.dispose();
+    },
+  );
+
+  testWidgets(
+    "rapid file results share publication and wait for the final gallery",
+    (tester) async {
+      final reads = <Completer<void>>[];
+      final publication = LibraryFilePublication(() {
+        final read = Completer<void>();
+        reads.add(read);
+        return read.future;
+      });
+      LibraryFileProgress progress(int count, {bool finished = false}) =>
+          LibraryFileProgress(
+            phase: finished
+                ? LibraryFileTaskPhase.finished
+                : LibraryFileTaskPhase.running,
+            total: 3,
+            processed: count,
+            published: count,
+          );
+      publication.observe(progress(1));
+      publication.observe(progress(2));
+      expect(reads, isEmpty);
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 510)),
+      );
+      publication.observe(progress(2));
+      expect(reads, hasLength(1));
+      publication.observe(progress(3, finished: true));
+      var finished = false;
+      final completion = publication.finish().then((_) => finished = true);
+      await tester.pump();
+      expect(finished, isFalse);
+      reads.first.complete();
+      await tester.pump();
+      expect(reads, hasLength(2));
+      expect(finished, isFalse);
+      reads.last.complete();
+      await completion;
+      await publication.close();
+      expect(finished, isTrue);
     },
   );
 
@@ -355,7 +495,7 @@ void main() {
   testWidgets(
     "history retry displays its new result after the worker retires",
     (tester) async {
-      final backend = _Backend();
+      final backend = _Backend()..readFailure = true;
       final released = Completer<void>();
       backend.task.closing = released.future;
       LibraryFileRecord record(int id, LibraryFileRecordPhase phase) =>
@@ -390,6 +530,13 @@ void main() {
       );
       await tester.tap(find.text("打开记录"));
       await tester.pumpAndSettle();
+      expect(find.text("暂时无法读取文件操作记录，请重试。"), findsOneWidget);
+      expect(find.text("暂无文件操作记录"), findsNothing);
+      backend.readFailure = false;
+      await tester.tap(find.text("重试"));
+      await tester.pumpAndSettle();
+      expect(find.text("暂时无法读取文件操作记录，请重试。"), findsNothing);
+      expect(find.textContaining("before.png"), findsOneWidget);
       await tester.tap(find.text("重试"));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), "after.png");
@@ -434,7 +581,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text("删除这组图片的全部 2 个文件？"), findsOneWidget);
       expect(
-        tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+        tester
+            .widget<Checkbox>(
+              find.byKey(const Key("library-file-permanent-delete")),
+            )
+            .value,
         isFalse,
       );
       expect(backend.commands, isEmpty);
@@ -455,14 +606,76 @@ void main() {
       await tester.tap(find.text("打开删除确认"));
       await tester.pumpAndSettle();
       expect(
-        tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+        tester
+            .widget<Checkbox>(
+              find.byKey(const Key("library-file-permanent-delete")),
+            )
+            .value,
         isFalse,
       );
       await tester.tap(find.text("取消"));
       await tester.pumpAndSettle();
       expect(backend.commands, hasLength(1));
+      final opening = Completer<LibraryFileSelectionDraft>();
+      backend.opening = opening.future;
+      await tester.tap(find.text("打开删除确认"));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 200));
+      final progressFade = find
+          .ancestor(
+            of: find.byType(AmeLoadingIndicator),
+            matching: find.byType(FadeTransition),
+          )
+          .first;
+      final opacity = tester.widget<FadeTransition>(progressFade).opacity;
+      expect(opacity.value, greaterThan(0.99));
+      expect(
+        tester.getCenter(find.byType(AmeLoadingIndicator)),
+        tester.getCenter(find.byType(AmeDialogContent)),
+      );
+      expect(find.text("永久删除").hitTestable(), findsNothing);
+      opening.completeError(
+        const LibraryFileFailure(
+          "organization_selection_changed",
+          "Stale selection",
+        ),
+      );
+      await tester.pump();
+      expect(
+        tester.widget<FadeTransition>(progressFade).opacity,
+        same(opacity),
+      );
+      expect(opacity.value, greaterThan(0));
+      expect(find.text("返回").hitTestable(), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(opacity.value, 0);
+      expect(find.text("所选图片已变化，请查看当前图库后重新选择。"), findsOneWidget);
+      expect(find.text("文件将移入 Windows 回收站。"), findsNothing);
+      expect(
+        find.byKey(const Key("library-file-permanent-delete")),
+        findsNothing,
+      );
+      expect(find.byType(FilledButton), findsNothing);
+      await tester.tap(find.text("返回"));
+      await tester.pumpAndSettle();
+      expect(backend.commands, hasLength(1));
     },
   );
+}
+
+class _RefreshingLibrary extends OrganizationLibraryFixture {
+  void showMergedGallery() {
+    state = state.copyWith(
+      query: state.query.copyWith(
+        duplicateMode: LibraryGalleryDuplicateMode.merged,
+      ),
+    );
+  }
+
+  void publishRevision(BigInt revision) {
+    state = state.copyWith(catalogRevision: revision);
+  }
 }
 
 class _Backend implements LibraryFileOperations {
@@ -483,6 +696,7 @@ class _Backend implements LibraryFileOperations {
   final task = _Task();
   final commands = <LibraryFileCommand>[];
   List<LibraryFileRecord> records = [];
+  bool readFailure = false;
   Future<LibraryFileSelectionDraft>? opening;
   @override
   Future<LibraryFileSelectionDraft> open(LibraryFileSelection selection) async {
@@ -499,7 +713,11 @@ class _Backend implements LibraryFileOperations {
   Future<List<LibraryFileRecord>> history({
     BigInt? before,
     int limit = 40,
-  }) async => records;
+  }) async {
+    if (readFailure) throw StateError("Record read failed");
+    return records;
+  }
+
   @override
   Future<void> openRecycleBin() async => throw UnimplementedError();
 }

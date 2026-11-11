@@ -62,6 +62,9 @@ shared principles; the roadmap owns current delivery order and acceptance status
   name-sorted inline snapshots. It derives navigation and geometry from that selection and loads
   bounded detail windows through the existing location index. It cannot cache membership across
   read transactions.
+  Anchored snapshots resolve identity through the shared anchor lookup, then locate the ordinal and
+  detail window in that same ordered projection. A removed asset retains the existing clamped
+  ordinal fallback; queries without an inline projection keep the bounded SQL window path.
   `gallery_layout_manifest.rs` owns compact block encoding, continuation evidence and its transfer
   budget; the catalog facade delegates legacy chunk reads to the same owner. The target ordinal
   remains distinct from the centered page start, so changed row grouping retains a loaded prefix.

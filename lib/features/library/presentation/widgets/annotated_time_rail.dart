@@ -82,156 +82,167 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
     }
     return SizedBox(
       width: AnnotatedTimeRail.width,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border(left: BorderSide(color: colorScheme.outlineVariant)),
-        ),
-        child: Column(
-          children: [
-            _buildStepButton(
-              key: const Key("timeline-previous"),
-              tooltip: "向上滚动",
-              icon: Symbols.arrow_drop_up_rounded,
-              direction: -1,
-            ),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final geometry = TimelineRailGeometry(
-                    extent: constraints.maxHeight,
-                    maximumOffset: projection.maximumOffset,
-                    anchors: anchors,
-                  );
-                  final layout = TimelineRailLayout(
-                    anchors: anchors,
-                    railExtent: constraints.maxHeight,
-                    endpointInset: _endpointInset,
-                    labelExtent: _labelExtent,
-                    markerExtent: _markerExtent,
-                    markerMinimumGap: _markerMinimumGap,
-                  );
-                  final currentBucketId = anchors.isEmpty
+      child: Column(
+        children: [
+          _buildStepButton(
+            key: const Key("timeline-previous"),
+            tooltip: "向上滚动",
+            icon: Symbols.arrow_drop_up_rounded,
+            direction: -1,
+          ),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final geometry = TimelineRailGeometry(
+                  extent: constraints.maxHeight,
+                  maximumOffset: projection.maximumOffset,
+                  anchors: anchors,
+                );
+                final layout = TimelineRailLayout(
+                  anchors: anchors,
+                  railExtent: constraints.maxHeight,
+                  endpointInset: _endpointInset,
+                  labelExtent: _labelExtent,
+                  markerExtent: _markerExtent,
+                  markerMinimumGap: _markerMinimumGap,
+                  includeEndMarker:
+                      anchors.isNotEmpty && projection.maximumOffset > 0,
+                );
+                final currentBucketId = anchors.isEmpty
+                    ? null
+                    : timelineRailBucketAtValue(
+                        anchors,
+                        widget.value,
+                      ).bucket.id;
+                return Listener(
+                  key: const Key("timeline-hover-region"),
+                  behavior: HitTestBehavior.translucent,
+                  onPointerHover: widget.onChanged == null
                       ? null
-                      : timelineRailBucketAtValue(
-                          anchors,
-                          widget.value,
-                        ).bucket.id;
-                  return Listener(
-                    key: const Key("timeline-hover-region"),
-                    behavior: HitTestBehavior.translucent,
-                    onPointerHover: widget.onChanged == null
-                        ? null
-                        : (event) => _updateHover(
-                            event.localPosition,
-                            constraints.maxHeight,
+                      : (event) => _updateHover(
+                          event.localPosition,
+                          constraints.maxHeight,
+                        ),
+                  child: MouseRegion(
+                    cursor: widget.onChanged == null
+                        ? MouseCursor.defer
+                        : SystemMouseCursors.click,
+                    onExit: (_) => setState(() => _hoverValue = null),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned.fill(
+                          child: TimelineRailRanges(
+                            anchors: anchors,
+                            projection: projection,
+                            geometry: geometry,
+                            endpointInset: _endpointInset,
+                            isInteracting: _isDragging,
                           ),
-                    child: MouseRegion(
-                      cursor: widget.onChanged == null
-                          ? MouseCursor.defer
-                          : SystemMouseCursors.click,
-                      onExit: (_) => setState(() => _hoverValue = null),
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Positioned.fill(
-                            child: TimelineRailRanges(
-                              anchors: anchors,
-                              projection: projection,
-                              geometry: geometry,
-                              endpointInset: _endpointInset,
-                              isInteracting: _isDragging,
-                            ),
+                        ),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          bottom: 0,
+                          width: _controlWidth,
+                          child: VerticalMaterialTimelineSlider(
+                            key: widget.interactionKey,
+                            value: widget.value,
+                            endpointInset: _endpointInset,
+                            onChangeStart: widget.onChanged == null
+                                ? null
+                                : (visualValue) =>
+                                      _startInteraction(visualValue),
+                            onChanged: widget.onChanged == null
+                                ? null
+                                : (visualValue) =>
+                                      widget.onChanged?.call(visualValue),
+                            onChangeEnd: widget.onChanged == null
+                                ? null
+                                : (visualValue) => _commit(visualValue),
+                            semanticLabelFor: (sliderValue) => anchors.isEmpty
+                                ? "滚动位置 ${(sliderValue * 100).round()}%"
+                                : timelineRailBucketAtValue(
+                                    anchors,
+                                    sliderValue,
+                                  ).bucket.label,
                           ),
+                        ),
+                        _buildPositionLine(
+                          key: const Key("timeline-current-line"),
+                          value: widget.value,
+                          railHeight: constraints.maxHeight,
+                          color: colorScheme.primary,
+                          geometry: geometry,
+                        ),
+                        if (anchors.isEmpty)
                           Positioned(
                             top: 0,
-                            right: 0,
                             bottom: 0,
-                            width: _controlWidth,
-                            child: VerticalMaterialTimelineSlider(
-                              key: widget.interactionKey,
-                              value: widget.value,
+                            right: (_controlWidth - _markerExtent) / 2,
+                            width: _markerExtent,
+                            child: const TimelineRailTicks(
                               endpointInset: _endpointInset,
-                              onChangeStart: widget.onChanged == null
-                                  ? null
-                                  : (visualValue) =>
-                                        _startInteraction(visualValue),
-                              onChanged: widget.onChanged == null
-                                  ? null
-                                  : (visualValue) =>
-                                        widget.onChanged?.call(visualValue),
-                              onChangeEnd: widget.onChanged == null
-                                  ? null
-                                  : (visualValue) => _commit(visualValue),
-                              semanticLabelFor: (sliderValue) => anchors.isEmpty
-                                  ? "滚动位置 ${(sliderValue * 100).round()}%"
-                                  : timelineRailBucketAtValue(
-                                      anchors,
-                                      sliderValue,
-                                    ).bucket.label,
                             ),
                           ),
-                          _buildPositionLine(
-                            key: const Key("timeline-current-line"),
-                            value: widget.value,
-                            railHeight: constraints.maxHeight,
-                            color: colorScheme.primary,
+                        if (layout.showEndMarker)
+                          TimelineRailPosition(
+                            key: const Key("timeline-end-marker"),
                             geometry: geometry,
+                            isInteracting: _isDragging,
+                            rect: Rect.fromLTWH(
+                              _axisX - _markerExtent / 2,
+                              _topForValue(1, constraints.maxHeight) -
+                                  _markerExtent / 2,
+                              _markerExtent,
+                              _markerExtent,
+                            ),
+                            child: const TimelineRailMarker(),
                           ),
-                          if (anchors.isEmpty)
-                            Positioned(
-                              top: 0,
-                              bottom: 0,
-                              right: (_controlWidth - _markerExtent) / 2,
-                              width: _markerExtent,
-                              child: const TimelineRailTicks(
-                                endpointInset: _endpointInset,
-                              ),
+                        for (final anchor in anchors)
+                          ..._buildAnnotation(
+                            context,
+                            anchor: anchor,
+                            geometry: geometry,
+                            railHeight: constraints.maxHeight,
+                            visualValue: anchor.value,
+                            hasLabel: layout.labelIds.contains(
+                              anchor.bucket.id,
                             ),
-                          for (final anchor in anchors)
-                            ..._buildAnnotation(
-                              context,
-                              anchor: anchor,
-                              geometry: geometry,
-                              railHeight: constraints.maxHeight,
-                              visualValue: anchor.value,
-                              hasLabel: layout.labelIds.contains(
-                                anchor.bucket.id,
-                              ),
-                              hasMarker: layout.markerIds.contains(
-                                anchor.bucket.id,
-                              ),
-                              isCurrent: currentBucketId == anchor.bucket.id,
+                            hasMarker: layout.markerIds.contains(
+                              anchor.bucket.id,
                             ),
-                          if (anchors.isNotEmpty && _isDragging)
-                            _buildPositionLabel(
-                              context,
-                              key: const Key("timeline-drag-label"),
-                              anchors: anchors,
-                              visualValue: widget.value,
-                              railHeight: constraints.maxHeight,
-                            )
-                          else if (anchors.isNotEmpty && _hoverValue != null)
-                            ..._buildHoverPreview(
-                              context,
-                              anchors: anchors,
-                              visualValue: _hoverValue!,
-                              railHeight: constraints.maxHeight,
-                            ),
-                        ],
-                      ),
+                            isCurrent: currentBucketId == anchor.bucket.id,
+                          ),
+                        if (anchors.isNotEmpty && _isDragging)
+                          _buildPositionLabel(
+                            context,
+                            key: const Key("timeline-drag-label"),
+                            anchors: anchors,
+                            visualValue: widget.value,
+                            railHeight: constraints.maxHeight,
+                          )
+                        else if (anchors.isNotEmpty && _hoverValue != null)
+                          ..._buildHoverPreview(
+                            context,
+                            anchors: anchors,
+                            visualValue: _hoverValue!,
+                            railHeight: constraints.maxHeight,
+                          ),
+                      ],
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
-            _buildStepButton(
-              key: const Key("timeline-next"),
-              tooltip: "向下滚动",
-              icon: Symbols.arrow_drop_down_rounded,
-              direction: 1,
-            ),
-          ],
-        ),
+          ),
+          _buildStepButton(
+            key: const Key("timeline-next"),
+            tooltip: "向下滚动",
+            icon: Symbols.arrow_drop_down_rounded,
+            direction: 1,
+          ),
+        ],
       ),
     );
   }

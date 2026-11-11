@@ -30,7 +30,7 @@ class LibraryFavoriteButton extends ConsumerWidget {
       error: status.error,
     );
     VoidCallback? action;
-    if (enabled && !saving && !status.isLoading && !status.hasError) {
+    if (enabled && !saving && !status.hasError) {
       if (favorite != null) {
         action = () => unawaited(
           ref

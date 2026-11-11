@@ -293,9 +293,12 @@ deduplicates repeated members and selects the current global representative, hon
 preference. R3 visible selection, folder scope and physical-location inspection retain their rules.
 
 A prepared command carries the catalog and organization revisions and selected asset/location/
-generation identities. Commit rechecks these authorities inside the write transaction. A changed
-representative, membership, content version or intervening decision rejects the stale command;
-the client refreshes its proposal. A pending retained display relationship is not a confirmed
+generation identities. Commit rechecks selected groups inside the write transaction: representative,
+membership, content version and the field being changed. A later decision on that field rejects
+the stale command; unrelated catalog publications, other groups' decisions and independent Favorite
+changes do not reject an album/progress write. Global revisions sequence receipts and publications,
+rather than vetoing an otherwise unchanged selection. The client refreshes a rejected proposal.
+A pending retained display relationship is not a confirmed
 singleton and cannot admit a group write. Resolution and virtual mutations perform no filesystem
 reads, scans, decoding or hydration.
 
@@ -396,6 +399,14 @@ carry their catalog/query authority and are revalidated through bounded anchor r
 collection changes, preserving the currently displayed source. A fallback ordinal cannot prove that
 an image still belongs to a collection.
 
+Selection Favorite labels and actions use the prepared current group summary: uniformly unfavorited
+groups are added and uniformly favorited groups are removed without a menu. Mixed groups offer
+explicit add/remove commands against that same prepared selection. Same-target status refreshes
+retain known decisions and their actions until an actual read failure; command admission still
+validates current targets.
+Active file work keeps its viewer feedback, while a completed file result yields to an organization
+failure or transient result. Changing selection resolves its previous preparation failure.
+
 Album navigation and destination dialogs read 64-album keyset pages. A separate indexed read resolves
 one saved default or selected album by ID; finding it does not traverse the list or create an
 operation. Retired albums are absent from both read contracts. Prompt and default-destination
@@ -416,8 +427,10 @@ connection-local SQLite temporary tables backed by bounded caches, outside origi
 No transaction remains open while a destination dialog waits. The existing gallery predicates own
 visible query membership, including folded representatives, folders, search and collection scopes.
 
-Preparation returns scalar counts and common-assignment information. Commit revalidates the observed
-catalog/decision revisions and each group's content/membership authority, then applies all selected
+Preparation returns scalar counts and common-assignment information. Explicit IDs resolve current
+groups at preparation; an unfrozen all-matching selection retains its catalog revision guard so
+new results cannot silently enter a select-all gesture. Commit revalidates each frozen group's
+content/membership authority and the affected decision field, then applies all selected
 groups under one operation and one transaction. Cancellation or a later failure rolls back the whole
 operation; receipt replay remains independent of later catalog changes. Progress and cancellation
 are session-owned, and closing or dropping a session releases its temporary data. Pending selections
@@ -437,9 +450,12 @@ outside the original selection; an intervening target decision or content change
 Refresh is unavailable after a write attempt, so an uncertain receipt keeps its original digest and
 operation ID for replay. Decision-version evidence shares the existing group inspection query.
 
-The gallery selection owner uploads bounded inclusion/exclusion chunks only on an explicit action.
-It releases pending preparation when selection changes or the toolbar is disposed. Once the album
-picker opens, that dialog owns the batch independently of toolbar publication; creating an album
+The gallery selection owner quietly prepares bounded inclusion/exclusion chunks when selection
+changes, so action labels reflect the selected groups before activation. This read does not block
+other controls or write decisions; explicit actions reuse its prepared target. A failed background
+read remains retryable by the explicit action, which owns error feedback. The owner releases pending
+preparation when selection changes or the toolbar is disposed. Once the album picker opens, that
+dialog owns the batch independently of toolbar publication; creating an album
 cannot retire its own pending assignment. The shared picker exposes save cancellation only when
 its membership command supports it, waits for retirement, and preserves a commit that wins the race.
 Ordinary favorite and unfavorite successes use the same transient receipt and undo path as the viewer.
@@ -455,6 +471,15 @@ preserved by the existing bounded query; album and Favorite browsing cannot ente
 Continuation admission compares the saved source, folder and descendant policy to the active scope
 before offering or restoring it. Incompatible historical collection positions remain stored but
 cannot reopen organization mode in a collection or replace the selected source scope.
+Continuation metadata loads alongside the destination gallery query and does not hold its mode
+transition open. Its reader publishes completed same-query results even when another catalog
+publication requests a follow-up; scope changes and exit retire old results. Restoring a saved
+image still resolves current continuation authority when the user invokes the action.
+Exit supersedes a pending mode query or continuation read. Its transition generation rejects old
+session, viewer and failure publication; the shared query owner admits the return query separately.
+Session retirement revokes save authority immediately and completes native cleanup asynchronously.
+Mode failure feedback identifies entry, scope change, exit or continuation instead of attributing
+every failure to saved-position recovery.
 Workspace navigation retains an organizing Library's active browse snapshot and ordinary return
 context while Albums uses the gallery. Query restoration precedes review-session reactivation on
 return. Duplicates and Settings retain the active organization session behind their surfaces;
@@ -478,9 +503,8 @@ geometry publication nor restart photo reflow; width and row-layout changes reta
 motion ownership. The retiring row loses pointer, keyboard and
 semantic input immediately. `ameMenuChoice` supplies the same dot marker and exclusive-selection
 semantics to sorting, layout and organization menus. Material buttons and popup items retain
-focus, selection and accessible names. The pinned SDK's `AbsorbPointer` removes pointer-related semantic
-actions during a mode operation without repainting the controls as disabled; the existing mode
-guard also rejects repeated keyboard commands. Published empty content remains mounted during
+focus, selection and accessible names. Pending mode work disables duplicate queue and continuation
+commands while leaving exit available to pointer, keyboard and semantic input. Published empty content remains mounted during
 query replacement. `LibraryGalleryLoadingRegion` owns the optional feedback delay and cancels its
 timer when loading ends or the region is disposed. Query and mode composition selects the delay;
 direct positioning remains immediate. These presentation changes do not alter query admission,

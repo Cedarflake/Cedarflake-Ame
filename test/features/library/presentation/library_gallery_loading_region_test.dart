@@ -1,8 +1,68 @@
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_loading_region.dart";
+import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
+import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_time_rail_presentation.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets("content waiting owns feedback before either quiet interval", (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final controller = ScrollController();
+    Future<void> show(bool contentWaiting) => tester.pumpWidget(
+      MaterialApp(
+        home: LibraryGalleryLoadingRegion(
+          isLoading: contentWaiting,
+          showContentIndicator: contentWaiting,
+          child: Row(
+            children: [
+              const Expanded(
+                child: SizedBox.expand(key: Key("retained-content")),
+              ),
+              LibraryTimeRailPresentation(
+                timeline: null,
+                layoutShape: GalleryLayoutShape.equalHeight,
+                scrollController: controller,
+                frame: null,
+                navigationProjection: null,
+                isLoading: true,
+                onChangeStart: (_) {},
+                onChanged: null,
+                onChangeEnd: null,
+                onStep: null,
+                onInteractionCancelled: () {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    try {
+      await show(true);
+      final bounds = tester.getRect(find.byKey(const Key("retained-content")));
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      await tester.pump(const Duration(milliseconds: 249));
+      expect(find.semantics.byLabel("正在加载图片"), findsNothing);
+      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.semantics.byLabel("正在加载图片"), findsOneWidget);
+      expect(find.byType(AmeLoadingIndicator), findsOneWidget);
+      await show(false);
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.semantics.byLabel("正在加载图片"), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(tester.getRect(find.byKey(const Key("retained-content"))), bounds);
+      await show(true);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+    } finally {
+      controller.dispose();
+      semantics.dispose();
+    }
+  });
+
   testWidgets(
     "short refreshes stay quiet and delayed feedback retires with its owner",
     (tester) async {
@@ -127,7 +187,7 @@ void main() {
 double _opacity(WidgetTester tester) => tester
     .widget<FadeTransition>(
       find.descendant(
-        of: find.byKey(const Key("library-top-loading")),
+        of: find.byKey(const Key("library-loading-feedback")),
         matching: find.byType(FadeTransition),
       ),
     )

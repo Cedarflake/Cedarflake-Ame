@@ -68,6 +68,7 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
         &self,
         max_items: u32,
         anchor: &GalleryQueryAnchor,
+        projection: Option<&GalleryReadProjection>,
     ) -> Result<CatalogSnapshot, ScanError> {
         if max_items == 0 || max_items > MAX_CATALOG_PAGE_ITEMS {
             return Err(ScanError::new(
@@ -88,8 +89,12 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
                 "A gallery anchor requires non-empty location and optional asset identifiers",
             ));
         }
-        let (resolution, predecessor) = match anchor.asset_id.as_deref() {
-            Some(asset_id) => resolve_gallery_asset_anchor(
+        let (resolution, predecessor) = match (projection, anchor.asset_id.as_deref()) {
+            (Some(projection), _) => Ok((
+                projection.resolve_anchor(&self.transaction, self.query, anchor, max_items)?,
+                None,
+            )),
+            (None, Some(asset_id)) => resolve_gallery_asset_anchor(
                 &self.transaction,
                 self.revision,
                 self.query,
@@ -101,7 +106,7 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
                     fallback_ordinal: anchor.fallback_ordinal,
                 },
             ),
-            None => resolve_gallery_location_anchor(
+            (None, None) => resolve_gallery_location_anchor(
                 &self.transaction,
                 self.revision,
                 self.query,
@@ -116,7 +121,12 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
                 hook();
             }
         });
-        let mut snapshot = self.load_snapshot(max_items, predecessor.as_ref(), None, None)?;
+        let mut snapshot = match projection {
+            Some(projection) => {
+                self.load_projection_page(projection, resolution.window_start_ordinal, max_items)?
+            }
+            None => self.load_snapshot(max_items, predecessor.as_ref(), None, None)?,
+        };
         snapshot.query_anchor_resolution = Some(resolution);
         Ok(snapshot)
     }
@@ -298,7 +308,9 @@ impl GalleryQueryRepository for SqliteCatalog {
             GalleryReadTransaction::begin(&mut self.connection, &self.path, query, query_id)?;
         let projection = read.load_projection()?;
         let snapshot = match (anchor, projection.as_ref()) {
-            (Some(anchor), _) => read.load_anchored_snapshot(max_items, anchor),
+            (Some(anchor), projection) => {
+                read.load_anchored_snapshot(max_items, anchor, projection)
+            }
             (None, Some(projection)) => read.load_projection_page(projection, 0, max_items),
             (None, None) => read.load_snapshot(max_items, None, None, None),
         }?;

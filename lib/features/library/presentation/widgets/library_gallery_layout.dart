@@ -315,6 +315,29 @@ class LibraryGalleryLayoutMetrics {
     return offsetForItemIndex(itemIndex - itemIndexBase);
   }
 
+  double? navigationOffsetForGlobalItemIndex(int itemIndex) {
+    final rowStart = rowStartGlobalItemIndex(itemIndex);
+    if (rowStart == null) return null;
+    final localIndex = rowStart - itemIndexBase;
+    final rowOffset = itemOffsets[localIndex];
+    var lower = 0;
+    var upper = dateAnchors.length;
+    while (lower < upper) {
+      final middle = lower + ((upper - lower) >> 1);
+      if (dateAnchors[middle].scrollOffset <= rowOffset) {
+        lower = middle + 1;
+      } else {
+        upper = middle;
+      }
+    }
+    if (lower == 0) return rowOffset;
+    final headerOffset = dateAnchors[lower - 1].scrollOffset;
+    if (localIndex > 0 && itemOffsets[localIndex - 1] >= headerOffset) {
+      return rowOffset;
+    }
+    return rowStart == 0 ? 0 : headerOffset;
+  }
+
   bool containsGlobalItemIndex(double itemIndex) {
     return itemIndex >= itemIndexBase &&
         itemIndex < itemIndexBase + itemOffsets.length;

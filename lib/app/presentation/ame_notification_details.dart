@@ -4,7 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../notifications/ame_notification_controller.dart";
 import "../notifications/ame_notification_strings.dart";
 import "ame_notification_time.dart";
-import "ame_scroll_motion.dart";
+import "ame_dialog.dart";
 
 Future<void> showAmeNotificationDetails(
   BuildContext context,
@@ -45,59 +45,51 @@ class _AmeNotificationDetails extends ConsumerWidget {
     }
     final notification = retained ?? observed;
     final isHistorical = retained == null || notification.isResolvedCondition;
-    return AlertDialog(
-      title: const Text(AmeNotificationStrings.notificationDetails),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
-        child: AmeScrollMotion(
-          child: SingleChildScrollView(
-            child: Column(
+    return AmeDialog(
+      title: AmeNotificationStrings.notificationDetails,
+      content: AmeDialogBody(
+        children: [
+          if (notification.severity == AmeNotificationSeverity.error)
+            AmeDialogError(notification.title)
+          else
+            Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 8,
               children: [
                 Text(
                   notification.title,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                if (notification.message.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(notification.message),
-                ],
-                if (notification.detail case final detail?) ...[
-                  const SizedBox(height: 8),
-                  Text(detail),
-                ],
-                if (notification.elapsedStartedAt case final startedAt?
-                    when !isHistorical) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    "已持续 ${formatAmeNotificationElapsed(DateTime.now().difference(startedAt))}",
-                  ),
-                ],
-                if (notification.sourcePath case final sourcePath?) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    AmeNotificationStrings.sourcePath,
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  SelectableText(sourcePath),
-                ],
-                if (notification.technicalCode case final technicalCode?) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    AmeNotificationStrings.technicalCode,
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  SelectableText(technicalCode),
-                ],
-                const SizedBox(height: 16),
-                Text(formatAmeNotificationOccurredAt(notification.occurredAt)),
               ],
             ),
+          if (notification.message.isNotEmpty) Text(notification.message),
+          if (notification.detail case final detail?) Text(detail),
+          if (notification.elapsedStartedAt case final startedAt?
+              when !isHistorical) ...[
+            Text(
+              "已持续 ${formatAmeNotificationElapsed(DateTime.now().difference(startedAt))}",
+            ),
+          ],
+          if (notification.sourcePath case final sourcePath?) ...[
+            AmeDialogField(
+              label: AmeNotificationStrings.sourcePath,
+              child: SelectableText(sourcePath),
+            ),
+          ],
+          if (notification.technicalCode case final technicalCode?) ...[
+            AmeDialogField(
+              label: AmeNotificationStrings.technicalCode,
+              child: SelectableText(technicalCode),
+            ),
+          ],
+          AmeDialogField(
+            label: "发生时间",
+            child: Text(
+              formatAmeNotificationOccurredAt(notification.occurredAt),
+            ),
           ),
-        ),
+        ],
       ),
       actions: [
         TextButton(

@@ -77,6 +77,15 @@ class _SidebarRemovalDialogState extends State<_SidebarRemovalDialog> {
     return removal.stop;
   }
 
+  Widget _item(int index) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: AmeDialogItem(
+      icon:
+          widget.itemIcons[removal.entries[index].id] ?? Symbols.folder_rounded,
+      title: removal.entries[index].name,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: removal,
@@ -85,39 +94,30 @@ class _SidebarRemovalDialogState extends State<_SidebarRemovalDialog> {
       child: AmeDialog(
         key: const Key("library-sidebar-removal-dialog"),
         title: widget.title,
-        content: SizedBox(
-          width: 400,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        content: AmeDialogBody(
+          children: [
+            if (removal.entries.length <= 3)
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(removal.entries.length, _item),
+              )
+            else
               SizedBox(
-                height: (removal.entries.length * 56.0).clamp(0.0, 200.0),
+                height: 200,
                 child: ListView.builder(
-                  shrinkWrap: true,
                   itemCount: removal.entries.length,
-                  itemBuilder: (context, index) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: AmeDialogItem(
-                      icon:
-                          widget.itemIcons[removal.entries[index].id] ??
-                          Symbols.folder_rounded,
-                      title: removal.entries[index].name,
-                    ),
-                  ),
+                  itemBuilder: (context, index) => _item(index),
                 ),
               ),
-              const SizedBox(height: 20),
-              Text(widget.detail),
-              if (removal.error case final error?) ...[
-                const SizedBox(height: 12),
+            Text(widget.detail),
+            if (removal.error case final error?) ...[
+              if (removal.completed.isNotEmpty)
                 Text(
-                  "已完成 ${removal.completed.length} / ${removal.entries.length} 项。$error",
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  "已完成 ${removal.completed.length} / ${removal.entries.length} 项。",
                 ),
-              ],
+              AmeDialogError(error),
             ],
-          ),
+          ],
         ),
         actions: [
           TextButton(

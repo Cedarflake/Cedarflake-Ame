@@ -235,7 +235,17 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text("选择相册", style: Theme.of(context).textTheme.titleLarge),
+                Row(
+                  children: [
+                    Text("选择相册", style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(width: 12),
+                    AmeLoadingProgress(
+                      active: page.isLoading && page.hasValue,
+                      size: 24,
+                      semanticsLabel: "正在更新相册",
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 Flexible(
                   child: SizedBox(
@@ -318,7 +328,11 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
                               ),
                               loading: () => const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 24),
-                                child: AmeLinearProgress(),
+                                child: Center(
+                                  child: AmeLoadingProgress(
+                                    semanticsLabel: "正在读取相册",
+                                  ),
+                                ),
                               ),
                               error: (error, stack) => Column(
                                 mainAxisSize: MainAxisSize.min,

@@ -118,9 +118,24 @@ class _LibraryDuplicateLocationsSheetState
                   spacing: 16,
                   runSpacing: 4,
                   children: [
-                    Text(
-                      LibraryDuplicateStrings.duplicateImages(_locations.total),
-                      style: Theme.of(context).textTheme.titleLarge,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          LibraryDuplicateStrings.duplicateImages(
+                            _locations.total,
+                          ),
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(width: 12),
+                        AmeLoadingProgress(
+                          active:
+                              _locations.loading &&
+                              _locations.cachedItemCount > 0,
+                          size: 24,
+                          semanticsLabel: "正在更新文件位置",
+                        ),
+                      ],
                     ),
                     if (label != null)
                       Text(
@@ -131,16 +146,7 @@ class _LibraryDuplicateLocationsSheetState
                 ),
               ),
             ),
-            SizedBox(
-              height: 2,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  const Divider(height: 2),
-                  AmeLinearProgress(active: _locations.loading, minHeight: 2),
-                ],
-              ),
-            ),
+            const Divider(height: 2),
             if (_locations.failed)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -156,7 +162,14 @@ class _LibraryDuplicateLocationsSheetState
                   ],
                 ),
               ),
-            Expanded(child: _buildLocations()),
+            Expanded(
+              child: AmeLoadingContent(
+                isLoading:
+                    _locations.loading && _locations.cachedItemCount == 0,
+                semanticsLabel: "正在读取文件位置",
+                child: _buildLocations(),
+              ),
+            ),
           ],
         ),
       ),

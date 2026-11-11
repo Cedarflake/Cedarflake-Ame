@@ -64,9 +64,24 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-R8 and its follow-ups are integrated. R10 is the next planned stage; its
+R8 and its follow-ups are integrated. The scoped loading-feedback update below is active.
+R10 is the next planned stage; its
 [product scope](product/organization-workflows.md#r10---large-library-maturity-and-release-readiness)
 has not yet been decomposed into an execution plan or started.
+
+### Loading feedback
+
+The [loading-indicator plan](plans/loading-indicator.md), dialog/viewer follow-ups and bounded
+deletion preparation are implemented on `codex/loading-indicator`, with focused and Windows client
+verification in the [scoped evidence](acceptance/material-motion.md#expressive-loading--2026-11-11).
+The branch also implements the smart-album/review responsiveness follow-up, preserving automatic
+category expansion while reducing query cost and prioritizing foreground reads. The rebuilt client
+was accepted for the current interaction; the [measurements](acceptance/material-motion.md#classification-navigation-and-foreground-reads)
+retain approximately two-second category switches. It awaits integration and final-head hosted verification. The
+[deletion measurements](acceptance/material-motion.md#file-operation-preparation-and-publication)
+retain the approximately two-second full-gallery refresh as a remaining performance limitation.
+The [review-read evidence](acceptance/material-motion.md#review-refresh-during-classification)
+records the bounded similar-group projection and direct ignored-group reads.
 
 ### Duplicate cleanup entry points
 

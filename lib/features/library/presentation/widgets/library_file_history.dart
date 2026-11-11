@@ -10,6 +10,7 @@ import "../../../../app/presentation/ame_dialog_diagnostic.dart";
 
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_choice.dart";
+import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../application/library_file_operations.dart";
 import "../../domain/library_file_operations.dart";
 import "../library_file_strings.dart";
@@ -129,9 +130,21 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    "文件操作记录",
-                    style: Theme.of(context).textTheme.headlineSmall,
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          "文件操作记录",
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      AmeLoadingProgress(
+                        active: _loading && !_showExports && _items.isNotEmpty,
+                        size: 24,
+                        semanticsLabel: "正在更新文件记录",
+                      ),
+                    ],
                   ),
                 ),
                 AmeChoice<bool>.menu(
@@ -147,97 +160,111 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
               ],
             ),
             const SizedBox(height: 16),
-            AmeLinearProgress(active: _loading && !_showExports),
-            if (_error case final error? when !_showExports)
-              TextButton(onPressed: () => _load(_before), child: Text(error)),
             Expanded(
-              child: switch ((_showExports, _items.isEmpty && !_loading)) {
-                (true, _) => const LibraryFileExportHistory(),
-                (false, true) => const Center(child: Text("暂无文件操作记录")),
-                (false, false) => AmeScrollMotion(
-                  child: ListView.builder(
-                    itemCount: _items.length,
-                    itemBuilder: (context, index) {
-                      final item = _items[index];
-                      final status = item.failure == null
-                          ? LibraryFileStrings.phase(item.phase)
-                          : LibraryFileStrings.failure(
-                              item.failure,
-                              action: item.action,
-                            );
-                      return ListTile(
-                        onTap: item.detail == null
-                            ? null
-                            : () => showDialog<void>(
-                                context: context,
-                                builder: (context) => AmeDialog(
-                                  title: "文件操作详情",
-                                  content: AmeDialogDiagnostic(
-                                    detail: item.detail!,
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text("知道了"),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 6),
-                        leading: const Icon(Symbols.draft_rounded),
-                        title: Text(
-                          "${LibraryFileStrings.action(item.action)} · ${item.source.split(RegExp(r"[\\/]")).last}",
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(status),
-                            Text(
-                              displayLibraryPath(
-                                item.destination ?? item.source,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (item.canRetry)
-                              TextButton(
-                                onPressed: busy ? null : () => _retry(item),
-                                child: const Text("重试"),
-                              ),
-                            if (item.canContinueMove)
-                              TextButton(
-                                onPressed: busy
-                                    ? null
-                                    : () => _recover(item, continueMove: true),
-                                child: const Text("继续移动"),
-                              )
-                            else if ({
-                              LibraryFileRecordPhase.prepared,
-                              LibraryFileRecordPhase.nameOccupied,
-                              LibraryFileRecordPhase.executing,
-                              LibraryFileRecordPhase.removingSource,
-                              LibraryFileRecordPhase.nativeCompleted,
-                              LibraryFileRecordPhase.uncertain,
-                            }.contains(item.phase))
-                              TextButton(
-                                onPressed: busy ? null : () => _recover(item),
-                                child: const Text("核对结果"),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
+              child: AmeLoadingContent(
+                isLoading: _loading && !_showExports && _items.isEmpty,
+                semanticsLabel: "正在读取文件记录",
+                child: switch ((_showExports, _items.isEmpty && !_loading)) {
+                  (true, _) => const LibraryFileExportHistory(),
+                  (false, true) when _error != null => AmeDialogReadFailure(
+                    message: _error!,
+                    onRetry: () => _load(_before),
                   ),
-                ),
-              },
+                  (false, true) => const Center(child: Text("暂无文件操作记录")),
+                  (false, false) => AmeScrollMotion(
+                    child: ListView.builder(
+                      itemCount: _items.length,
+                      itemBuilder: (context, index) {
+                        final item = _items[index];
+                        final status = item.failure == null
+                            ? LibraryFileStrings.phase(item.phase)
+                            : LibraryFileStrings.failure(
+                                item.failure,
+                                action: item.action,
+                              );
+                        return ListTile(
+                          onTap: item.detail == null
+                              ? null
+                              : () => showDialog<void>(
+                                  context: context,
+                                  builder: (context) => AmeDialog(
+                                    title: "文件操作详情",
+                                    content: AmeDialogDiagnostic(
+                                      detail: item.detail!,
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text("知道了"),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 6,
+                          ),
+                          leading: const Icon(Symbols.draft_rounded),
+                          title: Text(
+                            "${LibraryFileStrings.action(item.action)} · ${item.source.split(RegExp(r"[\\/]")).last}",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(status),
+                              Text(
+                                displayLibraryPath(
+                                  item.destination ?? item.source,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (item.canRetry)
+                                TextButton(
+                                  onPressed: busy ? null : () => _retry(item),
+                                  child: const Text("重试"),
+                                ),
+                              if (item.canContinueMove)
+                                TextButton(
+                                  onPressed: busy
+                                      ? null
+                                      : () =>
+                                            _recover(item, continueMove: true),
+                                  child: const Text("继续移动"),
+                                )
+                              else if ({
+                                LibraryFileRecordPhase.prepared,
+                                LibraryFileRecordPhase.nameOccupied,
+                                LibraryFileRecordPhase.executing,
+                                LibraryFileRecordPhase.removingSource,
+                                LibraryFileRecordPhase.nativeCompleted,
+                                LibraryFileRecordPhase.uncertain,
+                              }.contains(item.phase))
+                                TextButton(
+                                  onPressed: busy ? null : () => _recover(item),
+                                  child: const Text("核对结果"),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                },
+              ),
             ),
+            if (_error case final error?
+                when !_showExports && _items.isNotEmpty)
+              AmeDialogReadFailure(
+                message: error,
+                onRetry: () => _load(_before),
+              ),
             const SizedBox(height: 12),
             if (!_showExports)
               Row(
@@ -249,8 +276,12 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                             .read(libraryFileOperationsProvider)
                             .openRecycleBin();
                       } on Object {
-                        if (mounted) {
-                          setState(() => _error = "无法打开回收站，请从 Windows 桌面打开。");
+                        if (context.mounted) {
+                          showAmeTransientFeedback(
+                            context,
+                            message: "无法打开回收站，请从 Windows 桌面打开。",
+                            severity: AmeNotificationSeverity.error,
+                          );
                         }
                       }
                     },

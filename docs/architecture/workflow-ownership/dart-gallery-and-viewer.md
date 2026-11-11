@@ -14,6 +14,11 @@ native decoding. Existing callers retain resize keys, eviction, repair admission
 lifetimes. Original-image reads continue through the guarded source scheduler and leases; this
 factory neither replaces that path nor grants source-read authority.
 
+`LibraryViewerLaunch` captures the mounted thumbnail's decoded provider key and sampling quality
+with its geometry. `LibraryImageReveal` publishes that key only after a frame is available and
+retires its registration on disposal. Both embedded and routed viewers reuse it for entry before
+blending in the guarded original; they do not start an unresized preview decode during the flight.
+
 ## Query and image lifetimes
 
 - `library_viewer_session.dart` owns viewer selection, navigation requests, stable-asset lookups,

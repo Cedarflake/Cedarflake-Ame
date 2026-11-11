@@ -1,35 +1,42 @@
-import "package:flutter/rendering.dart";
 import "package:material_ui/material_ui.dart";
+
+typedef LibraryViewerGeometry = ({Rect bounds, Rect visibleBounds});
 
 /// A single visible thumbnail, with no image lease or catalog authority.
 class LibraryViewerOrigin {
   const LibraryViewerOrigin({
     required this.locationId,
-    required this.bounds,
-    required this.currentBounds,
+    required this.geometry,
+    required this.currentGeometry,
     required this.fit,
     required this.radius,
     this.findTarget,
+    this.previewImage,
+    this.previewQuality = FilterQuality.low,
   });
 
   final String locationId;
-  final Rect bounds;
-  final Rect? Function() currentBounds;
+  final LibraryViewerGeometry geometry;
+  final LibraryViewerGeometry? Function() currentGeometry;
   final BoxFit fit;
   final double radius;
   final LibraryViewerOrigin? Function(String)? findTarget;
+  final ImageProvider<Object>? previewImage;
+  final FilterQuality previewQuality;
 
   LibraryViewerOrigin? resolve() {
-    final current = currentBounds();
+    final current = currentGeometry();
     return current == null
         ? null
         : LibraryViewerOrigin(
             locationId: locationId,
-            bounds: current,
-            currentBounds: currentBounds,
+            geometry: current,
+            currentGeometry: currentGeometry,
             fit: fit,
             radius: radius,
             findTarget: findTarget,
+            previewImage: previewImage,
+            previewQuality: previewQuality,
           );
   }
 }
@@ -97,6 +104,25 @@ class LibraryViewerLaunch extends StatefulWidget {
 class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
   final _thumbnailKey = GlobalKey();
   LibraryViewerOrigins? _origins;
+  Object? _imageOwner;
+  ImageProvider<Object>? _previewImage;
+  FilterQuality _previewQuality = FilterQuality.low;
+
+  void _publishImage(
+    Object owner,
+    ImageProvider<Object> image,
+    FilterQuality quality,
+  ) {
+    _imageOwner = owner;
+    _previewImage = image;
+    _previewQuality = quality;
+  }
+
+  void _retireImage(Object owner) {
+    if (!identical(owner, _imageOwner)) return;
+    _imageOwner = null;
+    _previewImage = null;
+  }
 
   @override
   void didChangeDependencies() {
@@ -114,7 +140,7 @@ class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
     super.dispose();
   }
 
-  Rect? _bounds(String locationId) {
+  LibraryViewerGeometry? _geometry(String locationId) {
     if (!mounted || widget.locationId != locationId) return null;
     final box = _thumbnailKey.currentContext?.findRenderObject();
     if (box is! RenderBox ||
@@ -127,30 +153,39 @@ class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
       box.getTransformTo(null),
       Offset.zero & box.size,
     );
-    final RenderObject? viewport = RenderAbstractViewport.maybeOf(box);
-    if (viewport is RenderBox &&
-        !bounds.overlaps(
-          MatrixUtils.transformRect(
-            viewport.getTransformTo(null),
-            Offset.zero & viewport.size,
-          ),
-        )) {
-      return null;
+    if (!bounds.isFinite || bounds.isEmpty) return null;
+    var visibleBounds = bounds;
+    RenderObject descendant = box;
+    for (
+      var ancestor = box.parent;
+      ancestor != null;
+      ancestor = ancestor.parent
+    ) {
+      final clip = ancestor.describeApproximatePaintClip(descendant);
+      if (clip != null) {
+        visibleBounds = visibleBounds.intersect(
+          MatrixUtils.transformRect(ancestor.getTransformTo(null), clip),
+        );
+        if (!visibleBounds.isFinite || visibleBounds.isEmpty) return null;
+      }
+      descendant = ancestor;
     }
-    return bounds.isFinite && !bounds.isEmpty ? bounds : null;
+    return (bounds: bounds, visibleBounds: visibleBounds);
   }
 
   LibraryViewerOrigin? _origin(String locationId) {
-    final bounds = _bounds(locationId);
-    return bounds == null
+    final geometry = _geometry(locationId);
+    return geometry == null
         ? null
         : LibraryViewerOrigin(
             locationId: locationId,
-            bounds: bounds,
-            currentBounds: () => _bounds(locationId),
+            geometry: geometry,
+            currentGeometry: () => _geometry(locationId),
             fit: widget.fit,
             radius: widget.radius,
             findTarget: _origins?.find,
+            previewImage: _previewImage,
+            previewQuality: _previewQuality,
           );
   }
 
@@ -160,8 +195,33 @@ class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      widget.builder(context, _thumbnailKey, _open);
+  Widget build(BuildContext context) => LibraryViewerThumbnailScope(
+    publish: _publishImage,
+    retire: _retireImage,
+    child: Builder(
+      builder: (context) => widget.builder(context, _thumbnailKey, _open),
+    ),
+  );
+}
+
+/// Shares the mounted thumbnail's decoded cache entry with its viewer.
+class LibraryViewerThumbnailScope extends InheritedWidget {
+  const LibraryViewerThumbnailScope({
+    required this.publish,
+    required this.retire,
+    required super.child,
+    super.key,
+  });
+
+  final void Function(Object, ImageProvider<Object>, FilterQuality) publish;
+  final void Function(Object) retire;
+
+  static LibraryViewerThumbnailScope? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<LibraryViewerThumbnailScope>();
+
+  @override
+  bool updateShouldNotify(LibraryViewerThumbnailScope oldWidget) =>
+      publish != oldWidget.publish || retire != oldWidget.retire;
 }
 
 class LibraryViewerFlightScope extends InheritedWidget {

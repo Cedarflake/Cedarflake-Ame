@@ -40,6 +40,27 @@ when the terminal result replaces progress. Hidden indicators stop ticking and e
 loading semantics; reduced motion skips the fade while retaining the quiet interval. Storage-usage
 gauges describe measured capacity and are not delayed as loading feedback.
 
+Gallery selection preparation and saves use the existing bottom feedback host after their quiet
+interval. Preparation failures use its notification template. Selection toolbars contain actions;
+they do not add an inline error sentence or a separate progress line under the buttons.
+
+`AmeLoadingProgress` supplies Expressive shape feedback for short content reads. Initial gallery and
+review loading share one visibility owner for the centered indicator and top line; brief work shows
+neither. Usable content remains during continuation/background reads, with the top line alone.
+Review pages keep virtual geometry and paging demand but do not paint empty placeholder cards.
+Gallery cards retain their final rectangles for timeline navigation under ADR 0014.
+
+Content waiting takes priority over the timeline's compact circular feedback before visual admission.
+Only a rail waiting independently of available content shows its own circle. The rail has no left
+divider; its width, hit targets and navigation behavior stay unchanged. Compact search/sidebar
+controls, filmstrip edge cards, task progress and capacity gauges retain their existing indicators.
+
+Confirmation reads center the indicator in the content area, retaining the buttons and their
+admission rules below. The indicator remains mounted through its dismissal fade; completing a read
+does not abruptly remove its visibility owner. List trays use centered feedback on an initial read and a
+small indicator beside the title or paging actions when retaining an existing list.
+Loading icons have accessible status labels, without visible loading captions beside or below them.
+
 ### Feedback templates
 
 New feedback must use the template for its surface. Feature code supplies wording, severity,
@@ -71,6 +92,9 @@ File-operation completion places its status and nonzero outcome counts together 
 an available result report gets one separate message. Omit a generic partial-result heading and
 zero completed, skipped, failed or stopped counts. If nothing ran, say so directly. Completed
 deletion retains its single affected-file summary. Progress may still show zero before work completes.
+Native file completion and its gallery refresh remain one active operation. Keep its action title
+until the final result is ready; do not show a separate completed-file summary while still waiting.
+File counts describe native progress, and the bar becomes indeterminate when only publication remains.
 
 Top notices retain the compact viewport layout: 16-pixel top/side inset, 48-pixel minimum height,
 8-pixel icon gap, `bodyMedium`, and the existing optional retry/undo action. Text wraps within the

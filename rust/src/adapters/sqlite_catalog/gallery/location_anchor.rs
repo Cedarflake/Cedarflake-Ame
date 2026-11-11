@@ -1,7 +1,9 @@
 use rusqlite::types::Value;
 use rusqlite::{OptionalExtension, Transaction, params_from_iter};
 
-use crate::domain::{CatalogCursor, GalleryLocationAnchorResolution, GalleryQuery, ScanError};
+use crate::domain::{
+    CatalogCursor, GalleryLocationAnchorResolution, GalleryQuery, GalleryQueryAnchor, ScanError,
+};
 
 use super::anchor_position::{self, GalleryAnchorPosition};
 use super::filters::{push_anchor_filters, push_source_filters};
@@ -94,65 +96,15 @@ fn resolve_gallery_anchor(
     query_id: &str,
     request: GalleryAnchorRequest<'_>,
 ) -> Result<(GalleryLocationAnchorResolution, Option<CatalogCursor>), ScanError> {
-    let order = gallery_order_expressions(query);
-    let representative = if request.anchor_column == "locations.location_id" {
-        super::duplicates::representative_for_anchor(
-            transaction,
-            query,
-            request.anchor_value,
-            request.required_asset_id,
-        )?
-    } else {
-        None
-    };
-    let anchor_value = representative.as_deref().unwrap_or(request.anchor_value);
-    let mut anchor_clauses = Vec::new();
-    let mut anchor_parameters = Vec::new();
-    let source = gallery_source(query, &mut anchor_parameters);
-    if representative.is_some() {
-        // Keep the point scope: different published roots can share a location ID.
-        // The representative relation itself is already proven in this transaction.
-        push_source_filters(query, &mut anchor_clauses, &mut anchor_parameters);
-    } else {
-        push_anchor_filters(query, &mut anchor_clauses, &mut anchor_parameters);
-    }
-    anchor_clauses.push(format!("{} = ?", request.anchor_column));
-    anchor_parameters.push(Value::Text(anchor_value.to_owned()));
-    if let Some(asset_id) = request
-        .required_asset_id
-        .filter(|_| representative.is_none())
-    {
-        anchor_clauses.push("locations.asset_id = ?".to_owned());
-        anchor_parameters.push(Value::Text(asset_id.to_owned()));
-    }
-    let anchor_sql = format!(
-        "SELECT locations.root_id, locations.location_id,
-                {missing}, {text}, {number}
-         {source} WHERE {where_clause}
-         LIMIT 1",
-        missing = order.missing,
-        text = order.text,
-        number = order.number,
-        where_clause = anchor_clauses.join(" AND "),
-    );
-    let anchor = transaction
-        .query_row(
-            &anchor_sql,
-            params_from_iter(anchor_parameters.iter()),
-            |row| {
-                Ok(CatalogCursor {
-                    revision,
-                    query_id: query_id.to_owned(),
-                    root_id: row.get(0)?,
-                    location_id: row.get(1)?,
-                    primary_missing: row.get::<_, i64>(2)? != 0,
-                    primary_text: row.get(3)?,
-                    primary_number: row.get(4)?,
-                })
-            },
-        )
-        .optional()
-        .map_err(database_error)?;
+    let anchor = find_gallery_anchor(
+        transaction,
+        revision,
+        query,
+        query_id,
+        request.anchor_column,
+        request.anchor_value,
+        request.required_asset_id,
+    )?;
     let position = match anchor {
         Some(cursor) => Some(GalleryAnchorPosition::for_cursor(cursor)),
         None => match request.fallback_ordinal {
@@ -183,4 +135,104 @@ fn resolve_gallery_anchor(
         },
         window.predecessor,
     ))
+}
+
+pub(in super::super) fn find_gallery_query_anchor(
+    transaction: &Transaction<'_>,
+    revision: u64,
+    query: &GalleryQuery,
+    query_id: &str,
+    anchor: &GalleryQueryAnchor,
+) -> Result<Option<CatalogCursor>, ScanError> {
+    let location = find_gallery_anchor(
+        transaction,
+        revision,
+        query,
+        query_id,
+        "locations.location_id",
+        &anchor.requested_location_id,
+        anchor.asset_id.as_deref(),
+    )?;
+    if location.is_some() {
+        return Ok(location);
+    }
+    match anchor.asset_id.as_deref() {
+        Some(asset_id) => find_gallery_anchor(
+            transaction,
+            revision,
+            query,
+            query_id,
+            "locations.asset_id",
+            asset_id,
+            None,
+        ),
+        None => Ok(None),
+    }
+}
+
+fn find_gallery_anchor(
+    transaction: &Transaction<'_>,
+    revision: u64,
+    query: &GalleryQuery,
+    query_id: &str,
+    anchor_column: &str,
+    requested_value: &str,
+    required_asset_id: Option<&str>,
+) -> Result<Option<CatalogCursor>, ScanError> {
+    let order = gallery_order_expressions(query);
+    let representative = if anchor_column == "locations.location_id" {
+        super::duplicates::representative_for_anchor(
+            transaction,
+            query,
+            requested_value,
+            required_asset_id,
+        )?
+    } else {
+        None
+    };
+    let anchor_value = representative.as_deref().unwrap_or(requested_value);
+    let mut anchor_clauses = Vec::new();
+    let mut anchor_parameters = Vec::new();
+    let source = gallery_source(query, &mut anchor_parameters);
+    if representative.is_some() {
+        // Keep the point scope: different published roots can share a location ID.
+        // The representative relation itself is already proven in this transaction.
+        push_source_filters(query, &mut anchor_clauses, &mut anchor_parameters);
+    } else {
+        push_anchor_filters(query, &mut anchor_clauses, &mut anchor_parameters);
+    }
+    anchor_clauses.push(format!("{anchor_column} = ?"));
+    anchor_parameters.push(Value::Text(anchor_value.to_owned()));
+    if let Some(asset_id) = required_asset_id.filter(|_| representative.is_none()) {
+        anchor_clauses.push("locations.asset_id = ?".to_owned());
+        anchor_parameters.push(Value::Text(asset_id.to_owned()));
+    }
+    let anchor_sql = format!(
+        "SELECT locations.root_id, locations.location_id,
+                {missing}, {text}, {number}
+         {source} WHERE {where_clause}
+         LIMIT 1",
+        missing = order.missing,
+        text = order.text,
+        number = order.number,
+        where_clause = anchor_clauses.join(" AND "),
+    );
+    transaction
+        .query_row(
+            &anchor_sql,
+            params_from_iter(anchor_parameters.iter()),
+            |row| {
+                Ok(CatalogCursor {
+                    revision,
+                    query_id: query_id.to_owned(),
+                    root_id: row.get(0)?,
+                    location_id: row.get(1)?,
+                    primary_missing: row.get::<_, i64>(2)? != 0,
+                    primary_text: row.get(3)?,
+                    primary_number: row.get(4)?,
+                })
+            },
+        )
+        .optional()
+        .map_err(database_error)
 }

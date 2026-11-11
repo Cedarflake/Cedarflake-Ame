@@ -1,6 +1,8 @@
 import "package:material_ui/material_ui.dart";
 
 import "../../../../app/presentation/ame_progress.dart";
+import "../../../../app/presentation/ame_feedback_card.dart";
+import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../domain/library_organization_batch.dart";
 
 class LibrarySelectionProgress extends StatelessWidget {
@@ -15,11 +17,18 @@ class LibrarySelectionProgress extends StatelessWidget {
     if (progress != null && progress.total > 0) {
       label += "（${progress.completed}/${progress.total}）";
     }
-    return AmeLinearProgress(
+    return AmeProgressVisibility(
       key: const Key("library-selection-progress"),
       delay: const Duration(milliseconds: 500),
-      minHeight: 2,
-      semanticsLabel: label,
+      child: AmeFeedbackCard(
+        title: label,
+        severity: AmeNotificationSeverity.info,
+        actions: const [],
+        progress: AmeLinearProgress(
+          delay: Duration.zero,
+          semanticsLabel: label,
+        ),
+      ),
     );
   }
 }

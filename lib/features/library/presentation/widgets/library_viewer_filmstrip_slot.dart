@@ -1,5 +1,8 @@
 import "package:flutter/widgets.dart";
 
+import "../../../../app/presentation/ame_motion.dart";
+import "library_viewer_transition.dart";
+
 /// Retains the opened strip until the viewer closes, without loading it eagerly.
 class LibraryViewerFilmstripSlot extends StatefulWidget {
   const LibraryViewerFilmstripSlot({
@@ -30,13 +33,44 @@ class _LibraryViewerFilmstripSlotState
 
   @override
   Widget build(BuildContext context) {
-    if (!_wasOpened) return const SizedBox.shrink();
-    return Visibility(
-      visible: widget.visible,
-      maintainState: true,
-      child: SizedBox(
-        height: LibraryViewerFilmstripSlot.height,
-        child: widget.child,
+    final active = widget.visible && LibraryViewerActivity.isActiveOf(context);
+    return AmeStateTransition(
+      active: widget.visible,
+      motion: AmeMotion.fastSpatial,
+      child: _wasOpened
+          ? LibraryViewerActivity(
+              isActive: active,
+              child: TickerMode(
+                enabled: active,
+                child: ExcludeFocus(
+                  excluding: !active,
+                  child: ExcludeSemantics(
+                    excluding: !active,
+                    child: IgnorePointer(
+                      ignoring: !active,
+                      child: SizedBox(
+                        height: LibraryViewerFilmstripSlot.height,
+                        child: widget.child,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : const SizedBox.shrink(),
+      builder: (context, animation, child) => AnimatedBuilder(
+        animation: animation,
+        child: child,
+        builder: (context, child) => Visibility(
+          visible: widget.visible || animation.value > 0,
+          maintainState: true,
+          child: ClipRect(
+            child: FractionalTranslation(
+              translation: Offset(0, 1 - animation.value.clamp(0, 1)),
+              child: child,
+            ),
+          ),
+        ),
       ),
     );
   }

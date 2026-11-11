@@ -83,11 +83,24 @@ fn a_later_group_failure_rolls_back_earlier_groups_and_the_operation_receipt() {
 }
 
 #[test]
-fn dialog_wait_releases_transactions_and_external_decisions_reject_the_stale_batch() {
+fn dialog_wait_allows_unrelated_album_changes_but_rejects_selected_favorite_changes() {
     let (directory, mut catalog) = fixture();
     let (mut batch, _) = open(directory.path(), &catalog, GalleryQuery::default(), true);
     batch.prepare().unwrap();
     create_album(&mut catalog, "Written while dialog waits");
+    let receipt = batch.apply("unrelated-album", &favorite(true)).unwrap();
+    assert_eq!(receipt.changed_groups, 3);
+    assert_eq!(
+        batch.apply("unrelated-album", &favorite(true)).unwrap(),
+        receipt
+    );
+    drop(batch);
+
+    let (mut batch, _) = open(directory.path(), &catalog, GalleryQuery::default(), true);
+    batch.prepare().unwrap();
+    catalog
+        .set_organization_favorite("change-a", &prepare(&catalog, &["a"]), false)
+        .unwrap();
     assert_eq!(
         batch
             .apply("stale-decision", &favorite(true))
@@ -95,10 +108,7 @@ fn dialog_wait_releases_transactions_and_external_decisions_reject_the_stale_bat
             .code,
         "organization_selection_changed"
     );
-    assert_eq!(
-        scalar(&catalog, "SELECT COUNT(*) FROM organization_records"),
-        0
-    );
+    assert!(!decision(&catalog, "a").2);
     assert_eq!(
         scalar(
             &catalog,
@@ -109,7 +119,7 @@ fn dialog_wait_releases_transactions_and_external_decisions_reject_the_stale_bat
 }
 
 #[test]
-fn catalog_changes_and_unpublished_content_cannot_reuse_prepared_authority() {
+fn frozen_selection_rejects_changed_content_and_excludes_later_imports() {
     let (directory, mut catalog) = fixture();
     let (mut batch, _) = open(directory.path(), &catalog, GalleryQuery::default(), true);
     batch.prepare().unwrap();
@@ -141,16 +151,49 @@ fn catalog_changes_and_unpublished_content_cannot_reuse_prepared_authority() {
         "E:\\New",
         &[("new", None, 4)],
     );
+    let receipt = batch.apply("frozen-selection", &favorite(true)).unwrap();
+    assert_eq!(receipt.changed_groups, 3);
     assert_eq!(
-        batch
-            .apply("stale-catalog", &favorite(true))
-            .unwrap_err()
-            .code,
-        "organization_selection_changed"
+        scalar(
+            &catalog,
+            "SELECT COUNT(*) FROM organization_bindings WHERE asset_id = 'asset-new'"
+        ),
+        0
     );
     assert_eq!(
         scalar(&catalog, "SELECT COUNT(*) FROM organization_records"),
-        0
+        3
+    );
+}
+
+#[test]
+fn explicit_selection_accepts_unrelated_updates_before_preparation() {
+    let (directory, mut catalog) = fixture();
+    let (mut batch, _) = open(directory.path(), &catalog, GalleryQuery::default(), false);
+    batch
+        .append_ids(&[selected(&catalog, "a").asset_id])
+        .unwrap();
+    let album = create_album(&mut catalog, "New destination");
+    catalog
+        .connection
+        .execute("UPDATE catalog_state SET revision = revision + 1", [])
+        .unwrap();
+    assert_eq!(batch.prepare().unwrap().group_count, 1);
+    catalog
+        .set_organization_favorite("favorite-a", &prepare(&catalog, &["a"]), true)
+        .unwrap();
+    let receipt = batch
+        .apply(
+            "assign-a",
+            &organize(OrganizationAction::AssignAlbum {
+                album_id: album.clone(),
+            }),
+        )
+        .unwrap();
+    assert_eq!(receipt.changed_groups, 1);
+    assert_eq!(
+        decision(&catalog, "a"),
+        (Some(album), "organized".into(), true)
     );
 }
 

@@ -25,7 +25,7 @@ impl SqliteOrganizationBatch {
             .map_err(database_error)?;
         let (catalog_revision, organization_revision) = revisions(&transaction)?;
         if !refresh {
-            if catalog_revision != self.catalog_revision {
+            if self.all_matching && catalog_revision != self.catalog_revision {
                 return Err(stale_selection());
             }
             staging::materialize(&transaction, &self.query, self.all_matching)?;

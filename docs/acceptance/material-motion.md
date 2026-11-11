@@ -258,3 +258,311 @@ for `b4a4531c` remained in progress without a reported failure, and the
 The focused and desktop evidence above remains scoped to its recorded revisions. Continuous
 multi-second desktop holding remains unverified as recorded under
 [held timeline marker](#held-timeline-marker--2026-11-11).
+
+## Expressive loading — 2026-11-11
+
+The [loading plan](../plans/loading-indicator.md) adds the shared temporary Material renderer,
+icon-only preparation feedback in dialogs/trays, and coordinated gallery/review loading. The
+timeline retains its circular indicator and geometry without the left divider. Review lists retain
+their virtual extent and demand while omitting blank-card decoration. No native, catalog or source
+operation contract changes are included.
+
+Focused checks pass for hidden/reduced-motion ticker retirement, delayed admission, quick completion,
+fade reversal, unchanged viewport geometry, content/timeline exclusion, pending-read cancellation,
+retry and retained/batched location lists. Existing review layouts and cleanup-confirmation checks
+also pass, including unchanged action admission. A bounded rendering probe sampled 28 frames across
+one complete morph cycle; the largest painted extent was 44 pixels within the 48-pixel allocation.
+This rendering probe establishes shape bounds, not Windows interaction acceptance.
+
+The rebuilt Windows Debug client imported the existing 700-file subset into isolated derived
+storage. Gallery/timeline layout, six duplicate groups, member-list continuation, the 210-location
+tray, album selection and both history-list empty states remained usable. The deletion confirmation
+showed its 694-image count without the former horizontal bar; it was cancelled without submitting
+a file operation. Fast reads settled without a retained loading indicator.
+
+A temporary 12-second preparation delay allowed native-window observation of the small morphing
+icon in the action row, disabled confirmation and unchanged button positions in dark mode. No
+loading caption appeared. The delay was removed and the production code hot-reloaded afterward.
+The previous light theme was restored. The client then exited normally with code 0, all 700 source
+file lengths/modification times matched, and scratch storage was retired. Content/timeline mutual
+exclusion and reduced motion are covered by the controlled regressions above; the fixture's fast
+native queries did not provide a long simultaneous-wait observation. Final-head hosted checks
+remain owned by the pushed commit.
+
+The renderer, progress facade, dialog helper and gallery loading region contain 142, 208, 132 and
+90 production lines respectively. The screen (1,998) and review page (387) receive composition-only
+changes; none of these owners contains inline tests. Dedicated renderer/priority tests contain 50
+and 195 lines; existing dialog and review tests retain their behavioral checks.
+
+### Selection admission and feedback
+
+Album/Favorite writes validate the frozen groups and affected decision field inside the write
+transaction. Unrelated catalog/album changes and independent Favorite changes no longer veto an
+album write. Selected content, membership, representative and later same-field decisions still
+reject stale authority. Initial all-matching preparation retains its catalog guard; explicit file
+operations already resolve current selected state before confirmation and revalidate each file.
+
+Five focused native admission/source-selection checks and the changed batch cases passed, including
+receipt replay and transactional rejection. All 25 selection-action widget checks passed; preparation
+survives a same-intent catalog publication, cancellation retires it, and failures use notifications.
+The toolbar no longer paints an error or progress line. Slow preparation uses the shared bottom
+feedback host after 500 ms. The rebuilt normal `local-primary` Debug client opens the album picker
+for a selected screenshot and shows preparation in the bottom host without adding toolbar content.
+The picker was cancelled without submitting membership or source-file changes. Affected static
+analysis and formatting pass. Commit `cda7a999` was pushed; its hosted workflow was pending at the
+last observation, and the follow-up below has its own final-head check.
+
+The native admission owner has 77 production lines; batch orchestration has 275 and no inline tests.
+The selection widget has 425 lines, its activity owner 35 and no inline tests. Reused selection-action
+checks contain 732 dedicated lines; native admission and batch-mutation files contain 65 and 322.
+
+### Organization waiting, intent and feedback ownership
+
+Continuation metadata now reads alongside the gallery query. Completed same-scope results are
+published before a coalesced follow-up, while scope changes reject old results. Exit supersedes
+pending queue or continuation reads without waiting for them; their late successes and failures
+cannot reopen the viewer, replace the current session or display a stale error. Native session
+retirement continues after its local authority has been revoked.
+
+Selection quietly prepares its summary, updates the Favorite label before activation and reuses
+that target on activation: uniform selections act directly, while mixed selections offer add/remove
+choices. The always-open menu introduced in `348588d1` was withdrawn. The Material `IndexedStack`
+reserves the label variants' bounds so the neighboring actions do not shift when the read completes.
+The existing 25 selection checks cover uniform and mixed Favorite actions, album add/move/removal,
+defer/ignore restoration, cancellation and unrelated catalog publication. Known single-image
+decisions remain actionable during background refresh. Completed file feedback yields to organization
+failures and results; running file work retains priority. Changing a selection clears its previous
+preparation notice. Entry, scope change, exit and continuation failures now identify their
+corresponding operation.
+
+Affected interaction checks pass for pending-read exit, stale result/error rejection, concurrent
+catalog refresh, automatic Favorite choice, selection cancellation, notification precedence and
+workspace restoration. The previous test requiring a busy Exit to ignore input was replaced with
+an exit-during-query regression. Static analysis, formatting and the Windows Debug build pass.
+The normal `local-primary` client displayed 63,072 images, entered organization with a usable
+continuation button, and returned to its original gallery. Exit was visually complete in a 2,486 ms
+observation including an intentional 1,800 ms wait and capture. A mode-entry capture at 1,751 ms
+still showed query loading; a later capture showed the complete controls. These are sampled
+observations, not isolated query timings or proof that large-library reads are instantaneous.
+The normal-client Favorite follow-up verified a previously unfavorited image becoming favorited by
+direct activation, the selected favorited image showing `取消收藏`, and a mixed selection opening
+only the two applicable commands. Direct unfavorite restored that image's original decision.
+The assigned image's album picker retained `移出相册` and `移至其他相册`, selected its current album,
+and disabled a redundant move to that same album. The picker was dismissed without assignment changes.
+No physical file operation was submitted.
+
+The continuation reader, transition, mode and selection owners contain 70/43/433/458 production
+lines and no inline tests. The reused mode/widget suites contain 529/744 dedicated test lines.
+
+### Dialog and viewer follow-up
+
+Preparation feedback now occupies the content center; its visibility owner stays mounted through
+completion so a short fade cannot be cut off by the dialog. Failed file preparation shows only its
+explanation and return action. The controlled file-action check covers delayed preparation,
+failure during the fade, immediate action availability and final indicator retirement. Existing
+cleanup, image reveal, timeline endpoint and conflict-pagination checks pass. The earlier hosted
+Flutter failure was an offscreen `Previous` test tap; scrolling that existing control into view
+retains the paging assertion, which passes at both text scales.
+
+The source-image check publishes the original during entry: the preview stays unchanged until
+entry completes, then the original blends over it. Return freezes an incomplete quality blend.
+Pixel regressions cover continuous clipping at a partially hidden card and corner geometry under
+viewer scaling; existing cancellation, unreadable-source fallback and interrupted-return checks pass.
+The Windows Debug client on `local-primary` verified full and partially clipped cards opening and
+returning with visible image pixels, retained gallery position and rounded card edges. Slow motion
+was restored to 1 afterward. Frame-timing guarantees come from the controlled checks; desktop
+screenshots are sampled observations. No physical file operation was submitted.
+
+The 2026-11-12 filmstrip follow-up places the strip above the fixed toolbar without reserving image
+height. The existing `AmeStateTransition` drives a clipped vertical translation; retained thumbnail
+elements lose input, focus, preview demand and child ticking as closing starts. The existing viewer
+and filmstrip-frame suites passed 18 checks, including unchanged image geometry during entry,
+actual-size/fullscreen preservation, closing frames, retained pixels and hidden repair retirement.
+In the rebuilt normal Windows client, opening and closing the strip kept the same square image at
+65% with unchanged upper/side bounds. The image viewer and strip slot contain 326/77 production
+lines with no inline tests; their reused viewer/frame suites contain 1007/320 dedicated test lines.
+
+The local review artifact `build/review/dialog-errors-2026-11-11/index.html` contains 24 abnormal
+states in both themes, with cropped images and full-window originals. These are current production
+widgets rendered with isolated fixtures and Windows fonts, not native-client captures. They cover
+file preparation/destination errors, album forms, removal, cleanup, history/report reads, operation
+and notification details, filter/date validation and unavailable roots. Shared error templates are
+represented once per distinct layout; Windows-owned system prompts are outside this inventory.
+
+The dialog, image reveal, source-image, image-flight and origin owners contain 133, 156, 274, 222 and
+192 production lines, with no inline tests. Their reused file-action, source-image and transition
+suites contain 690, 488 and 533 dedicated test lines. The final Debug build and affected static
+analysis pass; current-head hosted results belong to the normal branch workflow.
+
+### Dialog layout review
+
+The revised local inventory at `build/review/dialog-errors-2026-11-11-v2/index.html` contains the
+24 abnormal states and the normal deletion confirmation in both themes (50 images). It uses the
+same production-widget rendering and Windows-font procedure above. Failure explanations now share
+leading alignment, error color and section spacing; history read failures occupy the content area
+without an empty-result message. The retry button and the intrinsic-width explanation group share
+a center. The pinned date picker bypasses `headerHeadlineStyle` in landscape input mode; a scoped
+text theme supplies a compact two-line date/weekday without changing the framework calendar.
+
+The held-drag captures at `build/review/sidebar-drag-light.png` and `sidebar-drag-dark.png` show the
+production folder row in its rounded, clipped proxy. Existing drag, rollback, album, filter, cleanup
+and notification-detail regressions pass. The retained file-history case now also proves read
+failure, retry and the return of actionable records. Deletion checks preserve unchecked initial
+state, label activation and separate confirmation after replacing the row-wide ink response with
+the framework checkbox's own feedback. No real source mutation was submitted for this review.
+
+The shared dialog helper and history owner contain 210 and 311 production lines; neither has inline
+tests. The reused file-operation suite contained 717 dedicated test lines at this review. Affected
+static checks and the Windows Debug build pass. The subsequent rebuilt client on `local-primary`
+confirmed label activation, unchecked initial state, compact spacing and no row-wide background;
+cancelling the dialog preserved the selected image and viewport without a physical operation.
+
+### File-operation preparation and publication
+
+Explicit selections now drive indexed location and compatible-evidence reads. The original query
+walked unrelated locations, and joining the display-evidence view materialized the library's
+fingerprints. The bounded-cost fixture initially still exposed a full scan without SQLite statistics;
+driving the indexed join from selection rows removed that dependency. Gallery, merged-group and
+physical-location preparation retain their frozen scope and current-state validation.
+
+Anchored refresh resolves its window inside the same ordered projection already used for layout
+and timeline. Rapid native publications share a refresh; final completion waits for the native
+worker, selection closure and the final gallery read. The feedback remains one active operation
+until that point, without an intermediate completed-file summary.
+
+Read-only native-DLL measurements used the existing 63,072-location `local-primary` catalog,
+47,828 merged items, one selected image, a 500-item anchored page and two warmed repetitions:
+
+| Boundary | Before | After |
+| --- | --- | --- |
+| Selection preparation | 1,911–2,542 ms | 1.7–3.0 ms |
+| Anchored full snapshot | 2,220–2,926 ms | 2,200–2,689 ms |
+
+The full refresh remains approximately two seconds; it is not a demonstrated substantial speedup.
+Further paired anchored/unanchored reads measured 1,985–2,052 / 1,974–2,360 ms. Isolated SQLite
+profiling attributed about 1.2–1.3 seconds to the merged layout query, versus about 0.2 seconds
+without folding and 5–9 ms for 500 detail rows. Alternative full-group/union plans were slower and
+were not adopted; the existing unanalyzed-file fast path remains intact. Initial cold queries were
+slower and are excluded from the warmed comparison, not presented as startup improvements.
+
+Native checks cover bounded selected-file work, frozen group membership, one-transaction snapshot
+publication and anchor/fallback order across eight sort/direction combinations. Application checks
+cover coalesced publication and joined shutdown through a held final gallery read. The rebuilt
+Windows Debug client displayed the prepared deletion count and enabled action without a sustained
+loader; confirmation was cancelled. No real source operation was submitted in these measurements.
+
+The preceding hosted run for `0179e137` exposed two obsolete loading-layer finders and an assertion
+before the original-image error's next frame. The same visibility, position, source-release and
+retry assertions pass in the three affected suites after targeting the shared visibility layer
+and pumping that frame. Final-head hosted verification belongs to the normal branch workflow.
+
+The publication coordinator and action controller contain 58 and 223 production lines. Selected
+query construction contains 118 production and 126 inline-test lines; anchor, projection and
+snapshot owners contain 238, 301 and 361 production lines with no inline tests. Reused operation
+and anchor suites contain 781 and 233 dedicated test lines.
+
+### Thumbnail handoff across viewer entries
+
+The mounted card now supplies its decoded, resized provider and sampling quality to both viewer
+entry paths. Controlled checks prove that embedded gallery viewers and routed review viewers use
+the card's existing pixels on their first visible frame without decoding another preview. Existing
+source-reveal and flight checks retain delayed quality blending, cancellation and return clipping.
+
+The rebuilt Windows Debug client on `local-primary` opened and returned from smart-album, exact-group
+and similar-group member cards with visible pixels. Ordinary and user-album galleries share the
+embedded path; no user album was created for this check. These client observations complement the
+first-frame checks, rather than measuring individual animation frames. No physical file operation
+was submitted.
+
+The launch, reveal and viewer-image owners contain 244, 168 and 280 production lines, with no inline
+tests; the reused viewer-image suite contains 586 dedicated test lines. Affected analysis, focused
+checks and the Windows Debug build pass. Hosted verification remains attached to the pushed commit.
+
+### Review refresh during classification
+
+Background catalog publications previously invalidated each unfinished review read. The shared
+review window now admits the current same-query result and coalesces publications into a subsequent
+refresh. Explicit refresh, view changes and disposal still retire the old generation. The focused
+window regression covers first-page admission, cached-range handoff, one queued replacement and
+explicit supersession; existing bounded paging, failure/retry and disposal checks pass.
+
+The [hosted run for `f8d15003`](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43035643833)
+exposed two outdated widget expectations and an unhandled test continuation. The location-sheet
+case now completes the active read before its coalesced replacement and retains row/status checks;
+the preference case checks loading opacity while retaining card identity and scroll position.
+The category-read case awaits its observation continuation. All 31 checks in the three affected
+suites and scoped static analysis pass locally; final-head hosted verification remains pending.
+
+The normal `local-primary` Debug client displayed similar groups and the empty ignored view while
+classification continued. Read-only SQL timings on its existing catalog measured similar-group
+count/page reads at 5,444/4,656 ms and empty ignored reads at 2,779/3,348 ms. These two queries each
+rebuild the scoped similarity projection; that remaining cost is not reduced by the read-lifecycle
+repair. The classification queue was processing a new taxonomy after automatic discovery added
+`代码截图`; this observation does not change category-discovery policy.
+
+The subsequent SQL repair admits groups from two current, non-excluded contents and computes
+representatives only for the requested page. A single read-only snapshot of `local-primary`
+returned identical counts and both first/second pages for 3,427 groups. Count/first-page reads fell
+from 3,222/2,679 ms to 377/177 ms; the empty ignored view fell from 1,762/2,056 ms to 5/2 ms.
+These are SQLite query timings, not end-to-end client latency. Existing preference, exclusion,
+pagination and seek checks pass; the bounded-read regression also covers group and ignored reads
+against unrelated fingerprints. The query/projection owners contain 193/147 production lines,
+with no inline tests; the reused dedicated suite contains 464 lines. Rebuilt-client observations
+follow below. No schema, source-file or cleanup authorization changed.
+
+Exact-review reads now start from compatible fingerprints, or directly from saved decisions for
+the ignored view, and resolve current locations through their source-generation index. An empty
+count skips the page projection within the same transaction. A paired read-only snapshot returned
+identical counts and pages for 12,571 groups: count/page reads changed from 2,257/17 ms to
+1,716/13 ms; the empty ignored view changed from 2,213/2,149 ms to under 1/1 ms. The nine existing
+review and paging cases pass, including source changes, preference retention and filtered seeks.
+The group-query owner contains 176 production lines and no inline tests; existing dedicated review
+and paging fixtures provide the behavior coverage.
+
+The review-window owner contains 237 production lines with no inline tests; its reused suite has
+229 dedicated test lines. The client checks submitted no source-file or organization operation.
+
+### Date headings after navigation and first entry
+
+An admitted date read aligned its first photo row rather than the preceding heading. Date-navigation
+offsets now include that heading, with day-level targets inside each month; continuous rail movement
+retains its exact pixel offset. Initial complete snapshots separately retain the start-edge intent
+through the wall's first correction instead of placing the first photo above its date.
+
+Focused checks cover delayed date reads in both layouts, same-month date targets, continuous held
+input, publication, endpoint alignment and complete-snapshot startup. Existing filter and smart-album
+position checks pass. The rebuilt Windows Debug client on `local-primary` displayed the first date
+on startup and after a far-position seek followed by return to the top. No source operation was run.
+
+The layout, navigation and projection owners contain 455, 774 and 99 production lines; the screen
+and wall contain 2,002 and 1,582, with no inline tests. Their changes pass existing edge intent to
+the layout owner without adding another lifecycle flag. The focused navigation and projection suites
+contain 250 and 148 dedicated test lines; startup coverage reuses the filter-position fixture.
+
+### Classification navigation and foreground reads
+
+Saved settings and category navigation no longer wait for the classification runtime to open.
+Navigation publishes completed reads while coalescing intervening catalog/model updates into one
+subsequent read. A catalog with no explicit legacy category choices checks for a current location
+per predicted category; catalogs with those choices retain the existing precedence query. The
+read-only paired catalog probe returned the same seven categories in 675 ms versus 1,223 ms.
+Automatic curated expansion and immutable prediction compatibility remain unchanged.
+
+Gallery snapshot, timeline, review-page and category reads use the existing foreground-read lease.
+Background analysis yields at its existing admission/cancellation boundaries while these reads run;
+completion and failure release only the corresponding lease. This does not forcibly terminate an
+already executing native call.
+
+The rebuilt normal `local-primary` Debug client displayed 63,071 images and the saved category list.
+With classification still publishing updates, switching to the 6,173-image comic category and the
+81-image photo category completed in observed upper bounds of 2,537 and 2,212 ms, including desktop
+input and accessibility capture. The exact-review page displayed all 12,571 groups. These remaining
+two-second category waits are retained measurements; the user accepted the current interaction.
+The rebuilt client remains open. No source-file or organization operation was submitted.
+
+The 25 existing native classification query cases pass, including legacy choices, conflicts, removed
+sources and retained display evidence. The Dart lifecycle cases and 20 affected navigation/review
+checks pass.
+The navigation reader/configuration/provider/foreground owners contain 44/86/62/73 production lines;
+native navigation/projection contain 71/157, with no inline tests. The new reader has 60 dedicated
+test lines; existing interaction, snapshot and lifecycle fixtures supply the remaining coverage.

@@ -26,12 +26,15 @@ Closing immediately retires viewer input, accessibility focus and
 source-read authority; at most one non-interactive closing surface remains for the visual exit.
 Reopening replaces that surface, and further pointer input finishes entry immediately. Disabled
 animations use an immediate transition. Original pixels reveal over the same image's small preview
-in 100 ms without resetting the zoom transform. The existing preview element stays mounted across
+in 100 ms after entry finishes, without resetting the zoom transform. A return freezes any active
+quality blend; decoded source arrival cannot replace the travelling preview. The existing preview element stays mounted across
 the original's first frame, including after cache eviction, and is released when the reveal finishes.
 The viewer captures its activated thumbnail and tracks geometry suppliers only for mounted lazy
 cards. Returning to a still-visible matching card reverses the image transition, including after
 adjacent navigation. A removed/offscreen card or rotated viewing direction uses the shared fade
 instead. Missing launch geometry also falls back to the fade.
+The image clip follows the card's full bounds and corner radius in screen coordinates, including
+under viewer zoom; the visible viewport clips partial cards throughout the return.
 These transitions reuse the current image element and source lifecycle, without another decode,
 image buffer, layout interpolation or queue of outgoing full-resolution images. Duplicate review
 uses the same image transition from its member thumbnail; comparison retains the surface fade.
@@ -88,6 +91,9 @@ action are on the right; full screen is the last action. The strip starts hidden
 visibility. It uses bounded catalog paging and lazily creates visible thumbnails; selecting one opens
 that image in the current query order. Its ordinary mouse wheel moves horizontally through the native
 scroll position, alongside native horizontal-wheel, touchpad and scrollbar input.
+The strip overlays the bottom of the image viewport, immediately above the fixed toolbar. Opening
+and closing slide the strip through the shared Standard spatial motion without reserving image
+height or changing the main image's position or zoom. Reduced motion switches it immediately.
 
 Rotation changes the current viewing direction by 90 degrees without changing the original file,
 EXIF, preview cache or catalog dimensions. It reuses the existing image interaction and sampling:
@@ -101,7 +107,8 @@ New thumbnail pixels retain the placeholder until decoding finishes; a larger pr
 source retains the already decoded image, and scrolling skips the first-frame fade.
 
 The strip is first created when expanded. Collapsing retains its lazy visible elements until the
-viewer closes, while removing its preview demand, focus and animation activity. Every expansion
+viewer closes, while immediately removing its preview demand, input, focus and child animation
+activity. The closing surface remains painted only until the slide ends. Every expansion
 centers the current image within the natural scroll bounds while reusing compatible previews.
 Near the start or end, the strip aligns to that boundary without adding empty space to force
 centering. Selection changes while the strip remains open only scroll

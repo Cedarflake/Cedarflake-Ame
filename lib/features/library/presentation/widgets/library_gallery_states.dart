@@ -143,7 +143,7 @@ class _PendingLibraryGallery extends StatelessWidget {
   }
 }
 
-/// 图库中央｜加载圆圈及其下方的加载提示。
+/// Initial waiting feedback when the empty-state view is hosted independently.
 class GalleryLoadingState extends StatelessWidget {
   const GalleryLoadingState({super.key});
 
@@ -151,16 +151,7 @@ class GalleryLoadingState extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       key: Key("library-query-loading"),
-      child: AmeProgressVisibility(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text(LibraryStrings.loadingLibrary),
-          ],
-        ),
-      ),
+      child: AmeLoadingProgress(semanticsLabel: "正在加载图片"),
     );
   }
 }

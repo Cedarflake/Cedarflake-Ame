@@ -66,8 +66,8 @@ abstract final class LibraryFileStrings {
     };
     final status = switch (progress.phase) {
       LibraryFileTaskPhase.preparing => "正在准备$verb",
-      LibraryFileTaskPhase.running => "正在$verb",
-      LibraryFileTaskPhase.refreshing => "正在更新图库",
+      LibraryFileTaskPhase.running ||
+      LibraryFileTaskPhase.refreshing => "正在$verb",
       LibraryFileTaskPhase.stopping => "正在停止",
       LibraryFileTaskPhase.finished => "$verb已结束",
       LibraryFileTaskPhase.cancelled => "$verb已停止",

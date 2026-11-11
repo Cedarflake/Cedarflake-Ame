@@ -78,12 +78,12 @@ class LibraryDuplicateResults extends StatelessWidget {
               thumbnail: _groupThumbnail(entry),
               onOpen: () => unawaited(workspace.openGroup(entry)),
             ),
-            null => const Card(margin: EdgeInsets.zero),
+            null => const SizedBox.shrink(),
           };
         }
         if (workspace.isSimilar) {
           final member = workspace.similar.memberWindow.itemAt(index);
-          if (member == null) return const Card(margin: EdgeInsets.zero);
+          if (member == null) return const SizedBox.shrink();
           final preferred = member.preferred;
           final canWrite = workspace.similar.canWrite;
           return LibrarySimilarMemberCard(
@@ -104,7 +104,7 @@ class LibraryDuplicateResults extends StatelessWidget {
           );
         }
         final member = workspace.exact.memberWindow.itemAt(index);
-        if (member == null) return const Card(margin: EdgeInsets.zero);
+        if (member == null) return const SizedBox.shrink();
         final preferred = workspace.exact.decision.prefers(member.asset);
         return LibraryDuplicateMemberCard(
           member: member,

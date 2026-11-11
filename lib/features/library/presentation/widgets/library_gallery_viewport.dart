@@ -30,7 +30,7 @@ class LibraryGalleryViewport extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (isEmpty)
+        if (isEmpty && !isLoading)
           Positioned.fill(
             child: Semantics(
               sortKey: const OrdinalSortKey(1),
@@ -47,6 +47,7 @@ class LibraryGalleryViewport extends StatelessWidget {
             Expanded(
               child: LibraryGalleryLoadingRegion(
                 isLoading: isLoading,
+                showContentIndicator: isEmpty,
                 delay: loadingDelay,
                 child: Stack(
                   fit: StackFit.expand,

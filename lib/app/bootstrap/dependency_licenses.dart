@@ -1,7 +1,7 @@
 import "package:flutter/foundation.dart";
 import "package:flutter/services.dart";
 
-void registerNativeLicenses() {
+void registerDependencyLicenses() {
   LicenseRegistry.addLicense(() async* {
     final notices = await rootBundle.loadString(
       "assets/licenses/similarity.txt",
@@ -11,5 +11,9 @@ void registerNativeLicenses() {
       "assets/licenses/classification_schema.txt",
     );
     yield LicenseEntryWithLineBreaks(["ONNX", "prost", "half"], classification);
+    final loading = await rootBundle.loadString(
+      "assets/licenses/material_loading_indicator.txt",
+    );
+    yield LicenseEntryWithLineBreaks(["Material loading indicator"], loading);
   });
 }

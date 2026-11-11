@@ -6,19 +6,20 @@ import "package:cedarflake_ame/features/library/application/library_organization
 import "package:cedarflake_ame/features/library/application/library_organization_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_batch.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_outcome.dart";
+import "package:cedarflake_ame/features/library/application/library_selection_activity.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization_batch.dart";
 import "package:cedarflake_ame/features/library/domain/library_review.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_selection_actions.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_selection_progress.dart";
 import "package:cedarflake_ame/features/settings/domain/album_preferences.dart";
 import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:material_symbols_icons/symbols.dart";
 
 import "../support/library_batch_fixture.dart";
 import "../support/library_organization_fixture.dart";
@@ -30,6 +31,8 @@ void main() {
   late OrganizationServiceFixture service;
   late ProviderContainer container;
   late ValueNotifier<bool> visible;
+  late ValueNotifier<int> revision;
+  late GallerySelection selection;
   late _RefreshingLibrary library;
   int committed = 0;
   const destination = LibraryOrganizationAlbum("destination", "Destination");
@@ -38,6 +41,10 @@ void main() {
     batches = OrganizationBatchesFixture();
     service = OrganizationServiceFixture()..albumItems = [destination];
     visible = ValueNotifier(true);
+    revision = ValueNotifier(42);
+    selection = GallerySelection.empty(
+      "query-42",
+    ).selectAll().toggle("excluded");
     committed = 0;
     library = _RefreshingLibrary();
     container = ProviderContainer(
@@ -51,6 +58,7 @@ void main() {
   tearDown(() {
     container.dispose();
     visible.dispose();
+    revision.dispose();
   });
 
   Future<void> host(
@@ -67,24 +75,44 @@ void main() {
         container: container,
         child: MaterialApp(
           home: Scaffold(
-            body: ValueListenableBuilder<bool>(
-              valueListenable: visible,
-              builder: (context, show, _) => show
-                  ? LibrarySelectionActions(
-                      selection: GallerySelection.empty(
-                        "query-42",
-                      ).selectAll().toggle("excluded"),
-                      query: LibraryGalleryQuery(
-                        rootId: "source",
-                        searchText: "name",
-                        organizationQueue: organizing ? queue : null,
+            body: Stack(
+              children: [
+                ValueListenableBuilder<int>(
+                  valueListenable: revision,
+                  builder: (context, value, _) => ValueListenableBuilder<bool>(
+                    valueListenable: visible,
+                    builder: (context, show, _) => show
+                        ? LibrarySelectionActions(
+                            selection: selection,
+                            query: LibraryGalleryQuery(
+                              rootId: "source",
+                              searchText: "name",
+                              organizationQueue: organizing ? queue : null,
+                            ),
+                            catalogRevision: BigInt.from(value),
+                            enabled: true,
+                            onCommitted: () => committed++,
+                            onCancel: () => visible.value = false,
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final activity = ref.watch(
+                      librarySelectionActivityProvider,
+                    );
+                    if (activity == null) return const SizedBox.shrink();
+                    return Align(
+                      alignment: Alignment.bottomCenter,
+                      child: LibrarySelectionProgress(
+                        key: ObjectKey(activity.owner),
+                        progress: activity.progress,
                       ),
-                      catalogRevision: BigInt.from(42),
-                      enabled: true,
-                      onCommitted: () => committed++,
-                      onCancel: () => visible.value = false,
-                    )
-                  : const SizedBox.shrink(),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ),
@@ -93,10 +121,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> favorite(WidgetTester tester, bool value) async {
+  Future<void> chooseFavorite(WidgetTester tester, bool value) async {
     await tester.tap(find.byKey(const Key("library-selection-favorite")));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(value ? "加入收藏夹" : "取消收藏"));
+    if (find.byType(PopupMenuItem<bool>).evaluate().isNotEmpty) {
+      await tester.tap(find.text(value ? "加入收藏夹" : "取消收藏"));
+      await tester.pump();
+    }
+  }
+
+  Future<void> favorite(WidgetTester tester, bool value) async {
+    await chooseFavorite(tester, value);
     await tester.pumpAndSettle();
   }
 
@@ -194,49 +229,50 @@ void main() {
   }
 
   for (final favorites in [0, 1, 3]) {
-    testWidgets("favorite action reflects $favorites of three groups", (
-      tester,
-    ) async {
-      batches.create = () => OrganizationBatchFixture()
-        ..summary = LibraryBatchSummary(
-          groups: 3,
-          favorites: favorites,
-          assigned: 0,
-          conflicts: 0,
-        );
-      await host(tester);
-      expect(batches.selections, isEmpty);
-      await tester.tap(find.byKey(const Key("library-selection-favorite")));
-      await tester.pumpAndSettle();
-      if (favorites == 1) {
-        expect(find.text("收藏/取消收藏"), findsOneWidget);
-        expect(find.text("加入收藏夹"), findsOneWidget);
-        expect(find.text("取消收藏"), findsOneWidget);
-        expect(find.byIcon(Symbols.heart_minus_rounded), findsOneWidget);
+    testWidgets(
+      "favorite action resolves $favorites of three groups automatically",
+      (tester) async {
+        batches.create = () => OrganizationBatchFixture()
+          ..summary = LibraryBatchSummary(
+            groups: 3,
+            favorites: favorites,
+            assigned: 0,
+            conflicts: 0,
+          );
+        await host(tester);
+        expect(batches.batches.single.preparations, 1);
+        expect(batches.batches.single.writes, isEmpty);
         expect(
           find.descendant(
             of: find.byKey(const Key("library-selection-favorite")),
-            matching: find.byIcon(Symbols.arrow_drop_down_rounded),
+            matching: find.text(favorites == 3 ? "取消收藏" : "收藏"),
           ),
           findsOneWidget,
         );
-        expect(batches.batches.single.writes, isEmpty);
-        await tester.tap(find.text("加入收藏夹"));
+        await tester.tap(find.byKey(const Key("library-selection-favorite")));
         await tester.pumpAndSettle();
-      } else {
-        expect(find.byType(PopupMenuItem<bool>), findsNothing);
-      }
-      expect(batches.batches, hasLength(1));
-      expect(batches.batches.single.preparations, 1);
-      expect(
-        (batches.batches.single.writes.single.action as LibraryBatchFavorite)
-            .favorite,
-        favorites != 3,
-      );
-    });
+        if (favorites == 1) {
+          expect(find.text("加入收藏夹"), findsOneWidget);
+          expect(find.text("取消收藏"), findsOneWidget);
+          expect(batches.batches.single.writes, isEmpty);
+          await tester.tap(find.text("加入收藏夹"));
+          await tester.pumpAndSettle();
+        } else {
+          expect(find.byType(PopupMenuItem<bool>), findsNothing);
+        }
+        expect(batches.batches, hasLength(1));
+        expect(batches.batches.single.preparations, 1);
+        expect(
+          (batches.batches.single.writes.single.action as LibraryBatchFavorite)
+              .favorite,
+          favorites != 3,
+        );
+        expect(committed, 1);
+      },
+    );
   }
 
-  testWidgets("a changed selection retires a pending direct favorite", (
+  testWidgets("a changed selection retires a pending favorite command", (
     tester,
   ) async {
     final earlier = OrganizationBatchFixture()
@@ -251,6 +287,15 @@ void main() {
     await host(tester);
     await tester.tap(find.byKey(const Key("library-selection-favorite")));
     await tester.pump();
+    final current = OrganizationBatchFixture()
+      ..summary = const LibraryBatchSummary(
+        groups: 1,
+        favorites: 1,
+        assigned: 0,
+        conflicts: 0,
+      );
+    batches.create = () => current;
+    selection = selection.toggle("another");
     await host(tester);
     earlier.preparing!.complete(earlier.summary);
     await tester.pumpAndSettle();
@@ -260,16 +305,8 @@ void main() {
     expect(find.byType(PopupMenuItem<bool>), findsNothing);
     expect(committed, 0);
 
-    final current = OrganizationBatchFixture()
-      ..summary = const LibraryBatchSummary(
-        groups: 1,
-        favorites: 1,
-        assigned: 0,
-        conflicts: 0,
-      );
-    batches.create = () => current;
-    await tester.tap(find.byKey(const Key("library-selection-favorite")));
-    await tester.pumpAndSettle();
+    expect(find.text("取消收藏"), findsOneWidget);
+    await favorite(tester, false);
     expect(
       (current.writes.single.action as LibraryBatchFavorite).favorite,
       isFalse,
@@ -277,22 +314,24 @@ void main() {
     expect(committed, 1);
   });
 
-  testWidgets("dismissed mixed menu keeps its label until selection changes", (
-    tester,
-  ) async {
-    await host(tester);
-    await tester.tap(find.byKey(const Key("library-selection-favorite")));
-    await tester.pumpAndSettle();
-    await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
-    expect(find.text("收藏/取消收藏"), findsOneWidget);
-    expect(batches.batches.single.writes, isEmpty);
-    expect(batches.batches.single.closes, 1);
-    await host(tester);
-    expect(find.text("收藏/取消收藏"), findsNothing);
-    expect(find.text("收藏"), findsOneWidget);
-    expect(committed, 0);
-  });
+  testWidgets(
+    "dismissing a mixed favorite menu retires its prepared selection",
+    (tester) async {
+      await host(tester);
+      await tester.tap(find.byKey(const Key("library-selection-favorite")));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(batches.batches.single.preparations, 1);
+      expect(batches.batches.single.closes, 1);
+      expect(batches.batches.single.writes, isEmpty);
+      selection = selection.toggle("another");
+      await host(tester);
+      expect(find.text("收藏/取消收藏"), findsNothing);
+      expect(find.text("收藏"), findsOneWidget);
+      expect(committed, 0);
+    },
+  );
 
   for (final assigned in [0, 1, 3]) {
     testWidgets("album tray reflects $assigned assigned groups", (
@@ -382,15 +421,22 @@ void main() {
     await tester.tap(find.byKey(const Key("library-selection-album")));
     await tester.pump();
     final progress = find.byKey(const Key("library-selection-progress"));
-    final fade = find.descendant(
-      of: progress,
-      matching: find.byType(FadeTransition),
-    );
+    final fade = find
+        .descendant(of: progress, matching: find.byType(FadeTransition))
+        .first;
     expect(tester.widget<FadeTransition>(fade).opacity.value, 0);
     await tester.pump(const Duration(milliseconds: 499));
     expect(tester.widget<FadeTransition>(fade).opacity.value, 0);
     await tester.pump(const Duration(milliseconds: 1));
     expect(controls.map(tester.getRect).toList(), bounds);
+    expect(tester.getTopLeft(progress).dy, greaterThan(bounds.last.bottom));
+    expect(
+      find.descendant(
+        of: find.byKey(const Key("library-selection-toolbar")),
+        matching: find.byType(LinearProgressIndicator),
+      ),
+      findsNothing,
+    );
     expect(
       tester
           .widget<LinearProgressIndicator>(
@@ -430,10 +476,12 @@ void main() {
     await tester.tap(find.byKey(const Key("library-selection-album")));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    final fade = find.descendant(
-      of: find.byKey(const Key("library-selection-progress")),
-      matching: find.byType(FadeTransition),
-    );
+    final fade = find
+        .descendant(
+          of: find.byKey(const Key("library-selection-progress")),
+          matching: find.byType(FadeTransition),
+        )
+        .first;
     expect(tester.widget<FadeTransition>(fade).opacity.value, 0);
     batch.preparing!.complete(batch.summary);
     await tester.pumpAndSettle();
@@ -445,6 +493,38 @@ void main() {
     expect(batch.writes, isEmpty);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    "catalog publications retain explicit selection preparation and failures use notifications",
+    (tester) async {
+      final batch = OrganizationBatchFixture()
+        ..preparing = Completer<LibraryBatchSummary>();
+      batches.create = () => batch;
+      selection = GallerySelection.empty("query-42").toggle("selected");
+      await host(tester);
+      await tester.tap(find.byKey(const Key("library-selection-album")));
+      await tester.pump();
+      selection = selection.rebind("query-43");
+      revision.value = 43;
+      await tester.pump();
+      expect(batch.closes, 0);
+      expect(container.read(librarySelectionActivityProvider), isNotNull);
+      batch.preparing!.completeError(
+        const LibraryOrganizationFailure("database_error", "fixture"),
+      );
+      await tester.pumpAndSettle();
+      final notice = container.read(ameNotificationControllerProvider).current;
+      expect(notice?.severity, AmeNotificationSeverity.error);
+      expect(find.text(notice!.message), findsNothing);
+      expect(container.read(librarySelectionActivityProvider), isNull);
+      expect(batch.closes, 1);
+      selection = selection.toggle("another");
+      revision.value++;
+      await tester.pumpAndSettle();
+      expect(container.read(ameNotificationControllerProvider).current, isNull);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets("conflicts require a choice even with an automatic default", (
     tester,

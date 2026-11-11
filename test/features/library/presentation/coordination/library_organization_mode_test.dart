@@ -303,7 +303,7 @@ void main() {
   );
 
   test(
-    "catalog publications coalesce continuation reads and retire old results",
+    "entry does not wait for continuation and catalog updates admit completed reads",
     () async {
       final old = Completer<LibraryReviewContinuation>();
       var reads = 0;
@@ -311,17 +311,39 @@ void main() {
         LibraryContinuationStatus.emptyScope,
       );
       service.reading = () async => ++reads == 1 ? old.future : service.saved;
+      final statuses = <LibraryContinuationStatus?>[];
+      mode.addListener(() => statuses.add(mode.continuation?.status));
       final entering = mode.enter();
-      await Future<void>.delayed(Duration.zero);
+      await entering;
+      expect(mode.busy, isFalse);
+      expect(old.isCompleted, isFalse);
       final updates = List.generate(20, (_) => mode.refreshContinuation());
       expect(reads, 1);
       old.complete(
         const LibraryReviewContinuation(LibraryContinuationStatus.noActivity),
       );
-      await entering;
       await Future.wait(updates);
       expect(reads, 2);
+      expect(statuses, contains(LibraryContinuationStatus.noActivity));
       expect(mode.continuation?.status, LibraryContinuationStatus.emptyScope);
+    },
+  );
+
+  test(
+    "a late continuation failure from another scope cannot replace the active result",
+    () async {
+      final old = Completer<LibraryReviewContinuation>();
+      var reads = 0;
+      service.reading = () async => ++reads == 1 ? old.future : service.saved;
+      await mode.enter();
+      await mode.changeQuery(
+        surface.library.query.copyWith(rootId: "another-root"),
+      );
+      old.completeError(StateError("retired scope"));
+      await mode.refreshContinuation();
+      expect(mode.problem, isNull);
+      expect(service.continuationQueries.last?.rootId, "another-root");
+      expect(mode.continuation?.status, LibraryContinuationStatus.noActivity);
     },
   );
 
@@ -465,6 +487,23 @@ void main() {
       expect(surface.opened, isEmpty);
     },
   );
+
+  test("mode failures describe the command that failed", () async {
+    surface.publishing = () async => throw StateError("query failed");
+    await mode.enter();
+    expect(mode.problem, "无法进入整理模式，请重试。");
+    surface.publishing = null;
+    await mode.retry();
+    expect(mode.isActive, isTrue);
+    surface.publishing = () async => throw StateError("query failed");
+    await mode.selectQueue(LibraryOrganizationQueue.deferred);
+    expect(mode.problem, "无法切换整理范围，请重试。");
+    await mode.exit();
+    expect(mode.problem, "无法返回图库，请重试。");
+    surface.publishing = null;
+    await mode.retry();
+    expect(mode.isActive, isFalse);
+  });
 
   test(
     "a failed resume can retry the same workflow and keeps ordinary context",

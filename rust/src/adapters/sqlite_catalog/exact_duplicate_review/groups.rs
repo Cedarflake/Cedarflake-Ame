@@ -8,7 +8,7 @@ use crate::domain::exact_duplicates::{EXACT_DUPLICATE_PAGE_SIZE, EXACT_FINGERPRI
 use crate::domain::{ExactDuplicateGroup, ExactDuplicateGroupCursor, ScanError};
 
 use super::super::exact_duplicates::queries::{
-    CANDIDATE_COLUMNS, COMPATIBLE_FINGERPRINT, CURRENT_LOCATIONS,
+    CANDIDATE_COLUMNS, COMPATIBLE_FINGERPRINT, CURRENT_LOCATIONS, CURRENT_LOCATIONS_BY_GENERATION,
 };
 use super::super::exact_duplicates::{read_candidate, read_unsigned};
 use super::super::{database_error, sqlite_integer};
@@ -49,15 +49,21 @@ fn load_page(
     total_groups: u64,
     offset: u64,
 ) -> Result<ExactDuplicateReviewPage, ScanError> {
+    if total_groups == 0 {
+        return Ok(ExactDuplicateReviewPage {
+            groups: Vec::new(),
+            total_groups,
+            next: None,
+        });
+    }
     let representative = representative_expression("l");
+    let sources = group_sources(ignored);
     let sql = format!("WITH grouped AS (
         SELECT f.digest, f.byte_length, COUNT(*) AS locations,
                COUNT(DISTINCT l.source_generation) AS physical_files,
                {representative} AS representative
-        FROM {CURRENT_LOCATIONS}
-        JOIN content_fingerprints AS f ON {COMPATIBLE_FINGERPRINT}
-        {DECISION_JOIN}
-        WHERE (f.digest, f.byte_length) > (?2, ?3)
+        FROM {sources}
+        WHERE {COMPATIBLE_FINGERPRINT} AND (f.digest, f.byte_length) > (?2, ?3)
           AND COALESCE(decision.ignored, 0) = ?4
         GROUP BY f.digest, f.byte_length HAVING COUNT(*) > 1
         ORDER BY f.digest, f.byte_length LIMIT ?5 OFFSET ?6
@@ -134,15 +140,14 @@ fn load_page(
 }
 
 fn count(connection: &Connection, ignored: bool) -> Result<u64, ScanError> {
+    let sources = group_sources(ignored);
     connection
         .query_row(
             &format!(
                 "SELECT COUNT(*) FROM (
                 SELECT f.digest, f.byte_length
-                FROM {CURRENT_LOCATIONS}
-                JOIN content_fingerprints AS f ON {COMPATIBLE_FINGERPRINT}
-                {DECISION_JOIN}
-                WHERE COALESCE(decision.ignored, 0) = ?2
+                FROM {sources}
+                WHERE {COMPATIBLE_FINGERPRINT} AND COALESCE(decision.ignored, 0) = ?2
                 GROUP BY f.digest, f.byte_length
                 HAVING COUNT(*) > 1
             )"
@@ -151,4 +156,21 @@ fn count(connection: &Connection, ignored: bool) -> Result<u64, ScanError> {
             |row| read_unsigned(row, 0),
         )
         .map_err(database_error)
+}
+
+fn group_sources(ignored: bool) -> String {
+    if ignored {
+        format!(
+            "exact_duplicate_decisions AS decision
+             CROSS JOIN content_fingerprints AS f
+               ON f.scheme = decision.scheme AND f.digest = decision.digest
+                 AND f.byte_length = decision.byte_length
+             CROSS JOIN {CURRENT_LOCATIONS_BY_GENERATION}"
+        )
+    } else {
+        format!(
+            "content_fingerprints AS f INDEXED BY content_fingerprints_content
+             CROSS JOIN {CURRENT_LOCATIONS_BY_GENERATION} {DECISION_JOIN}"
+        )
+    }
 }

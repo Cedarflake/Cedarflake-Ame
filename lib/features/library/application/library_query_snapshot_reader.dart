@@ -1,5 +1,6 @@
 import "../domain/library_models.dart";
 import "library_catalog.dart";
+import "library_foreground_reads.dart";
 import "ports/library_catalog.dart";
 import "../domain/library_query_snapshot.dart";
 
@@ -37,10 +38,12 @@ class LibraryQuerySnapshotReader {
     LibraryQueryAnchor? anchor,
     BigInt? minimumRevision,
   }) async {
-    final result = await _catalog.loadQuerySnapshot(
-      maxItems: libraryCatalogWindow,
-      query: query,
-      anchor: anchor,
+    final result = await libraryForegroundReads.run(
+      () => _catalog.loadQuerySnapshot(
+        maxItems: libraryCatalogWindow,
+        query: query,
+        anchor: anchor,
+      ),
     );
     final snapshot = result.snapshot;
     final layout = result.layoutManifest;

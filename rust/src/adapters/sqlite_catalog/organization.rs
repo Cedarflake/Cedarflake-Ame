@@ -37,6 +37,7 @@ mod restoration_schema;
 pub(super) mod review;
 pub(super) mod selection;
 mod undo;
+mod write_admission;
 
 impl OrganizationRepository for SqliteCatalog {
     fn load_organization_history(&self) -> Result<OrganizationHistory, ScanError> {

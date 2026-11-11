@@ -122,6 +122,13 @@ unverified evidence. Confirmation receives the frozen group and file counts. Tha
 only recycle or explicit permanent-delete commands. Explicit locations and other file actions retain
 their existing scope. Repeated preparation and later preference changes cannot expand the snapshot.
 
+Explicit file/card selections resolve their current catalog state before confirmation. A saved file
+or unrelated catalog publication does not invalidate an unchanged selected asset/location identity.
+Merged cards expand from that selected member even if another copy became the display representative.
+Preparation freezes current generations and the displayed count; later changes still require native
+and catalog revalidation and cannot enlarge the confirmed set. Query-wide selection retains its
+revision guard so a background publication cannot silently broaden a select-all gesture.
+
 Schema v79 keeps physical-operation authorization and append-only transition snapshots in the
 existing catalog, separate from virtual-organization history and filesystem-notification work.
 Authorization binds a batch ordinal to the exact asset, location, source/root generations, native

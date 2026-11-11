@@ -166,10 +166,14 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
             .unchecked_transaction()
             .map_err(database_error)?;
         if let Scope::Gallery {
-            catalog_revision, ..
+            catalog_revision,
+            all_matching: true,
+            ..
         }
         | Scope::MergedGalleryGroups {
-            catalog_revision, ..
+            catalog_revision,
+            all_matching: true,
+            ..
         } = self.scope
             && load_catalog_revision(&transaction)? != catalog_revision
         {

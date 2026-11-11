@@ -42,6 +42,40 @@ void main() {
   );
 
   test(
+    "background publications let the first page finish and coalesce its replacement",
+    () async {
+      final first = Completer<LibraryDuplicateReviewSlice<int, int>>();
+      final replacement = Completer<LibraryDuplicateReviewSlice<int, int>>();
+      var calls = 0;
+      final window = LibraryDuplicateReviewWindow<int, int>((_) {
+        return calls++ == 0 ? first.future : replacement.future;
+      });
+      addTearDown(window.dispose);
+      final initial = window.ensureRange(0, 1);
+      await Future<void>.value();
+      final updates = [window.revalidate(), window.revalidate()];
+      expect(calls, 1);
+      first.complete(const LibraryDuplicateReviewSlice(items: [1], total: 1));
+      await initial;
+      await Future.wait(updates);
+      expect(window.loadedItems, [1]);
+      expect(calls, 2);
+      replacement.complete(
+        const LibraryDuplicateReviewSlice(items: [2], total: 1),
+      );
+      await window.ensureRange(0, 1);
+      expect(window.loadedItems, [2]);
+      expect(calls, 2);
+      final cached = window.ensureRange(0, 1);
+      final laterUpdate = window.revalidate();
+      await cached;
+      await laterUpdate;
+      await window.ensureRange(0, 1);
+      expect(calls, 3);
+    },
+  );
+
+  test(
     "superseded reads cannot replace results or clear the new loading owner",
     () async {
       final old = Completer<LibraryDuplicateReviewSlice<int, int>>();
@@ -53,6 +87,7 @@ void main() {
       addTearDown(window.dispose);
       final obsolete = window.ensureRange(0, 1);
       await Future<void>.value();
+      unawaited(window.revalidate());
       final fresh = window.refresh();
       await Future<void>.value();
       old.complete(const LibraryDuplicateReviewSlice(items: [1], total: 1));
@@ -63,6 +98,7 @@ void main() {
       await fresh;
       expect(window.itemAt(0), 2);
       expect(window.loading, isFalse);
+      expect(calls, 2);
     },
   );
 

@@ -37,6 +37,10 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text("查看重复图片"));
         await tester.pumpAndSettle();
+        final loadingFade = find.descendant(
+          of: find.byKey(const Key("library-loading-feedback")),
+          matching: find.byType(FadeTransition),
+        );
         for (final id in ["one", "two", "one"]) {
           final action = find.byKey(ValueKey("prefer-$id"));
           await tester.ensureVisible(action);
@@ -52,7 +56,7 @@ void main() {
           service.pendingMembers = Completer();
           await tester.tap(action);
           await tester.pump();
-          expect(find.byType(LinearProgressIndicator), findsNothing);
+          expect(tester.widget<FadeTransition>(loadingFade).opacity.value, 0);
           service.decision = LibraryDuplicateDecision(
             preferredLocationId: id,
             preferredAssetId: "asset-$id",
@@ -61,12 +65,12 @@ void main() {
           await tester.pumpAndSettle();
           expect(tester.widget<IconButton>(action).isSelected, isTrue);
           expect(tester.getSemantics(action).label, "取消首选");
-          expect(find.byType(LinearProgressIndicator), findsNothing);
+          expect(tester.widget<FadeTransition>(loadingFade).opacity.value, 0);
           expect(tester.element(card), same(element));
           expect(scroll.offset, offset);
           service.pendingMembers!.complete(service.members);
           await tester.pumpAndSettle();
-          expect(find.byType(LinearProgressIndicator), findsNothing);
+          expect(tester.widget<FadeTransition>(loadingFade).opacity.value, 0);
           expect(tester.element(card), same(element));
           expect(scroll.offset, offset);
         }

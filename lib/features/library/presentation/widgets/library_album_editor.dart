@@ -44,7 +44,7 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
   );
   bool _saving = false;
   bool _choosingIcon = false;
-  String? _error;
+  String? _errorCode;
 
   @override
   void dispose() {
@@ -61,16 +61,12 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
         (name.isEmpty ||
             name.runes.length > 128 ||
             name.runes.any((rune) => rune < 32))) {
-      setState(
-        () => _error = libraryOrganizationErrorMessage(
-          "organization_album_name_invalid",
-        ),
-      );
+      setState(() => _errorCode = "organization_album_name_invalid");
       return;
     }
     setState(() {
       _saving = true;
-      _error = null;
+      _errorCode = null;
     });
     final result = await ref
         .read(libraryOrganizationActionsProvider.notifier)
@@ -81,7 +77,7 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
       case LibraryOrganizationSaved(:final receipt):
         Navigator.of(context).pop(receipt);
       case LibraryOrganizationRejected(:final failure):
-        setState(() => _error = libraryOrganizationErrorMessage(failure.code));
+        setState(() => _errorCode = failure.code);
       case LibraryOrganizationRetired():
         break;
     }
@@ -91,6 +87,13 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
   Widget build(BuildContext context) {
     final deleting = widget.kind == LibraryAlbumEditKind.delete;
     final changingIcon = widget.kind == LibraryAlbumEditKind.icon;
+    final nameError =
+        !deleting &&
+        !changingIcon &&
+        const {
+          "organization_album_name_invalid",
+          "organization_album_name_exists",
+        }.contains(_errorCode);
     final busy = ref.watch(
       libraryOrganizationActionsProvider.select((state) => state.saving),
     );
@@ -107,9 +110,7 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
       child: AmeDialog(
         key: const Key("library-album-editor"),
         title: title,
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        content: AmeDialogBody(
           children: [
             if (changingIcon)
               LibraryAlbumIconPicker(
@@ -123,7 +124,6 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
                 icon: libraryAlbumIcon(widget.album!.icon),
                 title: widget.album!.name,
               ),
-              const SizedBox(height: 20),
               const Text("其中的图片组将进入已忽略。图片文件和收藏状态会保留。"),
             ] else if (!changingIcon)
               TextField(
@@ -133,7 +133,9 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
                 enabled: !_saving,
                 decoration: InputDecoration(
                   labelText: "相册名称",
-                  errorText: _error,
+                  errorText: nameError
+                      ? libraryOrganizationErrorMessage(_errorCode!)
+                      : null,
                   icon: widget.kind == LibraryAlbumEditKind.create
                       ? SizedBox.square(
                           dimension: 48,
@@ -155,7 +157,6 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
               ),
             if (widget.kind == LibraryAlbumEditKind.create &&
                 _choosingIcon) ...[
-              const SizedBox(height: 20),
               LibraryAlbumIconPicker(
                 value: _icon,
                 onChanged: _saving
@@ -166,14 +167,8 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
                       }),
               ),
             ],
-            if ((deleting || changingIcon) && _error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
+            if (_errorCode case final code? when !nameError)
+              AmeDialogError(libraryOrganizationErrorMessage(code)),
           ],
         ),
         actions: [

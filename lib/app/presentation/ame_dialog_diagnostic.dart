@@ -13,17 +13,14 @@ class AmeDialogDiagnostic extends StatelessWidget {
       r"\s*\((os error \d+|0x[0-9a-fA-F]+)\)\s*$",
     ).firstMatch(detail);
     final code = suffix?.group(1);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return AmeDialogBody(
       children: [
-        SelectableText(
+        AmeDialogError(
           suffix == null
               ? detail
               : detail.substring(0, suffix.start).trimRight(),
         ),
         if (code != null) ...[
-          const SizedBox(height: 20),
           AmeDialogField(label: "错误代码", child: SelectableText(code)),
         ],
       ],

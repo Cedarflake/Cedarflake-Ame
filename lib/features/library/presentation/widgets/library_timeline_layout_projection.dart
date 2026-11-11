@@ -21,21 +21,32 @@ class LibraryTimelineLayoutProjection {
       monthOffsets.putIfAbsent(month, () => anchor.scrollOffset);
     }
     var itemOffset = 0;
-    final starts =
-        <({TimelineRailBucket bucket, double offset, int itemOffset})>[];
+    final starts = <({TimelineRailBucket bucket, double offset})>[];
     for (var index = 0; index < buckets.length; index++) {
       final bucket = buckets[index];
-      final offset =
-          monthOffsets[bucket.id] ??
-          metrics.offsetForGlobalItemIndex(itemOffset) ??
-          metrics.contentExtent;
-      starts.add((bucket: bucket, offset: offset, itemOffset: itemOffset));
+      final offset = index == 0
+          ? 0.0
+          : monthOffsets[bucket.id] ??
+                metrics.offsetForGlobalItemIndex(itemOffset) ??
+                metrics.contentExtent;
+      starts.add((bucket: bucket, offset: offset));
       itemOffset += timeline.buckets[index].itemCount;
     }
-    _monthStarts = List.unmodifiable([
-      for (final start in starts)
-        (offset: start.offset, itemOffset: start.itemOffset),
-    ]);
+    final dates = <({double offset, int itemOffset})>[];
+    var nextItem = 0;
+    for (final anchor in metrics.dateAnchors) {
+      while (nextItem < metrics.itemCount &&
+          metrics.itemOffsets[nextItem] < anchor.scrollOffset) {
+        nextItem++;
+      }
+      if (nextItem < metrics.itemCount) {
+        dates.add((
+          offset: anchor.scrollOffset,
+          itemOffset: metrics.itemIndexBase + nextItem,
+        ));
+      }
+    }
+    _dateStarts = List.unmodifiable(dates);
     railBuckets = List.unmodifiable([
       for (var index = 0; index < starts.length; index++)
         TimelineRailBucket(
@@ -57,10 +68,12 @@ class LibraryTimelineLayoutProjection {
   final LibraryGalleryLayoutMetrics metrics;
   final TimelineLinearProjection projection;
   late final List<TimelineRailBucket> railBuckets;
-  late final List<({double offset, int itemOffset})> _monthStarts;
+  late final List<({double offset, int itemOffset})> _dateStarts;
 
   double valueForGlobalItemOffset(double itemOffset) {
-    final offset = metrics.offsetForGlobalItemIndex(itemOffset.floor());
+    final offset = metrics.navigationOffsetForGlobalItemIndex(
+      itemOffset.floor(),
+    );
     return projection.offsetToValue(offset ?? metrics.contentExtent);
   }
 
@@ -68,13 +81,18 @@ class LibraryTimelineLayoutProjection {
     final offset = projection.valueToOffset(value);
     var itemOffset =
         metrics.itemIndexBase + metrics.itemIndexForScrollOffset(offset);
-    for (final month in _monthStarts) {
-      if (month.offset > offset + 0.000001) {
-        break;
+    var lower = 0;
+    var upper = _dateStarts.length;
+    while (lower < upper) {
+      final middle = lower + ((upper - lower) >> 1);
+      if (_dateStarts[middle].offset <= offset + 0.000001) {
+        lower = middle + 1;
+      } else {
+        upper = middle;
       }
-      if (month.itemOffset > itemOffset) {
-        itemOffset = month.itemOffset;
-      }
+    }
+    if (lower > 0 && _dateStarts[lower - 1].itemOffset > itemOffset) {
+      itemOffset = _dateStarts[lower - 1].itemOffset;
     }
     return itemOffset.toDouble();
   }

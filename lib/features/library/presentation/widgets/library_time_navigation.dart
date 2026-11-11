@@ -534,7 +534,9 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     double? targetPixels;
     if (metrics != null &&
         metrics.containsGlobalItemIndex(targetGlobalOffset.toDouble())) {
-      final localPixels = metrics.offsetForGlobalItemIndex(targetGlobalOffset);
+      final localPixels = metrics.navigationOffsetForGlobalItemIndex(
+        targetGlobalOffset,
+      );
       if (localPixels != null) {
         targetPixels =
             (metrics.isQueryWide ? 0 : geometry?.leadingExtent ?? 0) +

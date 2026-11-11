@@ -4,7 +4,9 @@ import "package:cedarflake_ame/app/notifications/ame_notification_controller.dar
 import "package:cedarflake_ame/features/library/application/library_classification_review.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_settings.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_file_operations.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
+import "package:cedarflake_ame/features/library/domain/library_file_operations.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/domain/library_classification_review.dart";
@@ -12,6 +14,8 @@ import "package:cedarflake_ame/features/library/domain/library_organization.dart
 import "package:cedarflake_ame/features/library/domain/library_review.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_organization_mode.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_review_toolbar.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_file_feedback.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_organization_feedback.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_organization_controls.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter/rendering.dart";
@@ -41,6 +45,7 @@ void main() {
       overrides: applicationTestOverrides([
         libraryOrganizationProvider.overrideWithValue(organization),
         libraryControllerProvider.overrideWith(_UpdatingLibrary.new),
+        libraryFileActionsProvider.overrideWith(_FeedbackFiles.new),
       ]),
     );
   });
@@ -94,6 +99,89 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    "exit stays available while continuation is pending and retires its result",
+    (tester) async {
+      await host(tester);
+      final ordinary = mode.ordinaryQuery;
+      final pending = Completer<LibraryReviewContinuation>();
+      review.reading = () => pending.future;
+      final resume = mode.resume();
+      await tester.pump();
+      expect(mode.busy, isTrue);
+      await tester.tap(find.byKey(const Key("library-review-exit")));
+      await tester.pumpAndSettle();
+      expect(mode.isActive, isFalse);
+      expect(mode.busy, isFalse);
+      expect(surface.library.query, ordinary);
+      pending.completeError(StateError("late continuation read"));
+      await resume;
+      await tester.pumpAndSettle();
+      expect(surface.opened, isEmpty);
+      expect(mode.problem, isNull);
+    },
+  );
+
+  testWidgets(
+    "background publication keeps known favorite and review actions usable",
+    (tester) async {
+      await host(tester, viewer: true);
+      final pending = Completer<LibraryOrganizationInspection>();
+      organization.inspectTarget = (_) => pending.future;
+      (container.read(libraryControllerProvider.notifier) as _UpdatingLibrary)
+          .publishRevision(BigInt.two);
+      await tester.pump();
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(const Key("viewer-favorite")))
+            .onPressed,
+        isNotNull,
+      );
+      await tester.tap(find.byKey(const Key("library-review-actions-menu")));
+      await tester.pumpAndSettle();
+      expect(find.text("忽略此图"), findsOneWidget);
+      expect(find.text("稍后整理"), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("viewer-favorite")));
+      await tester.pumpAndSettle();
+      expect(organization.writes, hasLength(1));
+      pending.complete(organizationInspection(true));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 6));
+    },
+  );
+
+  testWidgets(
+    "completed file feedback yields to a new organization failure and result",
+    (tester) async {
+      await host(tester, viewer: true, organizing: false);
+      final files =
+          container.read(libraryFileActionsProvider.notifier) as _FeedbackFiles;
+      files.publish(LibraryFileTaskPhase.finished);
+      await tester.pumpAndSettle();
+      expect(find.byType(LibraryFileFeedback), findsOneWidget);
+      organization.save = (_) async => throw StateError("save failed");
+      await tester.tap(find.byKey(const Key("viewer-favorite")));
+      await tester.pumpAndSettle();
+      expect(find.byType(LibraryFileFeedback), findsNothing);
+      expect(find.byType(LibraryOrganizationFeedback), findsOneWidget);
+      expect(find.text("重试"), findsOneWidget);
+      files.publish(LibraryFileTaskPhase.running);
+      await tester.pumpAndSettle();
+      expect(find.byType(LibraryFileFeedback), findsOneWidget);
+      files.publish(LibraryFileTaskPhase.finished);
+      await tester.pumpAndSettle();
+      organization.save = null;
+      await tester.tap(find.text("重试"));
+      await tester.pumpAndSettle();
+      expect(find.text("已加入收藏夹"), findsOneWidget);
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
+      expect(find.byType(LibraryFileFeedback), findsOneWidget);
+    },
+  );
 
   for (final recovery in [
     (organization: true, classification: true, automatic: false),
@@ -486,7 +574,7 @@ void main() {
   }
 
   testWidgets(
-    "busy toolbar keeps its appearance and blocks repeated commands",
+    "exit supersedes a pending queue change while repeated queue commands are disabled",
     (tester) async {
       final semantics = tester.ensureSemantics();
       try {
@@ -506,7 +594,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(mode.busy, isTrue);
         expect(tester.getRect(pending), originalBounds);
-        expect(tester.widget<TextButton>(pending).onPressed, isNotNull);
+        expect(tester.widget<TextButton>(pending).onPressed, isNull);
         expect(tester.widget<TextButton>(exit).onPressed, isNotNull);
         expect(
           tester
@@ -515,25 +603,24 @@ void main() {
               .hasAction(SemanticsAction.tap),
           isFalse,
         );
-        await tester.tapAt(tester.getCenter(exit));
         await tester.tapAt(tester.getCenter(pending));
-        tester.widget<TextButton>(exit).onPressed!();
-        tester.widget<TextButton>(pending).onPressed!();
         await tester.pump();
         expect(surface.queries.length, countBefore + 1);
         expect(mode.isActive, isTrue);
         expect(deferred, findsNothing);
+        final ordinary = mode.ordinaryQuery;
+        surface.publishing = null;
+        await tester.tap(exit);
+        await tester.pumpAndSettle();
+        expect(mode.busy, isFalse);
+        expect(mode.isActive, isFalse);
+        expect(surface.library.query, ordinary);
         publication.complete(true);
         await tester.pumpAndSettle();
         expect(mode.busy, isFalse);
-        expect(mode.queue, LibraryOrganizationQueue.deferred);
-        expect(
-          tester
-              .getSemantics(pending)
-              .getSemanticsData()
-              .hasAction(SemanticsAction.tap),
-          isTrue,
-        );
+        expect(mode.isActive, isFalse);
+        expect(mode.problem, isNull);
+        expect(surface.library.query, ordinary);
         expect(review.writes, isEmpty);
       } finally {
         semantics.dispose();
@@ -605,5 +692,17 @@ void main() {
 class _UpdatingLibrary extends OrganizationLibraryFixture {
   void publishRevision(BigInt revision) {
     state = state.copyWith(catalogRevision: revision);
+  }
+}
+
+class _FeedbackFiles extends LibraryFileActions {
+  @override
+  LibraryFileActivity build() => const LibraryFileActivity();
+
+  void publish(LibraryFileTaskPhase phase) {
+    state = LibraryFileActivity(
+      action: LibraryFileAction.recycle,
+      progress: LibraryFileProgress(phase: phase, total: 1, processed: 1),
+    );
   }
 }

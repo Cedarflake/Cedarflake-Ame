@@ -3,6 +3,7 @@ import "dart:async";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../domain/library_file_operations.dart";
+import "library_file_publication.dart";
 import "library_file_selection.dart";
 import "library_organization_publication.dart";
 import "library_organization_requests.dart";
@@ -37,11 +38,9 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
   LibraryFileSelectionSession? _selection;
   LibraryFileTask? _task;
   Future<void>? _running;
-  Future<void>? _refreshing;
   bool _closing = false;
   bool _disposed = false;
   bool _stopping = false;
-  int _published = 0;
 
   @override
   LibraryFileActivity build() {
@@ -61,7 +60,6 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
     }
     _selection = selection;
     _stopping = false;
-    _published = 0;
     state = LibraryFileActivity(
       action: command.action,
       progress: const LibraryFileProgress(
@@ -94,7 +92,6 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
   ) {
     if (_closing || _running != null) return Future.value();
     _stopping = false;
-    _published = 0;
     state = LibraryFileActivity(
       purpose: purpose,
       progress: const LibraryFileProgress(
@@ -107,6 +104,11 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
   Future<LibraryFileProgress?> _run(
     Future<LibraryFileTask> Function() start,
   ) async {
+    final publication = LibraryFilePublication(() async {
+      if (!_disposed) {
+        await ref.read(libraryOrganizationPublicationProvider).refresh();
+      }
+    });
     Timer? preparationTimer;
     LibraryFileProgress? completed;
     var readingPreparation = false;
@@ -140,24 +142,22 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
           } else {
             _accept(progress);
           }
-          if (progress.published > _published) _refresh(progress.published);
+          publication.observe(progress);
           if (progress.isFinished) break;
           await Future<void>.delayed(const Duration(milliseconds: 200));
         }
       } finally {
         preparationTimer.cancel();
-        await _task?.close();
-        _task = null;
-        await _selection?.close();
-        _selection = null;
-      }
-      if (completed != null && completed.published > 0) {
-        _accept(completed.withPhase(LibraryFileTaskPhase.refreshing));
-      }
-      if (!_disposed) {
-        await _refreshing;
-        if ((state.progress?.published ?? 0) > _published) {
-          await ref.read(libraryOrganizationPublicationProvider).refresh();
+        try {
+          await _task?.close();
+          _task = null;
+          await _selection?.close();
+          _selection = null;
+        } finally {
+          if (completed != null && completed.published > 0) {
+            _accept(completed.withPhase(LibraryFileTaskPhase.refreshing));
+          }
+          if (!_disposed) await publication.finish();
         }
       }
       if (completed != null) _accept(completed);
@@ -185,6 +185,7 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
       );
       _accept(completed);
     } finally {
+      await publication.close();
       _task = null;
       _selection = null;
       _running = null;
@@ -200,15 +201,6 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
       progress: progress,
       stopping: _stopping && !progress.isFinished,
     );
-  }
-
-  void _refresh(int published) {
-    if (_disposed || _refreshing != null) return;
-    _published = published;
-    _refreshing = ref
-        .read(libraryOrganizationPublicationProvider)
-        .refresh()
-        .whenComplete(() => _refreshing = null);
   }
 
   Future<void> cancel() async {
@@ -227,6 +219,5 @@ class LibraryFileActions extends Notifier<LibraryFileActivity> {
     _closing = true;
     await cancel();
     await _running;
-    await _refreshing;
   }
 }

@@ -1,6 +1,9 @@
+import "dart:async";
 import "dart:math" as math;
 
 import "package:flutter/foundation.dart";
+
+import "library_foreground_reads.dart";
 
 class LibraryDuplicateReviewSlice<T, C> {
   const LibraryDuplicateReviewSlice({
@@ -40,6 +43,7 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
   int _first = 0;
   int _end = 1;
   Future<void>? _pending;
+  bool _revalidationRequested = false;
   bool get isReading => _pending != null;
 
   T? itemAt(int index) => _data.itemAt(index);
@@ -67,6 +71,7 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
   void cancelRead() {
     _generation++;
     _pending = null;
+    _revalidationRequested = false;
     loading = false;
   }
 
@@ -77,6 +82,11 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
 
   Future<void> revalidate() {
     if (_disposed) return Future.value();
+    if (_pending case final pending?) {
+      // Background publication must not starve the read already serving this viewport.
+      _revalidationRequested = true;
+      return pending;
+    }
     if (_data.pages.isEmpty) return refresh();
     cancelRead();
     failed = false;
@@ -117,6 +127,7 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
     if (_disposed || generation != _generation) return;
     if (_missing(data) == null) {
       _pending = null;
+      if (_revalidationRequested) unawaited(revalidate());
       return;
     }
     final replacing = !identical(data, _data);
@@ -135,7 +146,7 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
         final seek = _seek;
         final LibraryDuplicateReviewSlice<T, C> slice;
         if (seek != null && start < missing) {
-          final range = await seek(missing);
+          final range = await libraryForegroundReads.run(() => seek(missing));
           start = range.startIndex;
           slice = range.slice;
           if (start < 0 ||
@@ -147,7 +158,9 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
             );
           }
         } else {
-          slice = await _load(data.checkpoints[start]);
+          slice = await libraryForegroundReads.run(
+            () => _load(data.checkpoints[start]),
+          );
         }
         if (_disposed || generation != _generation) return;
         if (slice.items.isEmpty && slice.next != null) {
@@ -175,9 +188,14 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
       if (!_disposed && generation == _generation) failed = true;
     } finally {
       if (!_disposed && generation == _generation) {
+        final revalidateAfterRead = _revalidationRequested;
+        _revalidationRequested = false;
         loading = false;
         _pending = null;
         notifyListeners();
+        if (revalidateAfterRead && !_disposed && generation == _generation) {
+          unawaited(revalidate());
+        }
       }
     }
   }

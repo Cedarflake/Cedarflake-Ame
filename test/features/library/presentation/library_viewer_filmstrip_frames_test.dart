@@ -114,7 +114,13 @@ void main() {
       await _mount(tester, asset, _PreviewController(), visibility: visible);
       final originalState = tester.state(find.byType(Image));
       expect(_rawImage(tester).image!.isCloneOf(firstPixels), isTrue);
+      final thumbnail = find.byKey(const ValueKey("location"));
+      final expandedTop = tester.getTopLeft(thumbnail).dy;
       visible.value = false;
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(tester.getTopLeft(thumbnail).dy, greaterThan(expandedTop));
+      expect(tester.state(find.byType(Image)), same(originalState));
       await tester.pumpAndSettle();
       PaintingBinding.instance.imageCache.clear();
       visible.value = true;

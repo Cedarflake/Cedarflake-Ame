@@ -12,6 +12,7 @@ import "library_loading_indicator.dart";
 import "library_source_image.dart";
 import "library_viewer_notice.dart";
 import "library_viewer_chrome.dart";
+import "library_viewer_launch.dart";
 import "library_viewer_source_scope.dart";
 import "library_viewer_transition.dart";
 import "library_viewer_zoom_geometry.dart";
@@ -52,6 +53,7 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   LibraryViewerSourceScope? _sourceScope;
   int _retryGeneration = 0;
   bool _isActive = true;
+  Animation<double>? _flight;
 
   @override
   void initState() {
@@ -64,6 +66,12 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final flight = LibraryViewerFlightScope.of(context)?.animation;
+    if (_flight != flight) {
+      _flight?.removeStatusListener(_flightChanged);
+      _flight = flight;
+      _flight?.addStatusListener(_flightChanged);
+    }
     _sourceScope = LibraryViewerSourceScope.maybeOf(context);
     final isActive = LibraryViewerActivity.isActiveOf(context);
     if (!isActive) {
@@ -94,10 +102,13 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
 
   @override
   void dispose() {
+    _flight?.removeStatusListener(_flightChanged);
     _sourceImage.cancel();
     unawaited(_sourceImage.evict());
     super.dispose();
   }
+
+  void _flightChanged(AnimationStatus _) => setState(() {});
 
   @override
   Widget build(BuildContext context) {
@@ -131,6 +142,13 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
         revealIdentity: _sourceImage,
         duration: const Duration(milliseconds: 100),
         placeholder: _hasPreview ? _buildPreview() : null,
+        deferReveal:
+            _hasPreview &&
+            !MediaQuery.disableAnimationsOf(context) &&
+            (!_isActive ||
+                (_flight?.status == AnimationStatus.forward &&
+                    (_flight?.value ?? 1) < 1) ||
+                _flight?.status == AnimationStatus.reverse),
         semanticLabel: widget.asset.relativePath,
         fit: BoxFit.contain,
         filterQuality: quality,
@@ -221,10 +239,16 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   }
 
   Widget _buildPreview() {
+    final origin = LibraryViewerFlightScope.of(context)?.origin;
+    final thumbnail = origin?.locationId == widget.asset.locationId
+        ? origin?.previewImage
+        : null;
     return Image(
-      image: widget.previewImages(widget.asset.previewPath),
+      image: thumbnail ?? widget.previewImages(widget.asset.previewPath),
       fit: BoxFit.contain,
-      filterQuality: FilterQuality.medium,
+      filterQuality: thumbnail == null
+          ? FilterQuality.medium
+          : origin!.previewQuality,
       errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
     );
   }

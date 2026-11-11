@@ -3,7 +3,6 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_choice.dart";
 import "../../../../app/presentation/ame_dialog.dart";
 import "../../../library/application/library_cleanup_controller.dart";
@@ -68,49 +67,47 @@ class _OrganizationCleanupConfirmation extends ConsumerWidget {
       scrollable: true,
       content: SizedBox(
         width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AmeDialogField(
-              label: "清理范围",
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: AmeChoice<int>.menu(
-                  key: const Key("settings-cleanup-age"),
-                  value: minimumAgeDays,
-                  enabled: state is! LibraryCleanupWorking,
-                  entries: const [
-                    AmeChoiceEntry(value: 90, label: "未关联超过 90 天"),
-                    AmeChoiceEntry(value: 30, label: "未关联超过 30 天"),
-                    AmeChoiceEntry(value: 0, label: "全部未关联记录"),
-                  ],
-                  onSelected: (value) {
-                    if (value == null || value == minimumAgeDays) return;
-                    unawaited(controller.inspect(value == 0 ? null : value));
-                  },
+        child: AmeDialogContent(
+          isLoading: state is LibraryCleanupWorking,
+          loadingLabel: state is LibraryCleanupWorking && state.stopping
+              ? "正在停止"
+              : "正在检查记录",
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AmeDialogField(
+                label: "清理范围",
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: AmeChoice<int>.menu(
+                    key: const Key("settings-cleanup-age"),
+                    value: minimumAgeDays,
+                    enabled: state is! LibraryCleanupWorking,
+                    entries: const [
+                      AmeChoiceEntry(value: 90, label: "未关联超过 90 天"),
+                      AmeChoiceEntry(value: 30, label: "未关联超过 30 天"),
+                      AmeChoiceEntry(value: 0, label: "全部未关联记录"),
+                    ],
+                    onSelected: (value) {
+                      if (value == null || value == minimumAgeDays) return;
+                      unawaited(controller.inspect(value == 0 ? null : value));
+                    },
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            switch (state) {
-              LibraryCleanupReady(:final inspection) => _inspection(inspection),
-              LibraryCleanupWorking() => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Semantics(
-                    liveRegion: true,
-                    child: Text(state.stopping ? "正在停止" : "正在检查未关联记录"),
-                  ),
-                  const SizedBox(height: 12),
-                  const AmeLinearProgress(),
-                ],
-              ),
-              LibraryCleanupFailed() => const Text("未能完成检查，请重试。"),
-              LibraryCleanupFinished() => const Text("检查已取消"),
-              LibraryCleanupIdle() => const SizedBox.shrink(),
-            },
-          ],
+              const SizedBox(height: 16),
+              switch (state) {
+                LibraryCleanupReady(:final inspection) => _inspection(
+                  inspection,
+                ),
+                LibraryCleanupWorking() => const SizedBox.shrink(),
+                LibraryCleanupFailed() => const AmeDialogError("未能完成检查，请重试。"),
+                LibraryCleanupFinished() => const Text("检查已取消"),
+                LibraryCleanupIdle() => const SizedBox.shrink(),
+              },
+            ],
+          ),
         ),
       ),
       actions: [
