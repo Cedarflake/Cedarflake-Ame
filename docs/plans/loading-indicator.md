@@ -1,7 +1,7 @@
 # Loading indicator adoption
 
-The [roadmap](../roadmap.md#loading-feedback) owns delivery status. This plan defines one
-presentation change on `codex/loading-indicator`.
+The [roadmap](../roadmap.md#loading-feedback) owns delivery status. This plan defines the
+loading-feedback changes and deletion-latency follow-up on `codex/loading-indicator`.
 
 ## Outcome
 
@@ -45,13 +45,17 @@ The follow-up scope also covers viewer quality/corner continuity, partial-card r
 the filter-menu affordance, compact confirmation states and short-gallery rail endpoints.
 The dialog review also aligns failure content, spacing and error colors across dialogs and trays,
 preserves the weekday in compact date input, and matches sidebar drag surfaces to their rows.
+The deletion follow-up bounds explicit selection and duplicate evidence reads to the chosen files,
+reuses the ordered snapshot when preserving the viewport, and coalesces rapid operation publications.
+Confirmation, native completion and gallery refresh form one operation with one final result.
 Explicit file selection retains its mode during same-scope updates and resolves its current
 state before confirmation under [ADR 0042](../architecture/0042-windows-file-operations.md), with
 focused native selection verification in addition to the presentation checks below.
 
 Use existing progress, gallery and dialog regressions, adding only missing lifecycle/coordination
-coverage. Verify the affected Windows surfaces and inspect normal branch CI; do not run native
-performance or full release workloads for this presentation change. Evidence belongs in the
+coverage. The deletion follow-up also needs bounded native query and anchor checks, with read-only
+timings from the established library. Verify the affected Windows surfaces and inspect normal branch
+CI without adding a full release workload. Evidence belongs in the
 [motion acceptance record](../acceptance/material-motion.md).
 
 Keep the installed SDK and package pins. When an official stable `LoadingIndicator` is available,

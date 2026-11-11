@@ -470,6 +470,7 @@ void main() {
     );
     await tester.pump();
     expect(fixture.reader.leases.single.closed, 1);
+    await tester.pump();
     expect(find.text("无法打开原图"), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     expect(tester.takeException(), isNull);

@@ -254,7 +254,7 @@ void main() {
 
       expect(galleryScrollPosition(tester).pixels, greaterThan(0));
       final loadingFade = find.descendant(
-        of: find.byKey(const Key("library-top-loading")),
+        of: find.byKey(const Key("library-loading-feedback")),
         matching: find.byType(FadeTransition),
       );
       expect(tester.widget<FadeTransition>(loadingFade).opacity.value, 0);

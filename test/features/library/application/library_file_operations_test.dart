@@ -10,6 +10,7 @@ import "package:cedarflake_ame/features/library/application/library_organization
 import "package:cedarflake_ame/features/library/application/library_duplicate_review_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_similar_review_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_file_selection.dart";
+import "package:cedarflake_ame/features/library/application/library_file_publication.dart";
 import "package:cedarflake_ame/features/library/application/library_file_selection_scope.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_file_operations.dart";
 import "package:cedarflake_ame/features/library/domain/library_file_operations.dart";
@@ -349,14 +350,30 @@ void main() {
   );
 
   test(
-    "shutdown joins a completed native worker before exposing completion",
+    "shutdown joins the native worker and gallery before exposing completion",
     () async {
       final backend = _Backend();
+      backend.task.result = const LibraryFileProgress(
+        phase: LibraryFileTaskPhase.finished,
+        total: 1,
+        processed: 1,
+        published: 1,
+      );
       final released = Completer<void>();
+      final refreshed = Completer<bool>();
       backend.task.closing = released.future;
       final container = ProviderContainer(
-        overrides: [libraryFileOperationsProvider.overrideWithValue(backend)],
+        overrides: [
+          libraryFileOperationsProvider.overrideWithValue(backend),
+          libraryControllerProvider.overrideWith(
+            OrganizationLibraryFixture.new,
+          ),
+        ],
       );
+      final library =
+          container.read(libraryControllerProvider.notifier)
+              as OrganizationLibraryFixture;
+      library.pendingRefresh = refreshed;
       final actions = container.read(libraryFileActionsProvider.notifier);
       final running = actions.execute(
         LibraryFileSelectionSession(backend, selection),
@@ -370,6 +387,11 @@ void main() {
       expect(backend.task.cancelled, isTrue);
       expect(closed, isFalse);
       released.complete();
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(libraryFileActionsProvider).busy, isTrue);
+      expect(library.refreshes, 1);
+      expect(closed, isFalse);
+      refreshed.complete(true);
       final result = await running;
       expect(result?.phase, LibraryFileTaskPhase.finished);
       await closing;
@@ -378,6 +400,48 @@ void main() {
         isTrue,
       );
       container.dispose();
+    },
+  );
+
+  testWidgets(
+    "rapid file results share publication and wait for the final gallery",
+    (tester) async {
+      final reads = <Completer<void>>[];
+      final publication = LibraryFilePublication(() {
+        final read = Completer<void>();
+        reads.add(read);
+        return read.future;
+      });
+      LibraryFileProgress progress(int count, {bool finished = false}) =>
+          LibraryFileProgress(
+            phase: finished
+                ? LibraryFileTaskPhase.finished
+                : LibraryFileTaskPhase.running,
+            total: 3,
+            processed: count,
+            published: count,
+          );
+      publication.observe(progress(1));
+      publication.observe(progress(2));
+      expect(reads, isEmpty);
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 510)),
+      );
+      publication.observe(progress(2));
+      expect(reads, hasLength(1));
+      publication.observe(progress(3, finished: true));
+      var finished = false;
+      final completion = publication.finish().then((_) => finished = true);
+      await tester.pump();
+      expect(finished, isFalse);
+      reads.first.complete();
+      await tester.pump();
+      expect(reads, hasLength(2));
+      expect(finished, isFalse);
+      reads.last.complete();
+      await completion;
+      await publication.close();
+      expect(finished, isTrue);
     },
   );
 

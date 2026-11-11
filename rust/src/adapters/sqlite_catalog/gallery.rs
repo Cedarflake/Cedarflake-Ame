@@ -31,7 +31,8 @@ use filters::push_source_filters;
 pub(super) use filters::{gallery_source, push_gallery_filters, semantic_candidate_source};
 
 pub(super) use location_anchor::{
-    GalleryAssetAnchor, resolve_gallery_asset_anchor, resolve_gallery_location_anchor,
+    GalleryAssetAnchor, find_gallery_query_anchor, resolve_gallery_asset_anchor,
+    resolve_gallery_location_anchor,
 };
 
 pub(super) use time_anchor::resolve_gallery_anchor_cursor;

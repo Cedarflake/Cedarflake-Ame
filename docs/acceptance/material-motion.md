@@ -343,7 +343,51 @@ state, label activation and separate confirmation after replacing the row-wide i
 the framework checkbox's own feedback. No real source mutation was submitted for this review.
 
 The shared dialog helper and history owner contain 210 and 311 production lines; neither has inline
-tests. The reused file-operation suite contains 717 dedicated test lines. Affected static checks
-and the Windows Debug build pass. The latest checkbox adjustment and subsequent deletion-latency
-follow-up still require the final live-client update; the isolated inventory is not a claim of that
-desktop interaction result.
+tests. The reused file-operation suite contained 717 dedicated test lines at this review. Affected
+static checks and the Windows Debug build pass. The subsequent rebuilt client on `local-primary`
+confirmed label activation, unchecked initial state, compact spacing and no row-wide background;
+cancelling the dialog preserved the selected image and viewport without a physical operation.
+
+### File-operation preparation and publication
+
+Explicit selections now drive indexed location and compatible-evidence reads. The original query
+walked unrelated locations, and joining the display-evidence view materialized the library's
+fingerprints. The bounded-cost fixture initially still exposed a full scan without SQLite statistics;
+driving the indexed join from selection rows removed that dependency. Gallery, merged-group and
+physical-location preparation retain their frozen scope and current-state validation.
+
+Anchored refresh resolves its window inside the same ordered projection already used for layout
+and timeline. Rapid native publications share a refresh; final completion waits for the native
+worker, selection closure and the final gallery read. The feedback remains one active operation
+until that point, without an intermediate completed-file summary.
+
+Read-only native-DLL measurements used the existing 63,072-location `local-primary` catalog,
+47,828 merged items, one selected image, a 500-item anchored page and two warmed repetitions:
+
+| Boundary | Before | After |
+| --- | --- | --- |
+| Selection preparation | 1,911–2,542 ms | 1.7–3.0 ms |
+| Anchored full snapshot | 2,220–2,926 ms | 2,200–2,689 ms |
+
+The full refresh remains approximately two seconds; it is not a demonstrated substantial speedup.
+Further paired anchored/unanchored reads measured 1,985–2,052 / 1,974–2,360 ms. Isolated SQLite
+profiling attributed about 1.2–1.3 seconds to the merged layout query, versus about 0.2 seconds
+without folding and 5–9 ms for 500 detail rows. Alternative full-group/union plans were slower and
+were not adopted; the existing unanalyzed-file fast path remains intact. Initial cold queries were
+slower and are excluded from the warmed comparison, not presented as startup improvements.
+
+Native checks cover bounded selected-file work, frozen group membership, one-transaction snapshot
+publication and anchor/fallback order across eight sort/direction combinations. Application checks
+cover coalesced publication and joined shutdown through a held final gallery read. The rebuilt
+Windows Debug client displayed the prepared deletion count and enabled action without a sustained
+loader; confirmation was cancelled. No real source operation was submitted in these measurements.
+
+The preceding hosted run for `0179e137` exposed two obsolete loading-layer finders and an assertion
+before the original-image error's next frame. The same visibility, position, source-release and
+retry assertions pass in the three affected suites after targeting the shared visibility layer
+and pumping that frame. Final-head hosted verification belongs to the normal branch workflow.
+
+The publication coordinator and action controller contain 58 and 223 production lines. Selected
+query construction contains 118 production and 126 inline-test lines; anchor, projection and
+snapshot owners contain 238, 301 and 361 production lines with no inline tests. Reused operation
+and anchor suites contain 781 and 233 dedicated test lines.

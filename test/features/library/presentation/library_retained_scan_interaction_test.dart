@@ -238,7 +238,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey("source-title-other")));
     await tester.pump();
     expect(fixture.state.isRefreshingQuery, isTrue);
-    final loading = find.byKey(const Key("library-top-loading"));
+    final loading = find.byKey(const Key("library-loading-feedback"));
     final fade = find.descendant(
       of: loading,
       matching: find.byType(FadeTransition),

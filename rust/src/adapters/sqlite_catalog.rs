@@ -2259,6 +2259,7 @@ impl CatalogRepository for SqliteCatalog {
                 asset_id: None,
                 fallback_ordinal: 0,
             },
+            None,
         )?;
         read.commit()?;
         Ok(snapshot)
@@ -2286,6 +2287,7 @@ impl CatalogRepository for SqliteCatalog {
                 asset_id: Some(anchor_asset_id.to_owned()),
                 fallback_ordinal,
             },
+            None,
         )?;
         read.commit()?;
         Ok(snapshot)

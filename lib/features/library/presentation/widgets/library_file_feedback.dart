@@ -40,7 +40,8 @@ class LibraryFileFeedback extends ConsumerWidget {
           activity.purpose != LibraryFileActivityPurpose.report) {
         message = LibraryFileStrings.result(progress, activity.action);
       } else if (activity.purpose != LibraryFileActivityPurpose.report &&
-          progress.phase != LibraryFileTaskPhase.refreshing) {
+          progress.phase != LibraryFileTaskPhase.refreshing &&
+          progress.processed + progress.skipped < progress.total) {
         message =
             "$title · ${progress.processed + progress.skipped}/${progress.total}";
       }
@@ -68,7 +69,8 @@ class LibraryFileFeedback extends ConsumerWidget {
           ? AmeLinearProgress(
               value:
                   activity.purpose != LibraryFileActivityPurpose.report &&
-                      progress.total > 0
+                      progress.total > 0 &&
+                      progress.processed + progress.skipped < progress.total
                   ? (progress.processed + progress.skipped) / progress.total
                   : null,
             )
@@ -112,7 +114,11 @@ class LibraryFileFeedback extends ConsumerWidget {
     if (progress.isFinished) {
       return progress.export?.reportPath != null ? "结果清单已保存到目标文件夹。" : null;
     }
-    if (progress.phase == LibraryFileTaskPhase.refreshing) return null;
+    if (progress.phase == LibraryFileTaskPhase.refreshing ||
+        progress.total > 0 &&
+            progress.processed + progress.skipped >= progress.total) {
+      return null;
+    }
     return "已处理 ${progress.processed} / ${progress.total} 个文件";
   }
 }

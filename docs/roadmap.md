@@ -71,10 +71,12 @@ has not yet been decomposed into an execution plan or started.
 
 ### Loading feedback
 
-The [loading-indicator plan](plans/loading-indicator.md) is implemented on
-`codex/loading-indicator`, with focused and Windows client verification recorded in the
-[scoped evidence](acceptance/material-motion.md#expressive-loading--2026-11-11). The branch awaits
-integration; its final pushed commit owns the applicable hosted checks.
+The [loading-indicator plan](plans/loading-indicator.md), dialog/viewer follow-ups and bounded
+deletion preparation are implemented on `codex/loading-indicator`, with focused and Windows client
+verification in the [scoped evidence](acceptance/material-motion.md#expressive-loading--2026-11-11).
+The branch awaits integration and final-head hosted verification. The
+[deletion measurements](acceptance/material-motion.md#file-operation-preparation-and-publication)
+retain the approximately two-second full-gallery refresh as a remaining performance limitation.
 
 ### Duplicate cleanup entry points
 

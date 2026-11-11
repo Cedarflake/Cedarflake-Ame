@@ -88,6 +88,9 @@ File-operation completion places its status and nonzero outcome counts together 
 an available result report gets one separate message. Omit a generic partial-result heading and
 zero completed, skipped, failed or stopped counts. If nothing ran, say so directly. Completed
 deletion retains its single affected-file summary. Progress may still show zero before work completes.
+Native file completion and its gallery refresh remain one active operation. Keep its action title
+until the final result is ready; do not show a separate completed-file summary while still waiting.
+File counts describe native progress, and the bar becomes indeterminate when only publication remains.
 
 Top notices retain the compact viewport layout: 16-pixel top/side inset, 48-pixel minimum height,
 8-pixel icon gap, `bodyMedium`, and the existing optional retry/undo action. Text wraps within the

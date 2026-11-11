@@ -35,9 +35,14 @@ pub(super) fn expand(transaction: &Transaction<'_>) -> Result<u64, ScanError> {
                 "INSERT INTO temp.file_operation_group_keys
                  SELECT DISTINCT f.digest, f.byte_length
                  FROM temp.file_operation_selection AS selected
-                 JOIN asset_locations AS l ON l.location_id = selected.location_id
+                 CROSS JOIN asset_locations AS l INDEXED BY asset_locations_location_id
+                   ON l.location_id = selected.location_id
                    AND l.source_generation = selected.source_generation
-                 JOIN gallery_display_fingerprints AS f ON {COMPATIBLE_FINGERPRINT}"
+                 CROSS JOIN content_fingerprints AS f
+                   ON f.source_generation = (
+                     SELECT f.evidence_source_generation FROM gallery_display_fingerprints AS f
+                     WHERE {COMPATIBLE_FINGERPRINT})
+                   AND f.scheme = ?1"
             ),
             [EXACT_FINGERPRINT_SCHEME],
         )
@@ -69,7 +74,8 @@ pub(super) fn expand(transaction: &Transaction<'_>) -> Result<u64, ScanError> {
             &format!(
                 "SELECT (SELECT COUNT(*) FROM temp.file_operation_group_keys) + COUNT(*)
                  FROM temp.file_operation_selection AS selected
-                 JOIN asset_locations AS l ON l.location_id = selected.location_id
+                 CROSS JOIN asset_locations AS l INDEXED BY asset_locations_location_id
+                   ON l.location_id = selected.location_id
                    AND l.source_generation = selected.source_generation
                  WHERE NOT EXISTS(
                    SELECT 1 FROM gallery_display_fingerprints AS f WHERE {COMPATIBLE_FINGERPRINT})"
