@@ -171,3 +171,25 @@ construction in the stream's cleanup lifetime. Scratch aggregation includes both
 in its visible message. The full installer-guardrail entry and scratch safety checks passed in an
 explicit 5.1 subprocess on 2026-11-10; its process-only execution option changed no persistent policy.
 The combined-error fixture verifies both diagnostics without weakening busy-file or reparse guards.
+
+## Alpha 3 publication — 2026-11-12
+
+[Alpha 3](https://github.com/Cedarflake/Cedarflake-Ame/releases/tag/v0.1.0-alpha.3) was published as
+an unsigned prerelease at `2026-11-11T18:17:57Z`. Tag `v0.1.0-alpha.3` remains bound to source
+`e70b10e87936f335d7c85aa31a9ac17838c91980`; the release workflow used
+`579d692634f67c6a56c3e26b28bc5af6bc9a2e7a` for trusted release tooling and notes.
+
+[Run 43061469412](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43061469412) passed
+candidate build and runtime verification, all Daily components, all synthetic workloads,
+ZIP/MSI packaging, publication and verification of both downloaded public assets. Both packages
+come from the same verified candidate. The MSI includes the pinned offline models and uses
+installer version `0.1.3` for application version `0.1.0-alpha.3+3`.
+
+The public release is no longer a draft, both assets report `uploaded`, and the body matches
+[`docs/releases/v0.1.0-alpha.3.md`](../releases/v0.1.0-alpha.3.md) after line-ending normalization.
+The GitHub API digests and verified published package sizes are:
+
+| Asset | Bytes | SHA-256 |
+| --- | --- | --- |
+| Portable ZIP | 47,862,449 | `f11f62f0c87c0d25f20e377040a989d4e117b2740792f991896e76538e38e2a1` |
+| MSI | 384,208,896 | `7232636a4d5a3588ea18179a1e08c0cdeda771d997b4d28414456db36fd735c1` |
