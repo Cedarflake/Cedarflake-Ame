@@ -18,6 +18,7 @@ import "library_photo_context_menu.dart";
 import "library_photo_tile_actions.dart";
 import "library_preview_feedback.dart";
 import "library_viewer_launch.dart";
+import "library_viewer_card_overlays.dart";
 
 int libraryPreviewDecodeWidth(double logicalWidth, double devicePixelRatio) {
   final requestedWidth = (logicalWidth * devicePixelRatio).round().clamp(
@@ -172,20 +173,24 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            child: LibraryConflictLabel(
-                              locationId: widget.asset.locationId,
+                            child: LibraryViewerCardOverlays(
+                              child: LibraryConflictLabel(
+                                locationId: widget.asset.locationId,
+                              ),
                             ),
                           ),
                           Positioned(
                             top: 0,
                             left: 0,
                             right: 0,
-                            child: LibraryPhotoTileActions(
-                              locationId: widget.asset.locationId,
-                              isSelectionVisible: isSelectionVisible,
-                              isSelected: widget.isSelected,
-                              onToggleSelection: () =>
-                                  widget.onToggleSelection(widget.asset),
+                            child: LibraryViewerCardOverlays(
+                              child: LibraryPhotoTileActions(
+                                locationId: widget.asset.locationId,
+                                isSelectionVisible: isSelectionVisible,
+                                isSelected: widget.isSelected,
+                                onToggleSelection: () =>
+                                    widget.onToggleSelection(widget.asset),
+                              ),
                             ),
                           ),
                         ],

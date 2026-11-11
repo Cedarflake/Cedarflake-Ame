@@ -20,6 +20,8 @@ The image preserves its aspect ratio while the thumbnail crop opens into the ful
 chrome and toolbars keep their positions. Shared Standard spatial motion drives the image, which
 remains opaque through its return to the card; backgrounds and controls fade independently.
 Its gallery stays mounted at the existing scroll position.
+Card badges and selection overlays fade out during entry, stay hidden while the image returns,
+and fade in after it reaches the card. They retain their existing positions and reduced-motion behavior.
 Closing immediately retires viewer input, accessibility focus and
 source-read authority; at most one non-interactive closing surface remains for the visual exit.
 Reopening replaces that surface, and further pointer input finishes entry immediately. Disabled

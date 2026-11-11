@@ -7,6 +7,7 @@ import "package:cedarflake_ame/features/library/application/ports/library_source
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_chrome.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_card_overlays.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image_flight.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_launch.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_transition.dart";
@@ -23,9 +24,24 @@ void main() {
   testWidgets("image travels from its card and back while chrome stays still", (
     tester,
   ) async {
-    final gallery = _launchCard();
+    final gallery = Stack(
+      children: [
+        _launchCard(),
+        const Positioned(
+          left: 100,
+          top: 80,
+          child: LibraryViewerCardOverlays(child: Text("badge")),
+        ),
+      ],
+    );
+    final badgeFade = find
+        .ancestor(of: find.text("badge"), matching: find.byType(FadeTransition))
+        .first;
+    double badgeOpacity() =>
+        tester.widget<FadeTransition>(badgeFade).opacity.value;
     final image = find.byKey(const Key("flight-image"));
     await tester.pumpWidget(_host(gallery, null));
+    expect(badgeOpacity(), 1);
     await tester.tap(find.byKey(const Key("launch-card-photo")));
     await tester.pumpWidget(_host(gallery, _flightViewer()));
     final initial = tester.getRect(image);
@@ -39,18 +55,27 @@ void main() {
     expect(moving.width / moving.height, closeTo(2, 0.0001));
     expect(moving.center.dx, greaterThan(initial.center.dx));
     expect(tester.getRect(find.text("chrome")), chrome);
+    expect(badgeOpacity(), inExclusiveRange(0, 1));
     await tester.pumpAndSettle();
     final full = tester.getRect(image);
     expect(full.size, const Size(800, 400));
 
     await tester.pumpWidget(_host(gallery, null));
     await tester.pump(const Duration(milliseconds: 40));
+    expect(badgeOpacity(), 0);
     expect(tester.getRect(image).width, lessThan(full.width));
     expect(tester.getRect(image).center.dx, lessThan(full.center.dx));
     expect(tester.getRect(find.text("chrome")), chrome);
     await _expectOpaqueImage(tester, image);
-    await tester.pumpAndSettle();
+    for (var frame = 0; image.evaluate().isNotEmpty && frame < 120; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(badgeOpacity(), 0);
+    }
     expect(image, findsNothing);
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(badgeOpacity(), inExclusiveRange(0, 1));
+    await tester.pumpAndSettle();
+    expect(badgeOpacity(), 1);
     expect(find.byKey(const Key("launch-card-photo")), findsOneWidget);
   });
 

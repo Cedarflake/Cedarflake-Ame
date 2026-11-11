@@ -204,3 +204,10 @@ Production owners contain 203 lines for image-flight painting, 184 for origin re
 chrome/backdrop opacity and 182 for embedded transition lifetime. The existing image viewer (318),
 source-image owner (256) and duplicate page (386) receive composition changes; these owners contain
 no inline tests. The dedicated embedded-transition suite contains 389 lines.
+
+Card overlay follow-up: badges and selection overlays fade out with viewer entry and reveal only
+when return finishes. Duplicate badges retain their paint while the gallery is muted; existing
+input/focus exclusion and tooltip retirement remain active. The existing transition regression now
+checks the ordered fade, including no badge visibility while the image is returning. Badge behavior
+and retained duplicate-viewer semantics were also checked. The isolated desktop client showed
+badges during the opening fade and hidden during return, then restored on the unchanged cards.

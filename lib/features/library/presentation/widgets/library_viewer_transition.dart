@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 
 import "../../../../app/presentation/ame_motion.dart";
 import "library_viewer_fade.dart";
+import "library_viewer_card_overlays.dart";
 import "library_viewer_launch.dart";
 
 /// Retains at most one closing surface; its input and source reads retire immediately.
@@ -112,7 +113,15 @@ class _LibraryViewerTransitionState extends State<LibraryViewerTransition>
                 enabled: !isOpen,
                 child: ExcludeFocus(
                   excluding: isOpen,
-                  child: IgnorePointer(ignoring: isOpen, child: widget.gallery),
+                  child: IgnorePointer(
+                    ignoring: isOpen,
+                    child: LibraryViewerCardOverlayScope(
+                      entry: _controller,
+                      viewerOpen: isOpen,
+                      returned: !isOpen && _controller.isDismissed,
+                      child: widget.gallery,
+                    ),
+                  ),
                 ),
               ),
             ),
