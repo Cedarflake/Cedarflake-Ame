@@ -408,3 +408,21 @@ was submitted.
 The launch, reveal and viewer-image owners contain 244, 168 and 280 production lines, with no inline
 tests; the reused viewer-image suite contains 586 dedicated test lines. Affected analysis, focused
 checks and the Windows Debug build pass. Hosted verification remains attached to the pushed commit.
+
+### Review refresh during classification
+
+Background catalog publications previously invalidated each unfinished review read. The shared
+review window now admits the current same-query result and coalesces publications into a subsequent
+refresh. Explicit refresh, view changes and disposal still retire the old generation. The focused
+window regression covers first-page admission, cached-range handoff, one queued replacement and
+explicit supersession; existing bounded paging, failure/retry and disposal checks pass.
+
+The normal `local-primary` Debug client displayed similar groups and the empty ignored view while
+classification continued. Read-only SQL timings on its existing catalog measured similar-group
+count/page reads at 5,444/4,656 ms and empty ignored reads at 2,779/3,348 ms. These two queries each
+rebuild the scoped similarity projection; that remaining cost is not reduced by the read-lifecycle
+repair. The classification queue was processing a new taxonomy after automatic discovery added
+`代码截图`; this observation does not change category-discovery policy.
+
+The review-window owner contains 237 production lines with no inline tests; its reused suite has
+229 dedicated test lines. The client checks submitted no source-file or organization operation.

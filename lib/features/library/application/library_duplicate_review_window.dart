@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:math" as math;
 
 import "package:flutter/foundation.dart";
@@ -40,6 +41,7 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
   int _first = 0;
   int _end = 1;
   Future<void>? _pending;
+  bool _revalidationRequested = false;
   bool get isReading => _pending != null;
 
   T? itemAt(int index) => _data.itemAt(index);
@@ -67,6 +69,7 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
   void cancelRead() {
     _generation++;
     _pending = null;
+    _revalidationRequested = false;
     loading = false;
   }
 
@@ -77,6 +80,11 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
 
   Future<void> revalidate() {
     if (_disposed) return Future.value();
+    if (_pending case final pending?) {
+      // Background publication must not starve the read already serving this viewport.
+      _revalidationRequested = true;
+      return pending;
+    }
     if (_data.pages.isEmpty) return refresh();
     cancelRead();
     failed = false;
@@ -117,6 +125,7 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
     if (_disposed || generation != _generation) return;
     if (_missing(data) == null) {
       _pending = null;
+      if (_revalidationRequested) unawaited(revalidate());
       return;
     }
     final replacing = !identical(data, _data);
@@ -175,9 +184,14 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
       if (!_disposed && generation == _generation) failed = true;
     } finally {
       if (!_disposed && generation == _generation) {
+        final revalidateAfterRead = _revalidationRequested;
+        _revalidationRequested = false;
         loading = false;
         _pending = null;
         notifyListeners();
+        if (revalidateAfterRead && !_disposed && generation == _generation) {
+          unawaited(revalidate());
+        }
       }
     }
   }

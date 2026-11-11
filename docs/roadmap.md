@@ -77,6 +77,8 @@ verification in the [scoped evidence](acceptance/material-motion.md#expressive-l
 The branch awaits integration and final-head hosted verification. The
 [deletion measurements](acceptance/material-motion.md#file-operation-preparation-and-publication)
 retain the approximately two-second full-gallery refresh as a remaining performance limitation.
+The [review-read evidence](acceptance/material-motion.md#review-refresh-during-classification)
+retains the several-second similar/ignored query cost after fixing interrupted read admission.
 
 ### Duplicate cleanup entry points
 
