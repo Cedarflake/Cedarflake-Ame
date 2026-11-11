@@ -17,7 +17,7 @@ provides two packages for **Windows 11 x64**:
   Models download separately when first needed; no Windows service is installed.
 
 Releases are unsigned and do not yet update automatically. Close Ame before upgrading, and keep
-portable versions in separate directories. See the [Alpha 3 release notes](docs/releases/v0.1.0-alpha.3.md)
+portable versions in separate directories. See the [release notes](docs/releases/README.md)
 for changes and known limits.
 
 ## Browse your collection
