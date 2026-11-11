@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-11
+Last planning update: 2026-11-12
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -34,7 +34,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R6 | Perceptual similarity review | Merged into `main` on 2026-11-05 |
 | R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
 | R8 | Authorized file organization and recovery | Merged into `main` on 2026-11-11 through [PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57); incorporates former R9 |
-| R10 | Large-library maturity and release readiness | Later work; infrastructure may support earlier stages |
+| R10 | Large-library maturity and release readiness | Next stage, entering the Beta release phase; execution planning pending |
 
 R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
 feature. R9 is no longer a separate stage; R10 keeps its identifier. The
@@ -64,24 +64,25 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-R8 and its follow-ups are integrated. The scoped loading-feedback update below is active.
-R10 is the next planned stage; its
+R8 and its follow-ups, including the loading-feedback update, are integrated. The current release
+is `v0.1.0-alpha.3`. R10 is the next planned stage and starts the Beta release phase; its
 [product scope](product/organization-workflows.md#r10---large-library-maturity-and-release-readiness)
 has not yet been decomposed into an execution plan or started.
 
 ### Loading feedback
 
-The [loading-indicator plan](plans/loading-indicator.md), dialog/viewer follow-ups and bounded
-deletion preparation are implemented on `codex/loading-indicator`, with focused and Windows client
-verification in the [scoped evidence](acceptance/material-motion.md#expressive-loading--2026-11-11).
-The branch also implements the smart-album/review responsiveness follow-up, preserving automatic
-category expansion while reducing query cost and prioritizing foreground reads. The rebuilt client
-was accepted for the current interaction; the [measurements](acceptance/material-motion.md#classification-navigation-and-foreground-reads)
-retain approximately two-second category switches. It awaits integration and final-head hosted verification. The
-[deletion measurements](acceptance/material-motion.md#file-operation-preparation-and-publication)
-retain the approximately two-second full-gallery refresh as a remaining performance limitation.
-The [review-read evidence](acceptance/material-motion.md#review-refresh-during-classification)
-records the bounded similar-group projection and direct ignored-group reads.
+The [loading-indicator plan](plans/loading-indicator.md), dialog/viewer, selection and responsiveness
+follow-ups were merged through [PR 59](https://github.com/Cedarflake/Cedarflake-Ame/pull/59).
+The [integration record](acceptance/material-motion.md#loading-feedback-integration--2026-11-12)
+retains merge authority, verification boundaries and remaining query latency. The local and remote
+work branches have been deleted.
+
+### Pending album file organization
+
+Moving an album's actual files into year-based folders remains unfinished and unscheduled,
+separate from R10 and the Alpha 3 release. Before implementation, confirm which date determines
+the year and how destinations are arranged. Reuse the authorized file-operation and recovery
+workflow; this entry does not authorize moving existing media.
 
 ### Duplicate cleanup entry points
 

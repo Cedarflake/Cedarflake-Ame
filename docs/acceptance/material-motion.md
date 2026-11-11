@@ -3,6 +3,21 @@
 The [roadmap](../roadmap.md#material-motion-adoption) owns disposition and the
 [execution plan](../plans/material-motion.md) owns scope and order.
 
+## Loading-feedback integration — 2026-11-12
+
+[PR 59](https://github.com/Cedarflake/Cedarflake-Ame/pull/59), head
+`4539a2d10cde8bb2af7df8806da0e377336f908d`, was merged into `main` as
+`e8fb5e13ec1f90328a7bfa353fb31c37f5ea5b81` with explicit authorization to merge without waiting
+for CI. The local and remote `codex/loading-indicator` branches were deleted after verifying
+the integrated ancestry. No final-head hosted pass is claimed by this integration record.
+
+The [scoped checks](#expressive-loading--2026-11-11) retain desktop and focused verification,
+including viewer continuity, selection actions and the filmstrip overlay. The
+[category-switch measurements](#classification-navigation-and-foreground-reads) and
+[file-operation measurements](#file-operation-preparation-and-publication) retain approximately
+two-second waits. Alpha 3 package verification belongs to the
+[release evidence](unsigned-windows-release.md).
+
 ## Package admission — 2026-11-10
 
 The branch starts from R8 head `fd57185f`; plan commit `f7b94ec1` records its boundary.
