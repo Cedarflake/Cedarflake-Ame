@@ -468,6 +468,13 @@ refresh. Explicit refresh, view changes and disposal still retire the old genera
 window regression covers first-page admission, cached-range handoff, one queued replacement and
 explicit supersession; existing bounded paging, failure/retry and disposal checks pass.
 
+The [hosted run for `f8d15003`](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43035643833)
+exposed two outdated widget expectations and an unhandled test continuation. The location-sheet
+case now completes the active read before its coalesced replacement and retains row/status checks;
+the preference case checks loading opacity while retaining card identity and scroll position.
+The category-read case awaits its observation continuation. All 31 checks in the three affected
+suites and scoped static analysis pass locally; final-head hosted verification remains pending.
+
 The normal `local-primary` Debug client displayed similar groups and the empty ignored view while
 classification continued. Read-only SQL timings on its existing catalog measured similar-group
 count/page reads at 5,444/4,656 ms and empty ignored reads at 2,779/3,348 ms. These two queries each

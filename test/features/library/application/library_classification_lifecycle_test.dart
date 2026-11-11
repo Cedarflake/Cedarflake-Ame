@@ -24,12 +24,15 @@ void main() {
         fixture.owner,
       );
       fixture.owner.startInBackground();
-      final reads = Future.wait([
-        configuration.load(),
-        configuration.loadNavigation(),
-      ]);
       var completed = false;
-      reads.then((_) => completed = true);
+      final reads =
+          Future.wait([
+            configuration.load(),
+            configuration.loadNavigation(),
+          ]).then((settings) {
+            completed = true;
+            return settings;
+          });
       await tester.pump();
       expect(completed, isTrue);
       expect(await reads, [backend.settings, backend.settings]);
