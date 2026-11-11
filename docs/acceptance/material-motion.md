@@ -431,8 +431,17 @@ from 3,222/2,679 ms to 377/177 ms; the empty ignored view fell from 1,762/2,056 
 These are SQLite query timings, not end-to-end client latency. Existing preference, exclusion,
 pagination and seek checks pass; the bounded-read regression also covers group and ignored reads
 against unrelated fingerprints. The query/projection owners contain 193/147 production lines,
-with no inline tests; the reused dedicated suite contains 464 lines. Client verification follows
-the next native-library rebuild. No schema, source-file or cleanup authorization changed.
+with no inline tests; the reused dedicated suite contains 464 lines. Rebuilt-client observations
+follow below. No schema, source-file or cleanup authorization changed.
+
+Exact-review reads now start from compatible fingerprints, or directly from saved decisions for
+the ignored view, and resolve current locations through their source-generation index. An empty
+count skips the page projection within the same transaction. A paired read-only snapshot returned
+identical counts and pages for 12,571 groups: count/page reads changed from 2,257/17 ms to
+1,716/13 ms; the empty ignored view changed from 2,213/2,149 ms to under 1/1 ms. The nine existing
+review and paging cases pass, including source changes, preference retention and filtered seeks.
+The group-query owner contains 176 production lines and no inline tests; existing dedicated review
+and paging fixtures provide the behavior coverage.
 
 The review-window owner contains 237 production lines with no inline tests; its reused suite has
 229 dedicated test lines. The client checks submitted no source-file or organization operation.
@@ -466,7 +475,14 @@ Automatic curated expansion and immutable prediction compatibility remain unchan
 Gallery snapshot, timeline, review-page and category reads use the existing foreground-read lease.
 Background analysis yields at its existing admission/cancellation boundaries while these reads run;
 completion and failure release only the corresponding lease. This does not forcibly terminate an
-already executing native call. The current client rebuild will establish observed switching latency.
+already executing native call.
+
+The rebuilt normal `local-primary` Debug client displayed 63,071 images and the saved category list.
+With classification still publishing updates, switching to the 6,173-image comic category and the
+81-image photo category completed in observed upper bounds of 2,537 and 2,212 ms, including desktop
+input and accessibility capture. The exact-review page displayed all 12,571 groups. These remaining
+two-second category waits are retained measurements; the user accepted the current interaction.
+The rebuilt client remains open. No source-file or organization operation was submitted.
 
 The 25 existing native classification query cases pass, including legacy choices, conflicts, removed
 sources and retained display evidence. The Dart lifecycle cases and 20 affected navigation/review
