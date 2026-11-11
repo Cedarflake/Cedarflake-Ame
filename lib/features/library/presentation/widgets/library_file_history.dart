@@ -10,6 +10,7 @@ import "../../../../app/presentation/ame_dialog_diagnostic.dart";
 
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_choice.dart";
+import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../application/library_file_operations.dart";
 import "../../domain/library_file_operations.dart";
 import "../library_file_strings.dart";
@@ -159,14 +160,16 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
               ],
             ),
             const SizedBox(height: 16),
-            if (_error case final error? when !_showExports)
-              TextButton(onPressed: () => _load(_before), child: Text(error)),
             Expanded(
               child: AmeLoadingContent(
                 isLoading: _loading && !_showExports && _items.isEmpty,
                 semanticsLabel: "正在读取文件记录",
                 child: switch ((_showExports, _items.isEmpty && !_loading)) {
                   (true, _) => const LibraryFileExportHistory(),
+                  (false, true) when _error != null => AmeDialogReadFailure(
+                    message: _error!,
+                    onRetry: () => _load(_before),
+                  ),
                   (false, true) => const Center(child: Text("暂无文件操作记录")),
                   (false, false) => AmeScrollMotion(
                     child: ListView.builder(
@@ -256,6 +259,12 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                 },
               ),
             ),
+            if (_error case final error?
+                when !_showExports && _items.isNotEmpty)
+              AmeDialogReadFailure(
+                message: error,
+                onRetry: () => _load(_before),
+              ),
             const SizedBox(height: 12),
             if (!_showExports)
               Row(
@@ -267,8 +276,12 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                             .read(libraryFileOperationsProvider)
                             .openRecycleBin();
                       } on Object {
-                        if (mounted) {
-                          setState(() => _error = "无法打开回收站，请从 Windows 桌面打开。");
+                        if (context.mounted) {
+                          showAmeTransientFeedback(
+                            context,
+                            message: "无法打开回收站，请从 Windows 桌面打开。",
+                            severity: AmeNotificationSeverity.error,
+                          );
                         }
                       }
                     },

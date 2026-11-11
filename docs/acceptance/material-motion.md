@@ -324,3 +324,26 @@ The dialog, image reveal, source-image, image-flight and origin owners contain 1
 192 production lines, with no inline tests. Their reused file-action, source-image and transition
 suites contain 690, 488 and 533 dedicated test lines. The final Debug build and affected static
 analysis pass; current-head hosted results belong to the normal branch workflow.
+
+### Dialog layout review
+
+The revised local inventory at `build/review/dialog-errors-2026-11-11-v2/index.html` contains the
+24 abnormal states and the normal deletion confirmation in both themes (50 images). It uses the
+same production-widget rendering and Windows-font procedure above. Failure explanations now share
+leading alignment, error color and section spacing; history read failures occupy the content area
+without an empty-result message. The retry button and the intrinsic-width explanation group share
+a center. The pinned date picker bypasses `headerHeadlineStyle` in landscape input mode; a scoped
+text theme supplies a compact two-line date/weekday without changing the framework calendar.
+
+The held-drag captures at `build/review/sidebar-drag-light.png` and `sidebar-drag-dark.png` show the
+production folder row in its rounded, clipped proxy. Existing drag, rollback, album, filter, cleanup
+and notification-detail regressions pass. The retained file-history case now also proves read
+failure, retry and the return of actionable records. Deletion checks preserve unchecked initial
+state, label activation and separate confirmation after replacing the row-wide ink response with
+the framework checkbox's own feedback. No real source mutation was submitted for this review.
+
+The shared dialog helper and history owner contain 210 and 311 production lines; neither has inline
+tests. The reused file-operation suite contains 717 dedicated test lines. Affected static checks
+and the Windows Debug build pass. The latest checkbox adjustment and subsequent deletion-latency
+follow-up still require the final live-client update; the isolated inventory is not a claim of that
+desktop interaction result.

@@ -82,24 +82,9 @@ class _LibraryMetadataFilterSheetState
 
   Future<void> _pickDate(LibraryFilterField field, String label) async {
     final controller = _fields[field]!;
-    final date = await showDatePicker(
+    final date = await showAmeDatePicker(
       context: context,
       helpText: label,
-      calendarDelegate: AmeDatePickerCalendar(
-        separateWeekday:
-            MediaQuery.orientationOf(context) == Orientation.landscape,
-      ),
-      builder: (context, child) {
-        final theme = Theme.of(context);
-        return Theme(
-          data: theme.copyWith(
-            datePickerTheme: theme.datePickerTheme.copyWith(
-              headerHeadlineStyle: theme.textTheme.headlineSmall,
-            ),
-          ),
-          child: child!,
-        );
-      },
       initialDate:
           parseLibraryFilterDate(controller.text.trim()) ?? DateTime.now(),
       firstDate: DateTime(1),

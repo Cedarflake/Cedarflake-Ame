@@ -161,7 +161,11 @@ void main() {
           isTrue,
         );
         expect(
-          tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+          tester
+              .widget<Checkbox>(
+                find.byKey(const Key("library-file-permanent-delete")),
+              )
+              .value,
           isFalse,
         );
         await tester.tap(find.text("取消"));
@@ -427,7 +431,7 @@ void main() {
   testWidgets(
     "history retry displays its new result after the worker retires",
     (tester) async {
-      final backend = _Backend();
+      final backend = _Backend()..readFailure = true;
       final released = Completer<void>();
       backend.task.closing = released.future;
       LibraryFileRecord record(int id, LibraryFileRecordPhase phase) =>
@@ -462,6 +466,13 @@ void main() {
       );
       await tester.tap(find.text("打开记录"));
       await tester.pumpAndSettle();
+      expect(find.text("暂时无法读取文件操作记录，请重试。"), findsOneWidget);
+      expect(find.text("暂无文件操作记录"), findsNothing);
+      backend.readFailure = false;
+      await tester.tap(find.text("重试"));
+      await tester.pumpAndSettle();
+      expect(find.text("暂时无法读取文件操作记录，请重试。"), findsNothing);
+      expect(find.textContaining("before.png"), findsOneWidget);
       await tester.tap(find.text("重试"));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), "after.png");
@@ -506,7 +517,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text("删除这组图片的全部 2 个文件？"), findsOneWidget);
       expect(
-        tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+        tester
+            .widget<Checkbox>(
+              find.byKey(const Key("library-file-permanent-delete")),
+            )
+            .value,
         isFalse,
       );
       expect(backend.commands, isEmpty);
@@ -527,7 +542,11 @@ void main() {
       await tester.tap(find.text("打开删除确认"));
       await tester.pumpAndSettle();
       expect(
-        tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+        tester
+            .widget<Checkbox>(
+              find.byKey(const Key("library-file-permanent-delete")),
+            )
+            .value,
         isFalse,
       );
       await tester.tap(find.text("取消"));
@@ -569,7 +588,10 @@ void main() {
       expect(opacity.value, 0);
       expect(find.text("所选图片已变化，请查看当前图库后重新选择。"), findsOneWidget);
       expect(find.text("文件将移入 Windows 回收站。"), findsNothing);
-      expect(find.byType(CheckboxListTile), findsNothing);
+      expect(
+        find.byKey(const Key("library-file-permanent-delete")),
+        findsNothing,
+      );
       expect(find.byType(FilledButton), findsNothing);
       await tester.tap(find.text("返回"));
       await tester.pumpAndSettle();
@@ -610,6 +632,7 @@ class _Backend implements LibraryFileOperations {
   final task = _Task();
   final commands = <LibraryFileCommand>[];
   List<LibraryFileRecord> records = [];
+  bool readFailure = false;
   Future<LibraryFileSelectionDraft>? opening;
   @override
   Future<LibraryFileSelectionDraft> open(LibraryFileSelection selection) async {
@@ -626,7 +649,11 @@ class _Backend implements LibraryFileOperations {
   Future<List<LibraryFileRecord>> history({
     BigInt? before,
     int limit = 40,
-  }) async => records;
+  }) async {
+    if (readFailure) throw StateError("Record read failed");
+    return records;
+  }
+
   @override
   Future<void> openRecycleBin() async => throw UnimplementedError();
 }

@@ -94,6 +94,18 @@ class _LibrarySidebarReorderListState<T extends Object>
             key: ValueKey(_itemsRevision),
             padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
             buildDefaultDragHandles: false,
+            proxyDecorator: (child, index, animation) => AnimatedBuilder(
+              animation: animation,
+              child: child,
+              builder: (context, child) => Material(
+                elevation: 6 * Curves.easeInOut.transform(animation.value),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: child,
+              ),
+            ),
             itemCount: ids.length,
             onReorderItem: (from, to) {
               if (draggable) unawaited(_reorder(from, to));

@@ -23,18 +23,14 @@ class LibraryFileExportDetails extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => AmeDialog(
     title: "结果清单",
-    content: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+    content: AmeDialogBody(
       children: [
         AmeDialogItem(icon: Symbols.description_rounded, title: status),
-        const SizedBox(height: 20),
         AmeDialogField(
           label: "创建时间",
           child: Text(formatAmeNotificationOccurredAt(item.createdAt)),
         ),
         if (item.selected > 0 || item.skipped > 0) ...[
-          const SizedBox(height: 20),
           AmeDialogField(
             label: "涉及文件",
             child: Text(
@@ -45,7 +41,6 @@ class LibraryFileExportDetails extends ConsumerWidget {
             ),
           ),
         ],
-        const SizedBox(height: 20),
         AmeDialogLocation(
           label: "目标文件夹",
           path: displayLibraryPath(item.directory),
@@ -57,14 +52,12 @@ class LibraryFileExportDetails extends ConsumerWidget {
           },
         ),
         if (item.reportPath case final path?) ...[
-          const SizedBox(height: 20),
           AmeDialogField(
             label: "清单文件",
             child: Text(path.split(RegExp(r"[\\/]")).last),
           ),
         ],
         if (item.failure case final failure?) ...[
-          const SizedBox(height: 20),
           AmeDialogDiagnostic(detail: failure.detail),
         ],
       ],

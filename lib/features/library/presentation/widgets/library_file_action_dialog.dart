@@ -147,7 +147,9 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
           ? LibraryFileStrings.deletionTitle(_summary!)
           : "$label图片",
       content: preparationFailed
-          ? Text(LibraryFileStrings.failure(_failure, action: widget.action))
+          ? AmeDialogError(
+              LibraryFileStrings.failure(_failure, action: widget.action),
+            )
           : Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -220,25 +222,30 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
                       _permanent ? "文件将被永久删除，无法从回收站恢复。" : "文件将移入 Windows 回收站。",
                     ),
                     const SizedBox(height: 8),
-                    Theme(
-                      data: Theme.of(
-                        context,
-                      ).copyWith(hoverColor: Colors.transparent),
-                      child: CheckboxListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        title: const Text("永久删除"),
-                        value: _permanent,
-                        onChanged: (value) =>
-                            setState(() => _permanent = value ?? false),
+                    MergeSemantics(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        excludeFromSemantics: true,
+                        onTap: () => setState(() => _permanent = !_permanent),
+                        child: Row(
+                          children: [
+                            Checkbox(
+                              key: const Key("library-file-permanent-delete"),
+                              value: _permanent,
+                              onChanged: (value) =>
+                                  setState(() => _permanent = value ?? false),
+                            ),
+                            const SizedBox(width: 4),
+                            const Flexible(child: Text("永久删除")),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ],
                 if (_failure case final failure?) ...[
                   const SizedBox(height: 16),
-                  Text(
+                  AmeDialogError(
                     LibraryFileStrings.failure(failure, action: widget.action),
                   ),
                 ],

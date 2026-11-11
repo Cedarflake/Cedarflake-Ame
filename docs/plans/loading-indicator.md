@@ -43,6 +43,8 @@ The existing delay suppresses brief loading feedback; completed work never waits
 
 The follow-up scope also covers viewer quality/corner continuity, partial-card return clipping,
 the filter-menu affordance, compact confirmation states and short-gallery rail endpoints.
+The dialog review also aligns failure content, spacing and error colors across dialogs and trays,
+preserves the weekday in compact date input, and matches sidebar drag surfaces to their rows.
 Explicit file selection retains its mode during same-scope updates and resolves its current
 state before confirmation under [ADR 0042](../architecture/0042-windows-file-operations.md), with
 focused native selection verification in addition to the presentation checks below.

@@ -1,4 +1,5 @@
 import "package:material_ui/material_ui.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "ame_progress.dart";
 
@@ -52,7 +53,7 @@ class AmeDialogContent extends StatelessWidget {
   Widget build(BuildContext context) => ConstrainedBox(
     constraints: const BoxConstraints(minHeight: 48),
     child: Stack(
-      alignment: Alignment.center,
+      alignment: AlignmentDirectional.centerStart,
       children: [
         Visibility(
           visible: !isLoading,
@@ -73,6 +74,82 @@ class AmeDialogContent extends StatelessWidget {
           ),
         ),
       ],
+    ),
+  );
+}
+
+class AmeDialogBody extends StatelessWidget {
+  const AmeDialogBody({required this.children, super.key});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    spacing: 16,
+    children: children,
+  );
+}
+
+class AmeDialogError extends StatelessWidget {
+  const AmeDialogError(this.message, {super.key});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Symbols.error_rounded, size: 24, color: theme.colorScheme.error),
+        const SizedBox(width: 12),
+        Expanded(
+          child: SelectableText(
+            message,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class AmeDialogReadFailure extends StatelessWidget {
+  const AmeDialogReadFailure({
+    required this.message,
+    required this.onRetry,
+    super.key,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: IntrinsicWidth(
+          child: AmeDialogBody(
+            children: [
+              AmeDialogError(message),
+              Align(
+                alignment: Alignment.center,
+                child: FilledButton.tonalIcon(
+                  onPressed: onRetry,
+                  icon: const Icon(Symbols.refresh_rounded),
+                  label: const Text("重试"),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     ),
   );
 }

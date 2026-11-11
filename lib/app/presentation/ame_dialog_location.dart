@@ -55,9 +55,9 @@ class _AmeDialogLocationState extends State<AmeDialogLocation> {
             ),
           ),
           if (_failed)
-            Text(
-              "无法打开这个位置，请重试。",
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: AmeDialogError("无法打开这个位置，请重试。"),
             ),
         ],
       ),

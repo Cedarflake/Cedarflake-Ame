@@ -17,13 +17,21 @@ their corner radii. Use labels, alignment and grouping to establish the relation
 | Result or location | Human-readable result, labeled time/counts, compact location with a connected open action | Close; recovery only when supported |
 | Error details | What happened, affected object when useful, separate labeled diagnostic code | Close; connected retry when valid |
 
-`AmeDialogField`, `AmeDialogItem`, `AmeDialogLocation` and `AmeDialogDiagnostic` compose these
+`AmeDialogBody`, `AmeDialogField`, `AmeDialogItem`, `AmeDialogLocation` and `AmeDialogDiagnostic` compose these
 templates. Keep operation policy and lifetime in existing application owners. Do not add a universal
 dialog controller or copy framework input/navigation behavior. Existing bottom trays and the
 framework date picker retain their own interaction owners; they are not converted into alerts.
 
 ## Content and controls
 
+- Content starts at the title's leading edge. `AmeDialogBody` keeps 16-pixel gaps between sections;
+  field labels keep their 8-pixel gap. Do not reserve fixed row heights for short object lists.
+- Operational failures use `AmeDialogError`: a leading error icon and left-aligned explanation in
+  the theme's error color. Diagnostic codes and supporting fields retain normal text colors.
+  Invalid field values use framework input errors; unrelated save failures belong below the form.
+- Tray read failures occupy the content area with a separate retry action. Do not put the error
+  sentence in a header button or show an empty-result message when the read failed. Retain usable
+  rows on a refresh failure, with the retry explanation below those rows.
 - Show counts when they explain batch scope or a consequence. Single-file rename has no redundant
   count; it remains a single-file action, not a batch-rename editor.
 - Preparation uses a centered, icon-only loading indicator in the content area. A failed read shows
@@ -36,7 +44,7 @@ framework date picker retain their own interaction owners; they are not converte
 - Destination selection is a labeled object row with a choose/change action; organization rules
   and cleanup ranges use labeled text-menu choices. Preserve common menu motion. Date-type and
   unit choices within a form retain the field styling of their adjacent inputs.
-- The permanent-deletion choice has no row-wide hover fill. Retain checkbox state, click feedback,
+- The permanent-deletion choice has no row-wide hover or press fill. Retain checkbox state, its own click feedback,
   keyboard focus and accessible labeling; every new confirmation starts unchecked.
 - New albums place an icon-selection button beside the name input. Expand icon choices on demand.
   Keep the button square and outside the input border, aligned with its content rather than error

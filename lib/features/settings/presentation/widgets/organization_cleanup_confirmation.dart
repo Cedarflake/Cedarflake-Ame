@@ -102,7 +102,7 @@ class _OrganizationCleanupConfirmation extends ConsumerWidget {
                   inspection,
                 ),
                 LibraryCleanupWorking() => const SizedBox.shrink(),
-                LibraryCleanupFailed() => const Text("未能完成检查，请重试。"),
+                LibraryCleanupFailed() => const AmeDialogError("未能完成检查，请重试。"),
                 LibraryCleanupFinished() => const Text("检查已取消"),
                 LibraryCleanupIdle() => const SizedBox.shrink(),
               },
