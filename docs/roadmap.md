@@ -76,8 +76,12 @@ The R8 merge remains integrated; this addition and its inherited motion changes 
 
 The held-marker loading displacement is repaired with
 [focused and desktop evidence](acceptance/material-motion.md#held-timeline-marker--2026-11-11).
-Next implement the requested card-to-viewer position/size transition; the existing viewer fade does
-not provide that effect. Keep these repairs separately reviewable from cleanup.
+The card-to-viewer position/size transition is implemented and verified in the isolated Windows
+client; its [evidence](acceptance/material-motion.md#card-to-viewer-motion--2026-11-11) includes
+opaque image return and adjacent-image navigation. Keep these repairs separately reviewable from cleanup.
+Next audit loading indicators across the application: suppress brief flashes and repeated pulses,
+and prevent their appearance or removal from shifting content. Preserve immediate operation
+admission, actual progress and existing error/recovery actions.
 
 ### Material motion adoption
 

@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 
 import "../../../../app/presentation/ame_motion.dart";
+import "library_viewer_launch.dart";
 
 class LibraryViewerFade extends StatelessWidget {
   const LibraryViewerFade({
@@ -28,6 +29,7 @@ class LibraryViewerRoute extends PageRouteBuilder<void> {
   LibraryViewerRoute({
     required BuildContext context,
     required WidgetBuilder builder,
+    this.origin,
   }) : _initialReducedMotion = MediaQuery.disableAnimationsOf(context),
        super(
          transitionDuration: Duration.zero,
@@ -40,6 +42,7 @@ class LibraryViewerRoute extends PageRouteBuilder<void> {
        );
 
   final bool _initialReducedMotion;
+  final LibraryViewerOrigin? origin;
 
   @override
   Simulation? createSimulation({required bool forward}) {
@@ -47,9 +50,14 @@ class LibraryViewerRoute extends PageRouteBuilder<void> {
         ? _initialReducedMotion
         : MediaQuery.disableAnimationsOf(navigator!.context);
     if (reducedMotion) return null;
-    final motion = forward
-        ? LibraryViewerFade.enterMotion
-        : LibraryViewerFade.exitMotion;
+    final AmeMotion motion;
+    if (origin == null) {
+      motion = forward
+          ? LibraryViewerFade.enterMotion
+          : LibraryViewerFade.exitMotion;
+    } else {
+      motion = forward ? AmeMotion.spatial : AmeMotion.fastSpatial;
+    }
     return motion.simulation(controller!, forward: forward);
   }
 
@@ -66,6 +74,13 @@ class LibraryViewerRoute extends PageRouteBuilder<void> {
   ) => Listener(
     onPointerDown: _finishEntry,
     onPointerSignal: _finishEntry,
-    child: LibraryViewerFade(animation: animation, child: child),
+    child: LibraryViewerFade(
+      animation: origin == null ? animation : const AlwaysStoppedAnimation(1),
+      child: LibraryViewerFlightScope(
+        origin: origin,
+        animation: animation,
+        child: child,
+      ),
+    ),
   );
 }

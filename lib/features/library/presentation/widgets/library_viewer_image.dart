@@ -11,6 +11,7 @@ import "library_image_reveal.dart";
 import "library_loading_indicator.dart";
 import "library_source_image.dart";
 import "library_viewer_notice.dart";
+import "library_viewer_chrome.dart";
 import "library_viewer_source_scope.dart";
 import "library_viewer_transition.dart";
 import "library_viewer_zoom_geometry.dart";
@@ -116,6 +117,7 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
         );
         return Stack(
           fit: StackFit.expand,
+          clipBehavior: Clip.none,
           children: [_buildSource(context, quality), ?widget.notice],
         );
       },
@@ -135,18 +137,21 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
         frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
           return Stack(
             fit: StackFit.expand,
+            clipBehavior: Clip.none,
             children: [
               _buildImage(context, child),
               if (widget.notice == null &&
                   (frame != null || wasSynchronouslyLoaded))
                 ?widget.operationNotice,
-              if (frame == null && !wasSynchronouslyLoaded)
-                const IgnorePointer(
-                  child: LibraryLoadingIndicator(
-                    key: Key("viewer-image-loading"),
-                    maximumDimension: 36,
-                    minimumInset: 0,
-                    strokeWidth: 4,
+              if (_isActive && frame == null && !wasSynchronouslyLoaded)
+                const LibraryViewerChrome(
+                  child: IgnorePointer(
+                    child: LibraryLoadingIndicator(
+                      key: Key("viewer-image-loading"),
+                      maximumDimension: 36,
+                      minimumInset: 0,
+                      strokeWidth: 4,
+                    ),
                   ),
                 ),
             ],

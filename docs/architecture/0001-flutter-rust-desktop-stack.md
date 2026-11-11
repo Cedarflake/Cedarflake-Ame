@@ -151,6 +151,22 @@ Future official component integration replaces the corresponding driver or remov
 without moving feature state or introducing another motion engine. The
 [motion evidence](../acceptance/material-motion.md) records admitted consumers and verification.
 
+`LibraryViewerLaunch` captures one activated thumbnail's bounds and identity. The shared viewer
+surface/route passes that origin with its existing animation to `LibraryViewerImageFlight`.
+Flutter's `Hero` requires a Navigator route pair; Ame's gallery viewer is an in-place surface that
+retains gallery geometry and owns immediate source retirement. Replacing that lifecycle solely for
+motion would broaden navigation behavior. A small `RenderProxyBox` therefore composes framework
+clip and transform painting around the current image. It interpolates the crop and uniformly scales
+pixels without changing layout, decoding another image or moving controls. The installed SDK
+provides these public rendering primitives and `HeroController` remains a `NavigatorObserver`.
+The surface registry holds geometry suppliers for mounted lazy thumbnails, never pixels or catalog
+rows. Return geometry resolves the current image to a mounted, visible thumbnail, including after
+adjacent navigation; a missing/stale anchor uses the fade. Disposal removes that supplier immediately.
+`LibraryViewerChrome` fades backgrounds and controls separately so the travelling image remains
+opaque. The interaction clip opens only during transition painting and resumes for ordinary zoom.
+This presentation-only adapter can be replaced by an official in-place shared-element component
+without changing source, zoom, navigation or application contracts.
+
 ## Validation gates
 
 This decision becomes Accepted only after R0 demonstrates:

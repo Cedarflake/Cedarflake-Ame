@@ -1,19 +1,105 @@
 import "dart:async";
+import "dart:ui" as ui;
 
 import "package:cedarflake_ame/features/library/adapters/platform/library_preview_image.dart";
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_chrome.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image_flight.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_launch.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_transition.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:flutter/rendering.dart";
 
 import "../../../support/semantics/retained_semantics_update_harness.dart";
 
 void main() {
   RetainedSemanticsUpdateBinding();
   setUp(RetainedSemanticsUpdateValidator.instance.reset);
+
+  testWidgets("image travels from its card and back while chrome stays still", (
+    tester,
+  ) async {
+    final gallery = _launchCard();
+    final image = find.byKey(const Key("flight-image"));
+    await tester.pumpWidget(_host(gallery, null));
+    await tester.tap(find.byKey(const Key("launch-card-photo")));
+    await tester.pumpWidget(_host(gallery, _flightViewer()));
+    final initial = tester.getRect(image);
+    expect(initial.center, const Offset(160, 140));
+    expect(initial.size, const Size(240, 120));
+    final chrome = tester.getRect(find.text("chrome"));
+    await tester.pump(const Duration(milliseconds: 60));
+    final moving = tester.getRect(image);
+    expect(moving.width, greaterThan(initial.width));
+    expect(moving.width, lessThan(800));
+    expect(moving.width / moving.height, closeTo(2, 0.0001));
+    expect(moving.center.dx, greaterThan(initial.center.dx));
+    expect(tester.getRect(find.text("chrome")), chrome);
+    await tester.pumpAndSettle();
+    final full = tester.getRect(image);
+    expect(full.size, const Size(800, 400));
+
+    await tester.pumpWidget(_host(gallery, null));
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(tester.getRect(image).width, lessThan(full.width));
+    expect(tester.getRect(image).center.dx, lessThan(full.center.dx));
+    expect(tester.getRect(find.text("chrome")), chrome);
+    await _expectOpaqueImage(tester, image);
+    await tester.pumpAndSettle();
+    expect(image, findsNothing);
+    expect(find.byKey(const Key("launch-card-photo")), findsOneWidget);
+  });
+
+  testWidgets("a changed image or retired card never flies to an old target", (
+    tester,
+  ) async {
+    final gallery = _launchCard();
+    final image = find.byKey(const Key("flight-image"));
+    await tester.pumpWidget(_host(gallery, null));
+    await tester.tap(find.byKey(const Key("launch-card-photo")));
+    await tester.pumpWidget(_host(gallery, _flightViewer()));
+    await tester.pumpAndSettle();
+    final full = tester.getRect(image);
+    await tester.pumpWidget(_host(gallery, _flightViewer(locationId: "other")));
+    await tester.pumpWidget(_host(gallery, null));
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(tester.getRect(image), full);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key("launch-card-photo")));
+    await tester.pumpWidget(_host(gallery, _flightViewer()));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(_host(const SizedBox(), _flightViewer()));
+    await tester.pumpWidget(_host(const SizedBox(), null));
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(tester.getRect(image), full);
+    await tester.pumpAndSettle();
+    expect(image, findsNothing);
+    expect(tester.takeException(), isNull);
+
+    final adjacent = Stack(
+      children: [
+        gallery,
+        _launchCard(locationId: "other", left: 600),
+      ],
+    );
+    await tester.pumpWidget(_host(adjacent, null));
+    await tester.tap(find.byKey(const Key("launch-card-photo")));
+    await tester.pumpWidget(_host(adjacent, _flightViewer()));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      _host(adjacent, _flightViewer(locationId: "other")),
+    );
+    await tester.pumpWidget(_host(adjacent, null));
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(tester.getRect(image).width, lessThan(full.width));
+    expect(tester.getRect(image).center.dx, greaterThan(full.center.dx));
+    await tester.pumpAndSettle();
+  });
 
   testWidgets(
     "overlay semantics remain reachable through zero opacity and interrupted exit",
@@ -131,15 +217,19 @@ void main() {
   testWidgets("reduced motion removes the closing viewer in the same frame", (
     tester,
   ) async {
-    const gallery = Text("gallery");
+    final gallery = _launchCard();
     await tester.pumpWidget(_host(gallery, null, reducedMotion: true));
+    await tester.tap(find.byKey(const Key("launch-card-photo")));
     await tester.pumpWidget(
-      _host(gallery, const Text("viewer"), reducedMotion: true),
+      _host(gallery, _flightViewer(), reducedMotion: true),
     );
-    expect(find.text("viewer"), findsOneWidget);
+    expect(
+      tester.getRect(find.byKey(const Key("flight-image"))).size,
+      const Size(800, 400),
+    );
     await tester.pumpWidget(_host(gallery, null, reducedMotion: true));
-    expect(find.text("viewer"), findsNothing);
-    expect(find.text("gallery"), findsOneWidget);
+    expect(find.byKey(const Key("flight-image")), findsNothing);
+    expect(find.byKey(const Key("launch-card-photo")), findsOneWidget);
     expect(tester.binding.transientCallbackCount, 0);
   });
 
@@ -183,11 +273,79 @@ Widget _host(Widget gallery, Widget? viewer, {bool reducedMotion = false}) =>
     MaterialApp(
       home: MediaQuery(
         data: MediaQueryData(disableAnimations: reducedMotion),
-        child: Scaffold(
-          body: LibraryViewerTransition(gallery: gallery, viewer: viewer),
+        child: RepaintBoundary(
+          key: const Key("flight-capture"),
+          child: Scaffold(
+            body: LibraryViewerTransition(gallery: gallery, viewer: viewer),
+          ),
         ),
       ),
     );
+
+Widget _launchCard({String locationId = "photo", double left = 100}) => Align(
+  alignment: Alignment.topLeft,
+  child: Padding(
+    padding: EdgeInsets.only(left: left, top: 80),
+    child: LibraryViewerLaunch(
+      locationId: locationId,
+      onOpen: () {},
+      builder: (context, anchor, open) => GestureDetector(
+        onTap: open,
+        child: SizedBox.square(
+          key: anchor,
+          dimension: 120,
+          child: ColoredBox(
+            color: Colors.blue,
+            key: Key("launch-card-$locationId"),
+          ),
+        ),
+      ),
+    ),
+  ),
+);
+
+Widget _flightViewer({String locationId = "photo"}) => Column(
+  children: [
+    const LibraryViewerChrome(
+      child: SizedBox(height: 40, child: Text("chrome")),
+    ),
+    Expanded(
+      child: LibraryViewerImageFlight(
+        locationId: locationId,
+        imageSize: const Size(400, 200),
+        child: const FittedBox(
+          child: SizedBox(
+            width: 400,
+            height: 200,
+            child: ColoredBox(color: Colors.blue, key: Key("flight-image")),
+          ),
+        ),
+      ),
+    ),
+  ],
+);
+
+Future<void> _expectOpaqueImage(WidgetTester tester, Finder image) async {
+  final boundary = tester.renderObject<RenderRepaintBoundary>(
+    find.byKey(const Key("flight-capture")),
+  );
+  final center = boundary.globalToLocal(tester.getCenter(image));
+  await tester.runAsync(() async {
+    final capture = await boundary.toImage();
+    try {
+      final bytes = (await capture.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+      final offset =
+          (center.dy.floor() * capture.width + center.dx.floor()) * 4;
+      expect(bytes.getUint8(offset), (Colors.blue.r * 255).round());
+      expect(bytes.getUint8(offset + 1), (Colors.blue.g * 255).round());
+      expect(bytes.getUint8(offset + 2), (Colors.blue.b * 255).round());
+    } finally {
+      capture.dispose();
+    }
+  });
+}
 
 LibraryAsset _asset() => LibraryAsset(
   assetId: "asset",

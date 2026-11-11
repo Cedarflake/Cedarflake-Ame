@@ -29,6 +29,7 @@ import "../widgets/library_gallery_message.dart";
 import "../widgets/library_image_comparison.dart";
 import "../widgets/library_path_text.dart";
 import "../widgets/library_viewer_fade.dart";
+import "../widgets/library_viewer_launch.dart";
 
 class LibraryDuplicatesPage extends ConsumerStatefulWidget {
   const LibraryDuplicatesPage({super.key});
@@ -165,15 +166,18 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
     }
   }
 
-  Future<void> _view(WidgetBuilder builder) async {
+  Future<void> _view(
+    WidgetBuilder builder, {
+    LibraryViewerOrigin? origin,
+  }) async {
     if (_viewerOpen) return;
     _workspace.exact.memberWindow.cancelRead();
     _workspace.similar.memberWindow.cancelRead();
     setState(() => _viewerOpen = true);
     try {
-      await Navigator.of(
-        context,
-      ).push<void>(LibraryViewerRoute(context: context, builder: builder));
+      await Navigator.of(context).push<void>(
+        LibraryViewerRoute(context: context, builder: builder, origin: origin),
+      );
     } finally {
       if (mounted) {
         setState(() => _viewerOpen = false);
@@ -188,6 +192,7 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
     final pageKey = _workspace.pageKey;
     return _view(
       (context) => Scaffold(
+        backgroundColor: Colors.transparent,
         body: LibraryDuplicateReviewViewer(
           initialAsset: asset,
           initialIndex: index,
@@ -208,6 +213,7 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
           onBack: () => Navigator.of(context).pop(),
         ),
       ),
+      origin: LibraryViewerOriginScope.of(context)?.take(),
     );
   }
 

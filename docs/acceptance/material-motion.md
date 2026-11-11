@@ -180,3 +180,27 @@ immediate distant placeholders in both layouts, filled them without moving the d
 and accepted a reverse drag. Native tooling supplies short drag strokes; continuous multi-second
 desktop holding remains unverified. The controlled regression holds through both publications.
 No source file operation was executed during these checks.
+## Card-to-viewer motion — 2026-11-11
+
+The activated thumbnail supplies bounded geometry to the existing embedded viewer and duplicate
+review route. The current image moves and scales without another decoded image or source read.
+Backgrounds and controls fade separately; an exit-frame pixel assertion confirms that the returning
+image remains opaque. The mounted-card registry resolves the current image after adjacent navigation;
+removed/offscreen targets and rotation retain a fade fallback. Reduced motion is immediate.
+
+Seventeen focused transition, route and duplicate-review cases passed, including retained scroll,
+interrupted return, source cancellation, stale targets and unchanged review behavior. Earlier viewer
+position and wall-geometry checks remain applicable to the unchanged layout contracts. Formatting,
+scoped analysis and whitespace checks passed. Hosted checks retain their separate revision scope.
+
+The Windows Debug client used the existing 700-file fixture subset and isolated derived storage.
+Its native DLL remained unchanged (`FA18D9B84C71864E175492AF099A97FC4426EF3EE77C506DFCE659523EF24729`).
+Observed entry and return in the ordinary gallery and duplicate members preserved toolbar position
+and image shape. After advancing to the second member, return moved toward that member's visible
+thumbnail. Slow-motion inspection confirmed clear image pixels while surrounding controls faded;
+the debug speed was restored to 1 after each observation. No source operations were executed.
+
+Production owners contain 203 lines for image-flight painting, 184 for origin registration, 45 for
+chrome/backdrop opacity and 182 for embedded transition lifetime. The existing image viewer (318),
+source-image owner (256) and duplicate page (386) receive composition changes; these owners contain
+no inline tests. The dedicated embedded-transition suite contains 389 lines.

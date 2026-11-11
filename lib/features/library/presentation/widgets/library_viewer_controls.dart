@@ -4,6 +4,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/window/ame_window_chrome.dart";
 import "../library_strings.dart";
+import "library_viewer_chrome.dart";
 
 class LibraryViewerTopBar extends StatelessWidget {
   const LibraryViewerTopBar({
@@ -104,7 +105,7 @@ class LibraryViewerNavigationButton extends StatelessWidget {
       right: isPrevious ? null : 20,
       top: 0,
       bottom: 0,
-      child: button,
+      child: LibraryViewerChrome(child: button),
     );
   }
 }

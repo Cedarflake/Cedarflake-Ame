@@ -14,10 +14,12 @@ import "../library_preview_images.dart";
 import "../coordination/library_viewer_source_state.dart";
 import "../coordination/library_viewer_zoom.dart";
 import "library_viewer_controls.dart";
+import "library_viewer_chrome.dart";
 import "library_viewer_filmstrip_slot.dart";
 import "library_viewer_frame.dart";
 import "library_viewer_image.dart";
 import "library_viewer_image_interaction.dart";
+import "library_viewer_image_flight.dart";
 import "library_path_text.dart";
 import "library_viewer_source_notice.dart";
 import "library_viewer_source_scope.dart";
@@ -140,7 +142,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
     final showFilmstrip =
         ref.watch(amePreferencesControllerProvider).viewerFilmstripVisible &&
         widget.filmstrip != null;
-    return ColoredBox(
+    return LibraryViewerBackdrop(
       color: Theme.of(context).colorScheme.surfaceContainerLowest,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -165,33 +167,37 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
             children: [
               Expanded(child: _buildImageViewport(goBack)),
               if (widget.filmstrip case final filmstrip?)
-                LibraryViewerFilmstripSlot(
-                  visible: showFilmstrip,
-                  child: filmstrip,
+                LibraryViewerChrome(
+                  child: LibraryViewerFilmstripSlot(
+                    visible: showFilmstrip,
+                    child: filmstrip,
+                  ),
                 ),
-              LibraryViewerToolbar(
-                asset: widget.asset,
-                positionLabel: _positionLabel,
-                onCopyPath: widget.onCopyPath,
-                onRevealFile: widget.onRevealFile,
-                isFilmstripVisible: showFilmstrip,
-                onToggleFilmstrip: widget.filmstrip == null
-                    ? null
-                    : _toggleFilmstrip,
-                onInformation: widget.onInformation,
-                onRotate: _zoom.hasDimensions ? _zoom.rotateClockwise : null,
-                isActualSize: _zoom.isActualSize,
-                onToggleZoomMode: _zoom.hasDimensions
-                    ? _toggleActualSize
-                    : null,
-                sliderValue: _zoom.sliderValue,
-                zoomPercent: _zoom.percent,
-                onSliderChanged: _zoom.sliderChanged,
-                sliderSemanticFormatter: _zoom.sliderLabel,
-                onZoomOut: _zoom.canZoomOut ? _zoomOut : null,
-                onZoomIn: _zoom.canZoomIn ? _zoomIn : null,
-                isFullscreen: isFullscreen,
-                onToggleFullscreen: toggleFullscreen,
+              LibraryViewerChrome(
+                child: LibraryViewerToolbar(
+                  asset: widget.asset,
+                  positionLabel: _positionLabel,
+                  onCopyPath: widget.onCopyPath,
+                  onRevealFile: widget.onRevealFile,
+                  isFilmstripVisible: showFilmstrip,
+                  onToggleFilmstrip: widget.filmstrip == null
+                      ? null
+                      : _toggleFilmstrip,
+                  onInformation: widget.onInformation,
+                  onRotate: _zoom.hasDimensions ? _zoom.rotateClockwise : null,
+                  isActualSize: _zoom.isActualSize,
+                  onToggleZoomMode: _zoom.hasDimensions
+                      ? _toggleActualSize
+                      : null,
+                  sliderValue: _zoom.sliderValue,
+                  zoomPercent: _zoom.percent,
+                  onSliderChanged: _zoom.sliderChanged,
+                  sliderSemanticFormatter: _zoom.sliderLabel,
+                  onZoomOut: _zoom.canZoomOut ? _zoomOut : null,
+                  onZoomIn: _zoom.canZoomIn ? _zoomIn : null,
+                  isFullscreen: isFullscreen,
+                  onToggleFullscreen: toggleFullscreen,
+                ),
               ),
             ],
           );
@@ -203,6 +209,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
   Widget _buildImageViewport(VoidCallback goBack) {
     return Stack(
       fit: StackFit.expand,
+      clipBehavior: Clip.none,
       children: [
         LibraryViewerImage(
           previewImages: ref.read(libraryPreviewImagesProvider),
@@ -241,7 +248,15 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
       wheelBehavior: widget.wheelBehavior,
       onPrevious: widget.onPrevious,
       onNext: widget.onNext,
-      child: image,
+      child: LibraryViewerImageFlight(
+        locationId: widget.asset.locationId,
+        imageSize: Size(
+          widget.asset.width.toDouble(),
+          widget.asset.height.toDouble(),
+        ),
+        quarterTurns: _zoom.quarterTurns,
+        child: image,
+      ),
     );
   }
 

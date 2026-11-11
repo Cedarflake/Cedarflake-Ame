@@ -15,17 +15,25 @@ While an original image is loading, its progress indicator stays at the center o
 viewport. Zoom, pan and wheel input transform the image or retained preview, never the indicator.
 Loading completion retires the indicator through the current source image's frame lifecycle.
 
-The viewer enters with a 180 ms opacity transition and exits in 100 ms. Its gallery stays mounted
-at the existing scroll position. Closing immediately retires viewer input, accessibility focus and
+Opening a photo moves and scales its existing image from the activated thumbnail to the preview.
+The image preserves its aspect ratio while the thumbnail crop opens into the full image. Window
+chrome and toolbars keep their positions. Shared Standard spatial motion drives the image, which
+remains opaque through its return to the card; backgrounds and controls fade independently.
+Its gallery stays mounted at the existing scroll position.
+Closing immediately retires viewer input, accessibility focus and
 source-read authority; at most one non-interactive closing surface remains for the visual exit.
 Reopening replaces that surface, and further pointer input finishes entry immediately. Disabled
 animations use an immediate transition. Original pixels reveal over the same image's small preview
 in 100 ms without resetting the zoom transform. The existing preview element stays mounted across
 the original's first frame, including after cache eviction, and is released when the reveal finishes.
-These transitions use Flutter's image opacity and fade primitives, without an additional package,
-layout interpolation or a queue of outgoing full-resolution images.
-Duplicate review opens the same viewer with the shared fade component and timing; its full-window
-route adds no page zoom or slide. Returning retains the underlying review list and its position.
+The viewer captures its activated thumbnail and tracks geometry suppliers only for mounted lazy
+cards. Returning to a still-visible matching card reverses the image transition, including after
+adjacent navigation. A removed/offscreen card or rotated viewing direction uses the shared fade
+instead. Missing launch geometry also falls back to the fade.
+These transitions reuse the current image element and source lifecycle, without another decode,
+image buffer, layout interpolation or queue of outgoing full-resolution images. Duplicate review
+uses the same image transition from its member thumbnail; comparison retains the surface fade.
+Returning retains the underlying review list and its position.
 
 An open gallery viewer retains its displayed source version after a confirmed replacement and shows
 `图片已更新，重新加载以查看最新内容。` with `重新加载`. Reload adopts the latest confirmed catalog

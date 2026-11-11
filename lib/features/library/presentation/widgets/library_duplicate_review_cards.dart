@@ -13,6 +13,7 @@ import "library_duplicate_review_metrics.dart";
 import "library_delete_file_button.dart";
 import "library_path_text.dart";
 import "library_viewer_filmstrip_thumbnail.dart";
+import "library_viewer_launch.dart";
 
 class LibraryDuplicateGroupCard extends StatelessWidget {
   const LibraryDuplicateGroupCard({
@@ -161,30 +162,38 @@ class LibraryDuplicateReviewCard extends StatelessWidget {
   final Widget? thumbnail;
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final inline =
-          inlineActions &&
-          LibraryDuplicateReviewMetrics.inlineMemberActions(
-            context,
-            constraints.maxWidth,
-            actions: actions.length,
-            selectable: selection != null,
-          );
-      final content = Row(
-        children: [
-          if (selection != null)
-            SizedBox(
-              width: LibraryDuplicateReviewMetrics.selectionExtent,
-              child: selection,
-            ),
-          thumbnail ??
+  Widget build(BuildContext context) => LibraryViewerLaunch(
+    locationId: asset.locationId,
+    fit: BoxFit.contain,
+    radius: 0,
+    onOpen: onOpen,
+    builder: (context, thumbnailKey, open) => LayoutBuilder(
+      builder: (context, constraints) {
+        final inline =
+            inlineActions &&
+            LibraryDuplicateReviewMetrics.inlineMemberActions(
+              context,
+              constraints.maxWidth,
+              actions: actions.length,
+              selectable: selection != null,
+            );
+        final content = Row(
+          children: [
+            if (selection != null)
+              SizedBox(
+                width: LibraryDuplicateReviewMetrics.selectionExtent,
+                child: selection,
+              ),
+            if (thumbnail case final thumbnail?)
+              KeyedSubtree(key: thumbnailKey, child: thumbnail)
+            else
               ExcludeFocus(
                 child: ExcludeSemantics(
                   child: IgnorePointer(
                     child: SizedBox.square(
                       dimension: LibraryDuplicateReviewMetrics.thumbnailExtent,
                       child: LibraryViewerFilmstripThumbnail(
+                        imageAnchorKey: thumbnailKey,
                         asset: asset,
                         isSelected: false,
                         onPressed: onOpen,
@@ -194,60 +203,63 @@ class LibraryDuplicateReviewCard extends StatelessWidget {
                   ),
                 ),
               ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AmeTooltip(
-                  message: displayLibraryFileName(asset.displayPath),
-                  child: Text(
-                    displayLibraryFileName(asset.displayPath),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                details,
-              ],
-            ),
-          ),
-          if (inline) ...[
             const SizedBox(width: 12),
-            Row(mainAxisSize: MainAxisSize.min, children: actions),
-          ],
-        ],
-      );
-      return Card(
-        margin: EdgeInsets.zero,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          key: ValueKey("duplicate-card-${asset.locationId}"),
-          onTap: onOpen,
-          child: Padding(
-            padding: const EdgeInsets.all(
-              LibraryDuplicateReviewMetrics.padding,
-            ),
-            child: inline
-                ? content
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: content),
-                      const SizedBox(height: LibraryDuplicateReviewMetrics.gap),
-                      Wrap(
-                        alignment: WrapAlignment.end,
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: actions,
-                      ),
-                    ],
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AmeTooltip(
+                    message: displayLibraryFileName(asset.displayPath),
+                    child: Text(
+                      displayLibraryFileName(asset.displayPath),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                   ),
+                  const SizedBox(height: 4),
+                  details,
+                ],
+              ),
+            ),
+            if (inline) ...[
+              const SizedBox(width: 12),
+              Row(mainAxisSize: MainAxisSize.min, children: actions),
+            ],
+          ],
+        );
+        return Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            key: ValueKey("duplicate-card-${asset.locationId}"),
+            onTap: open,
+            child: Padding(
+              padding: const EdgeInsets.all(
+                LibraryDuplicateReviewMetrics.padding,
+              ),
+              child: inline
+                  ? content
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: content),
+                        const SizedBox(
+                          height: LibraryDuplicateReviewMetrics.gap,
+                        ),
+                        Wrap(
+                          alignment: WrapAlignment.end,
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: actions,
+                        ),
+                      ],
+                    ),
+            ),
           ),
-        ),
-      );
-    },
+        );
+      },
+    ),
   );
 }
