@@ -1,29 +1,67 @@
 ![Cedarflake Ame](docs/images/ame.png)
 
-Ame is a Windows app for browsing large image collections and finding exact duplicates.
-Add the folders you already use, browse them together, and see where each copy of an image lives.
-Your files stay where they are.
+Ame is a local-first Windows app for browsing, searching, and organizing large image collections.
+Add the folders you already use, find duplicates and similar images, and organize your collection
+with favorites, albums, or file operations. Browsing and analysis leave your originals untouched.
 
-![Ame's Windows gallery showing landscape photos, date groups, and the timeline](docs/images/ame-gallery.png)
+![Ame's Windows gallery with image cards, folder navigation, and a date timeline](docs/images/ame-gallery.png)
+
+## Download
+
+Ame is currently in **Alpha**. Each [release](https://github.com/Cedarflake/Cedarflake-Ame/releases)
+provides two packages for **Windows 11 x64**:
+
+- **MSI installer**: includes the image-analysis models, runtime, and background library-update
+  service. Installation requires administrator permissions.
+- **Portable ZIP**: extract the complete archive and run `Cedarflake-Ame/cedarflake_ame.exe`.
+  Models download separately when first needed; no Windows service is installed.
+
+Releases are unsigned and do not yet update automatically. Close Ame before upgrading, and keep
+portable versions in separate directories. See the [Alpha 3 release notes](docs/releases/v0.1.0-alpha.3.md)
+for changes and known limits.
 
 ## Browse your collection
 
-Scroll through a photo wall or a square grid, jump to a date with the timeline, and search by
-name or path. Open an image for a closer look, then return to the same place in the gallery.
+Scroll through a photo wall or a square grid and jump to a date with the timeline.
+Open an image for a closer look, compare two images, or rotate the viewing direction without
+editing the file. The thumbnail strip overlays the image without changing its viewing size.
+Return from the viewer to the same place in the gallery.
 Folders from different drives appear in one library, and you can narrow the view to a single source.
 
 Ame watches for file changes and updates the library in the background. You can keep browsing
 while it catches up after being closed.
 
-## Make sense of duplicates
+## Find and compare images
+
+Search by filename or path, describe an image in natural language, or find images related to the
+one you are viewing. Combine filters for file format, date, dimensions, file size, and camera details.
+Smart albums classify images locally with SigLIP 2. GPU acceleration is enabled by default on
+supported devices and can be switched off in settings.
 
 Exact duplicate detection finds files with identical contents. Fold their copies into one gallery
 item, inspect the individual locations, or open the duplicate view to compare them. You can choose
-which copy represents a group and ignore groups you want to keep.
+which copy represents a group and ignore groups you want to keep. Similar-image groups use a
+separate visual comparison with an adjustable similarity level; similarity is not proof that files
+are identical.
+
+## Organize your collection
+
+Favorites and albums organize images without moving files. Choose album icons, add images to
+albums, and resume reviewing images from your saved place.
+
+When you want to change files, Ame supports copying, moving, renaming, and deletion through Windows.
+Deletion defaults to the Recycle Bin; permanent deletion requires an explicit choice. Duplicate and
+similar-group cleanup retain your keep choices, or the automatic representative when none was chosen,
+and confirm the number of files before deletion. Operation records show results and support
+recovery of interrupted work where applicable.
 
 Cataloging and analysis run locally. The database and thumbnail cache are stored separately from
 your pictures; browsing and duplicate review leave the originals untouched. Cloud-only files are
-left online.
+left online. Large-library queries can still take noticeable time, and automatic classification,
+similarity, and semantic search can miss or misidentify images.
+
+The [roadmap](docs/roadmap.md) schedules **R9: moving album files into year-based folders**, followed
+by **R10: large-library maturity and the Beta release phase**.
 
 ## Run from source
 
@@ -37,7 +75,7 @@ flutter run -d windows
 ```
 
 The interface is built with Flutter and Material 3. Rust handles the catalog, file tracking,
-previews, and duplicate analysis, with SQLite storing the library.
+previews, image analysis, and file operations, with SQLite storing the library.
 
 For more detail, see the [roadmap](docs/roadmap.md),
 [development guide](docs/development/repository-layout.md),
