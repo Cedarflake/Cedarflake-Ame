@@ -11,6 +11,8 @@ class LibraryViewerOrigin {
     required this.fit,
     required this.radius,
     this.findTarget,
+    this.previewImage,
+    this.previewQuality = FilterQuality.low,
   });
 
   final String locationId;
@@ -19,6 +21,8 @@ class LibraryViewerOrigin {
   final BoxFit fit;
   final double radius;
   final LibraryViewerOrigin? Function(String)? findTarget;
+  final ImageProvider<Object>? previewImage;
+  final FilterQuality previewQuality;
 
   LibraryViewerOrigin? resolve() {
     final current = currentGeometry();
@@ -31,6 +35,8 @@ class LibraryViewerOrigin {
             fit: fit,
             radius: radius,
             findTarget: findTarget,
+            previewImage: previewImage,
+            previewQuality: previewQuality,
           );
   }
 }
@@ -98,6 +104,25 @@ class LibraryViewerLaunch extends StatefulWidget {
 class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
   final _thumbnailKey = GlobalKey();
   LibraryViewerOrigins? _origins;
+  Object? _imageOwner;
+  ImageProvider<Object>? _previewImage;
+  FilterQuality _previewQuality = FilterQuality.low;
+
+  void _publishImage(
+    Object owner,
+    ImageProvider<Object> image,
+    FilterQuality quality,
+  ) {
+    _imageOwner = owner;
+    _previewImage = image;
+    _previewQuality = quality;
+  }
+
+  void _retireImage(Object owner) {
+    if (!identical(owner, _imageOwner)) return;
+    _imageOwner = null;
+    _previewImage = null;
+  }
 
   @override
   void didChangeDependencies() {
@@ -159,6 +184,8 @@ class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
             fit: widget.fit,
             radius: widget.radius,
             findTarget: _origins?.find,
+            previewImage: _previewImage,
+            previewQuality: _previewQuality,
           );
   }
 
@@ -168,8 +195,33 @@ class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      widget.builder(context, _thumbnailKey, _open);
+  Widget build(BuildContext context) => LibraryViewerThumbnailScope(
+    publish: _publishImage,
+    retire: _retireImage,
+    child: Builder(
+      builder: (context) => widget.builder(context, _thumbnailKey, _open),
+    ),
+  );
+}
+
+/// Shares the mounted thumbnail's decoded cache entry with its viewer.
+class LibraryViewerThumbnailScope extends InheritedWidget {
+  const LibraryViewerThumbnailScope({
+    required this.publish,
+    required this.retire,
+    required super.child,
+    super.key,
+  });
+
+  final void Function(Object, ImageProvider<Object>, FilterQuality) publish;
+  final void Function(Object) retire;
+
+  static LibraryViewerThumbnailScope? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<LibraryViewerThumbnailScope>();
+
+  @override
+  bool updateShouldNotify(LibraryViewerThumbnailScope oldWidget) =>
+      publish != oldWidget.publish || retire != oldWidget.retire;
 }
 
 class LibraryViewerFlightScope extends InheritedWidget {

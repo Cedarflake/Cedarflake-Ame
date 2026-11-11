@@ -391,3 +391,20 @@ The publication coordinator and action controller contain 58 and 223 production 
 query construction contains 118 production and 126 inline-test lines; anchor, projection and
 snapshot owners contain 238, 301 and 361 production lines with no inline tests. Reused operation
 and anchor suites contain 781 and 233 dedicated test lines.
+
+### Thumbnail handoff across viewer entries
+
+The mounted card now supplies its decoded, resized provider and sampling quality to both viewer
+entry paths. Controlled checks prove that embedded gallery viewers and routed review viewers use
+the card's existing pixels on their first visible frame without decoding another preview. Existing
+source-reveal and flight checks retain delayed quality blending, cancellation and return clipping.
+
+The rebuilt Windows Debug client on `local-primary` opened and returned from smart-album, exact-group
+and similar-group member cards with visible pixels. Ordinary and user-album galleries share the
+embedded path; no user album was created for this check. These client observations complement the
+first-frame checks, rather than measuring individual animation frames. No physical file operation
+was submitted.
+
+The launch, reveal and viewer-image owners contain 244, 168 and 280 production lines, with no inline
+tests; the reused viewer-image suite contains 586 dedicated test lines. Affected analysis, focused
+checks and the Windows Debug build pass. Hosted verification remains attached to the pushed commit.

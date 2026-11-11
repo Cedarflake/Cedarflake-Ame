@@ -1,5 +1,7 @@
 import "package:material_ui/material_ui.dart";
 
+import "library_viewer_launch.dart";
+
 /// Reveals decoded pixels without animating the card's geometry or compositing the whole wall.
 class LibraryImageReveal extends StatefulWidget {
   const LibraryImageReveal({
@@ -39,6 +41,7 @@ class _LibraryImageRevealState extends State<LibraryImageReveal>
   DateTime? _lastScrollAt;
   bool _hasFrame = false;
   bool _skipMotion = false;
+  LibraryViewerThumbnailScope? _thumbnail;
 
   @override
   void initState() {
@@ -54,6 +57,11 @@ class _LibraryImageRevealState extends State<LibraryImageReveal>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final thumbnail = LibraryViewerThumbnailScope.of(context);
+    if (_thumbnail != thumbnail) {
+      _thumbnail?.retire(this);
+      _thumbnail = thumbnail;
+    }
     final disableAnimations = MediaQuery.disableAnimationsOf(context);
     _skipMotion = disableAnimations || !TickerMode.valuesOf(context).enabled;
     final position = Scrollable.maybeOf(context)?.position;
@@ -98,6 +106,9 @@ class _LibraryImageRevealState extends State<LibraryImageReveal>
     int? frame,
     bool synchronous,
   ) {
+    if (frame != null || synchronous) {
+      _thumbnail?.publish(this, widget.image, widget.filterQuality);
+    }
     if (!_hasFrame && !widget.deferReveal && (frame != null || synchronous)) {
       _hasFrame = true;
       final lastScrollAt = _lastScrollAt;
@@ -149,6 +160,7 @@ class _LibraryImageRevealState extends State<LibraryImageReveal>
 
   @override
   void dispose() {
+    _thumbnail?.retire(this);
     _position?.removeListener(_handleScroll);
     _controller.dispose();
     super.dispose();

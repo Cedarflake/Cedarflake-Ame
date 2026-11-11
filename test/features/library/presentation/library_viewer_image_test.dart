@@ -10,13 +10,111 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_viewer_source_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_image_reveal.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_fade.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_launch.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_transition.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_notice.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  for (final route in [false, true]) {
+    testWidgets(
+      "${route ? 'review route' : 'gallery'} starts with the card's decoded thumbnail",
+      (tester) async {
+        final bytes = await tester.runAsync(() => _png(Colors.red));
+        final thumbnail = ResizeImage(MemoryImage(bytes!), width: 1);
+        final scheduler = LibrarySourceReadScheduler(
+          reader: const _SourceReader(),
+        );
+        addTearDown(scheduler.dispose);
+        final asset = _asset("pending-source.png").withPreview(
+          previewPath: "uncached-preview.png",
+          width: 2,
+          height: 2,
+          previewStatus: LibraryPreviewStatus.ready,
+        );
+        var open = false;
+        Widget viewer() => LibraryViewerImage(
+          asset: asset,
+          previewImages: (_) => throw StateError("The card already has pixels"),
+          sourceReadScheduler: scheduler,
+          sourceBufferLoader: (_) => ui.ImmutableBuffer.fromUint8List(bytes),
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, update) => LibraryViewerTransition(
+                  viewer: open ? viewer() : null,
+                  gallery: Builder(
+                    builder: (context) => Center(
+                      child: LibraryViewerLaunch(
+                        locationId: asset.locationId,
+                        onOpen: () {
+                          if (route) {
+                            unawaited(
+                              Navigator.of(context).push<void>(
+                                LibraryViewerRoute(
+                                  context: context,
+                                  origin: LibraryViewerOriginScope.of(
+                                    context,
+                                  )?.take(),
+                                  builder: (_) => viewer(),
+                                ),
+                              ),
+                            );
+                          } else {
+                            update(() => open = true);
+                          }
+                        },
+                        builder: (context, imageKey, onOpen) => GestureDetector(
+                          onTap: onOpen,
+                          child: SizedBox.square(
+                            dimension: 100,
+                            child: LibraryImageReveal(
+                              key: imageKey,
+                              image: thumbnail,
+                              revealIdentity: asset.locationId,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await _waitForFrame(
+          tester,
+          () => tester.widget<RawImage>(find.byType(RawImage)).image != null,
+        );
+        final pixels = tester.widget<RawImage>(find.byType(RawImage)).image!;
+        await tester.tap(find.byType(LibraryViewerLaunch));
+        await tester.pump();
+        await tester.pump();
+        final preview = find.descendant(
+          of: find.byType(LibraryViewerImage),
+          matching: find.byWidgetPredicate(
+            (widget) => widget is Image && widget.image == thumbnail,
+          ),
+        );
+        final visible = tester.widget<RawImage>(
+          find.descendant(of: preview, matching: find.byType(RawImage)),
+        );
+        expect(visible.image!.isCloneOf(pixels), isTrue);
+        expect(visible.filterQuality, FilterQuality.low);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+        await thumbnail.evict();
+      },
+    );
+  }
+
   testWidgets(
     "source notices take the shared top slot before organization feedback",
     (tester) async {
