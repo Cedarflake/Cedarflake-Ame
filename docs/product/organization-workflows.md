@@ -219,6 +219,14 @@ deletion. The
 [filesystem verification procedure](../acceptance/r8-file-operations.md) owns disposable fixtures,
 failure checks, and Windows integration evidence.
 
+## R9 - Album files by year
+
+Allow the user to move the actual files belonging to a selected album into year-based folders.
+This extends the physical organization workflow, independently of the virtual album's membership.
+Reuse R8's explicit authorization, Windows-backed moves, collision handling, progress, operation
+records and recovery. Planning must resolve the date basis, missing dates and destination structure
+before implementation. The [roadmap](../roadmap.md#r9--album-files-by-year) owns scheduling and status.
+
 ## R10 - Large-library maturity and release readiness
 
 Scope:

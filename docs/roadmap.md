@@ -34,10 +34,12 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R6 | Perceptual similarity review | Merged into `main` on 2026-11-05 |
 | R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
 | R8 | Authorized file organization and recovery | Merged into `main` on 2026-11-11 through [PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57); incorporates former R9 |
-| R10 | Large-library maturity and release readiness | Next stage, entering the Beta release phase; execution planning pending |
+| R9 | Move album files into year-based folders | Pending planning; follows R8 |
+| R10 | Large-library maturity and release readiness | Follows R9, entering the Beta release phase; execution planning pending |
 
 R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
-feature. R9 is no longer a separate stage; R10 keeps its identifier. The
+feature. The R9 identifier now denotes the separate album-by-year movement scope below; the former
+R9 recovery work remains delivered within R8. R10 keeps its identifier. The
 [merged scope](product/organization-workflows.md#r8---file-organization-and-recovery) owns behavior;
 the [execution plan](plans/r8-file-organization.md) defines Windows-backed implementation slices;
 the [verification procedure](acceptance/r8-file-operations.md) defines guest-contained Windows Sandbox
@@ -65,7 +67,8 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 ## Current execution queue
 
 R8 and its follow-ups, including the loading-feedback update, are integrated. The current release
-is `v0.1.0-alpha.3`. R10 is the next planned stage and starts the Beta release phase; its
+is `v0.1.0-alpha.3`. The next sequence is R9 album file organization, then R10's Beta release phase.
+R9 remains pending planning below. R10's
 [product scope](product/organization-workflows.md#r10---large-library-maturity-and-release-readiness)
 has not yet been decomposed into an execution plan or started.
 
@@ -77,12 +80,13 @@ The [integration record](acceptance/material-motion.md#loading-feedback-integrat
 retains merge authority, verification boundaries and remaining query latency. The local and remote
 work branches have been deleted.
 
-### Pending album file organization
+### R9 — Album files by year
 
-Moving an album's actual files into year-based folders remains unfinished and unscheduled,
-separate from R10 and the Alpha 3 release. Before implementation, confirm which date determines
-the year and how destinations are arranged. Reuse the authorized file-operation and recovery
-workflow; this entry does not authorize moving existing media.
+The [R9 product scope](product/organization-workflows.md#r9---album-files-by-year) is pending
+implementation and excluded from Alpha 3. Before starting, confirm which date determines the year,
+missing-date behavior and destination arrangement, then write the scoped execution plan. R9 reuses
+the existing authorized file-operation and recovery workflow; recording this stage does not
+authorize moving existing media.
 
 ### Duplicate cleanup entry points
 
