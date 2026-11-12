@@ -19,6 +19,7 @@ import "library_review_mode_notice.dart";
 import "library_viewer_classification.dart";
 import "library_delete_file_button.dart";
 import "library_file_feedback.dart";
+import "library_viewer_copy_scope.dart";
 
 class LibraryViewerOrganizationControls extends ConsumerWidget {
   const LibraryViewerOrganizationControls({
@@ -94,6 +95,24 @@ class LibraryViewerOrganizationNotice extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final copy = LibraryViewerCopyScope.maybeOf(context);
+    ref.listen(libraryViewerOperationNoticeProvider, (_, next) {
+      final previousCopy = copy?.notification;
+      if (next != null &&
+          previousCopy != null &&
+          !next.occurredAt.isBefore(previousCopy.occurredAt)) {
+        copy!.dismiss(previousCopy.id);
+      }
+    });
+    ref.listen(libraryFileActionsProvider.select((value) => value.busy), (
+      _,
+      busy,
+    ) {
+      final notification = copy?.notification;
+      if (busy && notification != null) {
+        copy!.dismiss(notification.id);
+      }
+    });
     final notice = ref.watch(libraryViewerOperationNoticeProvider);
     final files = ref.watch(libraryFileActionsProvider);
     if (files.busy) {
@@ -102,6 +121,10 @@ class LibraryViewerOrganizationNotice extends ConsumerWidget {
     final saving = ref.watch(libraryOrganizationActionsProvider).saving;
     if (mode.isActive && mode.problem != null) {
       return LibraryReviewModeNotice(mode: mode, enabled: !saving);
+    }
+    final latest = latestLibraryOperationNotice(notice, copy?.notification);
+    if (copy?.notice != null && identical(latest, copy?.notification)) {
+      return copy!.notice!;
     }
     if (notice != null) {
       return LibraryOrganizationFeedback(notification: notice);

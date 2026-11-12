@@ -104,7 +104,8 @@ and evidence; this product contract does not duplicate that inventory or record 
   visual constants or copied behavior. Organize behavior, structure, then presentation.
 - Use virtualization/lazy slivers, bounded thumbnail decoding/caches and stable item identity/scroll
   position across incremental updates. Keep business/persistence state out of views; never send
-  full-resolution images or unbounded result sets across the desktop bridge.
+  full-resolution images or unbounded result sets across the catalog desktop bridge. Explicit
+  image copy uses the separately bounded [OS clipboard adapter](../architecture/0001-flutter-rust-desktop-stack.md#viewer-image-clipboard).
 - Represent loading, empty, partial, cancelled, failed and stale states explicitly. Meet keyboard,
   focus, contrast, text scaling and screen-reader accessibility expectations.
 - Apply the [content and action rules](#content-and-action-wording) to

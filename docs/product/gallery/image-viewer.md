@@ -7,6 +7,17 @@ shared principles; the roadmap owns current delivery order and acceptance status
 
 ## Single-image loading and zoom
 
+In the single-image viewer, `Ctrl+C` and the More menu's `复制图片` copy the current
+decoded image to the Windows clipboard. Copy includes the viewing rotation, keeps the full
+image rather than the zoomed viewport, and takes one frame for animated images. Text inputs
+retain their normal text-copy shortcut. This action is separate from copying files to a folder.
+Successful writes show `图片已复制到剪贴板` using the viewer's transient notice. Failed writes
+offer retry; switching images or closing the viewer retires pending frame reads and feedback.
+Newer organization feedback or a new file operation retires an earlier copy notice;
+active file work and source recovery keep their existing priority.
+The bounded platform transfer and its oversized-image limit follow
+[ADR 0001](../../architecture/0001-flutter-rust-desktop-stack.md#viewer-image-clipboard).
+
 Original-image sampling follows the rendered physical-pixel scale, including viewport fitting,
 zoom and display density: mipmapped filtering for reduction, bilinear at one-to-one pixels, and
 bicubic for enlargement. Zoom geometry and source resolution remain independent of this choice.

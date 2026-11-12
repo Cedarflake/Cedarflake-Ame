@@ -70,6 +70,30 @@ unbounded buffers; the catalog returns identities, metadata, and paths to bounde
 Dependency versions are locked after the selected toolchain passes its applicable client and hosted
 checks. The admitted Windows SDK and renderer are specified below.
 
+## Viewer image clipboard
+
+An explicit viewer copy uses the Ame-owned `LibraryImageClipboard` port and a Windows adapter.
+Flutter's text clipboard API cannot publish images. Flutter encodes one decoded frame after applying
+the viewing rotation, using its built-in PNG encoder. The adapter sends equivalent PNG and
+straight-alpha RGBA representations to the runner's `cedarflake_ame/image_clipboard` channel;
+the runner publishes registered `PNG` and top-down sRGB `CF_DIBV5` clipboard formats.
+PNG preserves transparency in consumers that ignore the bitmap's alpha channel.
+This bounded OS transfer is separate from the Rust catalog/preview bridge. It does not add a
+second source read, external encoder, persistent cache, model dependency or file-copy workflow.
+
+One copy may be in flight per viewer, with a 32-megapixel limit checked before encoding and
+again at the native boundary. Oversized images fail explicitly instead of silently reducing
+quality. Switching or closing retires unresolved frame requests. The runner allocates and
+validates its bitmap before opening the clipboard, releases failures, and transfers allocation
+ownership only after successful `SetClipboardData`. The viewer reports success only after that
+write returns. Clipboard contention remains a retryable user action without a blocking retry loop.
+
+Validation covers pixel/rotation correctness, successful paste into a Windows image consumer,
+failure feedback and reuse of the existing decoded image. The adapter and runner channel can be
+replaced by a framework image-clipboard implementation without changing the viewer contract.
+See Microsoft's [clipboard ownership rules](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setclipboarddata)
+and [bitmap formats](https://learn.microsoft.com/en-us/windows/win32/dataxchg/clipboard-formats).
+
 ## Windows SDK and renderer
 
 Pin Flutter stable 3.47.8 with Dart 3.13.7. The framework revision is

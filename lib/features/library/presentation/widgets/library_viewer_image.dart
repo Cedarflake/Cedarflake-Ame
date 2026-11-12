@@ -7,6 +7,7 @@ import "../../application/library_source_read_scheduler.dart";
 import "../../domain/library_models.dart";
 import "../library_preview_images.dart";
 import "../library_strings.dart";
+import "../coordination/library_viewer_clipboard.dart";
 import "library_image_reveal.dart";
 import "library_loading_indicator.dart";
 import "library_source_image.dart";
@@ -31,6 +32,7 @@ class LibraryViewerImage extends StatefulWidget {
     this.quarterTurns = 0,
     this.notice,
     this.operationNotice,
+    this.clipboard,
     super.key,
   });
 
@@ -43,6 +45,7 @@ class LibraryViewerImage extends StatefulWidget {
   final int quarterTurns;
   final Widget? notice;
   final Widget? operationNotice;
+  final LibraryViewerClipboard? clipboard;
 
   @override
   State<LibraryViewerImage> createState() => _LibraryViewerImageState();
@@ -61,6 +64,7 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
     _sourceScope = context
         .getInheritedWidgetOfExactType<LibraryViewerSourceScope>();
     _sourceImage = _createSourceImage();
+    widget.clipboard?.bind(_sourceImage);
   }
 
   @override
@@ -76,6 +80,7 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
     final isActive = LibraryViewerActivity.isActiveOf(context);
     if (!isActive) {
       _isActive = false;
+      widget.clipboard?.unbind(_sourceImage);
       _sourceImage.cancel();
       unawaited(_sourceImage.evict());
       return;
@@ -88,6 +93,9 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   @override
   void didUpdateWidget(covariant LibraryViewerImage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.clipboard != widget.clipboard) {
+      oldWidget.clipboard?.unbind(_sourceImage);
+    }
     if (_isActive) _updateSourceImage();
   }
 
@@ -98,10 +106,12 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
       unawaited(_sourceImage.evict());
       _sourceImage = nextImage;
     }
+    widget.clipboard?.bind(_sourceImage);
   }
 
   @override
   void dispose() {
+    widget.clipboard?.unbind(_sourceImage);
     _flight?.removeStatusListener(_flightChanged);
     _sourceImage.cancel();
     unawaited(_sourceImage.evict());
@@ -271,6 +281,7 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
     setState(() {
       _retryGeneration += 1;
       _sourceImage = _createSourceImage();
+      widget.clipboard?.bind(_sourceImage);
     });
   }
 
