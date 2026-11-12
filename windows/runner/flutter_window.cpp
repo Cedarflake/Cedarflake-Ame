@@ -67,6 +67,8 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   power_channel_ = std::make_unique<FlutterPowerChannel>(
       GetHandle(), flutter_controller_->engine()->messenger());
+  image_clipboard_ = std::make_unique<FlutterImageClipboard>(
+      GetHandle(), flutter_controller_->engine()->messenger());
   InitializeSystemThemeChannel();
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
@@ -83,6 +85,7 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  image_clipboard_.reset();
   power_channel_.reset();
   if (system_theme_channel_) {
     system_theme_channel_->SetMethodCallHandler(nullptr);

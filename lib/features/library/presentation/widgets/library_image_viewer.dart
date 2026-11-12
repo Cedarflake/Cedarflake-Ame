@@ -24,6 +24,7 @@ import "library_path_text.dart";
 import "library_viewer_source_notice.dart";
 import "library_viewer_source_scope.dart";
 import "library_viewer_toolbar.dart";
+import "library_viewer_copy_scope.dart";
 
 class LibraryImageViewer extends ConsumerStatefulWidget {
   const LibraryImageViewer({
@@ -101,35 +102,39 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
 
   @override
   Widget build(BuildContext context) {
-    return LibraryViewerFrame(
-      title: LibraryPathText(
-        text: displayLibraryFileName(widget.asset.displayPath),
-        path: widget.asset.displayPath,
-        alwaysShowPathTooltip: true,
-        textKey: const Key("viewer-source-path"),
-      ),
-      onBack: widget.onBack,
-      actions: widget.organizationActions,
-      builder: (context, isFullscreen, toggleFullscreen, goBack) =>
-          CallbackShortcuts(
-            bindings: {
-              const SingleActivator(LogicalKeyboardKey.arrowLeft):
-                  _showPreviousFromKeyboard,
-              const SingleActivator(LogicalKeyboardKey.arrowRight):
-                  _showNextFromKeyboard,
-              ...libraryViewerZoomShortcuts(_zoom),
-            },
-            child: Focus(
-              focusNode: _viewerFocusNode,
-              autofocus: true,
-              child: _buildCanvas(
-                context,
-                isFullscreen,
-                toggleFullscreen,
-                goBack,
+    return LibraryViewerCopyScope(
+      locationId: widget.asset.locationId,
+      quarterTurns: _zoom.quarterTurns,
+      child: LibraryViewerFrame(
+        title: LibraryPathText(
+          text: displayLibraryFileName(widget.asset.displayPath),
+          path: widget.asset.displayPath,
+          alwaysShowPathTooltip: true,
+          textKey: const Key("viewer-source-path"),
+        ),
+        onBack: widget.onBack,
+        actions: widget.organizationActions,
+        builder: (context, isFullscreen, toggleFullscreen, goBack) =>
+            CallbackShortcuts(
+              bindings: {
+                const SingleActivator(LogicalKeyboardKey.arrowLeft):
+                    _showPreviousFromKeyboard,
+                const SingleActivator(LogicalKeyboardKey.arrowRight):
+                    _showNextFromKeyboard,
+                ...libraryViewerZoomShortcuts(_zoom),
+              },
+              child: Focus(
+                focusNode: _viewerFocusNode,
+                autofocus: true,
+                child: _buildCanvas(
+                  context,
+                  isFullscreen,
+                  toggleFullscreen,
+                  goBack,
+                ),
               ),
             ),
-          ),
+      ),
     );
   }
 
@@ -139,6 +144,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
     VoidCallback? toggleFullscreen,
     VoidCallback goBack,
   ) {
+    final copy = LibraryViewerCopyScope.of(context);
     final showFilmstrip =
         ref.watch(amePreferencesControllerProvider).viewerFilmstripVisible &&
         widget.filmstrip != null;
@@ -165,7 +171,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
                   fit: StackFit.expand,
                   clipBehavior: Clip.none,
                   children: [
-                    _buildImageViewport(goBack),
+                    _buildImageViewport(goBack, copy),
                     if (widget.filmstrip case final filmstrip?)
                       Positioned(
                         left: 0,
@@ -186,6 +192,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
                   asset: widget.asset,
                   positionLabel: _positionLabel,
                   onCopyPath: widget.onCopyPath,
+                  onCopyImage: copy.copy,
                   onRevealFile: widget.onRevealFile,
                   isFilmstripVisible: showFilmstrip,
                   onToggleFilmstrip: widget.filmstrip == null
@@ -214,7 +221,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
     );
   }
 
-  Widget _buildImageViewport(VoidCallback goBack) {
+  Widget _buildImageViewport(VoidCallback goBack, LibraryViewerCopyData copy) {
     return Stack(
       fit: StackFit.expand,
       clipBehavior: Clip.none,
@@ -228,7 +235,8 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
           zoomScale: _zoom.transform.value.getMaxScaleOnAxis(),
           quarterTurns: _zoom.quarterTurns,
           imageBuilder: _buildTransformedImage,
-          operationNotice: widget.operationNotice,
+          clipboard: copy.clipboard,
+          operationNotice: copy.notice ?? widget.operationNotice,
           notice: switch (widget.sourceNotice) {
             null => null,
             final notice => LibraryViewerSourceNoticeBanner(

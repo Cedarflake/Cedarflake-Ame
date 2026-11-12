@@ -28,6 +28,7 @@ recorded local checkpoint does not establish that the current product source pas
 | [R5 smart-album queries](r5-smart-albums.md) | Effective categories, coherent gallery scopes, continuation, publication and projection-migration evidence |
 | [R5 desktop classification](r5-desktop-classification.md) | Smart-album navigation, coherent counts, local configuration and connected desktop interaction evidence |
 | [Desktop lifecycle continuity](desktop-lifecycle-continuity.md) | Development hot-restart attachment, retained background work and normal shutdown evidence |
+| [Viewer clipboard](viewer-clipboard.md) | Image-copy pixels, Windows paste compatibility, viewer feedback and channel lifetime |
 | [R5 metadata and search](r5-metadata-search.md) | Indexed literal-search migration, compatibility, synthetic cost, client interaction and integrated verification |
 | [Notification templates](notification-feedback.md) | Shared bottom feedback and compact viewer top notices, interaction checks and ownership |
 | [Image rendering](image-rendering.md) | Original sampling, cropped preview detail, card sizes and row-packing verification |

@@ -14,6 +14,7 @@ class LibraryViewerToolbar extends StatelessWidget {
     this.onToggleFilmstrip,
     this.onInformation,
     this.onCopyPath,
+    this.onCopyImage,
     this.onRevealFile,
     this.onRotate,
     required this.isActualSize,
@@ -37,6 +38,7 @@ class LibraryViewerToolbar extends StatelessWidget {
   final VoidCallback? onToggleFilmstrip;
   final VoidCallback? onInformation;
   final VoidCallback? onCopyPath;
+  final VoidCallback? onCopyImage;
   final VoidCallback? onRevealFile;
   final VoidCallback? onRotate;
   final String? positionLabel;
@@ -88,19 +90,30 @@ class LibraryViewerToolbar extends StatelessWidget {
                   ),
                   AmePopupMenuButton<_ViewerMenuAction>(
                     openAboveAnchor: true,
-                    labels: const [
+                    labels: [
+                      if (onCopyImage != null) "复制图片",
                       LibraryStrings.copyPath,
                       LibraryStrings.openInExplorer,
                     ],
-                    items: const [
-                      PopupMenuItem(
+                    shortcuts: [if (onCopyImage != null) "Ctrl+C"],
+                    items: [
+                      if (onCopyImage != null)
+                        const PopupMenuItem(
+                          value: _ViewerMenuAction.copyImage,
+                          child: AmeMenuItemContent(
+                            icon: Symbols.content_copy_rounded,
+                            label: "复制图片",
+                            shortcut: "Ctrl+C",
+                          ),
+                        ),
+                      const PopupMenuItem(
                         value: _ViewerMenuAction.copyPath,
                         child: AmeMenuItemContent(
                           icon: Symbols.content_copy_rounded,
                           label: LibraryStrings.copyPath,
                         ),
                       ),
-                      PopupMenuItem(
+                      const PopupMenuItem(
                         value: _ViewerMenuAction.openInExplorer,
                         child: AmeMenuItemContent(
                           icon: Symbols.folder_open_rounded,
@@ -110,6 +123,8 @@ class LibraryViewerToolbar extends StatelessWidget {
                     ],
                     onSelected: (action) {
                       switch (action) {
+                        case _ViewerMenuAction.copyImage:
+                          onCopyImage?.call();
                         case _ViewerMenuAction.copyPath:
                           onCopyPath?.call();
                         case _ViewerMenuAction.openInExplorer:
@@ -274,4 +289,4 @@ class LibraryViewerToolbarButton extends StatelessWidget {
   );
 }
 
-enum _ViewerMenuAction { copyPath, openInExplorer }
+enum _ViewerMenuAction { copyImage, copyPath, openInExplorer }

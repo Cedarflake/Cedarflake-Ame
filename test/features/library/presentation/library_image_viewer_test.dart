@@ -1,11 +1,13 @@
 import "dart:math" as math;
+import "dart:async";
 import "dart:ui" as ui;
 
-import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:cedarflake_ame/app/window/ame_window_fullscreen.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
+import "package:cedarflake_ame/features/library/application/library_image_clipboard.dart";
+import "package:cedarflake_ame/features/library/application/ports/library_image_clipboard.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_asset_information_sheet.dart";
@@ -32,6 +34,83 @@ void main() {
     );
     addTearDown(_sourceScheduler.dispose);
   });
+  testWidgets(
+    "viewer copies decoded pixels and reports only completed clipboard writes",
+    (tester) async {
+      final asset = await _assetWithImage(tester, width: 6, height: 4);
+      final clipboard = _ImageClipboard();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: _viewerOverrides([
+            libraryImageClipboardProvider.overrideWithValue(clipboard),
+          ]),
+          child: MaterialApp(
+            home: Scaffold(
+              body: LibraryImageViewer(
+                asset: asset,
+                onBack: () {},
+                onInformation: () {},
+                onCopyPath: () {},
+                onRevealFile: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.runAsync(() async {
+        clipboard.received = Completer();
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.keyC);
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+        await clipboard.received.future.timeout(const Duration(seconds: 5));
+      });
+      expect((clipboard.width, clipboard.height), (6, 4));
+      expect(clipboard.pixels!.sublist(0, 4), [255, 193, 7, 255]);
+      expect(clipboard.pixels!.sublist(20, 24), [63, 81, 181, 255]);
+      expect(find.text("图片已复制到剪贴板"), findsNothing);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyC);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      expect(clipboard.calls, 1);
+      clipboard.completed.complete();
+      await tester.pumpAndSettle();
+      expect(find.text("图片已复制到剪贴板"), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key("viewer-rotate-clockwise")));
+      await tester.pumpAndSettle();
+      clipboard.received = Completer();
+      clipboard.completed = Completer();
+      await tester.tap(find.byKey(const Key("viewer-more-menu")));
+      await tester.pumpAndSettle();
+      expect(find.text("Ctrl+C"), findsOneWidget);
+      await tester.runAsync(() async {
+        clipboard.received = Completer();
+        await tester.tap(find.text("复制图片"));
+        await tester.pumpAndSettle();
+        await clipboard.received.future.timeout(const Duration(seconds: 5));
+      });
+      expect((clipboard.width, clipboard.height), (4, 6));
+      expect(clipboard.pixels!.sublist(12, 16), [255, 193, 7, 255]);
+      clipboard.completed.completeError(StateError("Clipboard is occupied"));
+      await tester.pumpAndSettle();
+      expect(find.text("无法复制图片，请重试"), findsOneWidget);
+      expect(find.text("图片已复制到剪贴板"), findsNothing);
+      clipboard.received = Completer();
+      clipboard.completed = Completer();
+      await tester.runAsync(() async {
+        clipboard.received = Completer();
+        await tester.tap(find.text("重试"));
+        await clipboard.received.future.timeout(const Duration(seconds: 5));
+      });
+      clipboard.completed.complete();
+      await tester.pumpAndSettle();
+      expect(find.text("图片已复制到剪贴板"), findsOneWidget);
+      expect(find.text("无法复制图片，请重试"), findsNothing);
+      await tester.pump(const Duration(seconds: 6));
+      expect(find.text("图片已复制到剪贴板"), findsNothing);
+    },
+  );
   testWidgets(
     "filmstrip overlays fit and actual size while fullscreen preserves the viewer",
     (tester) async {
@@ -283,7 +362,6 @@ void main() {
       matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
     );
     final copyPathItemRect = tester.getRect(copyPathItem);
-    expect(find.byType(AmeMenuItemContent), findsNWidgets(2));
     expect(copyPathItemRect.width, lessThan(280));
     expect(copyPathItemRect.right, lessThanOrEqualTo(984));
     final popupSurface = find
@@ -1003,5 +1081,30 @@ class _UnavailableSourceReader implements LibrarySourceReader {
       "test_source_unavailable",
       "This viewer fixture supplies its image through Flutter's image cache",
     );
+  }
+}
+
+class _ImageClipboard implements LibraryImageClipboard {
+  Completer<void> received = Completer();
+  Completer<void> completed = Completer();
+  int calls = 0;
+  int? width;
+  int? height;
+  Uint8List? pixels;
+
+  @override
+  Future<void> write({
+    required int width,
+    required int height,
+    required Uint8List rgba,
+    required Uint8List png,
+  }) {
+    calls += 1;
+    this.width = width;
+    this.height = height;
+    expect(png.take(8), [137, 80, 78, 71, 13, 10, 26, 10]);
+    pixels = Uint8List.fromList(rgba);
+    received.complete();
+    return completed.future;
   }
 }

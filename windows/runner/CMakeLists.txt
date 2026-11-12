@@ -9,6 +9,7 @@ project(runner LANGUAGES CXX)
 add_executable(${BINARY_NAME} WIN32
   "flutter_io_thread_priority.cpp"
   "flutter_power_channel.cpp"
+  "flutter_image_clipboard.cpp"
   "flutter_window.cpp"
   "main.cpp"
   "single_instance_lock.cpp"
