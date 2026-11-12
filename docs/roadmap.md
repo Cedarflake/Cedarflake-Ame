@@ -34,7 +34,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R6 | Perceptual similarity review | Merged into `main` on 2026-11-05 |
 | R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
 | R8 | Authorized file organization and recovery | Merged into `main` on 2026-11-11 through [PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57); incorporates former R9 |
-| R9 | Move album files into year-based folders | Implemented and verified on `codex/r9-album-files-by-year`; integration pending |
+| R9 | Move album files into year-based folders | Merged into `main` on 2026-11-12 through [PR 60](https://github.com/Cedarflake/Cedarflake-Ame/pull/60) |
 | R10 | Large-library maturity and release readiness | Follows R9, entering the Beta release phase; execution planning pending |
 
 R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
@@ -66,9 +66,8 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
-R8 and its follow-ups, including the loading-feedback update, are integrated. The current release
-is `v0.1.0-alpha.3`. The next sequence is R9 album file organization, then R10's Beta release phase.
-R9 implementation and branch verification are complete; integration is pending. R10's
+R8 and its follow-ups, including the loading-feedback update, and R9 album file organization are
+integrated. The current release is `v0.1.0-alpha.3`. R10's Beta release phase is next; its
 [product scope](product/organization-workflows.md#r10---large-library-maturity-and-release-readiness)
 has not yet been decomposed into an execution plan or started.
 
@@ -87,7 +86,9 @@ The [R9 product scope](product/organization-workflows.md#r9---album-files-by-yea
 The plan retains existing metadata and Windows file operations, with ExifTool evaluated as a
 comparison tool rather than a prerequisite. Implementation and disposable Sandbox verification are
 recorded in the [R9 acceptance section](acceptance/r8-file-operations.md#r9-album-files-by-year--2026-11-12).
-Implementation and branch verification are complete; integration into `main` awaits a separate request.
+R9 is integrated through [PR 60](https://github.com/Cedarflake/Cedarflake-Ame/pull/60); the
+[integration record](acceptance/r8-file-operations.md#r9-integration--2026-11-12) retains the merged
+revision and verification boundary.
 
 ### Duplicate cleanup entry points
 

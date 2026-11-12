@@ -817,3 +817,11 @@ file-operation inputs are unchanged. That presentation follow-up passed the 25 e
 action cases and a rebuilt Sandbox UI check. Its screenshot confirms compact favorite/album spacing
 and the retained album/year move default. These follow-up checks were local, not a second full CI run.
 Both implementation commits are pushed on `codex/r9-album-files-by-year`.
+
+## R9 integration — 2026-11-12
+
+[PR 60](https://github.com/Cedarflake/Cedarflake-Ame/pull/60) merged reviewed head `8bcbdf73` into
+`main` as `4701f630bcda7b94cc51495400d54d6fdc4a2ce2` under explicit publication, merge and branch-cleanup
+authorization. Local `main` was fast-forwarded, and both local and remote R9 branches were deleted.
+The implementation CI and presentation follow-up retain the exact revisions described above;
+newly triggered PR/main checks were not used as completed evidence for this integration.
