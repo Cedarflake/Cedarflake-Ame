@@ -223,9 +223,13 @@ failure checks, and Windows integration evidence.
 
 Allow the user to move the actual files belonging to a selected album into year-based folders.
 This extends the physical organization workflow, independently of the virtual album's membership.
+Use the effective gallery date: capture time, then file creation time, then file modification time.
+The default destination is the chosen root, album name and year, in that order. An unusable date
+uses the existing skip/result-report behavior.
 Reuse R8's explicit authorization, Windows-backed moves, collision handling, progress, operation
-records and recovery. Planning must resolve the date basis, missing dates and destination structure
-before implementation. The [roadmap](../roadmap.md#r9--album-files-by-year) owns scheduling and status.
+records and recovery. The [execution plan](../plans/r9-album-files-by-year.md) owns implementation
+and metadata-tool evaluation; the [roadmap](../roadmap.md#r9--album-files-by-year) owns scheduling
+and status.
 
 ## R10 - Large-library maturity and release readiness
 
