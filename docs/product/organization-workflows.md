@@ -226,6 +226,9 @@ This extends the physical organization workflow, independently of the virtual al
 Use the effective gallery date: capture time, then file creation time, then file modification time.
 The default destination is the chosen root, album name and year, in that order. An unusable date
 uses the existing skip/result-report behavior.
+In an album, selecting images and choosing File > Move opens the existing confirmation with
+album/year organization selected. The folder-structure menu retains the other supported rules;
+ordinary gallery moves still default to placing files directly in the chosen folder.
 Reuse R8's explicit authorization, Windows-backed moves, collision handling, progress, operation
 records and recovery. The [execution plan](../plans/r9-album-files-by-year.md) owns implementation
 and metadata-tool evaluation; the [roadmap](../roadmap.md#r9--album-files-by-year) owns scheduling

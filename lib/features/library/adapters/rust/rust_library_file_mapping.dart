@@ -61,6 +61,8 @@ exports.FileOrganizationRule fileOrganizationRuleToRust(
   LibraryFileOrganizationRule.album => exports.FileOrganizationRule.album,
   LibraryFileOrganizationRule.date => exports.FileOrganizationRule.date,
   LibraryFileOrganizationRule.source => exports.FileOrganizationRule.source,
+  LibraryFileOrganizationRule.albumYear =>
+    exports.FileOrganizationRule.albumYear,
 };
 
 LibraryFileExport fileExportFromRust(exports.FileExportRecord value) =>

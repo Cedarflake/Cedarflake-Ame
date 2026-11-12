@@ -5,7 +5,7 @@ use crate::domain::file_operation_journal::invalid;
 
 use super::{current_schema, database_error, schema_shape};
 
-const BATCHES: &str = "CREATE TABLE file_operation_exports (
+pub(super) const BATCHES: &str = "CREATE TABLE file_operation_exports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     batch_id TEXT NOT NULL UNIQUE CHECK(length(batch_id) BETWEEN 1 AND 256),
     authorized_unix_ms INTEGER NOT NULL,
@@ -38,7 +38,7 @@ const SKIP_IMMUTABLE: &str = "CREATE TRIGGER file_operation_export_skips_immutab
     BEFORE UPDATE ON file_operation_export_skips BEGIN SELECT RAISE(ABORT, 'export skips are immutable'); END";
 const SKIP_RETAIN: &str = "CREATE TRIGGER file_operation_export_skips_retained
     BEFORE DELETE ON file_operation_export_skips BEGIN SELECT RAISE(ABORT, 'export skips are durable'); END";
-const OBJECTS: &[(&str, &str, &str)] = &[
+pub(super) const OBJECTS: &[(&str, &str, &str)] = &[
     ("table", "file_operation_exports", BATCHES),
     ("table", "file_operation_export_skips", SKIPS),
     (
@@ -78,9 +78,16 @@ pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), S
     current_schema::validate_schema_version(transaction, 81)
 }
 
-pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
+pub(super) fn validate(connection: &Connection, version: i64) -> Result<(), ScanError> {
     for (kind, name, sql) in OBJECTS {
-        if !schema_shape::schema_object_sql_matches(connection, kind, name, sql)? {
+        let expanded;
+        let expected = if version >= 82 && *name == "file_operation_exports" {
+            expanded = super::album_year_exports::batches_schema();
+            expanded.as_str()
+        } else {
+            sql
+        };
+        if !schema_shape::schema_object_sql_matches(connection, kind, name, expected)? {
             return Err(invalid(format!(
                 "The export history schema is invalid: {name}"
             )));
@@ -91,6 +98,7 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
 
 #[cfg(test)]
 pub(super) fn downgrade_for_test(connection: &Connection) {
+    super::album_year_exports::downgrade_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() == 81 {
         connection
             .execute_batch(
@@ -153,6 +161,7 @@ mod tests {
             "旅行"
         );
         assert_eq!(catalog.load_organization_history().unwrap(), history);
-        current_schema::validate_schema_version(&catalog.connection, 81).unwrap();
+        current_schema::validate_schema_version(&catalog.connection, super::super::SCHEMA_VERSION)
+            .unwrap();
     }
 }

@@ -7933,6 +7933,7 @@ impl SseDecode for crate::domain::file_operation_exports::FileOrganizationRule {
             2 => crate::domain::file_operation_exports::FileOrganizationRule::Album,
             3 => crate::domain::file_operation_exports::FileOrganizationRule::Date,
             4 => crate::domain::file_operation_exports::FileOrganizationRule::Source,
+            5 => crate::domain::file_operation_exports::FileOrganizationRule::AlbumYear,
             _ => unreachable!("Invalid variant for FileOrganizationRule: {}", inner),
         };
     }
@@ -13579,6 +13580,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::file_operation_exports::Fi
             Self::Album => 2.into_dart(),
             Self::Date => 3.into_dart(),
             Self::Source => 4.into_dart(),
+            Self::AlbumYear => 5.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -18162,6 +18164,7 @@ impl SseEncode for crate::domain::file_operation_exports::FileOrganizationRule {
                 crate::domain::file_operation_exports::FileOrganizationRule::Album => 2,
                 crate::domain::file_operation_exports::FileOrganizationRule::Date => 3,
                 crate::domain::file_operation_exports::FileOrganizationRule::Source => 4,
+                crate::domain::file_operation_exports::FileOrganizationRule::AlbumYear => 5,
                 _ => {
                     unimplemented!("");
                 }

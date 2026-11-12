@@ -53,7 +53,7 @@ impl SqliteFileOperationSelection {
              CREATE TEMP TABLE file_operation_selection (
                ordinal INTEGER PRIMARY KEY, asset_id TEXT NOT NULL, location_id TEXT NOT NULL UNIQUE,
                source_generation INTEGER NOT NULL, root_generation INTEGER NOT NULL, file_size INTEGER NOT NULL,
-               destination_folder TEXT, skip_reason TEXT);
+               destination_folder TEXT, destination_year TEXT, skip_reason TEXT);
              CREATE INDEX temp.file_operation_selection_asset ON file_operation_selection(asset_id);"
         ).map_err(database_error)?;
         let sql_cancelled = Arc::clone(&cancelled);
@@ -247,7 +247,7 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
             .transpose()?
             .unwrap_or(0);
         let mut statement = self.catalog.connection.prepare(
-            "SELECT ordinal, asset_id, location_id, source_generation, root_generation, destination_folder, skip_reason FROM temp.file_operation_selection
+            "SELECT ordinal, asset_id, location_id, source_generation, root_generation, destination_folder, skip_reason, destination_year FROM temp.file_operation_selection
              WHERE ordinal > ?1 ORDER BY ordinal LIMIT ?2").map_err(database_error)?;
         let rows = statement
             .query_map(params![after, FILE_OPERATION_PAGE_SIZE as i64], |row| {
@@ -259,11 +259,12 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
                     row.get::<_, i64>(4)?,
                     row.get::<_, Option<String>>(5)?,
                     row.get::<_, Option<String>>(6)?,
+                    row.get::<_, Option<String>>(7)?,
                 ))
             })
             .map_err(database_error)?;
         rows.map(|row| {
-            let (ordinal, asset_id, location_id, generation, root_generation, folder, reason) =
+            let (ordinal, asset_id, location_id, generation, root_generation, folder, reason, year) =
                 row.map_err(database_error)?;
             let location = self
                 .catalog
@@ -278,13 +279,19 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
                 ordinal: sqlite_unsigned(ordinal, "selected ordinal")?,
                 location,
                 root_generation: sqlite_unsigned(root_generation, "selected root generation")?,
-                organization_destination: match (folder, reason) {
-                    (_, Some(reason)) => {
+                organization_destination: match (folder, reason, year) {
+                    (_, Some(reason), _) => {
                         crate::domain::file_operation_exports::FileOrganizationDestination::Skip(
                             reason,
                         )
                     }
-                    (Some(folder), _) => {
+                    (Some(album), _, Some(year)) => {
+                        crate::domain::file_operation_exports::FileOrganizationDestination::AlbumYear {
+                            album,
+                            year,
+                        }
+                    }
+                    (Some(folder), _, _) => {
                         crate::domain::file_operation_exports::FileOrganizationDestination::Folder(
                             folder,
                         )

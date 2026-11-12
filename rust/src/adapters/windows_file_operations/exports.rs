@@ -21,32 +21,9 @@ impl NativeFileExports for WindowsFileOperations {
     fn organization_directory(
         &self,
         root: &FileOperationDirectory,
-        name: &str,
+        components: &[&str],
     ) -> Result<FileOperationDirectory, ScanError> {
-        let _lane = super::mutation_lane()
-            .map_err(|issue| ScanError::new("file_operation_busy", issue.message))?;
-        scope::validate_name(name)
-            .map_err(|issue| ScanError::new("file_organization_name_invalid", issue.message))?;
-        let guard = scope::open_directory(root, FileOperationIssueKind::DestinationChanged)
-            .map_err(|issue| {
-                ScanError::new("file_operation_destination_unavailable", issue.message)
-            })?;
-        let path = guard.operation_path(name);
-        match std::fs::create_dir(&path) {
-            Ok(()) => {}
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
-            Err(error) => {
-                return Err(ScanError::new(
-                    "file_organization_directory_failed",
-                    error.to_string(),
-                ));
-            }
-        }
-        // The root guard pins every ancestor. Opening the child rejects files, reparse points
-        // and unavailable placeholders before any media request receives this directory identity.
-        let visible = std::path::Path::new(&root.path).join(name);
-        scope::inspect_directory(&visible.to_string_lossy())
-            .map_err(|issue| ScanError::new("file_organization_directory_failed", issue.message))
+        super::directories::create(root, components)
     }
 
     fn begin_export_report(

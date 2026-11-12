@@ -34,7 +34,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R6 | Perceptual similarity review | Merged into `main` on 2026-11-05 |
 | R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
 | R8 | Authorized file organization and recovery | Merged into `main` on 2026-11-11 through [PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57); incorporates former R9 |
-| R9 | Move album files into year-based folders | Planned; implementation not started |
+| R9 | Move album files into year-based folders | Implemented on `codex/r9-album-files-by-year`; final verification and delivery in progress |
 | R10 | Large-library maturity and release readiness | Follows R9, entering the Beta release phase; execution planning pending |
 
 R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
@@ -85,8 +85,9 @@ work branches have been deleted.
 The [R9 product scope](product/organization-workflows.md#r9---album-files-by-year) and
 [execution plan](plans/r9-album-files-by-year.md) use gallery dates and album/year destinations.
 The plan retains existing metadata and Windows file operations, with ExifTool evaluated as a
-comparison tool rather than a prerequisite. Product implementation has not started and remains
-excluded from Alpha 3; the plan does not authorize moving existing media.
+comparison tool rather than a prerequisite. Implementation and disposable Sandbox verification are
+recorded in the [R9 acceptance section](acceptance/r8-file-operations.md#r9-album-files-by-year--2026-11-12).
+Final checks and branch delivery remain in progress; integration into `main` is not authorized.
 
 ### Duplicate cleanup entry points
 

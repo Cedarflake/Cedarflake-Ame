@@ -245,7 +245,7 @@ fn file_operation_sandbox_organizes_files_and_retries_only_the_result_report() {
     );
 }
 
-fn transfer(
+pub(super) fn transfer(
     storage: &StoragePaths,
     locations: &[OrganizationSelection],
     root: &std::path::Path,
@@ -290,7 +290,7 @@ fn write_report(storage: &StoragePaths, batch: &str) -> FileOperationTaskProgres
     )
 }
 
-fn report_path(progress: FileOperationTaskProgress) -> String {
+pub(super) fn report_path(progress: FileOperationTaskProgress) -> String {
     match progress.export.unwrap().report {
         FileExportReport::Written(path) => path,
         other => panic!("Expected report, got {other:?}"),

@@ -96,4 +96,4 @@ sealed class FileExportReport with _$FileExportReport {
       FileExportReport_Failed;
 }
 
-enum FileOrganizationRule { direct, category, album, date, source }
+enum FileOrganizationRule { direct, category, album, date, source, albumYear }

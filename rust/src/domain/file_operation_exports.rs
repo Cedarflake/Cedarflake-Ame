@@ -9,6 +9,7 @@ pub enum FileOrganizationRule {
     Album,
     Date,
     Source,
+    AlbumYear,
 }
 
 #[derive(Clone, Debug)]
@@ -49,5 +50,6 @@ pub struct FileExportRecord {
 pub enum FileOrganizationDestination {
     Direct,
     Folder(String),
+    AlbumYear { album: String, year: String },
     Skip(String),
 }

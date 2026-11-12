@@ -292,7 +292,7 @@ pub(super) fn validate_schema_structure(
         super::file_operation_notifications::validate(connection)?;
     }
     if schema_version >= 81 {
-        super::file_operation_exports::validate(connection)?;
+        super::file_operation_exports::validate(connection, schema_version)?;
     }
     validate_existing_source_metadata_marker(connection)
 }

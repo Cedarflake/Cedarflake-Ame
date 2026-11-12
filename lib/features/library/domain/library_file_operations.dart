@@ -4,7 +4,14 @@ import "library_similar_review.dart";
 
 enum LibraryFileAction { copy, move, rename, recycle, deletePermanently }
 
-enum LibraryFileOrganizationRule { direct, category, album, date, source }
+enum LibraryFileOrganizationRule {
+  direct,
+  category,
+  album,
+  date,
+  source,
+  albumYear,
+}
 
 sealed class LibraryFileSelection {
   const LibraryFileSelection();

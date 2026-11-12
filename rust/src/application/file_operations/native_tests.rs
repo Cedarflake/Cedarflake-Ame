@@ -16,6 +16,7 @@ use crate::ports::organization::OrganizationRepository;
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 
 use super::*;
+mod album_years;
 mod cleanup;
 mod exports;
 mod recovery;
