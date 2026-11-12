@@ -807,4 +807,13 @@ Flutter file-operation suite 856. The existing migration dispatcher adds only th
 
 Review covers the rule/default mapping, bounded snapshot, nested directory admission, schema upgrade,
 owned copy handle and receipt/error paths. The existing R8 source-admission, recovery and recycling
-limits remain applicable. Hosted checks and final branch delivery are pending.
+limits remain applicable.
+
+Implementation commit `cc21e9cd` passed the full hosted regression and Windows production build in
+[CI run 43155591180](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43155591180), including
+all four Rust partitions, Flutter, static, Windows scan, accessibility and the final Windows Gate.
+The later `f263221d` changes favorite-label sizing and its scoped documentation/regression; R9's
+file-operation inputs are unchanged. That presentation follow-up passed the 25 existing selection
+action cases and a rebuilt Sandbox UI check. Its screenshot confirms compact favorite/album spacing
+and the retained album/year move default. These follow-up checks were local, not a second full CI run.
+Both implementation commits are pushed on `codex/r9-album-files-by-year`.
