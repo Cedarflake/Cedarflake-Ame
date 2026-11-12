@@ -54,6 +54,10 @@ class LibraryFileMenu extends ConsumerWidget {
             selection: selection,
           ),
           action: action,
+          initialRule: initialFileOrganizationRule(
+            action: action,
+            query: selection.query,
+          ),
         );
         final result = await submitted?.completion;
         if (context.mounted && (result?.published ?? 0) > 0) onCommitted();

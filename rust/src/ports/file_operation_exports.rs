@@ -39,7 +39,7 @@ pub trait NativeFileExports: Send + Sync {
     fn organization_directory(
         &self,
         root: &FileOperationDirectory,
-        name: &str,
+        components: &[&str],
     ) -> Result<FileOperationDirectory, ScanError>;
     fn begin_export_report(
         &self,

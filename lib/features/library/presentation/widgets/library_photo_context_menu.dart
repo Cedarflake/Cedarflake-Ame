@@ -142,6 +142,10 @@ class LibraryPhotoContextMenu {
             ),
             initialName: fileName,
             action: fileAction,
+            initialRule: initialFileOrganizationRule(
+              action: fileAction,
+              query: query,
+            ),
           );
         case _PhotoAction.favorite:
           await commands.favorite(target, !decision!.favorite);

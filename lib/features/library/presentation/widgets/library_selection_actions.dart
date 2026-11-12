@@ -398,25 +398,22 @@ class _LibrarySelectionActionsState
                   ? Symbols.heart_minus_rounded
                   : Symbols.favorite_rounded,
             ),
-            label: IndexedStack(
-              alignment: AlignmentDirectional.centerStart,
-              index: switch ((onlyFavorites, mixedFavorites)) {
-                (true, _) => 1,
-                (_, true) => 2,
-                _ => 0,
-              },
-              children: [
-                const Text("收藏"),
-                const Text("取消收藏"),
-                const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text("收藏"),
-                    SizedBox(width: 4),
-                    Icon(Symbols.arrow_drop_down_rounded, size: 20),
+            label: AnimatedSize(
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : Durations.short3,
+              curve: Easing.standard,
+              alignment: AlignmentDirectional.centerEnd,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(onlyFavorites ? "取消收藏" : "收藏"),
+                  if (mixedFavorites) ...[
+                    const SizedBox(width: 4),
+                    const Icon(Symbols.arrow_drop_down_rounded, size: 20),
                   ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

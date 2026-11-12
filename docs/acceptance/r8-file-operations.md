@@ -759,3 +759,61 @@ checks pass. Native-window repetition retained the selected screenshot, opened a
 recycle confirmation and cancelled with selection intact. No physical deletion was submitted.
 The screen retains its existing selection owner at 1,999 production lines without inline tests;
 the reused dedicated selection suite contains 251 lines.
+
+## R9 album files by year — 2026-11-12
+
+Scope: `codex/r9-album-files-by-year`, based on `2371e3c7`; the
+[R9 plan](../plans/r9-album-files-by-year.md) owns the affected workflow. Album moves default to
+album/year folders. Other entry points retain their existing defaults and structure choices.
+Schema 82 adds the saved rule without changing executable operation authorizations.
+
+The disposable Windows Sandbox exercised same-volume and cross-volume moves through the production
+selection, native execution and catalog-publication path. Both cases passed in 13.39 seconds:
+Chinese filenames, two calendar years, existing folders, `(1)` collisions, missing-album skips,
+TXT results, exact bytes, original file dates, and retained album/favorite identities after reopening
+the catalog. Repeating an already organized move skipped both files without renaming them.
+Invalid nested components were rejected before creating the first directory.
+
+The actual desktop workflow imported two dated images, assigned album `r9` and favorites, then moved
+them across guest-local volumes into `r9/2023` and `r9/2024`. The confirmation selected
+`按相册与年份`; completion reported two moved files. A subsequent ordinary copy retained its direct
+destination default and produced two copies. All four output hashes matched the inputs; creation
+and modification times remained July 15 at 10:00 UTC in their respective years. The move sources
+were absent. After normal closure and restart, gallery, album and favorites each retained both
+images and their original dates. The client, Sandbox and leased staging were then retired.
+
+The initial desktop run exposed a creation-date reset in the shared CopyFile2 path that the earlier
+capture-date fixture did not reveal. The repaired path restores source creation/modification times
+through its owned destination handle. The native regression now uses real filesystem dates, and
+the repeated desktop move and copy above verify the repair. The verified Debug DLL SHA-256 is
+`9da443a22855962d98593b2c7df72eaa386e25f1d1147335176a70beb47cc068`.
+
+Existing guest fixtures passed for export rules and report-only retry (6.41 seconds), and native
+receipt recovery/catalog publication without replay (6.17 seconds). The migration case passed for
+old export/skip history, durable organization records, transactional rollback, next ID and retained
+constraints. The affected Flutter suite passed all ten cases, including the connected menu default,
+destination selection, alternate rule and cancellation. Bridge verification retained 39 asynchronous
+contracts and matching generated hashes. The Debug desktop build completed in 355.7 seconds.
+
+The two SQLite destination cases passed in 7.18 seconds. They cover cached-date precedence and year
+boundaries, missing dates, conflicting albums, and a 513-item selection read in pages of at most
+128. Cancellation rejects a replacement freeze while preserving the previously resolved destinations.
+
+Affected production owners contain 305 selection lines, 75 freeze lines, 120 destination-resolution
+lines, 134 native-copy lines, 46 directory-traversal lines and 279 dialog lines, with no inline tests.
+The new migration has 54 production lines and 15 test-helper/module lines; its dedicated tests have
+98 lines. The reused destination suite has 245 lines, native year-move fixtures 230, and the affected
+Flutter file-operation suite 856. The existing migration dispatcher adds only the three routing lines.
+
+Review covers the rule/default mapping, bounded snapshot, nested directory admission, schema upgrade,
+owned copy handle and receipt/error paths. The existing R8 source-admission, recovery and recycling
+limits remain applicable.
+
+Implementation commit `cc21e9cd` passed the full hosted regression and Windows production build in
+[CI run 43155591180](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43155591180), including
+all four Rust partitions, Flutter, static, Windows scan, accessibility and the final Windows Gate.
+The later `f263221d` changes favorite-label sizing and its scoped documentation/regression; R9's
+file-operation inputs are unchanged. That presentation follow-up passed the 25 existing selection
+action cases and a rebuilt Sandbox UI check. Its screenshot confirms compact favorite/album spacing
+and the retained album/year move default. These follow-up checks were local, not a second full CI run.
+Both implementation commits are pushed on `codex/r9-album-files-by-year`.

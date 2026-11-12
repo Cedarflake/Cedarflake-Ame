@@ -25,6 +25,7 @@ Future<LibraryFileActionSubmission?> showLibraryFileAction({
   required LibraryFileSelection selection,
   required LibraryFileAction action,
   String? initialName,
+  LibraryFileOrganizationRule initialRule = LibraryFileOrganizationRule.direct,
 }) async {
   final commands = ref.read(libraryFileActionsProvider.notifier);
   if (ref.read(libraryFileActionsProvider).busy) return null;
@@ -38,6 +39,7 @@ Future<LibraryFileActionSubmission?> showLibraryFileAction({
       session: session,
       action: action,
       initialName: initialName,
+      initialRule: initialRule,
     ),
   );
   if (command == null) {
@@ -53,10 +55,12 @@ class _FileActionDialog extends ConsumerStatefulWidget {
     required this.session,
     required this.action,
     this.initialName,
+    required this.initialRule,
   });
   final LibraryFileSelectionSession session;
   final LibraryFileAction action;
   final String? initialName;
+  final LibraryFileOrganizationRule initialRule;
   @override
   ConsumerState<_FileActionDialog> createState() => _FileActionDialogState();
 }
@@ -70,7 +74,7 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
   String? _directory;
   bool _permanent = false;
   bool _picking = false;
-  LibraryFileOrganizationRule _rule = LibraryFileOrganizationRule.direct;
+  late LibraryFileOrganizationRule _rule = widget.initialRule;
 
   @override
   void initState() {
@@ -201,11 +205,7 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
                   ),
                   if (_rule != LibraryFileOrganizationRule.direct) ...[
                     const SizedBox(height: 8),
-                    Text(
-                      _rule == LibraryFileOrganizationRule.date
-                          ? "按图库日期建立 YYYY-MM 文件夹；缺少日期的文件会跳过。"
-                          : "无法确定目标的文件会跳过，并在目标文件夹中生成结果清单。",
-                    ),
+                    Text(LibraryFileStrings.ruleDescription(_rule)),
                   ],
                 ],
                 if (rename) ...[

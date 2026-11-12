@@ -1,5 +1,9 @@
 import "dart:async";
 
+import "package:cedarflake_ame/features/library/application/directory_picker.dart";
+import "package:cedarflake_ame/features/library/application/ports/directory_picker.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_file_menu.dart";
+
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_group_thumbnail.dart";
 import "package:cedarflake_ame/app/presentation/ame_dialog.dart";
 import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
@@ -33,6 +37,72 @@ import "../../../support/similar_review_fixtures.dart";
 import "../support/library_organization_fixture.dart";
 
 void main() {
+  testWidgets(
+    "album moves default to year folders and retain other structures",
+    (tester) async {
+      final backend = _Backend();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            libraryFileOperationsProvider.overrideWithValue(backend),
+            directoryPickerProvider.overrideWithValue(_ExportPicker()),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: LibraryFileMenu(
+                selection: LibraryOrganizationSelection(
+                  query: const LibraryGalleryQuery(
+                    collection: LibraryGalleryCollection.album("travel"),
+                  ),
+                  catalogRevision: BigInt.one,
+                  allMatching: true,
+                  assetIds: const [],
+                ),
+                enabled: true,
+                onCommitted: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text("文件"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("移动"));
+      await tester.pumpAndSettle();
+      expect(find.text("按相册与年份"), findsOneWidget);
+      expect(backend.commands, isEmpty);
+      await tester.tap(find.text("选择文件夹"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, "移动"));
+      await tester.pumpAndSettle();
+      expect(
+        backend.commands.single.rule,
+        LibraryFileOrganizationRule.albumYear,
+      );
+      expect(backend.commands.single.directory, r"C:\Destination");
+
+      await tester.tap(find.text("文件"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("移动"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("按相册与年份"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("按日期"));
+      await tester.pumpAndSettle();
+      expect(find.textContaining("YYYY-MM"), findsOneWidget);
+      await tester.tap(find.text("取消"));
+      await tester.pumpAndSettle();
+      expect(backend.commands, hasLength(1));
+      expect(
+        initialFileOrganizationRule(
+          action: LibraryFileAction.move,
+          query: const LibraryGalleryQuery(),
+        ),
+        LibraryFileOrganizationRule.direct,
+      );
+    },
+  );
+
   testWidgets(
     "file selection uses the revision when the menu action is chosen",
     (tester) async {
@@ -676,6 +746,11 @@ class _RefreshingLibrary extends OrganizationLibraryFixture {
   void publishRevision(BigInt revision) {
     state = state.copyWith(catalogRevision: revision);
   }
+}
+
+class _ExportPicker implements DirectoryPicker {
+  @override
+  Future<String?> pickDirectory() async => r"C:\Destination";
 }
 
 class _Backend implements LibraryFileOperations {

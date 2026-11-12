@@ -451,7 +451,13 @@ void main() {
     batch.preparing!.complete(batch.summary);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key("library-selection-progress")), findsNothing);
-    expect(controls.map(tester.getRect).toList(), bounds);
+    final resolvedBounds = controls.map(tester.getRect).toList();
+    expect(resolvedBounds.first.width, greaterThan(bounds.first.width));
+    expect(resolvedBounds.first.height, bounds.first.height);
+    expect(
+      resolvedBounds.skip(1).map((rect) => rect.size),
+      bounds.skip(1).map((rect) => rect.size),
+    );
     expect(find.text("加入或移至相册"), findsOneWidget);
     expect(batches.batches.single.writes, isEmpty);
     await tester.tap(find.text("移出相册"));
@@ -464,6 +470,7 @@ void main() {
     expect(committed, 1);
     expect(find.byKey(const Key("library-album-picker")), findsNothing);
     expect(batches.batches.single.closes, 1);
+    expect(controls.map(tester.getRect).toList(), resolvedBounds);
   });
 
   testWidgets("short album preparation never displays progress", (

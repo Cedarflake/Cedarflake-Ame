@@ -99,8 +99,11 @@ Recycle Bin metadata. Permanent deletion exposes no restore action.
 
 For cross-volume moves, use native copy, durable receipt recording, bounded byte verification with
 both identities held, and separately authorized source removal through `FileDispositionInfo` on
-the exact source handle. Flush completed copy streams before returning the copy receipt. The
-destination stays protected from concurrent writes/deletion throughout verification and source
+the exact source handle. Retain an owned clone of CopyFile2's destination handle, then preserve
+the held source's creation and modification times through `File::set_times` after the native copy.
+Flush data and timestamps before returning the copy receipt; the shared copy path applies this
+timestamp contract to ordinary copies as well. The destination stays protected from concurrent
+writes/deletion throughout verification and source
 removal. Cancellation or verification failure retains the original. SQLite and filesystem mutation
 are separate durable transitions, never one atomic transaction.
 
@@ -177,7 +180,14 @@ selection snapshot before preparing native requests. Category organization uses 
 effective classification; album organization uses its durable membership and skips conflicting or
 retired destinations. Dates use the gallery's capture/file-date fallback and `YYYY-MM` folders;
 source organization uses the registered source folder's name. Missing metadata is a recorded skip.
-The native adapter validates the resulting single directory component without silently rewriting it.
+The album/year rule combines the same album resolution with the saved gallery date's four-digit
+calendar year. It resolves two separate directory components; it does not read the source again or
+interpret a joined path as a directory name. The native adapter validates all components before
+creation and retains admitted ancestor handles while traversing them, without silently rewriting names.
+
+Schema v82 adds the `album_year` export rule. Its transactional table rebuild retains export IDs,
+report state and skipped-item history, restores their constraints and immutable-history triggers,
+and rolls back together on failure. Existing rules and executable item authorizations are unchanged.
 
 Result-report status is independent of file checkpoints. Generate exceptional-item text from bounded
 journal and skip pages, retaining the authorization time in UTC and actual output paths. A report-only
@@ -237,10 +247,11 @@ conversion. Use typed bindings; no handwritten vtables, global callback registry
 raw interface pointers. Source opening and identity checks reuse ADR 0007/0024 guards.
 
 Copy callback context and UTF-16 input arrays outlive the synchronous call; access only the union
-member selected by the native message tag. Copy only the destination identity from the borrowed
-stream-start handle, closing its temporary duplicate before callback return; compare it with the
-completed destination so a replacement file cannot become the receipt. Callbacks retain no native
-pointers, use checked mutex access and atomic progress/cancellation, and cannot unwind. Rename
+member selected by the native message tag. Duplicate the borrowed stream-start handle into one
+owned file handle, retain its identity, and close that clone after timestamp preservation and flush.
+Compare its identity with the completed destination so a replacement file cannot become the receipt.
+Callbacks retain no borrowed native pointers, use checked mutex access and atomic
+progress/cancellation, and cannot unwind. Rename
 buffers use pointer-aligned storage, checked byte lengths and space for the complete UTF-16 tail;
 the replace flag remains zero. Keep the source handle live through the call. Native errors and
 post-operation inspection decide whether a result is known or requires reconciliation.

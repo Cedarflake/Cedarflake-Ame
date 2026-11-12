@@ -17,7 +17,7 @@ impl NativeFileExports for ReportDestination {
     fn organization_directory(
         &self,
         _: &FileOperationDirectory,
-        _: &str,
+        _: &[&str],
     ) -> Result<FileOperationDirectory, ScanError> {
         unreachable!()
     }

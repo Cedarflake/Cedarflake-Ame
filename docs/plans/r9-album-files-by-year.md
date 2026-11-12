@@ -32,10 +32,11 @@ four-digit year. For example, an album named `旅行` and gallery year 2024 yiel
 existing single-component native boundary. Preserve original filenames except for R8's existing
 numbered conflict resolution.
 
-Freeze the selected physical targets, album identity/name, date evidence and resolved destination
-for confirmation. Reuse R8's physical selection semantics: a duplicate badge alone does not expand
-move scope. Each physical location appears once. Unrelated catalog or organization updates must
-not cancel preparation; revalidate changes that affect these selected targets or destinations.
+Freeze the selected physical targets for confirmation. Once the user confirms the folder rule,
+resolve album identity/name and cached date evidence in one catalog snapshot before preparing native
+requests. Reuse R8's physical selection semantics: a duplicate badge alone does not expand move
+scope. Each physical location appears once. Unrelated catalog or organization updates must not
+cancel preparation; revalidate changes that affect these selected targets or destinations.
 
 Reuse the existing skip/report path for multiple possible album destinations, unusable dates,
 unavailable files and already-correct destinations. Preserve current album membership, favorites

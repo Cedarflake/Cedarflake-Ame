@@ -24,7 +24,7 @@ impl crate::ports::file_operation_exports::NativeFileExports for BlockedNative {
     fn organization_directory(
         &self,
         _: &FileOperationDirectory,
-        _: &str,
+        _: &[&str],
     ) -> Result<FileOperationDirectory, ScanError> {
         unreachable!()
     }

@@ -1,5 +1,6 @@
 mod complete_move;
 mod copy;
+mod directories;
 mod exports;
 mod output;
 mod recovery;
@@ -156,6 +157,7 @@ fn transfer(
         copy::copy(
             &scope.source.operation_path(&scope.source_name),
             &destination_path,
+            &source,
             control,
         )
         .map(Some)

@@ -37,7 +37,8 @@ R4's organization actions in More, including chronological undo and redo, are li
 mode. Ordinary selection and viewing retain their applicable browsing and later classification actions.
 Preparation lasting over 500 milliseconds uses the existing bottom task feedback, outside the
 toolbar. Short preparation shows no indicator; completion removes it immediately.
-Button bounds stay stable through preparation, tray opening and dismissal.
+Tray opening and dismissal retain button bounds. State-dependent labels use their current content
+width and animate size changes rather than reserving space for every possible label.
 
 ```text
 选择相册
@@ -85,8 +86,8 @@ Button bounds stay stable through preparation, tray opening and dismissal.
 Selection quietly reads the current groups to show `收藏` when all are unfavorited and `取消收藏`
 when all are favorited. These uniform selections act directly on activation. Only a mixed selection
 opens a dropdown offering `加入收藏夹` and `取消收藏`; its trigger retains `收藏` with a dropdown arrow.
-The summary read does not disable album, file or cancel controls, and label changes retain button
-bounds. Activation reuses the prepared guarded target; no decision changes before the user acts.
+The summary read does not disable album, file or cancel controls. Activation reuses the prepared
+guarded target; no decision changes before the user acts.
 A cancelled or changed selection cannot apply an earlier action to new images. A chosen
 mixed-selection command retains that intent through commit.
 Unfavorite uses the heart-minus icon. Favorite changes leave album

@@ -21,7 +21,14 @@ abstract final class LibraryFileStrings {
     LibraryFileOrganizationRule.album => "按相册",
     LibraryFileOrganizationRule.date => "按日期",
     LibraryFileOrganizationRule.source => "按来源文件夹",
+    LibraryFileOrganizationRule.albumYear => "按相册与年份",
   };
+  static String ruleDescription(LibraryFileOrganizationRule rule) =>
+      switch (rule) {
+        LibraryFileOrganizationRule.date => "按图库日期建立 YYYY-MM 文件夹；缺少日期的文件会跳过。",
+        LibraryFileOrganizationRule.albumYear => "按图库日期放入相册名／年份文件夹，例如：旅行／2024。",
+        _ => "无法确定目标的文件会跳过，并在目标文件夹中生成结果清单。",
+      };
   static String action(LibraryFileAction action) => switch (action) {
     LibraryFileAction.copy => "复制",
     LibraryFileAction.move => "移动",

@@ -65,8 +65,18 @@ pub(super) fn authorize(
                         "An organization rule needs an export root",
                     )
                 })?,
-                name,
+                &[name],
             )?,
+            FileOrganizationDestination::AlbumYear { album, year } => native
+                .organization_directory(
+                    root.ok_or_else(|| {
+                        ScanError::new(
+                            "file_operation_command_invalid",
+                            "An organization rule needs an export root",
+                        )
+                    })?,
+                    &[album, year],
+                )?,
             FileOrganizationDestination::Direct => {
                 root.cloned().unwrap_or_else(|| source.parent.clone())
             }

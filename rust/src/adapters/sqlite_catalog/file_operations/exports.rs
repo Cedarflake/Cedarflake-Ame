@@ -229,6 +229,7 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Result<FileExportRecord, Sc
                     "album" => FileOrganizationRule::Album,
                     "date" => FileOrganizationRule::Date,
                     "source" => FileOrganizationRule::Source,
+                    "album_year" => FileOrganizationRule::AlbumYear,
                     _ => return Err(invalid("Invalid export rule")),
                 },
                 selected_files: sqlite_unsigned(count, "export file count")?,
@@ -247,5 +248,6 @@ fn rule_name(rule: FileOrganizationRule) -> &'static str {
         FileOrganizationRule::Album => "album",
         FileOrganizationRule::Date => "date",
         FileOrganizationRule::Source => "source",
+        FileOrganizationRule::AlbumYear => "album_year",
     }
 }

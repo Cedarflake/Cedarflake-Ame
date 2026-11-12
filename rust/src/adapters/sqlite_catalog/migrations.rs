@@ -13,6 +13,7 @@ use super::{
 };
 
 mod album_icons;
+mod album_year_exports;
 mod camera_metadata;
 mod catch_up_contract;
 mod catch_up_repair;
@@ -200,6 +201,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         file_operations::migrate_transaction(&transaction)?;
         file_operation_notifications::migrate_transaction(&transaction)?;
         file_operation_exports::migrate_transaction(&transaction)?;
+        album_year_exports::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -321,6 +323,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             78 => file_operations::migrate(connection)?,
             79 => file_operation_notifications::migrate(connection)?,
             80 => file_operation_exports::migrate(connection)?,
+            81 => album_year_exports::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
