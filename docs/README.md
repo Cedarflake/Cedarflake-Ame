@@ -16,6 +16,7 @@ only the contracts, execution details, and evidence that own the task.
 | How are semantic search and composed filters implemented? | [R7 implementation plan](plans/r7-semantic-discovery.md); the [roadmap](roadmap.md#r7-implementation-sequence) owns current slice disposition. |
 | How will R8 use Windows file operations and verify recovery? | [R8 execution plan](plans/r8-file-organization.md), [product scope](product/organization-workflows.md#r8---file-organization-and-recovery) and [filesystem verification](acceptance/r8-file-operations.md) |
 | How will R9 move album files by year, and where does ExifTool fit? | [R9 execution plan](plans/r9-album-files-by-year.md) and [roadmap disposition](roadmap.md#r9--album-files-by-year) |
+| What remains before the first Beta? | [R10 execution plan](plans/r10-beta-readiness.md) and [roadmap disposition](roadmap.md#r10--beta-readiness) |
 | Where will official Material spring motion be adopted? | [Material motion plan](plans/material-motion.md) and [roadmap disposition](roadmap.md#material-motion-adoption) |
 | How will project organization be refactored after R5? | [Organization execution plan](plans/project-organization.md), activated by the [roadmap](roadmap.md#project-organization-after-r5) |
 | Where are organization changes and their verification recorded? | [Initial, catalog, scan and preview evidence](acceptance/project-organization.md); [incremental and synchronization evidence](acceptance/project-organization-continuity.md) |

@@ -35,7 +35,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
 | R8 | Authorized file organization and recovery | Merged into `main` on 2026-11-11 through [PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57); incorporates former R9 |
 | R9 | Move album files into year-based folders | Merged into `main` on 2026-11-12 through [PR 60](https://github.com/Cedarflake/Cedarflake-Ame/pull/60) |
-| R10 | Large-library maturity and release readiness | Follows R9, entering the Beta release phase; execution planning pending |
+| R10 | Large-library maturity and release readiness | Planned for `v0.1.0-beta.1`; R10-01 through R10-05 await implementation |
 
 R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
 feature. The R9 identifier now denotes the separate album-by-year movement scope below; the former
@@ -69,7 +69,21 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 R8 and its follow-ups, including the loading-feedback update, and R9 album file organization are
 integrated. The current release is `v0.1.0-alpha.3`. R10's Beta release phase is next; its
 [product scope](product/organization-workflows.md#r10---large-library-maturity-and-release-readiness)
-has not yet been decomposed into an execution plan or started.
+is decomposed in the [execution plan](plans/r10-beta-readiness.md). Implementation has not started.
+
+### R10 — Beta readiness
+
+R10-01 through R10-05 proceed in order: release responsiveness, bounded resources and recovery,
+upgrade compatibility, diagnostics and user guidance, then the first Beta candidate/publication.
+All five slices are pending. Begin with measured Release/Profile behavior on the retained library;
+reuse delivered R0–R9 capabilities and current valid evidence. The plan owns the initial latency
+targets, detailed workloads and completion evidence.
+
+First-Beta exit requires the agreed performance and recovery results, preserved data across upgrade,
+usable diagnostics, no known blocking defect and passing applicable candidate gates. Both MSI and
+portable ZIP are required. Signing, additional locales, an automatic updater and the previously
+deferred constrained-device optimization are not first-Beta prerequisites. Million-item structural
+adaptation remains conditional on the existing measured limits.
 
 ### Loading feedback
 
