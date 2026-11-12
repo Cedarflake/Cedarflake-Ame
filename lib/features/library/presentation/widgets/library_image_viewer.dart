@@ -236,7 +236,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
           quarterTurns: _zoom.quarterTurns,
           imageBuilder: _buildTransformedImage,
           clipboard: copy.clipboard,
-          operationNotice: copy.notice ?? widget.operationNotice,
+          operationNotice: widget.operationNotice ?? copy.notice,
           notice: switch (widget.sourceNotice) {
             null => null,
             final notice => LibraryViewerSourceNoticeBanner(

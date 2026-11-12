@@ -21,8 +21,10 @@ class LibraryViewerCopyScope extends ConsumerStatefulWidget {
   final int quarterTurns;
   final Widget child;
 
-  static LibraryViewerCopyData of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<LibraryViewerCopyData>()!;
+  static LibraryViewerCopyData of(BuildContext context) => maybeOf(context)!;
+
+  static LibraryViewerCopyData? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<LibraryViewerCopyData>();
 
   @override
   ConsumerState<LibraryViewerCopyScope> createState() =>
@@ -110,6 +112,8 @@ class _LibraryViewerCopyScopeState
       child: LibraryViewerCopyData(
         clipboard: _clipboard,
         copy: _copy,
+        notification: notice,
+        dismiss: _dismiss,
         notice: notice == null
             ? null
             : AmeNotificationLifetime(
@@ -134,6 +138,8 @@ class LibraryViewerCopyData extends InheritedWidget {
   const LibraryViewerCopyData({
     required this.clipboard,
     required this.copy,
+    required this.notification,
+    required this.dismiss,
     required this.notice,
     required super.child,
     super.key,
@@ -141,6 +147,8 @@ class LibraryViewerCopyData extends InheritedWidget {
 
   final LibraryViewerClipboard clipboard;
   final VoidCallback copy;
+  final AmeNotificationEntry? notification;
+  final ValueChanged<String> dismiss;
   final Widget? notice;
 
   @override

@@ -37,3 +37,11 @@ bounded Windows transfer. Viewing rotation is included; zoom/pan do not crop the
 
 The temporary viewer entrypoint, pixels and keyboard diagnostics remain outside tracked source.
 No dependency, source mutation, migration or file copy/cut/paste workflow was introduced.
+
+## Review follow-up
+
+The copy notice now participates in the viewer's existing feedback selection. A newer organization
+result or a new file operation retires it, including persistent copy errors. The focused viewer case
+checks that a later Favorite result appears and its dismissal does not reveal the old copy error.
+Viewer and organization-widget suites passed all 34 cases; scoped formatting and analysis passed.
+The native clipboard path is unchanged, retaining the paste and runner-lifecycle evidence above.

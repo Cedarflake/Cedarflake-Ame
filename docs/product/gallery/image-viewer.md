@@ -13,6 +13,8 @@ image rather than the zoomed viewport, and takes one frame for animated images. 
 retain their normal text-copy shortcut. This action is separate from copying files to a folder.
 Successful writes show `图片已复制到剪贴板` using the viewer's transient notice. Failed writes
 offer retry; switching images or closing the viewer retires pending frame reads and feedback.
+Newer organization feedback or a new file operation retires an earlier copy notice;
+active file work and source recovery keep their existing priority.
 The bounded platform transfer and its oversized-image limit follow
 [ADR 0001](../../architecture/0001-flutter-rust-desktop-stack.md#viewer-image-clipboard).
 

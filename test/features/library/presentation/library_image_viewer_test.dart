@@ -3,14 +3,18 @@ import "dart:async";
 import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
+import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/app/window/ame_window_fullscreen.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_image_clipboard.dart";
+import "package:cedarflake_ame/features/library/application/library_operation_notice.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_image_clipboard.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_asset_information_sheet.dart";
+import "package:cedarflake_ame/features/library/presentation/coordination/library_organization_mode.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_organization_controls.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_toolbar.dart";
@@ -24,6 +28,7 @@ import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
+import "../support/library_review_fixture.dart";
 
 late LibrarySourceReadScheduler _sourceScheduler;
 
@@ -39,10 +44,19 @@ void main() {
     (tester) async {
       final asset = await _assetWithImage(tester, width: 6, height: 4);
       final clipboard = _ImageClipboard();
+      final mode = LibraryOrganizationMode(
+        ReviewServiceFixture(),
+        ReviewSurfaceFixture(),
+      );
+      addTearDown(mode.dispose);
+      AmeNotificationEntry? organizationNotice;
       await tester.pumpWidget(
         ProviderScope(
           overrides: _viewerOverrides([
             libraryImageClipboardProvider.overrideWithValue(clipboard),
+            libraryViewerOperationNoticeProvider.overrideWith(
+              (ref) => organizationNotice,
+            ),
           ]),
           child: MaterialApp(
             home: Scaffold(
@@ -52,6 +66,7 @@ void main() {
                 onInformation: () {},
                 onCopyPath: () {},
                 onRevealFile: () {},
+                operationNotice: LibraryViewerOrganizationNotice(mode: mode),
               ),
             ),
           ),
@@ -109,6 +124,39 @@ void main() {
       expect(find.text("无法复制图片，请重试"), findsNothing);
       await tester.pump(const Duration(seconds: 6));
       expect(find.text("图片已复制到剪贴板"), findsNothing);
+
+      clipboard.completed = Completer();
+      await tester.runAsync(() async {
+        clipboard.received = Completer();
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.keyC);
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+        await clipboard.received.future.timeout(const Duration(seconds: 5));
+      });
+      clipboard.completed.completeError(StateError("Clipboard is occupied"));
+      await tester.pumpAndSettle();
+      expect(find.text("无法复制图片，请重试"), findsOneWidget);
+      organizationNotice = AmeNotificationEntry(
+        id: "later-favorite",
+        title: "已加入收藏夹",
+        message: "",
+        severity: AmeNotificationSeverity.success,
+        occurredAt: DateTime.now().add(const Duration(seconds: 1)),
+        isUnread: false,
+        isActive: true,
+        isPersistent: false,
+      );
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(LibraryImageViewer)),
+      );
+      container.invalidate(libraryViewerOperationNoticeProvider);
+      await tester.pumpAndSettle();
+      expect(find.text("已加入收藏夹"), findsOneWidget);
+      expect(find.text("无法复制图片，请重试"), findsNothing);
+      organizationNotice = null;
+      container.invalidate(libraryViewerOperationNoticeProvider);
+      await tester.pumpAndSettle();
+      expect(find.text("无法复制图片，请重试"), findsNothing);
     },
   );
   testWidgets(
