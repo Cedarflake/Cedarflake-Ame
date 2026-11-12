@@ -30,6 +30,7 @@ only the contracts, execution details, and evidence that own the task.
 | Why was a technical boundary chosen? | [Architecture decisions](architecture/README.md) |
 | What must be proved, what actually ran, and what remains unverified? | [Acceptance index](acceptance/README.md) and [quality gates](acceptance/quality-gates.md) |
 | Where do implementation and tool files belong? | [Repository layout](development/repository-layout.md) |
+| Where are screenshot samples, and how can their dates be arranged? | [Demonstration images](development/demo-images.md) |
 | How should documents be written, split and maintained? | [Documentation standard](development/documentation.md), required by `AGENTS.md` |
 | Which tests add useful coverage, and which should be merged or removed? | [Test design and maintenance](development/testing.md), required by `AGENTS.md` |
 | Which future module dependencies, public contracts and production bindings are allowed? | [ADR 0037](architecture/0037-feature-module-dependency-boundaries.md), with staged adoption through the roadmap |
