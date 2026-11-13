@@ -875,7 +875,11 @@ before reaching assertions because the system temporary directory denied access;
 run used the repository-owned scratch directory. Review also covered archive compatibility,
 card/cover identity, preview return, and frozen cleanup scope. Earlier client observations remain
 applicable to the unchanged presentation; the candidate-source repair was verified at the SQLite
-boundary. Hosted verification is pending PR creation.
+boundary. The retained member-tray refresh case still clicked the row to select, so it opened the
+viewer after the approved interaction change. It now clicks the selection icon; all three tray
+refresh, paging and retirement cases passed. Hosted verification runs through
+[PR 62](https://github.com/Cedarflake/Cedarflake-Ame/pull/62); its results remain separate from these
+local checks.
 
 New Rust owners have 104 group-relation, 97 membership, 67 selection, 97 member-page and 105 cleanup
 production lines, with 307 dedicated group-test lines. The migration has 43 production lines and
