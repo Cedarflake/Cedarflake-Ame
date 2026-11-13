@@ -47,6 +47,26 @@ the saved or next image, alongside its existing sort precedence. Reads without a
 retain the saved payload for compatibility. Editing does not rewrite organization decisions;
 the format-list migration preserves active and bookmark scope state.
 
+## Group membership and continuation
+
+`GalleryGroupFilter` adds unrestricted, exact and similar group predicates to the same typed query.
+The SQLite group relation applies physical and logical scope before selecting representatives,
+counting, paging, locating timeline anchors or freezing file operations. Similar membership uses
+the existing standard degree, ignores excluded/ignored groups, and preserves preferred content.
+The gallery entry carries its group key separately from the real source location. Two overlapping
+groups may share one representative without sharing their selection, cursor, viewer or animation
+identity. Compact manifests retain bounded encoded entry keys alongside physical identities; their
+storage estimate includes both. Source preview caching continues to use physical identity.
+
+The member tray reads bounded physical-member pages from that relation. Its filtered cleanup scope
+freezes group keys and current scoped members through the existing file-selection workflow, retaining
+overlap protection for kept files. Explicit member deletion carries physical targets instead.
+
+Schema 83 persists the group filter alongside active and bookmarked organization scopes. A missing
+row from an older scope means unrestricted; writes and bookmark copies share the scope transaction.
+Migration preserves existing scope data and uses the established backup/rollback contract.
+[Archive version 9](0031-portable-organization-archives.md) carries the same filter through recovery.
+
 ## Alternatives and consequences
 
 Embedding operators in the search string would reinterpret literal filenames and require a second

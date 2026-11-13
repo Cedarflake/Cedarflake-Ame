@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:flutter/foundation.dart";
 
+import "../domain/library_gallery_group.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_browse_admission.dart";
@@ -246,6 +247,7 @@ class LibraryViewportController {
     LibraryGalleryQuery query, {
     String? anchorLocationId,
     String? anchorAssetId,
+    LibraryGalleryGroupKey? anchorGroupKey,
     int? fallbackGlobalItemIndex,
     bool forceRefresh = false,
     BigInt? minimumCatalogRevision,
@@ -256,6 +258,7 @@ class LibraryViewportController {
         query,
         anchorLocationId: anchorLocationId,
         anchorAssetId: anchorAssetId,
+        anchorGroupKey: anchorGroupKey,
         fallbackGlobalItemIndex: fallbackGlobalItemIndex,
         forceRefresh: forceRefresh,
         minimumCatalogRevision: minimumCatalogRevision,
@@ -269,6 +272,7 @@ class LibraryViewportController {
     LibraryGalleryQuery query, {
     String? anchorLocationId,
     String? anchorAssetId,
+    LibraryGalleryGroupKey? anchorGroupKey,
     int? fallbackGlobalItemIndex,
     bool forceRefresh = false,
     BigInt? minimumCatalogRevision,
@@ -343,6 +347,7 @@ class LibraryViewportController {
             : LibraryQueryAnchor(
                 requestedLocationId: anchorLocationId,
                 assetId: anchorAssetId,
+                groupKey: anchorGroupKey,
                 fallbackGlobalItemIndex: fallbackGlobalItemIndex ?? 0,
               ),
         minimumRevision: minimumCatalogRevision,
@@ -444,6 +449,7 @@ class LibraryViewportController {
           _state.query,
           anchorLocationId: anchor?.requestedLocationId,
           anchorAssetId: anchor?.assetId,
+          anchorGroupKey: anchor?.groupKey,
           fallbackGlobalItemIndex: anchor?.fallbackGlobalItemIndex,
           forceRefresh: true,
           minimumCatalogRevision: catalogRevision,

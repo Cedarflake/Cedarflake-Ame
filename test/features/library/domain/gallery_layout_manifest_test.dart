@@ -5,6 +5,44 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test("overlapping group cards retain distinct identities across chunks", () {
+    final builder = LibraryGalleryLayoutManifestBuilder(
+      revision: BigInt.one,
+      queryId: "grouped",
+      totalItems: 2,
+      hasGroupIdentity: true,
+    );
+    for (var index = 0; index < 2; index++) {
+      builder.append(
+        LibraryGalleryLayoutManifestChunk(
+          revision: BigInt.one,
+          queryId: "grouped",
+          totalItems: 2,
+          startOrdinal: index,
+          locationIds: const ["shared-cover"],
+          entryIds: ["similar:group-$index"],
+          aspectRatioMilli: Uint16List.fromList([1000]),
+          dateGroupIndices: Uint16List.fromList([0]),
+          dateGroups: const [null],
+          flags: Uint8List(1),
+          nextCursor: index == 0
+              ? _cursor(
+                  revision: BigInt.one,
+                  queryId: "grouped",
+                  totalItems: 2,
+                  nextOrdinal: 1,
+                )
+              : null,
+        ),
+      );
+    }
+    final manifest = builder.build();
+    expect(manifest.locationIdAt(0), manifest.locationIdAt(1));
+    expect(manifest.entryIdAt(0), "similar:group-0");
+    expect(manifest.entryIdAt(1), "similar:group-1");
+    expect(manifest.primitiveByteLength, lessThan(512));
+  });
+
   test("assembles the accepted real-library scale into compact columns", () {
     const itemCount = 79013;
     const chunkSize = 4096;

@@ -1,13 +1,18 @@
 import "../../../../src/rust/domain.dart" as rust_domain;
 
+import "../../domain/library_gallery_group.dart";
 import "../../domain/library_models.dart";
 
-LibraryAsset mapRustLibraryAsset(rust_domain.AssetLocationView asset) {
+LibraryAsset mapRustLibraryAsset(
+  rust_domain.AssetLocationView asset, {
+  LibraryGalleryGroup? galleryGroup,
+}) {
   final captureTime = asset.captureTime;
   final fileIdentity = asset.fileIdentity;
   final sourceRevision = asset.sourceRevision;
   return LibraryAsset(
     assetId: asset.assetId,
+    galleryGroup: galleryGroup,
     locationId: asset.locationId,
     rootId: asset.rootId,
     activeScanId: asset.scanId,

@@ -5,6 +5,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_gallery_duplicates.dart";
 import "../../application/library_controller.dart";
+import "../../domain/library_gallery_group.dart";
 import "../../domain/library_models.dart";
 import "../library_duplicate_strings.dart";
 import "library_duplicate_locations_sheet.dart";
@@ -12,8 +13,13 @@ import "library_duplicate_update_status.dart";
 import "library_gallery_card_metrics.dart";
 
 class LibraryDuplicateBadge extends ConsumerStatefulWidget {
-  const LibraryDuplicateBadge({required this.locationId, super.key});
+  const LibraryDuplicateBadge({
+    required this.locationId,
+    this.galleryGroup,
+    super.key,
+  });
   final String locationId;
+  final LibraryGalleryGroup? galleryGroup;
 
   @override
   ConsumerState<LibraryDuplicateBadge> createState() =>
@@ -31,24 +37,32 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
 
   @override
   Widget build(BuildContext context) {
-    final mode = ref.watch(
-      libraryControllerProvider.select((state) => state.query.duplicateMode),
+    final query = ref.watch(
+      libraryControllerProvider.select((state) => state.query),
     );
-    if (mode != LibraryGalleryDuplicateMode.merged) {
+    final galleryGroup = widget.galleryGroup;
+    if (galleryGroup == null &&
+        query.duplicateMode != LibraryGalleryDuplicateMode.merged) {
       return const SizedBox.shrink();
     }
-    final groups = ref.watch(libraryGalleryDuplicateAnnotationsProvider);
-    final group = groups.value?[widget.locationId];
-    if (group == null) {
+    final group = galleryGroup == null
+        ? (ref
+              .watch(libraryGalleryDuplicateAnnotationsProvider)
+              .value?[widget.locationId])
+        : null;
+    if (group == null && galleryGroup == null) {
       return const SizedBox.shrink();
     }
-    final count = LibraryDuplicateStrings.locations(group.locationCount);
+    final count = LibraryDuplicateStrings.locations(
+      galleryGroup?.memberCount ?? group!.locationCount,
+    );
+    final similar = galleryGroup?.key is LibrarySimilarGalleryGroupKey;
     return AmeOverlayTraversalBoundary(
       child: LibraryDuplicateUpdateStatus(
-        hasPending: group.pendingLocationCount > 0,
+        hasPending: (group?.pendingLocationCount ?? 0) > 0,
         builder: (context, label) => AmeTooltip(
           message:
-              "${LibraryDuplicateStrings.viewLocations} · $count${label == null ? '' : ' · $label'}",
+              "${similar ? LibraryDuplicateStrings.viewSimilar : LibraryDuplicateStrings.viewLocations} · $count${label == null ? '' : ' · $label'}",
           child: IconButton(
             key: ValueKey("duplicate-badge-${widget.locationId}"),
             focusNode: _focus,
@@ -71,6 +85,8 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
                 useSafeArea: true,
                 builder: (_) => LibraryDuplicateLocationsSheet(
                   group: group,
+                  galleryGroup: galleryGroup,
+                  query: galleryGroup == null ? null : query,
                   currentLocationId: widget.locationId,
                 ),
               );
@@ -90,8 +106,10 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: const Icon(
-                Symbols.photo_library_rounded,
+              child: Icon(
+                similar
+                    ? Symbols.layers_rounded
+                    : Symbols.photo_library_rounded,
                 size: LibraryGalleryCardMetrics.duplicateIconExtent,
               ),
             ),

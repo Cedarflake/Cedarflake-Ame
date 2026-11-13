@@ -59,7 +59,7 @@ fn ids(catalog: &mut SqliteCatalog, query: &GalleryQuery) -> Vec<String> {
         .unwrap()
         .assets
         .into_iter()
-        .map(|a| a.location_id)
+        .map(|a| a.source.location_id)
         .collect()
 }
 

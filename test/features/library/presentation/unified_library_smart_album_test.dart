@@ -122,13 +122,16 @@ void main() {
 
       await tester.tap(find.byKey(const Key("library-filter-menu")));
       await tester.pumpAndSettle();
-      for (final label in ["显示子目录", "隐藏子目录", "全部图片", "合并重复图片"]) {
+      for (final label in ["显示子目录", "隐藏子目录", "全部图片", "合并重复"]) {
         final entry = find.ancestor(
           of: find.text(label),
           matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
         );
         expect(entry, findsOneWidget);
-        expect(tester.widget<PopupMenuItem<Object?>>(entry).enabled, isFalse);
+        expect(
+          tester.widget<PopupMenuItem<Object?>>(entry).enabled,
+          label == "全部图片",
+        );
       }
       expect(find.text("待确认"), findsNothing);
       expect(find.text("已确认"), findsNothing);

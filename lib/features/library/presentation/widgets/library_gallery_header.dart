@@ -5,6 +5,7 @@ import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
+import "../../domain/library_gallery_group.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
@@ -26,6 +27,7 @@ class LibraryGalleryHeader extends StatelessWidget {
     this.isReviewing = false,
     this.onToggleReview,
     required this.totalItems,
+    this.groupFilter = LibraryGalleryGroupFilter.unrestricted,
     this.mergedItems,
     required this.selectedCount,
     required this.isSelecting,
@@ -54,6 +56,7 @@ class LibraryGalleryHeader extends StatelessWidget {
   final bool isReviewing;
   final VoidCallback? onToggleReview;
   final int totalItems;
+  final LibraryGalleryGroupFilter groupFilter;
   final int? mergedItems;
   final int selectedCount;
   final bool isSelecting;
@@ -72,7 +75,11 @@ class LibraryGalleryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = isSelecting ? "已选择 $selectedCount 个项目" : galleryTitle;
-    var subtitle = "$totalItems 张图片";
+    var subtitle = switch (groupFilter) {
+      LibraryGalleryGroupFilter.exact => "$totalItems 个重复组",
+      LibraryGalleryGroupFilter.similar => "$totalItems 个相似组",
+      LibraryGalleryGroupFilter.unrestricted => "$totalItems 张图片",
+    };
     if (mergedItems case final count? when count != totalItems) {
       subtitle = "$subtitle · 去重后 $count 张";
     }

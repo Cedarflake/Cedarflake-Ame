@@ -5,6 +5,8 @@
 
 import '../domain.dart';
 import '../domain/classification_review.dart';
+import '../domain/exact_duplicates.dart';
+import '../domain/gallery_groups.dart';
 import '../domain/gallery_metadata_filter.dart';
 import '../domain/gallery_query_snapshot.dart';
 import '../domain/gallery_scroll_section.dart';
@@ -13,6 +15,7 @@ import '../domain/media_metadata.dart';
 import '../domain/organization.dart';
 import '../domain/organization_queue.dart';
 import '../domain/semantic_results.dart';
+import '../domain/similar_images.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
@@ -44,6 +47,16 @@ Future<CatalogSnapshot> loadLibraryCatalog({
   query: query,
   after: after,
   before: before,
+);
+
+Future<GalleryGroupMemberPage> loadLibraryGalleryGroupMembers({
+  required GalleryQuery query,
+  required GalleryGroupKey group,
+  String? after,
+}) => RustLib.instance.api.crateApiCatalogLoadLibraryGalleryGroupMembers(
+  query: query,
+  group: group,
+  after: after,
 );
 
 Future<GalleryQuerySnapshot> loadLibraryQuerySnapshot({

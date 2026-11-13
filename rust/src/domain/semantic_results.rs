@@ -3,7 +3,6 @@ use std::collections::BTreeSet;
 use super::ScanError;
 use super::organization::OrganizationSelection;
 
-pub(crate) const SEMANTIC_RESULT_LIMIT: usize = 500;
 pub(crate) const SEMANTIC_CANDIDATE_WINDOW: usize = 256;
 
 #[derive(Clone, Debug, Default)]
@@ -38,7 +37,6 @@ impl SemanticResultManifest {
         let mut locations = BTreeSet::new();
         if self.id.len() != 64
             || !self.id.bytes().all(|byte| byte.is_ascii_hexdigit())
-            || self.items.len() > SEMANTIC_RESULT_LIMIT
             || self.indexed_items > self.eligible_items
             || self.items.len() as u64 > self.indexed_items
             || self.items.iter().any(|item| {

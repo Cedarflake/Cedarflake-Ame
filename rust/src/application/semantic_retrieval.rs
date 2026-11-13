@@ -2,9 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::domain::image_features::{AnalysisRevision, Embedding, ModelCompatibility};
 use crate::domain::organization::OrganizationSelection;
-use crate::domain::semantic_results::{
-    SEMANTIC_CANDIDATE_WINDOW, SEMANTIC_RESULT_LIMIT, SemanticResultManifest,
-};
+use crate::domain::semantic_results::{SEMANTIC_CANDIDATE_WINDOW, SemanticResultManifest};
 use crate::domain::{GalleryQuery, ScanError};
 use crate::ports::semantic_catalog::SemanticCatalog;
 use crate::ports::semantic_features::SemanticFeatureRepository;
@@ -19,16 +17,14 @@ pub(crate) enum SemanticRelevance {
 }
 
 impl SemanticRelevance {
-    fn retain(self, ranked: &mut Vec<(f32, OrganizationSelection)>) {
-        let Some((best_score, _)) = ranked.first() else {
-            return;
+    fn accepts(self, score: f32) -> bool {
+        let minimum = match self {
+            Self::Description => 0.09_f32,
+            Self::Reference => 0.65_f32,
         };
-        let (minimum, maximum_gap) = match self {
-            Self::Description => (0.09_f32, 0.025),
-            Self::Reference => (0.65_f32, 0.08),
-        };
-        let cutoff = minimum.max(best_score - maximum_gap);
-        ranked.retain(|(score, _)| *score >= cutoff);
+        // Scope selects candidates, not their relevance threshold. A stronger match
+        // in another folder must not disqualify already matching images.
+        score >= minimum
     }
 }
 
@@ -60,7 +56,7 @@ pub(crate) fn retrieve(
     let snapshot = catalog.semantic_snapshot()?;
     let mut eligible_items = 0;
     let mut indexed_items = 0;
-    let mut ranked = Vec::with_capacity(SEMANTIC_RESULT_LIMIT + SEMANTIC_CANDIDATE_WINDOW);
+    let mut ranked = Vec::with_capacity(SEMANTIC_CANDIDATE_WINDOW);
     check_cancelled(cancelled)?;
     let revision = snapshot.scan(query.scope, &mut |window| {
         check_cancelled(cancelled)?;
@@ -96,22 +92,22 @@ pub(crate) fn retrieve(
                         ScanError::new("semantic_features_invalid", error.to_string())
                     })?;
                 indexed_items += 1;
-                ranked.push((score, source));
+                if query.relevance.accepts(score) {
+                    ranked.push((score, source));
+                }
             }
         }
-        ranked.sort_unstable_by(|left, right| {
-            right
-                .0
-                .total_cmp(&left.0)
-                .then_with(|| left.1.cmp(&right.1))
-        });
-        ranked.truncate(SEMANTIC_RESULT_LIMIT);
         Ok(())
     })?;
     check_cancelled(cancelled)?;
-    query.relevance.retain(&mut ranked);
+    ranked.sort_unstable_by(|left, right| {
+        right
+            .0
+            .total_cmp(&left.0)
+            .then_with(|| left.1.cmp(&right.1))
+    });
     let items: Vec<_> = ranked.into_iter().map(|(_, source)| source).collect();
-    let mut identity = blake3::Hasher::new_derive_key("ame.semantic.manifest.v2");
+    let mut identity = blake3::Hasher::new_derive_key("ame.semantic.manifest.v3");
     identity.update(query.identity.bytes());
     identity.update(super::load_catalog::gallery_query_identity(query.scope).as_bytes());
     identity.update(query.model.image_identity().embedding_space.bytes());

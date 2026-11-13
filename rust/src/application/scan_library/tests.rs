@@ -2419,7 +2419,7 @@ fn rescan_repairs_legacy_orientation_dimensions_and_invalidates_old_preview() {
 
     let previewed = crate::application::preview::materialize_preview_with_storage(
         crate::domain::PreviewRequest {
-            location_id: recovered.location_id,
+            location_id: recovered.location_id.clone(),
             expected_root_id: recovered.root_id.clone(),
             expected_scan_id: recovered.scan_id.clone(),
             expected_source_revision: recovered.source_revision.clone(),

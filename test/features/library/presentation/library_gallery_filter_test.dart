@@ -1,4 +1,5 @@
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/features/library/domain/library_gallery_group.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_filter.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_metadata_filter_sheet.dart";
 import "package:material_ui/material_ui.dart";
@@ -27,10 +28,8 @@ void main() {
       ),
     );
     await _open(tester);
-    expect(
-      find.byWidgetPredicate((widget) => widget is PopupMenuItem),
-      findsNWidgets(5),
-    );
+    expect(find.text("仅显示重复"), findsOneWidget);
+    expect(find.text("仅显示相似"), findsOneWidget);
     expect(find.text("更多筛选"), findsOneWidget);
     await tester.tap(find.text("隐藏子目录"));
     await tester.pumpAndSettle();
@@ -40,6 +39,29 @@ void main() {
     await tester.tap(find.text("全部图片"));
     await tester.pumpAndSettle();
     expect(query.duplicateMode, LibraryGalleryDuplicateMode.all);
+    await _open(tester);
+    await tester.tap(find.text("合并重复"));
+    await tester.pumpAndSettle();
+    expect(query.duplicateMode, LibraryGalleryDuplicateMode.merged);
+    await _open(tester);
+    await tester.tap(find.text("仅显示重复"));
+    await tester.pumpAndSettle();
+    expect(query.groupFilter, LibraryGalleryGroupFilter.exact);
+    await _open(tester);
+    final merge = find.ancestor(
+      of: find.text("合并重复"),
+      matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+    );
+    expect(tester.widget<PopupMenuItem<Object?>>(merge).enabled, isFalse);
+    final marker = tester.widget<Semantics>(
+      find.byKey(const ValueKey("menu-choice-合并重复")),
+    );
+    expect(marker.properties.checked, isFalse);
+    expect(marker.properties.inMutuallyExclusiveGroup, isFalse);
+    await tester.tap(find.text("全部图片"));
+    await tester.pumpAndSettle();
+    expect(query.groupFilter, LibraryGalleryGroupFilter.unrestricted);
+    expect(query.duplicateMode, LibraryGalleryDuplicateMode.merged);
     expect(query.rootId, "root");
     expect(query.folderRelativePath, "photos");
     expect(query.searchText, "photo");
@@ -67,7 +89,7 @@ void main() {
       );
       await _open(tester);
       final isAlbum = collection is LibraryAlbumCollection;
-      for (final label in ["显示子目录", "隐藏子目录", "全部图片", "合并重复图片"]) {
+      for (final label in ["显示子目录", "隐藏子目录", "全部图片", "合并重复"]) {
         final item = find.ancestor(
           of: find.text(label),
           matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
@@ -75,21 +97,19 @@ void main() {
         final isSource = label.endsWith("子目录");
         expect(
           tester.widget<PopupMenuItem<Object?>>(item).enabled,
-          !isSource && !isAlbum,
+          !isSource && (label != "合并重复" || !isAlbum),
         );
       }
       expect(
         tester
-            .widget<Semantics>(find.byKey(const ValueKey("menu-choice-合并重复图片")))
+            .widget<Semantics>(find.byKey(const ValueKey("menu-choice-合并重复")))
             .properties
             .checked,
         isAlbum,
       );
       await tester.tap(find.text("全部图片"));
       await tester.pumpAndSettle();
-      expect(changed, !isAlbum);
-      await tester.tapAt(Offset.zero);
-      await tester.pumpAndSettle();
+      expect(changed, isTrue);
     }
   });
 

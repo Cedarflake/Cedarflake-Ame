@@ -229,6 +229,7 @@ class LibrarySearch extends ChangeNotifier {
       metadataFilter: query.metadataFilter,
       includeDescendants: query.includeDescendants,
       duplicateMode: query.duplicateMode,
+      groupFilter: query.groupFilter,
       searchText: "",
       semanticResults: null,
     );

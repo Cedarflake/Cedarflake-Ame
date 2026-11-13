@@ -849,6 +849,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         controller: controller,
         child: LibraryGalleryViewport(
           header: LibraryGalleryHeader(
+            groupFilter: state.query.groupFilter,
             isReviewing: _review.isActive,
             reviewToolbar: _review.isActive
                 ? LibraryReviewToolbar(
@@ -1142,7 +1143,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   void _toggleSelection(LibraryAsset asset) {
     final totalItems = _totalItems(ref.read(libraryControllerProvider));
     setState(() {
-      _selection = _selection.toggle(asset.assetId);
+      _selection = _selection.toggle(asset.selectionId);
       _isSelecting = _selection.selectedCount(totalItems) > 0;
     });
   }

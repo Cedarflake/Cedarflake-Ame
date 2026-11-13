@@ -34,6 +34,9 @@ pub(in super::super) fn resolve_gallery_anchor_cursor(
     };
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
+    let source = super::gallery_source(query, &mut parameters);
+    let group_columns = super::groups::columns(query);
+    let identity = super::groups::identity(query);
     push_gallery_filters(query, &mut clauses, &mut parameters);
     match &anchor.month_key {
         Some(month_key) => {
@@ -84,13 +87,12 @@ pub(in super::super) fn resolve_gallery_anchor_cursor(
                 locations.capture_offset_minutes, locations.capture_time_source,
                 locations.capture_raw_value, locations.file_identity_scheme,
                 locations.file_identity_value, locations.source_revision_token,
-                locations.source_generation, locations.camera_make, locations.camera_model
-         FROM library_roots AS roots
-         JOIN asset_locations AS locations
-           ON locations.scan_id = roots.active_scan_id
+                locations.source_generation, locations.camera_make, locations.camera_model,
+                {group_columns}
+         {source}
          WHERE {where_clause}
          ORDER BY {missing}, {text} {direction}, {number} {direction},
-                  locations.root_id, locations.location_id
+                  locations.root_id, {identity}
          LIMIT 1 OFFSET ?",
         where_clause = clauses.join(" AND "),
         missing = order.missing,
@@ -99,7 +101,9 @@ pub(in super::super) fn resolve_gallery_anchor_cursor(
     );
     let mut statement = transaction.prepare(&sql).map_err(database_error)?;
     let stored = statement
-        .query_row(params_from_iter(parameters.iter()), read_stored_asset)
+        .query_row(params_from_iter(parameters.iter()), |row| {
+            Ok((read_stored_asset(row)?, super::groups::read(row)))
+        })
         .optional()
         .map_err(database_error)?
         .ok_or_else(|| {
@@ -108,6 +112,9 @@ pub(in super::super) fn resolve_gallery_anchor_cursor(
                 "The selected position is outside its gallery time bucket",
             )
         })?;
-    let asset = stored_asset_view(stored)?;
+    let asset = crate::domain::gallery_groups::GalleryEntry {
+        source: stored_asset_view(stored.0)?,
+        group: stored.1?,
+    };
     gallery_cursor_for_asset(transaction, revision, query_id, query, &asset)
 }

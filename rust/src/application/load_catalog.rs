@@ -1,4 +1,6 @@
+mod group_members;
 mod production;
+pub(crate) use group_members::load as load_gallery_group_members;
 mod query;
 mod root_availability;
 mod time_snapshot;
@@ -658,7 +660,7 @@ mod tests {
                     "the catalog-only acceptance unexpectedly generated a preview"
                 );
                 assert!(
-                    location_ids.insert(asset.location_id),
+                    location_ids.insert(asset.source.location_id),
                     "a location appeared in more than one bounded page"
                 );
             }
@@ -721,6 +723,7 @@ mod tests {
             primary_number,
             root_id: root_id.to_owned(),
             location_id: location_id.to_owned(),
+            group_key: None,
         };
         let newest = cursor(false, "2026-08-01T16:30:17.000", 300, "root-a", "a");
         let older = cursor(false, "2026-07-01T16:30:17.000", 300, "root-a", "a");

@@ -7,6 +7,7 @@ import "../../application/library_file_operations.dart";
 import "../../application/library_file_selection_scope.dart";
 import "../../domain/library_file_operations.dart";
 import "../../domain/library_organization_batch.dart";
+import "../../domain/library_gallery_group.dart";
 import "../library_file_strings.dart";
 import "library_file_action_dialog.dart";
 
@@ -24,22 +25,28 @@ class LibraryFileMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final busy = ref.watch(libraryFileActionsProvider).busy;
-    const actions = [
-      LibraryFileAction.copy,
-      LibraryFileAction.move,
-      LibraryFileAction.recycle,
+    final actions = [
+      _FileMenuAction.copy,
+      _FileMenuAction.move,
+      _FileMenuAction.delete,
+      if (selection.query.hasGroupFilter) _FileMenuAction.cleanup,
     ];
-    return AmePopupMenuButton<LibraryFileAction>(
-      labels: [for (final action in actions) LibraryFileStrings.action(action)],
+    String label(_FileMenuAction action) => action == _FileMenuAction.cleanup
+        ? (selection.query.groupFilter == LibraryGalleryGroupFilter.similar
+              ? "删除相似图片"
+              : "删除重复图片")
+        : LibraryFileStrings.action(action.fileAction);
+    return AmePopupMenuButton<_FileMenuAction>(
+      labels: [for (final action in actions) label(action)],
       items: [
         for (final action in actions)
           PopupMenuItem(
             value: action,
             child: AmeMenuItemContent(
-              label: LibraryFileStrings.action(action),
+              label: label(action),
               icon: switch (action) {
-                LibraryFileAction.copy => Symbols.content_copy_rounded,
-                LibraryFileAction.move => Symbols.drive_file_move_rounded,
+                _FileMenuAction.copy => Symbols.content_copy_rounded,
+                _FileMenuAction.move => Symbols.drive_file_move_rounded,
                 _ => Symbols.delete_rounded,
               },
             ),
@@ -49,13 +56,15 @@ class LibraryFileMenu extends ConsumerWidget {
         final submitted = await showLibraryFileAction(
           context: context,
           ref: ref,
-          selection: selectGalleryFilesForAction(
-            action: action,
-            selection: selection,
-          ),
-          action: action,
+          selection: action == _FileMenuAction.cleanup
+              ? LibraryCleanupInGallery(selection)
+              : selectGalleryFilesForAction(
+                  action: action.fileAction,
+                  selection: selection,
+                ),
+          action: action.fileAction,
           initialRule: initialFileOrganizationRule(
-            action: action,
+            action: action.fileAction,
             query: selection.query,
           ),
         );
@@ -76,4 +85,17 @@ class LibraryFileMenu extends ConsumerWidget {
       ),
     );
   }
+}
+
+enum _FileMenuAction {
+  copy,
+  move,
+  delete,
+  cleanup;
+
+  LibraryFileAction get fileAction => switch (this) {
+    copy => LibraryFileAction.copy,
+    move => LibraryFileAction.move,
+    delete || cleanup => LibraryFileAction.recycle,
+  };
 }

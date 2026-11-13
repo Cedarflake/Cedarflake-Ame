@@ -7,8 +7,23 @@ pub(in super::super) fn selected_locations(
     all_matching: bool,
 ) -> Result<BuiltGalleryQuery, ScanError> {
     validate_gallery_query(query)?;
+    if super::groups::is_filtered(query) {
+        let members = super::groups::selection::selected_members(
+            query,
+            super::groups::selection::Input::Organization,
+            all_matching,
+        );
+        return Ok(BuiltGalleryQuery {
+            sql: format!(
+                "SELECT DISTINCT asset_id, location_id, source_generation FROM ({})",
+                members.sql
+            ),
+            parameters: members.parameters,
+        });
+    }
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
+    let source = super::gallery_source(query, &mut parameters);
     push_gallery_filters(query, &mut clauses, &mut parameters);
     let membership = if all_matching { "NOT EXISTS" } else { "EXISTS" };
     clauses.push(format!(
@@ -18,8 +33,7 @@ pub(in super::super) fn selected_locations(
     Ok(BuiltGalleryQuery {
         sql: format!(
             "SELECT locations.asset_id, locations.location_id, locations.source_generation
-             FROM library_roots AS roots
-             JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
+             {source}
              WHERE {}",
             clauses.join(" AND "),
         ),

@@ -45,10 +45,13 @@ pub(super) fn resolve_predecessor(
         ordinal.saturating_sub(1),
         "semantic result offset",
     )?));
+    let number = super::gallery_order_expressions(query).number;
+    let group_columns = super::groups::columns(query);
+    let identity = super::groups::identity(query);
     let sql = format!(
-        "SELECT locations.root_id, locations.location_id, CAST(semantic_result.key AS INTEGER)
+        "SELECT locations.root_id, locations.location_id, {number}, {group_columns}
          {source} {scope}
-         ORDER BY CAST(semantic_result.key AS INTEGER)
+         ORDER BY {number}, locations.root_id, {identity}
          LIMIT 1 OFFSET ?"
     );
     transaction
@@ -58,6 +61,7 @@ pub(super) fn resolve_predecessor(
                 query_id: query_id.to_owned(),
                 root_id: row.get(0)?,
                 location_id: row.get(1)?,
+                group_key: super::groups::read_key(row)?,
                 primary_missing: false,
                 primary_text: String::new(),
                 primary_number: row.get(2)?,

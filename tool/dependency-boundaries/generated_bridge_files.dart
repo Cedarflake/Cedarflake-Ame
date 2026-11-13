@@ -44,6 +44,8 @@ const generatedBridgeFiles = <String>{
   "lib/src/rust/domain/file_operation_selection.freezed.dart",
   "lib/src/rust/domain/file_operation_task.dart",
   "lib/src/rust/domain/file_operations.dart",
+  "lib/src/rust/domain/gallery_groups.dart",
+  "lib/src/rust/domain/gallery_groups.freezed.dart",
   "lib/src/rust/domain/gallery_metadata_filter.dart",
   "lib/src/rust/domain/gallery_query_snapshot.dart",
   "lib/src/rust/domain/gallery_scroll_section.dart",

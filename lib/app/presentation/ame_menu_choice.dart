@@ -8,6 +8,8 @@ PopupMenuItem<T> ameMenuChoice<T>({
   required String label,
   IconData? icon,
   required bool isSelected,
+  bool isToggle = false,
+  double indicatorWidth = AmeMenuMetrics.selectionIndicatorSlotWidth,
   bool enabled = true,
   Key? key,
 }) => PopupMenuItem<T>(
@@ -17,17 +19,17 @@ PopupMenuItem<T> ameMenuChoice<T>({
   child: Semantics(
     key: ValueKey("menu-choice-$label"),
     checked: isSelected,
-    inMutuallyExclusiveGroup: true,
+    inMutuallyExclusiveGroup: !isToggle,
     child: Row(
       children: [
         SizedBox(
-          width: AmeMenuMetrics.selectionIndicatorSlotWidth,
+          width: indicatorWidth,
           child: isSelected
-              ? const ExcludeSemantics(
+              ? ExcludeSemantics(
                   child: Icon(
-                    Symbols.circle_rounded,
-                    size: AmeMenuMetrics.selectionIndicatorSize,
-                    fill: 1,
+                    isToggle ? Symbols.check_rounded : Symbols.circle_rounded,
+                    size: isToggle ? 18 : AmeMenuMetrics.selectionIndicatorSize,
+                    fill: isToggle ? 0 : 1,
                   ),
                 )
               : null,

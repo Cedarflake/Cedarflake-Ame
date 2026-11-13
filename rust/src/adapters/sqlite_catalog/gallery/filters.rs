@@ -11,6 +11,9 @@ pub(in crate::adapters::sqlite_catalog) fn gallery_source(
     query: &GalleryQuery,
     parameters: &mut Vec<Value>,
 ) -> String {
+    if super::groups::is_filtered(query) {
+        return super::groups::source(query, parameters);
+    }
     if let Some(manifest) = &query.semantic_results {
         return super::semantic::source(manifest, parameters).to_owned();
     }
@@ -43,6 +46,9 @@ pub(in crate::adapters::sqlite_catalog) fn push_gallery_filters(
     clauses: &mut Vec<String>,
     parameters: &mut Vec<Value>,
 ) {
+    if super::groups::is_filtered(query) {
+        return;
+    }
     if organization_groups::uses_grouped_organization(query) {
         // The group subquery already applies the complete scope before choosing representatives.
         organization_groups::push_group_filter(query, clauses, parameters);
@@ -56,6 +62,14 @@ pub(in crate::adapters::sqlite_catalog) fn semantic_candidate_source(
     query: &GalleryQuery,
     parameters: &mut Vec<Value>,
 ) -> String {
+    if super::groups::is_filtered(query) {
+        let members = super::groups::visible_member_query(query, parameters);
+        return format!(
+            "FROM (SELECT DISTINCT location_id FROM ({members})) AS candidates
+             CROSS JOIN asset_locations AS locations INDEXED BY asset_locations_location_id
+               ON locations.location_id = candidates.location_id"
+        );
+    }
     let prefix = if let Some(condition) = organization::presence_condition(query, parameters) {
         format!(
             "FROM (SELECT 1 FROM organization_records AS record WHERE {condition} LIMIT 1)

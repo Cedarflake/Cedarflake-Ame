@@ -37,12 +37,14 @@ impl GalleryReadProjection {
         if query.semantic_results.is_some() || query.sort_key == GallerySortKey::LibraryAdmission {
             return Ok(None);
         }
-        let mut total_source_items =
-            if query.folds_duplicates() && !uses_grouped_organization(query) {
-                Some(load_source_count(transaction, query)?)
-            } else {
-                None
-            };
+        let mut total_source_items = if query.folds_duplicates()
+            && !uses_grouped_organization(query)
+            && !super::gallery::groups::is_filtered(query)
+        {
+            Some(load_source_count(transaction, query)?)
+        } else {
+            None
+        };
         if total_source_items.is_some_and(|count| count > MAX_INLINE_LAYOUT_ITEMS) {
             return Ok(None);
         }
@@ -61,6 +63,7 @@ impl GalleryReadProjection {
                     row.get::<_, String>(6)?,
                     row.get::<_, i64>(7)?,
                     row.get::<_, Option<i64>>(8)?,
+                    super::gallery::groups::read(row),
                 ))
             })
             .map_err(database_error)?;
@@ -77,6 +80,7 @@ impl GalleryReadProjection {
                 text,
                 number,
                 source_items,
+                group,
             ) = row.map_err(database_error)?;
             if let Some(source_items) = source_items {
                 total_source_items =
@@ -94,6 +98,7 @@ impl GalleryReadProjection {
                 primary_missing: missing != 0,
                 primary_text: text,
                 primary_number: number,
+                group: group?,
             };
             let month_key = item
                 .date_key
@@ -187,7 +192,13 @@ impl GalleryReadProjection {
         let mut assets = Vec::with_capacity(selected.len());
         while let Some(row) = rows.next().map_err(database_error)? {
             let asset = stored_asset_view(read_stored_asset(row).map_err(database_error)?)?;
-            assets.push(asset);
+            let group = selected
+                .get(assets.len())
+                .and_then(|item| item.group.clone());
+            assets.push(crate::domain::gallery_groups::GalleryEntry {
+                source: asset,
+                group,
+            });
         }
         if assets.len() != selected.len()
             || assets.iter().zip(selected).any(|(asset, item)| {
@@ -232,6 +243,7 @@ impl GalleryReadProjection {
         let ordinal = match target {
             Some(cursor) => Some(self.items.iter().position(|item| {
                 item.location_id == cursor.location_id && item.root_id == cursor.root_id
+                    && item.group.as_ref().map(|group| &group.key) == cursor.group_key.as_ref()
             }).ok_or_else(|| ScanError::new(
                 "catalog_query_snapshot_invalid",
                 "The resolved gallery anchor is outside its transaction's ordered projection",
@@ -259,6 +271,7 @@ impl GalleryReadProjection {
             primary_number: item.primary_number,
             root_id: item.root_id.clone(),
             location_id: item.location_id.clone(),
+            group_key: item.group.as_ref().map(|group| group.key.clone()),
         }
     }
 

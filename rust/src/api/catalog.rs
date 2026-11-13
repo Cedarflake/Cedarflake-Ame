@@ -85,6 +85,14 @@ pub fn load_library_catalog(
     load_catalog(max_items, query, after, before)
 }
 
+pub fn load_library_gallery_group_members(
+    query: GalleryQuery,
+    group: crate::domain::gallery_groups::GalleryGroupKey,
+    after: Option<String>,
+) -> Result<crate::domain::gallery_groups::GalleryGroupMemberPage, ScanError> {
+    crate::application::load_gallery_group_members(query, group, after)
+}
+
 pub fn load_library_query_snapshot(
     max_items: u32,
     query: GalleryQuery,

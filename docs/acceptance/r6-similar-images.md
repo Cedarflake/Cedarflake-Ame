@@ -392,3 +392,11 @@ The similar-member location action now uses the same `photo_library_rounded` sym
 duplicate badge. Its existing tooltip, enabled state and location-sheet action remain unchanged.
 Both member lists displayed the shared symbol in the rebuilt client; no new interaction test was
 needed for this symbol-only change.
+
+## Visible group-type label — 2026-11-13
+
+The group menu retains its layers icon, arrow and existing menu transition, with the current view
+label added through the shared Material text-button treatment. The existing 1200-pixel layout case
+passed. In the rebuilt Debug client, the exact list displayed `重复组`; opening its menu retained
+the exact/similar/ignored order, and switching to similar results updated the button to `相似组`
+alongside the degree menu and cleanup action. This check used browsing only.

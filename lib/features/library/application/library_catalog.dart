@@ -15,3 +15,11 @@ final libraryFolderCatalogProvider = Provider<LibraryFolderCatalog>((ref) {
     "LibraryFolderCatalog must be bound during application startup",
   );
 });
+
+final libraryGroupMemberCatalogProvider = Provider<LibraryGroupMemberCatalog>((
+  ref,
+) {
+  throw StateError(
+    "LibraryGroupMemberCatalog must be bound during application startup",
+  );
+});

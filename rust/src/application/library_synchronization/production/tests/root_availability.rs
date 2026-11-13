@@ -379,7 +379,11 @@ fn visible_assets(catalog: &mut SqliteCatalog, root_id: &str) -> Vec<AssetLocati
         )
         .expect("read cached gallery page");
     assert!(snapshot.previous_cursor.is_none() && snapshot.next_cursor.is_none());
-    let mut assets = snapshot.assets;
+    let mut assets: Vec<_> = snapshot
+        .assets
+        .into_iter()
+        .map(|entry| entry.source)
+        .collect();
     assets.sort_by(|left, right| left.relative_path.cmp(&right.relative_path));
     assets
 }

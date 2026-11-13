@@ -6,6 +6,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../domain/library_gallery_group.dart";
 import "../../domain/library_models.dart";
 import "../coordination/library_metadata_filter_summary.dart";
 import "../library_duplicate_strings.dart";
@@ -19,8 +20,10 @@ sealed class _FilterAction {
 enum _FilterChoice implements _FilterAction {
   descendants,
   folderOnly,
-  all,
   merged,
+  unrestrictedGroups,
+  exactGroups,
+  similarGroups,
   metadata,
 }
 
@@ -70,13 +73,15 @@ class _LibraryGalleryFilterState extends State<LibraryGalleryFilter> {
         LibraryDuplicateStrings.showDescendants,
         LibraryDuplicateStrings.hideDescendants,
         LibraryDuplicateStrings.allImages,
-        LibraryDuplicateStrings.mergeDuplicates,
+        "仅显示重复",
+        "仅显示相似",
+        "合并重复",
         LibraryFilterStrings.more,
         if (active) LibraryFilterStrings.clear,
         for (final condition in conditions) condition.label,
       ],
       hasContentIcon: active,
-      leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
+      leadingIconWidth: AmeMenuMetrics.iconSize,
       items: [
         _choice(
           _FilterChoice.descendants,
@@ -92,25 +97,35 @@ class _LibraryGalleryFilterState extends State<LibraryGalleryFilter> {
         ),
         const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
         _choice(
-          _FilterChoice.all,
+          _FilterChoice.unrestrictedGroups,
           LibraryDuplicateStrings.allImages,
-          !query.foldsDuplicates,
-          enabled: !query.requiresMergedDuplicates,
+          !query.hasGroupFilter,
         ),
         _choice(
-          _FilterChoice.merged,
-          LibraryDuplicateStrings.mergeDuplicates,
-          query.foldsDuplicates,
+          _FilterChoice.exactGroups,
+          "仅显示重复",
+          query.groupFilter == LibraryGalleryGroupFilter.exact,
+        ),
+        _choice(
+          _FilterChoice.similarGroups,
+          "仅显示相似",
+          query.groupFilter == LibraryGalleryGroupFilter.similar,
+        ),
+        const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
+        ameMenuChoice(
+          value: _FilterChoice.merged,
+          label: "合并重复",
+          isSelected: !query.hasGroupFilter && query.foldsDuplicates,
           enabled: !query.requiresMergedDuplicates,
+          isToggle: true,
+          indicatorWidth: AmeMenuMetrics.iconSize,
         ),
         const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
         const PopupMenuItem(
           value: _FilterChoice.metadata,
           child: Padding(
             padding: EdgeInsets.only(
-              left:
-                  AmeMenuMetrics.selectionIndicatorSlotWidth +
-                  AmeMenuMetrics.iconLabelGap,
+              left: AmeMenuMetrics.iconSize + AmeMenuMetrics.iconLabelGap,
             ),
             child: Text(LibraryFilterStrings.more),
           ),
@@ -120,9 +135,7 @@ class _LibraryGalleryFilterState extends State<LibraryGalleryFilter> {
             value: _UpdateMetadata(query, const LibraryMetadataFilter()),
             child: const Padding(
               padding: EdgeInsets.only(
-                left:
-                    AmeMenuMetrics.selectionIndicatorSlotWidth +
-                    AmeMenuMetrics.iconLabelGap,
+                left: AmeMenuMetrics.iconSize + AmeMenuMetrics.iconLabelGap,
               ),
               child: Text(LibraryFilterStrings.clear),
             ),
@@ -162,7 +175,6 @@ class _LibraryGalleryFilterState extends State<LibraryGalleryFilter> {
         child: IconButton(
           key: const Key("library-filter-menu"),
           onPressed: openMenu,
-          isSelected: active,
           icon: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -188,11 +200,19 @@ class _LibraryGalleryFilterState extends State<LibraryGalleryFilter> {
         widget.onChanged(switch (choice) {
           _FilterChoice.descendants => query.copyWith(includeDescendants: true),
           _FilterChoice.folderOnly => query.copyWith(includeDescendants: false),
-          _FilterChoice.all => query.copyWith(
-            duplicateMode: LibraryGalleryDuplicateMode.all,
-          ),
           _FilterChoice.merged => query.copyWith(
-            duplicateMode: LibraryGalleryDuplicateMode.merged,
+            duplicateMode: query.foldsDuplicates
+                ? LibraryGalleryDuplicateMode.all
+                : LibraryGalleryDuplicateMode.merged,
+          ),
+          _FilterChoice.unrestrictedGroups => query.copyWith(
+            groupFilter: LibraryGalleryGroupFilter.unrestricted,
+          ),
+          _FilterChoice.exactGroups => query.copyWith(
+            groupFilter: LibraryGalleryGroupFilter.exact,
+          ),
+          _FilterChoice.similarGroups => query.copyWith(
+            groupFilter: LibraryGalleryGroupFilter.similar,
           ),
           _FilterChoice.metadata => query,
         });
@@ -209,5 +229,6 @@ class _LibraryGalleryFilterState extends State<LibraryGalleryFilter> {
     isSelected: selected,
     enabled: enabled,
     label: label,
+    indicatorWidth: AmeMenuMetrics.iconSize,
   );
 }

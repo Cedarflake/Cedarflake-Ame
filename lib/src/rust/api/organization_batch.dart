@@ -5,6 +5,7 @@
 
 import '../domain.dart';
 import '../domain/classification_review.dart';
+import '../domain/gallery_groups.dart';
 import '../domain/gallery_metadata_filter.dart';
 import '../domain/organization.dart';
 import '../domain/organization_batch.dart';

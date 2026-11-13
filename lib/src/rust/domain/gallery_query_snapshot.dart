@@ -5,6 +5,7 @@
 
 import '../domain.dart';
 import '../frb_generated.dart';
+import 'gallery_groups.dart';
 import 'gallery_scroll_section.dart';
 import 'media_metadata.dart';
 import 'organization_queue.dart';
@@ -12,11 +13,13 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 class GalleryQueryAnchor {
   final String requestedLocationId;
+  final GalleryGroupKey? groupKey;
   final String? assetId;
   final BigInt fallbackOrdinal;
 
   const GalleryQueryAnchor({
     required this.requestedLocationId,
+    this.groupKey,
     this.assetId,
     required this.fallbackOrdinal,
   });
@@ -24,6 +27,7 @@ class GalleryQueryAnchor {
   @override
   int get hashCode =>
       requestedLocationId.hashCode ^
+      groupKey.hashCode ^
       assetId.hashCode ^
       fallbackOrdinal.hashCode;
 
@@ -33,6 +37,7 @@ class GalleryQueryAnchor {
       other is GalleryQueryAnchor &&
           runtimeType == other.runtimeType &&
           requestedLocationId == other.requestedLocationId &&
+          groupKey == other.groupKey &&
           assetId == other.assetId &&
           fallbackOrdinal == other.fallbackOrdinal;
 }

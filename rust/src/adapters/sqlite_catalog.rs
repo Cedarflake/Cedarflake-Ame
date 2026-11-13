@@ -37,6 +37,7 @@ pub use file_operations::SqliteFileOperationJournal;
 pub(crate) use file_operations::SqliteFileOperationSelection;
 mod folders;
 mod gallery;
+mod gallery_group_members;
 mod gallery_layout_manifest;
 mod gallery_read_projection;
 mod gallery_snapshot;
@@ -137,7 +138,7 @@ pub(crate) use catalog_delta::set_before_catalog_delta_commit_hook;
 pub(crate) use metadata_inventory::set_before_metadata_inventory_spool_commit_hook;
 #[cfg(test)]
 pub(crate) use scan_publication::set_before_scan_projection_replacement_hook;
-const SCHEMA_VERSION: i64 = 82;
+const SCHEMA_VERSION: i64 = 83;
 const SQLITE_APPLICATION_ID: i64 = 0x414D_4531;
 const SCAN_QUEUE_LEASE_MILLIS: i64 = 15 * 60 * 1_000;
 const MAX_SCAN_CATCH_UP_LINEAGE: i64 = 4_096;
@@ -2256,6 +2257,7 @@ impl CatalogRepository for SqliteCatalog {
             max_items,
             &crate::domain::GalleryQueryAnchor {
                 requested_location_id: anchor_location_id.to_owned(),
+                group_key: None,
                 asset_id: None,
                 fallback_ordinal: 0,
             },
@@ -2284,6 +2286,7 @@ impl CatalogRepository for SqliteCatalog {
             max_items,
             &crate::domain::GalleryQueryAnchor {
                 requested_location_id: requested_location_id.to_owned(),
+                group_key: None,
                 asset_id: Some(anchor_asset_id.to_owned()),
                 fallback_ordinal,
             },

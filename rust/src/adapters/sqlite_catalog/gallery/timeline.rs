@@ -55,7 +55,7 @@ pub(crate) fn load_gallery_timeline(
     } else {
         load_time_buckets(transaction, query)?
     };
-    let total_source_items = if !query.folds_duplicates() {
+    let total_source_items = if !query.folds_duplicates() || super::groups::is_filtered(query) {
         total_items
     } else if let Some(count) = total_source_items {
         count

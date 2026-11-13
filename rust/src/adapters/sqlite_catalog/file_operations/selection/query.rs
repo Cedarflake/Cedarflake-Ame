@@ -10,7 +10,7 @@ pub(super) fn selected(scope: &Scope) -> Result<gallery::BuiltGalleryQuery, Scan
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
     let source = match scope {
-        Scope::DuplicateCleanup { .. } => return Err(stale_selection()),
+        Scope::DuplicateCleanup { .. } | Scope::GalleryCleanup { .. } => return Err(stale_selection()),
         Scope::Gallery {
             query,
             all_matching,
@@ -22,6 +22,19 @@ pub(super) fn selected(scope: &Scope) -> Result<gallery::BuiltGalleryQuery, Scan
             ..
         } => {
             gallery::validate_gallery_query(query)?;
+            if gallery::groups::is_filtered(query) {
+                let members = gallery::groups::selection::selected_members(
+                    query, gallery::groups::selection::Input::Files, *all_matching,
+                );
+                return Ok(gallery::BuiltGalleryQuery {
+                    sql: format!("SELECT DISTINCT locations.asset_id, locations.location_id,
+                        locations.source_generation, root_state.generation, locations.file_size
+                        FROM ({}) AS locations JOIN library_change_root_state AS root_state
+                          ON root_state.root_id = locations.root_id
+                        WHERE root_state.is_active = 1 ORDER BY locations.root_id, locations.location_id", members.sql),
+                    parameters: members.parameters,
+                });
+            }
             let mut query = query.clone();
             if matches!(
                 scope,
@@ -72,6 +85,48 @@ pub(super) fn selected(scope: &Scope) -> Result<gallery::BuiltGalleryQuery, Scan
 }
 
 pub(super) fn require_all_inputs(connection: &Connection, scope: &Scope) -> Result<(), ScanError> {
+    if let Scope::Gallery {
+        query,
+        all_matching,
+        ..
+    }
+    | Scope::MergedGalleryGroups {
+        query,
+        all_matching,
+        ..
+    } = scope
+        && gallery::groups::is_filtered(query)
+    {
+        let selected = gallery::groups::selection::selected_members(
+            query,
+            gallery::groups::selection::Input::Files,
+            *all_matching,
+        );
+        let pending: bool = connection
+            .query_row(
+                &format!(
+                    "SELECT EXISTS(SELECT 1 FROM ({}) WHERE is_pending = 1)",
+                    selected.sql
+                ),
+                rusqlite::params_from_iter(selected.parameters),
+                |row| row.get(0),
+            )
+            .map_err(database_error)?;
+        if pending {
+            return Err(ScanError::new(
+                "organization_evidence_pending",
+                "Selected group membership is still being verified",
+            ));
+        }
+        if !all_matching {
+            gallery::groups::selection::require_inputs(
+                connection,
+                query,
+                gallery::groups::selection::Input::Files,
+            )?;
+        }
+        return Ok(());
+    }
     if matches!(scope, Scope::Gallery { .. }) {
         let ambiguous: bool = connection.query_row(
             "SELECT EXISTS(SELECT asset_id FROM temp.file_operation_selection GROUP BY asset_id HAVING COUNT(*) > 1)",

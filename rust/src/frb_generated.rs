@@ -48,7 +48,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1045840500;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 356806720;
 
 // Section: executor
 
@@ -4071,6 +4071,44 @@ fn wire__crate__api__catalog__load_library_folder_page_impl(
         },
     )
 }
+fn wire__crate__api__catalog__load_library_gallery_group_members_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "load_library_gallery_group_members",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_query = <crate::domain::GalleryQuery>::sse_decode(&mut deserializer);
+            let api_group =
+                <crate::domain::gallery_groups::GalleryGroupKey>::sse_decode(&mut deserializer);
+            let api_after = <Option<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::catalog::load_library_gallery_group_members(
+                        api_query, api_group, api_after,
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -6708,6 +6746,8 @@ impl SseDecode for crate::domain::CatalogCursor {
         let mut var_primaryNumber = <i64>::sse_decode(deserializer);
         let mut var_rootId = <String>::sse_decode(deserializer);
         let mut var_locationId = <String>::sse_decode(deserializer);
+        let mut var_groupKey =
+            <Option<crate::domain::gallery_groups::GalleryGroupKey>>::sse_decode(deserializer);
         return crate::domain::CatalogCursor {
             revision: var_revision,
             query_id: var_queryId,
@@ -6716,6 +6756,7 @@ impl SseDecode for crate::domain::CatalogCursor {
             primary_number: var_primaryNumber,
             root_id: var_rootId,
             location_id: var_locationId,
+            group_key: var_groupKey,
         };
     }
 }
@@ -6856,7 +6897,8 @@ impl SseDecode for crate::domain::CatalogSnapshot {
         let mut var_revision = <u64>::sse_decode(deserializer);
         let mut var_queryId = <String>::sse_decode(deserializer);
         let mut var_roots = <Vec<crate::domain::LibraryRootView>>::sse_decode(deserializer);
-        let mut var_assets = <Vec<crate::domain::AssetLocationView>>::sse_decode(deserializer);
+        let mut var_assets =
+            <Vec<crate::domain::gallery_groups::GalleryEntry>>::sse_decode(deserializer);
         let mut var_previousCursor =
             <Option<crate::domain::CatalogCursor>>::sse_decode(deserializer);
         let mut var_nextCursor = <Option<crate::domain::CatalogCursor>>::sse_decode(deserializer);
@@ -7814,6 +7856,12 @@ impl SseDecode for crate::domain::file_operation_selection::FileOperationSelecti
                 let mut var_allGroups = <bool>::sse_decode(deserializer);
                 return crate::domain::file_operation_selection::FileOperationSelectionScope::DuplicateCleanup{kind: var_kind, all_groups: var_allGroups};
             }
+            4 => {
+                let mut var_query = <Box<crate::domain::GalleryQuery>>::sse_decode(deserializer);
+                let mut var_catalogRevision = <u64>::sse_decode(deserializer);
+                let mut var_allMatching = <bool>::sse_decode(deserializer);
+                return crate::domain::file_operation_selection::FileOperationSelectionScope::GalleryCleanup{query: var_query, catalog_revision: var_catalogRevision, all_matching: var_allMatching};
+            }
             _ => {
                 unimplemented!("");
             }
@@ -8063,6 +8111,110 @@ impl SseDecode for crate::domain::exact_duplicates::GalleryDuplicatePage {
     }
 }
 
+impl SseDecode for crate::domain::gallery_groups::GalleryEntry {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_source = <crate::domain::AssetLocationView>::sse_decode(deserializer);
+        let mut var_group =
+            <Option<crate::domain::gallery_groups::GalleryGroup>>::sse_decode(deserializer);
+        return crate::domain::gallery_groups::GalleryEntry {
+            source: var_source,
+            group: var_group,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::gallery_groups::GalleryGroup {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_key =
+            <crate::domain::gallery_groups::GalleryGroupKey>::sse_decode(deserializer);
+        let mut var_memberCount = <u64>::sse_decode(deserializer);
+        return crate::domain::gallery_groups::GalleryGroup {
+            key: var_key,
+            member_count: var_memberCount,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::gallery_groups::GalleryGroupFilter {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::gallery_groups::GalleryGroupFilter::Unrestricted,
+            1 => crate::domain::gallery_groups::GalleryGroupFilter::Exact,
+            2 => crate::domain::gallery_groups::GalleryGroupFilter::Similar,
+            _ => unreachable!("Invalid variant for GalleryGroupFilter: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::domain::gallery_groups::GalleryGroupKey {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_digest = <String>::sse_decode(deserializer);
+                let mut var_byteLength = <u64>::sse_decode(deserializer);
+                return crate::domain::gallery_groups::GalleryGroupKey::Exact {
+                    digest: var_digest,
+                    byte_length: var_byteLength,
+                };
+            }
+            1 => {
+                let mut var_groupId = <String>::sse_decode(deserializer);
+                return crate::domain::gallery_groups::GalleryGroupKey::Similar {
+                    group_id: var_groupId,
+                };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseDecode for crate::domain::gallery_groups::GalleryGroupMember {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_source = <crate::domain::AssetLocationView>::sse_decode(deserializer);
+        let mut var_content =
+            <crate::domain::similar_images::SimilarContentKey>::sse_decode(deserializer);
+        let mut var_preferred = <bool>::sse_decode(deserializer);
+        let mut var_availability =
+            <crate::domain::exact_duplicates::DuplicateLocationAvailability>::sse_decode(
+                deserializer,
+            );
+        return crate::domain::gallery_groups::GalleryGroupMember {
+            source: var_source,
+            content: var_content,
+            preferred: var_preferred,
+            availability: var_availability,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::gallery_groups::GalleryGroupMemberPage {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_members =
+            <Vec<crate::domain::gallery_groups::GalleryGroupMember>>::sse_decode(deserializer);
+        let mut var_total = <u64>::sse_decode(deserializer);
+        let mut var_pending = <u64>::sse_decode(deserializer);
+        let mut var_nextLocationId = <Option<String>>::sse_decode(deserializer);
+        let mut var_decisionRevision = <u64>::sse_decode(deserializer);
+        return crate::domain::gallery_groups::GalleryGroupMemberPage {
+            members: var_members,
+            total: var_total,
+            pending: var_pending,
+            next_location_id: var_nextLocationId,
+            decision_revision: var_decisionRevision,
+        };
+    }
+}
+
 impl SseDecode for crate::domain::GalleryLayoutDateGroup {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -8081,6 +8233,7 @@ impl SseDecode for crate::domain::GalleryLayoutManifestChunk {
         let mut var_totalItems = <u64>::sse_decode(deserializer);
         let mut var_startOrdinal = <u64>::sse_decode(deserializer);
         let mut var_locationIds = <Vec<String>>::sse_decode(deserializer);
+        let mut var_entryIds = <Vec<String>>::sse_decode(deserializer);
         let mut var_aspectRatioMilli = <Vec<u16>>::sse_decode(deserializer);
         let mut var_dateGroupIndices = <Vec<u16>>::sse_decode(deserializer);
         let mut var_dateGroups =
@@ -8094,6 +8247,7 @@ impl SseDecode for crate::domain::GalleryLayoutManifestChunk {
             total_items: var_totalItems,
             start_ordinal: var_startOrdinal,
             location_ids: var_locationIds,
+            entry_ids: var_entryIds,
             aspect_ratio_milli: var_aspectRatioMilli,
             date_group_indices: var_dateGroupIndices,
             date_groups: var_dateGroups,
@@ -8195,6 +8349,8 @@ impl SseDecode for crate::domain::GalleryQuery {
         let mut var_sortKey = <crate::domain::GallerySortKey>::sse_decode(deserializer);
         let mut var_sortDirection = <crate::domain::GallerySortDirection>::sse_decode(deserializer);
         let mut var_duplicateMode = <crate::domain::GalleryDuplicateMode>::sse_decode(deserializer);
+        let mut var_groupFilter =
+            <crate::domain::gallery_groups::GalleryGroupFilter>::sse_decode(deserializer);
         return crate::domain::GalleryQuery {
             collection: var_collection,
             organization_queue: var_organizationQueue,
@@ -8208,6 +8364,7 @@ impl SseDecode for crate::domain::GalleryQuery {
             sort_key: var_sortKey,
             sort_direction: var_sortDirection,
             duplicate_mode: var_duplicateMode,
+            group_filter: var_groupFilter,
         };
     }
 }
@@ -8216,10 +8373,13 @@ impl SseDecode for crate::domain::gallery_query_snapshot::GalleryQueryAnchor {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_requestedLocationId = <String>::sse_decode(deserializer);
+        let mut var_groupKey =
+            <Option<crate::domain::gallery_groups::GalleryGroupKey>>::sse_decode(deserializer);
         let mut var_assetId = <Option<String>>::sse_decode(deserializer);
         let mut var_fallbackOrdinal = <u64>::sse_decode(deserializer);
         return crate::domain::gallery_query_snapshot::GalleryQueryAnchor {
             requested_location_id: var_requestedLocationId,
+            group_key: var_groupKey,
             asset_id: var_assetId,
             fallback_ordinal: var_fallbackOrdinal,
         };
@@ -8651,18 +8811,6 @@ impl SseDecode for Vec<String> {
     }
 }
 
-impl SseDecode for Vec<crate::domain::AssetLocationView> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut len_ = <i32>::sse_decode(deserializer);
-        let mut ans_ = Vec::with_capacity(len_ as usize);
-        for idx_ in 0..len_ {
-            ans_.push(<crate::domain::AssetLocationView>::sse_decode(deserializer));
-        }
-        return ans_;
-    }
-}
-
 impl SseDecode for Vec<crate::domain::classification_selection::ClassificationAnnotation> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -8837,6 +8985,34 @@ impl SseDecode for Vec<crate::domain::exact_duplicates::GalleryDuplicateAnnotati
                 <crate::domain::exact_duplicates::GalleryDuplicateAnnotation>::sse_decode(
                     deserializer,
                 ),
+            );
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::domain::gallery_groups::GalleryEntry> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::domain::gallery_groups::GalleryEntry>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::domain::gallery_groups::GalleryGroupMember> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::domain::gallery_groups::GalleryGroupMember>::sse_decode(deserializer),
             );
         }
         return ans_;
@@ -9355,6 +9531,32 @@ impl SseDecode for Option<crate::domain::file_operations::FileOperationSource> {
         if (<bool>::sse_decode(deserializer)) {
             return Some(
                 <crate::domain::file_operations::FileOperationSource>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::domain::gallery_groups::GalleryGroup> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::domain::gallery_groups::GalleryGroup>::sse_decode(
+                deserializer,
+            ));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::domain::gallery_groups::GalleryGroupKey> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::domain::gallery_groups::GalleryGroupKey>::sse_decode(deserializer),
             );
         } else {
             return None;
@@ -11365,61 +11567,62 @@ fn pde_ffi_dispatcher_primary_impl(
 89 => wire__crate__api__catalog__load_library_catalog_around_location_impl(port, ptr, rust_vec_len, data_len),
 90 => wire__crate__api__catalog__load_library_catalog_at_time_impl(port, ptr, rust_vec_len, data_len),
 91 => wire__crate__api__catalog__load_library_folder_page_impl(port, ptr, rust_vec_len, data_len),
-92 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(port, ptr, rust_vec_len, data_len),
-93 => wire__crate__api__catalog__load_library_gallery_timeline_impl(port, ptr, rust_vec_len, data_len),
-94 => wire__crate__api__catalog__load_library_query_snapshot_impl(port, ptr, rust_vec_len, data_len),
-95 => wire__crate__api__catalog__load_library_time_snapshot_impl(port, ptr, rust_vec_len, data_len),
-96 => wire__crate__api__organization_review__load_organization_admission_boundary_impl(port, ptr, rust_vec_len, data_len),
-97 => wire__crate__api__organization__load_organization_albums_impl(port, ptr, rust_vec_len, data_len),
-98 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(port, ptr, rust_vec_len, data_len),
-99 => wire__crate__api__organization_conflicts__load_organization_conflict_annotations_impl(port, ptr, rust_vec_len, data_len),
-100 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(port, ptr, rust_vec_len, data_len),
-101 => wire__crate__api__organization_review__load_organization_continuation_impl(port, ptr, rust_vec_len, data_len),
-102 => wire__crate__api__organization__load_organization_history_impl(port, ptr, rust_vec_len, data_len),
-103 => wire__crate__api__catalog__load_paused_library_scan_impl(port, ptr, rust_vec_len, data_len),
-104 => wire__crate__api__catalog__load_recoverable_library_scan_impl(port, ptr, rust_vec_len, data_len),
-105 => wire__crate__api__similar_image_review__load_similar_groups_impl(port, ptr, rust_vec_len, data_len),
-106 => wire__crate__api__similar_image_review__load_similar_members_impl(port, ptr, rust_vec_len, data_len),
-107 => wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len),
-108 => wire__crate__api__file_operations__load_unfinished_file_operations_impl(port, ptr, rust_vec_len, data_len),
-109 => wire__crate__api__preview__materialize_library_preview_impl(port, ptr, rust_vec_len, data_len),
-110 => wire__crate__api__classification__open_classification_session_impl(port, ptr, rust_vec_len, data_len),
-111 => wire__crate__api__file_operations__open_file_selection_impl(port, ptr, rust_vec_len, data_len),
-112 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(port, ptr, rust_vec_len, data_len),
-113 => wire__crate__api__similar_images__open_similar_image_analysis_impl(port, ptr, rust_vec_len, data_len),
-115 => wire__crate__api__synchronization__poll_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-116 => wire__crate__api__organization__prepare_organization_selection_impl(port, ptr, rust_vec_len, data_len),
-117 => wire__crate__api__semantic_search__prepare_semantic_search_impl(port, ptr, rust_vec_len, data_len),
-118 => wire__crate__api__file_operations__recover_file_operations_impl(port, ptr, rust_vec_len, data_len),
-119 => wire__crate__api__classification_installation__recover_model_installation_impl(port, ptr, rust_vec_len, data_len),
-120 => wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len),
-121 => wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len),
-122 => wire__crate__api__organization__rename_organization_album_impl(port, ptr, rust_vec_len, data_len),
-123 => wire__crate__api__sidebar_order__reorder_sidebar_entry_impl(port, ptr, rust_vec_len, data_len),
-126 => wire__crate__api__organization_archive__restore_organization_archive_impl(port, ptr, rust_vec_len, data_len),
-127 => wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len),
-128 => wire__crate__api__classification_retry__retry_failed_classification_impl(port, ptr, rust_vec_len, data_len),
-129 => wire__crate__api__semantic_search__retry_semantic_index_impl(port, ptr, rust_vec_len, data_len),
-130 => wire__crate__api__classification_settings__save_classification_acceleration_impl(port, ptr, rust_vec_len, data_len),
-131 => wire__crate__api__classification_settings__save_classification_settings_impl(port, ptr, rust_vec_len, data_len),
-132 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-133 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
-134 => wire__crate__api__similar_image_review__seek_similar_groups_impl(port, ptr, rust_vec_len, data_len),
-135 => wire__crate__api__classification__select_classification_installation_impl(port, ptr, rust_vec_len, data_len),
-136 => wire__crate__api__semantic_search__semantic_index_status_impl(port, ptr, rust_vec_len, data_len),
-137 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(port, ptr, rust_vec_len, data_len),
-138 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(port, ptr, rust_vec_len, data_len),
-139 => wire__crate__api__organization__set_organization_favorite_impl(port, ptr, rust_vec_len, data_len),
-140 => wire__crate__api__similar_image_review__set_similar_ignored_impl(port, ptr, rust_vec_len, data_len),
-141 => wire__crate__api__similar_image_review__set_similar_preference_impl(port, ptr, rust_vec_len, data_len),
-142 => wire__crate__api__storage__start_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
-143 => wire__crate__api__synchronization__start_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-144 => wire__crate__api__organization__step_organization_history_impl(port, ptr, rust_vec_len, data_len),
-145 => wire__crate__api__synchronization__stop_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
-147 => wire__crate__api__organization__undo_organization_operation_impl(port, ptr, rust_vec_len, data_len),
-148 => wire__crate__api__similar_image_review__undo_similar_exclusion_impl(port, ptr, rust_vec_len, data_len),
-149 => wire__crate__api__storage__update_storage_settings_impl(port, ptr, rust_vec_len, data_len),
-150 => wire__crate__api__file_operations__write_file_export_report_impl(port, ptr, rust_vec_len, data_len),
+92 => wire__crate__api__catalog__load_library_gallery_group_members_impl(port, ptr, rust_vec_len, data_len),
+93 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(port, ptr, rust_vec_len, data_len),
+94 => wire__crate__api__catalog__load_library_gallery_timeline_impl(port, ptr, rust_vec_len, data_len),
+95 => wire__crate__api__catalog__load_library_query_snapshot_impl(port, ptr, rust_vec_len, data_len),
+96 => wire__crate__api__catalog__load_library_time_snapshot_impl(port, ptr, rust_vec_len, data_len),
+97 => wire__crate__api__organization_review__load_organization_admission_boundary_impl(port, ptr, rust_vec_len, data_len),
+98 => wire__crate__api__organization__load_organization_albums_impl(port, ptr, rust_vec_len, data_len),
+99 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(port, ptr, rust_vec_len, data_len),
+100 => wire__crate__api__organization_conflicts__load_organization_conflict_annotations_impl(port, ptr, rust_vec_len, data_len),
+101 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(port, ptr, rust_vec_len, data_len),
+102 => wire__crate__api__organization_review__load_organization_continuation_impl(port, ptr, rust_vec_len, data_len),
+103 => wire__crate__api__organization__load_organization_history_impl(port, ptr, rust_vec_len, data_len),
+104 => wire__crate__api__catalog__load_paused_library_scan_impl(port, ptr, rust_vec_len, data_len),
+105 => wire__crate__api__catalog__load_recoverable_library_scan_impl(port, ptr, rust_vec_len, data_len),
+106 => wire__crate__api__similar_image_review__load_similar_groups_impl(port, ptr, rust_vec_len, data_len),
+107 => wire__crate__api__similar_image_review__load_similar_members_impl(port, ptr, rust_vec_len, data_len),
+108 => wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len),
+109 => wire__crate__api__file_operations__load_unfinished_file_operations_impl(port, ptr, rust_vec_len, data_len),
+110 => wire__crate__api__preview__materialize_library_preview_impl(port, ptr, rust_vec_len, data_len),
+111 => wire__crate__api__classification__open_classification_session_impl(port, ptr, rust_vec_len, data_len),
+112 => wire__crate__api__file_operations__open_file_selection_impl(port, ptr, rust_vec_len, data_len),
+113 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(port, ptr, rust_vec_len, data_len),
+114 => wire__crate__api__similar_images__open_similar_image_analysis_impl(port, ptr, rust_vec_len, data_len),
+116 => wire__crate__api__synchronization__poll_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+117 => wire__crate__api__organization__prepare_organization_selection_impl(port, ptr, rust_vec_len, data_len),
+118 => wire__crate__api__semantic_search__prepare_semantic_search_impl(port, ptr, rust_vec_len, data_len),
+119 => wire__crate__api__file_operations__recover_file_operations_impl(port, ptr, rust_vec_len, data_len),
+120 => wire__crate__api__classification_installation__recover_model_installation_impl(port, ptr, rust_vec_len, data_len),
+121 => wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len),
+122 => wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len),
+123 => wire__crate__api__organization__rename_organization_album_impl(port, ptr, rust_vec_len, data_len),
+124 => wire__crate__api__sidebar_order__reorder_sidebar_entry_impl(port, ptr, rust_vec_len, data_len),
+127 => wire__crate__api__organization_archive__restore_organization_archive_impl(port, ptr, rust_vec_len, data_len),
+128 => wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len),
+129 => wire__crate__api__classification_retry__retry_failed_classification_impl(port, ptr, rust_vec_len, data_len),
+130 => wire__crate__api__semantic_search__retry_semantic_index_impl(port, ptr, rust_vec_len, data_len),
+131 => wire__crate__api__classification_settings__save_classification_acceleration_impl(port, ptr, rust_vec_len, data_len),
+132 => wire__crate__api__classification_settings__save_classification_settings_impl(port, ptr, rust_vec_len, data_len),
+133 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+134 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(port, ptr, rust_vec_len, data_len),
+135 => wire__crate__api__similar_image_review__seek_similar_groups_impl(port, ptr, rust_vec_len, data_len),
+136 => wire__crate__api__classification__select_classification_installation_impl(port, ptr, rust_vec_len, data_len),
+137 => wire__crate__api__semantic_search__semantic_index_status_impl(port, ptr, rust_vec_len, data_len),
+138 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(port, ptr, rust_vec_len, data_len),
+139 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(port, ptr, rust_vec_len, data_len),
+140 => wire__crate__api__organization__set_organization_favorite_impl(port, ptr, rust_vec_len, data_len),
+141 => wire__crate__api__similar_image_review__set_similar_ignored_impl(port, ptr, rust_vec_len, data_len),
+142 => wire__crate__api__similar_image_review__set_similar_preference_impl(port, ptr, rust_vec_len, data_len),
+143 => wire__crate__api__storage__start_catalog_database_reclamation_impl(port, ptr, rust_vec_len, data_len),
+144 => wire__crate__api__synchronization__start_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+145 => wire__crate__api__organization__step_organization_history_impl(port, ptr, rust_vec_len, data_len),
+146 => wire__crate__api__synchronization__stop_library_synchronization_impl(port, ptr, rust_vec_len, data_len),
+148 => wire__crate__api__organization__undo_organization_operation_impl(port, ptr, rust_vec_len, data_len),
+149 => wire__crate__api__similar_image_review__undo_similar_exclusion_impl(port, ptr, rust_vec_len, data_len),
+150 => wire__crate__api__storage__update_storage_settings_impl(port, ptr, rust_vec_len, data_len),
+151 => wire__crate__api__file_operations__write_file_export_report_impl(port, ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
 }
@@ -11450,10 +11653,10 @@ fn pde_ffi_dispatcher_sync_impl(
 58 => wire__crate__api__classification_installation__create_model_installation_impl(ptr, rust_vec_len, data_len),
 60 => wire__crate__api__organization_archive__create_organization_archive_task_impl(ptr, rust_vec_len, data_len),
 61 => wire__crate__api__organization_cleanup__create_organization_cleanup_task_impl(ptr, rust_vec_len, data_len),
-114 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-124 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(ptr, rust_vec_len, data_len),
-125 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(ptr, rust_vec_len, data_len),
-146 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+115 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
+125 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(ptr, rust_vec_len, data_len),
+126 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(ptr, rust_vec_len, data_len),
+147 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
                         _ => unreachable!(),
                     }
 }
@@ -11818,6 +12021,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::CatalogCursor {
             self.primary_number.into_into_dart().into_dart(),
             self.root_id.into_into_dart().into_dart(),
             self.location_id.into_into_dart().into_dart(),
+            self.group_key.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -13419,6 +13623,10 @@ crate::domain::file_operation_selection::FileOperationSelectionScope::Locations 
 crate::domain::file_operation_selection::FileOperationSelectionScope::DuplicateCleanup{kind,all_groups} => { [3.into_dart(),
 kind.into_into_dart().into_dart(),
 all_groups.into_into_dart().into_dart()].into_dart() }
+crate::domain::file_operation_selection::FileOperationSelectionScope::GalleryCleanup{query,catalog_revision,all_matching} => { [4.into_dart(),
+query.into_into_dart().into_dart(),
+catalog_revision.into_into_dart().into_dart(),
+all_matching.into_into_dart().into_dart()].into_dart() }
  _ => { unimplemented!(""); }}
     }
 }
@@ -13766,6 +13974,150 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::exact_duplicates::GalleryD
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::gallery_groups::GalleryEntry {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.source.into_into_dart().into_dart(),
+            self.group.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::gallery_groups::GalleryEntry
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::gallery_groups::GalleryEntry>
+    for crate::domain::gallery_groups::GalleryEntry
+{
+    fn into_into_dart(self) -> crate::domain::gallery_groups::GalleryEntry {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::gallery_groups::GalleryGroup {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.key.into_into_dart().into_dart(),
+            self.member_count.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::gallery_groups::GalleryGroup
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::gallery_groups::GalleryGroup>
+    for crate::domain::gallery_groups::GalleryGroup
+{
+    fn into_into_dart(self) -> crate::domain::gallery_groups::GalleryGroup {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::gallery_groups::GalleryGroupFilter {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Unrestricted => 0.into_dart(),
+            Self::Exact => 1.into_dart(),
+            Self::Similar => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::gallery_groups::GalleryGroupFilter
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::gallery_groups::GalleryGroupFilter>
+    for crate::domain::gallery_groups::GalleryGroupFilter
+{
+    fn into_into_dart(self) -> crate::domain::gallery_groups::GalleryGroupFilter {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::gallery_groups::GalleryGroupKey {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::domain::gallery_groups::GalleryGroupKey::Exact {
+                digest,
+                byte_length,
+            } => [
+                0.into_dart(),
+                digest.into_into_dart().into_dart(),
+                byte_length.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            crate::domain::gallery_groups::GalleryGroupKey::Similar { group_id } => {
+                [1.into_dart(), group_id.into_into_dart().into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::gallery_groups::GalleryGroupKey
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::gallery_groups::GalleryGroupKey>
+    for crate::domain::gallery_groups::GalleryGroupKey
+{
+    fn into_into_dart(self) -> crate::domain::gallery_groups::GalleryGroupKey {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::gallery_groups::GalleryGroupMember {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.source.into_into_dart().into_dart(),
+            self.content.into_into_dart().into_dart(),
+            self.preferred.into_into_dart().into_dart(),
+            self.availability.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::gallery_groups::GalleryGroupMember
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::gallery_groups::GalleryGroupMember>
+    for crate::domain::gallery_groups::GalleryGroupMember
+{
+    fn into_into_dart(self) -> crate::domain::gallery_groups::GalleryGroupMember {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::gallery_groups::GalleryGroupMemberPage {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.members.into_into_dart().into_dart(),
+            self.total.into_into_dart().into_dart(),
+            self.pending.into_into_dart().into_dart(),
+            self.next_location_id.into_into_dart().into_dart(),
+            self.decision_revision.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::gallery_groups::GalleryGroupMemberPage
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::gallery_groups::GalleryGroupMemberPage>
+    for crate::domain::gallery_groups::GalleryGroupMemberPage
+{
+    fn into_into_dart(self) -> crate::domain::gallery_groups::GalleryGroupMemberPage {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::domain::GalleryLayoutDateGroup {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [self.date_key.into_into_dart().into_dart()].into_dart()
@@ -13791,6 +14143,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::GalleryLayoutManifestChunk
             self.total_items.into_into_dart().into_dart(),
             self.start_ordinal.into_into_dart().into_dart(),
             self.location_ids.into_into_dart().into_dart(),
+            self.entry_ids.into_into_dart().into_dart(),
             self.aspect_ratio_milli.into_into_dart().into_dart(),
             self.date_group_indices.into_into_dart().into_dart(),
             self.date_groups.into_into_dart().into_dart(),
@@ -13923,6 +14276,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::GalleryQuery {
             self.sort_key.into_into_dart().into_dart(),
             self.sort_direction.into_into_dart().into_dart(),
             self.duplicate_mode.into_into_dart().into_dart(),
+            self.group_filter.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -13940,6 +14294,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::gallery_query_snapshot::Ga
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.requested_location_id.into_into_dart().into_dart(),
+            self.group_key.into_into_dart().into_dart(),
             self.asset_id.into_into_dart().into_dart(),
             self.fallback_ordinal.into_into_dart().into_dart(),
         ]
@@ -17159,6 +17514,10 @@ impl SseEncode for crate::domain::CatalogCursor {
         <i64>::sse_encode(self.primary_number, serializer);
         <String>::sse_encode(self.root_id, serializer);
         <String>::sse_encode(self.location_id, serializer);
+        <Option<crate::domain::gallery_groups::GalleryGroupKey>>::sse_encode(
+            self.group_key,
+            serializer,
+        );
     }
 }
 
@@ -17299,7 +17658,7 @@ impl SseEncode for crate::domain::CatalogSnapshot {
         <u64>::sse_encode(self.revision, serializer);
         <String>::sse_encode(self.query_id, serializer);
         <Vec<crate::domain::LibraryRootView>>::sse_encode(self.roots, serializer);
-        <Vec<crate::domain::AssetLocationView>>::sse_encode(self.assets, serializer);
+        <Vec<crate::domain::gallery_groups::GalleryEntry>>::sse_encode(self.assets, serializer);
         <Option<crate::domain::CatalogCursor>>::sse_encode(self.previous_cursor, serializer);
         <Option<crate::domain::CatalogCursor>>::sse_encode(self.next_cursor, serializer);
         <Option<crate::domain::GalleryLocationAnchorResolution>>::sse_encode(
@@ -18061,6 +18420,10 @@ crate::domain::file_operation_selection::FileOperationSelectionScope::Locations 
 crate::domain::file_operation_selection::FileOperationSelectionScope::DuplicateCleanup{kind,all_groups} => { <i32>::sse_encode(3, serializer); <crate::domain::file_operation_selection::DuplicateCleanupKind>::sse_encode(kind, serializer);
 <bool>::sse_encode(all_groups, serializer);
  }
+crate::domain::file_operation_selection::FileOperationSelectionScope::GalleryCleanup{query,catalog_revision,all_matching} => { <i32>::sse_encode(4, serializer); <Box<crate::domain::GalleryQuery>>::sse_encode(query, serializer);
+<u64>::sse_encode(catalog_revision, serializer);
+<bool>::sse_encode(all_matching, serializer);
+ }
  _ => { unimplemented!(""); }}
     }
 }
@@ -18282,6 +18645,89 @@ impl SseEncode for crate::domain::exact_duplicates::GalleryDuplicatePage {
     }
 }
 
+impl SseEncode for crate::domain::gallery_groups::GalleryEntry {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::AssetLocationView>::sse_encode(self.source, serializer);
+        <Option<crate::domain::gallery_groups::GalleryGroup>>::sse_encode(self.group, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::gallery_groups::GalleryGroup {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::gallery_groups::GalleryGroupKey>::sse_encode(self.key, serializer);
+        <u64>::sse_encode(self.member_count, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::gallery_groups::GalleryGroupFilter {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::gallery_groups::GalleryGroupFilter::Unrestricted => 0,
+                crate::domain::gallery_groups::GalleryGroupFilter::Exact => 1,
+                crate::domain::gallery_groups::GalleryGroupFilter::Similar => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::gallery_groups::GalleryGroupKey {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::domain::gallery_groups::GalleryGroupKey::Exact {
+                digest,
+                byte_length,
+            } => {
+                <i32>::sse_encode(0, serializer);
+                <String>::sse_encode(digest, serializer);
+                <u64>::sse_encode(byte_length, serializer);
+            }
+            crate::domain::gallery_groups::GalleryGroupKey::Similar { group_id } => {
+                <i32>::sse_encode(1, serializer);
+                <String>::sse_encode(group_id, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseEncode for crate::domain::gallery_groups::GalleryGroupMember {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::AssetLocationView>::sse_encode(self.source, serializer);
+        <crate::domain::similar_images::SimilarContentKey>::sse_encode(self.content, serializer);
+        <bool>::sse_encode(self.preferred, serializer);
+        <crate::domain::exact_duplicates::DuplicateLocationAvailability>::sse_encode(
+            self.availability,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::gallery_groups::GalleryGroupMemberPage {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::domain::gallery_groups::GalleryGroupMember>>::sse_encode(
+            self.members,
+            serializer,
+        );
+        <u64>::sse_encode(self.total, serializer);
+        <u64>::sse_encode(self.pending, serializer);
+        <Option<String>>::sse_encode(self.next_location_id, serializer);
+        <u64>::sse_encode(self.decision_revision, serializer);
+    }
+}
+
 impl SseEncode for crate::domain::GalleryLayoutDateGroup {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -18297,6 +18743,7 @@ impl SseEncode for crate::domain::GalleryLayoutManifestChunk {
         <u64>::sse_encode(self.total_items, serializer);
         <u64>::sse_encode(self.start_ordinal, serializer);
         <Vec<String>>::sse_encode(self.location_ids, serializer);
+        <Vec<String>>::sse_encode(self.entry_ids, serializer);
         <Vec<u16>>::sse_encode(self.aspect_ratio_milli, serializer);
         <Vec<u16>>::sse_encode(self.date_group_indices, serializer);
         <Vec<crate::domain::GalleryLayoutDateGroup>>::sse_encode(self.date_groups, serializer);
@@ -18382,6 +18829,10 @@ impl SseEncode for crate::domain::GalleryQuery {
         <crate::domain::GallerySortKey>::sse_encode(self.sort_key, serializer);
         <crate::domain::GallerySortDirection>::sse_encode(self.sort_direction, serializer);
         <crate::domain::GalleryDuplicateMode>::sse_encode(self.duplicate_mode, serializer);
+        <crate::domain::gallery_groups::GalleryGroupFilter>::sse_encode(
+            self.group_filter,
+            serializer,
+        );
     }
 }
 
@@ -18389,6 +18840,10 @@ impl SseEncode for crate::domain::gallery_query_snapshot::GalleryQueryAnchor {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.requested_location_id, serializer);
+        <Option<crate::domain::gallery_groups::GalleryGroupKey>>::sse_encode(
+            self.group_key,
+            serializer,
+        );
         <Option<String>>::sse_encode(self.asset_id, serializer);
         <u64>::sse_encode(self.fallback_ordinal, serializer);
     }
@@ -18749,16 +19204,6 @@ impl SseEncode for Vec<String> {
     }
 }
 
-impl SseEncode for Vec<crate::domain::AssetLocationView> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <i32>::sse_encode(self.len() as _, serializer);
-        for item in self {
-            <crate::domain::AssetLocationView>::sse_encode(item, serializer);
-        }
-    }
-}
-
 impl SseEncode for Vec<crate::domain::classification_selection::ClassificationAnnotation> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -18891,6 +19336,26 @@ impl SseEncode for Vec<crate::domain::exact_duplicates::GalleryDuplicateAnnotati
             <crate::domain::exact_duplicates::GalleryDuplicateAnnotation>::sse_encode(
                 item, serializer,
             );
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::domain::gallery_groups::GalleryEntry> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::domain::gallery_groups::GalleryEntry>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::domain::gallery_groups::GalleryGroupMember> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::domain::gallery_groups::GalleryGroupMember>::sse_encode(item, serializer);
         }
     }
 }
@@ -19306,6 +19771,26 @@ impl SseEncode for Option<crate::domain::file_operations::FileOperationSource> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::domain::file_operations::FileOperationSource>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::domain::gallery_groups::GalleryGroup> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::gallery_groups::GalleryGroup>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::domain::gallery_groups::GalleryGroupKey> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::gallery_groups::GalleryGroupKey>::sse_encode(value, serializer);
         }
     }
 }

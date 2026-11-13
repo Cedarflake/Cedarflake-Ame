@@ -6,6 +6,7 @@ typedef LibraryViewerGeometry = ({Rect bounds, Rect visibleBounds});
 class LibraryViewerOrigin {
   const LibraryViewerOrigin({
     required this.locationId,
+    String? entryId,
     required this.geometry,
     required this.currentGeometry,
     required this.fit,
@@ -13,9 +14,10 @@ class LibraryViewerOrigin {
     this.findTarget,
     this.previewImage,
     this.previewQuality = FilterQuality.low,
-  });
+  }) : entryId = entryId ?? locationId;
 
   final String locationId;
+  final String entryId;
   final LibraryViewerGeometry geometry;
   final LibraryViewerGeometry? Function() currentGeometry;
   final BoxFit fit;
@@ -30,6 +32,7 @@ class LibraryViewerOrigin {
         ? null
         : LibraryViewerOrigin(
             locationId: locationId,
+            entryId: entryId,
             geometry: current,
             currentGeometry: currentGeometry,
             fit: fit,
@@ -84,6 +87,7 @@ class LibraryViewerOriginScope extends InheritedWidget {
 class LibraryViewerLaunch extends StatefulWidget {
   const LibraryViewerLaunch({
     required this.locationId,
+    this.entryId,
     required this.onOpen,
     required this.builder,
     this.fit = BoxFit.cover,
@@ -92,6 +96,7 @@ class LibraryViewerLaunch extends StatefulWidget {
   });
 
   final String locationId;
+  final String? entryId;
   final VoidCallback onOpen;
   final BoxFit fit;
   final double radius;
@@ -140,8 +145,10 @@ class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
     super.dispose();
   }
 
-  LibraryViewerGeometry? _geometry(String locationId) {
-    if (!mounted || widget.locationId != locationId) return null;
+  LibraryViewerGeometry? _geometry(String entryId) {
+    if (!mounted || (widget.entryId ?? widget.locationId) != entryId) {
+      return null;
+    }
     final box = _thumbnailKey.currentContext?.findRenderObject();
     if (box is! RenderBox ||
         !box.attached ||
@@ -173,14 +180,15 @@ class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
     return (bounds: bounds, visibleBounds: visibleBounds);
   }
 
-  LibraryViewerOrigin? _origin(String locationId) {
-    final geometry = _geometry(locationId);
+  LibraryViewerOrigin? _origin(String entryId) {
+    final geometry = _geometry(entryId);
     return geometry == null
         ? null
         : LibraryViewerOrigin(
-            locationId: locationId,
+            locationId: widget.locationId,
+            entryId: entryId,
             geometry: geometry,
-            currentGeometry: () => _geometry(locationId),
+            currentGeometry: () => _geometry(entryId),
             fit: widget.fit,
             radius: widget.radius,
             findTarget: _origins?.find,
@@ -190,7 +198,9 @@ class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
   }
 
   void _open() {
-    LibraryViewerOriginScope.of(context)?.prepare(_origin(widget.locationId));
+    LibraryViewerOriginScope.of(
+      context,
+    )?.prepare(_origin(widget.entryId ?? widget.locationId));
     widget.onOpen();
   }
 

@@ -30,6 +30,7 @@ LibraryGalleryVisiblePosition? resolveLibraryTimeNavigationPosition(
         revision: anchor.revision,
         monthKey: anchor.monthKey,
         locationId: asset.locationId,
+        entryId: asset.galleryEntryId,
         assetId: asset.assetId,
         globalItemIndex: globalIndex,
         itemFraction: 0,

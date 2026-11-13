@@ -269,7 +269,7 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
                     ? Wrap(
                         key: const Key("duplicate-review-actions"),
                         alignment: WrapAlignment.end,
-                        spacing: 8,
+                        spacing: 0,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           LibraryDuplicateGroupMenus(

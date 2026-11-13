@@ -40,6 +40,7 @@ pub use exact_duplicates::{
 mod journal_scope_recovery;
 pub use journal_scope_recovery::JournalScopeRecoveryOutcome;
 
+pub mod gallery_groups;
 pub mod gallery_metadata_filter;
 pub mod gallery_query_snapshot;
 pub mod gallery_scroll_section;
@@ -439,7 +440,7 @@ pub struct CatalogSnapshot {
     pub revision: u64,
     pub query_id: String,
     pub roots: Vec<LibraryRootView>,
-    pub assets: Vec<AssetLocationView>,
+    pub assets: Vec<gallery_groups::GalleryEntry>,
     pub previous_cursor: Option<CatalogCursor>,
     pub next_cursor: Option<CatalogCursor>,
     pub query_anchor_resolution: Option<GalleryLocationAnchorResolution>,
@@ -462,6 +463,7 @@ pub struct CatalogCursor {
     pub primary_number: i64,
     pub root_id: String,
     pub location_id: String,
+    pub group_key: Option<gallery_groups::GalleryGroupKey>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -512,6 +514,7 @@ pub struct GalleryQuery {
     pub sort_key: GallerySortKey,
     pub sort_direction: GallerySortDirection,
     pub duplicate_mode: GalleryDuplicateMode,
+    pub group_filter: gallery_groups::GalleryGroupFilter,
 }
 
 impl Default for GalleryQuery {
@@ -529,13 +532,15 @@ impl Default for GalleryQuery {
             sort_key: GallerySortKey::CaptureTime,
             sort_direction: GallerySortDirection::Descending,
             duplicate_mode: GalleryDuplicateMode::All,
+            group_filter: gallery_groups::GalleryGroupFilter::Unrestricted,
         }
     }
 }
 
 impl GalleryQuery {
     pub fn folds_duplicates(&self) -> bool {
-        self.organization_queue.is_some()
+        self.group_filter != gallery_groups::GalleryGroupFilter::Unrestricted
+            || self.organization_queue.is_some()
             || matches!(
                 self.collection,
                 GalleryCollection::Album { .. } | GalleryCollection::SmartAlbum { .. }
@@ -592,6 +597,7 @@ pub struct GalleryLayoutManifestChunk {
     pub total_items: u64,
     pub start_ordinal: u64,
     pub location_ids: Vec<String>,
+    pub entry_ids: Vec<String>,
     pub aspect_ratio_milli: Vec<u16>,
     pub date_group_indices: Vec<u16>,
     pub date_groups: Vec<GalleryLayoutDateGroup>,

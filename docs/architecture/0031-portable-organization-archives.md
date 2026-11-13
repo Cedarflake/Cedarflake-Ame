@@ -58,6 +58,10 @@ record kinds and footer counts and use the default icon for restored albums. Ico
 album-definition ownership: imported new albums receive their saved icons; an existing local album's
 icon is preserved. Icon changes carry no undo records.
 
+Version 9 appends the typed gallery group filter to each saved review scope. Versions 1–8 expand
+to unrestricted grouping during staging. Validate the enum before restoration and publish it with
+the restored bookmark in the same transaction; an existing local bookmark retains its own scope.
+
 Take a committed SQLite online snapshot in owned derived storage using bounded page steps, then
 release the live catalog copy before streaming records. Export reads no source media. The temporary
 snapshot can be larger than the resulting archive; expose copy progress, support cancellation and

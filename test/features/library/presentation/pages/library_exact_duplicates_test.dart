@@ -1,8 +1,11 @@
 import "dart:async";
 
+import "package:material_symbols_icons/symbols.dart";
+
 import "package:cedarflake_ame/features/library/adapters/platform/windows_library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
+import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
@@ -15,6 +18,8 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/pages/library_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_analysis_activity.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_badge.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_sidebar_selection_icon.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_workbench.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
@@ -27,6 +32,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../../../../support/application_test_bindings.dart";
 import "../../../../support/duplicate_review_fixtures.dart";
+import "../../../../support/gallery_group_fixtures.dart";
 import "../../../../support/semantics/retained_semantics_update_harness.dart";
 
 const _group = LibraryDuplicateGroup(
@@ -125,6 +131,11 @@ void main() {
                 (ref) async => {"one": _group},
               ),
               libraryExactDuplicatesProvider.overrideWithValue(service),
+              libraryGroupMemberCatalogProvider.overrideWithValue(
+                LocationPageGroupCatalog(
+                  (after) => service.loadLocations(_group, after),
+                ),
+              ),
               libraryDuplicateReviewProvider.overrideWithValue(
                 ReviewFixtureService(showResults: () => service.hasResults),
               ),
@@ -144,30 +155,11 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text("two.png"), findsOneWidget);
         expect(find.text(r"D:\fixture"), findsOneWidget);
-        expect(find.text("当前图片"), findsOneWidget);
+        expect(find.text("当前图片"), findsNothing);
         expect(find.textContaining("本地可用"), findsNothing);
         expect(find.byType(BottomSheet), findsOneWidget);
         expect(find.text("关闭"), findsNothing);
         final currentRow = find.byKey(const ValueKey("duplicate-location-one"));
-        expect(
-          find.descendant(
-            of: find.byType(ListTile),
-            matching: find.byType(IconButton),
-          ),
-          findsNothing,
-        );
-        expect(
-          tester.getTopLeft(find.text("当前图片")).dx,
-          greaterThan(tester.getTopRight(find.text("one.png")).dx),
-        );
-        expect(
-          tester
-              .widget<ListTile>(
-                find.byKey(const ValueKey("duplicate-location-two")),
-              )
-              .trailing,
-          isNull,
-        );
         final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
         await mouse.addPointer();
         await mouse.moveTo(tester.getCenter(currentRow));
@@ -178,6 +170,29 @@ void main() {
         );
         await mouse.removePointer();
         await tester.tap(find.text("one.png"));
+        await tester.pumpAndSettle();
+        expect(find.byType(LibraryImageViewer), findsOneWidget);
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        await tester.pumpAndSettle();
+        expect(tester.widget<ListTile>(currentRow).selected, isFalse);
+        await tester.tap(
+          find.descendant(
+            of: currentRow,
+            matching: find.byType(LibrarySidebarSelectionIcon),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.widget<ListTile>(currentRow).selected, isTrue);
+        expect(revealed, isEmpty);
+        await tester.tap(
+          find.descendant(
+            of: currentRow,
+            matching: find.widgetWithIcon(
+              IconButton,
+              Symbols.folder_open_rounded,
+            ),
+          ),
+        );
         await tester.pumpAndSettle();
         expect(revealed, [r"C:\fixture\one.png"]);
         await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -228,6 +243,11 @@ void main() {
               ),
               libraryGalleryDuplicateAnnotationsProvider.overrideWith(
                 (_) async => {"one": _group},
+              ),
+              libraryGroupMemberCatalogProvider.overrideWithValue(
+                LocationPageGroupCatalog(
+                  (after) => service.loadLocations(_group, after),
+                ),
               ),
               libraryExactDuplicatesProvider.overrideWithValue(service),
               libraryDuplicateReviewProvider.overrideWithValue(
@@ -287,15 +307,14 @@ void main() {
           expect(textBounds.left, greaterThanOrEqualTo(bounds.left));
           expect(textBounds.right, lessThanOrEqualTo(bounds.right));
         }
-        expect(find.text("当前图片"), findsOneWidget);
-        expect(
-          tester.getTopLeft(find.text("当前图片")).dx,
-          greaterThan(tester.getTopRight(find.text(folder)).dx),
+        expect(find.text("当前图片"), findsNothing);
+        await Scrollable.ensureVisible(
+          tester.element(find.text(folder)),
+          alignment: 1,
         );
-        await tester.ensureVisible(find.text("当前图片"));
         await tester.pumpAndSettle();
         expect(
-          tester.getBottomRight(find.text("当前图片")).dy,
+          tester.getBottomRight(find.text(folder)).dy,
           lessThanOrEqualTo(bounds.bottom),
         );
         await tester.sendKeyEvent(LogicalKeyboardKey.escape);

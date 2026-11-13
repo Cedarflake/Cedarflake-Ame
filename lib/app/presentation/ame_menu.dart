@@ -333,7 +333,7 @@ double amePopupMenuContentWidth({
       contentIconWidth +
       leadingDecorationWidth;
   return (maximumContentWidth + decorationWidth)
-      .clamp(AmeMenuMetrics.minimumWidth, AmeMenuMetrics.maximumWidth)
+      .clamp(AmeMenuMetrics.itemHeight, AmeMenuMetrics.maximumWidth)
       .ceilToDouble();
 }
 

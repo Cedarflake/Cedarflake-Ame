@@ -95,7 +95,7 @@ fn publish_preview_metadata_fixture(catalog: &mut SqliteCatalog) -> (AssetLocati
         .load_snapshot(5, &GalleryQuery::default(), TEST_QUERY_ID, None, None, None)
         .expect("initial preview metadata fixture");
     assert_eq!(snapshot.assets[0].location_id, "deferred-date");
-    (snapshot.assets[0].clone(), snapshot.revision)
+    (snapshot.assets[0].source.clone(), snapshot.revision)
 }
 
 #[test]

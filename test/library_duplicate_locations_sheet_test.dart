@@ -2,18 +2,21 @@ import "dart:async";
 import "dart:math" as math;
 
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_locations_sheet.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_sidebar_selection_icon.dart";
 import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
+import "support/gallery_group_fixtures.dart";
 
 import "support/application_test_bindings.dart";
 
@@ -44,7 +47,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text("200 张重复图片"), findsOneWidget);
     expect(find.text("等待后台"), findsOneWidget);
-    expect(find.text("当前图片"), findsOneWidget);
+    expect(find.text("当前图片"), findsNothing);
+    final deleteSelected = find.widgetWithText(TextButton, "删除所选");
+    expect(tester.widget<TextButton>(deleteSelected).onPressed, isNull);
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey("duplicate-location-0")),
+        matching: find.byType(LibrarySidebarSelectionIcon),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextButton>(deleteSelected).onPressed, isNotNull);
     scheduler.setPaused(true);
     await tester.pumpAndSettle();
     expect(find.text("已暂停"), findsOneWidget);
@@ -164,6 +177,9 @@ Widget _host(
       () => library ?? ReviewFixtureLibrary(),
     ),
     libraryExactDuplicatesProvider.overrideWithValue(service),
+    libraryGroupMemberCatalogProvider.overrideWithValue(
+      LocationPageGroupCatalog((after) => service.loadLocations(group, after)),
+    ),
     if (analysis != null)
       libraryExactAnalysisControllerProvider.overrideWithValue(analysis),
     if (scheduler != null)

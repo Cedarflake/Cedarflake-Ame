@@ -5,6 +5,7 @@ import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
+import "package:cedarflake_ame/features/library/domain/library_gallery_group.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:material_ui/material_ui.dart";
@@ -44,17 +45,17 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        for (final selection in ["全部图片", "合并重复图片", "全部图片"]) {
+        for (final selection in ["合并重复", "仅显示重复", "仅显示相似", "全部图片", "合并重复"]) {
           await tester.tap(find.byKey(const Key("library-filter-menu")));
           await tester.pumpAndSettle();
           RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
             trace: "filter-open-$selection",
           );
-          expect(find.byIcon(Symbols.circle_rounded), findsNWidgets(2));
-          final longestLabel = find.text("合并重复图片");
+          expect(find.byIcon(Symbols.circle_rounded), findsWidgets);
+          final longestLabel = find.text("仅显示重复");
           final paragraph = tester.renderObject<RenderParagraph>(longestLabel);
           final labelBoxes = paragraph.getBoxesForSelection(
-            const TextSelection(baseOffset: 0, extentOffset: 6),
+            const TextSelection(baseOffset: 0, extentOffset: 5),
           );
           final labelRight =
               tester.getTopLeft(longestLabel).dx + labelBoxes.last.right;
@@ -107,6 +108,7 @@ class _FilterLibrary extends ReviewFixtureLibrary {
     LibraryGalleryQuery query, {
     String? anchorLocationId,
     String? anchorAssetId,
+    LibraryGalleryGroupKey? anchorGroupKey,
     int? fallbackGlobalItemIndex,
     bool forceRefresh = false,
     BigInt? minimumCatalogRevision,

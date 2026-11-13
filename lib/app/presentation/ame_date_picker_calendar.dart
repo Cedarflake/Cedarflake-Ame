@@ -22,7 +22,9 @@ Future<DateTime?> showAmeDatePicker({
         // The pinned picker uses headlineSmall directly in landscape
         // input mode, bypassing its own headerHeadlineStyle setting.
         textTheme: theme.textTheme.copyWith(
-          headlineSmall: theme.textTheme.titleMedium,
+          headlineSmall: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: theme.textTheme.headlineSmall?.fontWeight,
+          ),
         ),
         datePickerTheme: theme.datePickerTheme.copyWith(
           headerHeadlineStyle: theme.textTheme.headlineSmall,

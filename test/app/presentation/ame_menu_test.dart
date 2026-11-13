@@ -664,6 +664,7 @@ void main() {
 
   testWidgets("sizes popup menus from their longest label", (tester) async {
     late double shortWidth;
+    late double groupWidth;
     late double shortcutWidth;
     late double longWidth;
     late double cappedWidth;
@@ -675,7 +676,15 @@ void main() {
           builder: (context) {
             shortWidth = amePopupMenuContentWidth(
               context: context,
-              labels: const ["打开"],
+              labels: const ["严格", "标准", "宽松"],
+              hasContentIcon: false,
+              leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
+            );
+            groupWidth = amePopupMenuContentWidth(
+              context: context,
+              labels: const ["重复组", "相似组", "已忽略"],
+              hasContentIcon: false,
+              leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
             );
             shortcutWidth = amePopupMenuContentWidth(
               context: context,
@@ -696,7 +705,8 @@ void main() {
       ),
     );
 
-    expect(shortWidth, AmeMenuMetrics.minimumWidth);
+    expect(shortWidth, lessThan(groupWidth));
+    expect(groupWidth, lessThan(AmeMenuMetrics.minimumWidth));
     expect(shortcutWidth, greaterThan(shortWidth));
     expect(longWidth, greaterThan(shortWidth));
     expect(cappedWidth, AmeMenuMetrics.maximumWidth);

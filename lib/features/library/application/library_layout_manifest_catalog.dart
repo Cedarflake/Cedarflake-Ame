@@ -55,6 +55,7 @@ class CatalogLibraryGalleryLayoutManifestLoader
         revision: chunk.revision,
         queryId: chunk.queryId,
         totalItems: chunk.totalItems,
+        hasGroupIdentity: chunk.entryIds != null,
       );
       builder.append(chunk);
       cursor = chunk.nextCursor;

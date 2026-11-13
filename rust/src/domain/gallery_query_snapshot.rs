@@ -3,6 +3,7 @@ use super::{CatalogSnapshot, GalleryTimeline};
 #[derive(Clone, Debug)]
 pub struct GalleryQueryAnchor {
     pub requested_location_id: String,
+    pub group_key: Option<super::gallery_groups::GalleryGroupKey>,
     pub asset_id: Option<String>,
     pub fallback_ordinal: u64,
 }

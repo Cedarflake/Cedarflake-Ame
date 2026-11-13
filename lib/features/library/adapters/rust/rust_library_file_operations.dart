@@ -21,6 +21,12 @@ class RustLibraryFileOperations implements LibraryFileOperations {
     LibraryFileSelection selection,
   ) => fileOperationCall(() async {
     final scope = switch (selection) {
+      LibraryCleanupInGallery(:final selection) =>
+        dto.FileOperationSelectionScope.galleryCleanup(
+          query: mapLibraryGalleryQueryToRust(selection.query),
+          catalogRevision: selection.catalogRevision,
+          allMatching: selection.allMatching,
+        ),
       LibraryDuplicateCleanup(:final kind, :final allGroups, :final degree) =>
         dto.FileOperationSelectionScope.duplicateCleanup(
           kind: switch (kind) {

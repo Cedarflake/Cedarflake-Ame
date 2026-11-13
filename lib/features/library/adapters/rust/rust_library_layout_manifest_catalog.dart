@@ -4,6 +4,7 @@ import "../../../../src/rust/domain.dart" as rust_domain;
 import "../../domain/gallery_layout_manifest.dart";
 import "../../domain/library_models.dart";
 import "library_gallery_query_mapping.dart";
+import "library_gallery_group_mapping.dart";
 
 import "../../application/ports/library_layout_manifest_catalog.dart";
 
@@ -48,6 +49,7 @@ class RustLibraryGalleryLayoutManifestCatalog
       totalItems: totalItems,
       startOrdinal: startOrdinal,
       locationIds: chunk.locationIds,
+      entryIds: chunk.entryIds.isEmpty ? null : chunk.entryIds,
       aspectRatioMilli: Uint16List.fromList(chunk.aspectRatioMilli),
       dateGroupIndices: Uint16List.fromList(chunk.dateGroupIndices),
       dateGroups: [for (final group in chunk.dateGroups) group.dateKey],
@@ -74,6 +76,7 @@ class RustLibraryGalleryLayoutManifestCatalog
         primaryNumber: cursor.after.primaryNumber,
         rootId: cursor.after.rootId,
         locationId: cursor.after.locationId,
+        groupKey: mapGalleryGroupKeyToRust(cursor.after.groupKey),
       ),
     );
   }
@@ -94,6 +97,7 @@ class RustLibraryGalleryLayoutManifestCatalog
         primaryNumber: cursor.after.primaryNumber,
         rootId: cursor.after.rootId,
         locationId: cursor.after.locationId,
+        groupKey: mapRustGalleryGroupKey(cursor.after.groupKey),
       ),
     );
   }
@@ -124,6 +128,7 @@ LibraryGalleryLayoutManifest? mapRustGalleryLayoutManifest(
     revision: first.revision,
     queryId: first.queryId,
     totalItems: first.totalItems,
+    hasGroupIdentity: first.entryIds != null,
   )..append(first);
   for (final chunk in chunks.skip(1)) {
     builder.append(RustLibraryGalleryLayoutManifestCatalog.mapChunk(chunk));

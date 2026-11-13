@@ -91,16 +91,18 @@ pub(super) fn resolve_window(
     } else {
         let reverse_offset = ordinal - start_ordinal;
         let direction = gallery_window_direction_sql(query.order_direction(), true);
+        let group_columns = super::groups::columns(query);
+        let identity = super::groups::identity(query);
         parameters.push(Value::Integer(sqlite_integer(
             reverse_offset,
             "gallery location anchor offset",
         )?));
         let sql = format!(
             "SELECT locations.root_id, locations.location_id,
-                    {missing}, {text}, {number}
+                    {missing}, {text}, {number}, {group_columns}
              {source} WHERE {preceding_where}
              ORDER BY {missing} DESC, {text} {direction}, {number} {direction},
-                      locations.root_id DESC, locations.location_id DESC
+                      locations.root_id DESC, {identity} DESC
              LIMIT 1 OFFSET ?",
             missing = order.missing,
             text = order.text,
@@ -140,12 +142,14 @@ pub(super) fn resolve_fallback(
         format!("WHERE {}", clauses.join(" AND "))
     };
     let direction = gallery_direction_sql(query.order_direction());
+    let group_columns = super::groups::columns(query);
+    let identity = super::groups::identity(query);
     let sql = format!(
         "SELECT locations.root_id, locations.location_id,
-                {missing}, {text}, {number}
+                {missing}, {text}, {number}, {group_columns}
          {source} {scope}
          ORDER BY {missing}, {text} {direction}, {number} {direction},
-                  locations.root_id, locations.location_id
+                  locations.root_id, {identity}
          LIMIT 1 OFFSET ?",
         missing = order.missing,
         text = order.text,
@@ -217,6 +221,7 @@ fn read_cursor(
         query_id: query_id.to_owned(),
         root_id: row.get(0)?,
         location_id: row.get(1)?,
+        group_key: super::groups::read_key(row)?,
         primary_missing: row.get::<_, i64>(2)? != 0,
         primary_text: row.get(3)?,
         primary_number: row.get(4)?,

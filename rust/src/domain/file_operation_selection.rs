@@ -21,6 +21,11 @@ pub enum FileOperationSelectionScope {
         kind: DuplicateCleanupKind,
         all_groups: bool,
     },
+    GalleryCleanup {
+        query: Box<GalleryQuery>,
+        catalog_revision: u64,
+        all_matching: bool,
+    },
 }
 
 #[derive(Clone, Debug)]

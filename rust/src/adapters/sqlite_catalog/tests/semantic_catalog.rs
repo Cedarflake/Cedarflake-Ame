@@ -64,28 +64,34 @@ fn semantic_gallery_pages_and_position_seeks_keep_relevance_order() {
 
     let directory = tempfile::tempdir().unwrap();
     let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
-    let ids: Vec<_> = (0..12)
-        .map(|index| format!("image-{index:02}.png"))
+    let ids: Vec<_> = (0..769)
+        .map(|index| format!("image-{index:04}.png"))
         .collect();
     let locations: Vec<_> = ids
         .iter()
         .map(|id| (id.as_str(), id.as_str(), None, None, 1))
         .collect();
     publish_gallery_query_fixture(&mut catalog, "scan", "root", "C:/Fixture", &locations);
-    let candidates = catalog
-        .semantic_candidates(&GalleryQuery::default(), "")
+    let mut candidates = Vec::new();
+    let revision = catalog
+        .semantic_snapshot()
+        .unwrap()
+        .scan(&GalleryQuery::default(), &mut |window| {
+            candidates.extend(window);
+            Ok(())
+        })
         .unwrap();
-    let ranking = [8, 1, 10, 3, 6, 0, 11, 2, 9, 4, 7, 5];
+    let ranking: Vec<_> = (0..769).rev().collect();
     let manifest = SemanticResultManifest {
         id: "a".repeat(64),
-        catalog_revision: candidates.revision,
+        catalog_revision: revision,
         feature_generation: 1,
-        eligible_items: 12,
-        indexed_items: 12,
+        eligible_items: 769,
+        indexed_items: 769,
         storage_full: false,
         items: ranking
             .iter()
-            .map(|index| candidates.candidates[*index].source.clone())
+            .map(|index| candidates[*index].source.clone())
             .collect(),
     };
     for sort_key in [
@@ -101,11 +107,11 @@ fn semantic_gallery_pages_and_position_seeks_keep_relevance_order() {
         let timeline = catalog
             .load_gallery_timeline(&query, "semantic-query")
             .unwrap();
-        assert_eq!(timeline.total_items, 12);
+        assert_eq!(timeline.total_items, 769);
         assert!(timeline.scroll_sections.is_empty());
         assert_eq!(timeline.buckets.len(), 1);
         assert_eq!(timeline.buckets[0].month_key, None);
-        for start in [0, 7] {
+        for start in [0, 500, 766] {
             let anchor = GalleryTimeAnchor {
                 revision: timeline.revision,
                 query_id: "semantic-query".to_owned(),

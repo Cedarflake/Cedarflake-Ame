@@ -53,7 +53,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(
       find.ancestor(
-        of: find.text("合并重复图片"),
+        of: find.text("合并重复"),
         matching: find.byWidgetPredicate(
           (widget) => widget is PopupMenuItem<Object?>,
         ),

@@ -11,6 +11,7 @@ import '../domain/file_operation_journal.dart';
 import '../domain/file_operation_selection.dart';
 import '../domain/file_operation_task.dart';
 import '../domain/file_operations.dart';
+import '../domain/gallery_groups.dart';
 import '../domain/gallery_metadata_filter.dart';
 import '../domain/organization.dart';
 import '../domain/organization_queue.dart';

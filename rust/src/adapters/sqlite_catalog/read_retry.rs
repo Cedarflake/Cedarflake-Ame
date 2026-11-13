@@ -287,6 +287,17 @@ impl SqliteCatalogReadExecutor {
 }
 
 impl CatalogReader for SqliteCatalogReadExecutor {
+    fn load_gallery_group_members(
+        &self,
+        query: &GalleryQuery,
+        group: &crate::domain::gallery_groups::GalleryGroupKey,
+        after: &str,
+    ) -> Result<crate::domain::gallery_groups::GalleryGroupMemberPage, ScanError> {
+        self.execute_read(CatalogReadRetryOperation::CatalogSnapshot, |catalog| {
+            catalog.load_gallery_group_members(query, group, after)
+        })
+    }
+
     fn load_snapshot(
         &self,
         max_items: u32,

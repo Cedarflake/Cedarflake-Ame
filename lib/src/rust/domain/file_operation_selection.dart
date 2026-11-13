@@ -9,6 +9,7 @@ import 'classification_review.dart';
 import 'exact_duplicate_review.dart';
 import 'file_operation_exports.dart';
 import 'file_operations.dart';
+import 'gallery_groups.dart';
 import 'gallery_metadata_filter.dart';
 import 'organization.dart';
 import 'organization_queue.dart';
@@ -140,6 +141,11 @@ sealed class FileOperationSelectionScope with _$FileOperationSelectionScope {
     required DuplicateCleanupKind kind,
     required bool allGroups,
   }) = FileOperationSelectionScope_DuplicateCleanup;
+  const factory FileOperationSelectionScope.galleryCleanup({
+    required GalleryQuery query,
+    required BigInt catalogRevision,
+    required bool allMatching,
+  }) = FileOperationSelectionScope_GalleryCleanup;
 }
 
 class FileOperationSelectionSummary {

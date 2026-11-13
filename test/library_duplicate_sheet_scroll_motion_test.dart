@@ -1,4 +1,5 @@
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
@@ -9,6 +10,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
+import "support/gallery_group_fixtures.dart";
 
 import "support/application_test_bindings.dart";
 
@@ -22,6 +24,11 @@ void main() {
           overrides: applicationTestOverrides([
             libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
             libraryExactDuplicatesProvider.overrideWithValue(_Duplicates()),
+            libraryGroupMemberCatalogProvider.overrideWithValue(
+              LocationPageGroupCatalog(
+                (after) => _Duplicates().loadLocations(reviewGroup, after),
+              ),
+            ),
           ]),
           child: MaterialApp(
             home: MediaQuery(
