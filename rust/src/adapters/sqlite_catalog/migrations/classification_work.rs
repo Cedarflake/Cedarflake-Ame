@@ -42,7 +42,7 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     Ok(())
 }
 
-pub(super) fn validate_rows(connection: &Connection) -> Result<(), ScanError> {
+pub(super) fn validate_content_rows(connection: &Connection) -> Result<(), ScanError> {
     let state_count: i64 = connection
         .query_row(
             "SELECT count(*) FROM classification_dispatch_state WHERE singleton = 1",
@@ -52,21 +52,6 @@ pub(super) fn validate_rows(connection: &Connection) -> Result<(), ScanError> {
         .map_err(database_error)?;
     if state_count != 1 {
         return Err(invalid());
-    }
-    for (kind, name, _) in schema::OBJECTS {
-        if *kind != "table" {
-            continue;
-        }
-        let failed: bool = connection
-            .query_row(
-                "SELECT EXISTS(SELECT 1 FROM pragma_foreign_key_check(?1))",
-                [name],
-                |row| row.get(0),
-            )
-            .map_err(database_error)?;
-        if failed {
-            return Err(invalid());
-        }
     }
     let invalid_work: bool = connection
         .query_row(

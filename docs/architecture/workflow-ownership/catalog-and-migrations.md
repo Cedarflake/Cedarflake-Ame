@@ -158,7 +158,10 @@ shared principles; the roadmap owns current delivery order and acceptance status
   proof order and its consistent read snapshot: structural checks precede the complete authority-row
   audit. Historical v19/pre-live-gap proof sequences and test-only audit counters belong to that
   owner as well; version steps and individual contracts call it directly. Process-owned validated
-  sessions reuse that proof; schema markers alone are not row authority. Spool-row proof lives in
+  sessions reuse that proof; schema markers alone are not row authority.
+  The journal row proof already checks all catalog foreign keys in that snapshot. Classification
+  and dispatch content validators reuse that relationship proof without repeating table traversals;
+  their content, singleton, dispatch and lease checks remain mandatory. Spool-row proof lives in
   `migrations/inventory_spool_rows.rs`: ordered per-run ordinals and
   once-grouped per-directory entry counts replace correlated recounting, without omitting parent,
   lifecycle, or foreign-key evidence. Structural proof and snapshot ownership remain upstream.

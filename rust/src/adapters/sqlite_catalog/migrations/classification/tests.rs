@@ -41,5 +41,5 @@ fn failed_upgrade_rolls_back_every_classification_table() {
         .execute_batch("DROP TRIGGER reject_classification_version")
         .unwrap();
     migrate(&mut catalog.connection).unwrap();
-    validate_rows(&catalog.connection).unwrap();
+    current_schema::validate_current_schema_contract(&catalog.connection).unwrap();
 }

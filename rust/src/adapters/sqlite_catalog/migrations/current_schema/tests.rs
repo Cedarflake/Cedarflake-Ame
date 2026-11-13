@@ -34,3 +34,28 @@ fn current_v31_change_catch_up_ddl_damage_still_fails_closed() {
     assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
     assert_eq!(super::current_schema_row_audit_count(), 0);
 }
+
+#[test]
+fn shared_relationship_audit_rejects_classification_and_work_orphans() {
+    let mut connection = Connection::open_in_memory().expect("current catalog");
+    migrate_schema(&mut connection).expect("create current catalog");
+    connection
+        .execute_batch("PRAGMA foreign_keys = OFF")
+        .unwrap();
+
+    for mutation in [
+        "UPDATE classification_state SET active_rules = printf('%064d', 0)",
+        "INSERT INTO classification_stopped_runs(run_id) VALUES ('missing-run')",
+    ] {
+        let transaction = connection.transaction().unwrap();
+        transaction.execute_batch(mutation).unwrap();
+        let error = super::validate_current_schema_contract(&transaction)
+            .expect_err("reject an orphan before accepting classification content");
+        assert_eq!(
+            error.code,
+            "catalog_persistent_journal_contract_unverifiable"
+        );
+        transaction.rollback().unwrap();
+    }
+    super::validate_current_schema_contract(&connection).unwrap();
+}

@@ -77,3 +77,17 @@ The focused source-revision checks passed: active cross-root and staged within-s
 unknown revisions, independent scan observations, precontract repair, damaged markers/structure,
 rollback and the v30-to-v31 migration. The extracted validator has 75 lines with no inline tests;
 its dedicated boundary fixture has 77 test lines. The existing repair/migration tests remain in place.
+
+## Shared startup relationship audit
+
+The full catalog validator already checks every foreign key in its journal proof. Classification
+and dispatch now validate their content after that proof, in the same read transaction, without
+repeating the large relationship traversals. Their singleton, payload, dispatch and lease checks
+remain unchanged. The startup regression rejects orphan classification and work references; the
+clean/read-only and damaged-schema cases also passed.
+
+Five Release launches on the retained catalog took 5,109–5,175 ms from process launch to the first
+decoded gallery image. Dart-entry-to-content time was 4,678–4,749 ms, compared with 5,111–5,315 ms
+before removing the duplicate audit. The earlier instrument started at Dart entry and only required
+gallery tiles, so its figures are not interchangeable with the stricter process-to-decoded-image
+measurement. The five-second process target remains open.

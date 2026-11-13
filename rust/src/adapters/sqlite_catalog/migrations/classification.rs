@@ -39,7 +39,7 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     Ok(())
 }
 
-pub(super) fn validate_rows(connection: &Connection) -> Result<(), ScanError> {
+pub(super) fn validate_content_rows(connection: &Connection) -> Result<(), ScanError> {
     let present: bool = connection
         .query_row(
             "SELECT COUNT(*) = 1 FROM classification_state WHERE singleton = 1",
@@ -49,21 +49,6 @@ pub(super) fn validate_rows(connection: &Connection) -> Result<(), ScanError> {
         .map_err(database_error)?;
     if !present {
         return Err(invalid());
-    }
-    for (kind, name, _) in schema::OBJECTS {
-        if *kind != "table" {
-            continue;
-        }
-        let failed: bool = connection
-            .query_row(
-                "SELECT EXISTS(SELECT 1 FROM pragma_foreign_key_check(?1))",
-                [name],
-                |row| row.get(0),
-            )
-            .map_err(database_error)?;
-        if failed {
-            return Err(invalid());
-        }
     }
     super::super::classification::validation::catalog(connection)
 }
