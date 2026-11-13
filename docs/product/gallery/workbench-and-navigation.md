@@ -73,8 +73,9 @@ identity; similar groups contain distinct contents selected by the admitted perc
 Similarity adds no filter or folding to Library, Favorites or albums. No analysis or display choice
 authorizes source mutation.
 
-Put the heading/count block on the left and icon menus on the right. The layers-icon `分组` menu
-offers `重复组`, `相似组` and `已忽略` in that order, without top tabs. Show `严格 / 标准 / 宽松` through the
+Put the heading/count block on the left and group controls on the right. The layers-icon menu
+shows its current label (`重复组`, `相似组` or `已忽略`) and a dropdown arrow. It offers those choices
+in that order, without top tabs. Show `严格 / 标准 / 宽松` through the
 sliders menu to its right only in the similar-group list, initially `标准`; its tooltip and accessible
 name identify the current degree. Changing degree queries existing results. `已忽略` combines exact and similar
 groups with kind labels; similar groups there use the broad degree so choices remain reachable.

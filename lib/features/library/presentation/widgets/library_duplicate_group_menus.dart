@@ -40,14 +40,16 @@ class LibraryDuplicateGroupMenus extends StatelessWidget {
         onSelected: onViewChanged,
         builder: (context, open) => AmeTooltip(
           message: "${LibraryDuplicateStrings.groupView}：${_viewLabel(view)}",
-          child: IconButton(
+          child: TextButton.icon(
             key: const Key("duplicate-group-menu"),
             onPressed: open,
-            icon: const Row(
+            icon: const Icon(Symbols.layers_rounded),
+            label: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Symbols.layers_rounded),
-                Icon(Symbols.arrow_drop_down_rounded, size: 18),
+                Text(_viewLabel(view)),
+                const SizedBox(width: 4),
+                const Icon(Symbols.arrow_drop_down_rounded, size: 18),
               ],
             ),
           ),
