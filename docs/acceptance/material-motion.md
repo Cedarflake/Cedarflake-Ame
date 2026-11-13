@@ -74,13 +74,13 @@ work and different durations; they do not establish allocation-rate or GC improv
 equal-height/grid captures contained 138/116 VM `Scavenge` starts across threads over 33.99/30.65
 seconds. No image cache, retained-image budget or full-layout cache was added or enlarged.
 
-The inventory below combines current Profile samples with source/lifecycle inspection. All
-non-gallery/non-sidebar implementations remain unchanged; previous visual and lifecycle checks
-below retain their original scope rather than becoming newly executed acceptance.
+The inventory below combines current Profile samples with source/lifecycle inspection. Controls,
+overlays and loading implementations remain unchanged; previous visual and lifecycle checks below
+retain their original scope rather than becoming newly executed acceptance.
 
 | Surface family | Assessment and disposition |
 | --- | --- |
-| Card/viewer entry and return | Normal gallery, albums, smart albums, group/member entry converge on the shared viewer and flight owners. Warm open/close UI p95 was 0.83/1.00 ms; raster p95 1.32/1.02 ms. Preserve image/quality leases, clipping, overlay fade and route ownership. |
+| Card/viewer entry and return | Normal gallery, albums, smart albums, group/member entry converge on the shared viewer and flight owners. Warm open/close UI p95 was 0.83/1.00 ms; raster p95 1.32/1.02 ms. The shared flight now reuses its compositing layers; image/quality leases, clipping, overlay fade and route ownership remain unchanged. |
 | Viewer controls/image changes | Filmstrip open/close UI p95 was 0.90/1.08 ms. Its stable child and hidden ticker retirement remain; image reveal retains its existing quality handoff. |
 | Gallery reflow | Keep the first optimization and bounded exit visuals (64 images, four million pixels, disposal on completion). Both equal-height and grid callers share this owner. |
 | Sidebar/folders | Keep the paint-only viewport change. Folder disclosure UI p95 was 0.83/0.68 ms with no over-budget burst frames; retain its framework size/fade and closing-child retirement. |
@@ -103,8 +103,8 @@ These are current costs, not paired improvement measurements or a settled root-c
 | --- | --- |
 | Equal-height gallery maximize / restore | UI p95 2.06 / 1.97 ms; UI max 13.33 / 11.25 ms; restored heading, first image and geometry |
 | Grid gallery maximize / restore | UI p95 3.50 / 2.54 ms; UI max 8.38 / 7.23 ms; restored heading, first image and geometry |
-| Grid border resizing | A short corner drag reduced the width from 1,269 to 1,089 pixels while retaining the leading image; repeated expansion and prolonged dragging are not covered |
-| Viewer fullscreen and minimize / restore | Same image and position retained. The combined capture contains a 37.20-ms UI frame during restore; targeted attribution remains open |
+| Gallery native sizing | A short grid corner drag reduced width from 1,269 to 1,089 pixels. Native system-size input also expanded and contracted equal-height and grid windows, including a repeated 1,269–1,369-pixel grid cycle; leading image and date remained in place. Prolonged held-mouse dragging is not covered |
+| Viewer fullscreen and minimize / restore | Same image and position retained. The combined capture contains a 37.20-ms UI frame during restore; follow-up attribution and residual costs are recorded below |
 
 The initial border attempt changed the timeline instead of the window, and an expansion gesture
 was rejected for ending outside the target window. Neither establishes resize acceptance. Raw
@@ -129,11 +129,27 @@ Current first entry still reaches 22.01 ms raster. A separate restore capture re
 gallery tiles; freezing that gallery would change return-target geometry and was not introduced.
 Native system-size operations expanded and contracted the viewer at 1,280/1,291-pixel widths with
 the same image and fit. Further minimized-window restores exposed a 49.99-ms UI frame overlapping
-whole-manifest conversion and geometry comparison; that main-thread work remains under investigation.
+whole-manifest conversion and geometry comparison.
 
-Local completion remains open for restore-frame work and repeated gallery native resizing.
-Broader query latency and resource qualification retain their R10 owner. PR 63 contains this batch;
-its `af76eeff` Quality / CI run 43436034710 was still running when these measurements were recorded.
+Snapshot conversion now yields between the native 4,096-item chunks. Input/frame events can run
+before conversion finishes, while publication still receives only a validated complete snapshot.
+The existing query-generation checks retain stale-result authority. A queued-input boundary case
+and a late inconsistent-chunk rejection passed with eight retained manifest/cancellation cases;
+scoped formatting, analysis and the Profile build passed. The mapping owner has 140 production/
+81 dedicated-test lines, the calling adapter 470 production lines, and neither has inline tests.
+
+In the new retained-library client, repeated minimize/restore animation bursts had UI p95 values
+of 0.57, 5.01 and 1.24 ms. The complete capture still contains a 49.22-ms UI frame: its samples are
+in geometry comparison and card layout, with GC, rather than the previous uninterrupted conversion
+chain. Raster max was 44.98 ms. This establishes input scheduling between chunks, not elimination
+of restore outliers. The mixed gallery-native-sizing capture had UI/raster p95 of 5.90/1.44 ms and
+maxima of 30.61/17.85 ms, with heading, leading card and geometry preserved after restoration.
+Raw follow-up captures are `viewer-manifest-*` and `gallery-native-final` under `build/performance`.
+
+Local completion remains open for restore-frame outliers and the CI failures. PR 63 contains this
+batch. The `af76eeff` run 43436034710 failed the selective-search work assertion and four viewer
+session cases; its remaining executed jobs passed. Run 43443504916 for `0d3cb34a` is in progress.
+Broader query latency and resource qualification retain their R10 owner.
 
 ## Loading-feedback integration — 2026-11-12
 

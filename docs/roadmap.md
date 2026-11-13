@@ -86,10 +86,12 @@ maintenance does not reopen the completed R7/R8 stages.
 The [motion-performance plan](plans/motion-performance.md) is active on
 `codex/motion-performance`. MP0/MP2 retain the assessed transition families. Supplementary first-open
 viewer and native window measurements expose remaining first-use and restore-frame costs; their
-cause-level assessment and repeated border-resize coverage remain open. MP1 retains
+cause-level assessment remains open. Native size changes now cover the viewer and both gallery
+layouts. MP1 retains
 unchanged-size card content, paints sidebar clipping/translation without relayout, and reduces
-compact-manifest comparison and row-layout calculation. MP3 retains the completed affected-path
-verification and source review, with the window/viewer work above still open; the
+compact-manifest comparison and row-layout calculation. Viewer flights now reuse compositing layers;
+snapshot conversion yields between bounded chunks. MP3 retains the completed affected-path
+verification and source review, with restore-frame outliers and hosted failures still open; the
 [measurement record](acceptance/material-motion.md#transition-performance--2026-11-13)
 retains measured gains, remaining frame outliers and unchanged efficient paths. Deliver this
 batch in the existing PR 63; hosted checks remain outstanding.
