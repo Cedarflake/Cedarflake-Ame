@@ -10,11 +10,14 @@ pub(super) fn push_text_filter(text: &str, clauses: &mut Vec<String>, parameters
         return;
     }
     if let Some(candidates) = candidate_terms(search) {
+        // Resolve the location key first so active-scan joins seek the candidate
+        // instead of scanning every location in the published scan.
         clauses.push(
-            "locations.gallery_search_id IN (
-               SELECT rowid
-               FROM gallery_search_terms
-               WHERE gallery_search_terms MATCH ?
+            "locations.location_id IN (
+               SELECT candidate.location_id
+               FROM asset_locations AS candidate INDEXED BY asset_locations_gallery_search
+               WHERE candidate.gallery_search_id IN (
+                 SELECT rowid FROM gallery_search_terms WHERE gallery_search_terms MATCH ?)
              )"
             .to_owned(),
         );
