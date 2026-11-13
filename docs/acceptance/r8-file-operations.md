@@ -892,3 +892,12 @@ the read facade has 1,784 lines including 1,018 inline-test-module lines, and th
 file-operation and duplicate-page Flutter suites contain 955 and 468 lines. Generated bridge files
 are excluded from handwritten-owner counts. This feature branch has no push-triggered workflow;
 hosted checks require a pull request.
+
+## Gallery group discovery integration — 2026-11-13
+
+[PR 62](https://github.com/Cedarflake/Cedarflake-Ame/pull/62) merged head `01066692` into `main` as
+`69d6ca25e05e041f618b7674368d7d9b3c7b8d0a`. The scoped semantic-candidate repair and the corrected
+tray interaction regression are included. The user explicitly requested immediate merge without
+waiting for CI; hosted results were pending and are not claimed as passed. Local `main` was
+fast-forwarded, and the local and remote `codex/gallery-group-discovery` branches were deleted.
+The preceding client observations and remaining first-query waits retain their stated scope.

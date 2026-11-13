@@ -73,16 +73,12 @@ is decomposed in the [execution plan](plans/r10-beta-readiness.md). Implementati
 
 ### Gallery group discovery
 
-The [follow-up plan](plans/gallery-group-discovery.md) is active before R10: first restore complete,
-scope-consistent semantic results, then add mutually exclusive grouped-gallery filters, cleanup and
-tray actions, and a labeled group-type menu. Search implementation and local client verification
-are recorded in [R7 evidence](acceptance/r7-semantic-discovery.md#complete-scoped-results--2026-11-13);
-search is delivered in `b916d6d5`. The group-menu label has local client evidence in
-[R6 acceptance](acceptance/r6-similar-images.md#visible-group-type-label--2026-11-13).
-Gallery filters and member/cleanup actions are implemented and locally verified, retaining the
-gallery's photo wall, layouts and timeline; [client and regression evidence](acceptance/r8-file-operations.md#gallery-group-discovery--2026-11-13)
-records the remaining query waits. Delivery awaits the pushed commit's hosted checks. This
-maintenance scope does not reopen the completed R7/R8 stages.
+The [follow-up plan](plans/gallery-group-discovery.md) was integrated through
+[PR 62](https://github.com/Cedarflake/Cedarflake-Ame/pull/62). It delivers scope-consistent semantic
+results, exclusive grouped-gallery filters, member and cleanup actions, and labeled group menus.
+The [integration record](acceptance/r8-file-operations.md#gallery-group-discovery-integration--2026-11-13)
+retains audit, verification and merge boundaries. Remaining query waits belong to R10; this
+maintenance does not reopen the completed R7/R8 stages.
 
 ### R10 — Beta readiness
 
