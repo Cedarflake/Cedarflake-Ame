@@ -10,7 +10,7 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     let invalid = connection.query_row(
         "WITH active_aliases AS MATERIALIZED (
            SELECT locations.file_identity_scheme, locations.file_identity_value
-           FROM asset_locations AS locations INDEXED BY asset_locations_active_file_identity
+           FROM asset_locations AS locations
            JOIN library_roots AS roots
              ON roots.id = locations.root_id AND roots.active_scan_id = locations.scan_id
            WHERE locations.file_identity_scheme IS NOT NULL
@@ -18,7 +18,7 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
            HAVING COUNT(*) > 1
          ), scan_aliases AS MATERIALIZED (
            SELECT scan_id, file_identity_scheme, file_identity_value
-           FROM asset_locations INDEXED BY asset_locations_file_identity
+           FROM asset_locations
            WHERE file_identity_scheme IS NOT NULL
            GROUP BY scan_id, file_identity_scheme, file_identity_value
            HAVING COUNT(*) > 1

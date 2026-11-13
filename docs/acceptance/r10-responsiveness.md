@@ -176,3 +176,11 @@ archive restoration and source publication advance that revision in the same tra
 fixtures now use the existing publication function with their direct state setup; their category,
 gallery-membership and command-authority assertions are unchanged. All five existing navigation
 cases passed in managed disposable storage. No production invalidation rule changed for this repair.
+
+## Legacy index compatibility
+
+The same hosted run exposed six older-catalog migration failures because the optimized alias proof
+forced two index names that those admitted schemas did not always contain. Removing the hints keeps
+every predicate and rejection condition; SQLite still selects the narrow identity indexes when
+available. Read-only paired runs returned the same result in 258–272 ms. All 25 existing catalog
+migration cases passed after the correction, including retained records and invalid-schema rejection.
