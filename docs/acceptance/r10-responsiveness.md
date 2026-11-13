@@ -156,6 +156,14 @@ The real Profile client exercised 180 size changes per layout through the normal
 Catalog revisions advanced during both runs. The original card remained selected as the anchor,
 and final geometric drift was 0.8 logical pixels for equal-height and zero for square. The measured
 build/raster P95 was 16.88/9.28 ms and 9.33/8.94 ms respectively, with no frame over 50 ms.
-Equal-height resize computation still needs reduction to meet the 60 Hz build budget.
+This identified temporary per-cell allocations as the remaining equal-height resize cost.
 Application-level synthetic held timeline input, wheel input and actual window sizing are recorded
 separately from native mouse automation; no hardware-held-drag claim is made for this instrumentation.
+
+The row calculator now stores contiguous 64-bit widths and a row start ordinal instead of one
+object per cell. Both loaded and query-wide layouts consume the same values; packing, minimum
+widths and 32-bit snapshot storage remain unchanged. The existing geometry/resize cases passed.
+A repeated retained-library run measured build/raster P95 of 15.13/9.25 ms for equal-height and
+8.82/7.79 ms for square, meeting the 16.67 ms targets. Maximum build/raster was 28.98/11.62 ms
+and 15.64/10.70 ms; neither run had a frame over 50 ms. Background revisions advanced in both;
+final same-card drift remained 0.8/0 logical pixels, and the client reported no Flutter error.
