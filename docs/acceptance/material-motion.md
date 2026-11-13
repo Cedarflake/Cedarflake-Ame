@@ -179,6 +179,41 @@ literal matching and query ordering remain unchanged. The seven retained text-se
 covering Unicode/punctuation, retired scans, scoped counts/layout/keysets, FTS admission and index lifecycle.
 Broader query latency and resource qualification retain their R10 owner.
 
+### Viewer callback cadence — 2026-11-14
+
+The `eb95662e` runner's merged Windows/UI loop repeatedly delayed animation callbacks during
+card enlargement. A traced warm frame had about 27 ms between its vsync timestamp and callback,
+despite 0.93-ms build and 1.01-ms raster work; flight progress jumped from 26% to 56%. A capture
+without CPU/timeline profiling reproduced the gap. Native message traces did not identify a
+matching long message handler, so attribution stops at merged-loop scheduling.
+
+The accompanying runner change selects the SDK's public separate-UI-thread policy, with its
+compatibility/upgrade boundary in [ADR 0001](../architecture/0001-flutter-rust-desktop-stack.md#windows-animation-scheduling).
+The same first card, retained library, Flutter 3.47.8 Profile/Skia and 165-Hz display were used in
+a maximized 2,048 × 1,232 window. Samples below cover consecutive forward callbacks whose preceding
+progress is 5–95%; callback arrival uses the monotonic clock, separately from animation timestamps.
+
+| Capture | Intervals | Largest animation interval (ms) | Largest callback-arrival interval (ms) |
+| --- | --- | --- | --- |
+| Merged, warm, traced | 18 | 30.30 | 33.27 |
+| Merged, warm, CPU/timeline profiling disabled | 18 | 31.39 | 32.61 |
+| Separate, final cold entry | 21 | 18.18 | 18.37 |
+| Separate, final warm entry | 23 | 6.06 | 7.14 |
+
+The final warm capture had no middle-of-flight arrival interval above 9 ms. Its initial 0%-to-9%
+interval still took 18.18 ms; cold entry retained a 21.20-ms raster peak. Full-capture cold/warm
+UI maxima were 10.00/8.48 ms, with warm raster max 1.85 ms. These are callback and frame-work
+measurements, not a display-presentation rate. Settled warm RSS was 341.6 MiB. No cache budget,
+motion geometry, duration, image-quality handoff or renderer changed.
+
+The final Profile build passed. Real-window checks retained card entry/return, keyboard next/previous
+and Escape, zoom/fit, maximize/restore and native folder-picker cancellation. The client remained
+usable after cancellation; no folder was added. No new source-level test mirrors this SDK setting;
+the real interaction establishes its effect, while existing hosted integration owns wider coverage.
+Flutter's future-removal notice remains visible. Ignored captures are `viewer-flight-full-*` and
+`viewer-cadence-final-*` under `build/performance`; temporary native tracing is absent from the final
+64-line runner. Exact-head CI remains outstanding in PR 63.
+
 ## Loading-feedback integration — 2026-11-12
 
 [PR 59](https://github.com/Cedarflake/Cedarflake-Ame/pull/59), head

@@ -238,6 +238,26 @@ This decision becomes Accepted only after R0 demonstrates:
 - The Windows Release runner builds and launches with `flutter run --release --no-resident` without
   exiting early.
 
+## Windows animation scheduling
+
+The Windows runner selects the pinned SDK's public `UIThreadPolicy::RunOnSeparateThread`.
+Dart frame callbacks run independently of the native window message loop; platform plugins still
+receive their calls on the platform thread. The renderer, frame rate, animation simulations and
+image/source lifetimes remain unchanged. This introduces no custom timer, process priority change
+or engine patch.
+
+With Flutter 3.47.8, the default merged loop delayed callbacks during card enlargement even when
+build and raster work fit the display budget. The same Profile interaction with separate threads
+removed the recurring middle-of-flight delay; the [motion record](../acceptance/material-motion.md#transition-performance--2026-11-13)
+retains the comparison and remaining first-frame costs. Extending motion duration or reducing image
+quality would change the accepted effect without repairing callback delivery.
+
+Flutter retains this public switch for compatibility and emits a runtime notice that separate UI
+threads will be removed in a future version. Keep that notice visible. Reassess the default loop
+when upgrading the pinned SDK, including entry/return cadence, window state, keyboard input and
+native plugin/accessibility workflows. Remove this selection when the default matches those
+results; an SDK that removes the API requires an explicit migration rather than a silent fallback.
+
 ## Windows image I/O scheduling
 
 The Windows runner raises Flutter's image I/O thread from `BELOW_NORMAL` to

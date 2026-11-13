@@ -87,7 +87,8 @@ The [motion-performance plan](plans/motion-performance.md) is active on
 `codex/motion-performance`. MP0/MP2 have assessments for all transition families, including first-open
 viewer and native size/state changes in the viewer and both gallery layouts. MP1 retains card
 content, paints sidebar clipping/translation without relayout, reuses viewer compositing layers,
-reduces compact-manifest comparison/row calculation, and yields between snapshot conversion chunks.
+reduces compact-manifest comparison/row calculation, yields between snapshot conversion chunks,
+and separates Dart frame scheduling from the Windows message loop.
 MP3 local affected-path verification and source review are recorded; exact-head hosted CI remains
 outstanding in [PR 63](https://github.com/Cedarflake/Cedarflake-Ame/pull/63). The
 [measurement record](acceptance/material-motion.md#transition-performance--2026-11-13) retains gains,

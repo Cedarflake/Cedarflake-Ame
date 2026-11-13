@@ -10,6 +10,8 @@ namespace {
 
 int RunFlutterWindow() {
   flutter::DartProject project(L"data");
+  // Keep animation frame scheduling independent of the Windows message loop.
+  project.set_ui_thread_policy(flutter::UIThreadPolicy::RunOnSeparateThread);
   // Skia avoids the measured Impeller regression on software-rendered Windows.
   project.set_impeller_switch(flutter::ImpellerSwitch::Disabled);
   project.set_dart_entrypoint_arguments(GetCommandLineArguments());
