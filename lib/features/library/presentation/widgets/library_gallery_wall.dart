@@ -811,6 +811,7 @@ class _ManifestLibraryGalleryWallState
   var _isResizeFrameScheduled = false;
   double? _publishedViewportExtent;
   LibraryGalleryPendingReflow? _pendingReflow;
+  final _resizeAnchor = LibraryGalleryResizeAnchor();
   LibraryGalleryViewportAnchor? _sidebarResizeAnchor;
   var _didApplyInitialPosition = false;
 
@@ -820,7 +821,10 @@ class _ManifestLibraryGalleryWallState
     final rebound = identical(oldWidget.manifest, widget.manifest)
         ? _snapshot
         : _snapshot?.withCompatibleManifest(widget.manifest);
-    if (rebound != null) _snapshot = rebound;
+    if (rebound != null) {
+      _snapshot = rebound;
+      _resizeAnchor.rebindCompatibleManifest(rebound);
+    }
     if (oldWidget.manifest.queryId != widget.manifest.queryId ||
         (oldWidget.manifest.revision != widget.manifest.revision &&
             rebound == null)) {
@@ -1146,6 +1150,8 @@ class _ManifestLibraryGalleryWallState
     LibraryGalleryLayoutSnapshot snapshot,
     double viewportExtent,
   ) {
+    // A queued resize publishes its geometry and transition correction together.
+    if (_pendingReflow != null) return false;
     if (_didApplyInitialPosition) {
       return widget.layoutTransition != null;
     }
@@ -1417,6 +1423,7 @@ class _ManifestLibraryGalleryWallState
       setState(() {
         _snapshot = replacement;
         _publishedViewportExtent = pendingViewportExtent;
+        _resizeAnchor.publish(pendingAnchor);
         if (widget.isSidebarResizing) {
           _sidebarResizeAnchor = pendingAnchor;
         }
@@ -1456,10 +1463,10 @@ class _ManifestLibraryGalleryWallState
     if (!position.hasViewportDimension) {
       return null;
     }
-    return LibraryGalleryViewportAnchor.capture(
+    return _resizeAnchor.capture(
       snapshot,
       scrollOffset: position.pixels,
-      viewportExtent: position.viewportDimension,
+      viewportExtent: _publishedViewportExtent ?? position.viewportDimension,
       viewportFraction: viewportFraction,
     );
   }
@@ -1537,12 +1544,14 @@ class _ManifestLibraryGalleryWallState
     double scrollOffset,
     double viewportDimension,
   ) {
-    final anchor = LibraryGalleryViewportAnchor.capture(
-      snapshot,
-      scrollOffset: scrollOffset,
-      viewportExtent: viewportDimension,
-      viewportFraction: 0.5,
-    );
+    final anchor =
+        _resizeAnchor.resolve(snapshot, scrollOffset, viewportDimension) ??
+        LibraryGalleryViewportAnchor.capture(
+          snapshot,
+          scrollOffset: scrollOffset,
+          viewportExtent: viewportDimension,
+          viewportFraction: 0.5,
+        );
     if (anchor == null) {
       return null;
     }

@@ -134,5 +134,28 @@ the correctness coverage for this query adjustment.
 
 Five subsequent fresh Release processes reached decoded gallery content in 4,746–4,846 ms. The
 first launch immediately after rebuilding still took 12,378 ms; that separate cold-build condition
-needs diagnosis before claiming uniformly fast first use. The query owner has 155 production lines
+needs diagnosis before claiming uniformly fast first use. The query owner has 159 production lines
 and no inline tests; no new test body or user-facing behavior was added for the connection predicate.
+
+## Continuous resize and concurrent publication
+
+The initial retained-library Profile run found a 198-pixel equal-height drift during a six-second
+window-size round trip. Repeated reflow recaptured a different center card, and a simultaneous query
+publication could acknowledge its correction against the preceding width before the queued layout
+arrived. The resize owner now retains the same logical card while the scroll position matches it,
+exposes that anchor to query capture, and publishes pending geometry and correction together.
+Native scrolling still invalidates the retained position; compatible publication rebinds its revision.
+
+The existing resize case now includes incremental shrinking/expansion and a query publication midway.
+It reproduced the missing original card before the atomic-publication repair and passed afterward.
+All 24 affected resize/header cases passed, including wheel input before and during deferred reflow.
+The wall has 1,596 production lines and the reflow owner 377, with no inline tests; their existing
+resize test file has 1,364 dedicated-test lines and its shared fixture 241.
+
+The real Profile client exercised 180 size changes per layout through the normal window API.
+Catalog revisions advanced during both runs. The original card remained selected as the anchor,
+and final geometric drift was 0.8 logical pixels for equal-height and zero for square. The measured
+build/raster P95 was 16.88/9.28 ms and 9.33/8.94 ms respectively, with no frame over 50 ms.
+Equal-height resize computation still needs reduction to meet the 60 Hz build budget.
+Application-level synthetic held timeline input, wheel input and actual window sizing are recorded
+separately from native mouse automation; no hardware-held-drag claim is made for this instrumentation.

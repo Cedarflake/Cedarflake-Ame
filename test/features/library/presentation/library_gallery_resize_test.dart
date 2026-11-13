@@ -39,17 +39,19 @@ void main() {
     }
   });
 
-  testWidgets("preserves a deep logical anchor through a latest-only resize", (
+  testWidgets("preserves a deep logical anchor through continuous resizing", (
     tester,
   ) async {
     const itemCount = 4000;
     const initialSize = Size(1000, 640);
     const finalSize = Size(760, 600);
-    final manifest = galleryManifest(itemCount);
+    var manifest = galleryManifest(itemCount);
     final libraryState = ValueNotifier(galleryState(itemCount));
     final controller = RecordingGalleryController();
     final scrollController = ScrollController();
     final wallSize = ValueNotifier(initialSize);
+    final resolver = LibraryGalleryPositionResolver();
+    LibraryGalleryLayoutTransition? transition;
     LibraryGalleryVisiblePosition? visiblePosition;
     var previousRequests = 0;
     addTearDown(() async {
@@ -75,6 +77,9 @@ void main() {
             selection: GallerySelection.empty(state.queryId),
             isSelecting: false,
             layoutManifest: manifest,
+            positionResolver: resolver,
+            layoutTransition: transition,
+            onLayoutTransitionApplied: (_) => transition = null,
             onOpen: (_) {},
             onToggleSelection: (_) {},
             onViewInformation: (_) {},
@@ -119,6 +124,7 @@ void main() {
     scrollController.jumpTo(deepOffset);
     await tester.pump();
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 180));
 
     final anchorBefore = visiblePosition;
     expect(anchorBefore, isNotNull);
@@ -157,6 +163,32 @@ void main() {
     controller.timeSeekRequests = 0;
     previousRequests = 0;
 
+    for (var step = 1; step <= 80; step++) {
+      if (step == 40) {
+        final saved = resolver.resolve(
+          queryId: libraryState.value.queryId,
+          revision: libraryState.value.catalogRevision,
+          scrollOffset: scrollController.offset,
+          viewportDimension: scrollController.position.viewportDimension,
+        )!;
+        manifest = galleryManifest(itemCount, revision: BigInt.two);
+        transition = LibraryGalleryLayoutTransition(
+          generation: 1,
+          position: rebaseLibraryGalleryPosition(saved, manifest)!,
+          scrollPosition: scrollController.position,
+        );
+        libraryState.value = galleryState(itemCount, revision: BigInt.two);
+      }
+      final distance = step <= 40 ? step : 80 - step;
+      wallSize.value = Size(1000.0 - distance * 6, 640.0 - distance);
+      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(
+      tester.getTopLeft(anchorFinder).dy - wallTopBefore.dy,
+      closeTo(anchorTopBefore, 2),
+    );
     wallSize.value = const Size(880, 620);
     wallSize.value = finalSize;
     await tester.pump();

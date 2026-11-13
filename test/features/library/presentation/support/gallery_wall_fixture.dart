@@ -5,8 +5,8 @@ import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.d
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 
-LibraryState galleryState(int itemCount) {
-  final revision = BigInt.one;
+LibraryState galleryState(int itemCount, {BigInt? revision}) {
+  revision ??= BigInt.one;
   final cursor = LibraryCatalogCursor(
     revision: revision,
     queryId: "resize-query",
@@ -132,8 +132,9 @@ LibraryAsset galleryAsset(int index, String previewIssueMessage) {
 LibraryGalleryLayoutManifest galleryManifest(
   int itemCount, {
   bool dimensionsKnown = true,
+  BigInt? revision,
 }) {
-  final revision = BigInt.one;
+  revision ??= BigInt.one;
   final builder = LibraryGalleryLayoutManifestBuilder(
     revision: revision,
     queryId: "resize-query",

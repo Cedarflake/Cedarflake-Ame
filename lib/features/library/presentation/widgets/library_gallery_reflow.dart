@@ -262,6 +262,69 @@ class LibraryGalleryScrollOrigin {
   }
 }
 
+/// Keeps one card through successive reflows while native scrolling stays put.
+class LibraryGalleryResizeAnchor {
+  LibraryGalleryViewportAnchor? _anchor;
+  double? _requestedFraction;
+
+  LibraryGalleryViewportAnchor? capture(
+    LibraryGalleryLayoutSnapshot snapshot, {
+    required double scrollOffset,
+    required double viewportExtent,
+    required double viewportFraction,
+  }) {
+    final retained = resolve(snapshot, scrollOffset, viewportExtent);
+    if (_requestedFraction == viewportFraction && retained != null) {
+      return retained;
+    }
+    _requestedFraction = viewportFraction;
+    return _anchor = LibraryGalleryViewportAnchor.capture(
+      snapshot,
+      scrollOffset: scrollOffset,
+      viewportExtent: viewportExtent,
+      viewportFraction: viewportFraction,
+    );
+  }
+
+  void publish(LibraryGalleryViewportAnchor? anchor) {
+    _anchor = anchor;
+  }
+
+  LibraryGalleryViewportAnchor? resolve(
+    LibraryGalleryLayoutSnapshot snapshot,
+    double scrollOffset,
+    double viewportExtent,
+  ) {
+    final expected = _anchor?.scrollOffsetFor(snapshot, viewportExtent);
+    return expected != null && (expected - scrollOffset).abs() < 0.01
+        ? _anchor
+        : null;
+  }
+
+  void rebindCompatibleManifest(LibraryGalleryLayoutSnapshot snapshot) {
+    final anchor = _anchor;
+    if (anchor?.revision == snapshot.manifest.revision) return;
+    if (anchor == null ||
+        anchor.queryId != snapshot.manifest.queryId ||
+        anchor.globalItemIndex >= snapshot.manifest.itemCount ||
+        snapshot.manifest.entryIdAt(anchor.globalItemIndex) != anchor.entryId) {
+      _anchor = null;
+      return;
+    }
+    _anchor = LibraryGalleryViewportAnchor(
+      queryId: anchor.queryId,
+      revision: snapshot.manifest.revision,
+      locationId: anchor.locationId,
+      entryId: anchor.entryId,
+      globalItemIndex: anchor.globalItemIndex,
+      itemFraction: anchor.itemFraction,
+      viewportFraction: anchor.viewportFraction,
+      monthKey: anchor.monthKey,
+      scrollEdge: anchor.scrollEdge,
+    );
+  }
+}
+
 /// A queued geometry change retains its anchor only until the viewport moves.
 class LibraryGalleryPendingReflow {
   LibraryGalleryPendingReflow({
