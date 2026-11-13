@@ -3,6 +3,29 @@
 The [roadmap](../roadmap.md#material-motion-adoption) owns disposition and the
 [execution plan](../plans/material-motion.md) owns scope and order.
 
+## Transition performance — 2026-11-13
+
+The [performance plan](../plans/motion-performance.md) preserves the delivered motion. Baseline
+`532fbc21` and the first gallery change were measured with Flutter 3.47.8 Profile, Skia, a 165-Hz
+display and the same 1,269 × 714 window. `local-primary` contained 63,170 locations / 47,926 merged
+entries. No source-file operation was run. Raw frame/GC/timeline captures are ignored under
+`build/performance`; the client used the production entrypoint with in-memory view preferences.
+
+`LibraryGalleryMotionItem` now builds its content from layout constraints and retains it while only
+position changes. Existing geometry, opacity, exit-image lifetime and scroll-interruption owners
+are unchanged. The existing duplicate-publication regression checks zero further tile builds on
+its translation frame, including manual and background publication; resize, reversal, action
+retirement and reduced-motion checks also pass (six retained cases). The owner has 364 production
+lines, no inline tests, and 343 dedicated test lines.
+
+The real client retained both endpoint layouts and the visible intermediate card reflow. In paired
+warm sidebar collapse/expand traces, continuous animation bursts had UI medians of 1.91/1.75 ms
+before and 1.36/1.78 ms after; p95 was 3.15/2.59 versus 3.01/2.76 ms. Raster p95 stayed below 1.22 ms.
+These small runs establish reduced redundant construction, not an across-the-board frame-rate gain.
+Occasional 21–32 ms UI frames remain, including at transition admission and separate background
+refreshes. Bursts are at least 25 frames separated by no gap above 60 ms; full captures are retained
+so isolated slow frames remain visible. Initial shader compilation is kept separate from warm runs.
+
 ## Loading-feedback integration — 2026-11-12
 
 [PR 59](https://github.com/Cedarflake/Cedarflake-Ame/pull/59), head

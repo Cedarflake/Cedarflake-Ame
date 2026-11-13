@@ -22,9 +22,17 @@ void main() {
         ));
         final scroll = ScrollController();
         final taps = <int>[];
+        var tileBuilds = 0;
         addTearDown(publication.dispose);
         addTearDown(scroll.dispose);
-        await tester.pumpWidget(_duplicateFixture(publication, scroll, taps));
+        await tester.pumpWidget(
+          _duplicateFixture(
+            publication,
+            scroll,
+            taps,
+            onTileBuild: () => tileBuilds++,
+          ),
+        );
         await tester.pumpAndSettle();
         await tester.tapAt(const Offset(150, 50));
         expect(taps, [1]);
@@ -48,7 +56,9 @@ void main() {
         expect(pixels.debugDisposed, isFalse);
         await tester.tapAt(const Offset(150, 50));
         expect(taps, isNot(contains(1)));
+        final buildsBeforeTranslation = tileBuilds;
         await tester.pump(const Duration(milliseconds: 60));
+        expect(tileBuilds, buildsBeforeTranslation);
         final midway = tester.getRect(retained);
         expect(midway.left, lessThan(before.left));
         expect(midway.left, greaterThan(100));
@@ -201,8 +211,9 @@ typedef _DuplicateView = ({
 Widget _duplicateFixture(
   ValueNotifier<_DuplicateView> publication,
   ScrollController scroll,
-  List<int> taps,
-) => MaterialApp(
+  List<int> taps, {
+  required VoidCallback onTileBuild,
+}) => MaterialApp(
   home: Align(
     alignment: Alignment.topLeft,
     child: ValueListenableBuilder(
@@ -244,16 +255,20 @@ Widget _duplicateFixture(
                             100,
                             100,
                           ),
-                          builder: (_, size) => SizedBox.fromSize(
-                            key: Key(
-                              "merge-photo-${value.ids[start + column]}",
-                            ),
-                            size: size,
-                            child: GestureDetector(
-                              onTap: () => taps.add(value.ids[start + column]),
-                              child: const ColoredBox(color: Colors.blue),
-                            ),
-                          ),
+                          builder: (_, size) {
+                            onTileBuild();
+                            return SizedBox.fromSize(
+                              key: Key(
+                                "merge-photo-${value.ids[start + column]}",
+                              ),
+                              size: size,
+                              child: GestureDetector(
+                                onTap: () =>
+                                    taps.add(value.ids[start + column]),
+                                child: const ColoredBox(color: Colors.blue),
+                              ),
+                            );
+                          },
                         ),
                     ],
                   ),

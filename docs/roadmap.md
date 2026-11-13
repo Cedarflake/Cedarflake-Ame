@@ -83,8 +83,11 @@ maintenance does not reopen the completed R7/R8 stages.
 
 ### Transition performance
 
-The [motion-performance plan](plans/motion-performance.md) is prepared on
-`codex/motion-performance`. MP0 baseline collection is next; performance edits have not started.
+The [motion-performance plan](plans/motion-performance.md) is active on
+`codex/motion-performance`. MP0 has Profile measurements for viewer, sidebar and gallery reflow;
+the remaining surface families still need assessment. MP1 retains unchanged-size card content
+during reflow; the [measurement record](acceptance/material-motion.md#transition-performance--2026-11-13)
+tracks its bounded-work regression and desktop comparison. Sidebar and viewer costs are next.
 The scope covers existing transitions across the application while preserving their presentation,
 behavior and styling. Measurements select the optimization targets; R10's broader responsiveness,
 resource qualification and Beta release remain separate.

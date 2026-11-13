@@ -325,7 +325,23 @@ class _MotionItemState extends State<LibraryGalleryMotionItem> {
       size: widget.rect.size,
       child: AnimatedBuilder(
         animation: scope._animation,
-        builder: (context, _) {
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final child = widget.builder(context, constraints.biggest);
+            return widget.retainExit
+                ? FadeTransition(
+                    opacity: item.appearing
+                        ? scope._effects
+                        : const AlwaysStoppedAnimation(1),
+                    child: LibraryGalleryPaintBoundary(
+                      key: _boundary,
+                      child: child,
+                    ),
+                  )
+                : child;
+          },
+        ),
+        builder: (context, child) {
           final rect = scope._displayRect(item);
           final target = widget.rect.shift(
             Offset(0, -(scope._pendingScrollOffset ?? scope._scrollOffset)),
@@ -338,17 +354,7 @@ class _MotionItemState extends State<LibraryGalleryMotionItem> {
               maxWidth: rect.width,
               minHeight: rect.height,
               maxHeight: rect.height,
-              child: widget.retainExit
-                  ? FadeTransition(
-                      opacity: item.appearing
-                          ? scope._effects
-                          : const AlwaysStoppedAnimation(1),
-                      child: LibraryGalleryPaintBoundary(
-                        key: _boundary,
-                        child: widget.builder(context, rect.size),
-                      ),
-                    )
-                  : widget.builder(context, rect.size),
+              child: child,
             ),
           );
         },
