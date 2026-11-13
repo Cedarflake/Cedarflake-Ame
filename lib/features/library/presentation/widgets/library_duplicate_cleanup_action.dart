@@ -90,7 +90,7 @@ class _LibraryDuplicateCleanupActionState
     return Wrap(
       alignment: WrapAlignment.end,
       crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 4,
+      spacing: 0,
       children: [
         if (selected)
           TextButton.icon(

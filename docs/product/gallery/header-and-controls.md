@@ -141,6 +141,8 @@ shortcuts continue to use `Shortcuts` and `Actions` behavior.
 
 Menus opened beside a window edge retain the shared viewport margin. Labels and shortcut hints use
 bounded flexible layout so narrow windows and platform font metrics cannot paint outside the menu.
+Popup widths fit the longest label and its icon, selection-marker and shortcut slots; short choices
+do not inherit a wider fixed minimum.
 Menu icons use the shared neutral icon color, independent of the anchor's selected color; disabled
 entries retain the framework's reduced opacity.
 Exclusive choices in Sort, Layout, Filter and the organization queue menu use the same small filled

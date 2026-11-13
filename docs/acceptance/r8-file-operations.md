@@ -862,6 +862,11 @@ deletion. Confirmation was cancelled, with permanent deletion unchecked; no sour
 Exact preferred selection was changed and restored during the earlier tray check. The updated
 strictness label/icon sizing and bold date/weekday heading were also inspected in the client.
 
+The menu-width follow-up was checked in the rebuilt Windows Debug client: group and degree menus
+fit their three- and two-character labels, retain selection dots and activate the requested choice.
+The degree was returned to Standard. List-toolbar actions use their button padding without extra
+inter-button gaps. The existing shared-menu, review-layout and similar-page suites passed 27 cases.
+
 New Rust owners have 103 group-relation, 80 membership, 75 selection, 97 member-page and 105 cleanup
 production lines, with 276 dedicated group-test lines. The migration has 43 production lines and
 57 test/helper lines. The reused member sheet and row have 400 and 115 production lines, with no
@@ -871,4 +876,5 @@ The Rust migration dispatcher remains 6,498 lines, including a 2,290-line inline
 the read facade has 1,784 lines including 1,018 inline-test-module lines, and the load facade has
 758 including 523. These source totals also include their existing test hooks. Reused dedicated
 file-operation and duplicate-page Flutter suites contain 955 and 468 lines. Generated bridge files
-are excluded from handwritten-owner counts. Hosted checks for the delivery commit remain pending.
+are excluded from handwritten-owner counts. This feature branch has no push-triggered workflow;
+hosted checks require a pull request.
