@@ -23,6 +23,7 @@ pub(super) fn source(query: &GalleryQuery, parameters: &mut Vec<Value>) -> Strin
 
 pub(in super::super) use members::inspection as inspection_members;
 pub(in super::super) use members::query as member_query;
+pub(in super::super) use members::visible as visible_member_query;
 mod members;
 pub(in super::super) mod selection;
 #[cfg(test)]

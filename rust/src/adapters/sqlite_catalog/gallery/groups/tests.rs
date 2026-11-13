@@ -10,6 +10,7 @@ use crate::domain::gallery_groups::{GalleryGroupFilter, GalleryGroupKey};
 use crate::domain::{GalleryQuery, GalleryQueryAnchor, GallerySortDirection, GallerySortKey};
 use crate::ports::exact_duplicates::ExactDuplicateRepository;
 use crate::ports::file_operation_selection::FileOperationSelectionRepository;
+use crate::ports::semantic_catalog::SemanticCatalog;
 use crate::ports::{CatalogRepository, GalleryQueryRepository};
 
 fn publish_exact(catalog: &mut SqliteCatalog) {
@@ -25,6 +26,23 @@ fn query(filter: GalleryGroupFilter) -> GalleryQuery {
         sort_direction: GallerySortDirection::Ascending,
         ..GalleryQuery::default()
     }
+}
+
+fn assert_semantic_locations(catalog: &SqliteCatalog, query: &GalleryQuery, expected: &[&str]) {
+    let mut locations = Vec::new();
+    catalog
+        .semantic_snapshot()
+        .unwrap()
+        .scan(query, &mut |window| {
+            locations.extend(
+                window
+                    .into_iter()
+                    .map(|candidate| candidate.source.location_id),
+            );
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(locations, expected);
 }
 
 #[test]
@@ -60,6 +78,8 @@ fn exact_gallery_filters_scope_before_counts_members_and_cleanup() {
         root_id: Some("root-c".into()),
         ..scoped.clone()
     };
+    assert_semantic_locations(&catalog, &scoped, &["a", "b"]);
+    assert_semantic_locations(&catalog, &outside, &[]);
     assert!(
         catalog
             .load_snapshot(10, &outside, "outside", None, None, None)
@@ -227,6 +247,17 @@ fn similar_gallery_shared_covers_keep_distinct_paging_and_anchor_identity() {
     assert!(page.assets.iter().all(|entry| entry.location_id == "a"));
     let keys: Vec<_> = page.assets.iter().map(|entry| entry.entry_id()).collect();
     assert_ne!(keys[0], keys[1]);
+    assert_semantic_locations(&catalog, &query, &["a", "b", "c"]);
+    for (root, expected) in [("root-a", vec!["a", "b"]), ("root-c", vec![])] {
+        assert_semantic_locations(
+            &catalog,
+            &GalleryQuery {
+                root_id: Some(root.into()),
+                ..query.clone()
+            },
+            &expected,
+        );
+    }
     let first = catalog
         .load_snapshot(1, &query, "similar", None, None, None)
         .unwrap();

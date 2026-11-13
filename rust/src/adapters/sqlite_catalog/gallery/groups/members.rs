@@ -20,6 +20,23 @@ pub(in super::super::super) fn inspection(
     build(query, parameters, true)
 }
 
+pub(in super::super::super) fn visible(
+    query: &GalleryQuery,
+    parameters: &mut Vec<Value>,
+) -> String {
+    let members = build(query, parameters, false);
+    let count = match query.group_filter {
+        GalleryGroupFilter::Similar => "COUNT(DISTINCT content_key)",
+        _ => "COUNT(*)",
+    };
+    format!(
+        "WITH members AS ({members}), visible_groups AS (
+           SELECT entry_id FROM members GROUP BY entry_id HAVING {count} > 1
+         )
+         SELECT members.* FROM members JOIN visible_groups USING(entry_id)"
+    )
+}
+
 fn build(query: &GalleryQuery, parameters: &mut Vec<Value>, include_ignored: bool) -> String {
     let mut scope = query.clone();
     scope.group_filter = GalleryGroupFilter::Unrestricted;

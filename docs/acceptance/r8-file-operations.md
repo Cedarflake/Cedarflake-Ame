@@ -867,8 +867,18 @@ fit their three- and two-character labels, retain selection dots and activate th
 The degree was returned to Standard. List-toolbar actions use their button padding without extra
 inter-button gaps. The existing shared-menu, review-layout and similar-page suites passed 27 cases.
 
-New Rust owners have 103 group-relation, 80 membership, 75 selection, 97 member-page and 105 cleanup
-production lines, with 276 dedicated group-test lines. The migration has 43 production lines and
+Review of `d03c0b0c` found that semantic candidate reads bypassed scoped filters when a group filter
+was active. The candidate source now uses the same visible physical membership as selection and
+deduplicates overlapping groups. The two existing SQLite group cases cover restricted roots,
+singleton exclusion and shared members; both passed with the repair. The first attempt stopped
+before reaching assertions because the system temporary directory denied access; the successful
+run used the repository-owned scratch directory. Review also covered archive compatibility,
+card/cover identity, preview return, and frozen cleanup scope. Earlier client observations remain
+applicable to the unchanged presentation; the candidate-source repair was verified at the SQLite
+boundary. Hosted verification is pending PR creation.
+
+New Rust owners have 104 group-relation, 97 membership, 67 selection, 97 member-page and 105 cleanup
+production lines, with 307 dedicated group-test lines. The migration has 43 production lines and
 57 test/helper lines. The reused member sheet and row have 400 and 115 production lines, with no
 inline tests. Larger Dart composition owners retain 2,003 screen, 1,587 wall, 1,214 viewport, 782
 compact-manifest, 561 header and 465 catalog-adapter lines; policy lives in the typed group owners.

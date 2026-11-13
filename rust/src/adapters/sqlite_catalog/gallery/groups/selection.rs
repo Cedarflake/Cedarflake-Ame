@@ -1,6 +1,5 @@
 use rusqlite::{Connection, params_from_iter};
 
-use crate::domain::gallery_groups::GalleryGroupFilter;
 use crate::domain::organization::stale_selection;
 use crate::domain::{GalleryQuery, ScanError};
 
@@ -28,18 +27,11 @@ pub(in super::super::super) fn selected_members(
     all_matching: bool,
 ) -> BuiltGalleryQuery {
     let mut parameters = Vec::new();
-    let members = super::member_query(query, &mut parameters);
-    let count = match query.group_filter {
-        GalleryGroupFilter::Similar => "COUNT(DISTINCT content_key)",
-        _ => "COUNT(*)",
-    };
+    let members = super::visible_member_query(query, &mut parameters);
     let membership = if all_matching { "NOT EXISTS" } else { "EXISTS" };
     BuiltGalleryQuery {
         sql: format!(
-            "WITH members AS ({members}), visible_groups AS (
-               SELECT entry_id FROM members GROUP BY entry_id HAVING {count} > 1
-             )
-             SELECT members.* FROM members JOIN visible_groups USING(entry_id)
+            "SELECT members.* FROM ({members}) AS members
              WHERE {membership}(SELECT 1 FROM temp.{} AS selected
                WHERE selected.asset_id = members.entry_id)",
             input.table()
