@@ -6,7 +6,8 @@ The [roadmap](../roadmap.md#material-motion-adoption) owns disposition and the
 ## Transition performance — 2026-11-13
 
 The [performance plan](../plans/motion-performance.md) preserves the delivered motion. Baseline
-`532fbc21` and the first gallery change were measured with Flutter 3.47.8 Profile, Skia, a 165-Hz
+`532fbc21`, gallery change `61393b81` and the sidebar change accompanying this record were measured
+with Flutter 3.47.8 Profile, Skia, a 165-Hz
 display and the same 1,269 × 714 window. `local-primary` contained 63,170 locations / 47,926 merged
 entries. No source-file operation was run. Raw frame/GC/timeline captures are ignored under
 `build/performance`; the client used the production entrypoint with in-memory view preferences.
@@ -25,6 +26,57 @@ These small runs establish reduced redundant construction, not an across-the-boa
 Occasional 21–32 ms UI frames remain, including at transition admission and separate background
 refreshes. Bursts are at least 25 frames separated by no gap above 60 ms; full captures are retained
 so isolated slow frames remain visible. Initial shader compilation is kept separate from warm runs.
+
+`LibrarySidebarContent` now preserves destination layout constraints and applies the existing
+alignment and clip during painting. The installed framework's `LayoutBuilder` schedules layout for
+an animated builder in its build scope even when that builder only changes a transform; the
+render-object listener removes that repeated layout. It updates paint and semantic geometry, uses
+the same offset for hit testing, reuses the framework clip layer, and detaches its listener on
+retirement. No motion token, input policy or source/caching lifetime changed.
+
+A temporary old/new renderer comparison matched painted pixels and child bounds for both used
+alignments, both directions and four progress values (16 comparisons). The retained boundary case
+checks movement without another layout, clipped hit rejection and reverse movement. The existing
+sidebar/gallery checks passed at 1x/2x text, three widths, interrupted reversal and reduced motion;
+the combined affected run passed 19 cases. Scoped formatting and analysis passed. This sidebar
+owner has 159 production lines, no inline tests and 193 dedicated transition-test lines.
+
+| Warm equal-height sidebar burst | Baseline UI p50 / p95 / p99 / max (ms) | Both changes UI p50 / p95 / p99 / max (ms) | UI frames over 6.06 ms; longest consecutive run |
+| --- | --- | --- | --- |
+| Collapse | 1.91 / 3.15 / 9.47 / 25.82 | 1.16 / 1.88 / 4.58 / 4.80 | 2 of 57; 2 → 0 of 52; 0 |
+| Expand | 1.75 / 2.59 / 22.26 / 29.56 | 1.60 / 3.98 / 7.41 / 22.02 | 2 of 66; 2 → 2 of 60; 2 |
+
+Raster p95 after both changes was 1.31/1.57 ms. Collapse improved in this sample; expansion's p95
+did not improve. Both layout shapes and the centered album landing were exercised in the real
+client, including a cold timeline position showing placeholders and subsequently filling them.
+The input helper supplies short drag strokes; this run does not establish prolonged-drag latency.
+Frame-burst duration includes input/ripple/admission work and is not an animation-duration change.
+
+Whole-capture RSS was 370.8/382.0/378.0 MiB (initial/peak/settled) before and
+343.7/377.8/359.3 MiB after both changes; sampled Dart heap was 34.2 versus 34.6 MiB. The captures
+span 39.46 and 29.84 seconds and include background work. They contain 144 and 120 VM `Scavenge`
+start events across threads. These are retained observations, not an allocation-rate or GC
+improvement claim. No image cache or retained-image budget was enlarged.
+
+The inventory below combines current Profile samples with source/lifecycle inspection. All
+non-gallery/non-sidebar implementations remain unchanged; previous visual and lifecycle checks
+below retain their original scope rather than becoming newly executed acceptance.
+
+| Surface family | Assessment and disposition |
+| --- | --- |
+| Card/viewer entry and return | Normal gallery, albums, smart albums, group/member entry converge on the shared viewer and flight owners. Warm open/close UI p95 was 0.83/1.00 ms; raster p95 1.32/1.02 ms. Preserve image/quality leases, clipping, overlay fade and route ownership. |
+| Viewer controls/image changes | Filmstrip open/close UI p95 was 0.90/1.08 ms. Its stable child and hidden ticker retirement remain; image reveal retains its existing quality handoff. |
+| Gallery reflow | Keep the first optimization and bounded exit visuals (64 images, four million pixels, disposal on completion). Both equal-height and grid callers share this owner. |
+| Sidebar/folders | Keep the paint-only viewport change. Folder disclosure UI p95 was 0.83/0.68 ms with no over-budget burst frames; retain its framework size/fade and closing-child retirement. |
+| State/selection controls | Group flip UI p95 was 3.56/3.58 ms, with no over-budget UI burst frames. Retain hidden-face lifetime, icon transitions, header/selection actions and shared album/sidebar callers. |
+| Menus/dialogs/trays/notices | Menu/filter-tray UI p95 was 0.46–0.59 ms; album-tray p95 was 0.80 ms. Keep framework route motion and stable-child feedback/task expansion. First-use raster spikes remain visible in full captures. |
+| Loading/temporary content | Duplicate-entry loading burst UI/raster p95 was 1.12/1.15 ms. Loading already repaints a bounded region, shares morph shapes and stops its ticker when inactive/reduced; retain quiet/minimum-visible intervals and feedback priority. |
+| Continuous input | Viewer zoom-out UI/raster p95 was 1.58/0.79 ms with no over-budget burst frames. Wheel and timeline input remained connected; comparison reuses the zoom owner. Preserve direct manipulation, inertia and scroll anchoring. |
+
+The scoped source review covered both changed render paths, their callers, listener/layer retirement,
+opacity publication and input/semantic transforms, without a confirmed new defect. Broad query
+latency, background refresh spikes and cold shader work remain R10 profiling concerns. Hosted checks
+are outstanding: feature-branch pushes alone do not trigger this repository's PR/main CI workflow.
 
 ## Loading-feedback integration — 2026-11-12
 

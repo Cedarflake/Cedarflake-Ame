@@ -1,8 +1,63 @@
+import "package:cedarflake_ame/features/library/presentation/widgets/library_sidebar_content.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_sidebar_transition.dart";
+import "package:flutter/rendering.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets(
+    "content motion preserves clipping and hit targets without relayout",
+    (tester) async {
+      final progress = AnimationController(vsync: tester);
+      addTearDown(progress.dispose);
+      var layouts = 0;
+      var taps = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 400,
+              child: _LayoutProbe(
+                onLayout: () => layouts++,
+                child: LibrarySidebarMotion(
+                  progress: progress,
+                  sidebarWidth: 260,
+                  expanded: false,
+                  child: LibrarySidebarContent(
+                    alignment: Alignment.topCenter,
+                    child: GestureDetector(
+                      onTap: () => taps++,
+                      child: const SizedBox(
+                        key: Key("moving-content"),
+                        height: 200,
+                        child: ColoredBox(color: Colors.blue),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final initialLayouts = layouts;
+      progress.value = 0.5;
+      await tester.pump();
+      expect(layouts, initialLayouts);
+      expect(tester.getTopLeft(find.byKey(const Key("moving-content"))).dx, 65);
+      await tester.tapAt(const Offset(100, 50));
+      expect(taps, 0);
+      await tester.tapAt(const Offset(150, 50));
+      expect(taps, 1);
+      progress.value = 0;
+      await tester.pump();
+      expect(layouts, initialLayouts);
+      expect(tester.getTopLeft(find.byKey(const Key("moving-content"))).dx, 0);
+    },
+  );
+
   testWidgets(
     "sidebar boundary animates around a stationary right gallery edge",
     (tester) async {
@@ -114,3 +169,25 @@ Widget _fixture(
     ),
   ),
 );
+
+class _LayoutProbe extends SingleChildRenderObjectWidget {
+  const _LayoutProbe({required this.onLayout, required super.child});
+
+  final VoidCallback onLayout;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _LayoutProbeRenderObject(onLayout);
+}
+
+class _LayoutProbeRenderObject extends RenderProxyBox {
+  _LayoutProbeRenderObject(this.onLayout);
+
+  final VoidCallback onLayout;
+
+  @override
+  void performLayout() {
+    onLayout();
+    super.performLayout();
+  }
+}
