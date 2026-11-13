@@ -3,6 +3,17 @@
 The [roadmap](../roadmap.md#material-motion-adoption) owns disposition and the
 [execution plan](../plans/material-motion.md) owns scope and order.
 
+## Transition performance integration — 2026-11-14
+
+[PR 63](https://github.com/Cedarflake/Cedarflake-Ame/pull/63), head `ad2c69dc`, was merged into `main`
+as `e3526b41` after [Quality / CI 1136](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43462986540)
+passed its selected full gate, including Windows production build, scan/accessibility integration,
+Flutter tests, all four Rust groups and Static. Final source review covered scheduling, native plugin
+ownership, render-layer/listener retirement, exact buffer comparisons, complete-snapshot publication
+and indexed-search semantics without a confirmed new defect. The preceding measurements and desktop
+checks retain their scope and remaining first-use/prolonged-resizing limits. Local `main` contains
+the reviewed head; both local and remote `codex/motion-performance` branches were deleted.
+
 ## Transition performance — 2026-11-13
 
 The [performance plan](../plans/motion-performance.md) preserves the delivered motion. Baseline
@@ -166,7 +177,7 @@ image and date. Both gallery layouts' sizing checks retain their earlier coverag
 gallery capture had UI/raster p95 5.90/1.44 ms and maxima 30.61/17.85 ms. Raw final captures are
 `viewer-final-*`, with earlier `viewer-manifest-*` and `gallery-native-final` retained for comparison.
 All inventory families now have local assessment; first-use engine costs and unmeasured prolonged
-held-mouse resizing remain explicit limits. Exact-head hosted CI remains outstanding in PR 63.
+held-mouse resizing remain explicit limits.
 
 The `af76eeff` run 43436034710 failed the selective-search work assertion and four viewer
 session cases; its remaining executed jobs passed. Unchanged gallery-group attachment now retains
@@ -212,7 +223,7 @@ usable after cancellation; no folder was added. No new source-level test mirrors
 the real interaction establishes its effect, while existing hosted integration owns wider coverage.
 Flutter's future-removal notice remains visible. Ignored captures are `viewer-flight-full-*` and
 `viewer-cadence-final-*` under `build/performance`; temporary native tracing is absent from the final
-64-line runner. Exact-head CI remains outstanding in PR 63.
+64-line runner.
 
 ## Loading-feedback integration — 2026-11-12
 
