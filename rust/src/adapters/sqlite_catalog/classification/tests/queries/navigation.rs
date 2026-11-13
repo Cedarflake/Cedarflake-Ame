@@ -66,13 +66,11 @@ fn a_late_conflict_hides_both_categories_until_local_authority_resolves_it() {
     assert_navigation(&mut catalog, &["drawing", "photo"]);
     publish_group(&mut catalog, &["a", "c"], 'a');
     assert_navigation(&mut catalog, &[]);
-    catalog
-        .connection
-        .execute(
-            "UPDATE classification_decisions SET choice_restored = 1 WHERE category_id = 'photo'",
-            [],
-        )
-        .unwrap();
+    publish_fixture_change(
+        &mut catalog,
+        "UPDATE classification_decisions SET choice_restored = 1 WHERE category_id = 'photo'",
+        [],
+    );
     assert_navigation(&mut catalog, &["drawing"]);
     correct(&mut catalog, "resolve", "c", "photo");
     assert_navigation(&mut catalog, &["photo"]);
@@ -84,13 +82,11 @@ fn changed_content_and_removed_sources_stop_populating_categories() {
     publish_group(&mut catalog, &["a", "c"], 'a');
     let run = setup(&mut catalog);
     predict(&mut catalog, &run, "a", "first", "drawing");
-    catalog
-        .connection
-        .execute(
-            "UPDATE asset_locations SET file_size = 21 WHERE location_id = 'a'",
-            [],
-        )
-        .unwrap();
+    publish_fixture_change(
+        &mut catalog,
+        "UPDATE asset_locations SET file_size = 21 WHERE location_id = 'a'",
+        [],
+    );
     assert_navigation(&mut catalog, &["drawing"]);
     catalog.unregister_root("root-c").unwrap();
     assert_navigation(&mut catalog, &[]);
@@ -146,20 +142,20 @@ fn retained_gallery_evidence_keeps_navigation_without_granting_command_authority
     let run = setup(&mut catalog);
     predict(&mut catalog, &run, "a", "first", "drawing");
     let old = selected(&catalog, "a");
-    catalog.connection.execute(
-        "UPDATE asset_locations SET source_generation = source_generation + 100 WHERE location_id = 'a'", [],
-    ).unwrap();
+    publish_fixture_change(
+        &mut catalog,
+        "UPDATE asset_locations SET source_generation = source_generation + 100 WHERE location_id = 'a'",
+        [],
+    );
     assert_navigation(&mut catalog, &[]);
-    catalog
-        .connection
-        .execute(
-            "INSERT INTO gallery_retained_fingerprints VALUES (?1, ?2, 'blake3-256-full-v1')",
-            rusqlite::params![
-                (old.source_generation + 100) as i64,
-                old.source_generation as i64
-            ],
-        )
-        .unwrap();
+    publish_fixture_change(
+        &mut catalog,
+        "INSERT INTO gallery_retained_fingerprints VALUES (?1, ?2, 'blake3-256-full-v1')",
+        rusqlite::params![
+            (old.source_generation + 100) as i64,
+            old.source_generation as i64
+        ],
+    );
     assert_navigation(&mut catalog, &["drawing"]);
     assert_eq!(
         catalog
@@ -168,4 +164,15 @@ fn retained_gallery_evidence_keeps_navigation_without_granting_command_authority
             .code,
         "organization_evidence_pending"
     );
+}
+
+fn publish_fixture_change(
+    catalog: &mut SqliteCatalog,
+    sql: &str,
+    parameters: impl rusqlite::Params,
+) {
+    let transaction = catalog.connection.transaction().unwrap();
+    transaction.execute(sql, parameters).unwrap();
+    operations::publish_catalog(&transaction).unwrap();
+    transaction.commit().unwrap();
 }

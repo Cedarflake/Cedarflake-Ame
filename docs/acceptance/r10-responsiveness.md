@@ -167,3 +167,12 @@ A repeated retained-library run measured build/raster P95 of 15.13/9.25 ms for e
 8.82/7.79 ms for square, meeting the 16.67 ms targets. Maximum build/raster was 28.98/11.62 ms
 and 15.64/10.70 ms; neither run had a frame over 50 ms. Background revisions advanced in both;
 final same-card drift remained 0.8/0 logical pixels, and the client reported no Flutter error.
+
+## Smart-category fixture publication
+
+The full hosted run on `fc7dfb67` found two navigation fixtures changing classification authority or
+retained source evidence directly without publishing a catalog revision. Production classification,
+archive restoration and source publication advance that revision in the same transaction. The
+fixtures now use the existing publication function with their direct state setup; their category,
+gallery-membership and command-authority assertions are unchanged. All five existing navigation
+cases passed in managed disposable storage. No production invalidation rule changed for this repair.
