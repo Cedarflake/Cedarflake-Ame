@@ -20,6 +20,7 @@ fn profile_retained_organization_anchor_reads() {
     let next = &initial.snapshot.assets[1];
     let anchor = GalleryQueryAnchor {
         requested_location_id: first.location_id.clone(),
+        group_key: None,
         asset_id: Some(first.asset_id.clone()),
         fallback_ordinal: 0,
     };

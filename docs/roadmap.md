@@ -79,8 +79,10 @@ tray actions, and a labeled group-type menu. Search implementation and local cli
 are recorded in [R7 evidence](acceptance/r7-semantic-discovery.md#complete-scoped-results--2026-11-13);
 search is delivered in `b916d6d5`. The group-menu label has local client evidence in
 [R6 acceptance](acceptance/r6-similar-images.md#visible-group-type-label--2026-11-13).
-Gallery filters and member/cleanup actions remain in implementation; they retain the gallery's
-photo wall, layouts and timeline. This maintenance scope does not reopen the completed R7/R8 stages.
+Gallery filters and member/cleanup actions are implemented and locally verified, retaining the
+gallery's photo wall, layouts and timeline; [client and regression evidence](acceptance/r8-file-operations.md#gallery-group-discovery--2026-11-13)
+records the remaining query waits. Delivery awaits the pushed commit's hosted checks. This
+maintenance scope does not reopen the completed R7/R8 stages.
 
 ### R10 — Beta readiness
 

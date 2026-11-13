@@ -6,16 +6,27 @@ import "../../domain/library_exact_duplicates.dart";
 import "../library_duplicate_strings.dart";
 import "library_duplicate_reveal_action.dart";
 import "library_path_text.dart";
+import "library_sidebar_selection_icon.dart";
 
 class LibraryDuplicateLocationTile extends StatelessWidget {
   const LibraryDuplicateLocationTile({
     required this.location,
-    this.isCurrent = false,
+    required this.onOpen,
+    this.selected = false,
+    this.onSelect,
+    this.onPreference,
+    this.preferred = false,
+    this.preferenceLabel = "设为首选",
     this.wrapPath = false,
     super.key,
   });
   final LibraryDuplicateLocation location;
-  final bool isCurrent;
+  final VoidCallback onOpen;
+  final bool selected;
+  final VoidCallback? onSelect;
+  final VoidCallback? onPreference;
+  final bool preferred;
+  final String preferenceLabel;
   final bool wrapPath;
 
   @override
@@ -30,9 +41,23 @@ class LibraryDuplicateLocationTile extends StatelessWidget {
       location: location,
       builder: (context, reveal) {
         final tile = ListTile(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 4,
+          ),
           key: ValueKey("duplicate-location-${location.locationId}"),
-          enabled: reveal != null,
-          leading: const Icon(Symbols.folder_rounded),
+          selected: selected,
+          leading: onSelect == null
+              ? const Icon(Symbols.folder_rounded)
+              : LibrarySidebarSelectionIcon(
+                  icon: const Icon(Symbols.folder_rounded),
+                  name: displayLibraryFileName(path),
+                  selected: selected,
+                  onPressed: onSelect,
+                ),
           title: Text(
             displayLibraryFileName(path),
             maxLines: wrapPath ? null : 1,
@@ -52,16 +77,38 @@ class LibraryDuplicateLocationTile extends StatelessWidget {
               if (availability != null) Text(availability),
             ],
           ),
-          onTap: reveal,
-          trailing: isCurrent
-              ? Text(
-                  LibraryDuplicateStrings.currentImage,
-                  style: Theme.of(context).textTheme.bodySmall,
-                )
-              : null,
+          onTap: onOpen,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (onSelect != null)
+                IconButton(
+                  tooltip: preferenceLabel,
+                  onPressed: onPreference,
+                  isSelected: preferred,
+                  icon: const Icon(Symbols.bookmark_rounded),
+                  selectedIcon: const Icon(Symbols.bookmark_rounded, fill: 1),
+                ),
+              IconButton(
+                tooltip: LibraryDuplicateStrings.revealLocation,
+                onPressed: reveal,
+                icon: const Icon(Symbols.folder_open_rounded),
+              ),
+            ],
+          ),
         );
-        if (wrapPath) return tile;
-        return AmeTooltip(message: location.displayPath, child: tile);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Material(
+              color: Colors.transparent,
+              child: wrapPath
+                  ? tile
+                  : AmeTooltip(message: location.displayPath, child: tile),
+            ),
+          ),
+        );
       },
     );
   }

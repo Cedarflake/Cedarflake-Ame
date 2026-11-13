@@ -109,6 +109,7 @@ fn query_snapshot_keeps_anchor_resolution_and_page_in_one_read_transaction() {
             .expect("anchor target");
         let anchor = GalleryQueryAnchor {
             requested_location_id: target.location_id.clone(),
+            group_key: None,
             asset_id: uses_asset_identity.then(|| target.asset_id.clone()),
             fallback_ordinal: 0,
         };

@@ -41,7 +41,7 @@ fn ids(catalog: &mut SqliteCatalog, filter: GalleryMetadataFilter) -> Vec<String
         .unwrap()
         .assets
         .into_iter()
-        .map(|asset| asset.location_id)
+        .map(|asset| asset.source.location_id)
         .collect()
 }
 

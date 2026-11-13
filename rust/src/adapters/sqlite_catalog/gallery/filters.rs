@@ -11,6 +11,9 @@ pub(in crate::adapters::sqlite_catalog) fn gallery_source(
     query: &GalleryQuery,
     parameters: &mut Vec<Value>,
 ) -> String {
+    if super::groups::is_filtered(query) {
+        return super::groups::source(query, parameters);
+    }
     if let Some(manifest) = &query.semantic_results {
         return super::semantic::source(manifest, parameters).to_owned();
     }
@@ -43,6 +46,9 @@ pub(in crate::adapters::sqlite_catalog) fn push_gallery_filters(
     clauses: &mut Vec<String>,
     parameters: &mut Vec<Value>,
 ) {
+    if super::groups::is_filtered(query) {
+        return;
+    }
     if organization_groups::uses_grouped_organization(query) {
         // The group subquery already applies the complete scope before choosing representatives.
         organization_groups::push_group_filter(query, clauses, parameters);

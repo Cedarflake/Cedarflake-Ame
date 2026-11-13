@@ -35,6 +35,7 @@ class LibraryReadBindings {
 
   List<Override> get overrides => [
     libraryCatalogProvider.overrideWithValue(_catalog),
+    libraryGroupMemberCatalogProvider.overrideWithValue(_catalog),
     libraryFolderCatalogProvider.overrideWithValue(_catalog),
     libraryGalleryLayoutManifestCatalogProvider.overrideWithValue(
       const RustLibraryGalleryLayoutManifestCatalog(),
@@ -47,6 +48,7 @@ class LibraryReadBindings {
 
 final libraryReadRequirements = <ProviderListenable<Object?>>[
   libraryCatalogProvider,
+  libraryGroupMemberCatalogProvider,
   libraryFolderCatalogProvider,
   libraryGalleryLayoutManifestCatalogProvider,
   libraryPreviewerProvider,

@@ -4,6 +4,7 @@ pub(super) mod classification;
 pub(super) mod classification_annotations;
 pub(super) mod duplicates;
 mod filters;
+pub(super) mod groups;
 mod location_anchor;
 mod member_locations;
 mod metadata_filters;
@@ -32,7 +33,7 @@ pub(super) use filters::{gallery_source, push_gallery_filters, semantic_candidat
 
 pub(super) use location_anchor::{
     GalleryAssetAnchor, find_gallery_query_anchor, resolve_gallery_asset_anchor,
-    resolve_gallery_location_anchor,
+    resolve_gallery_group_anchor, resolve_gallery_location_anchor,
 };
 
 pub(super) use time_anchor::resolve_gallery_anchor_cursor;
@@ -42,9 +43,9 @@ use rusqlite::{OptionalExtension, Transaction};
 
 use ordering::{GalleryOrderExpressions, gallery_order_expressions};
 
+use crate::domain::gallery_groups::GalleryEntry;
 use crate::domain::{
-    AssetLocationView, CatalogCursor, GalleryQuery, GallerySortDirection, GallerySortKey,
-    GalleryTimeAnchor, ScanError,
+    CatalogCursor, GalleryQuery, GallerySortDirection, GallerySortKey, GalleryTimeAnchor, ScanError,
 };
 
 use super::{
@@ -113,6 +114,8 @@ pub(super) fn build_gallery_asset_query(
     let primary_direction = gallery_window_direction_sql(query.order_direction(), is_backward);
     let missing_direction = if is_backward { "DESC" } else { "ASC" };
     let tie_direction = if is_backward { "DESC" } else { "ASC" };
+    let identity = groups::identity(query);
+    let group_columns = groups::columns(query);
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
     let source = gallery_source(query, &mut parameters);
@@ -148,13 +151,13 @@ pub(super) fn build_gallery_asset_query(
     parameters.push(Value::Integer(sql_limit));
     Ok(BuiltGalleryQuery {
         sql: format!(
-            "SELECT {ASSET_COLUMNS}
+            "SELECT {ASSET_COLUMNS}, {group_columns}
              {source}
              {where_clause}
              ORDER BY {missing} {missing_direction},
                       {text} {primary_direction}, {number} {primary_direction},
                       locations.root_id {tie_direction},
-                      locations.location_id {tie_direction}
+                      {identity} {tie_direction}
              LIMIT ?",
             missing = order.missing,
             text = order.text,
@@ -207,6 +210,8 @@ pub(super) fn build_gallery_layout_manifest_query(
     parameters.push(Value::Integer(sql_limit));
     let primary_direction = gallery_direction_sql(query.order_direction());
     let date = order.date.unwrap_or("NULL");
+    let identity = groups::identity(query);
+    let group_columns = groups::columns(query);
     Ok(BuiltGalleryQuery {
         sql: format!(
             "{prefix}
@@ -216,12 +221,12 @@ pub(super) fn build_gallery_layout_manifest_query(
                     {missing} AS primary_missing,
                     {text} AS primary_text,
                     {number} AS primary_number,
-                    {source_items}
+                    {source_items}, {group_columns}
              {source}
              {where_clause}
              ORDER BY {missing}, {text} {primary_direction},
                       {number} {primary_direction},
-                      locations.root_id, locations.location_id
+                      locations.root_id, {identity}
              LIMIT ?",
             missing = order.missing,
             text = order.text,
@@ -256,19 +261,20 @@ pub(super) fn gallery_cursor_for_asset(
     revision: u64,
     query_id: &str,
     query: &GalleryQuery,
-    asset: &AssetLocationView,
+    asset: &GalleryEntry,
 ) -> Result<CatalogCursor, ScanError> {
     let order = gallery_order_expressions(query);
     let mut parameters = Vec::new();
     let source = gallery_source(query, &mut parameters);
     parameters.extend([
         Value::Text(asset.root_id.clone()),
-        Value::Text(asset.location_id.clone()),
+        Value::Text(asset.entry_id()),
     ]);
+    let identity = groups::identity(query);
     let sql = format!(
         "SELECT {missing}, {text}, {number}
          {source}
-         WHERE locations.root_id = ? AND locations.location_id = ?
+         WHERE locations.root_id = ? AND {identity} = ?
          LIMIT 1",
         missing = order.missing,
         text = order.text,
@@ -298,6 +304,7 @@ pub(super) fn gallery_cursor_for_asset(
         primary_number,
         root_id: asset.root_id.clone(),
         location_id: asset.location_id.clone(),
+        group_key: asset.group.as_ref().map(|group| group.key.clone()),
     })
 }
 
@@ -376,6 +383,11 @@ fn push_cursor_filter(
     let primary_comparison = gallery_cursor_comparison(direction, is_backward);
     let missing_comparison = if is_backward { "<" } else { ">" };
     let tie_comparison = if is_backward { "<" } else { ">" };
+    let identity = if cursor.group_key.is_some() {
+        "gallery_groups.entry_id"
+    } else {
+        "locations.location_id"
+    };
     clauses.push(format!(
         "(
           {missing} {missing_comparison} ?
@@ -384,7 +396,7 @@ fn push_cursor_filter(
           OR ({missing} = ? AND {text} = ? AND {number} = ?
               AND locations.root_id {tie_comparison} ?)
           OR ({missing} = ? AND {text} = ? AND {number} = ?
-              AND locations.root_id = ? AND locations.location_id {tie_comparison} ?)
+              AND locations.root_id = ? AND {identity} {tie_comparison} ?)
         )",
         missing = order.missing,
         text = order.text,
@@ -412,7 +424,12 @@ fn push_cursor_filter(
         text,
         number,
         root,
-        Value::Text(cursor.location_id.clone()),
+        Value::Text(
+            cursor
+                .group_key
+                .as_ref()
+                .map_or_else(|| cursor.location_id.clone(), |key| key.entry_id()),
+        ),
     ]);
 }
 

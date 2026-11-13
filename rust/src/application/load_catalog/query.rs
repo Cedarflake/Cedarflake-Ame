@@ -25,7 +25,7 @@ pub(super) fn normalize_relative_folder(folder: &str) -> String {
 
 pub(crate) fn gallery_query_identity(query: &GalleryQuery) -> String {
     let mut hasher = blake3::Hasher::new();
-    hasher.update(b"ame-gallery-query-v5\0");
+    hasher.update(b"ame-gallery-query-v6\0");
     if let Some(boundary) = query.new_since_admission {
         hasher.update(b"arrivals\0");
         hasher.update(&boundary.to_le_bytes());
@@ -91,6 +91,11 @@ pub(crate) fn gallery_query_identity(query: &GalleryQuery) -> String {
     hasher.update(&[match query.duplicate_mode {
         crate::domain::GalleryDuplicateMode::All => 0,
         crate::domain::GalleryDuplicateMode::Merged => 1,
+    }]);
+    hasher.update(&[match query.group_filter {
+        crate::domain::gallery_groups::GalleryGroupFilter::Unrestricted => 0,
+        crate::domain::gallery_groups::GalleryGroupFilter::Exact => 1,
+        crate::domain::gallery_groups::GalleryGroupFilter::Similar => 2,
     }]);
     hasher.finalize().to_hex().to_string()
 }

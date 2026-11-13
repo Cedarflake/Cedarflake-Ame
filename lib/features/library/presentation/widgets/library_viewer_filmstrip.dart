@@ -91,7 +91,7 @@ class _LibraryViewerFilmstripState
   @override
   void didUpdateWidget(covariant LibraryViewerFilmstrip oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selection.locationId != widget.selection.locationId) {
+    if (oldWidget.selection.galleryEntryId != widget.selection.galleryEntryId) {
       _revealSelection = true;
       _handleScroll();
       _paging.selectionChanged();
@@ -175,7 +175,7 @@ class _LibraryViewerFilmstripState
                     }
                     if (key is! ValueKey<String>) return null;
                     final index = state.assets.indexWhere(
-                      (asset) => asset.locationId == key.value,
+                      (asset) => asset.galleryEntryId == key.value,
                     );
                     return index < 0 ? null : index + leadingItems;
                   },
@@ -186,10 +186,11 @@ class _LibraryViewerFilmstripState
                     }
                     final asset = state.assets[assetIndex];
                     return LibraryViewerFilmstripThumbnail(
-                      key: ValueKey(asset.locationId),
+                      key: ValueKey(asset.galleryEntryId),
                       asset: asset,
                       isSelected:
-                          asset.locationId == widget.selection.locationId,
+                          asset.galleryEntryId ==
+                          widget.selection.galleryEntryId,
                       onPressed: () => widget.onSelected(asset),
                     );
                   },
@@ -261,7 +262,7 @@ class _LibraryViewerFilmstripState
       final state = ref.read(libraryControllerProvider);
       if (_centerSelection) {
         final index = state.assets.indexWhere(
-          (asset) => asset.locationId == widget.selection.locationId,
+          (asset) => asset.galleryEntryId == widget.selection.galleryEntryId,
         );
         if (index >= 0) {
           _centerSelection = false;
@@ -270,7 +271,7 @@ class _LibraryViewerFilmstripState
       }
       if (_revealSelection) {
         final index = state.assets.indexWhere(
-          (asset) => asset.locationId == widget.selection.locationId,
+          (asset) => asset.galleryEntryId == widget.selection.galleryEntryId,
         );
         if (index >= 0) {
           _revealSelection = false;
@@ -332,7 +333,7 @@ class _LibraryViewerFilmstripState
   bool _selectionNeedsPage(LibraryState state) =>
       (_centerSelection || _revealSelection) &&
       !state.assets.any(
-        (asset) => asset.locationId == widget.selection.locationId,
+        (asset) => asset.galleryEntryId == widget.selection.galleryEntryId,
       );
 
   Future<void> _loadAtEdge(LibraryState state, int start, int end) async {

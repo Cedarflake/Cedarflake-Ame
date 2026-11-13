@@ -20,7 +20,8 @@ pub(super) fn reconcile_snapshot_previews(
     root: &Path,
     snapshot: &mut CatalogSnapshot,
 ) -> Result<(), ScanError> {
-    for asset in &mut snapshot.assets {
+    for entry in &mut snapshot.assets {
+        let asset = &mut entry.source;
         if !matches!(asset.preview_status, PreviewStatus::Ready)
             || is_active_location_file(&asset.preview_path, root)?
         {

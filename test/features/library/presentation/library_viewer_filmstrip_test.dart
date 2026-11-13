@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/domain/library_gallery_group.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_filmstrip.dart";
@@ -691,6 +692,7 @@ class _SelectionPageController extends LibraryController {
     LibraryGalleryQuery query, {
     String? anchorLocationId,
     String? anchorAssetId,
+    LibraryGalleryGroupKey? anchorGroupKey,
     int? fallbackGlobalItemIndex,
     bool forceRefresh = false,
     BigInt? minimumCatalogRevision,

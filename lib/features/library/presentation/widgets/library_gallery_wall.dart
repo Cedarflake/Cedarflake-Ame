@@ -398,16 +398,18 @@ class LibraryGalleryWall extends StatelessWidget {
                                 for (final cell in entry.cells) cell.width,
                               ],
                               identityAt: (index) =>
-                                  entry.cells[index].asset.locationId,
+                                  entry.cells[index].asset.galleryEntryId,
                               builder: (index, size) {
                                 final asset = entry.cells[index].asset;
                                 return LibraryPhotoTile(
-                                  key: ValueKey(asset.locationId),
+                                  key: ValueKey(asset.galleryEntryId),
                                   asset: asset,
                                   width: size.width,
                                   height: size.height,
                                   isSelecting: isSelecting,
-                                  isSelected: selection.contains(asset.assetId),
+                                  isSelected: selection.contains(
+                                    asset.selectionId,
+                                  ),
                                   onOpen: onOpen,
                                   onToggleSelection: onToggleSelection,
                                   onViewInformation: onViewInformation,
@@ -566,6 +568,7 @@ class LibraryGalleryWall extends StatelessWidget {
       revision: revision,
       monthKey: activeEntry.monthKey,
       locationId: activeEntry.cells[centerCellIndex].asset.locationId,
+      entryId: activeEntry.cells[centerCellIndex].asset.galleryEntryId,
       assetId: activeEntry.cells[centerCellIndex].asset.assetId,
       globalItemIndex: windowStartItemOffset + itemIndex,
       itemFraction: fractions.item,
@@ -672,7 +675,7 @@ class LibraryGalleryWall extends StatelessWidget {
       return null;
     }
     final localItemIndex = state.assets.indexWhere(
-      (asset) => asset.locationId == position.locationId,
+      (asset) => asset.galleryEntryId == position.entryId,
     );
     if (localItemIndex < 0) {
       return null;
@@ -865,7 +868,7 @@ class _ManifestLibraryGalleryWallState
           constraints.maxHeight,
         );
         final assetsByLocation = {
-          for (final asset in widget.state.assets) asset.locationId: asset,
+          for (final asset in widget.state.assets) asset.galleryEntryId: asset,
         };
         final loadedGeometry = snapshot.loadedWindowGeometry(
           startItemIndex: widget.state.windowStartItemOffset,
@@ -1182,6 +1185,7 @@ class _ManifestLibraryGalleryWallState
       queryId: position.queryId,
       revision: position.revision,
       locationId: position.locationId,
+      entryId: position.entryId,
       globalItemIndex: position.globalItemIndex,
       itemFraction: position.itemFraction,
       viewportFraction: position.viewportFraction,
@@ -1485,7 +1489,7 @@ class _ManifestLibraryGalleryWallState
       offset: offset,
       cellWidths: entry.cellWidths,
       identityAt: (index) =>
-          snapshot.manifest.locationIdAt(entry.startItemIndex + index),
+          snapshot.manifest.entryIdAt(entry.startItemIndex + index),
       builder: (index, size) => _buildCell(
         snapshot,
         entry.startItemIndex + index,
@@ -1503,22 +1507,22 @@ class _ManifestLibraryGalleryWallState
     double height,
     Map<String, LibraryAsset> assetsByLocation,
   ) {
-    final locationId = snapshot.manifest.locationIdAt(itemIndex);
-    final asset = assetsByLocation[locationId];
+    final entryId = snapshot.manifest.entryIdAt(itemIndex);
+    final asset = assetsByLocation[entryId];
     if (asset == null) {
       return _LibraryGalleryUnloadedSlot(
-        key: ValueKey(locationId),
+        key: ValueKey(entryId),
         width: width,
         height: height,
       );
     }
     return LibraryPhotoTile(
-      key: ValueKey(locationId),
+      key: ValueKey(entryId),
       asset: asset,
       width: width,
       height: height,
       isSelecting: widget.isSelecting,
-      isSelected: widget.selection.contains(asset.assetId),
+      isSelected: widget.selection.contains(asset.selectionId),
       onOpen: widget.onOpen,
       onToggleSelection: widget.onToggleSelection,
       onViewInformation: widget.onViewInformation,
@@ -1547,6 +1551,7 @@ class _ManifestLibraryGalleryWallState
       revision: anchor.revision,
       monthKey: anchor.monthKey,
       locationId: anchor.locationId,
+      entryId: anchor.entryId,
       globalItemIndex: anchor.globalItemIndex,
       itemFraction: anchor.itemFraction,
       viewportFraction: anchor.viewportFraction,

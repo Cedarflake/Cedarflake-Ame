@@ -72,7 +72,7 @@ fn pending(catalog: &mut SqliteCatalog) -> Vec<String> {
         .unwrap()
         .assets
         .into_iter()
-        .map(|asset| asset.location_id)
+        .map(|asset| asset.source.location_id)
         .collect()
 }
 
@@ -95,14 +95,24 @@ fn organization_archive_restores_selected_sort_and_missing_anchor_boundary() {
             [serde_json::to_string(&filter).unwrap()],
         )
         .unwrap();
+    source
+        .connection
+        .execute_batch(
+            "INSERT INTO organization_review_group_filters (scope_slot, group_filter)
+         SELECT slot, 'similar' FROM organization_review_scopes;",
+        )
+        .unwrap();
     let target = SqliteCatalog::open(directory.path().join("target.sqlite3")).unwrap();
     let (archive, staged) = attach_archive(&target, &source, directory.path());
     apply(&target, &archive).unwrap();
-    let restored_filter = organization::review::scope::load(&target.connection, "bookmark")
+    let restored_scope = organization::review::scope::load(&target.connection, "bookmark")
         .unwrap()
-        .unwrap()
-        .metadata_filter;
-    assert_eq!(restored_filter, filter);
+        .unwrap();
+    assert_eq!(restored_scope.metadata_filter, filter);
+    assert_eq!(
+        restored_scope.group_filter,
+        crate::domain::gallery_groups::GalleryGroupFilter::Similar,
+    );
     let restored: (String, String, String, i64) = target
         .connection
         .query_row(

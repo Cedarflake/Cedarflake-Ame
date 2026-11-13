@@ -58,7 +58,13 @@ pub(in super::super) fn materialize(
             params_from_iter(selected.parameters),
         )
         .map_err(database_error)?;
-    if !all_matching {
+    if !all_matching && gallery::groups::is_filtered(query) {
+        gallery::groups::selection::require_inputs(
+            connection,
+            query,
+            gallery::groups::selection::Input::Organization,
+        )?;
+    } else if !all_matching {
         let missing: bool = connection
             .query_row(
                 "SELECT EXISTS(SELECT 1 FROM temp.organization_batch_ids AS selected

@@ -605,14 +605,15 @@ extension FileOperationSelectionScopePatterns on FileOperationSelectionScope {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( FileOperationSelectionScope_Gallery value)?  gallery,TResult Function( FileOperationSelectionScope_MergedGalleryGroups value)?  mergedGalleryGroups,TResult Function( FileOperationSelectionScope_Locations value)?  locations,TResult Function( FileOperationSelectionScope_DuplicateCleanup value)?  duplicateCleanup,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( FileOperationSelectionScope_Gallery value)?  gallery,TResult Function( FileOperationSelectionScope_MergedGalleryGroups value)?  mergedGalleryGroups,TResult Function( FileOperationSelectionScope_Locations value)?  locations,TResult Function( FileOperationSelectionScope_DuplicateCleanup value)?  duplicateCleanup,TResult Function( FileOperationSelectionScope_GalleryCleanup value)?  galleryCleanup,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery() when gallery != null:
 return gallery(_that);case FileOperationSelectionScope_MergedGalleryGroups() when mergedGalleryGroups != null:
 return mergedGalleryGroups(_that);case FileOperationSelectionScope_Locations() when locations != null:
 return locations(_that);case FileOperationSelectionScope_DuplicateCleanup() when duplicateCleanup != null:
-return duplicateCleanup(_that);case _:
+return duplicateCleanup(_that);case FileOperationSelectionScope_GalleryCleanup() when galleryCleanup != null:
+return galleryCleanup(_that);case _:
   return orElse();
 
 }
@@ -630,14 +631,15 @@ return duplicateCleanup(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( FileOperationSelectionScope_Gallery value)  gallery,required TResult Function( FileOperationSelectionScope_MergedGalleryGroups value)  mergedGalleryGroups,required TResult Function( FileOperationSelectionScope_Locations value)  locations,required TResult Function( FileOperationSelectionScope_DuplicateCleanup value)  duplicateCleanup,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( FileOperationSelectionScope_Gallery value)  gallery,required TResult Function( FileOperationSelectionScope_MergedGalleryGroups value)  mergedGalleryGroups,required TResult Function( FileOperationSelectionScope_Locations value)  locations,required TResult Function( FileOperationSelectionScope_DuplicateCleanup value)  duplicateCleanup,required TResult Function( FileOperationSelectionScope_GalleryCleanup value)  galleryCleanup,}){
 final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery():
 return gallery(_that);case FileOperationSelectionScope_MergedGalleryGroups():
 return mergedGalleryGroups(_that);case FileOperationSelectionScope_Locations():
 return locations(_that);case FileOperationSelectionScope_DuplicateCleanup():
-return duplicateCleanup(_that);}
+return duplicateCleanup(_that);case FileOperationSelectionScope_GalleryCleanup():
+return galleryCleanup(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -651,14 +653,15 @@ return duplicateCleanup(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( FileOperationSelectionScope_Gallery value)?  gallery,TResult? Function( FileOperationSelectionScope_MergedGalleryGroups value)?  mergedGalleryGroups,TResult? Function( FileOperationSelectionScope_Locations value)?  locations,TResult? Function( FileOperationSelectionScope_DuplicateCleanup value)?  duplicateCleanup,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( FileOperationSelectionScope_Gallery value)?  gallery,TResult? Function( FileOperationSelectionScope_MergedGalleryGroups value)?  mergedGalleryGroups,TResult? Function( FileOperationSelectionScope_Locations value)?  locations,TResult? Function( FileOperationSelectionScope_DuplicateCleanup value)?  duplicateCleanup,TResult? Function( FileOperationSelectionScope_GalleryCleanup value)?  galleryCleanup,}){
 final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery() when gallery != null:
 return gallery(_that);case FileOperationSelectionScope_MergedGalleryGroups() when mergedGalleryGroups != null:
 return mergedGalleryGroups(_that);case FileOperationSelectionScope_Locations() when locations != null:
 return locations(_that);case FileOperationSelectionScope_DuplicateCleanup() when duplicateCleanup != null:
-return duplicateCleanup(_that);case _:
+return duplicateCleanup(_that);case FileOperationSelectionScope_GalleryCleanup() when galleryCleanup != null:
+return galleryCleanup(_that);case _:
   return null;
 
 }
@@ -675,13 +678,14 @@ return duplicateCleanup(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  gallery,TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  mergedGalleryGroups,TResult Function()?  locations,TResult Function( DuplicateCleanupKind kind,  bool allGroups)?  duplicateCleanup,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  gallery,TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  mergedGalleryGroups,TResult Function()?  locations,TResult Function( DuplicateCleanupKind kind,  bool allGroups)?  duplicateCleanup,TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  galleryCleanup,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery() when gallery != null:
 return gallery(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_MergedGalleryGroups() when mergedGalleryGroups != null:
 return mergedGalleryGroups(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_Locations() when locations != null:
 return locations();case FileOperationSelectionScope_DuplicateCleanup() when duplicateCleanup != null:
-return duplicateCleanup(_that.kind,_that.allGroups);case _:
+return duplicateCleanup(_that.kind,_that.allGroups);case FileOperationSelectionScope_GalleryCleanup() when galleryCleanup != null:
+return galleryCleanup(_that.query,_that.catalogRevision,_that.allMatching);case _:
   return orElse();
 
 }
@@ -699,13 +703,14 @@ return duplicateCleanup(_that.kind,_that.allGroups);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)  gallery,required TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)  mergedGalleryGroups,required TResult Function()  locations,required TResult Function( DuplicateCleanupKind kind,  bool allGroups)  duplicateCleanup,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)  gallery,required TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)  mergedGalleryGroups,required TResult Function()  locations,required TResult Function( DuplicateCleanupKind kind,  bool allGroups)  duplicateCleanup,required TResult Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)  galleryCleanup,}) {final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery():
 return gallery(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_MergedGalleryGroups():
 return mergedGalleryGroups(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_Locations():
 return locations();case FileOperationSelectionScope_DuplicateCleanup():
-return duplicateCleanup(_that.kind,_that.allGroups);}
+return duplicateCleanup(_that.kind,_that.allGroups);case FileOperationSelectionScope_GalleryCleanup():
+return galleryCleanup(_that.query,_that.catalogRevision,_that.allMatching);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -719,13 +724,14 @@ return duplicateCleanup(_that.kind,_that.allGroups);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  gallery,TResult? Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  mergedGalleryGroups,TResult? Function()?  locations,TResult? Function( DuplicateCleanupKind kind,  bool allGroups)?  duplicateCleanup,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  gallery,TResult? Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  mergedGalleryGroups,TResult? Function()?  locations,TResult? Function( DuplicateCleanupKind kind,  bool allGroups)?  duplicateCleanup,TResult? Function( GalleryQuery query,  BigInt catalogRevision,  bool allMatching)?  galleryCleanup,}) {final _that = this;
 switch (_that) {
 case FileOperationSelectionScope_Gallery() when gallery != null:
 return gallery(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_MergedGalleryGroups() when mergedGalleryGroups != null:
 return mergedGalleryGroups(_that.query,_that.catalogRevision,_that.allMatching);case FileOperationSelectionScope_Locations() when locations != null:
 return locations();case FileOperationSelectionScope_DuplicateCleanup() when duplicateCleanup != null:
-return duplicateCleanup(_that.kind,_that.allGroups);case _:
+return duplicateCleanup(_that.kind,_that.allGroups);case FileOperationSelectionScope_GalleryCleanup() when galleryCleanup != null:
+return galleryCleanup(_that.query,_that.catalogRevision,_that.allMatching);case _:
   return null;
 
 }
@@ -980,6 +986,76 @@ $DuplicateCleanupKindCopyWith<$Res> get kind {
     return _then(_self.copyWith(kind: value));
   });
 }
+}
+
+/// @nodoc
+
+
+class FileOperationSelectionScope_GalleryCleanup extends FileOperationSelectionScope {
+  const FileOperationSelectionScope_GalleryCleanup({required this.query, required this.catalogRevision, required this.allMatching}): super._();
+
+
+ final  GalleryQuery query;
+ final  BigInt catalogRevision;
+ final  bool allMatching;
+
+/// Create a copy of FileOperationSelectionScope
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$FileOperationSelectionScope_GalleryCleanupCopyWith<FileOperationSelectionScope_GalleryCleanup> get copyWith => _$FileOperationSelectionScope_GalleryCleanupCopyWithImpl<FileOperationSelectionScope_GalleryCleanup>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope_GalleryCleanup&&(identical(other.query, query) || other.query == query)&&(identical(other.catalogRevision, catalogRevision) || other.catalogRevision == catalogRevision)&&(identical(other.allMatching, allMatching) || other.allMatching == allMatching));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,query,catalogRevision,allMatching);
+
+@override
+String toString() {
+  return 'FileOperationSelectionScope.galleryCleanup(query: $query, catalogRevision: $catalogRevision, allMatching: $allMatching)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $FileOperationSelectionScope_GalleryCleanupCopyWith<$Res> implements $FileOperationSelectionScopeCopyWith<$Res> {
+  factory $FileOperationSelectionScope_GalleryCleanupCopyWith(FileOperationSelectionScope_GalleryCleanup value, $Res Function(FileOperationSelectionScope_GalleryCleanup) _then) = _$FileOperationSelectionScope_GalleryCleanupCopyWithImpl;
+@useResult
+$Res call({
+ GalleryQuery query, BigInt catalogRevision, bool allMatching
+});
+
+
+
+
+}
+/// @nodoc
+class _$FileOperationSelectionScope_GalleryCleanupCopyWithImpl<$Res>
+    implements $FileOperationSelectionScope_GalleryCleanupCopyWith<$Res> {
+  _$FileOperationSelectionScope_GalleryCleanupCopyWithImpl(this._self, this._then);
+
+  final FileOperationSelectionScope_GalleryCleanup _self;
+  final $Res Function(FileOperationSelectionScope_GalleryCleanup) _then;
+
+/// Create a copy of FileOperationSelectionScope
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? query = null,Object? catalogRevision = null,Object? allMatching = null,}) {
+  return _then(FileOperationSelectionScope_GalleryCleanup(
+query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
+as GalleryQuery,catalogRevision: null == catalogRevision ? _self.catalogRevision : catalogRevision // ignore: cast_nullable_to_non_nullable
+as BigInt,allMatching: null == allMatching ? _self.allMatching : allMatching // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
 }
 
 // dart format on

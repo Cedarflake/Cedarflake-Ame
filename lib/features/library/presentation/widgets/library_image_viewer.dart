@@ -266,6 +266,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
       onNext: widget.onNext,
       child: LibraryViewerImageFlight(
         locationId: widget.asset.locationId,
+        entryId: widget.asset.galleryEntryId,
         imageSize: Size(
           widget.asset.width.toDouble(),
           widget.asset.height.toDouble(),

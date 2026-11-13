@@ -27,7 +27,7 @@ pub(super) fn ids(catalog: &mut SqliteCatalog, query: &GalleryQuery) -> Vec<Stri
         .unwrap()
         .assets
         .into_iter()
-        .map(|asset| asset.location_id)
+        .map(|asset| asset.source.location_id)
         .collect()
 }
 

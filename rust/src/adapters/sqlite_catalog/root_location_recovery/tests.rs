@@ -95,6 +95,9 @@ fn assets(catalog: &mut SqliteCatalog) -> Vec<AssetLocationView> {
         )
         .unwrap()
         .assets
+        .into_iter()
+        .map(|entry| entry.source)
+        .collect()
 }
 
 #[test]

@@ -313,6 +313,7 @@ fn second_child_retirement_failure_rolls_back_parent_children_and_ready_previews
     )
     .expect("isolated preview store");
     for location in fixture.snapshot().assets {
+        let location = location.source;
         let materialized = crate::application::preview::materialize_preview_with_store(
             PreviewRequest {
                 location_id: location.location_id,

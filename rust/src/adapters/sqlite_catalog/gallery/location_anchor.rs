@@ -144,6 +144,21 @@ pub(in super::super) fn find_gallery_query_anchor(
     query_id: &str,
     anchor: &GalleryQueryAnchor,
 ) -> Result<Option<CatalogCursor>, ScanError> {
+    if let Some(key) = anchor
+        .group_key
+        .as_ref()
+        .filter(|_| super::groups::is_filtered(query))
+    {
+        return find_gallery_anchor(
+            transaction,
+            revision,
+            query,
+            query_id,
+            super::groups::identity(query),
+            &key.entry_id(),
+            None,
+        );
+    }
     let location = find_gallery_anchor(
         transaction,
         revision,
@@ -170,6 +185,40 @@ pub(in super::super) fn find_gallery_query_anchor(
     }
 }
 
+pub(in super::super) fn resolve_gallery_group_anchor(
+    transaction: &Transaction<'_>,
+    revision: u64,
+    query: &GalleryQuery,
+    query_id: &str,
+    max_items: u32,
+    anchor: &GalleryQueryAnchor,
+) -> Result<(GalleryLocationAnchorResolution, Option<CatalogCursor>), ScanError> {
+    let value = anchor
+        .group_key
+        .as_ref()
+        .map(|key| key.entry_id())
+        .ok_or_else(|| {
+            ScanError::new(
+                "catalog_group_anchor_invalid",
+                "A grouped gallery anchor requires a group",
+            )
+        })?;
+    resolve_gallery_anchor(
+        transaction,
+        revision,
+        query,
+        query_id,
+        GalleryAnchorRequest {
+            requested_location_id: &anchor.requested_location_id,
+            anchor_column: super::groups::identity(query),
+            anchor_value: &value,
+            required_asset_id: None,
+            fallback_ordinal: Some(anchor.fallback_ordinal),
+            max_items,
+        },
+    )
+}
+
 fn find_gallery_anchor(
     transaction: &Transaction<'_>,
     revision: u64,
@@ -180,16 +229,17 @@ fn find_gallery_anchor(
     required_asset_id: Option<&str>,
 ) -> Result<Option<CatalogCursor>, ScanError> {
     let order = gallery_order_expressions(query);
-    let representative = if anchor_column == "locations.location_id" {
-        super::duplicates::representative_for_anchor(
-            transaction,
-            query,
-            requested_value,
-            required_asset_id,
-        )?
-    } else {
-        None
-    };
+    let representative =
+        if anchor_column == "locations.location_id" && !super::groups::is_filtered(query) {
+            super::duplicates::representative_for_anchor(
+                transaction,
+                query,
+                requested_value,
+                required_asset_id,
+            )?
+        } else {
+            None
+        };
     let anchor_value = representative.as_deref().unwrap_or(requested_value);
     let mut anchor_clauses = Vec::new();
     let mut anchor_parameters = Vec::new();
@@ -207,9 +257,10 @@ fn find_gallery_anchor(
         anchor_clauses.push("locations.asset_id = ?".to_owned());
         anchor_parameters.push(Value::Text(asset_id.to_owned()));
     }
+    let group_columns = super::groups::columns(query);
     let anchor_sql = format!(
         "SELECT locations.root_id, locations.location_id,
-                {missing}, {text}, {number}
+                {missing}, {text}, {number}, {group_columns}
          {source} WHERE {where_clause}
          LIMIT 1",
         missing = order.missing,
@@ -227,6 +278,7 @@ fn find_gallery_anchor(
                     query_id: query_id.to_owned(),
                     root_id: row.get(0)?,
                     location_id: row.get(1)?,
+                    group_key: super::groups::read_key(row)?,
                     primary_missing: row.get::<_, i64>(2)? != 0,
                     primary_text: row.get(3)?,
                     primary_number: row.get(4)?,

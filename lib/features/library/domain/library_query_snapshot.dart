@@ -1,3 +1,4 @@
+import "library_gallery_group.dart";
 import "library_models.dart";
 import "gallery_layout_manifest.dart";
 
@@ -5,11 +6,13 @@ class LibraryQueryAnchor {
   const LibraryQueryAnchor({
     required this.requestedLocationId,
     this.assetId,
+    this.groupKey,
     this.fallbackGlobalItemIndex = 0,
   });
 
   final String requestedLocationId;
   final String? assetId;
+  final LibraryGalleryGroupKey? groupKey;
   final int fallbackGlobalItemIndex;
 }
 

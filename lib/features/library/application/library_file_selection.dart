@@ -38,6 +38,7 @@ class LibraryFileSelectionSession {
           );
         }
       case LibraryFilesInGallery(:final selection) ||
+          LibraryCleanupInGallery(:final selection) ||
           LibraryFileGroupsInGallery(:final selection):
         for (var start = 0; start < selection.assetIds.length; start += 256) {
           _check();

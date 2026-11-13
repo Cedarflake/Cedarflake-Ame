@@ -27,6 +27,11 @@ class LibraryFileGroupsInGallery extends LibraryFileSelection {
   final LibraryOrganizationSelection selection;
 }
 
+class LibraryCleanupInGallery extends LibraryFileSelection {
+  const LibraryCleanupInGallery(this.selection);
+  final LibraryOrganizationSelection selection;
+}
+
 class LibraryFilesAtLocations extends LibraryFileSelection {
   LibraryFilesAtLocations(Iterable<LibraryOrganizationTarget> locations)
     : locations = List.unmodifiable(locations);

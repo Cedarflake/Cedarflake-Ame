@@ -1,6 +1,7 @@
 import "package:flutter/foundation.dart";
 
 import "../../application/ports/library_catalog.dart";
+import "../../domain/library_gallery_group.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_state.dart";
 import "library_viewer_navigation_window.dart";
@@ -17,10 +18,13 @@ typedef LibraryViewerNavigation = ({
 class LibraryViewerSelection {
   LibraryViewerSelection._(LibraryAsset asset)
     : assetId = asset.assetId,
+      galleryGroup = asset.galleryGroup,
       locationId = asset.locationId;
 
   final String assetId;
   final String locationId;
+  final LibraryGalleryGroup? galleryGroup;
+  String get entryId => galleryGroup?.key.entryId ?? locationId;
 }
 
 typedef _QueryIdentity = ({
@@ -116,7 +120,7 @@ class LibraryViewerSession extends ChangeNotifier {
     _selection = LibraryViewerSelection._(asset);
     final state = _readLibrary();
     final index = state.assets.indexWhere(
-      (item) => item.locationId == asset.locationId,
+      (item) => item.galleryEntryId == asset.galleryEntryId,
     );
     final currentOrdinal = index < 0
         ? ordinal
@@ -156,6 +160,7 @@ class LibraryViewerSession extends ChangeNotifier {
     }
     final source = _source;
     if (source == null) return;
+    asset = asset.withGalleryGroup(selection.galleryGroup);
     source.reconcile(asset);
     if (source.notice == null && asset.locationId != selection.locationId) {
       _selection = LibraryViewerSelection._(asset);
@@ -288,6 +293,7 @@ class LibraryViewerSession extends ChangeNotifier {
       _onPreviewDemand(null);
       notifyListeners();
     } else {
+      asset = asset.withGalleryGroup(selection.galleryGroup);
       _retainCatalogAsset(selection, asset);
       final retainedSelection = _selection;
       if (retainedSelection == null || sourceNotice != null) return;
@@ -331,12 +337,9 @@ class LibraryViewerSession extends ChangeNotifier {
       identical(_navigation, request) &&
       request.query == _query;
 
-  int _index(LibraryState state, LibraryViewerSelection selection) =>
-      state.assets.indexWhere(
-        (asset) =>
-            asset.assetId == selection.assetId &&
-            asset.locationId == selection.locationId,
-      );
+  int _index(LibraryState state, LibraryViewerSelection selection) => state
+      .assets
+      .indexWhere((asset) => asset.galleryEntryId == selection.entryId);
 
   @override
   void dispose() {

@@ -30,30 +30,45 @@ When Library is organizing, those visits retain its mode, queue, source scope, b
 selection for the return to Library. Albums itself remains ordinary browsing. Reuse the accepted
 theme, global chrome, photo wall and viewer.
 
-Library supports `全部图片` and `合并重复图片` in the existing upper-right filter area. The first
-shows every location; the second shows one scoped representative of each confirmed exact group.
+Library's upper-right filter area has a `合并重复` toggle. When disabled, every location appears;
+when enabled, one scoped representative of each confirmed exact group appears.
 The heading always starts with the total image count for the current folder/search scope. Merged
 mode appends its displayed count, for example `10000 张图片 · 去重后 72 张`; All images shows
 `10000 张图片`. Both counts come from the same catalog revision and scope.
 Ordinary and not-yet-analysed images remain visible. Remember the user's display choice. Each
-confirmed duplicate card has a top-left stacked-image action only in `合并重复图片`; `全部图片`
-has no duplicate card action. The card action shows no count, and the top-right selection checkbox
+confirmed duplicate card has a top-left stacked-image action while `合并重复` is enabled; unfolded
+display has no duplicate card action. The card action shows no count, and the top-right selection checkbox
 keeps its existing independent action. Both controls use compact 28-pixel rounded-square marks in
 transparent 40-pixel click targets, with the existing Material Symbols icons and no outer filled disc.
 Clicking the duplicate action
-opens a bottom sheet with separate filename and folder lines and a current-image marker;
-clicking a location reveals that file in File Explorer. Long filenames and paths wrap completely
+opens the existing member bottom sheet with separate filename and folder lines. Clicking a row opens
+the existing image viewer; returning preserves the sheet and its selections. Only its leading folder
+icon toggles selection through the shared flip-to-check component. The trailing
+actions set the preferred copy and reveal the file in Explorer. Long filenames and paths wrap completely
 inside the sheet's continuously scrolling list, with bounded incremental reads and no pagination
 buttons. The sheet has a drag handle and no close button; Escape or a click outside dismisses it.
 Closing it retains the gallery position and restores existing keyboard focus to the badge when
-available, without creating focus after mouse activation. Normal local availability is omitted; retain the current-image marker
-and cloud-only, offline or unavailable states. Locations outside the current folder are explicitly inspectable without
+available, without creating focus after mouse activation. Omit a separate current-image label and
+normal local availability; retain cloud-only, offline or unavailable states. Locations outside the current folder are explicitly inspectable without
 widening the gallery selection scope.
+
+The sheet uses consistent horizontal insets and the existing rounded selection-row shape, without
+a divider beneath its header. `删除重复图片` or `删除相似图片` retains the existing preferred/automatic
+keep rules; `删除所选` targets only checked physical files, including a checked preferred file.
+Both enter the existing deletion confirmation with permanent deletion initially unchecked. Selection
+survives member paging and clears when the sheet closes or a completed deletion changes its members.
+
+The gallery filter offers `全部图片`, `仅显示重复` and `仅显示相似` as exclusive scope choices.
+An active group filter displays merged group cards, disables the separate `合并重复` toggle, and keeps
+the photo wall, layout choices and timeline. Clearing it restores the previous display preference.
+Counts show groups. Folder, collection, search and metadata conditions restrict membership before
+grouping; only groups with at least two qualifying contents/locations appear. Similar groups use the
+standard degree. Filtered group trays and cleanup use those same scoped members.
 
 During recovery, previously confirmed folded relationships may remain visible while their unchanged
 physical observations are rechecked. The badge tooltip and sheet header show one group status:
 `正在更新` during analysis, `已暂停` when paused, and `等待后台` while waiting to resume. Individual
-locations retain only their existing current-image and availability markers. The sheet's count and
+locations retain their selection, preference and availability markers. The sheet's count and
 rows come from one current display snapshot. Newly confirmed copies
 join progressively, while changed identity/state or a different confirmed fingerprint removes only
 the affected old relationship. Retained display never skips content verification or authorizes a
@@ -70,14 +85,15 @@ overlap.
 The Duplicates workspace owns exact and similar group inspection and durable representative and
 ignore choices. It reuses gallery previews and viewing. Exact groups establish byte
 identity; similar groups contain distinct contents selected by the admitted perceptual comparison.
-Similarity adds no filter or folding to Library, Favorites or albums. No analysis or display choice
+The gallery group filters reuse this evidence without replacing the workspace. No analysis or display choice
 authorizes source mutation.
 
 Put the heading/count block on the left and group controls on the right. The layers-icon menu
 shows its current label (`重复组`, `相似组` or `已忽略`) and a dropdown arrow. It offers those choices
-in that order, without top tabs. Show `严格 / 标准 / 宽松` through the
-sliders menu to its right only in the similar-group list, initially `标准`; its tooltip and accessible
-name identify the current degree. Changing degree queries existing results. `已忽略` combines exact and similar
+in that order, without top tabs. The sliders menu to its right appears only in the similar-group
+list and shows the current `严格 / 标准 / 宽松` label, initially `标准`, followed by an arrow.
+Both menus use the same text-button icon size as the neighboring cleanup action. Changing degree
+queries existing results. `已忽略` combines exact and similar
 groups with kind labels; similar groups there use the broad degree so choices remain reachable.
 Use `重复图片查找` for the exact list and the selected view name for the other headings. Reserve the
 group-count line during loading; omit a separate scope, description or analysis-status block.
@@ -95,8 +111,8 @@ availability and accessible preference/Explorer actions; similar members also ex
 locations. Keep actions inline when space permits and wrap them below at narrow widths.
 Measure text and controls instead of assigning a fixed row height. Omit decorative folder icons,
 a separate `首选副本` label and a redundant `查看图片` button. Group actions read `查看重复图片` or
-`查看相似图片`. The location sheet states the number of copies; each location row reveals that file
-in Explorer, with `当前图片` at the right and availability/wrapped paths below the filename.
+`查看相似图片`. Location inspection reuses the member sheet described above, including selection,
+preference, deletion confirmation and Explorer actions.
 
 Both levels scroll continuously through bounded payload/cursor windows and viewport-bound previews.
 Empty and failed results use the shared centered state component; read failures retain retry.

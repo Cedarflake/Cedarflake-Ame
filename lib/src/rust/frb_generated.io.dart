@@ -45,6 +45,7 @@ import 'domain/file_operation_journal.dart';
 import 'domain/file_operation_selection.dart';
 import 'domain/file_operation_task.dart';
 import 'domain/file_operations.dart';
+import 'domain/gallery_groups.dart';
 import 'domain/gallery_metadata_filter.dart';
 import 'domain/gallery_query_snapshot.dart';
 import 'domain/gallery_scroll_section.dart';
@@ -453,6 +454,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   FileOperationSource dco_decode_box_autoadd_file_operation_source(dynamic raw);
+
+  @protected
+  GalleryGroup dco_decode_box_autoadd_gallery_group(dynamic raw);
+
+  @protected
+  GalleryGroupKey dco_decode_box_autoadd_gallery_group_key(dynamic raw);
 
   @protected
   GalleryLayoutManifestCursor
@@ -908,6 +915,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GalleryDuplicatePage dco_decode_gallery_duplicate_page(dynamic raw);
 
   @protected
+  GalleryEntry dco_decode_gallery_entry(dynamic raw);
+
+  @protected
+  GalleryGroup dco_decode_gallery_group(dynamic raw);
+
+  @protected
+  GalleryGroupFilter dco_decode_gallery_group_filter(dynamic raw);
+
+  @protected
+  GalleryGroupKey dco_decode_gallery_group_key(dynamic raw);
+
+  @protected
+  GalleryGroupMember dco_decode_gallery_group_member(dynamic raw);
+
+  @protected
+  GalleryGroupMemberPage dco_decode_gallery_group_member_page(dynamic raw);
+
+  @protected
   GalleryLayoutDateGroup dco_decode_gallery_layout_date_group(dynamic raw);
 
   @protected
@@ -1022,9 +1047,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> dco_decode_list_String(dynamic raw);
 
   @protected
-  List<AssetLocationView> dco_decode_list_asset_location_view(dynamic raw);
-
-  @protected
   List<ClassificationAnnotation> dco_decode_list_classification_annotation(
     dynamic raw,
   );
@@ -1075,6 +1097,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<GalleryDuplicateAnnotation> dco_decode_list_gallery_duplicate_annotation(
     dynamic raw,
   );
+
+  @protected
+  List<GalleryEntry> dco_decode_list_gallery_entry(dynamic raw);
+
+  @protected
+  List<GalleryGroupMember> dco_decode_list_gallery_group_member(dynamic raw);
 
   @protected
   List<GalleryLayoutDateGroup> dco_decode_list_gallery_layout_date_group(
@@ -1237,6 +1265,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FileOperationSource? dco_decode_opt_box_autoadd_file_operation_source(
     dynamic raw,
   );
+
+  @protected
+  GalleryGroup? dco_decode_opt_box_autoadd_gallery_group(dynamic raw);
+
+  @protected
+  GalleryGroupKey? dco_decode_opt_box_autoadd_gallery_group_key(dynamic raw);
 
   @protected
   GalleryLayoutManifestCursor?
@@ -1979,6 +2013,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GalleryGroup sse_decode_box_autoadd_gallery_group(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryGroupKey sse_decode_box_autoadd_gallery_group_key(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   GalleryLayoutManifestCursor
   sse_decode_box_autoadd_gallery_layout_manifest_cursor(
     SseDeserializer deserializer,
@@ -2572,6 +2616,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GalleryEntry sse_decode_gallery_entry(SseDeserializer deserializer);
+
+  @protected
+  GalleryGroup sse_decode_gallery_group(SseDeserializer deserializer);
+
+  @protected
+  GalleryGroupFilter sse_decode_gallery_group_filter(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryGroupKey sse_decode_gallery_group_key(SseDeserializer deserializer);
+
+  @protected
+  GalleryGroupMember sse_decode_gallery_group_member(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryGroupMemberPage sse_decode_gallery_group_member_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   GalleryLayoutDateGroup sse_decode_gallery_layout_date_group(
     SseDeserializer deserializer,
   );
@@ -2720,11 +2788,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
-  List<AssetLocationView> sse_decode_list_asset_location_view(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   List<ClassificationAnnotation> sse_decode_list_classification_annotation(
     SseDeserializer deserializer,
   );
@@ -2779,6 +2842,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<GalleryDuplicateAnnotation> sse_decode_list_gallery_duplicate_annotation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<GalleryEntry> sse_decode_list_gallery_entry(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<GalleryGroupMember> sse_decode_list_gallery_group_member(
     SseDeserializer deserializer,
   );
 
@@ -2975,6 +3048,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   FileOperationSource? sse_decode_opt_box_autoadd_file_operation_source(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryGroup? sse_decode_opt_box_autoadd_gallery_group(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryGroupKey? sse_decode_opt_box_autoadd_gallery_group_key(
     SseDeserializer deserializer,
   );
 
@@ -3892,6 +3975,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_gallery_group(
+    GalleryGroup self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_gallery_group_key(
+    GalleryGroupKey self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_gallery_layout_manifest_cursor(
     GalleryLayoutManifestCursor self,
     SseSerializer serializer,
@@ -4621,6 +4716,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_gallery_entry(GalleryEntry self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_gallery_group(GalleryGroup self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_gallery_group_filter(
+    GalleryGroupFilter self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_group_key(
+    GalleryGroupKey self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_group_member(
+    GalleryGroupMember self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_group_member_page(
+    GalleryGroupMemberPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_gallery_layout_date_group(
     GalleryLayoutDateGroup self,
     SseSerializer serializer,
@@ -4804,12 +4929,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
-  void sse_encode_list_asset_location_view(
-    List<AssetLocationView> self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_list_classification_annotation(
     List<ClassificationAnnotation> self,
     SseSerializer serializer,
@@ -4878,6 +4997,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_gallery_duplicate_annotation(
     List<GalleryDuplicateAnnotation> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_gallery_entry(
+    List<GalleryEntry> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_gallery_group_member(
+    List<GalleryGroupMember> self,
     SseSerializer serializer,
   );
 
@@ -5112,6 +5243,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_file_operation_source(
     FileOperationSource? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_gallery_group(
+    GalleryGroup? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_gallery_group_key(
+    GalleryGroupKey? self,
     SseSerializer serializer,
   );
 

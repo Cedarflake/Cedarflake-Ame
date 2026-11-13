@@ -117,6 +117,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
         _isHovered || _isFocused || widget.isSelecting || widget.isSelected;
     return LibraryViewerLaunch(
       locationId: widget.asset.locationId,
+      entryId: widget.asset.galleryEntryId,
       onOpen: () => widget.onOpen(_controller.resolvePreview(widget.asset)),
       builder: (context, thumbnailKey, open) => SizedBox(
         width: widget.width,
@@ -186,6 +187,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
                             child: LibraryViewerCardOverlays(
                               child: LibraryPhotoTileActions(
                                 locationId: widget.asset.locationId,
+                                galleryGroup: widget.asset.galleryGroup,
                                 isSelectionVisible: isSelectionVisible,
                                 isSelected: widget.isSelected,
                                 onToggleSelection: () =>
@@ -435,10 +437,12 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       ref: ref,
       position: position,
       target: target,
+      groupKey: asset.galleryGroup?.key,
       fileName: asset.sourcePath.split(RegExp(r"[\\/]")).last,
       isCurrent: () =>
           mounted &&
-          LibraryOrganizationTarget.fromAsset(widget.asset) == target,
+          LibraryOrganizationTarget.fromAsset(widget.asset) == target &&
+          widget.asset.galleryEntryId == asset.galleryEntryId,
       onOpen: () => onOpen(_controller.resolvePreview(asset)),
       onInformation: () => onInformation(asset),
       onCopyPath: () => onCopyPath(asset),

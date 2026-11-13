@@ -73,6 +73,7 @@ fn a_suggestion_arriving_before_the_current_image_retains_the_logical_anchor() {
     assert_eq!(previous.snapshot.assets[0].location_id, "b");
     let anchor = GalleryQueryAnchor {
         requested_location_id: "b".into(),
+        group_key: None,
         asset_id: Some(previous.snapshot.assets[0].asset_id.clone()),
         fallback_ordinal: 0,
     };

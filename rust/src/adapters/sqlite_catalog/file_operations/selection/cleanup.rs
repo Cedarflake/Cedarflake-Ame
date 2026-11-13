@@ -11,7 +11,9 @@ use crate::ports::CatalogRepository;
 
 use super::super::super::{SqliteCatalog, database_error, sqlite_integer, sqlite_unsigned};
 
+mod gallery;
 mod queries;
+pub(super) use gallery::kind as gallery_kind;
 
 pub(super) fn retained_page(
     catalog: &SqliteCatalog,
@@ -112,8 +114,14 @@ pub(super) fn prepare(
     connection: &Connection,
     kind: &DuplicateCleanupKind,
     all_groups: bool,
+    gallery_query: Option<&crate::domain::GalleryQuery>,
 ) -> Result<DuplicateCleanupSummary, ScanError> {
-    let members = queries::members(kind, all_groups, false);
+    let members = if let Some(query) = gallery_query {
+        gallery::require_ready(connection, query, all_groups)?;
+        gallery::members(query, all_groups, false)
+    } else {
+        queries::members(kind, all_groups, false)
+    };
     connection
         .execute(
             &format!("INSERT INTO temp.cleanup_members {}", members.sql),
@@ -162,9 +170,14 @@ pub(super) fn prepare(
 pub(super) fn validate(
     connection: &Connection,
     kind: &DuplicateCleanupKind,
+    gallery_query: Option<&crate::domain::GalleryQuery>,
 ) -> Result<(), ScanError> {
     // Additions cannot enlarge the confirmed selection; removals or changed keep decisions retire it.
-    let current = queries::members(kind, false, true);
+    let current = if let Some(query) = gallery_query {
+        gallery::members(query, false, true)
+    } else {
+        queries::members(kind, false, true)
+    };
     let changed: bool = connection
         .query_row(
             &format!(

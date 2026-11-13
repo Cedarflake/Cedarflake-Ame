@@ -65,11 +65,13 @@ class LibraryRetainedCatalogWindow {
     required LibraryPageDirection direction,
   }) {
     _synchronize(current);
-    final existingIds = {for (final asset in current.assets) asset.locationId};
+    final existingIds = {
+      for (final asset in current.assets) asset.galleryEntryId,
+    };
     _mergeAssetUpdates(snapshot.assets);
     final addedAssets = [
       for (final asset in snapshot.assets)
-        if (!existingIds.contains(asset.locationId)) asset,
+        if (!existingIds.contains(asset.galleryEntryId)) asset,
     ];
     if (addedAssets.isNotEmpty) {
       final int startItemOffset;
@@ -125,7 +127,9 @@ class LibraryRetainedCatalogWindow {
   }
 
   void _mergeAssetUpdates(List<LibraryAsset> updates) {
-    final replacements = {for (final asset in updates) asset.locationId: asset};
+    final replacements = {
+      for (final asset in updates) asset.galleryEntryId: asset,
+    };
     if (replacements.isEmpty) {
       return;
     }
@@ -134,7 +138,7 @@ class LibraryRetainedCatalogWindow {
       var didChange = false;
       final assets = [
         for (final asset in page.assets)
-          replacements[asset.locationId] ?? asset,
+          replacements[asset.galleryEntryId] ?? asset,
       ];
       for (var assetIndex = 0; assetIndex < page.assets.length; assetIndex++) {
         if (!identical(page.assets[assetIndex], assets[assetIndex])) {

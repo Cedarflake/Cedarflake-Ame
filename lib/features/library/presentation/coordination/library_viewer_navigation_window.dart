@@ -29,7 +29,9 @@ class LibraryViewerNavigationWindow {
     final resolvedLocationId =
         page.queryAnchorResolution?.locationId ?? selection.locationId;
     final index = page.assets.indexWhere(
-      (asset) => asset.locationId == resolvedLocationId,
+      (asset) => selection.galleryGroup == null
+          ? asset.locationId == resolvedLocationId
+          : asset.galleryEntryId == selection.galleryEntryId,
     );
     final target = index + step;
     if (index < 0 || target < 0 || target >= page.assets.length) return null;
@@ -69,7 +71,10 @@ class LibraryViewerNavigationWindow {
       query,
       minimumRevision,
       maxItems,
-      LibraryQueryAnchor(requestedLocationId: selection.locationId),
+      LibraryQueryAnchor(
+        requestedLocationId: selection.locationId,
+        groupKey: selection.galleryGroup?.key,
+      ),
     );
     if (direct.snapshot.queryAnchorResolution?.didResolve == true) {
       return direct;
@@ -82,13 +87,15 @@ class LibraryViewerNavigationWindow {
       LibraryQueryAnchor(
         requestedLocationId: selection.locationId,
         assetId: selection.assetId,
+        groupKey: selection.galleryGroup?.key,
         fallbackGlobalItemIndex: fallbackOrdinal,
       ),
     );
     final resolved = relocated.snapshot.queryAnchorResolution?.locationId;
     final stillSelected = relocated.snapshot.assets.any(
-      (asset) =>
-          asset.locationId == resolved && asset.assetId == selection.assetId,
+      (asset) => selection.galleryGroup == null
+          ? asset.locationId == resolved && asset.assetId == selection.assetId
+          : asset.galleryEntryId == selection.galleryEntryId,
     );
     return stillSelected ? relocated : null;
   }

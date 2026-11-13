@@ -12,6 +12,7 @@ use super::super::{SqliteCatalog, database_error};
 
 mod continuation;
 mod filters;
+mod group_filter;
 mod operations;
 pub(in super::super) mod ordering;
 mod position;

@@ -5,8 +5,9 @@ use crate::domain::ScanError;
 pub(super) fn fields(kind: &records::RecordKind, version: u32) -> &[records::Field] {
     let omitted = match (version, kind.name) {
         (1, "version_evidence") => 1,
-        (1 | 2, "review_scope") => 3,
-        (3, "review_scope") => 1,
+        (1 | 2, "review_scope") => 4,
+        (3, "review_scope") => 2,
+        (4..=8, "review_scope") => 1,
         (1 | 2, "bookmark") => 3,
         _ => 0,
     };
@@ -41,6 +42,9 @@ pub(super) fn upgrade(kind: &str, values: &mut Vec<Cell>, version: u32) -> Resul
         *payload = metadata_filter_payload::decode(payload, 1)
             .and_then(|filter| metadata_filter_payload::encode(&filter))
             .map_err(|_| super::super::error("records_invalid", "Invalid saved metadata filter"))?;
+    }
+    if version < 9 && kind == "review_scope" {
+        values.push(Cell::Text("unrestricted".into()));
     }
     Ok(())
 }

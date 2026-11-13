@@ -48,7 +48,9 @@ pub(in super::super) fn candidate(
         parameters.push(Value::Text(record_id.to_owned()));
     }
     let admission = super::organization_queue::admission_expression("locations");
-    let order = gallery_order_expressions(query);
+    let mut ordering_query = query.clone();
+    ordering_query.group_filter = crate::domain::gallery_groups::GalleryGroupFilter::Unrestricted;
+    let order = gallery_order_expressions(&ordering_query);
     let direction = gallery_direction_sql(query.order_direction());
     if let ReviewRead::After {
         boundary: after,
@@ -68,6 +70,7 @@ pub(in super::super) fn candidate(
             primary_number: after.primary_number,
             root_id: after.root_id.clone(),
             location_id: after.location_id.clone(),
+            group_key: None,
         };
         push_cursor_filter(
             &cursor,

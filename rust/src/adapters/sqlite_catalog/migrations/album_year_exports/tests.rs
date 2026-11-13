@@ -32,7 +32,7 @@ fn album_year_upgrade_preserves_history_and_rolls_back_atomically() {
     drop(catalog);
 
     let catalog = SqliteCatalog::open(path).unwrap();
-    current_schema::validate_schema_version(&catalog.connection, 82).unwrap();
+    current_schema::validate_current_schema_contract(&catalog.connection).unwrap();
     assert_history(&catalog.connection);
     assert_eq!(
         catalog

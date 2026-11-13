@@ -825,3 +825,50 @@ Both implementation commits are pushed on `codex/r9-album-files-by-year`.
 authorization. Local `main` was fast-forwarded, and both local and remote R9 branches were deleted.
 The implementation CI and presentation follow-up retain the exact revisions described above;
 newly triggered PR/main checks were not used as completed evidence for this integration.
+
+## Gallery group discovery — 2026-11-13
+
+The `codex/gallery-group-discovery` follow-up connects scoped exact/similar groups to the normal
+gallery, its compact layout identities, member tray and frozen file selections. Schema 83 preserves
+the group filter in organization scopes; organization archive version 9 carries it through recovery.
+Older scopes and archives default to unrestricted browsing. The application and native filesystem
+execution boundary remain the existing R8 owners.
+
+Focused SQLite cases passed for scoped membership/counts, two overlapping groups sharing a cover,
+cursor and anchor identity, cleanup keep rules, saved-scope restart, migration rollback and archive
+restoration. Existing query-snapshot and cleanup cases passed. The initial archive fixture used the
+wrong scope-column name, and the compact-layout fixture omitted a required nonterminal cursor;
+corrected fixtures passed without relaxing either contract. Rust Clippy, the 26 native dependency
+checks, Dart analysis and the 613-module Dart boundary check passed. The affected Flutter checks cover
+filter semantics, album restrictions, member selection, preview return, cleanup confirmation,
+compact identities and retained navigation. Repository formatting reports no changes.
+
+The rebuilt Windows Debug client (139.6-second build) loaded the retained `local-primary` catalog
+with 63,173 physical entries. Exact filtering displayed 12,571 groups. Similar filtering displayed
+4,934 groups by the screenshot taken 6.36 seconds after activation; background analysis subsequently
+increased that count. The earlier query remained pending for minutes because SQLite repeatedly
+scanned fingerprints from the similarity-group side. Member-first group lookup removed that plan.
+This is a successful workstation interaction, not an R10 latency qualification: first group queries
+and cleanup preparation still have visible waits. The verified DLL SHA-256 is
+`19470fd0dbf2fba023a1ab446e8378bd71fb7bcea879d23881cec26ae1c02031`.
+
+Client interaction verified the neutral filter trigger, three exclusive scopes, the separate
+checked merge toggle and its disabled state in group scope. Returning to all images restored the
+saved merged view. Exact-group timeline navigation and square/equal-height layout switching filled
+the target photos and retained the browsed position. Both member trays retain their existing shell;
+clicking the left icon selects, clicking the row opens the viewer, and returning preserves selection.
+Selected-file confirmation contained one file; two-member cleanup retained one and confirmed one
+deletion. Confirmation was cancelled, with permanent deletion unchecked; no source was deleted.
+Exact preferred selection was changed and restored during the earlier tray check. The updated
+strictness label/icon sizing and bold date/weekday heading were also inspected in the client.
+
+New Rust owners have 103 group-relation, 80 membership, 75 selection, 97 member-page and 105 cleanup
+production lines, with 276 dedicated group-test lines. The migration has 43 production lines and
+57 test/helper lines. The reused member sheet and row have 400 and 115 production lines, with no
+inline tests. Larger Dart composition owners retain 2,003 screen, 1,587 wall, 1,214 viewport, 782
+compact-manifest, 561 header and 465 catalog-adapter lines; policy lives in the typed group owners.
+The Rust migration dispatcher remains 6,498 lines, including a 2,290-line inline test module;
+the read facade has 1,784 lines including 1,018 inline-test-module lines, and the load facade has
+758 including 523. These source totals also include their existing test hooks. Reused dedicated
+file-operation and duplicate-page Flutter suites contain 955 and 468 lines. Generated bridge files
+are excluded from handwritten-owner counts. Hosted checks for the delivery commit remain pending.

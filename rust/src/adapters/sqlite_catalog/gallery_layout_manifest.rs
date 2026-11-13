@@ -24,6 +24,7 @@ pub(super) struct StoredLayoutManifestItem {
     pub(super) primary_missing: bool,
     pub(super) primary_text: String,
     pub(super) primary_number: i64,
+    pub(super) group: Option<crate::domain::gallery_groups::GalleryGroup>,
 }
 
 pub(super) const MAX_INLINE_LAYOUT_ITEMS: u64 = 64 * 1024 * 1024 / 192;
@@ -111,6 +112,7 @@ pub(super) fn load_chunk(
             primary_missing: row.get::<_, i64>(5).map_err(database_error)? != 0,
             primary_text: row.get(6).map_err(database_error)?,
             primary_number: row.get(7).map_err(database_error)?,
+            group: gallery::groups::read(row)?,
         });
     }
     drop(rows);
@@ -191,6 +193,7 @@ pub(super) fn load_snapshot(
             primary_missing: row.get::<_, i64>(5).map_err(database_error)? != 0,
             primary_text: row.get(6).map_err(database_error)?,
             primary_number: row.get(7).map_err(database_error)?,
+            group: gallery::groups::read(row)?,
         });
         if items.len() == MAX_LAYOUT_MANIFEST_CHUNK_ITEMS as usize {
             let count = items.len() as u64;
@@ -251,6 +254,7 @@ pub(super) fn continuation(
             primary_number: item.primary_number,
             root_id: item.root_id.clone(),
             location_id: item.location_id.clone(),
+            group_key: item.group.as_ref().map(|group| group.key.clone()),
         },
     })
 }
@@ -264,6 +268,8 @@ pub(super) fn encode_chunk(
     next_cursor: Option<GalleryLayoutManifestCursor>,
 ) -> Result<GalleryLayoutManifestChunk, ScanError> {
     let mut location_ids = Vec::with_capacity(items.len());
+    let grouped = items.iter().any(|item| item.group.is_some());
+    let mut entry_ids = Vec::new();
     let mut aspect_ratio_milli = Vec::with_capacity(items.len());
     let mut date_group_indices = Vec::with_capacity(items.len());
     let mut date_groups = Vec::new();
@@ -287,6 +293,13 @@ pub(super) fn encode_chunk(
             date_group_lookup.insert(item.date_key, index);
             index
         };
+        if grouped {
+            entry_ids.push(
+                item.group
+                    .as_ref()
+                    .map_or_else(|| item.location_id.clone(), |group| group.key.entry_id()),
+            );
+        }
         location_ids.push(item.location_id);
         aspect_ratio_milli.push(ratio);
         date_group_indices.push(date_group_index);
@@ -303,6 +316,7 @@ pub(super) fn encode_chunk(
         total_items,
         start_ordinal,
         location_ids,
+        entry_ids,
         aspect_ratio_milli,
         date_group_indices,
         date_groups,

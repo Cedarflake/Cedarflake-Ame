@@ -68,18 +68,20 @@ class LibraryGalleryViewportAnchor {
     required this.queryId,
     required this.revision,
     required this.locationId,
+    String? entryId,
     required this.globalItemIndex,
     required this.itemFraction,
     required this.viewportFraction,
     this.monthKey,
     this.scrollEdge,
-  });
+  }) : entryId = entryId ?? locationId;
 
   static const _topPadding = 18.0;
 
   final String queryId;
   final BigInt revision;
   final String locationId;
+  final String entryId;
   final int globalItemIndex;
   final double itemFraction;
   final double viewportFraction;
@@ -119,6 +121,7 @@ class LibraryGalleryViewportAnchor {
       queryId: snapshot.manifest.queryId,
       revision: snapshot.manifest.revision,
       locationId: snapshot.manifest.locationIdAt(itemIndex),
+      entryId: snapshot.manifest.entryIdAt(itemIndex),
       globalItemIndex: itemIndex,
       itemFraction: fractions.item,
       viewportFraction: fractions.viewport,
@@ -142,7 +145,7 @@ class LibraryGalleryViewportAnchor {
       return null;
     }
     final itemIndex = globalItemIndex.clamp(0, snapshot.manifest.itemCount - 1);
-    if (snapshot.manifest.locationIdAt(itemIndex) != locationId) {
+    if (snapshot.manifest.entryIdAt(itemIndex) != entryId) {
       return null;
     }
     final rowOffset = snapshot.metrics.offsetForGlobalItemIndex(itemIndex);

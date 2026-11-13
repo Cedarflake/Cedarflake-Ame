@@ -1,7 +1,17 @@
+import "../../domain/library_gallery_group.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_query_snapshot.dart";
 import "../../domain/library_time_snapshot.dart";
+import "../../domain/library_group_members.dart";
+
+abstract interface class LibraryGroupMemberCatalog {
+  Future<LibraryGroupMemberPage> loadGroupMembers({
+    required LibraryGalleryQuery query,
+    required LibraryGalleryGroupKey group,
+    String? after,
+  });
+}
 
 abstract interface class LibraryCatalog {
   Future<LibraryTimeSnapshot> resolveTimeIntent({

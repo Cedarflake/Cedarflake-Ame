@@ -3,11 +3,17 @@ import "../../../../src/rust/domain.dart" as rust_domain;
 import "../../../../src/rust/domain/gallery_query_snapshot.dart" as rust_query;
 import "../../../../src/rust/domain/gallery_scroll_section.dart" as rust_scroll;
 import "../../../../src/rust/domain/gallery_time_snapshot.dart" as rust_time;
+import "../../../../src/rust/domain/exact_duplicates.dart" as rust_exact;
 import "../../domain/library_folder_models.dart";
+import "../../domain/library_gallery_group.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_query_snapshot.dart";
 import "../../domain/library_time_snapshot.dart";
+import "../../domain/library_group_members.dart";
+import "../../domain/library_exact_duplicates.dart";
+import "../../domain/library_similar_review.dart";
 import "library_asset_mapping.dart";
+import "library_gallery_group_mapping.dart";
 import "../../application/ports/library_catalog.dart";
 import "library_gallery_query_mapping.dart";
 import "library_organization_counts_mapping.dart";
@@ -19,8 +25,54 @@ class RustLibraryCatalog
         LibraryFolderCatalog,
         LibraryQueryAnchorCatalog,
         LibraryStableQueryAnchorCatalog,
+        LibraryGroupMemberCatalog,
         LibraryStableAssetCatalog {
   const RustLibraryCatalog();
+
+  @override
+  Future<LibraryGroupMemberPage> loadGroupMembers({
+    required LibraryGalleryQuery query,
+    required LibraryGalleryGroupKey group,
+    String? after,
+  }) async {
+    try {
+      final page = await rust_api.loadLibraryGalleryGroupMembers(
+        query: _mapQuery(query),
+        group: mapGalleryGroupKeyToRust(group)!,
+        after: after,
+      );
+      return LibraryGroupMemberPage(
+        members: [
+          for (final member in page.members)
+            LibraryGroupMember(
+              asset: mapRustLibraryAsset(member.source),
+              preferred: member.preferred,
+              availability: switch (member.availability) {
+                rust_exact.DuplicateLocationAvailability.local =>
+                  LibraryDuplicateAvailability.local,
+                rust_exact.DuplicateLocationAvailability.cloudOnly =>
+                  LibraryDuplicateAvailability.cloudOnly,
+                rust_exact.DuplicateLocationAvailability.offline =>
+                  LibraryDuplicateAvailability.offline,
+                rust_exact.DuplicateLocationAvailability.unavailable =>
+                  LibraryDuplicateAvailability.unavailable,
+              },
+              content: LibrarySimilarContent(
+                scheme: member.content.scheme,
+                digest: member.content.digest,
+                byteLength: member.content.byteLength,
+              ),
+            ),
+        ],
+        total: page.total.toInt(),
+        pending: page.pending.toInt(),
+        next: page.nextLocationId,
+        revision: page.decisionRevision,
+      );
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_group_members_load_failed");
+    }
+  }
 
   @override
   Future<LibraryTimeSnapshot> resolveTimeIntent({
@@ -71,6 +123,7 @@ class RustLibraryCatalog
             ? null
             : rust_query.GalleryQueryAnchor(
                 requestedLocationId: anchor.requestedLocationId,
+                groupKey: mapGalleryGroupKeyToRust(anchor.groupKey),
                 assetId: anchor.assetId,
                 fallbackOrdinal: BigInt.from(anchor.fallbackGlobalItemIndex),
               ),
@@ -111,6 +164,7 @@ class RustLibraryCatalog
                     primaryNumber: after.primaryNumber,
                     rootId: after.rootId,
                     locationId: after.locationId,
+                    groupKey: mapGalleryGroupKeyToRust(after.groupKey),
                   ),
             before: before == null
                 ? null
@@ -122,6 +176,7 @@ class RustLibraryCatalog
                     primaryNumber: before.primaryNumber,
                     rootId: before.rootId,
                     locationId: before.locationId,
+                    groupKey: mapGalleryGroupKeyToRust(before.groupKey),
                   ),
           );
       final snapshot = await pendingSnapshot;
@@ -298,7 +353,14 @@ class RustLibraryCatalog
       revision: snapshot.revision,
       queryId: snapshot.queryId,
       roots: List.unmodifiable(snapshot.roots.map(_mapRoot)),
-      assets: List.unmodifiable(snapshot.assets.map(mapRustLibraryAsset)),
+      assets: List.unmodifiable(
+        snapshot.assets.map(
+          (entry) => mapRustLibraryAsset(
+            entry.source,
+            galleryGroup: mapRustGalleryGroup(entry.group),
+          ),
+        ),
+      ),
       previousCursor: _mapCursor(snapshot.previousCursor),
       nextCursor: _mapCursor(snapshot.nextCursor),
       queryAnchorResolution: snapshot.queryAnchorResolution == null
@@ -369,6 +431,7 @@ class RustLibraryCatalog
       primaryNumber: cursor.primaryNumber,
       rootId: cursor.rootId,
       locationId: cursor.locationId,
+      groupKey: mapRustGalleryGroupKey(cursor.groupKey),
     );
   }
 

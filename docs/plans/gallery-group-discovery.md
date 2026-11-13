@@ -9,7 +9,7 @@ Status: scoped execution plan; disposition is owned by the [roadmap](../roadmap.
    library and a narrower folder, including access beyond the previous 500-result limit.
 2. Add ordinary-gallery group filters: unrestricted, exact groups only, or similar groups only.
    They are mutually exclusive. An active group filter forces grouped display and disables the
-   existing expand/merge choices; clearing it restores the previously selected display mode.
+   separate merge toggle; clearing it restores the previously selected display mode.
    Apply scope and group membership before counts, paging, timeline and full-selection resolution.
 3. Connect gallery group cleanup and member actions. Add explicit duplicate/similar cleanup actions
    alongside ordinary deletion and expose preferred/member selection in the existing bottom tray.

@@ -1,4 +1,5 @@
 import "library_asset.dart";
+import "library_gallery_group.dart";
 import "library_metadata_filter.dart";
 import "library_gallery_collection.dart";
 import "library_organization_queue.dart";
@@ -92,6 +93,7 @@ class LibraryCatalogCursor {
     required this.primaryNumber,
     required this.rootId,
     required this.locationId,
+    this.groupKey,
   });
 
   final BigInt revision;
@@ -101,6 +103,7 @@ class LibraryCatalogCursor {
   final int primaryNumber;
   final String rootId;
   final String locationId;
+  final LibraryGalleryGroupKey? groupKey;
 }
 
 enum LibraryGallerySortKey {
@@ -129,6 +132,7 @@ class LibraryGalleryQuery {
     this.sortKey = LibraryGallerySortKey.captureTime,
     this.sortDirection = LibraryGallerySortDirection.descending,
     this.duplicateMode = LibraryGalleryDuplicateMode.all,
+    this.groupFilter = LibraryGalleryGroupFilter.unrestricted,
   });
 
   static const Object _unchanged = Object();
@@ -145,6 +149,10 @@ class LibraryGalleryQuery {
   final LibraryGallerySortKey sortKey;
   final LibraryGallerySortDirection sortDirection;
   final LibraryGalleryDuplicateMode duplicateMode;
+  final LibraryGalleryGroupFilter groupFilter;
+
+  bool get hasGroupFilter =>
+      groupFilter != LibraryGalleryGroupFilter.unrestricted;
 
   bool get isChronological =>
       semanticResults == null &&
@@ -152,6 +160,7 @@ class LibraryGalleryQuery {
       sortKey != LibraryGallerySortKey.libraryAdmission;
 
   bool get requiresMergedDuplicates =>
+      hasGroupFilter ||
       organizationQueue != null ||
       collection is LibraryAlbumCollection ||
       collection is LibrarySmartAlbumCollection;
@@ -173,6 +182,7 @@ class LibraryGalleryQuery {
     LibraryGallerySortKey? sortKey,
     LibraryGallerySortDirection? sortDirection,
     LibraryGalleryDuplicateMode? duplicateMode,
+    LibraryGalleryGroupFilter? groupFilter,
   }) {
     return LibraryGalleryQuery(
       collection: collection ?? this.collection,
@@ -195,6 +205,7 @@ class LibraryGalleryQuery {
       sortKey: sortKey ?? this.sortKey,
       sortDirection: sortDirection ?? this.sortDirection,
       duplicateMode: duplicateMode ?? this.duplicateMode,
+      groupFilter: groupFilter ?? this.groupFilter,
     );
   }
 
@@ -212,6 +223,7 @@ class LibraryGalleryQuery {
     sortKey,
     sortDirection,
     duplicateMode,
+    groupFilter,
   );
 
   @override
@@ -229,7 +241,8 @@ class LibraryGalleryQuery {
             metadataFilter == other.metadataFilter &&
             sortKey == other.sortKey &&
             sortDirection == other.sortDirection &&
-            duplicateMode == other.duplicateMode;
+            duplicateMode == other.duplicateMode &&
+            groupFilter == other.groupFilter;
   }
 }
 

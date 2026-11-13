@@ -2,6 +2,7 @@ import "dart:async";
 
 import "../../application/library_query_projection.dart";
 import "../../application/library_query_refresh.dart";
+import "../../domain/library_gallery_group.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_query_snapshot.dart";
 import "../../domain/library_state.dart";
@@ -150,7 +151,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
         : before.assets.indexWhere(
             (asset) =>
                 asset.assetId == viewer.assetId &&
-                asset.locationId == viewer.locationId,
+                asset.galleryEntryId == viewer.galleryEntryId,
           );
     final viewerBrowseAnchor = viewer == null
         ? null
@@ -161,10 +162,18 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
             ? null
             : LibraryQueryAnchor(
                 requestedLocationId: locationId,
+                groupKey:
+                    viewer?.galleryGroup?.key ??
+                    (frozen == null
+                        ? null
+                        : LibraryGalleryGroupKey.fromEntryId(frozen.entryId)),
                 assetId:
                     viewer?.assetId ??
                     frozen?.assetId ??
-                    _assetAt(before, locationId)?.assetId,
+                    before.assets
+                        .where((asset) => asset.locationId == locationId)
+                        .firstOrNull
+                        ?.assetId,
                 fallbackGlobalItemIndex: viewerIndex >= 0
                     ? before.windowStartItemOffset + viewerIndex
                     : frozen?.globalItemIndex ?? 0,
@@ -233,7 +242,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
     final loadedIndex = frozen == null
         ? -1
         : state.assets.indexWhere(
-            (asset) => asset.locationId == frozen.locationId,
+            (asset) => asset.galleryEntryId == frozen.entryId,
           );
     if (frozen != null &&
         frozen.queryId == state.queryId &&
@@ -252,7 +261,11 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
         revision: revision,
         monthKey: null,
         locationId: resolution.locationId!,
-        assetId: _assetAt(state, resolution.locationId!)?.assetId,
+        entryId:
+            _assetAtOrdinal(state, resolution.ordinal!)?.galleryEntryId ??
+            state.layoutManifest?.entryIdAt(resolution.ordinal!) ??
+            resolution.locationId!,
+        assetId: _assetAtOrdinal(state, resolution.ordinal!)?.assetId,
         globalItemIndex: resolution.ordinal!,
         itemFraction: frozen.itemFraction,
         viewportFraction: frozen.viewportFraction,
@@ -271,6 +284,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
         revision: revision,
         monthKey: null,
         locationId: asset.locationId,
+        entryId: asset.galleryEntryId,
         assetId: asset.assetId,
         globalItemIndex: state.windowStartItemOffset + loadedIndex,
         itemFraction: frozen.itemFraction,
@@ -283,6 +297,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
       revision: revision,
       monthKey: state.timeline?.buckets.firstOrNull?.monthKey,
       locationId: state.assets.first.locationId,
+      entryId: state.assets.first.galleryEntryId,
       assetId: state.assets.first.assetId,
       globalItemIndex: state.windowStartItemOffset,
       itemFraction: 0,
@@ -291,12 +306,10 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
     );
   }
 
-  LibraryAsset? _assetAt(LibraryState state, String locationId) {
-    for (final asset in state.assets) {
-      if (asset.locationId == locationId) {
-        return asset;
-      }
-    }
-    return null;
+  LibraryAsset? _assetAtOrdinal(LibraryState state, int ordinal) {
+    final index = ordinal - state.windowStartItemOffset;
+    return index >= 0 && index < state.assets.length
+        ? state.assets[index]
+        : null;
   }
 }

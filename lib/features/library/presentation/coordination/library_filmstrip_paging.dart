@@ -54,7 +54,7 @@ class LibraryFilmstripPaging extends ChangeNotifier {
         identical(_request, request) &&
         readState().query == before.query &&
         (page != LibraryFilmstripPage.selection ||
-            readSelection().locationId == selected.locationId);
+            readSelection().galleryEntryId == selected.galleryEntryId);
     try {
       switch (page) {
         case LibraryFilmstripPage.selection:
@@ -62,6 +62,7 @@ class LibraryFilmstripPaging extends ChangeNotifier {
             before.query,
             anchorLocationId: selected.locationId,
             anchorAssetId: selected.assetId,
+            anchorGroupKey: selected.galleryGroup?.key,
             forceRefresh: true,
             showRefreshingStatus: false,
           );
@@ -74,7 +75,7 @@ class LibraryFilmstripPaging extends ChangeNotifier {
       final current = readState();
       hasFailure = switch (page) {
         LibraryFilmstripPage.selection => !current.assets.any(
-          (asset) => asset.locationId == selected.locationId,
+          (asset) => asset.galleryEntryId == selected.galleryEntryId,
         ),
         LibraryFilmstripPage.previous =>
           current.previousPageErrorMessage != null ||

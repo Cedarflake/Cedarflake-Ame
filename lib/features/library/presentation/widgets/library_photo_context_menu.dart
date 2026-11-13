@@ -13,6 +13,7 @@ import "../../application/library_organization.dart";
 import "../../application/library_organization_actions.dart";
 import "../../domain/library_organization.dart";
 import "../../domain/library_organization_batch.dart";
+import "../../domain/library_gallery_group.dart";
 import "../library_strings.dart";
 import "../library_search_strings.dart";
 import "library_album_picker.dart";
@@ -38,6 +39,7 @@ class LibraryPhotoContextMenu {
     required VoidCallback onInformation,
     required VoidCallback onCopyPath,
     required VoidCallback onReveal,
+    LibraryGalleryGroupKey? groupKey,
     String? fileName,
     VoidCallback? onFindRelated,
   }) async {
@@ -136,9 +138,12 @@ class LibraryPhotoContextMenu {
                 query: query,
                 catalogRevision: currentRevision,
                 allMatching: false,
-                assetIds: [target.assetId],
+                assetIds: [groupKey?.entryId ?? target.assetId],
               ),
-              location: target,
+              location:
+                  groupKey != null && fileAction == LibraryFileAction.recycle
+                  ? null
+                  : target,
             ),
             initialName: fileName,
             action: fileAction,

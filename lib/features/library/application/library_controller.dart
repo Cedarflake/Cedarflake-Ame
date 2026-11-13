@@ -6,6 +6,7 @@ import "../../settings/domain/ame_preferences.dart";
 import "../../settings/application/ame_preferences.dart";
 import "directory_picker.dart";
 import "../domain/gallery_layout_manifest.dart";
+import "../domain/library_gallery_group.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
@@ -187,6 +188,7 @@ class LibraryController extends Notifier<LibraryState>
     LibraryGalleryQuery query, {
     String? anchorLocationId,
     String? anchorAssetId,
+    LibraryGalleryGroupKey? anchorGroupKey,
     int? fallbackGlobalItemIndex,
     bool forceRefresh = false,
     BigInt? minimumCatalogRevision,
@@ -196,6 +198,7 @@ class LibraryController extends Notifier<LibraryState>
       query,
       anchorLocationId: anchorLocationId,
       anchorAssetId: anchorAssetId,
+      anchorGroupKey: anchorGroupKey,
       fallbackGlobalItemIndex: fallbackGlobalItemIndex,
       forceRefresh: forceRefresh,
       minimumCatalogRevision: minimumCatalogRevision,
@@ -353,7 +356,6 @@ class LibraryController extends Notifier<LibraryState>
           ),
         );
       }
-      break;
     }
   }
 

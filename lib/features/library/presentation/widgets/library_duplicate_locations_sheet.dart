@@ -3,25 +3,41 @@ import "dart:math" as math;
 
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_duplicate_review_window.dart";
-import "../../application/library_exact_duplicates.dart";
+import "../../application/library_group_members.dart";
+import "../../application/library_file_operations.dart";
+import "../../domain/library_group_members.dart";
+import "../../domain/library_gallery_group.dart";
+import "../../domain/library_models.dart";
+import "../../domain/library_organization.dart";
+import "../../domain/library_organization_batch.dart";
+import "../../domain/library_file_operations.dart";
+import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../domain/library_exact_duplicates.dart";
 import "../library_duplicate_strings.dart";
 import "library_duplicate_location_tile.dart";
+import "library_duplicate_review_viewer.dart";
 import "library_duplicate_update_status.dart";
+import "library_file_action_dialog.dart";
+import "library_viewer_fade.dart";
 
 class LibraryDuplicateLocationsSheet extends ConsumerStatefulWidget {
   const LibraryDuplicateLocationsSheet({
-    required this.group,
+    this.group,
+    this.galleryGroup,
+    this.query,
     required this.currentLocationId,
     super.key,
-  });
+  }) : assert(group != null || (galleryGroup != null && query != null));
 
-  final LibraryDuplicateGroup group;
+  final LibraryDuplicateGroup? group;
+  final LibraryGalleryGroup? galleryGroup;
+  final LibraryGalleryQuery? query;
   final String currentLocationId;
 
   @override
@@ -31,11 +47,20 @@ class LibraryDuplicateLocationsSheet extends ConsumerStatefulWidget {
 
 class _LibraryDuplicateLocationsSheetState
     extends ConsumerState<LibraryDuplicateLocationsSheet> {
-  late LibraryDuplicateReviewWindow<LibraryDuplicateLocation, String>
-  _locations;
+  late LibraryDuplicateReviewWindow<LibraryGroupMember, String> _locations;
   int? _firstBuilt;
   int _endBuilt = 0;
   int _pendingCount = 0;
+  BigInt _decisionRevision = BigInt.zero;
+  bool _saving = false;
+  final Map<String, LibraryOrganizationTarget> _selected = {};
+
+  LibraryGalleryGroupKey get _key =>
+      widget.galleryGroup?.key ??
+      LibraryExactGalleryGroupKey(
+        widget.group!.digest,
+        BigInt.from(widget.group!.byteLength),
+      );
 
   @override
   void initState() {
@@ -48,26 +73,36 @@ class _LibraryDuplicateLocationsSheetState
   }
 
   void _createWindow() {
-    final service = ref.read(libraryExactDuplicatesProvider);
+    final service = ref.read(libraryGroupMembersProvider);
     final group = widget.group;
-    _pendingCount = group.pendingLocationCount;
+    _pendingCount = group?.pendingLocationCount ?? 0;
     _locations = LibraryDuplicateReviewWindow(
       (after) async {
-        final page = await service.loadLocations(group, after);
-        return _LocationSlice(page, group);
+        final page = await service.load(
+          key: _key,
+          query: widget.query,
+          after: after,
+        );
+        return _LocationSlice(page);
       },
       onAdmitted: (slice) {
-        if (slice is _LocationSlice) _pendingCount = slice.pendingCount;
+        if (slice is _LocationSlice) {
+          _decisionRevision = slice.revision;
+          _pendingCount = slice.pending;
+        }
       },
-    )..total = group.locationCount;
+    )..total = widget.galleryGroup?.memberCount ?? group!.locationCount;
     unawaited(_locations.ensureRange(0, 1));
   }
 
   @override
   void didUpdateWidget(covariant LibraryDuplicateLocationsSheet oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.group.digest != oldWidget.group.digest ||
-        widget.group.byteLength != oldWidget.group.byteLength) {
+    if (widget.group?.digest != oldWidget.group?.digest ||
+        widget.group?.byteLength != oldWidget.group?.byteLength ||
+        widget.galleryGroup?.key != oldWidget.galleryGroup?.key ||
+        widget.query != oldWidget.query) {
+      _selected.clear();
       _locations.dispose();
       _createWindow();
     }
@@ -97,6 +132,105 @@ class _LibraryDuplicateLocationsSheetState
     super.dispose();
   }
 
+  Future<void> _prefer(LibraryGroupMember member) async {
+    setState(() => _saving = true);
+    try {
+      await ref
+          .read(libraryGroupMembersProvider)
+          .prefer(key: _key, member: member, revision: _decisionRevision);
+      await _locations.revalidate();
+      if (mounted) {
+        unawaited(
+          ref.read(libraryControllerProvider.notifier).refreshCurrentQuery(),
+        );
+      }
+    } on Object {
+      if (mounted) {
+        ref
+            .read(ameNotificationControllerProvider.notifier)
+            .publish(
+              const AmeNotificationDraft(
+                title: "未能保存选择",
+                message: "请重试。",
+                severity: AmeNotificationSeverity.error,
+                isPersistent: true,
+              ),
+            );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _deleteSelected() async {
+    await _delete(LibraryFilesAtLocations(_selected.values));
+  }
+
+  Future<void> _open(LibraryGroupMember member, int index) async {
+    final window = _locations;
+    await Navigator.of(context).push<void>(
+      LibraryViewerRoute(
+        context: context,
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.transparent,
+          body: LibraryDuplicateReviewViewer(
+            initialAsset: member.asset,
+            initialIndex: index,
+            totalCount: window.total,
+            loadAsset: (index) async {
+              await window.retryRange(index, index + 1);
+              return mounted && identical(window, _locations)
+                  ? window.itemAt(index)?.asset
+                  : null;
+            },
+            onBack: () => Navigator.of(context).pop(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _cleanup() async {
+    final query = widget.query;
+    final key = _key;
+    final selection = query != null
+        ? LibraryCleanupInGallery(
+            LibraryOrganizationSelection(
+              query: query,
+              catalogRevision:
+                  ref.read(libraryControllerProvider).catalogRevision ??
+                  BigInt.zero,
+              allMatching: false,
+              assetIds: [key.entryId],
+            ),
+          )
+        : LibraryDuplicateCleanup(
+            kind: LibraryCleanupKind.exact,
+            allGroups: false,
+            groups: [
+              LibraryExactCleanupGroup(
+                widget.group!.digest,
+                widget.group!.byteLength,
+              ),
+            ],
+          );
+    await _delete(selection);
+  }
+
+  Future<void> _delete(LibraryFileSelection selection) async {
+    final submission = await showLibraryFileAction(
+      context: context,
+      ref: ref,
+      selection: selection,
+      action: LibraryFileAction.recycle,
+    );
+    final result = await submission?.completion;
+    if (mounted && (result?.published ?? 0) > 0) {
+      setState(_selected.clear);
+      unawaited(_locations.revalidate());
+    }
+  }
+
   @override
   Widget build(BuildContext context) => SafeArea(
     top: false,
@@ -122,9 +256,11 @@ class _LibraryDuplicateLocationsSheetState
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          LibraryDuplicateStrings.duplicateImages(
-                            _locations.total,
-                          ),
+                          _key is LibrarySimilarGalleryGroupKey
+                              ? "${_locations.total} 张相似图片"
+                              : LibraryDuplicateStrings.duplicateImages(
+                                  _locations.total,
+                                ),
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(width: 12),
@@ -142,11 +278,40 @@ class _LibraryDuplicateLocationsSheetState
                         label,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
+                    Wrap(
+                      spacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        TextButton.icon(
+                          onPressed:
+                              _saving ||
+                                  _locations.total < 2 ||
+                                  ref.watch(libraryFileActionsProvider).busy
+                              ? null
+                              : _cleanup,
+                          icon: const Icon(Symbols.delete_rounded),
+                          label: Text(
+                            _key is LibrarySimilarGalleryGroupKey
+                                ? "删除相似图片"
+                                : "删除重复图片",
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed:
+                              _saving ||
+                                  _selected.isEmpty ||
+                                  ref.watch(libraryFileActionsProvider).busy
+                              ? null
+                              : _deleteSelected,
+                          icon: const Icon(Symbols.delete_rounded),
+                          label: const Text("删除所选"),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
             ),
-            const Divider(height: 2),
             if (_locations.failed)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -182,9 +347,9 @@ class _LibraryDuplicateLocationsSheetState
     }
     return AmeScrollMotion(
       child: ListView.builder(
-        key: ValueKey((widget.group.digest, widget.group.byteLength)),
+        key: ValueKey(_key),
         itemCount: _locations.total,
-        padding: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
         itemBuilder: (context, index) {
           _requestBuiltRange(index);
           final location = _locations.itemAt(index);
@@ -194,9 +359,27 @@ class _LibraryDuplicateLocationsSheetState
             );
           }
           return LibraryDuplicateLocationTile(
-            key: ValueKey(location.locationId),
-            location: location,
-            isCurrent: location.locationId == widget.currentLocationId,
+            key: ValueKey(location.asset.locationId),
+            location: location.location,
+            onOpen: () => unawaited(_open(location, index)),
+            selected: _selected.containsKey(location.asset.locationId),
+            onSelect: () => setState(() {
+              final id = location.asset.locationId;
+              if (_selected.containsKey(id)) {
+                _selected.remove(id);
+              } else {
+                _selected[id] = LibraryOrganizationTarget.fromAsset(
+                  location.asset,
+                );
+              }
+            }),
+            preferred: location.preferred,
+            onPreference: _saving ? null : () => _prefer(location),
+            preferenceLabel: _key is LibrarySimilarGalleryGroupKey
+                ? (location.preferred
+                      ? LibraryDuplicateStrings.deselectSimilarImage
+                      : LibraryDuplicateStrings.selectSimilarImage)
+                : (location.preferred ? "取消首选" : "设为首选"),
             wrapPath: true,
           );
         },
@@ -206,14 +389,12 @@ class _LibraryDuplicateLocationsSheetState
 }
 
 class _LocationSlice
-    extends LibraryDuplicateReviewSlice<LibraryDuplicateLocation, String> {
-  _LocationSlice(LibraryDuplicateLocationPage page, LibraryDuplicateGroup group)
-    : pendingCount = page.pendingLocationCount ?? group.pendingLocationCount,
-      super(
-        items: page.locations,
-        total: page.locationCount ?? group.locationCount,
-        next: page.nextLocationId,
-      );
+    extends LibraryDuplicateReviewSlice<LibraryGroupMember, String> {
+  _LocationSlice(LibraryGroupMemberPage page)
+    : revision = page.revision,
+      pending = page.pending,
+      super(items: page.members, total: page.total, next: page.next);
 
-  final int pendingCount;
+  final BigInt revision;
+  final int pending;
 }

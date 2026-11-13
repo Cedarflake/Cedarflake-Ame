@@ -110,6 +110,7 @@ fn query_anchor_resolution_matches_the_published_window() {
                 let asset = &complete.assets[ordinal];
                 let anchor = GalleryQueryAnchor {
                     requested_location_id: asset.location_id.clone(),
+                    group_key: None,
                     asset_id: Some(asset.asset_id.clone()),
                     fallback_ordinal: ordinal as u64,
                 };
@@ -132,6 +133,7 @@ fn query_anchor_resolution_matches_the_published_window() {
             }
             let fallback = GalleryQueryAnchor {
                 requested_location_id: "deleted-location".into(),
+                group_key: None,
                 asset_id: Some("deleted-asset".into()),
                 fallback_ordinal: 1006,
             };
@@ -165,7 +167,7 @@ fn recovered_preview_capture_time_retires_the_old_timeline() {
         month_key: bucket.month_key.clone(),
         item_offset: 1,
     };
-    let mut location = before.snapshot.assets[0].clone();
+    let mut location = before.snapshot.assets[0].source.clone();
     location.capture_time = Some(CaptureTimeEvidence {
         local_time: "2000-01-02T03:04:05.000000000".to_owned(),
         offset_minutes: None,
@@ -225,7 +227,7 @@ fn publish_time_window_fixture(catalog: &mut SqliteCatalog) {
     );
 }
 
-fn location_ids(assets: &[AssetLocationView]) -> Vec<&str> {
+fn location_ids(assets: &[crate::domain::gallery_groups::GalleryEntry]) -> Vec<&str> {
     assets
         .iter()
         .map(|asset| asset.location_id.as_str())

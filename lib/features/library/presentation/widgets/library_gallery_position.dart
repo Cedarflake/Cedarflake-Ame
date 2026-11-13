@@ -9,17 +9,19 @@ class LibraryGalleryVisiblePosition {
     required this.revision,
     required this.monthKey,
     required this.locationId,
+    String? entryId,
     this.assetId,
     required this.globalItemIndex,
     required this.itemFraction,
     required this.viewportFraction,
     this.scrollEdge,
-  });
+  }) : entryId = entryId ?? locationId;
 
   final String queryId;
   final BigInt revision;
   final String? monthKey;
   final String locationId;
+  final String entryId;
   final String? assetId;
   final int globalItemIndex;
   final double itemFraction;
@@ -33,6 +35,7 @@ class LibraryGalleryVisiblePosition {
     revision: revision,
     monthKey: monthKey,
     locationId: locationId,
+    entryId: entryId,
     assetId: assetId,
     globalItemIndex: globalItemIndex,
     itemFraction: itemFraction,
@@ -49,9 +52,9 @@ LibraryGalleryVisiblePosition? rebaseLibraryGalleryPosition(
     return null;
   }
   var index = position.globalItemIndex.clamp(0, manifest.itemCount - 1);
-  if (manifest.locationIdAt(index) != position.locationId) {
+  if (manifest.entryIdAt(index) != position.entryId) {
     for (var candidate = 0; candidate < manifest.itemCount; candidate++) {
-      if (manifest.locationIdAt(candidate) == position.locationId) {
+      if (manifest.entryIdAt(candidate) == position.entryId) {
         index = candidate;
         break;
       }
@@ -64,6 +67,7 @@ LibraryGalleryVisiblePosition? rebaseLibraryGalleryPosition(
     revision: manifest.revision,
     monthKey: date != null && date.length >= 7 ? date.substring(0, 7) : null,
     locationId: locationId,
+    entryId: manifest.entryIdAt(index),
     assetId: locationId == position.locationId ? position.assetId : null,
     globalItemIndex: index,
     itemFraction: position.itemFraction,
@@ -184,6 +188,7 @@ class LibraryGalleryLayoutTransition {
       queryId: position.queryId,
       revision: position.revision,
       locationId: position.locationId,
+      entryId: position.entryId,
       globalItemIndex: position.globalItemIndex,
       itemFraction: position.itemFraction,
       viewportFraction: position.viewportFraction,

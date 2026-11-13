@@ -2,12 +2,14 @@ import "../../../../src/rust/domain.dart" as rust;
 import "../../../../src/rust/domain/organization_queue.dart" as queue;
 import "../../domain/library_models.dart";
 import "library_gallery_collection_mapping.dart";
+import "library_gallery_group_mapping.dart";
 import "library_metadata_filter_mapping.dart";
 import "library_semantic_mapping.dart";
 
 LibraryGalleryQuery mapRustGalleryQuery(rust.GalleryQuery value) =>
     LibraryGalleryQuery(
       collection: mapRustCollection(value.collection),
+      groupFilter: mapRustGalleryGroupFilter(value.groupFilter),
       organizationQueue: switch (value.organizationQueue) {
         null => null,
         queue.OrganizationQueue.pending => LibraryOrganizationQueue.pending,
@@ -42,6 +44,7 @@ LibraryGalleryQuery mapRustGalleryQuery(rust.GalleryQuery value) =>
 rust.GalleryQuery mapLibraryGalleryQueryToRust(LibraryGalleryQuery query) {
   return rust.GalleryQuery(
     collection: mapLibraryCollection(query.collection),
+    groupFilter: mapGalleryGroupFilterToRust(query.groupFilter),
     organizationQueue: switch (query.organizationQueue) {
       null => null,
       LibraryOrganizationQueue.pending => queue.OrganizationQueue.pending,

@@ -9,6 +9,7 @@ import "library_viewer_launch.dart";
 class LibraryViewerImageFlight extends SingleChildRenderObjectWidget {
   const LibraryViewerImageFlight({
     required this.locationId,
+    this.entryId,
     required this.imageSize,
     required super.child,
     this.quarterTurns = 0,
@@ -16,6 +17,7 @@ class LibraryViewerImageFlight extends SingleChildRenderObjectWidget {
   });
 
   final String locationId;
+  final String? entryId;
   final Size imageSize;
   final int quarterTurns;
 
@@ -28,7 +30,7 @@ class LibraryViewerImageFlight extends SingleChildRenderObjectWidget {
         LibraryViewerFlightScope.of(context)?.origin,
         LibraryViewerFlightScope.of(context)?.animation,
         imageSize,
-        locationId,
+        entryId ?? locationId,
         _canFly(context),
       );
 
@@ -40,7 +42,7 @@ class LibraryViewerImageFlight extends SingleChildRenderObjectWidget {
     LibraryViewerFlightScope.of(context)?.origin,
     LibraryViewerFlightScope.of(context)?.animation,
     imageSize,
-    locationId,
+    entryId ?? locationId,
     _canFly(context),
   );
 }
@@ -110,14 +112,12 @@ class RenderLibraryViewerImageFlight extends RenderProxyBox {
     if (returning != _returning) {
       _returning = returning;
       _returnOrigin = returning ? origin.findTarget?.call(_locationId) : null;
-      if (returning &&
-          _returnOrigin == null &&
-          origin.locationId == _locationId) {
+      if (returning && _returnOrigin == null && origin.entryId == _locationId) {
         _returnOrigin = origin.resolve();
       }
     }
     final targetOrigin = returning ? _returnOrigin : origin;
-    if (targetOrigin == null || targetOrigin.locationId != _locationId) {
+    if (targetOrigin == null || targetOrigin.entryId != _locationId) {
       return null;
     }
     return targetOrigin;

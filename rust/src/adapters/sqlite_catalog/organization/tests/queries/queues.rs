@@ -278,6 +278,7 @@ fn new_arrivals_prepend_without_replacing_the_requested_logical_anchor() {
             "new-queue",
             Some(&crate::domain::GalleryQueryAnchor {
                 requested_location_id: "a".into(),
+                group_key: None,
                 asset_id: Some(selected.asset_id),
                 fallback_ordinal: 1,
             }),

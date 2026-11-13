@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import 'domain/classification_review.dart';
+import 'domain/gallery_groups.dart';
 import 'domain/gallery_metadata_filter.dart';
 import 'domain/gallery_scroll_section.dart';
 import 'domain/media_metadata.dart';
@@ -163,6 +164,7 @@ class CatalogCursor {
   final PlatformInt64 primaryNumber;
   final String rootId;
   final String locationId;
+  final GalleryGroupKey? groupKey;
 
   const CatalogCursor({
     required this.revision,
@@ -172,6 +174,7 @@ class CatalogCursor {
     required this.primaryNumber,
     required this.rootId,
     required this.locationId,
+    this.groupKey,
   });
 
   @override
@@ -182,7 +185,8 @@ class CatalogCursor {
       primaryText.hashCode ^
       primaryNumber.hashCode ^
       rootId.hashCode ^
-      locationId.hashCode;
+      locationId.hashCode ^
+      groupKey.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -195,7 +199,8 @@ class CatalogCursor {
           primaryText == other.primaryText &&
           primaryNumber == other.primaryNumber &&
           rootId == other.rootId &&
-          locationId == other.locationId;
+          locationId == other.locationId &&
+          groupKey == other.groupKey;
 }
 
 enum CatalogReadRetryCause { fileLockingProtocolFailed }
@@ -320,7 +325,7 @@ class CatalogSnapshot {
   final BigInt revision;
   final String queryId;
   final List<LibraryRootView> roots;
-  final List<AssetLocationView> assets;
+  final List<GalleryEntry> assets;
   final CatalogCursor? previousCursor;
   final CatalogCursor? nextCursor;
   final GalleryLocationAnchorResolution? queryAnchorResolution;
@@ -474,6 +479,7 @@ class GalleryLayoutManifestChunk {
   final BigInt totalItems;
   final BigInt startOrdinal;
   final List<String> locationIds;
+  final List<String> entryIds;
   final Uint16List aspectRatioMilli;
   final Uint16List dateGroupIndices;
   final List<GalleryLayoutDateGroup> dateGroups;
@@ -486,6 +492,7 @@ class GalleryLayoutManifestChunk {
     required this.totalItems,
     required this.startOrdinal,
     required this.locationIds,
+    required this.entryIds,
     required this.aspectRatioMilli,
     required this.dateGroupIndices,
     required this.dateGroups,
@@ -500,6 +507,7 @@ class GalleryLayoutManifestChunk {
       totalItems.hashCode ^
       startOrdinal.hashCode ^
       locationIds.hashCode ^
+      entryIds.hashCode ^
       aspectRatioMilli.hashCode ^
       dateGroupIndices.hashCode ^
       dateGroups.hashCode ^
@@ -516,6 +524,7 @@ class GalleryLayoutManifestChunk {
           totalItems == other.totalItems &&
           startOrdinal == other.startOrdinal &&
           locationIds == other.locationIds &&
+          entryIds == other.entryIds &&
           aspectRatioMilli == other.aspectRatioMilli &&
           dateGroupIndices == other.dateGroupIndices &&
           dateGroups == other.dateGroups &&
@@ -602,6 +611,7 @@ class GalleryQuery {
   final GallerySortKey sortKey;
   final GallerySortDirection sortDirection;
   final GalleryDuplicateMode duplicateMode;
+  final GalleryGroupFilter groupFilter;
 
   const GalleryQuery({
     required this.collection,
@@ -616,6 +626,7 @@ class GalleryQuery {
     required this.sortKey,
     required this.sortDirection,
     required this.duplicateMode,
+    required this.groupFilter,
   });
 
   @override
@@ -631,7 +642,8 @@ class GalleryQuery {
       metadataFilter.hashCode ^
       sortKey.hashCode ^
       sortDirection.hashCode ^
-      duplicateMode.hashCode;
+      duplicateMode.hashCode ^
+      groupFilter.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -649,7 +661,8 @@ class GalleryQuery {
           metadataFilter == other.metadataFilter &&
           sortKey == other.sortKey &&
           sortDirection == other.sortDirection &&
-          duplicateMode == other.duplicateMode;
+          duplicateMode == other.duplicateMode &&
+          groupFilter == other.groupFilter;
 }
 
 enum GallerySortDirection { ascending, descending }

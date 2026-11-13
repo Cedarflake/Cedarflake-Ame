@@ -165,27 +165,36 @@ window locally is forbidden.
 
 ## Filter and exact-duplicate behavior
 
-The gallery Filter menu retains two independent single-choice groups:
+The gallery Filter menu contains source choices, image scope and a separate duplicate-folding toggle:
 
 ```text
 显示子目录
 隐藏子目录
 ────────────────
 全部图片
-合并重复图片
+仅显示重复
+仅显示相似
+────────────────
+合并重复
 ────────────────
 更多筛选
 ```
 
-The source group controls descendants of the current folder. The duplicate group controls whether
+The source group controls descendants of the current folder. The duplicate toggle controls whether
 all physical instances or one representative per confirmed exact group appears. Before trustworthy
 exact analysis and incremental maintenance are connected, every image remains visible. Once folding
 is connected, it becomes the initial default while preserving an explicit saved choice.
 
 Library, Favorites, manual albums and smart albums share this menu. Outside a folder, the source
 choices remain visible and disabled. Manual albums, smart albums and organization queues require
-merged groups: their duplicate choices remain visible and disabled, with `合并重复图片` selected.
-Library and Favorites retain their supported duplicate-display choices.
+merged groups: `合并重复` remains visible, checked and disabled. Library and Favorites can toggle it.
+The filter button retains the same neutral color as the adjacent toolbar buttons. The independent
+folding toggle uses a checkmark when enabled and no marker when off; it is not a radio choice.
+
+The additional group-filter choices and scoped member tray follow the
+[group browsing contract](workbench-and-navigation.md). While either group filter is active,
+`合并重复` is disabled and unchecked; only the active group-filter choice has a selection marker.
+Choosing `全部图片` clears the group filter and restores the retained display choice for the collection.
 
 The descendant and duplicate choices apply directly. `更多筛选` opens the standard Material bottom
 sheet centered at the bottom of the window, using the same opening behavior and theme width as the

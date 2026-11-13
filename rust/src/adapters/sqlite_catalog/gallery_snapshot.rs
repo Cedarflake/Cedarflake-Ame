@@ -94,6 +94,19 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
                 projection.resolve_anchor(&self.transaction, self.query, anchor, max_items)?,
                 None,
             )),
+            (None, _)
+                if anchor.group_key.is_some()
+                    && super::gallery::groups::is_filtered(self.query) =>
+            {
+                super::gallery::resolve_gallery_group_anchor(
+                    &self.transaction,
+                    self.revision,
+                    self.query,
+                    self.query_id,
+                    max_items,
+                    anchor,
+                )
+            }
             (None, Some(asset_id)) => resolve_gallery_asset_anchor(
                 &self.transaction,
                 self.revision,
@@ -210,7 +223,10 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
         let mut stored_assets = Vec::new();
         while let Some(row) = asset_rows.next().map_err(database_error)? {
             let stored = read_stored_asset(row).map_err(database_error)?;
-            stored_assets.push(stored_asset_view(stored)?);
+            stored_assets.push(crate::domain::gallery_groups::GalleryEntry {
+                source: stored_asset_view(stored)?,
+                group: super::gallery::groups::read(row)?,
+            });
         }
         drop(asset_rows);
         drop(asset_statement);

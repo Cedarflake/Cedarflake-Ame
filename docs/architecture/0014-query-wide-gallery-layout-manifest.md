@@ -56,7 +56,7 @@ query. It is a derived presentation index, not a second catalog and not durable 
 The manifest contains only the fields needed to establish stable order and geometry:
 
 - query identity and catalog revision;
-- global ordinal and stable location identity;
+- global ordinal and stable location identity, plus a separate group entry key in grouped queries;
 - orientation-corrected aspect ratio or an explicit unknown-dimension marker;
 - date-group identity and the evidence needed by time annotations;
 - media and availability flags that affect inclusion or placeholder presentation.
@@ -68,6 +68,11 @@ records. A configured internal byte budget and synthetic 79,000-, 250,000-, and 
 measurements determine whether a single compact manifest or a hierarchical block representation is
 used. Exceeding the budget must degrade to block summaries plus bounded exact blocks, never to
 materializing every asset record.
+
+Grouped queries retain compact UTF-8 entry keys separately from source identities, as defined by
+[ADR 0033](0033-structured-gallery-filters.md#group-membership-and-continuation). Include their bytes
+and offsets in the storage plan. Layout, selection and viewer-origin matching use entry keys when
+two groups share a cover; previews continue to share the physical source cache.
 
 The manifest is invalidated by query identity or catalog revision. A newer revision is assembled
 separately and published atomically; a partial manifest never replaces the last trustworthy one.

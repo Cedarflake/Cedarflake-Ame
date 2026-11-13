@@ -385,6 +385,7 @@ fn location_named(snapshot: &CatalogSnapshot, name: &str) -> AssetLocationView {
         .iter()
         .find(|location| location.relative_path == name)
         .expect("published fixture location")
+        .source
         .clone()
 }
 

@@ -64,6 +64,18 @@ fn write_archive(path: &Path, entries: &[Value]) {
     fs::write(path, bytes).unwrap();
 }
 
+fn set_version(entries: &mut [Value], version: u32) {
+    entries[0]["header"]["version"] = json!(version);
+    if version < 9 {
+        for entry in entries
+            .iter_mut()
+            .filter(|entry| entry["kind"] == "review_scope")
+        {
+            entry["values"].as_array_mut().unwrap().truncate(10);
+        }
+    }
+}
+
 #[test]
 fn organization_archive_inspection_accepts_version_five_without_managed_origins() {
     use crate::domain::classification::{
@@ -94,7 +106,7 @@ fn organization_archive_inspection_accepts_version_five_without_managed_origins(
         .export_organization_archive(&archive, &mut |_| true)
         .unwrap();
     let mut rows = entries(&archive);
-    rows[0]["header"]["version"] = json!(5);
+    set_version(&mut rows, 5);
     rows[0]["header"]["source_schema"] = json!(70);
     rows.iter_mut()
         .find(|row| row["kind"] == "review_scope")
@@ -133,7 +145,7 @@ fn organization_archive_inspection_upgrades_v1_native_copy_evidence_without_chan
         .export_organization_archive(&archive, &mut |_| true)
         .unwrap();
     let mut rows = entries(&archive);
-    rows[0]["header"]["version"] = json!(1);
+    set_version(&mut rows, 1);
     for row in &mut rows {
         match row["kind"].as_str() {
             Some("review_scope") => row["values"].as_array_mut().unwrap().truncate(7),
@@ -207,7 +219,7 @@ fn organization_archive_inspection_upgrades_v2_ordering_without_rewriting_input(
         .export_organization_archive(&archive, &mut |_| true)
         .unwrap();
     let mut rows = entries(&archive);
-    rows[0]["header"]["version"] = json!(2);
+    set_version(&mut rows, 2);
     for row in &mut rows {
         match row["kind"].as_str() {
             Some("review_scope") => row["values"].as_array_mut().unwrap().truncate(7),
@@ -239,7 +251,7 @@ fn organization_archive_inspection_upgrades_legacy_filters_and_rejects_invalid_p
         .unwrap();
     let original = entries(&archive);
     let mut old = original.clone();
-    old[0]["header"]["version"] = json!(7);
+    set_version(&mut old, 7);
     write_archive(&archive, &old);
     let version_seven = read(&archive, directory.path(), &mut |_| true).unwrap();
     assert_eq!(
@@ -262,7 +274,7 @@ fn organization_archive_inspection_upgrades_legacy_filters_and_rejects_invalid_p
         0
     );
     drop(version_seven);
-    old[0]["header"]["version"] = json!(3);
+    set_version(&mut old, 3);
     old.iter_mut()
         .find(|row| row["kind"] == "review_scope")
         .unwrap()["values"]
@@ -292,7 +304,7 @@ fn organization_archive_inspection_upgrades_legacy_filters_and_rejects_invalid_p
         ..Default::default()
     };
     let mut version_six = original.clone();
-    version_six[0]["header"]["version"] = json!(6);
+    set_version(&mut version_six, 6);
     version_six
         .iter_mut()
         .find(|row| row["kind"] == "review_scope")
@@ -319,7 +331,7 @@ fn organization_archive_inspection_upgrades_legacy_filters_and_rejects_invalid_p
     for payload in ["{}".to_owned(), "x".repeat(4097)] {
         for version in [6, codec::VERSION] {
             let mut invalid = original.clone();
-            invalid[0]["header"]["version"] = json!(version);
+            set_version(&mut invalid, version);
             invalid
                 .iter_mut()
                 .find(|row| row["kind"] == "review_scope")

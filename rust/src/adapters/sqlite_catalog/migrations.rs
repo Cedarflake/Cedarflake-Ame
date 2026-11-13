@@ -37,6 +37,7 @@ mod exact_duplicate_review;
 mod exact_duplicates;
 mod file_operation_exports;
 mod file_operation_notifications;
+mod organization_group_filters;
 #[cfg(test)]
 pub(super) use file_operation_notifications::downgrade_for_test as downgrade_to_v79_for_test;
 mod file_operations;
@@ -202,6 +203,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         file_operation_notifications::migrate_transaction(&transaction)?;
         file_operation_exports::migrate_transaction(&transaction)?;
         album_year_exports::migrate_transaction(&transaction)?;
+        organization_group_filters::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -324,6 +326,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             79 => file_operation_notifications::migrate(connection)?,
             80 => file_operation_exports::migrate(connection)?,
             81 => album_year_exports::migrate(connection)?,
+            82 => organization_group_filters::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

@@ -7,6 +7,13 @@ use crate::domain::{
 
 /// Bounded reads return owned values and retire each read snapshot before returning.
 pub(crate) trait CatalogReader {
+    fn load_gallery_group_members(
+        &self,
+        query: &GalleryQuery,
+        group: &crate::domain::gallery_groups::GalleryGroupKey,
+        after: &str,
+    ) -> Result<crate::domain::gallery_groups::GalleryGroupMemberPage, ScanError>;
+
     fn load_snapshot(
         &self,
         max_items: u32,

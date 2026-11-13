@@ -13,6 +13,7 @@ LibraryGalleryVisiblePosition? resolveDuplicateBrowsePosition({
   final next = current.layoutManifest;
   final resolution = current.queryAnchorResolution;
   if (frozen == null ||
+      current.query.hasGroupFilter ||
       previous == null ||
       next == null ||
       next.itemCount == 0 ||

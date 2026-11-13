@@ -39,8 +39,14 @@ impl SqliteFileOperationSelection {
         scope: Scope,
         cancelled: Arc<AtomicBool>,
     ) -> Result<Self, ScanError> {
-        if let Scope::Gallery { query, .. } | Scope::MergedGalleryGroups { query, .. } = &scope {
+        if let Scope::Gallery { query, .. }
+        | Scope::MergedGalleryGroups { query, .. }
+        | Scope::GalleryCleanup { query, .. } = &scope
+        {
             gallery::validate_gallery_query(query)?;
+        }
+        if let Scope::GalleryCleanup { query, .. } = &scope {
+            cleanup::gallery_kind(query)?;
         }
         if let Scope::MergedGalleryGroups { query, .. } = &scope {
             groups::validate_query(query)?;
@@ -57,7 +63,10 @@ impl SqliteFileOperationSelection {
              CREATE INDEX temp.file_operation_selection_asset ON file_operation_selection(asset_id);"
         ).map_err(database_error)?;
         let sql_cancelled = Arc::clone(&cancelled);
-        if matches!(scope, Scope::DuplicateCleanup { .. }) {
+        if matches!(
+            scope,
+            Scope::DuplicateCleanup { .. } | Scope::GalleryCleanup { .. }
+        ) {
             cleanup::initialize(&catalog.connection)?;
         }
         catalog
@@ -89,7 +98,14 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
             return Err(stale_selection());
         }
         if let Scope::DuplicateCleanup { kind, .. } = &self.scope {
-            cleanup::validate(&self.catalog.connection, kind)?;
+            cleanup::validate(&self.catalog.connection, kind, None)?;
+        }
+        if let Scope::GalleryCleanup { query, .. } = &self.scope {
+            cleanup::validate(
+                &self.catalog.connection,
+                &cleanup::gallery_kind(query)?,
+                Some(query),
+            )?;
         }
         rules::freeze(&self.catalog.connection, rule, &self.cancelled)
     }
@@ -97,7 +113,9 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
         self.require_collecting()?;
         if !matches!(
             self.scope,
-            Scope::Gallery { .. } | Scope::MergedGalleryGroups { .. }
+            Scope::Gallery { .. }
+                | Scope::MergedGalleryGroups { .. }
+                | Scope::GalleryCleanup { .. }
         ) || ids.len() > 256
         {
             return Err(stale_selection());
@@ -174,20 +192,38 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
             catalog_revision,
             all_matching: true,
             ..
+        }
+        | Scope::GalleryCleanup {
+            catalog_revision,
+            all_matching: true,
+            ..
         } = self.scope
             && load_catalog_revision(&transaction)? != catalog_revision
         {
             return Err(stale_selection());
         }
         let cleanup = if let Scope::DuplicateCleanup { kind, all_groups } = &self.scope {
-            Some(cleanup::prepare(&transaction, kind, *all_groups)?)
+            Some(cleanup::prepare(&transaction, kind, *all_groups, None)?)
+        } else if let Scope::GalleryCleanup {
+            query,
+            all_matching,
+            ..
+        } = &self.scope
+        {
+            Some(cleanup::prepare(
+                &transaction,
+                &cleanup::gallery_kind(query)?,
+                *all_matching,
+                Some(query),
+            )?)
         } else {
             let selected = query::selected(&self.scope)?;
             transaction.execute(&format!("INSERT INTO temp.file_operation_selection(asset_id, location_id, source_generation, root_generation, file_size) {}", selected.sql), params_from_iter(selected.parameters)).map_err(database_error)?;
             query::require_all_inputs(&transaction, &self.scope)?;
             None
         };
-        let merged_group_count = if matches!(self.scope, Scope::MergedGalleryGroups { .. }) {
+        let merged_group_count = if matches!(&self.scope, Scope::MergedGalleryGroups { query, .. } if !gallery::groups::is_filtered(query))
+        {
             Some(groups::expand(&transaction)?)
         } else {
             None
@@ -232,7 +268,10 @@ impl FileOperationSelectionRepository for SqliteFileOperationSelection {
         if self.prepared.is_none() {
             return Err(stale_selection());
         }
-        if !matches!(self.scope, Scope::DuplicateCleanup { .. }) {
+        if !matches!(
+            self.scope,
+            Scope::DuplicateCleanup { .. } | Scope::GalleryCleanup { .. }
+        ) {
             return Ok(Vec::new());
         }
         cleanup::retained_page(&self.catalog, after_location)

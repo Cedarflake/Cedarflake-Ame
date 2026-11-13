@@ -10,6 +10,7 @@ import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
 
 import "package:cedarflake_ame/features/library/application/library_file_operations.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/application/library_duplicate_review_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_similar_review_controller.dart";
@@ -18,6 +19,8 @@ import "package:cedarflake_ame/features/library/application/library_file_publica
 import "package:cedarflake_ame/features/library/application/library_file_selection_scope.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_file_operations.dart";
 import "package:cedarflake_ame/features/library/domain/library_file_operations.dart";
+import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
+import "package:cedarflake_ame/features/library/domain/library_gallery_group.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization_batch.dart";
@@ -28,15 +31,110 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_pho
 import "package:cedarflake_ame/features/library/presentation/coordination/library_duplicate_workspace.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_cleanup_action.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_results.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_locations_sheet.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_sidebar_selection_icon.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_ui/material_ui.dart";
 import "../../../support/application_test_bindings.dart";
 import "../../../support/duplicate_review_fixtures.dart";
+import "../../../support/gallery_group_fixtures.dart";
 import "../../../support/similar_review_fixtures.dart";
 import "../support/library_organization_fixture.dart";
 
 void main() {
+  testWidgets("member tray separates group cleanup from selected files", (
+    tester,
+  ) async {
+    for (final filter in [
+      LibraryGalleryGroupFilter.exact,
+      LibraryGalleryGroupFilter.similar,
+    ]) {
+      final backend = _Backend();
+      final key = filter == LibraryGalleryGroupFilter.exact
+          ? LibraryExactGalleryGroupKey(reviewGroup.digest, BigInt.from(1024))
+          : const LibrarySimilarGalleryGroupKey("similar-group");
+      final query = LibraryGalleryQuery(rootId: "root", groupFilter: filter);
+      await tester.pumpWidget(
+        ProviderScope(
+          key: ValueKey(filter),
+          overrides: applicationTestOverrides([
+            libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
+            libraryFileOperationsProvider.overrideWithValue(backend),
+            libraryGroupMemberCatalogProvider.overrideWithValue(
+              LocationPageGroupCatalog(
+                (_) async => const LibraryDuplicateLocationPage(
+                  locationCount: 2,
+                  locations: [
+                    LibraryDuplicateLocation(
+                      locationId: "one",
+                      displayPath: r"C:\fixture\one.png",
+                      availability: LibraryDuplicateAvailability.local,
+                    ),
+                    LibraryDuplicateLocation(
+                      locationId: "two",
+                      displayPath: r"C:\fixture\two.png",
+                      availability: LibraryDuplicateAvailability.local,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ]),
+          child: MaterialApp(
+            home: Scaffold(
+              body: LibraryDuplicateLocationsSheet(
+                galleryGroup: LibraryGalleryGroup(key: key, memberCount: 2),
+                query: query,
+                currentLocationId: "one",
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.text(
+          filter == LibraryGalleryGroupFilter.exact ? "删除重复图片" : "删除相似图片",
+        ),
+      );
+      await tester.pumpAndSettle();
+      final cleanup = backend.selections.single as LibraryCleanupInGallery;
+      expect(cleanup.selection.query, query);
+      expect(cleanup.selection.allMatching, isFalse);
+      expect(backend.appendedIds, [
+        [key.entryId],
+      ]);
+      expect(backend.commands, isEmpty);
+      expect(
+        tester
+            .widget<Checkbox>(
+              find.byKey(const Key("library-file-permanent-delete")),
+            )
+            .value,
+        isFalse,
+      );
+      await tester.tap(find.text("取消"));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey("duplicate-location-two")),
+          matching: find.byType(LibrarySidebarSelectionIcon),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("删除所选"));
+      await tester.pumpAndSettle();
+      expect(backend.selections.last, isA<LibraryFilesAtLocations>());
+      final targets = backend.appendedLocations.single;
+      expect(targets.single.locationId, "two");
+      expect(targets.single.sourceGeneration, BigInt.one);
+      expect(backend.commands, isEmpty);
+      await tester.tap(find.text("取消"));
+      await tester.pumpAndSettle();
+    }
+  });
+
   testWidgets(
     "album moves default to year folders and retain other structures",
     (tester) async {
@@ -756,6 +854,8 @@ class _ExportPicker implements DirectoryPicker {
 class _Backend implements LibraryFileOperations {
   final selections = <LibraryFileSelection>[];
   final appendedGroups = <List<LibraryCleanupGroup>>[];
+  final appendedIds = <List<String>>[];
+  final appendedLocations = <List<LibraryOrganizationTarget>>[];
   LibraryFileSelectionSummary summary = const LibraryFileSelectionSummary(
     1,
     20,
@@ -802,7 +902,10 @@ class _Draft implements LibraryFileSelectionDraft {
   final _Backend backend;
   bool closed = false;
   @override
-  Future<void> appendIds(List<String> ids) async {}
+  Future<void> appendIds(List<String> ids) async {
+    backend.appendedIds.add(ids);
+  }
+
   @override
   Future<void> appendGroups(List<LibraryCleanupGroup> groups) async {
     backend.appendedGroups.add(groups);
@@ -811,7 +914,10 @@ class _Draft implements LibraryFileSelectionDraft {
   @override
   Future<void> appendLocations(
     List<LibraryOrganizationTarget> locations,
-  ) async {}
+  ) async {
+    backend.appendedLocations.add(locations);
+  }
+
   @override
   Future<LibraryFileSelectionSummary> prepare() async => backend.summary;
   @override

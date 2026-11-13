@@ -23,6 +23,10 @@ LibraryFileSelection selectGalleryFilesForAction({
       action == LibraryFileAction.recycle ||
       action == LibraryFileAction.deletePermanently;
   final query = selection.query;
+  if (location != null && query.hasGroupFilter) {
+    return LibraryFilesAtLocations([location]);
+  }
+  if (query.hasGroupFilter) return LibraryFilesInGallery(selection);
   if (deletion &&
       query.collection is LibraryAllCollection &&
       query.organizationQueue == null &&

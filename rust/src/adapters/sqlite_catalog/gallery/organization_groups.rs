@@ -13,11 +13,22 @@ use super::organization::{
 use super::{BuiltGalleryQuery, database_error, gallery_source, push_source_filters};
 
 pub(in crate::adapters::sqlite_catalog) fn uses_grouped_organization(query: &GalleryQuery) -> bool {
-    query.folds_duplicates()
+    !super::groups::is_filtered(query)
+        && query.folds_duplicates()
         && (query.organization_queue.is_some() || query.collection != GalleryCollection::Library)
 }
 
 pub(super) fn build_group_query(query: &GalleryQuery) -> BuiltGalleryQuery {
+    if super::groups::is_filtered(query) {
+        let mut parameters = Vec::new();
+        let groups = super::groups::grouped_query(query, &mut parameters);
+        return BuiltGalleryQuery {
+            sql: format!(
+                "SELECT representative AS location_id, member_count AS source_items FROM ({groups})"
+            ),
+            parameters,
+        };
+    }
     if let Some(grouped) = build_collection_group_query(query) {
         return grouped;
     }

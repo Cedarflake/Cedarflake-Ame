@@ -15,7 +15,11 @@ pub(super) fn gallery_order_expressions(query: &GalleryQuery) -> GalleryOrderExp
         return GalleryOrderExpressions {
             missing: "CAST(0 AS INTEGER)",
             text: "CAST('' AS TEXT)",
-            number: Cow::Borrowed("CAST(semantic_result.key AS INTEGER)"),
+            number: Cow::Borrowed(if super::groups::is_filtered(query) {
+                "gallery_groups.semantic_rank"
+            } else {
+                "CAST(semantic_result.key AS INTEGER)"
+            }),
             date: None,
             month: None,
         };

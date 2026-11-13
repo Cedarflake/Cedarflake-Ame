@@ -64,6 +64,7 @@ pub(super) fn save_active(connection: &Connection, query: &GalleryQuery) -> Resu
         )
         .map_err(database_error)?;
     super::ordering::save_scope(connection, query)?;
+    super::group_filter::save(connection, query.group_filter)?;
     super::filters::save_scope(connection, &query.metadata_filter)
 }
 
@@ -82,6 +83,7 @@ pub(super) fn copy_to_bookmark(connection: &Connection) -> Result<(), ScanError>
         )
         .map_err(database_error)?;
     super::ordering::copy_to_bookmark(connection)?;
+    super::group_filter::copy_to_bookmark(connection)?;
     super::filters::copy_to_bookmark(connection)
 }
 
@@ -123,6 +125,7 @@ pub(in super::super::super) fn load(
                     sort_key: GallerySortKey::ModifiedTime,
                     sort_direction: GallerySortDirection::Descending,
                     duplicate_mode: GalleryDuplicateMode::Merged,
+                    group_filter: Default::default(),
                 })
             },
         )
@@ -130,6 +133,7 @@ pub(in super::super::super) fn load(
         .map_err(database_error)?;
     if let Some(query) = &mut query {
         super::ordering::load_scope(connection, slot, query)?;
+        query.group_filter = super::group_filter::load(connection, slot)?;
         query.metadata_filter = super::filters::load_scope(connection, slot)?;
     }
     Ok(query)

@@ -2,6 +2,7 @@ import "dart:convert";
 import "dart:typed_data";
 
 import "library_models.dart";
+import "gallery_entry_identity.dart";
 
 const libraryGalleryLayoutDimensionsKnownFlag = 1;
 
@@ -22,15 +23,22 @@ class LibraryGalleryLayoutManifestStoragePlan {
       Uint32List.bytesPerElement +
       Uint8List.bytesPerElement;
 
-  factory LibraryGalleryLayoutManifestStoragePlan.forItemCount(int itemCount) {
+  factory LibraryGalleryLayoutManifestStoragePlan.forItemCount(
+    int itemCount, {
+    bool hasGroupIdentity = false,
+  }) {
     if (itemCount < 0) {
       throw const LibraryGalleryLayoutManifestFailure(
         code: "gallery_layout_manifest_count_invalid",
         message: "The gallery layout item count cannot be negative",
       );
     }
+    final identityBytes = hasGroupIdentity
+        ? maximumEncodedLocationIdBytes + Uint32List.bytesPerElement
+        : 0;
     final estimatedBytes =
-        itemCount * fixedBytesPerItem + Uint32List.bytesPerElement;
+        itemCount * (fixedBytesPerItem + identityBytes) +
+        Uint32List.bytesPerElement;
     return LibraryGalleryLayoutManifestStoragePlan(
       kind: estimatedBytes <= flatBudgetBytes
           ? LibraryGalleryLayoutManifestStorageKind.flat
@@ -66,12 +74,14 @@ class LibraryGalleryLayoutManifestChunk {
     required this.totalItems,
     required this.startOrdinal,
     required List<String> locationIds,
+    List<String>? entryIds,
     required Uint16List aspectRatioMilli,
     required Uint16List dateGroupIndices,
     required List<String?> dateGroups,
     required Uint8List flags,
     this.nextCursor,
   }) : locationIds = List.unmodifiable(locationIds),
+       entryIds = entryIds == null ? null : List.unmodifiable(entryIds),
        aspectRatioMilli = Uint16List.fromList(aspectRatioMilli),
        dateGroupIndices = Uint16List.fromList(dateGroupIndices),
        dateGroups = List.unmodifiable(dateGroups),
@@ -82,6 +92,7 @@ class LibraryGalleryLayoutManifestChunk {
   final int totalItems;
   final int startOrdinal;
   final List<String> locationIds;
+  final List<String>? entryIds;
   final Uint16List aspectRatioMilli;
   final Uint16List dateGroupIndices;
   final List<String?> dateGroups;
@@ -96,26 +107,35 @@ class LibraryGalleryLayoutManifest {
     required this.revision,
     required this.queryId,
     required this._storage,
+    this.entryIdentities,
     this._dimensionOverrides = const {},
   });
 
   final BigInt revision;
   final String queryId;
   final _LibraryGalleryLayoutManifestStorage _storage;
+  final GalleryEntryIdentities? entryIdentities;
   final Map<int, int> _dimensionOverrides;
 
   int get itemCount => _storage.itemCount;
 
   int get primitiveByteLength =>
-      _storage.primitiveByteLength + _dimensionOverrides.length * 8;
+      _storage.primitiveByteLength +
+      _dimensionOverrides.length * 8 +
+      (entryIdentities?.byteLength ?? 0);
 
   LibraryGalleryLayoutManifestStorageKind get storageKind => _storage.kind;
 
   bool hasSameGeometry(LibraryGalleryLayoutManifest other) {
     if (identical(this, other)) return true;
     if (queryId != other.queryId ||
+        (entryIdentities == null) != (other.entryIdentities == null) ||
         itemCount != other.itemCount ||
         _dimensionOverrides.length != other._dimensionOverrides.length) {
+      return false;
+    }
+    if (entryIdentities != null &&
+        !entryIdentities!.sameAs(other.entryIdentities!)) {
       return false;
     }
     for (final entry in _dimensionOverrides.entries) {
@@ -127,6 +147,11 @@ class LibraryGalleryLayoutManifest {
   String locationIdAt(int index) {
     _checkIndex(index);
     return _storage.locationIdAt(index);
+  }
+
+  String entryIdAt(int index) {
+    _checkIndex(index);
+    return entryIdentities?.at(index) ?? _storage.locationIdAt(index);
   }
 
   double aspectRatioAt(int index) {
@@ -180,6 +205,7 @@ class LibraryGalleryLayoutManifest {
       revision: revision,
       queryId: queryId,
       storage: _storage,
+      entryIdentities: entryIdentities,
       dimensionOverrides: Map.unmodifiable(nextOverrides),
     );
   }
@@ -214,9 +240,11 @@ abstract class LibraryGalleryLayoutManifestBuilder {
     required BigInt revision,
     required String queryId,
     required int totalItems,
+    bool hasGroupIdentity = false,
   }) {
     final plan = LibraryGalleryLayoutManifestStoragePlan.forItemCount(
       totalItems,
+      hasGroupIdentity: hasGroupIdentity,
     );
     return switch (plan.kind) {
       LibraryGalleryLayoutManifestStorageKind.flat =>
@@ -254,6 +282,11 @@ abstract class _LibraryGalleryLayoutManifestBuilderBase
   final int totalItems;
   var itemCount = 0;
   var isBuilt = false;
+  final _entryBlocks = <GalleryEntryIdentityBlock>[];
+  bool? _hasGroupIdentity;
+
+  GalleryEntryIdentities? get entryIdentities =>
+      _entryBlocks.isEmpty ? null : GalleryEntryIdentities(_entryBlocks);
 
   void ensureCanAppend(LibraryGalleryLayoutManifestChunk chunk) {
     if (isBuilt) {
@@ -264,6 +297,18 @@ abstract class _LibraryGalleryLayoutManifestBuilderBase
     }
     validateChunkHeader(chunk);
     validateChunkColumns(chunk);
+    final ids = chunk.entryIds;
+    if (chunk.itemCount > 0) {
+      if (_hasGroupIdentity != null && _hasGroupIdentity != (ids != null)) {
+        throw const LibraryGalleryLayoutManifestFailure(
+          code: "gallery_layout_manifest_identity_invalid",
+          message:
+              "Gallery chunks cannot mix physical and grouped card identities",
+        );
+      }
+      _hasGroupIdentity = ids != null;
+      if (ids != null) _entryBlocks.add(GalleryEntryIdentityBlock(ids));
+    }
   }
 
   void ensureCanBuild() {
@@ -330,6 +375,7 @@ abstract class _LibraryGalleryLayoutManifestBuilderBase
   void validateChunkColumns(LibraryGalleryLayoutManifestChunk chunk) {
     final chunkItemCount = chunk.itemCount;
     if (chunk.aspectRatioMilli.length != chunkItemCount ||
+        (chunk.entryIds != null && chunk.entryIds!.length != chunkItemCount) ||
         chunk.dateGroupIndices.length != chunkItemCount ||
         chunk.flags.length != chunkItemCount) {
       throw const LibraryGalleryLayoutManifestFailure(
@@ -421,6 +467,7 @@ class _FlatLibraryGalleryLayoutManifestBuilder
         dateGroups: List<String?>.unmodifiable(_dateGroups),
         flags: _flags,
       ),
+      entryIdentities: entryIdentities,
     );
   }
 }
@@ -458,6 +505,7 @@ class _HierarchicalLibraryGalleryLayoutManifestBuilder
         itemCount: totalItems,
         blocks: List.unmodifiable(_blocks),
       ),
+      entryIdentities: entryIdentities,
     );
   }
 }
