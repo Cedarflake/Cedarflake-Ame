@@ -61,3 +61,19 @@ The focused snapshot cases passed, including reuse across independently opened s
 query-key separation, publication invalidation, geometry recovery without a revision change,
 concurrent publication and stale ordinary pagination. The work comparison uses a folded query;
 the direct unfolded query remains outside this cache.
+
+## Indexed source-state validation
+
+The source-revision row validator previously grouped full source state for every identity. It now
+uses the existing identity indexes to select repeated identities before comparing alias state.
+Generation, known revision, size, modification time, ready-preview proof and allocation-clock
+checks retain their existing semantics, including independent unpublished scans and unknown revisions.
+
+On the same read-only retained catalog, the original and revised SQL both accepted the data. The
+first paired reads took 818 / 450 ms; subsequent pairs took 408 / 264 and 403 / 265 ms. These are
+isolated SQLite query measurements, not complete startup measurements.
+
+The focused source-revision checks passed: active cross-root and staged within-scan disagreements,
+unknown revisions, independent scan observations, precontract repair, damaged markers/structure,
+rollback and the v30-to-v31 migration. The extracted validator has 75 lines with no inline tests;
+its dedicated boundary fixture has 77 test lines. The existing repair/migration tests remain in place.

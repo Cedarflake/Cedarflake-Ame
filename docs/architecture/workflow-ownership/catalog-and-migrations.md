@@ -171,6 +171,9 @@ shared principles; the roadmap owns current delivery order and acceptance status
   repair use this owner directly. The repair accepts an absent marker only after current-schema
   proof, rejects a damaged existing marker, and publishes alias-wide invalidation with the marker
   in one immediate transaction. Identity evidence and the coordinator's admission order remain intact.
+  Its `source_revision_contract/rows.rs` owner first finds repeated identities through the existing
+  indexes, then compares their full source state. Cross-root active aliases and within-scan aliases
+  retain separate proofs; singleton state, preview evidence and the generation clock remain checked.
   `migrations/change_lane_contract.rs` proves the queue-origin lane projection;
   `migrations/recovery_authority_contract.rs` proves immutable P2 authority and canonical opening
   boundaries. Each owns structural/row acceptance and its rejection regressions. Historical DDL and
