@@ -114,6 +114,9 @@ Scope:
   types;
 - query-wide result manifests, stable identity, time distribution where meaningful, and bounded
   detail windows in the existing gallery;
+- every image meeting the semantic relevance threshold in the selected scope remains accessible;
+  pagination limits loaded details, not the total number of qualifying results. Broader scopes do
+  not raise the relevance threshold. Incomplete analysis coverage remains visible separately;
 - no use of semantic similarity as exact duplicate proof, category override, automatic keep/delete
   decision, or filesystem-operation authority.
 

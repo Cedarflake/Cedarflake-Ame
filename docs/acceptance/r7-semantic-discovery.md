@@ -520,3 +520,30 @@ assigns an album icon before requiring that record family in the archive. The ex
 export/restore/retained-choice case passed in that run. These test corrections passed formatting,
 diff checks and hosted execution; their dedicated suites contain 304 and 217 lines, with no
 production or inline-test changes.
+
+## Complete scoped results — 2026-11-13
+
+The `codex/gallery-group-discovery` follow-up replaces the scope-dependent best-score gap and
+500-item truncation under [ADR 0040](../architecture/0040-durable-discovery-features.md#relevance-admission).
+Candidate vectors remain windowed at 256; only qualifying source identifiers survive for ranking,
+and gallery details continue to use bounded pages.
+
+- Four retrieval-policy checks passed, including 769 matching locations across four candidate
+  windows plus one rejected low-relevance candidate. The existing SQLite paging case now uses
+  769 results and verifies ordinary pages, relevance order and seeks at offsets 500 and 766.
+  All three semantic-catalog cases passed. An initial local run could not create its OS temporary
+  directory; the same checks passed using the repository's leased scratch directory.
+- The retained 64-query/368-image bilingual corpus reused existing embeddings. No previously
+  retained target was lost, and all eight previously empty unrelated-query probes remained empty.
+  Fixed admission admits more low-ranked matches; the heuristic is not a semantic-precision claim.
+- The rebuilt Windows Debug client used the established real library in read-only browsing:
+  `猫咪` showed 1,515 merged results across the library, compared with the earlier 500-item display;
+  a narrower folder showed 1,384. Choosing entire-library scope restored 1,515. Dragging to the end
+  loaded the final page, and opening its final card displayed `1515 / 1515` in the viewer.
+- Coverage was 46,331 of 47,926 eligible merged items for the complete scope and 16,743 of 16,751
+  for the narrower folder. The partial-coverage marker remains applicable to missing analysis,
+  independently of the removed result cap. No source files or saved decisions were changed.
+
+The Windows Debug build and owned-file formatting/diff checks passed. The retrieval owner contains
+142 production lines and no inline tests; dedicated retrieval and SQLite paging files contain 187
+and 220 lines. This record covers the search delivery unit; grouped-gallery UI remains separate.

@@ -64,11 +64,21 @@ owns measurements and production admission evidence.
 ## Relevance admission
 
 Search publishes matching candidates rather than every indexed item sorted by distance. For the
-admitted SigLIP 2 package, description results require cosine at least 0.09 and no more than 0.025
-below the best eligible candidate. Reference-image results require at least 0.65 and no more than
-0.08 below the best non-reference candidate. Apply this rule after scoped retrieval and before
-publishing the bounded manifest; never pad an empty or short result. Manifest identity versions the
-policy. Indexed coverage continues to count analyzed candidates, including rejected matches.
+admitted SigLIP 2 package, description results require cosine at least 0.09 and reference-image
+results require at least 0.65. The threshold is independent of the selected source or folder.
+Expanding a scope must not reject existing matches because another candidate scores higher.
+Retain every qualifying candidate in the selected scope, ordered by relevance; never pad an empty
+or short result. The former 500-result cap is retired. Feature reads retain 256-item windows;
+the result manifest holds matching source identifiers and generations, while photo metadata and
+previews use the existing gallery pages. Sort qualifying identifiers once after the scan instead
+of repeatedly sorting and truncating each candidate window. Manifest memory grows with the number
+of matches; it does not retain the scanned embeddings or decoded photos.
+Manifest identity versions the policy. Indexed coverage continues to count analyzed candidates,
+including rejected matches.
+
+The former best-candidate gap (0.025 for descriptions, 0.08 for references) is retired: a stronger
+match in a broader scope raised the cutoff and removed otherwise matching images. Fixed admission
+preserves scope consistency, with relevance ordering keeping stronger matches first.
 
 These are initial relevance heuristics checked against the retained bilingual corpus, not confidence
 percentages or a guarantee of semantic correctness. Text and image similarities have different

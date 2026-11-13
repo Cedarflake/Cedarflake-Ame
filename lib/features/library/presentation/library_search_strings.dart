@@ -33,14 +33,13 @@ abstract final class LibrarySearchStrings {
   };
 
   static String coverage(LibrarySemanticResults results) =>
-      "按相关度排列 · 已分析 ${results.indexedItems}/${results.eligibleItems} 张 · 最多显示 500 张"
+      "按相关度排列 · 已分析 ${results.indexedItems}/${results.eligibleItems} 张"
       "${results.storageFull ? ' · 分析存储已满' : ''}";
 
   static String? notice(LibrarySemanticResults results) {
     if (results.storageFull || results.indexedItems < results.eligibleItems) {
       return "部分结果";
     }
-    if (results.items.length == 500) return "前 500 张";
     return null;
   }
 }

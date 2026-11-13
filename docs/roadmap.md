@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-12
+Last planning update: 2026-11-13
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -70,6 +70,15 @@ R8 and its follow-ups, including the loading-feedback update, and R9 album file 
 integrated. The current release is `v0.1.0-alpha.3`. R10's Beta release phase is next; its
 [product scope](product/organization-workflows.md#r10---large-library-maturity-and-release-readiness)
 is decomposed in the [execution plan](plans/r10-beta-readiness.md). Implementation has not started.
+
+### Gallery group discovery
+
+The [follow-up plan](plans/gallery-group-discovery.md) is active before R10: first restore complete,
+scope-consistent semantic results, then add mutually exclusive grouped-gallery filters, cleanup and
+tray actions, and a labeled group-type menu. Search implementation and local client verification
+are recorded in [R7 evidence](acceptance/r7-semantic-discovery.md#complete-scoped-results--2026-11-13);
+delivery and hosted checks are in progress. The UI units await implementation. This maintenance
+scope does not reopen the completed R7/R8 stages.
 
 ### R10 — Beta readiness
 

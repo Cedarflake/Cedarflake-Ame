@@ -33,8 +33,8 @@ Replace the superseded desktop-filter withdrawal in its ADR when that surface is
   A superseding request cancels or retires old work; only the current request can publish or clear
   its loading state. Keep usable results visible during replacement.
 - Semantic results use relevance order and the shared gallery, selection, preview and filmstrip.
-  Exclude low-relevance candidates before publishing the list; the result limit is a cap, never a
-  requirement to fill it. No matching candidates produces an empty search result.
+  Exclude low-relevance candidates before publishing the list. Include all qualifying images in
+  the selected scope and load photo details in pages. No matching candidates produces an empty result.
   Hide date-position navigation when order is relevance-based. Returning from the viewer retains
   the searched image and gallery position.
 - Add `查找相关图片` to an existing library-image action menu. A library image is the reference;
@@ -60,7 +60,7 @@ Replace the superseded desktop-filter withdrawal in its ADR when that surface is
 - Use the existing feedback owners for preparation, partial coverage, failure and retry. A search
   with incomplete indexing remains usable and identifies the affected coverage. Background index
   growth cannot reorder an active result list; expose an intentional update action when needed.
-  Keep the gallery subtitle to result counts and a short partial/limited-result marker when needed;
+  Keep the gallery subtitle to result counts and a short incomplete-analysis marker when needed;
   put coverage and ordering details in its tooltip instead of a permanent explanatory sentence.
 
 ## Implementation slices
@@ -117,9 +117,11 @@ GPU preference, introduce no manual device tiers, and use hysteresis to avoid re
 A superseded search cannot cancel unrelated background work, a newer request or its published results.
 
 Apply catalog restrictions to candidate eligibility during retrieval. Do not narrow only an already
-truncated global top-K. Fix a bounded result manifest to the query identity, catalog/index generation,
+truncated global top-K. Fix a complete matching-identifier manifest to the query identity, catalog/index generation,
 model contract and stable tie-break order. Gallery pages, counts, full-result selection and viewer
-windows consume that same manifest. Declare the result limit and incomplete coverage explicitly.
+windows consume that same manifest. Declare incomplete analysis coverage explicitly; do not truncate
+qualifying results to an arbitrary item count. The original 500-result policy is superseded by the
+scope-complete retrieval decision in ADR 0040.
 
 Add typed native API and Dart port/adapter mappings without exposing engine vectors or identifiers
 to presentation. Persist search mode through the existing preference boundary. Content queries must
