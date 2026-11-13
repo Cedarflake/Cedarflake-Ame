@@ -31,6 +31,7 @@ remaining implicit framework transitions during baseline collection.
 | --- | --- | --- |
 | Card/viewer entry and return | `LibraryViewerTransition`, `LibraryViewerImageFlight`, `LibraryViewerChrome`, `LibraryViewerCardOverlays` | Gallery, albums, smart albums, exact/similar review and member-tray entry; crop, corners, opaque travelling image and return target |
 | Viewer controls and image changes | `LibraryViewerFilmstripSlot`, `LibraryImageReveal`, `LibraryViewerImage`, `LibraryViewerFade` | Filmstrip overlay geometry, image quality, adjacent navigation and controls |
+| Window size and state changes | `WindowManagerActions`, `AmeWindowFullscreen`, gallery layout and viewer viewport owners | Maximize/restore, minimize/restore, border resizing and fullscreen; both gallery layouts, current image, fit geometry and retained scroll anchor |
 | Gallery reflow and duplicate merging | `LibraryGalleryLayoutMotion`, `LibraryGalleryExitVisuals`, `LibraryGalleryScrollSurface` | Both layouts, visible-card bounds, background publication and stable timeline/viewport |
 | Sidebar and folder disclosure | `LibrarySidebarTransition`, `LibrarySidebarContent`, `LibraryFolderDisclosure`, `LibrarySidebarReorderList` | Shared search/sidebar geometry, child expansion, selection retirement and drag collapse |
 | State and selection controls | `AmeStateTransition`, `AmeTransitionIcon`, `AmeFlipTransition`, gallery header and selection actions | Icon/arrow motion, retained faces, action timing and all shared callers |
@@ -85,6 +86,9 @@ assert every animation frame or duplicate framework tests. Compare opening/closi
 reversal at matched progress, including partially visible cards, both gallery layouts, enlarged
 text, light/dark themes and reduced motion where affected. Check input and position during loading
 or background publication, then confirm that retired surfaces release retained visual resources.
+Separate first-open card transitions from warmed image-cache transitions. Measure window-state and
+size changes in the gallery and viewer, distinguishing native window animation from Flutter frame
+work; a sidebar-width transition does not cover this interaction.
 
 Every inventory family must have an assessment. Changed hot paths require repeatable improvement
 and visual/behavior preservation; unchanged efficient paths require no speculative rewrite. Reuse

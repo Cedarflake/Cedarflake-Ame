@@ -91,9 +91,29 @@ below retain their original scope rather than becoming newly executed acceptance
 
 The scoped source review covered the changed render and buffer/layout paths, callers, listener/layer
 retirement, opacity publication, input/semantic transforms and exact geometry equivalence, without
-a confirmed new defect. The inventory and local combined verification are complete. Broader query
-latency and resource qualification retain their R10 owner. Hosted checks are outstanding until the
-combined PR runs this repository's PR/main CI workflow.
+a confirmed new defect. This initial assessment omitted dedicated first-open and native-window
+measurements; the sidebar and warm-viewer captures did not close those paths.
+
+Supplementary measurements used the unchanged `af76eeff` Profile binary in a fresh process. First
+viewer entry had UI/raster p95 of 3.07/4.51 ms and maxima of 12.94/20.55 ms. The initial maximized
+viewer capture reached 27.93 ms raster; its trace includes shader compilation and image uploads.
+These are current costs, not paired improvement measurements or a settled root-cause diagnosis.
+
+| Additional native window path | Current result |
+| --- | --- |
+| Equal-height gallery maximize / restore | UI p95 2.06 / 1.97 ms; UI max 13.33 / 11.25 ms; restored heading, first image and geometry |
+| Grid gallery maximize / restore | UI p95 3.50 / 2.54 ms; UI max 8.38 / 7.23 ms; restored heading, first image and geometry |
+| Grid border resizing | A short corner drag reduced the width from 1,269 to 1,089 pixels while retaining the leading image; repeated expansion and prolonged dragging are not covered |
+| Viewer fullscreen and minimize / restore | Same image and position retained. The combined capture contains a 37.20-ms UI frame during restore; targeted attribution remains open |
+
+The initial border attempt changed the timeline instead of the window, and an expansion gesture
+was rejected for ending outside the target window. Neither establishes resize acceptance. Raw
+supplementary captures use the `*-window-*-final`, `viewer-first-open-final` and
+`gallery-border-grid-final` names under ignored `build/performance`.
+
+Local completion remains open for first-use/restore-frame diagnosis and repeated native resizing.
+Broader query latency and resource qualification retain their R10 owner. PR 63 contains this batch;
+its `af76eeff` Quality / CI run 43436034710 was still running when these measurements were recorded.
 
 ## Loading-feedback integration — 2026-11-12
 

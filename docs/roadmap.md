@@ -84,12 +84,15 @@ maintenance does not reopen the completed R7/R8 stages.
 ### Transition performance
 
 The [motion-performance plan](plans/motion-performance.md) is active on
-`codex/motion-performance`. MP0/MP2 have scoped assessments for every transition family. MP1 retains
+`codex/motion-performance`. MP0/MP2 retain the assessed transition families. Supplementary first-open
+viewer and native window measurements expose remaining first-use and restore-frame costs; their
+cause-level assessment and repeated border-resize coverage remain open. MP1 retains
 unchanged-size card content, paints sidebar clipping/translation without relayout, and reduces
-compact-manifest comparison and row-layout calculation. MP3's combined local verification and
-source review are complete; the [measurement record](acceptance/material-motion.md#transition-performance--2026-11-13)
+compact-manifest comparison and row-layout calculation. MP3 retains the completed affected-path
+verification and source review, with the window/viewer work above still open; the
+[measurement record](acceptance/material-motion.md#transition-performance--2026-11-13)
 retains measured gains, remaining frame outliers and unchanged efficient paths. Deliver this
-complete batch in one PR; hosted checks remain outstanding.
+batch in the existing PR 63; hosted checks remain outstanding.
 The scope covers existing transitions across the application while preserving their presentation,
 behavior and styling. Measurements select the optimization targets; R10's broader responsiveness,
 resource qualification and Beta release remain separate.
