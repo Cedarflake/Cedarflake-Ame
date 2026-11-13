@@ -318,6 +318,7 @@ pub(crate) struct SqliteCatalogSession {
     schema_cookie: i64,
     write_admission: Arc<SqliteWriteAdmission>,
     gallery_projections: Arc<gallery_projection_cache::GalleryProjectionCache>,
+    semantic_candidates: Arc<semantic_catalog::candidate_cache::CandidateCache>,
 }
 
 #[derive(Clone)]
@@ -390,6 +391,7 @@ impl SqliteCatalogSession {
             schema_cookie,
             write_admission: sqlite_write_admission(&admission_path),
             gallery_projections: Arc::default(),
+            semantic_candidates: Arc::default(),
         })
     }
 
@@ -453,6 +455,7 @@ impl SqliteCatalogSession {
             schema_cookie,
             write_admission: sqlite_write_admission(&admission_path),
             gallery_projections: Arc::default(),
+            semantic_candidates: Arc::default(),
         })
     }
 
@@ -2238,6 +2241,7 @@ impl CatalogRepository for SqliteCatalog {
             &self.path,
             query,
             query_id,
+            &self.session.gallery_projections,
         )?;
         let snapshot = read.load_snapshot(max_items, after, before, anchor)?;
         read.commit()?;
@@ -2256,6 +2260,7 @@ impl CatalogRepository for SqliteCatalog {
             &self.path,
             query,
             query_id,
+            &self.session.gallery_projections,
         )?;
         let snapshot = read.load_anchored_snapshot(
             max_items,
@@ -2285,6 +2290,7 @@ impl CatalogRepository for SqliteCatalog {
             &self.path,
             query,
             query_id,
+            &self.session.gallery_projections,
         )?;
         let snapshot = read.load_anchored_snapshot(
             max_items,
@@ -2310,6 +2316,7 @@ impl CatalogRepository for SqliteCatalog {
             &self.path,
             query,
             query_id,
+            &self.session.gallery_projections,
         )?;
         let timeline = read.load_timeline()?;
         read.commit()?;

@@ -17,6 +17,8 @@ use super::changed;
 pub(super) struct Snapshot<'a> {
     transaction: Transaction<'a>,
     revision: u64,
+    projections: &'a super::super::gallery_projection_cache::GalleryProjectionCache,
+    candidates: &'a super::candidate_cache::CandidateCache,
 }
 
 impl<'a> Snapshot<'a> {
@@ -29,6 +31,8 @@ impl<'a> Snapshot<'a> {
         Ok(Self {
             transaction,
             revision,
+            projections: &catalog.session.gallery_projections,
+            candidates: &catalog.session.semantic_candidates,
         })
     }
 
@@ -38,7 +42,11 @@ impl<'a> Snapshot<'a> {
         after_location: Option<&str>,
         consume: &mut dyn FnMut(Vec<SemanticCandidate>) -> Result<(), ScanError>,
     ) -> Result<u64, ScanError> {
-        let query = candidate_query(query, after_location)?;
+        let membership = after_location
+            .is_none()
+            .then(|| self.projections.membership(query, self.revision))
+            .flatten();
+        let query = candidate_query(query, after_location, membership.as_deref())?;
         let mut statement = self
             .transaction
             .prepare(&query.sql)
@@ -85,20 +93,56 @@ impl SemanticCatalogSnapshot for Snapshot<'_> {
         query: &GalleryQuery,
         consume: &mut dyn FnMut(Vec<SemanticCandidate>) -> Result<(), ScanError>,
     ) -> Result<u64, ScanError> {
+        if let Some(candidates) = self.candidates.get(query, self.revision) {
+            for window in candidates.chunks(SEMANTIC_CANDIDATE_WINDOW) {
+                consume(window.to_vec())?;
+            }
+            return Ok(self.revision);
+        }
+        // Retain only scopes already admitted by the revision-bound gallery cache.
+        // Fingerprint publication advances that same revision; vector storage is read afresh.
+        let mut capture = self
+            .projections
+            .membership(query, self.revision)
+            .map(|_| super::candidate_cache::Capture::new(query));
         // Keep one SQLite cursor so grouped scope is evaluated once per search.
-        self.read_windows(query, None, consume)
+        self.read_windows(query, None, &mut |window| {
+            if let Some(capture) = capture.as_mut() {
+                capture.append(&window);
+            }
+            consume(window)
+        })?;
+        if let Some(capture) = capture {
+            self.candidates.publish(query, self.revision, capture);
+        }
+        Ok(self.revision)
     }
 }
 
 fn candidate_query(
     query: &GalleryQuery,
     after_location: Option<&str>,
+    membership: Option<&super::super::gallery_read_projection::GalleryReadProjection>,
 ) -> Result<gallery::BuiltGalleryQuery, ScanError> {
     gallery::validate_gallery_query(query)?;
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
-    let source = gallery::semantic_candidate_source(query, &mut parameters);
-    gallery::push_gallery_filters(query, &mut clauses, &mut parameters);
+    let source = if let Some(membership) = membership {
+        parameters.push(Value::Text(
+            serde_json::to_string(&membership.location_ids().collect::<Vec<_>>())
+                .map_err(|error| ScanError::new("catalog_query_invalid", error.to_string()))?,
+        ));
+        "FROM json_each(?) AS selected
+         CROSS JOIN asset_locations AS locations INDEXED BY asset_locations_location_id
+           ON locations.location_id = selected.value
+         JOIN library_roots AS roots
+           ON roots.id = locations.root_id AND roots.active_scan_id = locations.scan_id"
+            .to_owned()
+    } else {
+        let source = gallery::semantic_candidate_source(query, &mut parameters);
+        gallery::push_gallery_filters(query, &mut clauses, &mut parameters);
+        source
+    };
     let limit = if let Some(after) = after_location {
         clauses.push("locations.location_id > ?".to_owned());
         parameters.push(Value::Text(after.to_owned()));

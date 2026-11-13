@@ -27,8 +27,13 @@ pub(super) fn load_time_snapshot(
             "Modification-time results do not contain an unknown-date section",
         ));
     }
-    let read =
-        GalleryReadTransaction::begin(&mut catalog.connection, &catalog.path, query, query_id)?;
+    let read = GalleryReadTransaction::begin(
+        &mut catalog.connection,
+        &catalog.path,
+        query,
+        query_id,
+        &catalog.session.gallery_projections,
+    )?;
     let projection = read.load_projection(&catalog.session.gallery_projections)?;
     let timeline = match projection.as_ref() {
         Some(projection) => projection.timeline.clone(),

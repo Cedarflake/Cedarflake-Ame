@@ -1,3 +1,4 @@
+pub(super) mod candidate_cache;
 mod snapshot;
 
 use rusqlite::{OptionalExtension, params};

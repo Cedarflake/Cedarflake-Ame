@@ -91,3 +91,30 @@ decoded gallery image. Dart-entry-to-content time was 4,678–4,749 ms, compared
 before removing the duplicate audit. The earlier instrument started at Dart entry and only required
 gallery tiles, so its figures are not interchangeable with the stricter process-to-decoded-image
 measurement. The five-second process target remains open.
+
+## Semantic candidate and result reuse
+
+Completed searches may retain one candidate list within 16 MiB, keyed by the full query and catalog
+revision. This contains source identifiers and fingerprint evidence; vector pages keep their existing
+bounded reader. Only scopes admitted by the gallery projection cache qualify. Cancellation, partial
+reads and oversized lists publish no entry, and late completions cannot replace a newer revision.
+Result rendering can reuse the scope's duplicate representatives when every manifest member belongs
+to that exact revision's selection. Other queries retain their original filtering path.
+
+The real Release window's two subsequent semantic searches took 700 and 854 ms, compared with
+3,079–3,132 ms before reuse. They returned 412 and 493 results with no search error. The first query,
+including initial candidate retrieval, took 2,060 ms and returned 1,515 results. These are exploratory
+input-to-content readings; the 20-switch acceptance remains separate. The session finished without
+Flutter errors at 420 MB client working set. No image vectors or original media were retained here.
+
+The existing relevance/paging and concurrent-publication regressions passed with the cached scope.
+They retain old-snapshot consistency, fresh publication visibility and cancellation between bounded
+windows. A separate cache boundary check covers its size budget and late older completion.
+The new candidate cache has 114 production and 39 inline-test lines; the shared semantic catalog
+fixture has 270 dedicated-test lines. The snapshot reader remains 205 production lines.
+The existing catalog facade has 2,560 production and 445 test-support lines, with no inline test
+bodies; this change only connects the session caches and existing read entrypoints there.
+
+The first process after rebuilding took 12,002 ms, while five subsequent fresh processes took
+5,116–5,190 ms. The preceding rebuild also had a 13,979 ms first launch. These outliers remain part
+of the startup record; their cause is not yet isolated, and the process startup target remains open.

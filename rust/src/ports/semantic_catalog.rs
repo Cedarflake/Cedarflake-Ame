@@ -2,6 +2,7 @@ use crate::domain::organization::OrganizationSelection;
 use crate::domain::semantic_discovery::ImageContentIdentity;
 use crate::domain::{GalleryQuery, ScanError};
 
+#[derive(Clone)]
 pub(crate) struct SemanticCandidate {
     pub source: OrganizationSelection,
     pub content: Option<ImageContentIdentity>,

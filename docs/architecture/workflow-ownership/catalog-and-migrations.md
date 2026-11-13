@@ -63,8 +63,17 @@ shared principles; the roadmap owns current delivery order and acceptance status
   through the existing location index. `gallery_projection_cache.rs` owns session-local membership
   reuse under ADR 0014's complete query/revision keys, byte and entry budgets. It never holds its
   mutex across SQL. New revisions retire entries and late readers cannot reinsert old membership.
-  Reuse refreshes dimensions and timeline geometry in the current transaction; metadata-filtered,
-  group-filtered and semantic queries keep their direct path. Detail state is never cached here.
+  Semantic candidate scans may borrow that same query/revision membership, then read current
+  source generations and compatible published fingerprints in their own snapshot. Ranked Library
+  result reads may omit repeated folding only when every requested member is in that selection;
+  changed scopes, publications and unavailable entries retain the ordinary query path.
+  `semantic_catalog/candidate_cache.rs` may retain one completed candidate selection within 16 MiB,
+  keyed by that same complete query and revision. It retains source identities and content evidence,
+  never vectors or image records. Cancelled/oversized reads are not retained; replay remains windowed
+  and cancellable. New publication retires the entry and late completion cannot replace a newer one.
+  Reuse refreshes dimensions and timeline geometry in the current transaction; metadata-filtered
+  and group-filtered queries keep their direct path. Semantic results retain no separate geometry
+  cache. Detail state is never cached here.
   Anchored snapshots resolve identity through the shared anchor lookup, then locate the ordinal and
   detail window in that same ordered projection. A removed asset retains the existing clamped
   ordinal fallback; queries without an inline projection keep the bounded SQL window path.

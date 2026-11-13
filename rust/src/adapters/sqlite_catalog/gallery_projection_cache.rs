@@ -3,7 +3,7 @@ use std::mem::size_of;
 use std::sync::{Arc, Mutex};
 
 use crate::domain::gallery_groups::GalleryGroupFilter;
-use crate::domain::{GalleryCollection, GalleryQuery, ScanError};
+use crate::domain::{GalleryCollection, GalleryDuplicateMode, GalleryQuery, ScanError};
 
 use super::gallery_read_projection::GalleryReadProjection;
 
@@ -29,6 +29,52 @@ struct Entry {
 }
 
 impl GalleryProjectionCache {
+    pub(super) fn semantic_query(
+        &self,
+        query: &GalleryQuery,
+        revision: u64,
+    ) -> Option<GalleryQuery> {
+        query.semantic_results.as_ref()?;
+        if !query.folds_duplicates()
+            || query.collection != GalleryCollection::Library
+            || query.organization_queue.is_some()
+        {
+            return None;
+        }
+        let mut scoped = query.clone();
+        let manifest = scoped.semantic_results.take()?;
+        let membership = self.membership(&scoped, revision)?;
+        let locations: std::collections::HashSet<_> = membership.location_ids().collect();
+        if manifest
+            .items
+            .iter()
+            .any(|item| !locations.contains(item.location_id.as_str()))
+        {
+            return None;
+        }
+        scoped.semantic_results = Some(manifest);
+        // Membership already selected this scope's representatives in the same catalog revision.
+        // Source generation and every remaining filter are still checked against the read snapshot.
+        scoped.duplicate_mode = GalleryDuplicateMode::All;
+        Some(scoped)
+    }
+
+    pub(super) fn membership(
+        &self,
+        query: &GalleryQuery,
+        revision: u64,
+    ) -> Option<Arc<GalleryReadProjection>> {
+        let state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        if state.revision != revision {
+            return None;
+        }
+        state
+            .entries
+            .iter()
+            .find(|entry| entry.query == *query)
+            .map(|entry| Arc::clone(&entry.projection))
+    }
+
     pub(super) fn load(
         &self,
         query: &GalleryQuery,
@@ -104,7 +150,7 @@ impl RetainedProjections {
     }
 }
 
-fn query_bytes(query: &GalleryQuery) -> usize {
+pub(super) fn query_bytes(query: &GalleryQuery) -> usize {
     let collection = match &query.collection {
         GalleryCollection::Library | GalleryCollection::Favorites => 0,
         GalleryCollection::Album { album_id } => album_id.capacity(),

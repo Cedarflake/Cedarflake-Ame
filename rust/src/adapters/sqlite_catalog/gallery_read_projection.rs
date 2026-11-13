@@ -28,6 +28,10 @@ pub(super) struct GalleryReadProjection {
 }
 
 impl GalleryReadProjection {
+    pub(super) fn location_ids(&self) -> impl Iterator<Item = &str> {
+        self.items.iter().map(|item| item.location_id.as_str())
+    }
+
     pub(super) fn load(
         transaction: &Transaction<'_>,
         query: &GalleryQuery,
