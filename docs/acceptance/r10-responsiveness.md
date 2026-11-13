@@ -118,3 +118,21 @@ bodies; this change only connects the session caches and existing read entrypoin
 The first process after rebuilding took 12,002 ms, while five subsequent fresh processes took
 5,116–5,190 ms. The preceding rebuild also had a 13,979 ms first launch. These outliers remain part
 of the startup record; their cause is not yet isolated, and the process startup target remains open.
+
+## Active-root representative lookup
+
+The duplicate representative subquery now joins each root to its active locations using both root
+and scan identity. The root-first access path uses the existing classification-publication index,
+avoiding a scan of retired locations or the former scattered primary-key reads. Unfingerprinted
+items retain their short-circuit path. No index, schema, preferred-image rule or query scope changed.
+
+Paired read-only SQL runs returned identical 47,926-entry sequences. Warm original reads took
+1,204 / 1,220 ms; root-first reads took 899 / 889 ms. A plain root predicate also improved this
+catalog but selected a full location scan, so the active-root path was retained for catalogs with
+historical scans. Existing scoped-representative, publication and unfingerprinted-page checks remain
+the correctness coverage for this query adjustment.
+
+Five subsequent fresh Release processes reached decoded gallery content in 4,746–4,846 ms. The
+first launch immediately after rebuilding still took 12,378 ms; that separate cold-build condition
+needs diagnosis before claiming uniformly fast first use. The query owner has 155 production lines
+and no inline tests; no new test body or user-facing behavior was added for the connection predicate.
