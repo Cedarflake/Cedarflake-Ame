@@ -29,7 +29,7 @@ pub(super) fn load_time_snapshot(
     }
     let read =
         GalleryReadTransaction::begin(&mut catalog.connection, &catalog.path, query, query_id)?;
-    let projection = read.load_projection()?;
+    let projection = read.load_projection(&catalog.session.gallery_projections)?;
     let timeline = match projection.as_ref() {
         Some(projection) => projection.timeline.clone(),
         None => read.load_timeline()?,
@@ -55,7 +55,7 @@ pub(super) fn load_time_snapshot(
         None => read.load_snapshot(max_items, None, None, window_anchor)?,
     };
     let layout_manifest = match projection {
-        Some(projection) => Some(projection.into_layout()?),
+        Some(projection) => Some(projection.encode_layout()?),
         None => read.load_layout_manifest(timeline.total_items)?,
     };
     read.commit()?;

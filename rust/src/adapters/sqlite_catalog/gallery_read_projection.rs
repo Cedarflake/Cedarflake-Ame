@@ -21,7 +21,7 @@ use super::{
 };
 
 /// One bounded ordered selection supplies geometry, navigation and detail windows.
-/// Its identity is valid only inside the caller's read transaction.
+/// Reuse requires the same query and catalog revision in the caller's read transaction.
 pub(super) struct GalleryReadProjection {
     items: Vec<StoredLayoutManifestItem>,
     pub(super) timeline: GalleryTimeline,
@@ -275,9 +275,32 @@ impl GalleryReadProjection {
         }
     }
 
-    pub(super) fn into_layout(self) -> Result<Vec<GalleryLayoutManifestChunk>, ScanError> {
+    pub(super) fn refresh_geometry(
+        &self,
+        transaction: &Transaction<'_>,
+    ) -> Result<Self, ScanError> {
+        let mut items = self.items.clone();
+        let mut sums = BTreeMap::<Option<String>, u64>::new();
+        for chunk in items.chunks_mut(MAX_LAYOUT_MANIFEST_CHUNK_ITEMS as usize) {
+            super::gallery_layout_manifest::refresh_dimensions(transaction, chunk)?;
+            for item in chunk {
+                let month = item
+                    .date_key
+                    .as_ref()
+                    .map(|date| date.chars().take(7).collect::<String>());
+                *sums.entry(month).or_default() += u64::from(item.aspect_ratio_milli());
+            }
+        }
+        let mut timeline = self.timeline.clone();
+        for bucket in &mut timeline.buckets {
+            bucket.aspect_ratio_milli_sum = sums.remove(&bucket.month_key).unwrap_or(0);
+        }
+        Ok(Self { items, timeline })
+    }
+
+    pub(super) fn encode_layout(&self) -> Result<Vec<GalleryLayoutManifestChunk>, ScanError> {
         let mut chunks = Vec::new();
-        let mut remaining = self.items.into_iter();
+        let mut remaining = self.items.iter().cloned();
         let mut start = 0;
         loop {
             let items: Vec<_> = remaining
@@ -310,5 +333,38 @@ impl GalleryReadProjection {
             }
         }
         Ok(chunks)
+    }
+
+    pub(super) fn retained_bytes(&self) -> usize {
+        use std::mem::size_of;
+
+        size_of::<Self>()
+            + self.items.capacity() * size_of::<StoredLayoutManifestItem>()
+            + self
+                .items
+                .iter()
+                .map(|item| {
+                    item.location_id.capacity()
+                        + item.root_id.capacity()
+                        + item.date_key.as_ref().map_or(0, String::capacity)
+                        + item.primary_text.capacity()
+                })
+                .sum::<usize>()
+            + self.timeline.query_id.capacity()
+            + self.timeline.buckets.capacity() * size_of::<GalleryTimeBucket>()
+            + self
+                .timeline
+                .buckets
+                .iter()
+                .map(|bucket| bucket.month_key.as_ref().map_or(0, String::capacity))
+                .sum::<usize>()
+            + self.timeline.scroll_sections.capacity()
+                * size_of::<crate::domain::gallery_scroll_section::GalleryScrollSection>()
+            + self
+                .timeline
+                .scroll_sections
+                .iter()
+                .map(|section| section.key.capacity())
+                .sum::<usize>()
     }
 }

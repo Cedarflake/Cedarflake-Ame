@@ -39,6 +39,7 @@ mod folders;
 mod gallery;
 mod gallery_group_members;
 mod gallery_layout_manifest;
+mod gallery_projection_cache;
 mod gallery_read_projection;
 mod gallery_snapshot;
 mod gallery_time_snapshot;
@@ -316,6 +317,7 @@ pub(crate) struct SqliteCatalogSession {
     user_version: i64,
     schema_cookie: i64,
     write_admission: Arc<SqliteWriteAdmission>,
+    gallery_projections: Arc<gallery_projection_cache::GalleryProjectionCache>,
 }
 
 #[derive(Clone)]
@@ -387,6 +389,7 @@ impl SqliteCatalogSession {
             user_version,
             schema_cookie,
             write_admission: sqlite_write_admission(&admission_path),
+            gallery_projections: Arc::default(),
         })
     }
 
@@ -449,6 +452,7 @@ impl SqliteCatalogSession {
             user_version,
             schema_cookie,
             write_admission: sqlite_write_admission(&admission_path),
+            gallery_projections: Arc::default(),
         })
     }
 

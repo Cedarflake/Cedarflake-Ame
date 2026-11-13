@@ -95,8 +95,15 @@ validation. Flutter validates and publishes the coherent result once. A metadata
 with identical ordered identities, dimensions and date groups reuses the existing row geometry.
 Within the inline budget, chronological and name-sorted snapshots select ordered compact rows once
 and derive the timeline and encoded layout from that selection. Detail windows use indexed location reads
-against the same transaction. The selection is not retained across catalog revisions. Other sort
-modes and larger scopes retain their bounded query paths.
+against the same transaction. A validated catalog session may retain ordered membership for up to
+eight folded queries without metadata filters within a combined 64 MiB budget, keyed by the complete typed query,
+query identity and catalog revision. New revisions retire retained membership; late old readers
+cannot republish it. Similarity/group filters and semantic manifests retain their direct read path.
+Each reuse reads dimensions and detail windows in the current transaction and rebuilds timeline
+geometry sums: preview dimension recovery does not advance the ordering revision. This replaces
+transaction-only membership lifetime to avoid repeating unchanged grouping on navigation; it does
+not reuse source state, previews or operation authority. Other sort modes and larger scopes retain
+their bounded query paths. Remove this derived cache to return to the original read path.
 
 Ordinary paging remains a bounded read without timeline aggregation. Removal refresh uses the
 coherent snapshot boundary as well: splitting its page and timeline would temporarily collapse

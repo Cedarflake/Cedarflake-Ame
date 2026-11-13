@@ -37,3 +37,27 @@ The focused upgrade, rollback and orphan-reference cases passed. The new case ch
 unrelated orphan remains outside similarity ownership while an orphan similarity variant is rejected.
 Local fixtures ran under the managed acceptance scratch directory after the host's default Temp
 directory denied fixture creation. No fixture fallback or assertion was changed.
+
+## Revision-bound membership reuse
+
+The validated session retains at most eight folded selections within 64 MiB. Each hit refreshes
+geometry and details in its current read transaction. Metadata-filtered, group-filtered, semantic
+and unfolded queries keep their direct path. A catalog revision change discards retained membership.
+
+The same retained-library API comparison after this change produced:
+
+| Read | Subsequent reads before (ms) | Subsequent reads after (ms) |
+| --- | ---: | ---: |
+| Merged gallery | 1,080 / 1,061 | 548 / 287 |
+| Three smart categories | 1,302–1,444 | 39–84 |
+| Favorites | 406 / 400 | 21 / 17 |
+| Pending organization queue | 1,477 / 1,494 | 655 / 660 |
+
+Expanded-gallery reads remained 277–281 ms. First-use category grouping and smart-navigation
+aggregation remain on their original SQL path; these figures do not claim an improvement there.
+The fresh native process's first merged read was 5,690 ms. Release UI acceptance is still pending.
+
+The focused snapshot cases passed, including reuse across independently opened session readers,
+query-key separation, publication invalidation, geometry recovery without a revision change,
+concurrent publication and stale ordinary pagination. The work comparison uses a folded query;
+the direct unfolded query remains outside this cache.

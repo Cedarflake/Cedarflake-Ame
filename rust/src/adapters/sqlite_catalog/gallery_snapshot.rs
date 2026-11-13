@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::sync::Arc;
 
 use rusqlite::{Connection, Transaction, params_from_iter};
 
@@ -51,8 +52,24 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
         self.transaction.commit().map_err(database_error)
     }
 
-    pub(super) fn load_projection(&self) -> Result<Option<GalleryReadProjection>, ScanError> {
-        GalleryReadProjection::load(&self.transaction, self.query, self.query_id, self.revision)
+    pub(super) fn load_projection(
+        &self,
+        cache: &super::gallery_projection_cache::GalleryProjectionCache,
+    ) -> Result<Option<Arc<GalleryReadProjection>>, ScanError> {
+        cache.load(
+            self.query,
+            self.query_id,
+            self.revision,
+            || {
+                GalleryReadProjection::load(
+                    &self.transaction,
+                    self.query,
+                    self.query_id,
+                    self.revision,
+                )
+            },
+            |projection| projection.refresh_geometry(&self.transaction),
+        )
     }
 
     pub(super) fn load_projection_page(
@@ -322,8 +339,8 @@ impl GalleryQueryRepository for SqliteCatalog {
     ) -> Result<GalleryQuerySnapshot, ScanError> {
         let read =
             GalleryReadTransaction::begin(&mut self.connection, &self.path, query, query_id)?;
-        let projection = read.load_projection()?;
-        let snapshot = match (anchor, projection.as_ref()) {
+        let projection = read.load_projection(&self.session.gallery_projections)?;
+        let snapshot = match (anchor, projection.as_deref()) {
             (Some(anchor), projection) => {
                 read.load_anchored_snapshot(max_items, anchor, projection)
             }
@@ -341,7 +358,7 @@ impl GalleryQueryRepository for SqliteCatalog {
             None => read.load_timeline()?,
         };
         let layout_manifest = match projection {
-            Some(projection) => Some(projection.into_layout()?),
+            Some(projection) => Some(projection.encode_layout()?),
             None => read.load_layout_manifest(timeline.total_items)?,
         };
         let organization_counts = query

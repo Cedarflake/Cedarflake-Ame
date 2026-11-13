@@ -58,10 +58,13 @@ shared principles; the roadmap owns current delivery order and acceptance status
 - `domain/gallery_time_snapshot.rs` owns semantic month resolution, display-order fallback and
   bounded target-window selection. `sqlite_catalog/gallery_time_snapshot.rs` resolves that intent
   and reads the timeline, roots, page and inline layout inside one `GalleryReadTransaction`.
-  `gallery_read_projection.rs` owns the transaction-local ordered selection for chronological and
-  name-sorted inline snapshots. It derives navigation and geometry from that selection and loads
-  bounded detail windows through the existing location index. It cannot cache membership across
-  read transactions.
+  `gallery_read_projection.rs` owns the ordered selection for chronological and name-sorted inline
+  snapshots. It derives navigation and geometry from that selection and loads bounded detail windows
+  through the existing location index. `gallery_projection_cache.rs` owns session-local membership
+  reuse under ADR 0014's complete query/revision keys, byte and entry budgets. It never holds its
+  mutex across SQL. New revisions retire entries and late readers cannot reinsert old membership.
+  Reuse refreshes dimensions and timeline geometry in the current transaction; metadata-filtered,
+  group-filtered and semantic queries keep their direct path. Detail state is never cached here.
   Anchored snapshots resolve identity through the shared anchor lookup, then locate the ordinal and
   detail window in that same ordered projection. A removed asset retains the existing clamped
   ordinal fallback; queries without an inline projection keep the bounded SQL window path.
