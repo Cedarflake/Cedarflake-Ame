@@ -148,7 +148,10 @@ Raw follow-up captures are `viewer-manifest-*` and `gallery-native-final` under 
 
 Local completion remains open for restore-frame outliers and the CI failures. PR 63 contains this
 batch. The `af76eeff` run 43436034710 failed the selective-search work assertion and four viewer
-session cases; its remaining executed jobs passed. Run 43443504916 for `0d3cb34a` is in progress.
+session cases; its remaining executed jobs passed. Unchanged gallery-group attachment now retains
+the existing asset instead of allocating a replacement on every viewer reconciliation. All 25
+unchanged viewer-session cases, including those four failures, passed with scoped analysis and
+formatting. The selective-search failure remains under investigation.
 Broader query latency and resource qualification retain their R10 owner.
 
 ## Loading-feedback integration — 2026-11-12
