@@ -54,7 +54,10 @@ pub(in crate::adapters::sqlite_catalog::migrations) fn validate_rows(
          OR (SELECT COUNT(*) FROM similarity_dispatch) <> 1
          OR EXISTS(SELECT 1 FROM similarity_dispatch AS active
              JOIN similarity_outcomes AS outcome ON outcome.run_id = active.active_run_id)
-         OR EXISTS(SELECT 1 FROM pragma_foreign_key_check WHERE [table] LIKE 'similarity_%')",
+         OR EXISTS(
+             SELECT 1 FROM sqlite_master AS schema
+             CROSS JOIN pragma_foreign_key_check(schema.name)
+             WHERE schema.type = 'table' AND schema.name LIKE 'similarity_%')",
             params![SIMILARITY_SCHEME, SIMILARITY_PARAMETERS, LEGACY_SCHEME, LEGACY_PARAMETERS, confirmed],
             |row| row.get(0),
         )
