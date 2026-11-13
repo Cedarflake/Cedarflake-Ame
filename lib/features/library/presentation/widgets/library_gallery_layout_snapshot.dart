@@ -38,7 +38,7 @@ class LibraryGalleryLayoutSnapshot {
         grouping ?? LibraryGalleryGrouping.forSortKey(sortKey);
     String? dateKeyAt(int index) =>
         effectiveGrouping == LibraryGalleryGrouping.date
-        ? _normalizedDateKey(manifest.dateKeyAt(index))
+        ? manifest.dateKeyAt(index)
         : null;
     if (manifest.itemCount == 0 || availableWidth <= 0) {
       return LibraryGalleryLayoutSnapshot._(
@@ -71,7 +71,8 @@ class LibraryGalleryLayoutSnapshot {
     final targetRowHeight = thumbnailSize.targetExtent;
     var entryExtent = 0.0;
     var groupStart = 0;
-    var activeDateKey = dateKeyAt(0);
+    var activeRawDateKey = dateKeyAt(0);
+    var activeDateKey = _normalizedDateKey(activeRawDateKey);
 
     void appendEntry(LibraryGalleryLayoutSnapshotEntry entry) {
       entries.add(entry);
@@ -185,7 +186,10 @@ class LibraryGalleryLayoutSnapshot {
     }
 
     for (var index = 1; index < manifest.itemCount; index++) {
-      final dateKey = dateKeyAt(index);
+      final rawDateKey = dateKeyAt(index);
+      if (rawDateKey == activeRawDateKey) continue;
+      activeRawDateKey = rawDateKey;
+      final dateKey = _normalizedDateKey(rawDateKey);
       if (dateKey == activeDateKey) {
         continue;
       }

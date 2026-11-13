@@ -67,7 +67,8 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 ## Current execution queue
 
 R8 and its follow-ups, including the loading-feedback update, and R9 album file organization are
-integrated. The current release is `v0.1.0-alpha.3`. R10's Beta release phase is next; its
+integrated. The current release is `v0.1.0-alpha.3`. Transition-performance preparation precedes
+R10's Beta release phase. The R10
 [product scope](product/organization-workflows.md#r10---large-library-maturity-and-release-readiness)
 is decomposed in the [execution plan](plans/r10-beta-readiness.md). Implementation has not started.
 
@@ -79,6 +80,23 @@ results, exclusive grouped-gallery filters, member and cleanup actions, and labe
 The [integration record](acceptance/r8-file-operations.md#gallery-group-discovery-integration--2026-11-13)
 retains audit, verification and merge boundaries. Remaining query waits belong to R10; this
 maintenance does not reopen the completed R7/R8 stages.
+
+### Transition performance
+
+The [motion-performance plan](plans/motion-performance.md) is active on
+`codex/motion-performance`. MP0/MP2 have assessments for all transition families, including first-open
+viewer and native size/state changes in the viewer and both gallery layouts. MP1 retains card
+content, paints sidebar clipping/translation without relayout, reuses viewer compositing layers,
+reduces compact-manifest comparison/row calculation, yields between snapshot conversion chunks,
+and separates Dart frame scheduling from the Windows message loop.
+MP3 local affected-path verification and source review are recorded; exact-head hosted CI remains
+outstanding in [PR 63](https://github.com/Cedarflake/Cedarflake-Ame/pull/63). The
+[measurement record](acceptance/material-motion.md#transition-performance--2026-11-13) retains gains,
+first-use shader/compositor costs, remaining frame outliers and the limit on prolonged held-mouse
+resizing coverage. No animation timing, appearance or interaction policy changed.
+The scope covers existing transitions across the application while preserving their presentation,
+behavior and styling. Measurements select the optimization targets; R10's broader responsiveness,
+resource qualification and Beta release remain separate.
 
 ### R10 — Beta readiness
 

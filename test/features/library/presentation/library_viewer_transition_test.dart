@@ -166,8 +166,17 @@ void main() {
     final initial = tester.getRect(image);
     expect(initial.center, const Offset(160, 140));
     expect(initial.size, const Size(240, 120));
+    final flight = tester.renderObject<RenderLibraryViewerImageFlight>(
+      find.byType(LibraryViewerImageFlight),
+    );
+    final clip = flight.debugLayer! as ClipRectLayer;
+    final roundedClip = clip.firstChild! as ClipRRectLayer;
+    final transform = roundedClip.firstChild! as TransformLayer;
     final chrome = tester.getRect(find.text("chrome"));
     await tester.pump(const Duration(milliseconds: 60));
+    expect(flight.debugLayer, same(clip));
+    expect(clip.firstChild, same(roundedClip));
+    expect(roundedClip.firstChild, same(transform));
     final moving = tester.getRect(image);
     expect(moving.width, greaterThan(initial.width));
     expect(moving.width, lessThan(800));
@@ -178,6 +187,7 @@ void main() {
     await tester.pumpAndSettle();
     final full = tester.getRect(image);
     expect(full.size, const Size(800, 400));
+    expect(flight.debugLayer, isNull);
 
     await tester.pumpWidget(_host(gallery, null));
     await tester.pump(const Duration(milliseconds: 40));

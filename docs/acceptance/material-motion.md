@@ -3,6 +3,217 @@
 The [roadmap](../roadmap.md#material-motion-adoption) owns disposition and the
 [execution plan](../plans/material-motion.md) owns scope and order.
 
+## Transition performance — 2026-11-13
+
+The [performance plan](../plans/motion-performance.md) preserves the delivered motion. Baseline
+`532fbc21`, intermediate render changes through `2e0aab44`, and follow-ups through `1da9d4c7`
+with the aligned-buffer change accompanying this record were measured with Flutter 3.47.8 Profile,
+Skia, a 165-Hz
+display and the same 1,269 × 714 window. `local-primary` contained 63,170 locations / 47,926 merged
+entries. No source-file operation was run. Raw frame/GC/timeline captures are ignored under
+`build/performance`; the client used the production entrypoint with in-memory view preferences.
+
+`LibraryGalleryMotionItem` now builds its content from layout constraints and retains it while only
+position changes. Existing geometry, opacity, exit-image lifetime and scroll-interruption owners
+are unchanged. The existing duplicate-publication regression checks zero further tile builds on
+its translation frame, including manual and background publication; resize, reversal, action
+retirement and reduced-motion checks also pass (six retained cases). The owner has 364 production
+lines, no inline tests, and 343 dedicated test lines.
+
+`LibrarySidebarContent` now preserves destination layout constraints and applies the existing
+alignment and clip during painting. The installed framework's `LayoutBuilder` schedules layout for
+an animated builder in its build scope even when that builder only changes a transform; the
+render-object listener removes that repeated layout. It updates paint and semantic geometry, uses
+the same offset for hit testing, reuses the framework clip layer, and detaches its listener on
+retirement. No motion token, input policy or source/caching lifetime changed.
+
+A temporary old/new renderer comparison matched painted pixels and child bounds for both used
+alignments, both directions and four progress values (16 comparisons). The retained boundary case
+checks movement without another layout, clipped hit rejection and reverse movement. The existing
+sidebar/gallery checks passed at 1x/2x text, three widths, interrupted reversal and reduced motion;
+the combined affected run passed 19 cases. Scoped formatting and analysis passed. This sidebar
+owner has 159 production lines, no inline tests and 193 dedicated transition-test lines.
+
+CPU samples traced periodic UI pauses to exact comparison of compact manifest columns during
+background publication. `galleryBuffersEqual` compares eight bytes at a time and checks the remaining
+bytes without copying or hashing; aligned views use direct `Uint64List` access, while unaligned views
+retain `ByteData` access. Query, identity, dates, dimensions and flags retain exact equality.
+After this change, idle-refresh UI p95/max fell from 25.09/27.91 to 4.43/5.07 ms in 23.35/37.28-second
+captures. Remaining sidebar admission pauses were traced to row reconstruction. Normalizing dates
+only when the raw date changes and returning the stored aspect ratio directly remove repeated work
+without changing packing, grouping, scroll anchors or asynchronous publication.
+
+Buffer views, final-byte mismatches, row reuse, changed geometry and malformed-date grouping passed
+their focused checks. The final manifest and row-layout run passed 44 retained cases; the separate
+buffer check passed two cases. The aligned follow-up extends those cases with equal/different view
+offsets and every-byte mismatches; both cases and five retained manifest cases passed. In one AOT
+process, three 2,000-comparison runs over a 383,408-byte column took 52.76–54.35 microseconds per
+comparison with `ByteData`, versus 28.18–30.28 with aligned access. This measures comparison work,
+not whole-frame improvement. Formatting and scoped analysis passed. The buffer owner has 48
+production/40 dedicated-test lines; manifest storage has 782/277 and the snapshot owner 485/401,
+with no inline tests. No controller, bridge or catalog rule was extended.
+
+| Warm sidebar burst | Before UI p50 / p95 / p99 / max (ms) | Final UI p50 / p95 / p99 / max (ms) | UI frames over 6.06 ms, before → final |
+| --- | --- | --- | --- |
+| Equal-height collapse | 1.91 / 3.15 / 9.47 / 25.82 | 1.75 / 3.11 / 6.61 / 10.04 | 2 of 57 → 2 of 66 |
+| Equal-height expand | 1.75 / 2.59 / 22.26 / 29.56 | 1.42 / 2.65 / 8.77 / 10.12 | 2 of 66 → 2 of 65 |
+| Grid collapse | 1.48 / 8.48 / 24.34 / 24.34 | 1.81 / 4.49 / 6.07 / 8.22 | 5 of 49 → 2 of 69 |
+| Grid expand | 1.38 / 5.80 / 20.19 / 20.19 | 1.11 / 3.65 / 7.00 / 8.85 | 2 of 46 → 2 of 60 |
+
+Equal-height comparisons start at `532fbc21`; grid comparisons start at `2e0aab44`, before the
+buffer/layout calculation changes. Bursts contain at least 25 frames with no gap above 60 ms.
+Full captures retain isolated slow frames; initial shader work is separate from warm runs. Final
+raster p95 was 1.32/1.22 ms for equal-height and 1.24/1.24 ms for grid, with no over-budget raster
+frames in those bursts. UI outliers remain above the 165-Hz budget; the measured improvement is
+shorter pauses, not elimination of every missed frame. Burst duration includes input and admission
+work and does not change the animation duration.
+
+Both layouts and the centered album landing retained their endpoint and intermediate geometry.
+The final grid client immediately showed placeholders at a distant date, filled them without moving
+the viewport, and returned to the original top heading without a subsequent jump. The input helper
+supplies short drag strokes; this run does not establish prolonged-drag latency.
+
+Final equal-height RSS was 367.7/376.0/357.6 MiB (initial/peak/settled), versus baseline
+370.8/382.0/378.0 MiB. Final grid RSS was 438.6/457.0/437.3 MiB, versus intermediate
+427.9/475.4/413.8 MiB. Final Dart heaps were 34.5/38.0 MiB. These complete captures include background
+work and different durations; they do not establish allocation-rate or GC improvement. Final
+equal-height/grid captures contained 138/116 VM `Scavenge` starts across threads over 33.99/30.65
+seconds. No image cache, retained-image budget or full-layout cache was added or enlarged.
+
+The inventory below combines current Profile samples with source/lifecycle inspection. Controls,
+overlays and loading implementations remain unchanged; previous visual and lifecycle checks below
+retain their original scope rather than becoming newly executed acceptance.
+
+| Surface family | Assessment and disposition |
+| --- | --- |
+| Card/viewer entry and return | Normal gallery, albums, smart albums, group/member entry converge on the shared viewer and flight owners. Warm open/close UI p95 was 0.83/1.00 ms; raster p95 1.32/1.02 ms. The shared flight now reuses its compositing layers; image/quality leases, clipping, overlay fade and route ownership remain unchanged. |
+| Viewer controls/image changes | Filmstrip open/close UI p95 was 0.90/1.08 ms. Its stable child and hidden ticker retirement remain; image reveal retains its existing quality handoff. |
+| Native window size/state | Viewer and both gallery layouts retain current content, fit geometry and return position through maximize/restore and native sizing. Minimize/restore costs and first-use raster spikes are recorded below. |
+| Gallery reflow | Keep the first optimization and bounded exit visuals (64 images, four million pixels, disposal on completion). Both equal-height and grid callers share this owner. |
+| Sidebar/folders | Keep the paint-only viewport change. Folder disclosure UI p95 was 0.83/0.68 ms with no over-budget burst frames; retain its framework size/fade and closing-child retirement. |
+| State/selection controls | Group flip UI p95 was 3.56/3.58 ms, with no over-budget UI burst frames. Retain hidden-face lifetime, icon transitions, header/selection actions and shared album/sidebar callers. |
+| Menus/dialogs/trays/notices | Menu/filter-tray UI p95 was 0.46–0.59 ms; album-tray p95 was 0.80 ms. Keep framework route motion and stable-child feedback/task expansion. First-use raster spikes remain visible in full captures. |
+| Loading/temporary content | Duplicate-entry loading burst UI/raster p95 was 1.12/1.15 ms. Loading already repaints a bounded region, shares morph shapes and stops its ticker when inactive/reduced; retain quiet/minimum-visible intervals and feedback priority. |
+| Continuous input | Viewer zoom-out UI/raster p95 was 1.58/0.79 ms with no over-budget burst frames. Wheel and timeline input remained connected; comparison reuses the zoom owner. Preserve direct manipulation, inertia and scroll anchoring. |
+
+The scoped source review covered the changed render and buffer/layout paths, callers, listener/layer
+retirement, opacity publication, input/semantic transforms and exact geometry equivalence, without
+a confirmed new defect. This initial assessment omitted dedicated first-open and native-window
+measurements; the sidebar and warm-viewer captures did not close those paths.
+
+Supplementary measurements used the unchanged `af76eeff` Profile binary in a fresh process. First
+viewer entry had UI/raster p95 of 3.07/4.51 ms and maxima of 12.94/20.55 ms. The initial maximized
+viewer capture reached 27.93 ms raster; its trace includes shader compilation and image uploads.
+The cause-level follow-up below separates first-use shader cost from recurring application work.
+
+| Additional native window path | Current result |
+| --- | --- |
+| Equal-height gallery maximize / restore | UI p95 2.06 / 1.97 ms; UI max 13.33 / 11.25 ms; restored heading, first image and geometry |
+| Grid gallery maximize / restore | UI p95 3.50 / 2.54 ms; UI max 8.38 / 7.23 ms; restored heading, first image and geometry |
+| Gallery native sizing | A short grid corner drag reduced width from 1,269 to 1,089 pixels. Native system-size input also expanded and contracted equal-height and grid windows, including a repeated 1,269–1,369-pixel grid cycle; leading image and date remained in place. Prolonged held-mouse dragging is not covered |
+| Viewer fullscreen and minimize / restore | Same image and position retained. The combined capture contains a 37.20-ms UI frame during restore; follow-up attribution and residual costs are recorded below |
+
+Raw supplementary captures use the `*-window-*-final`, `viewer-first-open-final` and
+`gallery-border-grid-final` names under ignored `build/performance`.
+
+Follow-up viewer rendering reuses the framework's outer clip/opacity layer and bounded handles for
+the rounded clip and transform, releasing them when the flight ends or retires. The existing
+transition case now verifies reuse across moving frames and release at completion. The 16 affected
+viewer, hidden-gallery geometry and duplicate-viewer semantics cases passed, including reduced
+motion, interrupted return, opaque images and partially clipped cards. The flight owner has 239
+production lines and 543 dedicated transition-test lines, with no inline tests.
+
+The same retained-library Profile client preserved entry/return geometry and image-quality handoff.
+The paired warm close/open captures measured UI p95 0.39/0.59 ms before and 0.44/4.39 ms after;
+raster p95 0.98/0.98 and 1.29/1.52 ms. Background publications overlap these captures: they establish
+no frame-time improvement. The retained benefit is eliminating three new compositing layers per
+moving frame, without enlarging image caches or changing the animation.
+
+The earlier 20.55-ms cold raster frame contains three shader compilations totaling 15.58 ms.
+A separate restore capture rebuilds 44 hidden gallery tiles; freezing that gallery would change
+return-target geometry and was not introduced. Native system-size operations expanded and contracted
+the viewer at 1,280/1,291-pixel widths with the same image and fit. Minimized-window restores exposed
+a 49.99-ms UI frame overlapping whole-manifest conversion and geometry comparison.
+
+Snapshot conversion now yields between the native 4,096-item chunks. Input/frame events can run
+before conversion finishes, while publication still receives only a validated complete snapshot.
+The existing query-generation checks retain stale-result authority. A queued-input boundary case
+and a late inconsistent-chunk rejection passed with eight retained manifest/cancellation cases;
+scoped formatting, analysis and the Profile build passed. The mapping owner has 140 production/
+81 dedicated-test lines, the calling adapter 470 production lines, and neither has inline tests.
+
+After chunk scheduling, a 49.22-ms UI outlier remained in geometry comparison/card layout with GC.
+A control with CPU/timeline profiling disabled still reached 55.02 ms, so profiler overhead alone
+did not explain it. The aligned-buffer follow-up removes further comparison cost. Final Profile
+captures below disable CPU/timeline sampling unless marked traced; background publication continues.
+
+| Final viewer capture | UI p50 / p95 / p99 / max (ms) | Raster p50 / p95 / p99 / max (ms) | UI / raster frames over 6.06 ms |
+| --- | --- | --- | --- |
+| First card entry, 115 frames | 0.28 / 3.10 / 6.30 / 9.68 | 0.82 / 2.13 / 9.11 / 24.43 | 2 / 2 |
+| Two minimize/restore cycles, 111 frames | 0.31 / 4.41 / 5.07 / 5.19 | 0.81 / 1.52 / 20.17 / 42.89 | 0 / 2 |
+| Minimize/restore and maximize/restore, traced, 172 frames | 0.30 / 5.94 / 11.73 / 22.43 | 0.58 / 1.20 / 4.26 / 43.85 | 9 / 2 |
+| Return to card, 87 frames | 0.19 / 3.65 / 4.34 / 4.74 | 0.79 / 1.36 / 5.10 / 7.09 | 0 / 1 |
+
+The traced 43.87-ms raster span contains 32.91 ms of shader compilation (including 28.27 ms of
+driver linking) and 7.94 ms of compositor presentation. First-use raster spikes remain with the
+pinned renderer; no warm-up delay, visual change or renderer replacement was introduced. The final
+light restore run no longer reproduced the 55-ms UI outlier, but differing background work prevents
+attributing that entire reduction to buffer access. Its RSS initial/sampled-peak/settled values were
+323.5/367.2/355.6 MiB, with 45.5 MiB of Dart heap; no cache budget changed.
+
+Entry, image-quality handoff, native state changes and card return retained their geometry, current
+image and date. Both gallery layouts' sizing checks retain their earlier coverage; the mixed native
+gallery capture had UI/raster p95 5.90/1.44 ms and maxima 30.61/17.85 ms. Raw final captures are
+`viewer-final-*`, with earlier `viewer-manifest-*` and `gallery-native-final` retained for comparison.
+All inventory families now have local assessment; first-use engine costs and unmeasured prolonged
+held-mouse resizing remain explicit limits. Exact-head hosted CI remains outstanding in PR 63.
+
+The `af76eeff` run 43436034710 failed the selective-search work assertion and four viewer
+session cases; its remaining executed jobs passed. Unchanged gallery-group attachment now retains
+the existing asset instead of allocating a replacement on every viewer reconciliation. All 25
+unchanged viewer-session cases, including those four failures, passed with scoped analysis and
+formatting. The search plan scanned the active scan before checking FTS hits. Resolving candidate
+integer keys to location keys first lets that join seek its composite key. The unchanged 10,001-row
+case dropped from 100,124 to 146 SQLite VM steps; literal scanning took 110,021. Source publication,
+literal matching and query ordering remain unchanged. The seven retained text-search cases passed,
+covering Unicode/punctuation, retired scans, scoped counts/layout/keysets, FTS admission and index lifecycle.
+Broader query latency and resource qualification retain their R10 owner.
+
+### Viewer callback cadence — 2026-11-14
+
+The `eb95662e` runner's merged Windows/UI loop repeatedly delayed animation callbacks during
+card enlargement. A traced warm frame had about 27 ms between its vsync timestamp and callback,
+despite 0.93-ms build and 1.01-ms raster work; flight progress jumped from 26% to 56%. A capture
+without CPU/timeline profiling reproduced the gap. Native message traces did not identify a
+matching long message handler, so attribution stops at merged-loop scheduling.
+
+The accompanying runner change selects the SDK's public separate-UI-thread policy, with its
+compatibility/upgrade boundary in [ADR 0001](../architecture/0001-flutter-rust-desktop-stack.md#windows-animation-scheduling).
+The same first card, retained library, Flutter 3.47.8 Profile/Skia and 165-Hz display were used in
+a maximized 2,048 × 1,232 window. Samples below cover consecutive forward callbacks whose preceding
+progress is 5–95%; callback arrival uses the monotonic clock, separately from animation timestamps.
+
+| Capture | Intervals | Largest animation interval (ms) | Largest callback-arrival interval (ms) |
+| --- | --- | --- | --- |
+| Merged, warm, traced | 18 | 30.30 | 33.27 |
+| Merged, warm, CPU/timeline profiling disabled | 18 | 31.39 | 32.61 |
+| Separate, final cold entry | 21 | 18.18 | 18.37 |
+| Separate, final warm entry | 23 | 6.06 | 7.14 |
+
+The final warm capture had no middle-of-flight arrival interval above 9 ms. Its initial 0%-to-9%
+interval still took 18.18 ms; cold entry retained a 21.20-ms raster peak. Full-capture cold/warm
+UI maxima were 10.00/8.48 ms, with warm raster max 1.85 ms. These are callback and frame-work
+measurements, not a display-presentation rate. Settled warm RSS was 341.6 MiB. No cache budget,
+motion geometry, duration, image-quality handoff or renderer changed.
+
+The final Profile build passed. Real-window checks retained card entry/return, keyboard next/previous
+and Escape, zoom/fit, maximize/restore and native folder-picker cancellation. The client remained
+usable after cancellation; no folder was added. No new source-level test mirrors this SDK setting;
+the real interaction establishes its effect, while existing hosted integration owns wider coverage.
+Flutter's future-removal notice remains visible. Ignored captures are `viewer-flight-full-*` and
+`viewer-cadence-final-*` under `build/performance`; temporary native tracing is absent from the final
+64-line runner. Exact-head CI remains outstanding in PR 63.
+
 ## Loading-feedback integration — 2026-11-12
 
 [PR 59](https://github.com/Cedarflake/Cedarflake-Ame/pull/59), head

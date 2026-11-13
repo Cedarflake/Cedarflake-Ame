@@ -1,6 +1,7 @@
 import "dart:convert";
 import "dart:typed_data";
 
+import "gallery_buffer_equality.dart";
 import "library_models.dart";
 import "gallery_entry_identity.dart";
 
@@ -156,9 +157,8 @@ class LibraryGalleryLayoutManifest {
 
   double aspectRatioAt(int index) {
     _checkIndex(index);
-    return (_dimensionOverrides[index] ??
-            (_storage.aspectRatioAt(index) * 1000).round()) /
-        1000;
+    final override = _dimensionOverrides[index];
+    return override == null ? _storage.aspectRatioAt(index) : override / 1000;
   }
 
   String? dateKeyAt(int index) {
@@ -555,12 +555,12 @@ class _FlatLibraryGalleryLayoutManifestStorage
   @override
   bool hasSameGeometry(_LibraryGalleryLayoutManifestStorage other) =>
       other is _FlatLibraryGalleryLayoutManifestStorage &&
-      _sameValues(_locationIdBytes, other._locationIdBytes) &&
-      _sameValues(_locationIdOffsets, other._locationIdOffsets) &&
-      _sameValues(_aspectRatioMilli, other._aspectRatioMilli) &&
-      _sameValues(_dateGroupIndices, other._dateGroupIndices) &&
+      galleryBuffersEqual(_locationIdBytes, other._locationIdBytes) &&
+      galleryBuffersEqual(_locationIdOffsets, other._locationIdOffsets) &&
+      galleryBuffersEqual(_aspectRatioMilli, other._aspectRatioMilli) &&
+      galleryBuffersEqual(_dateGroupIndices, other._dateGroupIndices) &&
       _sameValues(_dateGroups, other._dateGroups) &&
-      _sameValues(_flags, other._flags);
+      galleryBuffersEqual(_flags, other._flags);
 
   @override
   int get primitiveByteLength =>
@@ -721,12 +721,12 @@ class _LibraryGalleryLayoutManifestBlock {
 
   bool hasSameGeometry(_LibraryGalleryLayoutManifestBlock other) =>
       startOrdinal == other.startOrdinal &&
-      _sameValues(_locationIdBytes, other._locationIdBytes) &&
-      _sameValues(_locationIdOffsets, other._locationIdOffsets) &&
-      _sameValues(_aspectRatioMilli, other._aspectRatioMilli) &&
-      _sameValues(_dateGroupIndices, other._dateGroupIndices) &&
+      galleryBuffersEqual(_locationIdBytes, other._locationIdBytes) &&
+      galleryBuffersEqual(_locationIdOffsets, other._locationIdOffsets) &&
+      galleryBuffersEqual(_aspectRatioMilli, other._aspectRatioMilli) &&
+      galleryBuffersEqual(_dateGroupIndices, other._dateGroupIndices) &&
       _sameValues(_dateGroups, other._dateGroups) &&
-      _sameValues(_flags, other._flags);
+      galleryBuffersEqual(_flags, other._flags);
 
   int get primitiveByteLength =>
       _locationIdBytes.lengthInBytes +

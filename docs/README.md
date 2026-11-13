@@ -18,6 +18,7 @@ only the contracts, execution details, and evidence that own the task.
 | How will R9 move album files by year, and where does ExifTool fit? | [R9 execution plan](plans/r9-album-files-by-year.md) and [roadmap disposition](roadmap.md#r9--album-files-by-year) |
 | What remains before the first Beta? | [R10 execution plan](plans/r10-beta-readiness.md) and [roadmap disposition](roadmap.md#r10--beta-readiness) |
 | Where will official Material spring motion be adopted? | [Material motion plan](plans/material-motion.md) and [roadmap disposition](roadmap.md#material-motion-adoption) |
+| How will transition costs be reduced without changing accepted effects? | [Motion performance plan](plans/motion-performance.md) and [roadmap disposition](roadmap.md#transition-performance) |
 | How will project organization be refactored after R5? | [Organization execution plan](plans/project-organization.md), activated by the [roadmap](roadmap.md#project-organization-after-r5) |
 | Where are organization changes and their verification recorded? | [Initial, catalog, scan and preview evidence](acceptance/project-organization.md); [incremental and synchronization evidence](acceptance/project-organization-continuity.md) |
 | How should the accepted gallery and controls behave, and why? | [Gallery UI contract and rationale](product/gallery-ui.md#design-principles-and-rationale), under the accepted UI ADRs |

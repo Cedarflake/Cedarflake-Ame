@@ -113,9 +113,9 @@ class RustLibraryGalleryLayoutManifestCatalog
   }
 }
 
-LibraryGalleryLayoutManifest? mapRustGalleryLayoutManifest(
+Future<LibraryGalleryLayoutManifest?> mapRustGalleryLayoutManifest(
   List<rust_domain.GalleryLayoutManifestChunk>? chunks,
-) {
+) async {
   if (chunks == null) return null;
   if (chunks.isEmpty) {
     throw const LibraryGalleryLayoutManifestFailure(
@@ -131,7 +131,10 @@ LibraryGalleryLayoutManifest? mapRustGalleryLayoutManifest(
     hasGroupIdentity: first.entryIds != null,
   )..append(first);
   for (final chunk in chunks.skip(1)) {
-    builder.append(RustLibraryGalleryLayoutManifestCatalog.mapChunk(chunk));
+    // Keep input and frame events runnable between the bridge's bounded chunks.
+    await Future<void>(() {
+      builder.append(RustLibraryGalleryLayoutManifestCatalog.mapChunk(chunk));
+    });
   }
   return builder.build();
 }

@@ -14,29 +14,36 @@ void main() {
   test(
     "catalog-only revisions retain rows and invalidate changed geometry",
     () {
+      const locationIds = ["location-a", "b", "c", "d", "e", "last-location"];
       final snapshot = LibraryGalleryLayoutSnapshot.build(
-        manifest: _manifest(),
+        manifest: _manifest(locationIds: locationIds),
         availableWidth: 900,
         thumbnailSize: GalleryThumbnailSize.small,
         sortKey: LibraryGallerySortKey.captureTime,
       );
-      final replacement = _manifest(revision: BigInt.from(8));
+      final replacement = _manifest(
+        revision: BigInt.from(8),
+        locationIds: locationIds,
+      );
       final rebound = snapshot.withCompatibleManifest(replacement)!;
       expect(rebound.manifest, same(replacement));
       expect(rebound.entries, same(snapshot.entries));
       expect(rebound.metrics, same(snapshot.metrics));
       expect(
         snapshot.withCompatibleManifest(
-          _manifest(aspectRatios: [2, 1, 1, 1, 1, 0]),
+          _manifest(locationIds: locationIds, aspectRatios: [2, 1, 1, 1, 1, 0]),
         ),
         isNull,
       );
-      expect(
-        snapshot.withCompatibleManifest(
-          _manifest(locationIds: ["b", "a", "c", "d", "e", "f"]),
-        ),
-        isNull,
-      );
+      for (final changedIds in [
+        ["b", "location-a", "c", "d", "e", "last-location"],
+        ["location-a", "b", "c", "d", "e", "last-locatioX"],
+      ]) {
+        expect(
+          snapshot.withCompatibleManifest(_manifest(locationIds: changedIds)),
+          isNull,
+        );
+      }
     },
   );
 
@@ -264,11 +271,11 @@ void main() {
     expect(snapshot.entries.where((entry) => entry.isPhotoRow), hasLength(4));
   });
 
-  test("treats malformed date keys as an unknown group", () {
+  test("keeps consecutive malformed dates in one unknown group", () {
     final manifest = _manifest(
-      locationIds: const ["one", "two"],
-      aspectRatios: const [1, 1],
-      dateKeys: const ["x", "2026-08-09"],
+      locationIds: const ["one", "two", "three", "four"],
+      aspectRatios: const [1, 1, 1, 1],
+      dateKeys: const ["x", "invalid", null, "2026-08-09"],
     );
 
     final snapshot = LibraryGalleryLayoutSnapshot.build(
@@ -280,6 +287,12 @@ void main() {
 
     expect(snapshot.metrics.dateAnchors.first.isUnknown, isTrue);
     expect(snapshot.metrics.dateAnchors.first.year, isNull);
+    expect(
+      snapshot.entries
+          .where((entry) => entry.headerLabel != null)
+          .map((entry) => entry.startItemIndex),
+      [0, 3],
+    );
   });
 
   for (final pointInHeading in [false, true]) {

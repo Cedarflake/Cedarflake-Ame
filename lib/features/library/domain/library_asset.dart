@@ -56,32 +56,35 @@ class LibraryAsset {
   String get galleryEntryId => galleryGroup?.key.entryId ?? locationId;
   String get selectionId => galleryGroup?.key.entryId ?? assetId;
 
-  LibraryAsset withGalleryGroup(LibraryGalleryGroup? group) => LibraryAsset(
-    assetId: assetId,
-    locationId: locationId,
-    rootId: rootId,
-    activeScanId: activeScanId,
-    sourcePath: sourcePath,
-    displayPath: displayPath,
-    relativePath: relativePath,
-    previewPath: previewPath,
-    fileSize: fileSize,
-    createdUnixMs: createdUnixMs,
-    modifiedUnixMs: modifiedUnixMs,
-    sourceRevision: sourceRevision,
-    sourceGeneration: sourceGeneration,
-    width: width,
-    height: height,
-    previewStatus: previewStatus,
-    previewIssueCode: previewIssueCode,
-    previewIssueMessage: previewIssueMessage,
-    metadataEngineId: metadataEngineId,
-    metadataEngineVersion: metadataEngineVersion,
-    captureTime: captureTime,
-    camera: camera,
-    fileIdentity: fileIdentity,
-    galleryGroup: group,
-  );
+  LibraryAsset withGalleryGroup(LibraryGalleryGroup? group) {
+    if (identical(group, galleryGroup)) return this;
+    return LibraryAsset(
+      assetId: assetId,
+      locationId: locationId,
+      rootId: rootId,
+      activeScanId: activeScanId,
+      sourcePath: sourcePath,
+      displayPath: displayPath,
+      relativePath: relativePath,
+      previewPath: previewPath,
+      fileSize: fileSize,
+      createdUnixMs: createdUnixMs,
+      modifiedUnixMs: modifiedUnixMs,
+      sourceRevision: sourceRevision,
+      sourceGeneration: sourceGeneration,
+      width: width,
+      height: height,
+      previewStatus: previewStatus,
+      previewIssueCode: previewIssueCode,
+      previewIssueMessage: previewIssueMessage,
+      metadataEngineId: metadataEngineId,
+      metadataEngineVersion: metadataEngineVersion,
+      captureTime: captureTime,
+      camera: camera,
+      fileIdentity: fileIdentity,
+      galleryGroup: group,
+    );
+  }
 
   LibraryAsset withPreview({
     required String previewPath,
