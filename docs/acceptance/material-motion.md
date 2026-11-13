@@ -111,7 +111,27 @@ was rejected for ending outside the target window. Neither establishes resize ac
 supplementary captures use the `*-window-*-final`, `viewer-first-open-final` and
 `gallery-border-grid-final` names under ignored `build/performance`.
 
-Local completion remains open for first-use/restore-frame diagnosis and repeated native resizing.
+Follow-up viewer rendering reuses the framework's outer clip/opacity layer and bounded handles for
+the rounded clip and transform, releasing them when the flight ends or retires. The existing
+transition case now verifies reuse across moving frames and release at completion. The 16 affected
+viewer, hidden-gallery geometry and duplicate-viewer semantics cases passed, including reduced
+motion, interrupted return, opaque images and partially clipped cards. The flight owner has 239
+production lines and 543 dedicated transition-test lines, with no inline tests.
+
+The same retained-library Profile client preserved entry/return geometry and image-quality handoff.
+The paired warm close/open captures measured UI p95 0.39/0.59 ms before and 0.44/4.39 ms after;
+raster p95 0.98/0.98 and 1.29/1.52 ms. Background publications overlap these captures: they establish
+no frame-time improvement. The retained benefit is eliminating three new compositing layers per
+moving frame, without enlarging image caches or changing the animation.
+
+The earlier 20.55-ms cold raster frame contains three shader compilations totaling 15.58 ms.
+Current first entry still reaches 22.01 ms raster. A separate restore capture rebuilds 44 hidden
+gallery tiles; freezing that gallery would change return-target geometry and was not introduced.
+Native system-size operations expanded and contracted the viewer at 1,280/1,291-pixel widths with
+the same image and fit. Further minimized-window restores exposed a 49.99-ms UI frame overlapping
+whole-manifest conversion and geometry comparison; that main-thread work remains under investigation.
+
+Local completion remains open for restore-frame work and repeated gallery native resizing.
 Broader query latency and resource qualification retain their R10 owner. PR 63 contains this batch;
 its `af76eeff` Quality / CI run 43436034710 was still running when these measurements were recorded.
 

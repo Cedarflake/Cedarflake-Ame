@@ -63,6 +63,8 @@ class RenderLibraryViewerImageFlight extends RenderProxyBox {
   bool _canFly;
   bool _returning = false;
   LibraryViewerOrigin? _returnOrigin;
+  final _roundedClipLayer = LayerHandle<ClipRRectLayer>();
+  final _transformLayer = LayerHandle<TransformLayer>();
 
   @override
   bool get alwaysNeedsCompositing => child != null;
@@ -184,34 +186,49 @@ class RenderLibraryViewerImageFlight extends RenderProxyBox {
     final target = _targetOrigin();
     final frame = _frame(target);
     if (frame == null) {
+      _roundedClipLayer.layer = null;
+      _transformLayer.layer = null;
       if (_origin != null && target == null && _animation != null) {
-        context.pushOpacity(
+        layer = context.pushOpacity(
           offset,
           (255 * _animation!.value.clamp(0.0, 1.0)).round(),
           super.paint,
+          oldLayer: layer is OpacityLayer ? layer! as OpacityLayer : null,
         );
       } else {
+        layer = null;
         super.paint(context, offset);
       }
       return;
     }
-    context.pushClipRect(
-      needsCompositing,
+    layer = context.pushClipRect(needsCompositing, offset, frame.visibleClip, (
+      context,
       offset,
-      frame.visibleClip,
-      (context, offset) => context.pushClipRRect(
+    ) {
+      _roundedClipLayer.layer = context.pushClipRRect(
         needsCompositing,
         offset,
         frame.clip.outerRect,
         frame.clip,
-        (context, offset) => context.pushTransform(
-          needsCompositing,
-          offset,
-          frame.transform,
-          super.paint,
-        ),
-      ),
-    );
+        (context, offset) {
+          _transformLayer.layer = context.pushTransform(
+            needsCompositing,
+            offset,
+            frame.transform,
+            super.paint,
+            oldLayer: _transformLayer.layer,
+          );
+        },
+        oldLayer: _roundedClipLayer.layer,
+      );
+    }, oldLayer: layer is ClipRectLayer ? layer! as ClipRectLayer : null);
+  }
+
+  @override
+  void dispose() {
+    _roundedClipLayer.layer = null;
+    _transformLayer.layer = null;
+    super.dispose();
   }
 
   @override
