@@ -50,6 +50,7 @@ remaining implicit framework transitions during baseline collection.
 Within MP1/MP2, prioritize measured cost. An already efficient surface needs a recorded assessment,
 not a rewrite. Commit and push each independently reversible optimization after its affected checks;
 do not combine unrelated rendering changes merely because they share this plan.
+Publish one PR for the complete assessed and verified batch, rather than a PR for each component.
 
 ## Measurement and optimization method
 

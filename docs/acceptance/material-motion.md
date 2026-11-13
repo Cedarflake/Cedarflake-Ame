@@ -6,8 +6,8 @@ The [roadmap](../roadmap.md#material-motion-adoption) owns disposition and the
 ## Transition performance — 2026-11-13
 
 The [performance plan](../plans/motion-performance.md) preserves the delivered motion. Baseline
-`532fbc21`, gallery change `61393b81` and the sidebar change accompanying this record were measured
-with Flutter 3.47.8 Profile, Skia, a 165-Hz
+`532fbc21`, intermediate render changes through `2e0aab44`, and the final buffer/layout changes
+accompanying this record were measured with Flutter 3.47.8 Profile, Skia, a 165-Hz
 display and the same 1,269 × 714 window. `local-primary` contained 63,170 locations / 47,926 merged
 entries. No source-file operation was run. Raw frame/GC/timeline captures are ignored under
 `build/performance`; the client used the production entrypoint with in-memory view preferences.
@@ -18,14 +18,6 @@ are unchanged. The existing duplicate-publication regression checks zero further
 its translation frame, including manual and background publication; resize, reversal, action
 retirement and reduced-motion checks also pass (six retained cases). The owner has 364 production
 lines, no inline tests, and 343 dedicated test lines.
-
-The real client retained both endpoint layouts and the visible intermediate card reflow. In paired
-warm sidebar collapse/expand traces, continuous animation bursts had UI medians of 1.91/1.75 ms
-before and 1.36/1.78 ms after; p95 was 3.15/2.59 versus 3.01/2.76 ms. Raster p95 stayed below 1.22 ms.
-These small runs establish reduced redundant construction, not an across-the-board frame-rate gain.
-Occasional 21–32 ms UI frames remain, including at transition admission and separate background
-refreshes. Bursts are at least 25 frames separated by no gap above 60 ms; full captures are retained
-so isolated slow frames remain visible. Initial shader compilation is kept separate from warm runs.
 
 `LibrarySidebarContent` now preserves destination layout constraints and applies the existing
 alignment and clip during painting. The installed framework's `LayoutBuilder` schedules layout for
@@ -41,22 +33,46 @@ sidebar/gallery checks passed at 1x/2x text, three widths, interrupted reversal 
 the combined affected run passed 19 cases. Scoped formatting and analysis passed. This sidebar
 owner has 159 production lines, no inline tests and 193 dedicated transition-test lines.
 
-| Warm equal-height sidebar burst | Baseline UI p50 / p95 / p99 / max (ms) | Both changes UI p50 / p95 / p99 / max (ms) | UI frames over 6.06 ms; longest consecutive run |
+CPU samples traced periodic UI pauses to exact comparison of compact manifest columns during
+background publication. `galleryBuffersEqual` compares eight bytes at a time and checks the remaining
+bytes without copying or hashing; query, identity, dates, dimensions and flags retain exact equality.
+After this change, idle-refresh UI p95/max fell from 25.09/27.91 to 4.43/5.07 ms in 23.35/37.28-second
+captures. Remaining sidebar admission pauses were traced to row reconstruction. Normalizing dates
+only when the raw date changes and returning the stored aspect ratio directly remove repeated work
+without changing packing, grouping, scroll anchors or asynchronous publication.
+
+Buffer views, final-byte mismatches, row reuse, changed geometry and malformed-date grouping passed
+their focused checks. The final manifest and row-layout run passed 44 retained cases; the separate
+buffer check passed two cases. Formatting and scoped analysis passed. The buffer owner has 28
+production/37 dedicated-test lines; manifest storage has 782/277 and the snapshot owner 485/401,
+with no inline tests. No controller, bridge or catalog rule was extended.
+
+| Warm sidebar burst | Before UI p50 / p95 / p99 / max (ms) | Final UI p50 / p95 / p99 / max (ms) | UI frames over 6.06 ms, before → final |
 | --- | --- | --- | --- |
-| Collapse | 1.91 / 3.15 / 9.47 / 25.82 | 1.16 / 1.88 / 4.58 / 4.80 | 2 of 57; 2 → 0 of 52; 0 |
-| Expand | 1.75 / 2.59 / 22.26 / 29.56 | 1.60 / 3.98 / 7.41 / 22.02 | 2 of 66; 2 → 2 of 60; 2 |
+| Equal-height collapse | 1.91 / 3.15 / 9.47 / 25.82 | 1.75 / 3.11 / 6.61 / 10.04 | 2 of 57 → 2 of 66 |
+| Equal-height expand | 1.75 / 2.59 / 22.26 / 29.56 | 1.42 / 2.65 / 8.77 / 10.12 | 2 of 66 → 2 of 65 |
+| Grid collapse | 1.48 / 8.48 / 24.34 / 24.34 | 1.81 / 4.49 / 6.07 / 8.22 | 5 of 49 → 2 of 69 |
+| Grid expand | 1.38 / 5.80 / 20.19 / 20.19 | 1.11 / 3.65 / 7.00 / 8.85 | 2 of 46 → 2 of 60 |
 
-Raster p95 after both changes was 1.31/1.57 ms. Collapse improved in this sample; expansion's p95
-did not improve. Both layout shapes and the centered album landing were exercised in the real
-client, including a cold timeline position showing placeholders and subsequently filling them.
-The input helper supplies short drag strokes; this run does not establish prolonged-drag latency.
-Frame-burst duration includes input/ripple/admission work and is not an animation-duration change.
+Equal-height comparisons start at `532fbc21`; grid comparisons start at `2e0aab44`, before the
+buffer/layout calculation changes. Bursts contain at least 25 frames with no gap above 60 ms.
+Full captures retain isolated slow frames; initial shader work is separate from warm runs. Final
+raster p95 was 1.32/1.22 ms for equal-height and 1.24/1.24 ms for grid, with no over-budget raster
+frames in those bursts. UI outliers remain above the 165-Hz budget; the measured improvement is
+shorter pauses, not elimination of every missed frame. Burst duration includes input and admission
+work and does not change the animation duration.
 
-Whole-capture RSS was 370.8/382.0/378.0 MiB (initial/peak/settled) before and
-343.7/377.8/359.3 MiB after both changes; sampled Dart heap was 34.2 versus 34.6 MiB. The captures
-span 39.46 and 29.84 seconds and include background work. They contain 144 and 120 VM `Scavenge`
-start events across threads. These are retained observations, not an allocation-rate or GC
-improvement claim. No image cache or retained-image budget was enlarged.
+Both layouts and the centered album landing retained their endpoint and intermediate geometry.
+The final grid client immediately showed placeholders at a distant date, filled them without moving
+the viewport, and returned to the original top heading without a subsequent jump. The input helper
+supplies short drag strokes; this run does not establish prolonged-drag latency.
+
+Final equal-height RSS was 367.7/376.0/357.6 MiB (initial/peak/settled), versus baseline
+370.8/382.0/378.0 MiB. Final grid RSS was 438.6/457.0/437.3 MiB, versus intermediate
+427.9/475.4/413.8 MiB. Final Dart heaps were 34.5/38.0 MiB. These complete captures include background
+work and different durations; they do not establish allocation-rate or GC improvement. Final
+equal-height/grid captures contained 138/116 VM `Scavenge` starts across threads over 33.99/30.65
+seconds. No image cache, retained-image budget or full-layout cache was added or enlarged.
 
 The inventory below combines current Profile samples with source/lifecycle inspection. All
 non-gallery/non-sidebar implementations remain unchanged; previous visual and lifecycle checks
@@ -73,10 +89,11 @@ below retain their original scope rather than becoming newly executed acceptance
 | Loading/temporary content | Duplicate-entry loading burst UI/raster p95 was 1.12/1.15 ms. Loading already repaints a bounded region, shares morph shapes and stops its ticker when inactive/reduced; retain quiet/minimum-visible intervals and feedback priority. |
 | Continuous input | Viewer zoom-out UI/raster p95 was 1.58/0.79 ms with no over-budget burst frames. Wheel and timeline input remained connected; comparison reuses the zoom owner. Preserve direct manipulation, inertia and scroll anchoring. |
 
-The scoped source review covered both changed render paths, their callers, listener/layer retirement,
-opacity publication and input/semantic transforms, without a confirmed new defect. Broad query
-latency, background refresh spikes and cold shader work remain R10 profiling concerns. Hosted checks
-are outstanding: feature-branch pushes alone do not trigger this repository's PR/main CI workflow.
+The scoped source review covered the changed render and buffer/layout paths, callers, listener/layer
+retirement, opacity publication, input/semantic transforms and exact geometry equivalence, without
+a confirmed new defect. The inventory and local combined verification are complete. Broader query
+latency and resource qualification retain their R10 owner. Hosted checks are outstanding until the
+combined PR runs this repository's PR/main CI workflow.
 
 ## Loading-feedback integration — 2026-11-12
 

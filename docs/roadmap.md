@@ -85,10 +85,11 @@ maintenance does not reopen the completed R7/R8 stages.
 
 The [motion-performance plan](plans/motion-performance.md) is active on
 `codex/motion-performance`. MP0/MP2 have scoped assessments for every transition family. MP1 retains
-unchanged-size card content during reflow and moves sidebar clipping/translation out of layout;
-the [measurement record](acceptance/material-motion.md#transition-performance--2026-11-13) retains
-the measured gains, mixed tail-latency results and unchanged efficient paths. MP3 desktop and
-local boundary checks are complete; PR publication and exact-head hosted checks remain outstanding.
+unchanged-size card content, paints sidebar clipping/translation without relayout, and reduces
+compact-manifest comparison and row-layout calculation. MP3's combined local verification and
+source review are complete; the [measurement record](acceptance/material-motion.md#transition-performance--2026-11-13)
+retains measured gains, remaining frame outliers and unchanged efficient paths. Deliver this
+complete batch in one PR; hosted checks remain outstanding.
 The scope covers existing transitions across the application while preserving their presentation,
 behavior and styling. Measurements select the optimization targets; R10's broader responsiveness,
 resource qualification and Beta release remain separate.
