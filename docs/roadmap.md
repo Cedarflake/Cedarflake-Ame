@@ -84,17 +84,15 @@ maintenance does not reopen the completed R7/R8 stages.
 ### Transition performance
 
 The [motion-performance plan](plans/motion-performance.md) is active on
-`codex/motion-performance`. MP0/MP2 retain the assessed transition families. Supplementary first-open
-viewer and native window measurements expose remaining first-use and restore-frame costs; their
-cause-level assessment remains open. Native size changes now cover the viewer and both gallery
-layouts. MP1 retains
-unchanged-size card content, paints sidebar clipping/translation without relayout, and reduces
-compact-manifest comparison and row-layout calculation. Viewer flights now reuse compositing layers;
-snapshot conversion yields between bounded chunks. MP3 retains the completed affected-path
-verification and source review, with restore-frame attribution and exact-head CI still open; the
-[measurement record](acceptance/material-motion.md#transition-performance--2026-11-13)
-retains measured gains, remaining frame outliers and unchanged efficient paths. Deliver this
-batch in the existing PR 63; hosted checks remain outstanding.
+`codex/motion-performance`. MP0/MP2 have assessments for all transition families, including first-open
+viewer and native size/state changes in the viewer and both gallery layouts. MP1 retains card
+content, paints sidebar clipping/translation without relayout, reuses viewer compositing layers,
+reduces compact-manifest comparison/row calculation, and yields between snapshot conversion chunks.
+MP3 local affected-path verification and source review are recorded; exact-head hosted CI remains
+outstanding in [PR 63](https://github.com/Cedarflake/Cedarflake-Ame/pull/63). The
+[measurement record](acceptance/material-motion.md#transition-performance--2026-11-13) retains gains,
+first-use shader/compositor costs, remaining frame outliers and the limit on prolonged held-mouse
+resizing coverage. No animation timing, appearance or interaction policy changed.
 The scope covers existing transitions across the application while preserving their presentation,
 behavior and styling. Measurements select the optimization targets; R10's broader responsiveness,
 resource qualification and Beta release remain separate.
