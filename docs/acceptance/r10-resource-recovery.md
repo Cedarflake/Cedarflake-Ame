@@ -220,6 +220,40 @@ million-record bounded parsing, closed-process catch-up, concurrent lane schedul
 blocked I/O cancellation, root replacement, same-volume root isolation and placeholder handling.
 Closed-process create/modify/rename/move/replace/delete had P50/P95/maximum 557/583/583 ms,
 six durable source ranges, zero inventory runs, zero source enumeration and unchanged scan rows.
-Live-change/event-storm and watcher-overflow recovery hit their existing wait deadlines; these
-two failures remain open. This native matrix execution does not establish a successful run of the
-host's guarded R2c-R wrapper.
+The initial live-change and overflow failures are followed up below. This native matrix execution
+does not establish a successful run of the host's guarded R2c-R wrapper.
+
+## Live move continuity and overflow follow-up
+
+Windows reported an across-directory move as separate removal and creation observations. When
+removal published first, the later creation no longer had the original asset identity. The live
+removal owner now resolves that exact Windows identity inside the pinned root and publishes the
+relocated file through the existing guarded delta. The inverse ordering also removes the old
+location when the destination is already current. Genuine deletion and movement outside the root
+retain ordinary removal; no source is moved by this lookup.
+
+Sandbox native executable `9fa9ed2a442745239a47bd5cc6347348540d6d2812a0dcbff6deeb96749d3b5f`
+passed both notification-order regressions, real deletion, native containment and unsupported-
+identity cases. The shared lookup extraction also retained all four directory-recovery cases in
+the preceding build. Actual create/modify/rename/move/replace/delete observations retained their
+expected identity and source state, with median 776 ms and maximum/P95 983 ms. The subsequent
+event-storm workload reached visibility in 14.839 seconds but its historical queue/read-count
+assertions still require diagnosis; this is not a full live/event-storm pass.
+
+The overflow fixture now uses a genuine LiveOnly baseline and 8,192 interleaved writes across
+256 paths, exceeding the 4,096-observation ingress bound. A fixed empty connected-journal fixture
+had incorrectly claimed coverage; the former 768 writes also did not reliably overflow. Recovery
+ran once while all 25 foreground changes completed under the same active authority, with median
+301 ms, P95 322 ms and maximum 332 ms. Convergence took 9.998 seconds. All source snapshots and scan
+rows remained unchanged. Exact inventory counts include the five retained baseline files, one
+foreground file and two directories; independent metadata rechecks are counted separately from
+inventory-owned candidates. Existing one-second P0, 4,095-entry read-page and 3,072-queue-row bounds
+remain unchanged.
+
+The affected incremental facade has 1,353 non-test lines and its existing dedicated test owner
+has 3,860 lines; the new relocation owner has 86 production lines and 62 dedicated test lines.
+The local-files facade retains 2,547 lines before its 3,364-line inline test module, including
+existing test instrumentation. Its change is module declarations only. Native identity lookup
+has 69 lines; file containment has 75 production lines plus test-module wiring and 51 dedicated
+test lines. Directory recovery now has 123 production lines plus test-module wiring. No broad
+facade decomposition or schema migration is part of this repair.

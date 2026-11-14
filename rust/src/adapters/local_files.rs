@@ -85,11 +85,15 @@ mod directory_coverage;
 mod directory_enumeration;
 mod file_admission;
 mod file_revalidation;
+#[cfg(windows)]
+mod identity_lookup;
 mod media_signature;
 mod metadata_inventory_evidence;
 mod preview_cache_namespace;
 mod preview_source;
 mod publication_namespace;
+#[cfg(windows)]
+mod relocated_file;
 #[cfg(windows)]
 mod root_location;
 mod scan_discovery;

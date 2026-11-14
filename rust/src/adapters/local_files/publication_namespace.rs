@@ -72,6 +72,21 @@ impl PublicationFileSource for PublicationGuardedFileDiscovery {
     fn visit_relative_path(&self, relative_path: &str) -> FileVisit {
         self.visit_relative_path(relative_path)
     }
+
+    fn locate_relative_file(
+        &self,
+        identity: &FileIdentityEvidence,
+    ) -> Result<Option<String>, ScanIssue> {
+        #[cfg(windows)]
+        {
+            super::relocated_file::locate_relative_file(self, identity)
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = identity;
+            Ok(None)
+        }
+    }
 }
 
 impl PublicationDirectorySource for PublicationGuardedFileDiscovery {
