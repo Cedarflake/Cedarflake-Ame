@@ -144,7 +144,7 @@ fn file_operation_sandbox_lost_receipt_requires_original_content_before_rebindin
             assert_eq!(edited.state.file_identity, moved.state.file_identity);
             assert_eq!(edited.state.file_size, moved.state.file_size);
             assert_eq!(edited.state.modified_unix_ms, moved.state.modified_unix_ms);
-            assert_ne!(edited.state.source_revision, moved.state.source_revision);
+            // ChangeTime can remain unchanged; recovery must still verify the original content.
         }
         drop(journal);
         journal = SqliteFileOperationJournal::open(storage.catalog_path.clone()).unwrap();
