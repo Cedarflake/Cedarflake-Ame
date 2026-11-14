@@ -99,7 +99,7 @@ fn failed_upgrade_rolls_back_queue_objects_and_version() {
         .execute_batch("DROP TRIGGER reject_dispatch_upgrade")
         .unwrap();
     migrate(&mut catalog.connection).unwrap();
-    current_schema::validate_current_schema_contract(&catalog.connection).unwrap();
+    current_schema::validate_schema_version(&catalog.connection, 66).unwrap();
     drop(catalog);
     SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
 }

@@ -184,3 +184,7 @@ forced two index names that those admitted schemas did not always contain. Remov
 every predicate and rejection condition; SQLite still selects the narrow identity indexes when
 available. Read-only paired runs returned the same result in 258–272 ms. All 25 existing catalog
 migration cases passed after the correction, including retained records and invalid-schema rejection.
+
+Two rollback fixtures also applied the latest schema contract to deliberately intermediate versions
+65 and 66. They now validate their actual migration version; rollback, retained-object and reopen
+assertions are unchanged. All ten matching rollback cases and the legacy v16 queue migration passed.
