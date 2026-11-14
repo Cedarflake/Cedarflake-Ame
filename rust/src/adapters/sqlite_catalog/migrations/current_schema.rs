@@ -67,10 +67,11 @@ fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<
         super::organization_review_filters::validate_rows(connection)?;
     }
     if schema_version >= 65 {
-        super::classification::validate_rows(connection)?;
+        // The journal proof above checked all foreign keys in this same snapshot.
+        super::classification::validate_content_rows(connection)?;
     }
     if schema_version >= 66 {
-        super::classification_work::validate_rows(connection)?;
+        super::classification_work::validate_content_rows(connection)?;
     }
     if schema_version >= 67 {
         super::classification_setup::validate_rows(connection)?;

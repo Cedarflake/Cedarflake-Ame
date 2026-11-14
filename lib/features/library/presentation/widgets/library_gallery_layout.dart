@@ -133,15 +133,14 @@ class LibraryGalleryLayoutEntry {
             LibraryGalleryLayoutEntry(
               extent: row.height + spacing,
               monthKey: monthKey,
-              startItemIndex: groupStartItemIndex + row.cells.first.itemIndex,
+              startItemIndex: groupStartItemIndex + row.startItemIndex,
               rowHeight: row.height,
-              firstLocationId:
-                  group.assets[row.cells.first.itemIndex].locationId,
+              firstLocationId: group.assets[row.startItemIndex].locationId,
               cells: [
-                for (final cell in row.cells)
+                for (var index = 0; index < row.cellWidths.length; index++)
                   LibraryGalleryLayoutCell(
-                    asset: group.assets[cell.itemIndex],
-                    width: cell.width,
+                    asset: group.assets[row.startItemIndex + index],
+                    width: row.cellWidths[index],
                   ),
               ],
             ),

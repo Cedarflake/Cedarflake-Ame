@@ -90,7 +90,8 @@ pub(super) fn push_duplicate_filter(
          OR locations.location_id IN (
            SELECT {representative}
            FROM library_roots AS roots
-           JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
+           CROSS JOIN asset_locations AS locations
+             ON locations.root_id = roots.id AND locations.scan_id = roots.active_scan_id
            CROSS JOIN content_fingerprints AS f
              ON f.source_generation = (
                SELECT f.evidence_source_generation FROM {DISPLAY_FINGERPRINTS}

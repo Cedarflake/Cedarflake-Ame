@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
+use std::sync::{Arc, OnceLock};
 
 use rusqlite::{Transaction, params_from_iter};
 
+use crate::domain::organization_queue::OrganizationCounts;
 use crate::domain::{
     CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk, GalleryLocationAnchorResolution,
     GalleryQuery, GalleryQueryAnchor, GallerySortDirection, GallerySortKey, GalleryTimeBucket,
@@ -21,13 +23,18 @@ use super::{
 };
 
 /// One bounded ordered selection supplies geometry, navigation and detail windows.
-/// Its identity is valid only inside the caller's read transaction.
+/// Reuse requires the same query and catalog revision in the caller's read transaction.
 pub(super) struct GalleryReadProjection {
     items: Vec<StoredLayoutManifestItem>,
     pub(super) timeline: GalleryTimeline,
+    organization_counts: Arc<OnceLock<OrganizationCounts>>,
 }
 
 impl GalleryReadProjection {
+    pub(super) fn location_ids(&self) -> impl Iterator<Item = &str> {
+        self.items.iter().map(|item| item.location_id.as_str())
+    }
+
     pub(super) fn load(
         transaction: &Transaction<'_>,
         query: &GalleryQuery,
@@ -134,6 +141,7 @@ impl GalleryReadProjection {
         let total_items = items.len() as u64;
         Ok(Some(Self {
             items,
+            organization_counts: Arc::default(),
             timeline: GalleryTimeline {
                 revision,
                 query_id: query_id.to_owned(),
@@ -143,6 +151,23 @@ impl GalleryReadProjection {
                 scroll_sections,
             },
         }))
+    }
+
+    pub(super) fn organization_counts(
+        &self,
+        transaction: &Transaction<'_>,
+        query: &GalleryQuery,
+    ) -> Result<Option<OrganizationCounts>, ScanError> {
+        if query.organization_queue.is_none() {
+            return Ok(None);
+        }
+        if let Some(counts) = self.organization_counts.get() {
+            return Ok(Some(counts.clone()));
+        }
+        let counts = super::gallery::organization_queue::load_counts(transaction, query)?;
+        Ok(Some(
+            self.organization_counts.get_or_init(|| counts).clone(),
+        ))
     }
 
     pub(super) fn load_page(
@@ -233,13 +258,17 @@ impl GalleryReadProjection {
         anchor: &GalleryQueryAnchor,
         max_items: u32,
     ) -> Result<GalleryLocationAnchorResolution, ScanError> {
-        let target = super::gallery::find_gallery_query_anchor(
-            transaction,
-            self.timeline.revision,
-            query,
-            &self.timeline.query_id,
-            anchor,
-        )?;
+        let target = if let Some(item) = self.current_anchor(transaction, anchor)? {
+            Some(self.cursor(item))
+        } else {
+            super::gallery::find_gallery_query_anchor(
+                transaction,
+                self.timeline.revision,
+                query,
+                &self.timeline.query_id,
+                anchor,
+            )?
+        };
         let ordinal = match target {
             Some(cursor) => Some(self.items.iter().position(|item| {
                 item.location_id == cursor.location_id && item.root_id == cursor.root_id
@@ -275,9 +304,67 @@ impl GalleryReadProjection {
         }
     }
 
-    pub(super) fn into_layout(self) -> Result<Vec<GalleryLayoutManifestChunk>, ScanError> {
+    fn current_anchor(
+        &self,
+        transaction: &Transaction<'_>,
+        anchor: &GalleryQueryAnchor,
+    ) -> Result<Option<&StoredLayoutManifestItem>, ScanError> {
+        if anchor.group_key.is_some() {
+            return Ok(None);
+        }
+        let mut matching = self.items.iter().filter(|item| {
+            item.group.is_none() && item.location_id == anchor.requested_location_id
+        });
+        let Some(item) = matching.next().filter(|_| matching.next().is_none()) else {
+            return Ok(None);
+        };
+        let valid = match &anchor.asset_id {
+            Some(asset_id) => transaction
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM asset_locations AS locations
+                 JOIN library_roots AS roots ON roots.id = locations.root_id
+                   AND roots.active_scan_id = locations.scan_id
+                 WHERE locations.location_id = ?1 AND locations.root_id = ?2
+                   AND locations.asset_id = ?3)",
+                    [&item.location_id, &item.root_id, asset_id],
+                    |row| row.get::<_, bool>(0),
+                )
+                .map_err(database_error)?,
+            None => true,
+        };
+        Ok(valid.then_some(item))
+    }
+
+    pub(super) fn refresh_geometry(
+        &self,
+        transaction: &Transaction<'_>,
+    ) -> Result<Self, ScanError> {
+        let mut items = self.items.clone();
+        let mut sums = BTreeMap::<Option<String>, u64>::new();
+        for chunk in items.chunks_mut(MAX_LAYOUT_MANIFEST_CHUNK_ITEMS as usize) {
+            super::gallery_layout_manifest::refresh_dimensions(transaction, chunk)?;
+            for item in chunk {
+                let month = item
+                    .date_key
+                    .as_ref()
+                    .map(|date| date.chars().take(7).collect::<String>());
+                *sums.entry(month).or_default() += u64::from(item.aspect_ratio_milli());
+            }
+        }
+        let mut timeline = self.timeline.clone();
+        for bucket in &mut timeline.buckets {
+            bucket.aspect_ratio_milli_sum = sums.remove(&bucket.month_key).unwrap_or(0);
+        }
+        Ok(Self {
+            items,
+            timeline,
+            organization_counts: Arc::clone(&self.organization_counts),
+        })
+    }
+
+    pub(super) fn encode_layout(&self) -> Result<Vec<GalleryLayoutManifestChunk>, ScanError> {
         let mut chunks = Vec::new();
-        let mut remaining = self.items.into_iter();
+        let mut remaining = self.items.iter().cloned();
         let mut start = 0;
         loop {
             let items: Vec<_> = remaining
@@ -310,5 +397,40 @@ impl GalleryReadProjection {
             }
         }
         Ok(chunks)
+    }
+
+    pub(super) fn retained_bytes(&self) -> usize {
+        use std::mem::size_of;
+
+        size_of::<Self>()
+            + size_of::<OnceLock<OrganizationCounts>>()
+            + 2 * size_of::<usize>()
+            + self.items.capacity() * size_of::<StoredLayoutManifestItem>()
+            + self
+                .items
+                .iter()
+                .map(|item| {
+                    item.location_id.capacity()
+                        + item.root_id.capacity()
+                        + item.date_key.as_ref().map_or(0, String::capacity)
+                        + item.primary_text.capacity()
+                })
+                .sum::<usize>()
+            + self.timeline.query_id.capacity()
+            + self.timeline.buckets.capacity() * size_of::<GalleryTimeBucket>()
+            + self
+                .timeline
+                .buckets
+                .iter()
+                .map(|bucket| bucket.month_key.as_ref().map_or(0, String::capacity))
+                .sum::<usize>()
+            + self.timeline.scroll_sections.capacity()
+                * size_of::<crate::domain::gallery_scroll_section::GalleryScrollSection>()
+            + self
+                .timeline
+                .scroll_sections
+                .iter()
+                .map(|section| section.key.capacity())
+                .sum::<usize>()
     }
 }

@@ -157,23 +157,21 @@ class LibraryGalleryLayoutSnapshot {
             availableWidth: availableWidth,
           );
       for (final row in rows) {
-        final rowStart = start + row.cells.first.itemIndex;
+        final rowStart = start + row.startItemIndex;
         final rowOffset = _topPadding + entryExtent;
         final rowEndOffset =
             rowOffset + row.height + LibraryGalleryLayoutEntry.spacing;
-        for (var index = 0; index < row.cells.length; index++) {
+        for (var index = 0; index < row.cellWidths.length; index++) {
           itemOffsets[rowStart + index] = rowOffset;
           itemEndOffsets[rowStart + index] = rowEndOffset;
         }
         appendEntry(
           LibraryGalleryLayoutSnapshotEntry.row(
             startItemIndex: rowStart,
-            itemCount: row.cells.length,
+            itemCount: row.cellWidths.length,
             monthKey: monthKey,
             rowHeight: row.height,
-            cellWidths: Float32List.fromList([
-              for (final cell in row.cells) cell.width,
-            ]),
+            cellWidths: Float32List.fromList(row.cellWidths),
           ),
         );
       }

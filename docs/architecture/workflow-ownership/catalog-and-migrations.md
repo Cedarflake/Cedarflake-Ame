@@ -58,13 +58,28 @@ shared principles; the roadmap owns current delivery order and acceptance status
 - `domain/gallery_time_snapshot.rs` owns semantic month resolution, display-order fallback and
   bounded target-window selection. `sqlite_catalog/gallery_time_snapshot.rs` resolves that intent
   and reads the timeline, roots, page and inline layout inside one `GalleryReadTransaction`.
-  `gallery_read_projection.rs` owns the transaction-local ordered selection for chronological and
-  name-sorted inline snapshots. It derives navigation and geometry from that selection and loads
-  bounded detail windows through the existing location index. It cannot cache membership across
-  read transactions.
-  Anchored snapshots resolve identity through the shared anchor lookup, then locate the ordinal and
-  detail window in that same ordered projection. A removed asset retains the existing clamped
-  ordinal fallback; queries without an inline projection keep the bounded SQL window path.
+  `gallery_read_projection.rs` owns the ordered selection for chronological and name-sorted inline
+  snapshots. It derives navigation and geometry from that selection and loads bounded detail windows
+  through the existing location index. `gallery_projection_cache.rs` owns session-local membership
+  reuse under ADR 0014's complete query/revision keys, byte and entry budgets. It never holds its
+  mutex across SQL. New revisions retire entries and late readers cannot reinsert old membership.
+  Semantic candidate scans may borrow that same query/revision membership, then read current
+  source generations and compatible published fingerprints in their own snapshot. Ranked Library
+  result reads may omit repeated folding only when every requested member is in that selection;
+  changed scopes, publications and unavailable entries retain the ordinary query path.
+  `semantic_catalog/candidate_cache.rs` may retain one completed candidate selection within 16 MiB,
+  keyed by that same complete query and revision. It retains source identities and content evidence,
+  never vectors or image records. Cancelled/oversized reads are not retained; replay remains windowed
+  and cancellable. New publication retires the entry and late completion cannot replace a newer one.
+  Reuse refreshes dimensions and timeline geometry in the current transaction; metadata-filtered
+  and group-filtered queries keep their direct path. Semantic results retain no separate geometry
+  cache. Detail state is never cached here. Organization counts are populated on demand and retained
+  with that same complete query/revision proof; geometric reads do not initiate an extra count query.
+  Anchored snapshots may reuse a unique requested location already admitted to that same projection,
+  rechecking its asset identity in the current read transaction. Missing, ambiguous or grouped targets
+  use the shared anchor lookup before resolving the ordinal and detail window. A removed asset retains
+  the existing clamped ordinal fallback; queries without an inline projection keep the bounded SQL
+  window path.
   `gallery_layout_manifest.rs` owns compact block encoding, continuation evidence and its transfer
   budget; the catalog facade delegates legacy chunk reads to the same owner. The target ordinal
   remains distinct from the centered page start, so changed row grouping retains a loaded prefix.
@@ -155,7 +170,10 @@ shared principles; the roadmap owns current delivery order and acceptance status
   proof order and its consistent read snapshot: structural checks precede the complete authority-row
   audit. Historical v19/pre-live-gap proof sequences and test-only audit counters belong to that
   owner as well; version steps and individual contracts call it directly. Process-owned validated
-  sessions reuse that proof; schema markers alone are not row authority. Spool-row proof lives in
+  sessions reuse that proof; schema markers alone are not row authority.
+  The journal row proof already checks all catalog foreign keys in that snapshot. Classification
+  and dispatch content validators reuse that relationship proof without repeating table traversals;
+  their content, singleton, dispatch and lease checks remain mandatory. Spool-row proof lives in
   `migrations/inventory_spool_rows.rs`: ordered per-run ordinals and
   once-grouped per-directory entry counts replace correlated recounting, without omitting parent,
   lifecycle, or foreign-key evidence. Structural proof and snapshot ownership remain upstream.
@@ -168,6 +186,9 @@ shared principles; the roadmap owns current delivery order and acceptance status
   repair use this owner directly. The repair accepts an absent marker only after current-schema
   proof, rejects a damaged existing marker, and publishes alias-wide invalidation with the marker
   in one immediate transaction. Identity evidence and the coordinator's admission order remain intact.
+  Its `source_revision_contract/rows.rs` owner first finds repeated identities through the existing
+  indexes, then compares their full source state. Cross-root active aliases and within-scan aliases
+  retain separate proofs; singleton state, preview evidence and the generation clock remain checked.
   `migrations/change_lane_contract.rs` proves the queue-origin lane projection;
   `migrations/recovery_authority_contract.rs` proves immutable P2 authority and canonical opening
   boundaries. Each owns structural/row acceptance and its rejection regressions. Historical DDL and

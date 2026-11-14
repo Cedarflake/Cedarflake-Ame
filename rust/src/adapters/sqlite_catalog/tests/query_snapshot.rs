@@ -5,6 +5,8 @@ use crate::adapters::sqlite_catalog::tests::support::{
 use crate::domain::{GalleryQueryAnchor, LibraryFolderPageDisposition};
 use crate::ports::GalleryQueryRepository;
 
+mod cache;
+
 use super::super::gallery_snapshot::{
     set_after_query_anchor_read_hook, set_after_query_snapshot_read_hook,
 };

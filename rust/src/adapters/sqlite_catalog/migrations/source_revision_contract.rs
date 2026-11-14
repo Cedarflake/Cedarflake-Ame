@@ -6,6 +6,8 @@ use super::current_schema::validate_current_schema_contract_with_source_revision
 use super::database_error;
 use super::schema_shape::schema_object_sql_matches;
 
+mod rows;
+
 const SOURCE_REVISION_METADATA_CONTRACT_TABLE_DDL: &str =
     "CREATE TABLE library_source_revision_metadata_contract (
        singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
@@ -188,56 +190,7 @@ pub(super) fn validate_structure(connection: &Connection) -> Result<(), ScanErro
 pub(super) fn validate_rows(connection: &Connection) -> Result<(), ScanError> {
     #[cfg(test)]
     SOURCE_REVISION_ROW_AUDIT_COUNT.with(|count| count.set(count.get() + 1));
-    let invalid_state = connection
-        .query_row(
-            "SELECT EXISTS(
-               SELECT 1 FROM asset_locations
-               WHERE source_generation IS NULL OR source_generation <= 0
-                  OR (source_revision_token IS NOT NULL AND (
-                    length(source_revision_token) <> 50
-                    OR source_revision_token NOT GLOB
-                      'windows-file-change-time-100ns-v1:[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]'
-                  ))
-             ) OR EXISTS(
-               SELECT 1 FROM preview_artifacts
-               WHERE lifecycle_state = 'ready'
-                 AND (source_generation IS NULL OR source_generation <= 0
-                      OR source_revision_token IS NULL)
-             ) OR EXISTS(
-               SELECT 1
-               FROM asset_locations AS locations
-               JOIN library_roots AS roots
-                 ON roots.id = locations.root_id
-                AND roots.active_scan_id = locations.scan_id
-               WHERE locations.file_identity_scheme IS NOT NULL
-               GROUP BY locations.file_identity_scheme, locations.file_identity_value
-               HAVING MIN(locations.source_generation) <> MAX(locations.source_generation)
-                  OR COUNT(DISTINCT locations.source_revision_token) > 1
-                  OR MIN(locations.file_size) <> MAX(locations.file_size)
-                  OR MIN(locations.modified_unix_ms) <> MAX(locations.modified_unix_ms)
-             ) OR EXISTS(
-               SELECT 1 FROM asset_locations AS locations
-               WHERE locations.file_identity_scheme IS NOT NULL
-               GROUP BY locations.scan_id, locations.file_identity_scheme,
-                        locations.file_identity_value
-               HAVING MIN(locations.source_generation) <> MAX(locations.source_generation)
-                  OR COUNT(DISTINCT locations.source_revision_token) > 1
-                  OR MIN(locations.file_size) <> MAX(locations.file_size)
-                  OR MIN(locations.modified_unix_ms) <> MAX(locations.modified_unix_ms)
-             ) OR (SELECT next_source_generation FROM catalog_state) <= COALESCE(
-               (SELECT MAX(source_generation) FROM asset_locations), 0
-             )",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .map_err(database_error)?;
-    if invalid_state {
-        return Err(ScanError::new(
-            "catalog_source_revision_contract_unverifiable",
-            "The catalog cannot prove its source revision and generation contract",
-        ));
-    }
-    Ok(())
+    rows::validate(connection)
 }
 
 #[cfg(test)]

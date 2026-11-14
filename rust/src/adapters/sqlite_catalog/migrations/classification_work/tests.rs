@@ -99,7 +99,7 @@ fn failed_upgrade_rolls_back_queue_objects_and_version() {
         .execute_batch("DROP TRIGGER reject_dispatch_upgrade")
         .unwrap();
     migrate(&mut catalog.connection).unwrap();
-    validate_rows(&catalog.connection).unwrap();
+    current_schema::validate_schema_version(&catalog.connection, 66).unwrap();
     drop(catalog);
     SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
 }
@@ -116,5 +116,5 @@ fn startup_rejects_missing_dispatch_state() {
         .connection
         .execute("DELETE FROM classification_dispatch_state", [])
         .unwrap();
-    assert!(validate_rows(&catalog.connection).is_err());
+    assert!(current_schema::validate_current_schema_contract(&catalog.connection).is_err());
 }

@@ -338,23 +338,26 @@ void main() {
     };
 
     final firstWidths = visibleCardWidths();
-    var completedVisible = false;
-    for (var attempt = 0; attempt < 10 && !completedVisible; attempt++) {
+    var completedAnchor = false;
+    // A recovered edge card may leave the viewport when its row is repacked.
+    // Recover the retained anchor so its new geometry remains observable.
+    for (var attempt = 0; attempt < 10 && !completedAnchor; attempt++) {
       for (final locationId in previewer.requests.toList()) {
         if (!completed.add(locationId)) {
           continue;
         }
         final tile = find.byKey(ValueKey(locationId));
-        if (tile.evaluate().isNotEmpty &&
+        if (locationId == expected.locationId &&
+            tile.evaluate().isNotEmpty &&
             tester.getRect(tile).overlaps(tester.getRect(viewport))) {
-          completedVisible = true;
+          completedAnchor = true;
         }
         previewer.succeed(locationId, width: 3000, height: 1000);
       }
       await tester.pump();
       await tester.pump();
     }
-    expect(completedVisible, isTrue);
+    expect(completedAnchor, isTrue);
     await tester.pump(const Duration(milliseconds: 160));
     await tester.pump();
     await tester.pump();

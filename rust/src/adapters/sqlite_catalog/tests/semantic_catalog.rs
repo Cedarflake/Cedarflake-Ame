@@ -59,8 +59,8 @@ fn semantic_candidate_window_does_not_sort_the_remaining_library() {
 #[test]
 fn semantic_gallery_pages_and_position_seeks_keep_relevance_order() {
     use crate::domain::semantic_results::SemanticResultManifest;
-    use crate::domain::{GallerySortKey, GalleryTimeAnchor};
-    use crate::ports::CatalogRepository;
+    use crate::domain::{GalleryDuplicateMode, GallerySortKey, GalleryTimeAnchor};
+    use crate::ports::{CatalogRepository, GalleryQueryRepository};
 
     let directory = tempfile::tempdir().unwrap();
     let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
@@ -99,10 +99,17 @@ fn semantic_gallery_pages_and_position_seeks_keep_relevance_order() {
         GallerySortKey::FileName,
         GallerySortKey::ModifiedTime,
     ] {
+        let scope = GalleryQuery {
+            sort_key,
+            duplicate_mode: GalleryDuplicateMode::Merged,
+            ..Default::default()
+        };
+        catalog
+            .load_query_snapshot(3, &scope, "visible-gallery", None)
+            .unwrap();
         let query = GalleryQuery {
             semantic_results: Some(manifest.clone()),
-            sort_key,
-            ..Default::default()
+            ..scope
         };
         let timeline = catalog
             .load_gallery_timeline(&query, "semantic-query")
@@ -160,6 +167,8 @@ fn semantic_gallery_pages_and_position_seeks_keep_relevance_order() {
 
 #[test]
 fn semantic_snapshot_keeps_its_scope_while_background_publication_advances() {
+    use crate::domain::GalleryDuplicateMode;
+    use crate::ports::GalleryQueryRepository;
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("catalog.sqlite3");
     let mut catalog = SqliteCatalog::open(path.clone()).unwrap();
@@ -171,9 +180,16 @@ fn semantic_snapshot_keeps_its_scope_while_background_publication_advances() {
         .map(|id| (id.as_str(), id.as_str(), None, None, 1))
         .collect();
     publish_gallery_query_fixture(&mut catalog, "old", "root", "C:/Fixture", &locations);
+    let query = GalleryQuery {
+        duplicate_mode: GalleryDuplicateMode::Merged,
+        ..Default::default()
+    };
+    catalog
+        .load_query_snapshot(3, &query, "visible-gallery", None)
+        .unwrap();
     let mut writer = SqliteCatalog::open(path).unwrap();
     let snapshot = catalog.semantic_snapshot().unwrap();
-    let first = snapshot.candidates(&GalleryQuery::default(), "").unwrap();
+    let first = snapshot.candidates(&query, "").unwrap();
     assert_eq!(first.candidates.len(), 256);
     assert_eq!(
         first.candidates.last().unwrap().source.location_id,
@@ -187,16 +203,14 @@ fn semantic_snapshot_keeps_its_scope_while_background_publication_advances() {
         "C:/Fixture",
         &[("new.png", "new.png", None, None, 2)],
     );
-    let last = snapshot
-        .candidates(&GalleryQuery::default(), "image-255.png")
-        .unwrap();
+    let last = snapshot.candidates(&query, "image-255.png").unwrap();
     assert_eq!(last.revision, first.revision);
     assert_eq!(last.candidates.len(), 1);
     assert_eq!(last.candidates[0].source.location_id, "image-256.png");
     let mut streamed = Vec::new();
     let mut sizes = Vec::new();
     let revision = snapshot
-        .scan(&GalleryQuery::default(), &mut |window| {
+        .scan(&query, &mut |window| {
             sizes.push(window.len());
             streamed.extend(
                 window
@@ -209,12 +223,48 @@ fn semantic_snapshot_keeps_its_scope_while_background_publication_advances() {
     assert_eq!(sizes, [256, 1]);
     assert_eq!(streamed, ids);
     assert_eq!(revision, first.revision);
+    let mut repeated = Vec::new();
+    snapshot
+        .scan(&query, &mut |window| {
+            repeated.extend(
+                window
+                    .into_iter()
+                    .map(|candidate| candidate.source.location_id),
+            );
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(repeated, ids);
+    let mut callbacks = 0;
+    assert_eq!(
+        snapshot
+            .scan(&query, &mut |_| {
+                callbacks += 1;
+                Err(crate::domain::ScanError::new("cancelled", "stop"))
+            })
+            .unwrap_err()
+            .code,
+        "cancelled"
+    );
+    assert_eq!(callbacks, 1);
     drop(snapshot);
 
-    let current = catalog
-        .semantic_candidates(&GalleryQuery::default(), "")
-        .unwrap();
+    let current = catalog.semantic_candidates(&query, "").unwrap();
     assert!(current.revision > first.revision);
     assert_eq!(current.candidates.len(), 1);
     assert_eq!(current.candidates[0].source.location_id, "new.png");
+    let mut current_ids = Vec::new();
+    catalog
+        .semantic_snapshot()
+        .unwrap()
+        .scan(&query, &mut |window| {
+            current_ids.extend(
+                window
+                    .into_iter()
+                    .map(|candidate| candidate.source.location_id),
+            );
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(current_ids, ["new.png"]);
 }

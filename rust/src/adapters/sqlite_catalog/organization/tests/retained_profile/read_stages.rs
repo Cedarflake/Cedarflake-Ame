@@ -68,6 +68,7 @@ fn profile_retained_organization_read_stages() {
                 &path,
                 &query,
                 "read-profile",
+                &catalog.session.gallery_projections,
             )
             .unwrap();
             let page = profile.measure(&format!("{name}_page_{sample}"), || {

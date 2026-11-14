@@ -1,4 +1,6 @@
+use std::borrow::Cow;
 use std::path::Path;
+use std::sync::Arc;
 
 use rusqlite::{Connection, Transaction, params_from_iter};
 
@@ -22,7 +24,7 @@ use super::{
 pub(super) struct GalleryReadTransaction<'connection, 'query> {
     transaction: Transaction<'connection>,
     catalog_path: String,
-    query: &'query GalleryQuery,
+    query: Cow<'query, GalleryQuery>,
     query_id: &'query str,
     revision: u64,
 }
@@ -33,11 +35,15 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
         path: &Path,
         query: &'query GalleryQuery,
         query_id: &'query str,
+        cache: &super::gallery_projection_cache::GalleryProjectionCache,
     ) -> Result<Self, ScanError> {
         validate_gallery_query(query)?;
         let transaction = connection.transaction().map_err(database_error)?;
         super::gallery::organization::validate_collection(&transaction, query)?;
         let revision = load_catalog_revision(&transaction)?;
+        let query = cache
+            .semantic_query(query, revision)
+            .map_or_else(|| Cow::Borrowed(query), Cow::Owned);
         Ok(Self {
             transaction,
             catalog_path: path.to_string_lossy().into_owned(),
@@ -51,8 +57,24 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
         self.transaction.commit().map_err(database_error)
     }
 
-    pub(super) fn load_projection(&self) -> Result<Option<GalleryReadProjection>, ScanError> {
-        GalleryReadProjection::load(&self.transaction, self.query, self.query_id, self.revision)
+    pub(super) fn load_projection(
+        &self,
+        cache: &super::gallery_projection_cache::GalleryProjectionCache,
+    ) -> Result<Option<Arc<GalleryReadProjection>>, ScanError> {
+        cache.load(
+            &self.query,
+            self.query_id,
+            self.revision,
+            || {
+                GalleryReadProjection::load(
+                    &self.transaction,
+                    &self.query,
+                    self.query_id,
+                    self.revision,
+                )
+            },
+            |projection| projection.refresh_geometry(&self.transaction),
+        )
     }
 
     pub(super) fn load_projection_page(
@@ -91,17 +113,17 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
         }
         let (resolution, predecessor) = match (projection, anchor.asset_id.as_deref()) {
             (Some(projection), _) => Ok((
-                projection.resolve_anchor(&self.transaction, self.query, anchor, max_items)?,
+                projection.resolve_anchor(&self.transaction, &self.query, anchor, max_items)?,
                 None,
             )),
             (None, _)
                 if anchor.group_key.is_some()
-                    && super::gallery::groups::is_filtered(self.query) =>
+                    && super::gallery::groups::is_filtered(&self.query) =>
             {
                 super::gallery::resolve_gallery_group_anchor(
                     &self.transaction,
                     self.revision,
-                    self.query,
+                    &self.query,
                     self.query_id,
                     max_items,
                     anchor,
@@ -110,7 +132,7 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
             (None, Some(asset_id)) => resolve_gallery_asset_anchor(
                 &self.transaction,
                 self.revision,
-                self.query,
+                &self.query,
                 self.query_id,
                 max_items,
                 GalleryAssetAnchor {
@@ -122,7 +144,7 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
             (None, None) => resolve_gallery_location_anchor(
                 &self.transaction,
                 self.revision,
-                self.query,
+                &self.query,
                 self.query_id,
                 &anchor.requested_location_id,
                 max_items,
@@ -171,7 +193,7 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
 
         let catalog_path = self.catalog_path.clone();
         let transaction = &self.transaction;
-        let query = self.query;
+        let query = &self.query;
         let query_id = self.query_id;
         let revision = self.revision;
         if after.is_some_and(|cursor| cursor.revision != revision || cursor.query_id != query_id) {
@@ -285,7 +307,7 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
     }
 
     pub(super) fn load_timeline(&self) -> Result<GalleryTimeline, ScanError> {
-        load_gallery_timeline(&self.transaction, self.query, self.query_id, self.revision)
+        load_gallery_timeline(&self.transaction, &self.query, self.query_id, self.revision)
     }
 
     pub(super) fn load_layout_manifest(
@@ -294,7 +316,7 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
     ) -> Result<Option<Vec<crate::domain::GalleryLayoutManifestChunk>>, ScanError> {
         super::gallery_layout_manifest::load_snapshot(
             &self.transaction,
-            self.query,
+            &self.query,
             self.query_id,
             self.revision,
             total_items,
@@ -320,10 +342,15 @@ impl GalleryQueryRepository for SqliteCatalog {
         query_id: &str,
         anchor: Option<&GalleryQueryAnchor>,
     ) -> Result<GalleryQuerySnapshot, ScanError> {
-        let read =
-            GalleryReadTransaction::begin(&mut self.connection, &self.path, query, query_id)?;
-        let projection = read.load_projection()?;
-        let snapshot = match (anchor, projection.as_ref()) {
+        let read = GalleryReadTransaction::begin(
+            &mut self.connection,
+            &self.path,
+            query,
+            query_id,
+            &self.session.gallery_projections,
+        )?;
+        let projection = read.load_projection(&self.session.gallery_projections)?;
+        let snapshot = match (anchor, projection.as_deref()) {
             (Some(anchor), projection) => {
                 read.load_anchored_snapshot(max_items, anchor, projection)
             }
@@ -340,14 +367,17 @@ impl GalleryQueryRepository for SqliteCatalog {
             Some(projection) => projection.timeline.clone(),
             None => read.load_timeline()?,
         };
-        let layout_manifest = match projection {
-            Some(projection) => Some(projection.into_layout()?),
+        let layout_manifest = match projection.as_ref() {
+            Some(projection) => Some(projection.encode_layout()?),
             None => read.load_layout_manifest(timeline.total_items)?,
         };
-        let organization_counts = query
-            .organization_queue
-            .map(|_| super::gallery::organization_queue::load_counts(&read.transaction, query))
-            .transpose()?;
+        let organization_counts = match projection.as_ref() {
+            Some(projection) => projection.organization_counts(&read.transaction, query)?,
+            None => query
+                .organization_queue
+                .map(|_| super::gallery::organization_queue::load_counts(&read.transaction, query))
+                .transpose()?,
+        };
         read.commit()?;
         Ok(GalleryQuerySnapshot {
             snapshot,

@@ -163,12 +163,12 @@ void main() {
       ).compute(aspectRatios: ratios, availableWidth: 816);
       expect(rows.length, loaded.length);
       for (var i = 0; i < rows.length; i++) {
-        expect(rows[i].startItemIndex, loaded[i].cells.first.itemIndex);
-        expect(rows[i].cellWidths.length, loaded[i].cells.length);
+        expect(rows[i].startItemIndex, loaded[i].startItemIndex);
+        expect(rows[i].cellWidths.length, loaded[i].cellWidths.length);
         for (var j = 0; j < rows[i].cellWidths.length; j++) {
           expect(
             rows[i].cellWidths[j],
-            closeTo(loaded[i].cells[j].width, 0.001),
+            closeTo(loaded[i].cellWidths[j], 0.001),
           );
         }
       }

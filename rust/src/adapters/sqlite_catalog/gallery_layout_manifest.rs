@@ -15,6 +15,7 @@ use super::{
     load_catalog_revision, sqlite_u32, sqlite_unsigned,
 };
 
+#[derive(Clone)]
 pub(super) struct StoredLayoutManifestItem {
     pub(super) location_id: String,
     pub(super) root_id: String,
@@ -28,6 +29,49 @@ pub(super) struct StoredLayoutManifestItem {
 }
 
 pub(super) const MAX_INLINE_LAYOUT_ITEMS: u64 = 64 * 1024 * 1024 / 192;
+
+pub(super) fn refresh_dimensions(
+    transaction: &Transaction<'_>,
+    items: &mut [StoredLayoutManifestItem],
+) -> Result<(), ScanError> {
+    // Preview metadata can recover dimensions without changing gallery order or its revision.
+    // Refresh this bounded chunk in the same transaction as the detail window.
+    let ids: Vec<_> = items
+        .iter()
+        .map(|item| (&item.root_id, &item.location_id))
+        .collect();
+    let encoded = serde_json::to_string(&ids)
+        .map_err(|error| ScanError::new("catalog_query_invalid", error.to_string()))?;
+    let mut statement = transaction
+        .prepare_cached(
+            "SELECT locations.width, locations.height
+         FROM json_each(?1) AS selected
+         CROSS JOIN asset_locations AS locations INDEXED BY asset_locations_location_id
+           ON locations.root_id = json_extract(selected.value, '$[0]')
+           AND locations.location_id = json_extract(selected.value, '$[1]')
+         JOIN library_roots AS roots ON locations.scan_id = roots.active_scan_id
+         ORDER BY CAST(selected.key AS INTEGER)",
+        )
+        .map_err(database_error)?;
+    let mut rows = statement.query([encoded]).map_err(database_error)?;
+    for item in items {
+        let row = rows.next().map_err(database_error)?.ok_or_else(|| {
+            ScanError::new(
+                "catalog_query_snapshot_invalid",
+                "Selected gallery geometry is missing",
+            )
+        })?;
+        item.width = sqlite_u32(row.get(0).map_err(database_error)?, "layout width")?;
+        item.height = sqlite_u32(row.get(1).map_err(database_error)?, "layout height")?;
+    }
+    if rows.next().map_err(database_error)?.is_some() {
+        return Err(ScanError::new(
+            "catalog_query_snapshot_invalid",
+            "Selected gallery geometry is ambiguous",
+        ));
+    }
+    Ok(())
+}
 
 impl StoredLayoutManifestItem {
     pub(super) fn aspect_ratio_milli(&self) -> u16 {

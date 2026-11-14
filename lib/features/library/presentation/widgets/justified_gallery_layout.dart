@@ -1,4 +1,5 @@
 import "dart:math" as math;
+import "dart:typed_data";
 
 import "library_gallery_card_metrics.dart";
 
@@ -106,7 +107,7 @@ class JustifiedGalleryLayout {
     final flexibleWidth = naturalImageWidth - floor * rowRatios.length;
     final availableFlexibleWidth =
         availableImageWidth - floor * rowRatios.length;
-    final cells = <JustifiedGalleryCell>[];
+    final widths = Float64List(rowRatios.length);
     var occupiedWidth = 0.0;
 
     for (var cellIndex = 0; cellIndex < rowRatios.length; cellIndex++) {
@@ -119,15 +120,14 @@ class JustifiedGalleryLayout {
       final width = shouldFillWidth && isLastCell
           ? availableImageWidth - occupiedWidth
           : scaledWidth.clamp(0.0, availableImageWidth);
-      cells.add(
-        JustifiedGalleryCell(itemIndex: start + cellIndex, width: width),
-      );
+      widths[cellIndex] = width;
       occupiedWidth += width;
     }
 
     return JustifiedGalleryRow(
       height: targetRowHeight,
-      cells: cells,
+      startItemIndex: start,
+      cellWidths: widths,
       isJustified: shouldFillWidth,
     );
   }
@@ -143,18 +143,13 @@ class JustifiedGalleryLayout {
 class JustifiedGalleryRow {
   const JustifiedGalleryRow({
     required this.height,
-    required this.cells,
+    required this.startItemIndex,
+    required this.cellWidths,
     required this.isJustified,
   });
 
   final double height;
-  final List<JustifiedGalleryCell> cells;
+  final int startItemIndex;
+  final Float64List cellWidths;
   final bool isJustified;
-}
-
-class JustifiedGalleryCell {
-  const JustifiedGalleryCell({required this.itemIndex, required this.width});
-
-  final int itemIndex;
-  final double width;
 }
