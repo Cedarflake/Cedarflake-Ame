@@ -188,3 +188,61 @@ migration cases passed after the correction, including retained records and inva
 Two rollback fixtures also applied the latest schema contract to deliberately intermediate versions
 65 and 66. They now validate their actual migration version; rollback, retained-object and reopen
 assertions are unchanged. All ten matching rollback cases and the legacy v16 queue migration passed.
+
+## Release navigation measurements
+
+The Release client exercised production UI callbacks through usable content and a completed frame.
+The earlier interaction pass is a diagnostic single sample per path; it is not a baseline P95.
+The later run on `fc7dfb67` excluded priming and retained 20 switches per path (40 returns to the
+gallery). Background catalog revisions advanced from 228799 to 228802 and category revision from
+983 to 984. The client reported no Flutter errors and a final 490 MiB working set.
+
+| Path | Earlier sample (ms) | Later P95 (ms) |
+| --- | ---: | ---: |
+| Root / library scope | 1,047 / 1,212 | 404 / 350 |
+| Albums workspace | 576 | 70 |
+| Three smart categories | 1,562 / 1,887 / 1,752 | 80 / 100 / 124 |
+| Favorites / album | 497 / 537 | 51 / 51 |
+| Return to gallery workspace | 1,015 | 367 |
+| Semantic search / clear | 7,215 / 1,676 | 993 / 518 |
+| Enter / exit organization | 2,190 / 1,160 | 855 / 454 |
+| Duplicate workspace | 24 | 32 |
+| Similar / ignored / exact groups | 408 / 65 / 756 | 408 / 39 / 643 |
+| Settings workspace | 17 | 26 |
+
+Every warm P95 met one second. First reads following publication remained slower in the root,
+category and semantic paths, with maxima of 1,048, 1,427–1,690 and 1,277 ms. Resume organization is
+measured separately against an isolated retained-catalog copy so the user's bookmark is preserved.
+
+The Profile viewer pass opened images in 467–473 ms and closed them in 344–350 ms. Three filmstrip
+page arrivals took 533–575 ms. Each layout received 180 application-level held-pointer moves over
+about six seconds, including a distant move and reversal before release. Content position changed
+while held and remained unchanged after release and settling. Build/raster P95 was 3.64/0.90 ms for
+equal-height and 3.72/0.99 ms for square; neither had a frame over 50 ms. Far positions exposed
+final card placeholders while details were absent. This is synthetic application input, not a claim
+of continuous hardware-mouse verification.
+
+## Resume organization
+
+The isolated retained-library pass initially measured resume P95 at 3,166 ms. Its continuation read
+took about 1,347 ms and the following anchored query about 1,393 ms. Current-record lookup now limits
+grouping to source versions associated with that record, including published and retained content
+matches, before applying the unchanged identity, scope and representative rules. A tuple membership
+predicate uses the fingerprint index; a join candidate that scanned unrelated evidence was rejected
+by the existing SQLite-work bound. Missing/next-bookmark behavior retains the full ordered query.
+
+An already-admitted unique location reuses the current ordered projection after checking its asset
+identity. Organization counts populate lazily within the same bounded query/revision entry, so
+geometry-only reads incur no count query. Publication invalidates both membership and counts.
+
+Twenty complete Release-mode resumes on an isolated retained-catalog copy measured 627–732 ms,
+P95 653 ms, including the unchanged viewer transition. The optimized native acceptance build enabled
+debug assertions solely to honor the existing isolated-storage override. It reported no Flutter
+errors and a final 311 MiB working set. The task-owned client exited, scratch storage was removed,
+and the saved production DLL was restored and hash-checked. User bookmarks and source media were
+preserved.
+
+Existing review, snapshot/publication, anchor-membership and fingerprint-cost cases cover the read
+changes. The snapshot reuse case now also exercises asset mismatch and count invalidation. The
+group-query, review-query and projection owners contain 253, 126 and 436 production lines, with no
+inline tests; the affected dedicated snapshot-cache test has 151 lines. No schema or bridge changed.

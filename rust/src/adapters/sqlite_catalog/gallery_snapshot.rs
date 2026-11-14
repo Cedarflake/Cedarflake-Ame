@@ -367,14 +367,17 @@ impl GalleryQueryRepository for SqliteCatalog {
             Some(projection) => projection.timeline.clone(),
             None => read.load_timeline()?,
         };
-        let layout_manifest = match projection {
+        let layout_manifest = match projection.as_ref() {
             Some(projection) => Some(projection.encode_layout()?),
             None => read.load_layout_manifest(timeline.total_items)?,
         };
-        let organization_counts = query
-            .organization_queue
-            .map(|_| super::gallery::organization_queue::load_counts(&read.transaction, query))
-            .transpose()?;
+        let organization_counts = match projection.as_ref() {
+            Some(projection) => projection.organization_counts(&read.transaction, query)?,
+            None => query
+                .organization_queue
+                .map(|_| super::gallery::organization_queue::load_counts(&read.transaction, query))
+                .transpose()?,
+        };
         read.commit()?;
         Ok(GalleryQuerySnapshot {
             snapshot,

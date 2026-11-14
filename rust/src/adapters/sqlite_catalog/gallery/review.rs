@@ -39,13 +39,20 @@ pub(in super::super) fn candidate(
 ) -> Result<Option<ReviewCandidate>, ScanError> {
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
-    organization_groups::push_group_filter(query, &mut clauses, &mut parameters);
     if let ReviewRead::Current(record_id) = request {
+        organization_groups::push_current_group_filter(
+            query,
+            record_id,
+            &mut clauses,
+            &mut parameters,
+        );
         clauses.push(format!(
             "{} = (SELECT group_id FROM organization_record_groups WHERE record_id = ?)",
             organization::record_expression("locations")
         ));
         parameters.push(Value::Text(record_id.to_owned()));
+    } else {
+        organization_groups::push_group_filter(query, &mut clauses, &mut parameters);
     }
     let admission = super::organization_queue::admission_expression("locations");
     let mut ordering_query = query.clone();

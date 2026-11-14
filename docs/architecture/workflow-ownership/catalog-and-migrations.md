@@ -73,10 +73,13 @@ shared principles; the roadmap owns current delivery order and acceptance status
   and cancellable. New publication retires the entry and late completion cannot replace a newer one.
   Reuse refreshes dimensions and timeline geometry in the current transaction; metadata-filtered
   and group-filtered queries keep their direct path. Semantic results retain no separate geometry
-  cache. Detail state is never cached here.
-  Anchored snapshots resolve identity through the shared anchor lookup, then locate the ordinal and
-  detail window in that same ordered projection. A removed asset retains the existing clamped
-  ordinal fallback; queries without an inline projection keep the bounded SQL window path.
+  cache. Detail state is never cached here. Organization counts are populated on demand and retained
+  with that same complete query/revision proof; geometric reads do not initiate an extra count query.
+  Anchored snapshots may reuse a unique requested location already admitted to that same projection,
+  rechecking its asset identity in the current read transaction. Missing, ambiguous or grouped targets
+  use the shared anchor lookup before resolving the ordinal and detail window. A removed asset retains
+  the existing clamped ordinal fallback; queries without an inline projection keep the bounded SQL
+  window path.
   `gallery_layout_manifest.rs` owns compact block encoding, continuation evidence and its transfer
   budget; the catalog facade delegates legacy chunk reads to the same owner. The target ordinal
   remains distinct from the centered page start, so changed row grouping retains a loaded prefix.

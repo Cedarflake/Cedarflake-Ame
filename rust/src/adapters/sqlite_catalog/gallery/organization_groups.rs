@@ -19,6 +19,10 @@ pub(in crate::adapters::sqlite_catalog) fn uses_grouped_organization(query: &Gal
 }
 
 pub(super) fn build_group_query(query: &GalleryQuery) -> BuiltGalleryQuery {
+    build_record_group_query(query, None)
+}
+
+fn build_record_group_query(query: &GalleryQuery, record_id: Option<&str>) -> BuiltGalleryQuery {
     if super::groups::is_filtered(query) {
         let mut parameters = Vec::new();
         let groups = super::groups::grouped_query(query, &mut parameters);
@@ -29,12 +33,13 @@ pub(super) fn build_group_query(query: &GalleryQuery) -> BuiltGalleryQuery {
             parameters,
         };
     }
-    if let Some(grouped) = build_collection_group_query(query) {
+    if let Some(grouped) = build_collection_group_query(query, record_id) {
         return grouped;
     }
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
     let source = gallery_source(query, &mut parameters);
+    push_record_identity(record_id, &mut clauses, &mut parameters);
     push_source_filters(query, &mut clauses, &mut parameters);
     let scope = if clauses.is_empty() {
         "1".to_owned()
@@ -53,11 +58,15 @@ pub(super) fn build_group_query(query: &GalleryQuery) -> BuiltGalleryQuery {
     }
 }
 
-fn build_collection_group_query(query: &GalleryQuery) -> Option<BuiltGalleryQuery> {
+fn build_collection_group_query(
+    query: &GalleryQuery,
+    record_id: Option<&str>,
+) -> Option<BuiltGalleryQuery> {
     let mut parameters = Vec::new();
     let source = gallery_source(query, &mut parameters);
     let condition = collection_condition(&query.collection, &mut parameters)?;
     let mut clauses = vec![condition.to_owned()];
+    push_record_identity(record_id, &mut clauses, &mut parameters);
     super::organization_queue::push_filter(query, &mut clauses, &mut parameters);
     push_location_filters(query, &mut clauses, &mut parameters);
     let representative = representative_expression("locations");
@@ -88,6 +97,56 @@ pub(super) fn push_group_filter(
         grouped.sql
     ));
     parameters.extend(grouped.parameters);
+}
+
+pub(super) fn push_current_group_filter(
+    query: &GalleryQuery,
+    record_id: &str,
+    clauses: &mut Vec<String>,
+    parameters: &mut Vec<Value>,
+) {
+    let grouped = build_record_group_query(query, Some(record_id));
+    clauses.push(format!(
+        "locations.location_id IN (SELECT location_id FROM ({}))",
+        grouped.sql
+    ));
+    parameters.extend(grouped.parameters);
+}
+
+fn push_record_identity(
+    record_id: Option<&str>,
+    clauses: &mut Vec<String>,
+    parameters: &mut Vec<Value>,
+) {
+    if let Some(record_id) = record_id {
+        // Both branches of record_expression are covered: an exact version binding
+        // or published/retained content shared with a bound version. The expression
+        // below still verifies the full binding and resolved group.
+        clauses.push(format!(
+            "locations.source_generation IN (
+               WITH wanted AS MATERIALIZED (
+                 SELECT binding.source_generation, binding.fingerprint_scheme,
+                   binding.digest, binding.byte_length
+                 FROM organization_record_groups AS own
+                 CROSS JOIN organization_record_groups AS related ON related.group_id = own.group_id
+                 CROSS JOIN organization_bindings AS binding ON binding.record_id = related.record_id
+                 WHERE own.record_id = ?
+               )
+               SELECT source_generation FROM wanted
+               UNION
+               SELECT f.source_generation FROM {DISPLAY_FINGERPRINTS}
+               WHERE (f.scheme, f.digest, f.byte_length) IN (
+                 SELECT fingerprint_scheme, digest, byte_length FROM wanted WHERE digest IS NOT NULL
+               )
+             )"
+        ));
+        parameters.push(Value::Text(record_id.to_owned()));
+        clauses.push(format!(
+            "{} = (SELECT group_id FROM organization_record_groups WHERE record_id = ?)",
+            super::organization::record_expression("locations")
+        ));
+        parameters.push(Value::Text(record_id.to_owned()));
+    }
 }
 
 pub(super) fn representative_for_anchor(

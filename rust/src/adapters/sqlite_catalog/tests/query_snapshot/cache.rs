@@ -21,6 +21,7 @@ fn snapshot_reuses_selection_across_readers_but_observes_publication_and_query_c
     let session = catalog.validated_session();
     let query = GalleryQuery {
         duplicate_mode: GalleryDuplicateMode::Merged,
+        organization_queue: Some(crate::domain::organization_queue::OrganizationQueue::Pending),
         ..Default::default()
     };
     let work = Arc::new(AtomicUsize::new(0));
@@ -53,15 +54,44 @@ fn snapshot_reuses_selection_across_readers_but_observes_publication_and_query_c
             }),
         )
         .expect("observe reused query work");
+    let requested = &first.snapshot.assets[0];
+    let anchor = GalleryQueryAnchor {
+        requested_location_id: requested.location_id.clone(),
+        group_key: None,
+        asset_id: Some(requested.asset_id.clone()),
+        fallback_ordinal: 0,
+    };
     let warm = reader
-        .load_query_snapshot(16, &query, TEST_QUERY_ID, None)
+        .load_query_snapshot(16, &query, TEST_QUERY_ID, Some(&anchor))
         .expect("reused selection");
     let warm_work = work.load(Ordering::Relaxed);
     assert!(warm_work < cold_work, "cold={cold_work}, warm={warm_work}");
     assert_eq!(warm.timeline, first.timeline);
+    assert_eq!(warm.organization_counts, first.organization_counts);
+    assert_eq!(warm.organization_counts.unwrap().pending, 2048);
+    assert_eq!(
+        warm.snapshot.query_anchor_resolution.unwrap().location_id,
+        Some(requested.location_id.clone()),
+    );
     assert_eq!(
         warm.layout_manifest.unwrap()[0].location_ids,
         first.layout_manifest.unwrap()[0].location_ids
+    );
+    let other_asset = &first.snapshot.assets[1];
+    let mismatched = GalleryQueryAnchor {
+        asset_id: Some(other_asset.asset_id.clone()),
+        ..anchor
+    };
+    let resolved = reader
+        .load_query_snapshot(16, &query, TEST_QUERY_ID, Some(&mismatched))
+        .expect("resolve asset identity rather than reuse a different location occupant");
+    assert_eq!(
+        resolved
+            .snapshot
+            .query_anchor_resolution
+            .unwrap()
+            .location_id,
+        Some(other_asset.location_id.clone()),
     );
 
     let other = GalleryQuery {
@@ -81,6 +111,7 @@ fn snapshot_reuses_selection_across_readers_but_observes_publication_and_query_c
         .load_query_snapshot(16, &query, TEST_QUERY_ID, None)
         .expect("publication");
     assert_eq!(current.timeline.total_items, 2049);
+    assert_eq!(current.organization_counts.unwrap().pending, 2049);
     assert!(current.timeline.revision > first.timeline.revision);
 }
 
