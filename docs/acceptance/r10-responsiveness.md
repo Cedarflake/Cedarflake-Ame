@@ -279,4 +279,30 @@ while preserving the center anchor; the recovered card left the viewport. The as
 only cards common to both visible windows, whose dimensions had not changed. Waiting additional
 frames did not change this result. The fixture now completes the retained center card before checking
 rendered geometry. Its geometry-change and two-pixel anchor assertions are retained, and the focused
-case passes. This changes fixture selection, not production timing or navigation behavior.
+case and its three adjacent geometry cases pass. This changes fixture selection, not production
+timing or navigation behavior.
+
+## R10a closeout
+
+Implementation and regression head: `9ff6a47d1c7e4e79492052834a09707435222ebc`, on
+`codex/r10a-responsiveness`. The [full hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43536711956)
+passed all four Rust groups, Flutter tests, Static, Windows Scan, Windows Accessibility, production
+Windows build verification and the aggregate Windows Gate. Earlier failed/superseded runs are
+retained above as provenance and were replaced by this result. Release and synthetic workloads were
+not selected for this responsiveness slice.
+
+The current implementation meets the workstation's five-second fresh-process startup target and
+one-second warm-navigation P95 target, including organization resume. Both layouts meet the measured
+frame and resize-anchor criteria. Classification publication, disposable-source synchronization,
+held timeline movement/reversal, viewer transitions and filmstrip arrivals are recorded above.
+Final source review retained complete query/revision admission, bounded cache storage, current
+geometry reads, source identity checks and atomic publication. No schema, bridge or visual behavior
+change was required.
+
+The historical long first launches and first reads following publication remain the observations
+described above. The process-cold measurements do not claim a cold operating-system file cache;
+held timeline input is application-level synthetic input. Sustained resource use, interrupted
+recovery, upgrade qualification and Beta publication remain in R10-02 through R10-05.
+
+Closeout changes only documentation. Changed-document UTF-8, LF, whitespace and local-link checks
+pass; the implementation and test inputs are unchanged from the successful hosted revision.
