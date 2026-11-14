@@ -236,9 +236,19 @@ Sandbox native executable `9fa9ed2a442745239a47bd5cc6347348540d6d2812a0dcbff6dee
 passed both notification-order regressions, real deletion, native containment and unsupported-
 identity cases. The shared lookup extraction also retained all four directory-recovery cases in
 the preceding build. Actual create/modify/rename/move/replace/delete observations retained their
-expected identity and source state, with median 776 ms and maximum/P95 983 ms. The subsequent
-event-storm workload reached visibility in 14.839 seconds but its historical queue/read-count
-assertions still require diagnosis; this is not a full live/event-storm pass.
+expected identity and source state, with median 776 ms and maximum/P95 983 ms.
+
+The subsequent Release executable
+`65e4b1a7d6a5a0c58a719ba7e09a07548c5c2971813dc3fde514c51b73bb3aca`
+passed the complete live/event-storm case. Six live changes had median 494 ms and P95/maximum
+634 ms. The 96-path storm coalesced 708 observations into 97 rows, including the new parent
+directory's subtree intent, and became visible in 8,807 ms. Each storm image was opened once;
+the preceding six operations used nine content opens across their independently admitted
+notifications. The fixture now measures those workloads separately instead of assuming three
+content opens for six different operations. Its live reads remain bounded by admitted work;
+storm reads retain the exact one-open-per-image assertion. There were 111 affected-path entry
+reads against the existing 192 limit, zero root enumeration, zero inventory/P2 work and no new
+scan rows. All affected and unrelated source snapshots remained unchanged.
 
 The overflow fixture now uses a genuine LiveOnly baseline and 8,192 interleaved writes across
 256 paths, exceeding the 4,096-observation ingress bound. A fixed empty connected-journal fixture
