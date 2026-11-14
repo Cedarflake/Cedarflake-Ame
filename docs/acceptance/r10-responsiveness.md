@@ -55,7 +55,8 @@ The same retained-library API comparison after this change produced:
 
 Expanded-gallery reads remained 277–281 ms. First-use category grouping and smart-navigation
 aggregation remain on their original SQL path; these figures do not claim an improvement there.
-The fresh native process's first merged read was 5,690 ms. Release UI acceptance is still pending.
+The fresh native process's first merged read was 5,690 ms. Complete Release interaction results
+appear in the navigation and final-startup sections below.
 
 The focused snapshot cases passed, including reuse across independently opened session readers,
 query-key separation, publication invalidation, geometry recovery without a revision change,
@@ -90,7 +91,7 @@ Five Release launches on the retained catalog took 5,109–5,175 ms from process
 decoded gallery image. Dart-entry-to-content time was 4,678–4,749 ms, compared with 5,111–5,315 ms
 before removing the duplicate audit. The earlier instrument started at Dart entry and only required
 gallery tiles, so its figures are not interchangeable with the stricter process-to-decoded-image
-measurement. The five-second process target remains open.
+measurement. This intermediate build remained above the five-second process target.
 
 ## Semantic candidate and result reuse
 
@@ -117,7 +118,8 @@ bodies; this change only connects the session caches and existing read entrypoin
 
 The first process after rebuilding took 12,002 ms, while five subsequent fresh processes took
 5,116–5,190 ms. The preceding rebuild also had a 13,979 ms first launch. These outliers remain part
-of the startup record; their cause is not yet isolated, and the process startup target remains open.
+of the startup record; their cause was not isolated. The final-startup section separates these
+historical observations from the measured current build.
 
 ## Active-root representative lookup
 
@@ -246,3 +248,35 @@ Existing review, snapshot/publication, anchor-membership and fingerprint-cost ca
 changes. The snapshot reuse case now also exercises asset mismatch and count invalidation. The
 group-query, review-query and projection owners contain 253, 126 and 436 production lines, with no
 inline tests; the affected dedicated snapshot-cache test has 151 lines. No schema or bridge changed.
+
+## Final startup and synchronization publication
+
+On `2a3662847d742237a9035a31721c806fec12d9a9`, six fresh production Release processes reached
+the first decoded image inside a gallery card in 4,954 / 4,869 / 4,833 / 4,817 / 4,823 / 4,820 ms.
+Every launch met five seconds, including the first after rebuilding. Measurement begins before
+process creation and ends after the gallery image is rendered; branding images do not satisfy it.
+No Flutter error was reported. The operating-system file cache was not purged between launches.
+The earlier post-build 12–17-second observations were not reproduced in this run; their cause is
+not recorded as fixed, and first use on another machine remains outside this workstation result.
+
+The same implementation navigated an isolated retained-catalog copy while the normal synchronization
+pipeline imported ten new PNG files, written 600 ms apart into one managed disposable source.
+The initial file plus all ten arrivals were present afterward. Published catalog revisions advanced
+from 228949 to 228962 during root, gallery, album and category navigation, with observed background
+verification and publication phases. Three navigation cycles completed without Flutter errors;
+the final client working set was 390 MiB. First category reads during/after the burst reached
+1,633–2,738 ms; the separate 20-cycle warm measurements above retain the P95 qualification.
+The acceptance native build enabled the existing isolated-storage override, and its source/diff
+receipt matched the committed implementation. The owned process exited, temporary source/catalog
+were removed, and the production DLL was restored with its hash verified. Original media and the
+user's catalog were not mutated by this fixture.
+
+## Recovered-dimension fixture visibility
+
+The hosted Flutter run on `9f35c54f` exposed a deterministic assertion in the two-batch dimension
+recovery case. The second batch could finish a card at the viewport edge, then correct row geometry
+while preserving the center anchor; the recovered card left the viewport. The assertion compared
+only cards common to both visible windows, whose dimensions had not changed. Waiting additional
+frames did not change this result. The fixture now completes the retained center card before checking
+rendered geometry. Its geometry-change and two-pixel anchor assertions are retained, and the focused
+case passes. This changes fixture selection, not production timing or navigation behavior.
