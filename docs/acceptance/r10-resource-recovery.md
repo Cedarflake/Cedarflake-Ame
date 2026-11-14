@@ -142,7 +142,8 @@ commit headroom, immediate pressure downgrade, the continuous 30-second recovery
 foreground work alongside image work, cancellation, and confirmed retirement before serial
 replacement. This uses the existing controlled capacity boundary; no workstation-wide memory
 exhaustion or threshold change was introduced. The same run's Catalog lane failed its existing
-ten-second migration timing assertion at 10.118 seconds; that failure remains separate and open.
+ten-second migration timing assertion at 10.118 seconds; the schema-proof follow-up below records
+its repair and subsequent passing full run.
 
 ## Schema proof cost
 
@@ -156,7 +157,8 @@ with exactly one full validation in each run. One hundred validated reopens took
 with maximum single reopen 11.55/11.76 ms. The original ten-second validation and one-second
 individual-reopen assertions passed unchanged. All six schema-shape cases passed, covering
 missing objects, literal values, quoted tokens, foreign keys, column order and plain-index shape.
-Hosted verification still owns the previously failing runner result.
+At `763f8e6b`, the complete [Quality / CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43641282085)
+passed, including the previously failing Catalog lane. This run predates the live-move repair.
 
 ## Sustained-use results
 
@@ -199,6 +201,14 @@ and 16 sampled content hashes matched the pre-run state. The production native D
 by hash and the leased catalog/cache copy was retired.
 
 ## Remaining diagnostics
+
+The retained-root R2c-M preparation measured 3,194 ms opening the isolated catalog and
+352 ms reading the two root-scoped pages and initial manifests, for 3,546 ms combined.
+Its historical one-second combined assertion therefore failed before metadata inventory ran.
+The diagnostic now retains that assertion after inventory and source-safety checks, so a timing
+failure cannot prevent collection of the remaining recovery evidence. The R10 plan separately
+targets five seconds for fresh-process usability and one second for warm navigation; alignment
+of these measurements remains open, and the historical threshold has not been changed.
 
 The first formal mixed session stopped after approximately 24 minutes: cycle 26's uncached text
 query reached the worker initialization deadline and returned `classification_worker_timeout`.
@@ -267,3 +277,22 @@ existing test instrumentation. Its change is module declarations only. Native id
 has 69 lines; file containment has 75 production lines plus test-module wiring and 51 dedicated
 test lines. Directory recovery now has 123 production lines plus test-module wiring. No broad
 facade decomposition or schema migration is part of this repair.
+
+## Replacement continuity fixture
+
+R2c-M now establishes its root and identity through production scanning. Its LiveOnly process
+interruption retains a typed uncovered watcher gap before exiting, so the next process has the
+recovery authority required by ADR 0024. Native gap admission and journal-backed catch-up remain
+covered by the R2c-R results above. The former fixture expected ordinary startup to authorize
+inventory without retained gap evidence, a behavior superseded by that contract.
+
+Storm coalescing counts the 96 affected image paths, excluding independently completed parent-
+directory notifications. Diagnosis found two completed subtree records for the parent and exactly
+one record per image. Final-state checks now require the last written dimensions, including the
+offline modification; latency and queue bounds remain unchanged.
+
+Sandbox executable `6d1b8957e54acc863f65ed9850099970489aa0d703f3c6b35ac2e4b91202902c`
+passed this focused Debug run: 25 live changes at P95 886 ms, 603 image observations coalesced into
+96 rows, independent-process restart convergence in 4,359 ms, shutdown in 11 ms and unchanged
+full-scan rows. The dedicated fixture has 1,303 test lines and no production code. Release retained-
+root measurement and its historical startup timing requirement remain separate follow-ups.

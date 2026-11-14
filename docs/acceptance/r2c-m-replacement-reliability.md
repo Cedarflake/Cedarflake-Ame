@@ -13,6 +13,12 @@ R2c-H USN catch-up evidence. It has two serial phases:
 - an isolated online backup of the retained catalog exercises production metadata inventory against
   the two explicitly authorized roots.
 
+The disposable phase uses the production file watcher with a LiveOnly connection. It establishes
+its root through production scanning and persists an uncovered watcher gap before the interruption.
+That retained evidence authorizes recovery under [ADR 0024](../architecture/0024-windows-change-driven-library-continuity.md#recovery-and-one-time-baseline);
+ordinary startup without a gap does not request an inventory. The current R2c-R matrix owns native
+overflow admission and journal-backed closed-process catch-up.
+
 The retained source paths are represented only as `local-primary` and `cloud-primary`. Machine
 paths, account identity, and local mapping data are not acceptance output.
 
@@ -24,7 +30,8 @@ The disposable phase must prove:
   reach the catalog;
 - event-to-visible P95 is no greater than 1,000 ms;
 - a write storm coalesces into bounded durable work;
-- changes made after the runtime stops converge through the next continuity epoch;
+- changes made after interruption with a retained uncovered gap converge through the next
+  continuity epoch;
 - shutdown remains bounded and continuity creates no full-scan row.
 
 The retained phase must prove:
