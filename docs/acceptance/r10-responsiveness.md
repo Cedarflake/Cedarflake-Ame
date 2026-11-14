@@ -306,3 +306,21 @@ recovery, upgrade qualification and Beta publication remain in R10-02 through R1
 
 Closeout changes only documentation. Changed-document UTF-8, LF, whitespace and local-link checks
 pass; the implementation and test inputs are unchanged from the successful hosted revision.
+
+## R10a integration — 2026-11-14
+
+[PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64) integrated reviewed head
+`c9de14a8c4d129d9cf9c2912bbcc885027491cfe` into `main` as
+`bf81a19735f33a92ce9de4020da77649c238295b`. Review covered complete query/revision cache admission,
+late-reader publication, candidate cancellation and storage bounds, source/relationship validation,
+organization-resume grouping and viewport continuity during resize and query publication. No
+merge-blocking defect was found in this scope.
+
+The full hosted result above was rechecked against its source commit. The reviewed head differs
+from that successful revision only in roadmap and acceptance documentation; the merge tree equals
+the reviewed head. Existing client measurements and regressions remain applicable. The additional
+PR-triggered run was still pending at merge and is not recorded as a second passing result.
+
+Local `main` was fast-forwarded to the merge, and both local and remote
+`codex/r10a-responsiveness` branches were deleted after verifying ancestry. R10-02 through R10-05
+and the recorded measurement limitations retain their existing scope.
