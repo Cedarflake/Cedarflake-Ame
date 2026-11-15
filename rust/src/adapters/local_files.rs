@@ -4724,6 +4724,18 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "identity_lookup",
+            visibility: "",
+            attributes: &["cfg(windows)"],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "relocated_file",
+            visibility: "",
+            attributes: &["cfg(windows)"],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "catalog_identity",
             visibility: "",
             attributes: &[],

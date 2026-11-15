@@ -191,6 +191,23 @@ maximum 1,349 ms. This restart's usable-gallery time was 8,965 ms while synchron
 above R10-01's five-second fresh-process target; the earlier interruption restart was 4,624 ms.
 The slower restart remains a timing observation to locate, not a changed startup target.
 
+At `1d54c6fd`, the optimized acceptance DLL
+`1dc87e8518c17b6bb74c1bca63169859ccafe2427c75a493b039d5b8727afa26`
+ran five fresh processes against one new retained-catalog copy. Process-to-decoded-gallery times
+were 5,657 / 4,891 / 4,620 / 4,582 / 4,559 ms. The first launch generated previews and consumed
+14 journal observations with two catalog mutations; those observations do not isolate the reason
+for its 657 ms target overrun. This series did not reproduce the earlier 8,965 ms restart, but the
+first result still exceeds five seconds. All five clients closed normally, all 63,070 source
+entries and 16 sampled hashes matched, and the production DLL was restored by hash.
+
+A second new scratch copy, without recompiling, measured 5,448 / 4,730 / 4,578 / 4,562 / 4,640 ms.
+Both series began without copied preview files; each first launch generated previews and reconciled
+the two pending locations. The eight subsequent fresh processes reused those previews and all
+reached decoded gallery content within five seconds. The 5.45–5.66-second empty-preview-store
+launches remain distinct measurements; neither compilation nor preview generation alone has been
+established as the cause of the difference. This comparison changes no startup target. The second
+series also preserved all source-state/hash samples and restored the production native library.
+
 The two initially unindexed locations obtained compatible features, leaving 1,595 distinct
 contents beyond the existing input-dimension limit and no unexplained eligible gap. The store
 accounted for 166,276,096 bytes and did not reach its budget. A read-only checkpoint taken about
@@ -202,13 +219,29 @@ by hash and the leased catalog/cache copy was retired.
 
 ## Remaining diagnostics
 
-The retained-root R2c-M preparation measured 3,194 ms opening the isolated catalog and
-352 ms reading the two root-scoped pages and initial manifests, for 3,546 ms combined.
-Its historical one-second combined assertion therefore failed before metadata inventory ran.
-The diagnostic now retains that assertion after inventory and source-safety checks, so a timing
-failure cannot prevent collection of the remaining recovery evidence. The R10 plan separately
-targets five seconds for fresh-process usability and one second for warm navigation; alignment
-of these measurements remains open, and the historical threshold has not been changed.
+The current retained-root R2c-M preparation measured 3,181 ms opening the isolated catalog and
+352 ms reading the two root-scoped pages and initial manifests, for 3,533 ms combined.
+The original one-second combined assertion remains after inventory and source-safety checks;
+the canonical entrypoint therefore reports five passing cases and one timing failure. The R10
+plan separately targets five seconds for fresh-process usability and one second for warm
+navigation. Alignment of these measurements awaits a decision; the historical threshold has
+not been changed.
+
+At the same `1d54c6fd` revision, Release executable
+`b14b0084ce3926942c1c5627547cd18c9043a5579d30c1e7fb97c0712550dd48`
+completed both retained-root inventories below their unchanged 45-second limits:
+
+| Root | Entries | Candidates / unchanged | Total | Source pages | Repository work |
+| --- | --- | --- | --- | --- | --- |
+| `local-primary` | 68,690 | 2 / 68,688 | 17,870 ms | 11,039 ms | 6,831 ms |
+| `cloud-primary` | 25 | 0 / 25 | 93 ms | 6 ms | 87 ms |
+
+Neither inventory was cancelled or backpressured. The separately enclosed repeated pass preserved
+all directory-entry metadata, placeholder state and scan rows. Peak Job Object memory was
+119,713,792 bytes, below its 2 GiB limit. Small reports were exported before the leased catalog was
+retired, including after the retained timing assertion failed. The controlled Release phase passed
+25 live changes with P50/P95 351/356 ms, 577 image observations coalesced into 96 rows, 26 ms maximum
+foreground poll, 3,553 ms independent-process recovery and 2 ms shutdown. No full-scan row was added.
 
 The first formal mixed session stopped after approximately 24 minutes: cycle 26's uncached text
 query reached the worker initialization deadline and returned `classification_worker_timeout`.
@@ -272,8 +305,9 @@ remain unchanged.
 
 The affected incremental facade has 1,353 non-test lines and its existing dedicated test owner
 has 3,860 lines; the new relocation owner has 86 production lines and 62 dedicated test lines.
-The local-files facade retains 2,547 lines before its 3,364-line inline test module, including
-existing test instrumentation. Its change is module declarations only. Native identity lookup
+The local-files facade retains 2,547 lines before its 3,376-line inline test module, including
+existing test instrumentation. Production changes are module declarations; the inline test registry
+also admits their exact private Windows-only declarations. Native identity lookup
 has 69 lines; file containment has 75 production lines plus test-module wiring and 51 dedicated
 test lines. Directory recovery now has 123 production lines plus test-module wiring. No broad
 facade decomposition or schema migration is part of this repair.
@@ -294,5 +328,17 @@ offline modification; latency and queue bounds remain unchanged.
 Sandbox executable `6d1b8957e54acc863f65ed9850099970489aa0d703f3c6b35ac2e4b91202902c`
 passed this focused Debug run: 25 live changes at P95 886 ms, 603 image observations coalesced into
 96 rows, independent-process restart convergence in 4,359 ms, shutdown in 11 ms and unchanged
-full-scan rows. The dedicated fixture has 1,303 test lines and no production code. Release retained-
-root measurement and its historical startup timing requirement remain separate follow-ups.
+full-scan rows. The dedicated fixture has 1,303 test lines and no production code. The Release
+retained-root measurements and the remaining timing decision are recorded above.
+
+## Source-loading verification
+
+At `1d54c6fd`, [Quality / CI](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43653112176)
+passed Static, Flutter, Scan, Accessibility, Windows production build and all Rust partitions except
+Remaining. That partition passed 1,255 cases and failed two source-loading checks: the private
+Windows identity and relocation modules were absent from the exact module registry.
+
+The registry now admits both declarations without changing the validator. Its dedicated 479-line
+test owner covers the current declarations and rejects missing, duplicated, public, differently
+conditioned, alternate-path, generated and inline replacements. All seven module-topology cases and
+the owning-function enumeration check passed locally; no source enumeration was admitted.
