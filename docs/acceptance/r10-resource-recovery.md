@@ -217,7 +217,7 @@ This checkpoint covers the remainder of the session and restart. All 63,070 sour
 and 16 sampled content hashes matched the pre-run state. The production native DLL was restored
 by hash and the leased catalog/cache copy was retired.
 
-## Remaining diagnostics
+## Startup and retained-root recovery
 
 At `1d54c6fd`, retained-root R2c-M preparation measured 3,181 ms opening the isolated catalog and
 352 ms reading the two root-scoped pages and initial manifests, for 3,533 ms combined.
@@ -268,8 +268,35 @@ The temporary timing edits were removed and the production native library was re
 
 The workstation retained a running game throughout these repeats; the second run began at 18%
 sampled total CPU load. Separate read-only query samples predominantly ran on efficiency cores.
-The remaining comparison needs a quiet host; no startup, cached-read or recovery limit has been
-relaxed, and these runs do not establish closure of the startup requirement.
+These failures remain recorded separately from the quiet-host comparison below; no startup,
+cached-read or recovery limit changed.
+
+The quiet-host recheck at `8aa1fd5f` began at 9% sampled total CPU load with no game or Ame client
+running. Native inputs were unchanged from `2da11054`; the recorded clean-source receipt and
+SHA-256 above verified reuse of the same Release test executable. The canonical R2c-M
+`-ValidationOnly` admission checked the roots, cloud acknowledgement, physical separation and
+fresh storage. The six native selectors then ran under the same Job Object ownership, ten-minute
+deadline and 2 GiB bound, without invoking Cargo or rebuilding. All six passed.
+
+| Measurement | Result | Existing limit |
+| --- | --- | --- |
+| Catalog opening and initial gallery reads | 3,634 ms, including 3,273 ms opening | 5,000 ms |
+| Cached root pages and initial manifests | 360 ms | 1,000 ms |
+| `local-primary` metadata inventory | 19,844 ms: 12,948 ms source pages, 6,896 ms repository work | 45,000 ms |
+| `cloud-primary` metadata inventory | 98 ms: 6 ms source pages, 92 ms repository work | 45,000 ms |
+| Peak Job Object memory | 99,938,304 bytes | 2,147,483,648 bytes |
+
+The initial reads returned 524 details and 4,120 manifest items from 63,094 root-scoped items.
+Local inventory retained 68,690 entries, two candidates and 68,688 unchanged entries; cloud
+inventory retained 25 entries, 24 candidates and one unchanged entry. Both completed without
+cancellation or backpressure. The isolated seed catalog contained 1,036,103,680 bytes; queue growth
+was two rows. The separately enclosed repeated pass preserved directory-entry metadata, placeholder
+attributes and scan rows. Controlled recovery retained 25 live changes at P95 354 ms, 578 image
+observations coalesced into 96 rows, a 24 ms maximum poll, 3,564 ms independent-process recovery and
+1 ms shutdown. Owned processes exited and leased scratch storage was removed. The production DLL
+retained SHA-256 `5b41a66008e2610e076cd68a5821bef6f711bac9ce5d411be9ecdceebc83d04f`.
+
+## Retained diagnostic observations
 
 The first formal mixed session stopped after approximately 24 minutes: cycle 26's uncached text
 query reached the worker initialization deadline and returned `classification_worker_timeout`.
@@ -357,7 +384,7 @@ Sandbox executable `6d1b8957e54acc863f65ed9850099970489aa0d703f3c6b35ac2e4b91202
 passed this focused Debug run: 25 live changes at P95 886 ms, 603 image observations coalesced into
 96 rows, independent-process restart convergence in 4,359 ms, shutdown in 11 ms and unchanged
 full-scan rows. The dedicated fixture now has 1,311 test lines and no production code. The Release
-retained-root measurements, revised timing contract and remaining comparison are recorded above.
+retained-root measurements and passing revised timing windows are recorded above.
 
 ## Source-loading verification
 
@@ -374,5 +401,20 @@ At `c06396d4`, the complete [Quality / CI run](https://github.com/Cedarflake/Ced
 passed, including Remaining. The subsequent `4be864ba` change updated documentation only.
 At `2da11054`, the complete [Quality / CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43687989878)
 also passed, including all Rust partitions, Flutter tests, Static,
-Accessibility and the Windows production build. The real-root startup failure above remains
-separate from those hosted results.
+Accessibility and the Windows production build. The separate real-root recheck above used that
+revision's unchanged native inputs; subsequent changes update documentation only.
+
+## R10b closeout — 2026-11-15
+
+R10-02 delivered the 60-minute resource workload, compatible-index restart reuse, preview-budget
+reclamation, interruption/recovery coverage, both retained-root inventories and the three compact-
+manifest scales. The bounded native recheck above closes the revised startup/cached-read comparison.
+Production changes preserve identity across unpaired move notifications and avoid redundant schema
+SQL canonicalization; recovery fixtures now exercise retained gap authority and native source-loading
+boundaries. Applicable full CI passed at `2da11054`.
+
+The host's guarded R2c-R wrapper still encounters Windows error 5; the same native matrix was
+completed in disposable Sandbox. Empty-preview-store starts measured 5.45–5.66 seconds, some
+mixed-workload search requests exceeded one second, and one earlier worker initialization timed
+out without recurrence in the completed session. Those observations retain their measurements and
+scope above. Performance thresholds and accepted UI behavior remain unchanged.

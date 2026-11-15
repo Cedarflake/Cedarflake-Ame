@@ -35,7 +35,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
 | R8 | Authorized file organization and recovery | Merged into `main` on 2026-11-11 through [PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57); incorporates former R9 |
 | R9 | Move album files into year-based folders | Merged into `main` on 2026-11-12 through [PR 60](https://github.com/Cedarflake/Cedarflake-Ame/pull/60) |
-| R10 | Large-library maturity and release readiness | R10a (R10-01) integrated through [PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64); R10b (R10-02) active; R10-03 through R10-05 pending for `v0.1.0-beta.1` |
+| R10 | Large-library maturity and release readiness | R10a (R10-01) integrated through [PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64); R10b (R10-02) completed on its work branch; R10-03 through R10-05 pending for `v0.1.0-beta.1` |
 
 R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
 feature. The R9 identifier now denotes the separate album-by-year movement scope below; the former
@@ -73,8 +73,10 @@ The R10
 is decomposed in the [execution plan](plans/r10-beta-readiness.md). R10a is integrated through
 [PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64), with
 [integration evidence](acceptance/r10-responsiveness.md#r10a-integration--2026-11-14).
-R10b (R10-02) is active on `codex/r10b-resource-recovery`: sustained-use resource bounds,
-compatible semantic-index reuse and interruption/restart recovery.
+R10b (R10-02) is completed on `codex/r10b-resource-recovery`: sustained-use resource bounds,
+compatible semantic-index reuse and interruption/restart recovery. Its
+[closeout](acceptance/r10-resource-recovery.md#r10b-closeout--2026-11-15) records the delivered scope
+and remaining observations. Branch integration is pending; R10-03 is the next planned slice.
 
 ### Gallery group discovery
 
@@ -101,16 +103,16 @@ upgrade compatibility, diagnostics and user guidance, then the first Beta candid
 R10a completes R10-01 in `main`. Its [closeout](acceptance/r10-responsiveness.md#r10a-closeout)
 records retained-library Release/Profile targets, publication behavior and passing full CI; the
 [integration record](acceptance/r10-responsiveness.md#r10a-integration--2026-11-14) retains review and merge evidence.
-Continue with the active R10-02, reusing delivered capabilities and valid evidence. The plan owns
-the detailed workloads and completion criteria; this disposition does not start the later slices.
+R10-02 is completed on its work branch. The plan owns the detailed workloads and completion criteria;
+this disposition does not start the later slices.
 
 R10-02's [resource and recovery evidence](acceptance/r10-resource-recovery.md) records the sustained
 session, index reuse, current-root recovery and bounded layout measurements. R2c-M now uses R10's
 five-second startup and one-second cached-read targets, approved on 2026-11-15; its
 [timing contract](acceptance/r2c-m-replacement-reliability.md#required-evidence) separates those windows.
-Closure awaits a comparable quiet-host check of the revised startup and cached-read windows.
-The latest run completed source-safe recovery but exceeded the startup target; existing limits
-remain unchanged. Earlier timing failures and empty-preview-store measurements remain in the evidence.
+The quiet-host recheck passed the revised startup and cached-read windows and source-safe recovery
+with unchanged limits. Earlier timing failures, empty-preview-store measurements and the host
+R2c-R wrapper limitation remain in the evidence alongside the completed native Sandbox matrix.
 
 First-Beta exit requires the agreed performance and recovery results, preserved data across upgrade,
 usable diagnostics, no known blocking defect and passing applicable candidate gates. Both MSI and
