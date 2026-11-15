@@ -104,6 +104,12 @@ records retained-library Release/Profile targets, publication behavior and passi
 Continue with the active R10-02, reusing delivered capabilities and valid evidence. The plan owns
 the detailed workloads and completion criteria; this disposition does not start the later slices.
 
+R10-02's [resource and recovery evidence](acceptance/r10-resource-recovery.md) records the sustained
+session, index reuse, current-root recovery and bounded layout measurements. Closure awaits the
+current implementation's CI and a decision on the legacy R2c-M combined cold-open/initial-read
+budget relative to R10's separate startup and warm-query targets. The evidence retains the timing
+failures and empty-preview-store startup measurements; no target has been relaxed.
+
 First-Beta exit requires the agreed performance and recovery results, preserved data across upgrade,
 usable diagnostics, no known blocking defect and passing applicable candidate gates. Both MSI and
 portable ZIP are required. Signing, additional locales, an automatic updater and the previously

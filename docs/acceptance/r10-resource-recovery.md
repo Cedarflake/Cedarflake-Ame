@@ -247,7 +247,7 @@ The first formal mixed session stopped after approximately 24 minutes: cycle 26'
 query reached the worker initialization deadline and returned `classification_worker_timeout`.
 The client exited normally and left no owned analysis worker. All 63,070 mapped source locations
 and 16 bounded content hashes matched the pre-run state. Three isolated starts of the same text
-worker completed in 1.76–2.51 seconds; the mixed-session cause remains under investigation.
+worker completed in 1.76–2.51 seconds; the mixed-session cause was not isolated.
 The subsequent complete session above did not reproduce it; the cause of the isolated timeout
 has not been attributed to a repaired defect.
 
