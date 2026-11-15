@@ -221,11 +221,11 @@ by hash and the leased catalog/cache copy was retired.
 
 The current retained-root R2c-M preparation measured 3,181 ms opening the isolated catalog and
 352 ms reading the two root-scoped pages and initial manifests, for 3,533 ms combined.
-The original one-second combined assertion remains after inventory and source-safety checks;
-the canonical entrypoint therefore reports five passing cases and one timing failure. The R10
-plan separately targets five seconds for fresh-process usability and one second for warm
-navigation. Alignment of these measurements awaits a decision; the historical threshold has
-not been changed.
+The original one-second combined assertion reported five passing cases and one timing failure
+after inventory and source-safety checks. On 2026-11-15, the accepted R10 alignment replaced that
+combined limit with five seconds for startup including initial reads and one second for those
+cached reads after catalog validation. The revised entrypoint records both windows and catalog
+opening separately; the historical failed measurement remains unchanged.
 
 At the same `1d54c6fd` revision, Release executable
 `b14b0084ce3926942c1c5627547cd18c9043a5579d30c1e7fb97c0712550dd48`
@@ -328,7 +328,7 @@ offline modification; latency and queue bounds remain unchanged.
 Sandbox executable `6d1b8957e54acc863f65ed9850099970489aa0d703f3c6b35ac2e4b91202902c`
 passed this focused Debug run: 25 live changes at P95 886 ms, 603 image observations coalesced into
 96 rows, independent-process restart convergence in 4,359 ms, shutdown in 11 ms and unchanged
-full-scan rows. The dedicated fixture has 1,303 test lines and no production code. The Release
+full-scan rows. The dedicated fixture now has 1,311 test lines and no production code. The Release
 retained-root measurements and the remaining timing decision are recorded above.
 
 ## Source-loading verification
@@ -342,3 +342,5 @@ The registry now admits both declarations without changing the validator. Its de
 test owner covers the current declarations and rejects missing, duplicated, public, differently
 conditioned, alternate-path, generated and inline replacements. All seven module-topology cases and
 the owning-function enumeration check passed locally; no source enumeration was admitted.
+At `c06396d4`, the complete [Quality / CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43657241957)
+passed, including Remaining. The subsequent `4be864ba` change updated documentation only.

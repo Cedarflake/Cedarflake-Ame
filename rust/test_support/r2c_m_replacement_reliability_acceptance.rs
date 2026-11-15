@@ -43,6 +43,7 @@ const STORM_PATH_COUNT: usize = 96;
 const MAX_SOURCE_ENTRIES_PER_ROOT: usize = 250_000;
 const EVENT_P95_LIMIT_MS: u64 = 1_000;
 const METADATA_ROOT_LIMIT_MS: u64 = 45_000;
+const STARTUP_GALLERY_LIMIT_MS: u64 = 5_000;
 const CACHED_GALLERY_LIMIT_MS: u64 = 1_000;
 const INITIAL_GALLERY_ITEMS: u32 = 500;
 const INITIAL_MANIFEST_ITEMS: u32 = 4_096;
@@ -559,10 +560,12 @@ fn run_prepared_metadata_inventory_acceptance(
     report_path: &Path,
     backup_ms: u64,
 ) {
-    let cached_gallery_started = Instant::now();
+    let startup_started = Instant::now();
     let mut catalog =
         SqliteCatalog::open(isolated_catalog.to_path_buf()).expect("isolated catalog");
-    eprintln!("R2c-M catalog open: {:?}", cached_gallery_started.elapsed());
+    let catalog_open_ms = elapsed_millis(startup_started.elapsed());
+    eprintln!("R2c-M catalog open: {catalog_open_ms} ms");
+    let cached_gallery_started = Instant::now();
     let catalog_roots = catalog
         .load_incremental_catalog_roots()
         .expect("load retained catalog roots");
@@ -622,6 +625,7 @@ fn run_prepared_metadata_inventory_acceptance(
             .expect("manifest total item count overflow");
     }
     let cached_gallery_ms = elapsed_millis(cached_gallery_started.elapsed());
+    let startup_gallery_ms = elapsed_millis(startup_started.elapsed());
     let scan_rows_before = scan_row_count(isolated_catalog).expect("pre-inventory scan rows");
     let queue_before = queue_totals(isolated_catalog).expect("pre-inventory queue totals");
     let catalog_bytes_before = sqlite_family_bytes(isolated_catalog);
@@ -652,6 +656,10 @@ fn run_prepared_metadata_inventory_acceptance(
     let catalog_bytes_after = sqlite_family_bytes(isolated_catalog);
     eprintln!("R2c-M repeated inventory preserved source metadata, placeholders and scan rows");
     assert!(
+        startup_gallery_ms <= STARTUP_GALLERY_LIMIT_MS,
+        "catalog startup and initial gallery took {startup_gallery_ms} ms; limit is {STARTUP_GALLERY_LIMIT_MS} ms"
+    );
+    assert!(
         cached_gallery_ms <= CACHED_GALLERY_LIMIT_MS,
         "cached gallery took {cached_gallery_ms} ms; limit is {CACHED_GALLERY_LIMIT_MS} ms"
     );
@@ -661,7 +669,7 @@ fn run_prepared_metadata_inventory_acceptance(
     append_report(
         report_path,
         &format!(
-            "AME_R2C_M_REAL status=passed roots=2 cached_gallery_ms={cached_gallery_ms} cached_gallery_items={} initial_manifest_items={} manifest_total_items={} local_inventory_ms={} local_entries={} local_candidates={} local_unchanged={} cloud_inventory_ms={} cloud_entries={} cloud_candidates={} cloud_unchanged={} placeholder_entries={placeholder_count} metadata_boundary=local_metadata_inventory safety_snapshot_boundary=windows_directory_entries cold_inventory_source_snapshot=not_measured queue_rows_before={} queue_rows_after={} queue_growth={} catalog_bytes_before={catalog_bytes_before} catalog_bytes_after={catalog_bytes_after} catalog_growth={} backup_ms={backup_ms} repeated_inventory_source_metadata_unchanged=true repeated_inventory_placeholder_state_unchanged=true full_scan_rows_unchanged=true",
+            "AME_R2C_M_REAL status=passed roots=2 startup_gallery_ms={startup_gallery_ms} catalog_open_ms={catalog_open_ms} cached_gallery_ms={cached_gallery_ms} cached_gallery_items={} initial_manifest_items={} manifest_total_items={} local_inventory_ms={} local_entries={} local_candidates={} local_unchanged={} cloud_inventory_ms={} cloud_entries={} cloud_candidates={} cloud_unchanged={} placeholder_entries={placeholder_count} metadata_boundary=local_metadata_inventory safety_snapshot_boundary=windows_directory_entries cold_inventory_source_snapshot=not_measured queue_rows_before={} queue_rows_after={} queue_growth={} catalog_bytes_before={catalog_bytes_before} catalog_bytes_after={catalog_bytes_after} catalog_growth={} backup_ms={backup_ms} repeated_inventory_source_metadata_unchanged=true repeated_inventory_placeholder_state_unchanged=true full_scan_rows_unchanged=true",
             cached_gallery_items,
             initial_manifest_items,
             manifest_total_items,

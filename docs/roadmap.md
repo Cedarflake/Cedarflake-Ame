@@ -105,10 +105,11 @@ Continue with the active R10-02, reusing delivered capabilities and valid eviden
 the detailed workloads and completion criteria; this disposition does not start the later slices.
 
 R10-02's [resource and recovery evidence](acceptance/r10-resource-recovery.md) records the sustained
-session, index reuse, current-root recovery and bounded layout measurements. Closure awaits the
-current implementation's CI and a decision on the legacy R2c-M combined cold-open/initial-read
-budget relative to R10's separate startup and warm-query targets. The evidence retains the timing
-failures and empty-preview-store startup measurements; no target has been relaxed.
+session, index reuse, current-root recovery and bounded layout measurements. R2c-M now uses R10's
+five-second startup and one-second cached-read targets, approved on 2026-11-15; its
+[timing contract](acceptance/r2c-m-replacement-reliability.md#required-evidence) separates those windows.
+Closure awaits the revised entrypoint's verification. Earlier timing failures and empty-preview-
+store startup measurements remain in the evidence.
 
 First-Beta exit requires the agreed performance and recovery results, preserved data across upgrade,
 usable diagnostics, no known blocking defect and passing applicable candidate gates. Both MSI and
