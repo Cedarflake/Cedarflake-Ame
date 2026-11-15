@@ -108,8 +108,9 @@ R10-02's [resource and recovery evidence](acceptance/r10-resource-recovery.md) r
 session, index reuse, current-root recovery and bounded layout measurements. R2c-M now uses R10's
 five-second startup and one-second cached-read targets, approved on 2026-11-15; its
 [timing contract](acceptance/r2c-m-replacement-reliability.md#required-evidence) separates those windows.
-Closure awaits the revised entrypoint's verification. Earlier timing failures and empty-preview-
-store startup measurements remain in the evidence.
+Closure awaits a comparable quiet-host check of the revised startup and cached-read windows.
+The latest run completed source-safe recovery but exceeded the startup target; existing limits
+remain unchanged. Earlier timing failures and empty-preview-store measurements remain in the evidence.
 
 First-Beta exit requires the agreed performance and recovery results, preserved data across upgrade,
 usable diagnostics, no known blocking defect and passing applicable candidate gates. Both MSI and

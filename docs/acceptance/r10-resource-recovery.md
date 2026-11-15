@@ -219,7 +219,7 @@ by hash and the leased catalog/cache copy was retired.
 
 ## Remaining diagnostics
 
-The current retained-root R2c-M preparation measured 3,181 ms opening the isolated catalog and
+At `1d54c6fd`, retained-root R2c-M preparation measured 3,181 ms opening the isolated catalog and
 352 ms reading the two root-scoped pages and initial manifests, for 3,533 ms combined.
 The original one-second combined assertion reported five passing cases and one timing failure
 after inventory and source-safety checks. On 2026-11-15, the accepted R10 alignment replaced that
@@ -242,6 +242,34 @@ all directory-entry metadata, placeholder state and scan rows. Peak Job Object m
 retired, including after the retained timing assertion failed. The controlled Release phase passed
 25 live changes with P50/P95 351/356 ms, 577 image observations coalesced into 96 rows, 26 ms maximum
 foreground poll, 3,553 ms independent-process recovery and 2 ms shutdown. No full-scan row was added.
+
+The revised entrypoint at `2da11054` used Release executable
+`5122f19e8910f28de87dd76ec9b3a8a4e6b4b905ea2d0f790be4e852cdbdf9ba`.
+Its first run exceeded the local inventory limit at 62,896 ms. A subsequent run completed
+`local-primary` in 40,548 ms and `cloud-primary` in 136 ms, with the same entry/candidate counts
+as above, no cancellation or backpressure, and unchanged source metadata, placeholders and scan
+rows after the repeated pass. Peak Job Object memory was 118,214,656 bytes. Its controlled phase
+passed 25 live changes at P95 437 ms, 578 image observations coalesced into 96 rows, 39 ms maximum
+poll, 5,896 ms recovery and 4 ms shutdown.
+
+That second run failed the five-second startup assertion at 8,821 ms, including 7,873 ms opening
+the catalog. The four individual page/manifest reads totalled 945 ms; the final cached-window
+assertion and success report were not reached. The complete entrypoint reported five passes and
+one failure. Both retained-catalog seeds had 1,036,095,488 bytes, matching the earlier preparation.
+
+A separate temporary timing build based on `2da11054`, native SHA-256
+`a296b773c765e21315e22e09b2dd34eec40ea55025902fb5b0fefc7ac1cb3379`,
+measured 7,767 ms for full schema/row validation: 24 ms for structure, another 2,217 ms for the
+journal/relationship proof, 2,623 ms for classification and 2,903 ms for remaining checks.
+Classification included 187,012 historical predictions, with 2,614 ms reading and validating
+them and 1,435 ms inside per-prediction validation. This empty-preview scratch launch reached
+usable content in 15,162 ms. All 63,070 source entries and 16 sampled hashes remained unchanged.
+The temporary timing edits were removed and the production native library was restored by hash.
+
+The workstation retained a running game throughout these repeats; the second run began at 18%
+sampled total CPU load. Separate read-only query samples predominantly ran on efficiency cores.
+The remaining comparison needs a quiet host; no startup, cached-read or recovery limit has been
+relaxed, and these runs do not establish closure of the startup requirement.
 
 The first formal mixed session stopped after approximately 24 minutes: cycle 26's uncached text
 query reached the worker initialization deadline and returned `classification_worker_timeout`.
@@ -329,7 +357,7 @@ Sandbox executable `6d1b8957e54acc863f65ed9850099970489aa0d703f3c6b35ac2e4b91202
 passed this focused Debug run: 25 live changes at P95 886 ms, 603 image observations coalesced into
 96 rows, independent-process restart convergence in 4,359 ms, shutdown in 11 ms and unchanged
 full-scan rows. The dedicated fixture now has 1,311 test lines and no production code. The Release
-retained-root measurements and the remaining timing decision are recorded above.
+retained-root measurements, revised timing contract and remaining comparison are recorded above.
 
 ## Source-loading verification
 
@@ -344,3 +372,7 @@ conditioned, alternate-path, generated and inline replacements. All seven module
 the owning-function enumeration check passed locally; no source enumeration was admitted.
 At `c06396d4`, the complete [Quality / CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43657241957)
 passed, including Remaining. The subsequent `4be864ba` change updated documentation only.
+At `2da11054`, the complete [Quality / CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43687989878)
+also passed, including all Rust partitions, Flutter tests, Static,
+Accessibility and the Windows production build. The real-root startup failure above remains
+separate from those hosted results.
