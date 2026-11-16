@@ -8,6 +8,7 @@ import "../library_duplicate_strings.dart";
 import "library_duplicate_review_cards.dart";
 import "library_duplicate_review_metrics.dart";
 import "library_duplicate_reveal_action.dart";
+import "library_review_group_card.dart";
 
 class LibrarySimilarGroupCard extends StatelessWidget {
   const LibrarySimilarGroupCard({
@@ -21,7 +22,7 @@ class LibrarySimilarGroupCard extends StatelessWidget {
   final Widget? thumbnail;
 
   @override
-  Widget build(BuildContext context) => LibraryDuplicateReviewCard(
+  Widget build(BuildContext context) => LibraryReviewGroupCard(
     asset: group.representative,
     thumbnail: thumbnail,
     onOpen: onOpen,
@@ -30,13 +31,7 @@ class LibrarySimilarGroupCard extends StatelessWidget {
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     ),
-    actions: [
-      TextButton(
-        style: LibraryDuplicateReviewMetrics.actionStyle,
-        onPressed: onOpen,
-        child: const Text(LibraryDuplicateStrings.viewSimilar),
-      ),
-    ],
+    actionLabel: LibraryDuplicateStrings.viewSimilar,
   );
 }
 

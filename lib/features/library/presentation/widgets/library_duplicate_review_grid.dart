@@ -84,7 +84,12 @@ class _LibraryDuplicateReviewGridState
       _library.updateFilmstripPreviewDemand(
         _previewOwner,
         [for (var index = first; index < last; index++) ?widget.assetAt(index)],
-        libraryPreviewDecodeWidth(144, MediaQuery.devicePixelRatioOf(context)),
+        libraryPreviewDecodeWidth(
+          widget.singleColumn
+              ? 144
+              : LibraryDuplicateReviewMetrics.groupPreviewWidth,
+          MediaQuery.devicePixelRatioOf(context),
+        ),
       );
       unawaited(widget.onVisibleRange?.call(first, last));
     });

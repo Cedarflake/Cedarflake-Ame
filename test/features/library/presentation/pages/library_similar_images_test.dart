@@ -80,9 +80,13 @@ void main() {
       await tester.pumpAndSettle();
 
       Future<void> chooseView(String label) async {
-        await tester.tap(find.byKey(const Key("duplicate-group-menu")));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text(label).last);
+        final view = switch (label) {
+          "已忽略" => "ignored",
+          "重复组" => "exact",
+          "相似组" => "similar",
+          _ => throw ArgumentError.value(label),
+        };
+        await tester.tap(find.byKey(ValueKey("duplicate-view-$view")));
         await tester.pumpAndSettle();
       }
 
@@ -118,11 +122,14 @@ void main() {
       final stoppedQueries = similar.queries.length;
       await tester.pump(const Duration(seconds: 4));
       expect(similar.queries.length, stoppedQueries);
-      expect(find.textContaining("重复组"), findsOneWidget);
-      expect(find.textContaining("相似组"), findsOneWidget);
+      expect(find.textContaining("重复组"), findsNWidgets(2));
+      expect(find.textContaining("相似组"), findsNWidgets(2));
       await tester.tap(find.text("查看相似图片"));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key("duplicate-group-menu")), findsNothing);
+      expect(
+        find.byKey(const ValueKey("duplicate-view-ignored")),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const Key("duplicate-similarity-degree")),
         findsNothing,

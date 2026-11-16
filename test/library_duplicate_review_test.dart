@@ -280,9 +280,7 @@ void main() {
       expect(find.text("恢复此组"), findsOneWidget);
       await tester.tap(find.byKey(const Key("duplicate-review-back")));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key("duplicate-group-menu")));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text("已忽略"));
+      await tester.tap(find.byKey(const ValueKey("duplicate-view-ignored")));
       await tester.pumpAndSettle();
       await tester.tap(find.text("查看重复图片"));
       await tester.pumpAndSettle();

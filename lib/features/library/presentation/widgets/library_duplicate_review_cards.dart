@@ -12,6 +12,7 @@ import "library_duplicate_reveal_action.dart";
 import "library_duplicate_review_metrics.dart";
 import "library_delete_file_button.dart";
 import "library_path_text.dart";
+import "library_review_group_card.dart";
 import "library_viewer_filmstrip_thumbnail.dart";
 import "library_viewer_launch.dart";
 
@@ -29,7 +30,7 @@ class LibraryDuplicateGroupCard extends StatelessWidget {
   final Widget? thumbnail;
 
   @override
-  Widget build(BuildContext context) => LibraryDuplicateReviewCard(
+  Widget build(BuildContext context) => LibraryReviewGroupCard(
     asset: entry.representative,
     thumbnail: thumbnail,
     onOpen: onOpen,
@@ -44,13 +45,7 @@ class LibraryDuplicateGroupCard extends StatelessWidget {
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     ),
-    actions: [
-      TextButton(
-        style: LibraryDuplicateReviewMetrics.actionStyle,
-        onPressed: onOpen,
-        child: const Text(LibraryDuplicateStrings.viewLocations),
-      ),
-    ],
+    actionLabel: LibraryDuplicateStrings.viewLocations,
   );
 }
 
@@ -141,7 +136,7 @@ class LibraryDuplicateMemberCard extends StatelessWidget {
   }
 }
 
-/// Groups and members share content and primary interaction with distinct actions.
+/// Exact and similar members share their image, detail and action slots.
 class LibraryDuplicateReviewCard extends StatelessWidget {
   const LibraryDuplicateReviewCard({
     required this.asset,

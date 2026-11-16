@@ -128,9 +128,7 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
             _retainedWorkspace(
               workspace: LibraryWorkspace.duplicates,
               visible: workspace == LibraryWorkspace.duplicates,
-              child: LibraryMainSurface(
-                child: widget.duplicatesBuilder(context),
-              ),
+              child: widget.duplicatesBuilder(context),
             ),
           if (_visited.contains(LibraryWorkspace.settings))
             _retainedWorkspace(

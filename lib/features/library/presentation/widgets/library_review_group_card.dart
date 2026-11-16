@@ -1,0 +1,82 @@
+import "package:material_ui/material_ui.dart";
+
+import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../domain/library_models.dart";
+import "library_duplicate_review_metrics.dart";
+import "library_path_text.dart";
+import "library_viewer_filmstrip_thumbnail.dart";
+
+/// Group previews and selection occupy one bounded image slot above the details.
+class LibraryReviewGroupCard extends StatelessWidget {
+  const LibraryReviewGroupCard({
+    required this.asset,
+    required this.details,
+    required this.actionLabel,
+    required this.onOpen,
+    this.thumbnail,
+    super.key,
+  });
+
+  final LibraryAsset asset;
+  final Widget details;
+  final String actionLabel;
+  final VoidCallback onOpen;
+  final Widget? thumbnail;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    margin: EdgeInsets.zero,
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      key: ValueKey("duplicate-card-${asset.locationId}"),
+      onTap: onOpen,
+      child: Padding(
+        padding: const EdgeInsets.all(LibraryDuplicateReviewMetrics.padding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: LibraryDuplicateReviewMetrics.groupPreviewHeight,
+              child:
+                  thumbnail ??
+                  IgnorePointer(
+                    child: ExcludeFocus(
+                      child: ExcludeSemantics(
+                        child: LibraryViewerFilmstripThumbnail(
+                          asset: asset,
+                          isSelected: false,
+                          onPressed: onOpen,
+                          previewWidth:
+                              LibraryDuplicateReviewMetrics.groupPreviewWidth,
+                        ),
+                      ),
+                    ),
+                  ),
+            ),
+            const SizedBox(height: 12),
+            AmeTooltip(
+              message: displayLibraryFileName(asset.displayPath),
+              child: Text(
+                displayLibraryFileName(asset.displayPath),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Expanded(child: details),
+            const SizedBox(height: LibraryDuplicateReviewMetrics.gap),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                style: LibraryDuplicateReviewMetrics.actionStyle,
+                onPressed: onOpen,
+                child: Text(actionLabel),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}

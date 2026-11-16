@@ -88,25 +88,29 @@ identity; similar groups contain distinct contents selected by the admitted perc
 The gallery group filters reuse this evidence without replacing the workspace. No analysis or display choice
 authorizes source mutation.
 
-Put the heading/count block on the left and group controls on the right. The layers-icon menu
-shows its current label (`重复组`, `相似组` or `已忽略`) and a dropdown arrow. It offers those choices
-in that order, without top tabs. The sliders menu to its right appears only in the similar-group
-list and shows the current `严格 / 标准 / 宽松` label, initially `标准`, followed by an arrow.
-Both menus use the same text-button icon size as the neighboring cleanup action. Changing degree
+Put `重复组`, `相似组` and `已忽略` in the contextual sidebar, in that order, without a redundant
+sidebar heading. Keep this navigation visible while inspecting members. At widths too narrow for
+the supporting pane, use the installed Material NavigationBar above the content. Put the
+heading/count block on the left and group actions on the right. The sliders menu appears only in
+the similar-group list and shows the current `严格 / 标准 / 宽松` label, initially `标准`, followed
+by an arrow. Its text-button icon size matches the neighboring cleanup action. Changing degree
 queries existing results. `已忽略` combines exact and similar
 groups with kind labels; similar groups there use the broad degree so choices remain reachable.
 Use `重复图片查找` for the exact list and the selected view name for the other headings. Reserve the
 group-count line during loading; omit a separate scope, description or analysis-status block.
 
-Member, viewer and comparison pages omit both menus. The member heading uses the initial
+Member pages omit the degree menu; viewer and comparison pages omit workspace navigation. The member heading uses the initial
 representative filename, with the complete filename available through its tooltip. `对比图片` and
 `忽略此组` / `恢复此组` share the right action row. Selecting two members enables comparison; omit a
 separate instruction/count toolbar. Wide layouts align actions with the heading; compact widths and
 enlarged text wrap actions below it with right alignment. Primary-destination changes reset nested
 navigation and temporary selection. Ordinary return from viewing or comparison preserves the group.
 
-Groups use responsive multi-column cards and members use full-width rows. Both reuse the
-thumbnail/text skeleton and whole-card hover/open interaction. Member rows retain filename, path,
+Groups use responsive multi-column cards with one bounded representative image above the filename,
+details and open action. Clicking the image retains the existing flip-to-selection interaction;
+the card details and open action enter the group. Ignored groups remain non-selectable. Do not fetch
+all member images to decorate a group card. Members use full-width rows with their existing
+whole-row hover/open interaction. Member rows retain filename, path,
 availability and accessible preference/Explorer actions; similar members also expose exact-copy
 locations. Keep actions inline when space permits and wrap them below at narrow widths.
 Measure text and controls instead of assigning a fixed row height. Omit decorative folder icons,

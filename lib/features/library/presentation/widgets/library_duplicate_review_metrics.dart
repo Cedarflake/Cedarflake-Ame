@@ -11,6 +11,8 @@ class LibraryDuplicateReviewMetrics {
   static const padding = 12.0;
   static const gap = 8.0;
   static const thumbnailExtent = 80.0;
+  static const groupPreviewHeight = 168.0;
+  static const groupPreviewWidth = 320.0;
   static const iconActionExtent = 48.0;
   static const selectionExtent = 48.0;
 
@@ -98,7 +100,14 @@ class LibraryDuplicateReviewMetrics {
       text.labelLarge,
       maxWidth: math.max(1, available - 24),
     );
-    return padding * 2 + content + gap + math.max(48.0, label.height + 16);
+    return padding * 2 +
+        groupPreviewHeight +
+        12 +
+        title.height +
+        4 +
+        detailHeight +
+        gap +
+        math.max(48.0, label.height + 16);
   }
 
   static Size _measure(

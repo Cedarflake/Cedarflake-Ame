@@ -73,7 +73,7 @@ void main() {
         final groupDelegate =
             tester.widget<GridView>(find.byType(GridView)).gridDelegate
                 as SliverGridDelegateWithFixedCrossAxisCount;
-        if (width > 1000) {
+        if (width > 1000 && scale == 1) {
           expect(groupDelegate.crossAxisCount, greaterThan(1));
           expect(
             tester.getTopLeft(cards.at(0)).dy,
@@ -84,24 +84,23 @@ void main() {
             greaterThan(tester.getTopLeft(cards.at(0)).dx),
           );
         }
-        final category = find.byKey(const Key("duplicate-group-menu"));
+        final category = find.byKey(const ValueKey("duplicate-view-exact"));
         final actions = find.byKey(const Key("duplicate-review-actions"));
         final heading = find.byKey(const Key("duplicate-review-title"));
-        final groupCount = find.byKey(const Key("duplicate-review-count"));
         final results = tester.getRect(find.byType(GridView));
         expect(tester.getTopRight(actions).dx, results.right);
-        if (width > 1000 && scale == 1) {
-          expect(tester.getCenter(category).dy, tester.getCenter(actions).dy);
+        if (width > 1000) {
           expect(
-            tester.getTopLeft(category).dx,
-            greaterThan(tester.getTopRight(heading).dx),
+            tester.getTopRight(category).dx,
+            lessThan(tester.getTopLeft(heading).dx),
+          );
+        } else {
+          expect(
+            tester.getBottomLeft(category).dy,
+            lessThan(tester.getTopLeft(heading).dy),
           );
         }
         if (width == 400) {
-          expect(
-            tester.getTopLeft(category).dy,
-            greaterThan(tester.getBottomLeft(groupCount).dy),
-          );
           expect(
             tester.getTopLeft(heading).dx,
             tester.getTopLeft(cards.first).dx,
@@ -115,9 +114,7 @@ void main() {
         await tester.pumpAndSettle();
         final categoryTop = tester.getTopLeft(category).dy;
         service.pendingGroups = Completer();
-        await tester.tap(category);
-        await tester.pumpAndSettle();
-        await tester.tap(find.text("已忽略"));
+        await tester.tap(find.byKey(const ValueKey("duplicate-view-ignored")));
         await tester.pump();
         expect(tester.getTopLeft(category).dy, categoryTop);
         service.pendingGroups!.complete(
@@ -129,8 +126,6 @@ void main() {
         expect(tester.getTopLeft(category).dy, categoryTop);
         service.pendingGroups = null;
         await tester.tap(category);
-        await tester.pumpAndSettle();
-        await tester.tap(find.text("重复组"));
         await tester.pumpAndSettle();
         expect(find.text("上一页"), findsNothing);
         expect(find.text("下一页"), findsNothing);
@@ -171,7 +166,10 @@ void main() {
               .dx,
           tester.getTopRight(grid).dx,
         );
-        expect(find.byType(ListTile), findsNothing);
+        expect(
+          find.descendant(of: grid, matching: find.byType(ListTile)),
+          findsNothing,
+        );
         expect(find.text("查看图片"), findsNothing);
         final memberDelegate =
             tester.widget<GridView>(grid).gridDelegate
@@ -290,14 +288,18 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         library.demands.values.single,
-        List.generate(9, (index) => "item-$index"),
+        List.generate(6, (index) => "item-$index"),
       );
       final grid = tester.widget<GridView>(find.byType(GridView));
-      grid.controller!.jumpTo(688);
+      final layout =
+          grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+      grid.controller!.jumpTo(
+        4 * (layout.mainAxisExtent! + layout.mainAxisSpacing),
+      );
       await tester.pumpAndSettle();
       expect(
         library.demands.values.single,
-        List.generate(9, (index) => "item-${index + 12}"),
+        List.generate(6, (index) => "item-${index + 12}"),
       );
       active.value = false;
       await tester.pumpAndSettle();

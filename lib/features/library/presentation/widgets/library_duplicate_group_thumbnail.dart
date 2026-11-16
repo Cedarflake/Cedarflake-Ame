@@ -27,30 +27,32 @@ class LibraryDuplicateGroupThumbnail extends StatelessWidget {
       asset.relativePath,
       selected: selected,
     );
-    const dimension = LibraryDuplicateReviewMetrics.thumbnailExtent;
     return Semantics(
       label: label,
+      button: true,
+      selected: selected,
       child: AmeTooltip(
         message: label,
-        child: IconButton(
-          onPressed: onPressed,
-          isSelected: selected,
-          style: IconButton.styleFrom(
-            fixedSize: const Size.square(dimension),
-            padding: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          icon: SizedBox.square(
-            dimension: dimension,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            height: LibraryDuplicateReviewMetrics.groupPreviewHeight,
+            width: double.infinity,
             child: AmeFlipTransition(
               showBack: selected,
-              front: LibraryViewerFilmstripThumbnail(
-                asset: asset,
-                isSelected: false,
-                onPressed: onPressed,
-                previewWidth: 144,
+              front: IgnorePointer(
+                child: ExcludeFocus(
+                  child: ExcludeSemantics(
+                    child: LibraryViewerFilmstripThumbnail(
+                      asset: asset,
+                      isSelected: false,
+                      onPressed: onPressed,
+                      previewWidth:
+                          LibraryDuplicateReviewMetrics.groupPreviewWidth,
+                    ),
+                  ),
+                ),
               ),
               back: DecoratedBox(
                 decoration: BoxDecoration(

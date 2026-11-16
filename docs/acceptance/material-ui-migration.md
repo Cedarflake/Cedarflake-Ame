@@ -32,6 +32,22 @@ the retained-workspace fixture. The first new search assertion used the wrong li
 `整个图库`); correcting the assertion preserved the product wording. Later slices and integrated
 qualification are tracked only in the roadmap.
 
+MW2 keeps destination changes in `LibraryDuplicateWorkspace` and moves only their presentation to
+the contextual sidebar. Its compact fallback uses the installed NavigationBar. Group image and
+details composition now has its own 82-line owner; the existing 260-line member-card owner retains
+viewer launch geometry and file actions. The page has 396 production lines, with no inline tests;
+the dedicated layout fixture has 364 lines. The group grid requests a 320-pixel logical preview
+for visible representatives and one prefetched row, retaining immediate retirement when hidden.
+
+The 18 focused review checks passed across 400/800/1200/1280 widths, ordinary/doubled text,
+continuous group/member paging, late responses, preferred decisions, ignore/restore, similarity
+degree, selection and comparison. The preview-demand fixture now scrolls by actual card rows;
+the taller cards request six representatives in its viewport instead of the previous nine.
+In the same isolated Windows client, 72 exact groups and six standard-similarity groups rendered
+with the new sidebar and larger previews. Clicking a preview flipped its selection; entering its
+210-member group and returning retained that selection. The degree popup retained its existing
+choices and neighboring cleanup action. No source cleanup operation was executed.
+
 Date: 2026-11-08
 
 The [roadmap](../roadmap.md#current-execution-queue) owns delivery status;

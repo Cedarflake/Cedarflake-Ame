@@ -18,12 +18,13 @@ import "../../domain/library_similar_review.dart";
 import "../coordination/library_duplicate_workspace.dart";
 import "../coordination/library_similar_results_refresh.dart";
 import "../library_duplicate_strings.dart";
-import "../widgets/library_duplicate_group_menus.dart";
+import "../widgets/library_duplicate_degree_menu.dart";
 import "../widgets/library_duplicate_cleanup_action.dart";
 import "../widgets/library_duplicate_locations_sheet.dart";
 import "../widgets/library_duplicate_results.dart";
 import "../widgets/library_duplicate_review_header.dart";
 import "../widgets/library_duplicate_review_viewer.dart";
+import "../widgets/library_duplicate_workspace_layout.dart";
 import "../widgets/library_gallery_loading_region.dart";
 import "../widgets/library_gallery_message.dart";
 import "../widgets/library_image_comparison.dart";
@@ -250,135 +251,143 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
           : displayLibraryFileName(representative.displayPath);
       return TickerMode(
         enabled: !_viewerOpen,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 24, 28, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              LibraryDuplicateReviewHeader(
-                title: title,
-                totalGroups:
-                    _workspace.loadFailed ||
-                        (_workspace.loading && _workspace.groupCount == 0)
-                    ? null
-                    : _workspace.groupCount,
-                onBack: !_workspace.hasMembers
-                    ? null
-                    : () => unawaited(_workspace.showView(_workspace.view)),
-                actions: !_workspace.hasMembers
-                    ? Wrap(
-                        key: const Key("duplicate-review-actions"),
-                        alignment: WrapAlignment.end,
-                        spacing: 0,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          LibraryDuplicateGroupMenus(
-                            view: _workspace.view,
-                            degree: _workspace.similar.degree,
-                            onViewChanged: (view) =>
-                                unawaited(_workspace.showView(view)),
-                            onDegreeChanged: (degree) => unawaited(
-                              _workspace.showView(
-                                LibraryDuplicateView.similar,
-                                degree: degree,
+        child: LibraryDuplicateWorkspaceLayout(
+          view: _workspace.view,
+          onViewChanged: (view) => unawaited(_workspace.showView(view)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 24, 28, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                LibraryDuplicateReviewHeader(
+                  title: title,
+                  totalGroups:
+                      _workspace.loadFailed ||
+                          (_workspace.loading && _workspace.groupCount == 0)
+                      ? null
+                      : _workspace.groupCount,
+                  onBack: !_workspace.hasMembers
+                      ? null
+                      : () => unawaited(_workspace.showView(_workspace.view)),
+                  actions: !_workspace.hasMembers
+                      ? Wrap(
+                          key: const Key("duplicate-review-actions"),
+                          alignment: WrapAlignment.end,
+                          spacing: 0,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            if (_workspace.view == LibraryDuplicateView.similar)
+                              LibraryDuplicateDegreeMenu(
+                                degree: _workspace.similar.degree,
+                                onChanged: (degree) => unawaited(
+                                  _workspace.showView(
+                                    LibraryDuplicateView.similar,
+                                    degree: degree,
+                                  ),
+                                ),
+                              ),
+                            LibraryDuplicateCleanupAction(
+                              workspace: _workspace,
+                            ),
+                          ],
+                        )
+                      : Wrap(
+                          key: const Key("duplicate-review-actions"),
+                          alignment: WrapAlignment.end,
+                          spacing: 8,
+                          children: [
+                            LibraryDuplicateCleanupAction(
+                              workspace: _workspace,
+                            ),
+                            TextButton.icon(
+                              onPressed: _workspace.comparison.length == 2
+                                  ? () => unawaited(_compare())
+                                  : null,
+                              icon: const Icon(Symbols.compare_rounded),
+                              label: const Text(
+                                LibraryDuplicateStrings.compare,
                               ),
                             ),
-                          ),
-                          LibraryDuplicateCleanupAction(workspace: _workspace),
-                        ],
-                      )
-                    : Wrap(
-                        key: const Key("duplicate-review-actions"),
-                        alignment: WrapAlignment.end,
-                        spacing: 8,
-                        children: [
-                          LibraryDuplicateCleanupAction(workspace: _workspace),
-                          TextButton.icon(
-                            onPressed: _workspace.comparison.length == 2
-                                ? () => unawaited(_compare())
-                                : null,
-                            icon: const Icon(Symbols.compare_rounded),
-                            label: const Text(LibraryDuplicateStrings.compare),
-                          ),
-                          TextButton.icon(
-                            onPressed:
-                                _workspace.saving ||
-                                    _workspace.loading ||
-                                    _workspace.loadFailed
-                                ? null
-                                : () => unawaited(_ignore()),
-                            icon: Icon(
-                              _workspace.ignored
-                                  ? Symbols.visibility_rounded
-                                  : Symbols.visibility_off_rounded,
+                            TextButton.icon(
+                              onPressed:
+                                  _workspace.saving ||
+                                      _workspace.loading ||
+                                      _workspace.loadFailed
+                                  ? null
+                                  : () => unawaited(_ignore()),
+                              icon: Icon(
+                                _workspace.ignored
+                                    ? Symbols.visibility_rounded
+                                    : Symbols.visibility_off_rounded,
+                              ),
+                              label: Text(
+                                _workspace.ignored
+                                    ? LibraryDuplicateStrings.restoreGroup
+                                    : LibraryDuplicateStrings.ignore,
+                              ),
                             ),
-                            label: Text(
-                              _workspace.ignored
-                                  ? LibraryDuplicateStrings.restoreGroup
-                                  : LibraryDuplicateStrings.ignore,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    left: _workspace.hasMembers
-                        ? LibraryDuplicateReviewHeader.backInset
-                        : 0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (_workspace.saveFailed)
-                        Text(
-                          LibraryDuplicateStrings.saveFailed,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
+                          ],
                         ),
-                      Expanded(
-                        child: LibraryGalleryLoadingRegion(
-                          isLoading: _workspace.loading,
-                          showContentIndicator: !_workspace.hasLoadedContent,
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: _workspace.loadFailed
-                                ? LibraryGalleryMessage(
-                                    icon: Symbols.error_outline_rounded,
-                                    title: LibraryDuplicateStrings.loadFailed,
-                                    action: TextButton(
-                                      onPressed: () =>
-                                          unawaited(_workspace.refresh()),
-                                      child: const Text(
-                                        LibraryDuplicateStrings.retry,
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: _workspace.hasMembers
+                          ? LibraryDuplicateReviewHeader.backInset
+                          : 0,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_workspace.saveFailed)
+                          Text(
+                            LibraryDuplicateStrings.saveFailed,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        Expanded(
+                          child: LibraryGalleryLoadingRegion(
+                            isLoading: _workspace.loading,
+                            showContentIndicator: !_workspace.hasLoadedContent,
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: _workspace.loadFailed
+                                  ? LibraryGalleryMessage(
+                                      icon: Symbols.error_outline_rounded,
+                                      title: LibraryDuplicateStrings.loadFailed,
+                                      action: TextButton(
+                                        onPressed: () =>
+                                            unawaited(_workspace.refresh()),
+                                        child: const Text(
+                                          LibraryDuplicateStrings.retry,
+                                        ),
                                       ),
+                                    )
+                                  : LibraryDuplicateResults(
+                                      workspace: _workspace,
+                                      analyzing:
+                                          _workspace.view ==
+                                              LibraryDuplicateView.similar
+                                          ? _similarAnalysis.isRunning
+                                          : _exactAnalysis.isRunning,
+                                      onOpen: (asset, index) =>
+                                          unawaited(_open(asset, index)),
+                                      onPreferExact: (asset) =>
+                                          unawaited(_preferExact(asset)),
+                                      onLocations: (member) =>
+                                          unawaited(_locations(member)),
                                     ),
-                                  )
-                                : LibraryDuplicateResults(
-                                    workspace: _workspace,
-                                    analyzing:
-                                        _workspace.view ==
-                                            LibraryDuplicateView.similar
-                                        ? _similarAnalysis.isRunning
-                                        : _exactAnalysis.isRunning,
-                                    onOpen: (asset, index) =>
-                                        unawaited(_open(asset, index)),
-                                    onPreferExact: (asset) =>
-                                        unawaited(_preferExact(asset)),
-                                    onLocations: (member) =>
-                                        unawaited(_locations(member)),
-                                  ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );

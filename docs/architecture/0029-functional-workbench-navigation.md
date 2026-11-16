@@ -250,11 +250,10 @@ viewer requests adjacent members through the same bounded window rather than sto
 The page heading is `重复图片查找`, followed by the current review category's total group count.
 Normal analysis status, scope and explanatory paragraphs are omitted from this surface. Refresh,
 pause/resume and the selected group's ignore/restore operation share one wrapping action row.
-The group-list heading/count block, centered category switch and right-aligned analysis actions
-share one row. Equal Expanded regions on both sides keep the switch at the content-area center.
-LayoutBuilder uses a text-scaled compact-width boundary to stack these blocks when necessary,
-retaining the switch's centered alignment. The count line reserves space during loading.
-The existing Material SegmentedButton retains selection, focus and semantics. Material
+The group-list heading/count block and right-aligned actions share one row and stack at a
+text-scaled compact-width boundary. The count line reserves space during loading. Exact, similar
+and ignored destinations use contextual Material ListTiles, or the installed NavigationBar when
+the supporting pane cannot fit. The existing workspace owns destination changes. Material
 `TextButton.icon` and `FilledButton.icon`, available in the pinned SDK, pair the existing action
 labels with leading icons and retain framework padding, focus, disabled state and semantics.
 The selected group's back/title block and right-aligned actions share a centered Row above the
@@ -265,6 +264,8 @@ A card-wide `InkWell`
 supplies pointer, keyboard and hover behavior, while
 the text/icon buttons keep their separate actions. The pinned SDK's `Card.clipBehavior` clips the ink to
 the shared card shape; an embedded clickable `ListTile` would restrict feedback to the path region.
+Group cards place their representative image above details, with a shared bounded preview demand.
+The existing flip-selection target occupies that image slot; all member reads remain demand-driven.
 The selected group retains its initial representative filename as the heading while scrolling;
 content aligns beneath that heading. Member cards omit a separate preferred-copy label and the
 decorative folder icon beside their existing thumbnail. Preference and reveal actions remain.
