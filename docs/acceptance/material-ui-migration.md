@@ -56,6 +56,24 @@ preview state, square bounds, compact height, separate scrollbar space, paging a
 The actual client also retained preferred-file decisions and comparison selections through preview
 and comparison returns, and showed the ignored group in its contextual destination before restoration.
 
+MW3 uses the shared canvas/chrome roles and puts the rounded, elevated strip in its existing retained
+slot. The slot has 91 production lines; the viewer, strip and frame have 336, 375 and 159, without
+inline tests. The existing viewer and strip fixtures have 1,161 and 732 lines respectively; their
+geometry assertions now account for the strip's insets. No source, zoom, copy or paging policy changed.
+All 31 focused viewer/strip checks passed, including unchanged image transforms through toggling,
+full-screen action retention, decoded-pixel retention, bounded paging, held-scrollbar rebasing,
+hidden request retirement and reduced-motion scrollbar input.
+
+The isolated client showed the straight canvas and rounded strip in both appearances. At 100%,
+opening the strip kept the main image in place; 125% zoom, rotation, full screen and return preserved
+their existing behavior. Selecting the last strip image updated both image and ordinal. Gallery and
+duplicate-member preview returns restored their original surfaces. The More menu retained its copy
+entries. Normal, Windows snapped and maximized workbench layouts showed no content overflow; the
+compact and doubled-text boundaries also passed their existing widget fixtures. Both owned client
+runs exited with code 0, preserved all 10,000 fixture files by size and modification time, and retired
+their leased temporary profiles. The final client logs contained no Flutter exception, assertion or
+overflow diagnostic. Hosted verification and integration disposition remain in the roadmap.
+
 Date: 2026-11-08
 
 The [roadmap](../roadmap.md#current-execution-queue) owns delivery status;

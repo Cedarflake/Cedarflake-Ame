@@ -75,6 +75,11 @@ the image viewer, and integrated desktop qualification. Preserve existing action
 source safety and the completed responsiveness work. This presentation update does not reopen the
 completed R10a–R10c scopes or authorize Beta publication.
 
+MW1–MW3 implementation and focused desktop qualification are recorded in the
+[Material acceptance record](acceptance/material-ui-migration.md#material-workbench-composition-2026-11-16).
+MW4 awaits the final branch's hosted checks and delivery review; merging and release publication
+remain separate decisions.
+
 R8 and its follow-ups, including the loading-feedback update, and R9 album file organization are
 integrated. The current release is `v0.1.0-alpha.3`. Transition-performance preparation is integrated.
 The R10

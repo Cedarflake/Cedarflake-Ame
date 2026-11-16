@@ -7,6 +7,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../application/library_browse_admission.dart";
 import "../../application/library_controller.dart";
 import "../../domain/library_models.dart";
@@ -129,7 +130,7 @@ class _LibraryViewerFilmstripState
     if (_isActive) _displayState = current;
     final state = _displayState ?? current;
     return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      color: AmeWorkbenchSurfaces.of(context).chrome,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final hasPaging = _paging.isLoading || _paging.hasFailure;

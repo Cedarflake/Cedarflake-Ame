@@ -6,6 +6,7 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/presentation/ame_transient_feedback.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../../settings/domain/ame_preferences.dart";
 import "../../application/library_source_read_scheduler.dart";
@@ -149,7 +150,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
         ref.watch(amePreferencesControllerProvider).viewerFilmstripVisible &&
         widget.filmstrip != null;
     return LibraryViewerBackdrop(
-      color: Theme.of(context).colorScheme.surfaceContainerLowest,
+      color: AmeWorkbenchSurfaces.of(context).viewerCanvas,
       child: LayoutBuilder(
         builder: (context, constraints) {
           _zoom.layout(

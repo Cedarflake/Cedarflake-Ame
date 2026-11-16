@@ -5,6 +5,7 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/presentation/ame_transient_feedback.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../../../app/window/ame_window_fullscreen.dart";
 import "library_viewer_controls.dart";
 import "library_viewer_chrome.dart";
@@ -109,7 +110,7 @@ class _LibraryViewerFrameState extends ConsumerState<LibraryViewerFrame> {
         const SingleActivator(LogicalKeyboardKey.f11): _toggleFullscreen,
       },
       child: LibraryViewerBackdrop(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        color: AmeWorkbenchSurfaces.of(context).chrome,
         child: Column(
           children: [
             if (!isFullscreen) ...[
@@ -141,9 +142,7 @@ class _LibraryViewerFrameState extends ConsumerState<LibraryViewerFrame> {
                       right: 20,
                       child: LibraryViewerChrome(
                         child: Material(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerLow,
+                          color: AmeWorkbenchSurfaces.of(context).chrome,
                           shape: const StadiumBorder(),
                           child: actions,
                         ),

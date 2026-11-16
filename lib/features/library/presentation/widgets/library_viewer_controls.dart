@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../../../app/window/ame_window_chrome.dart";
 import "../library_strings.dart";
 import "library_viewer_chrome.dart";
@@ -24,7 +25,7 @@ class LibraryViewerTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       key: const Key("viewer-window-bar"),
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      color: AmeWorkbenchSurfaces.of(context).chrome,
       child: SizedBox(
         height: 64,
         child: Row(

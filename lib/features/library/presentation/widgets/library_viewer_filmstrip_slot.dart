@@ -1,6 +1,7 @@
-import "package:flutter/widgets.dart";
+import "package:material_ui/material_ui.dart";
 
 import "../../../../app/presentation/ame_motion.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "library_viewer_transition.dart";
 
 /// Retains the opened strip until the viewer closes, without loading it eagerly.
@@ -48,9 +49,22 @@ class _LibraryViewerFilmstripSlotState
                     excluding: !active,
                     child: IgnorePointer(
                       ignoring: !active,
-                      child: SizedBox(
-                        height: LibraryViewerFilmstripSlot.height,
-                        child: widget.child,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        child: Material(
+                          color: AmeWorkbenchSurfaces.of(context).chrome,
+                          elevation: 3,
+                          surfaceTintColor: Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                          clipBehavior: Clip.antiAlias,
+                          child: SizedBox(
+                            height: LibraryViewerFilmstripSlot.height,
+                            child: widget.child,
+                          ),
+                        ),
                       ),
                     ),
                   ),
