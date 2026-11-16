@@ -96,20 +96,22 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
                 top: 0,
                 bottom: 0,
                 width: extent,
-                child: ClipRRect(
-                  borderRadius: LibraryMainSurface.borderRadius,
+                child: ClipRect(
                   child: OverflowBox(
                     alignment: Alignment.topLeft,
                     minWidth: widget.sidebarWidth,
                     maxWidth: widget.sidebarWidth,
-                    child: Visibility(
-                      visible: extent > 0,
-                      maintainState: true,
-                      child: ExcludeFocus(
-                        excluding: !widget.expanded,
-                        child: IgnorePointer(
-                          ignoring: !widget.expanded,
-                          child: widget.sidebar,
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: Visibility(
+                        visible: extent > 0,
+                        maintainState: true,
+                        child: ExcludeFocus(
+                          excluding: !widget.expanded,
+                          child: IgnorePointer(
+                            ignoring: !widget.expanded,
+                            child: widget.sidebar,
+                          ),
                         ),
                       ),
                     ),

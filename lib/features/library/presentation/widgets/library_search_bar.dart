@@ -41,9 +41,7 @@ class LibrarySearchBar extends StatelessWidget {
       controller: controller,
       enabled: enabled,
       hintText: hint,
-      leading: search == null
-          ? const Icon(Symbols.search_rounded)
-          : _SearchMenu(search: search, enabled: enabled),
+      leading: const Icon(Symbols.search_rounded),
       trailing: [
         SizedBox.square(
           dimension: 40,
@@ -87,6 +85,7 @@ class LibrarySearchBar extends StatelessWidget {
               icon: const Icon(Symbols.close_rounded),
             ),
           ),
+        if (search != null) _SearchMenu(search: search, enabled: enabled),
       ],
       onChanged: onChanged,
       onSubmitted: search == null ? onChanged : (_) => search.submit(),
@@ -160,17 +159,7 @@ class _SearchMenu extends StatelessWidget {
         child: IconButton(
           key: const Key("library-search-menu"),
           onPressed: enabled ? openMenu : null,
-          icon: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                search.mode == LibrarySearchMode.content
-                    ? Symbols.image_rounded
-                    : Symbols.search_rounded,
-              ),
-              const Icon(Symbols.arrow_drop_down_rounded, size: 18),
-            ],
-          ),
+          icon: const Icon(Symbols.arrow_drop_down_rounded),
         ),
       ),
     );

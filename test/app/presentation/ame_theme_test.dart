@@ -1,8 +1,32 @@
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
+import "package:cedarflake_ame/app/presentation/ame_workbench_surfaces.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test("workbench tonal hierarchy remains distinct in both appearances", () {
+    for (final brightness in Brightness.values) {
+      final colors = buildAmeTheme(brightness: brightness).colorScheme;
+      final surfaces = AmeWorkbenchSurfaces.from(colors);
+      expect(
+        surfaces.navigation.computeLuminance(),
+        lessThan(surfaces.chrome.computeLuminance()),
+      );
+      expect(
+        surfaces.chrome.computeLuminance(),
+        lessThan(surfaces.content.computeLuminance()),
+      );
+      for (final surface in [surfaces.chrome, surfaces.content]) {
+        final foreground = colors.onSurface.computeLuminance();
+        final background = surface.computeLuminance();
+        final contrast = foreground > background
+            ? (foreground + .05) / (background + .05)
+            : (background + .05) / (foreground + .05);
+        expect(contrast, greaterThanOrEqualTo(4.5));
+      }
+    }
+  });
+
   test("uses a three-level application typography hierarchy", () {
     for (final brightness in Brightness.values) {
       final theme = buildAmeTheme(brightness: brightness);

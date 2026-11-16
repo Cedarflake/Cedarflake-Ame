@@ -4,6 +4,7 @@ import "ame_menu.dart";
 import "ame_feedback_style.dart";
 import "ame_system_theme.dart";
 import "ame_typography.dart";
+import "ame_workbench_surfaces.dart";
 
 export "ame_typography.dart";
 export "ame_feedback_style.dart"
@@ -49,7 +50,7 @@ ThemeData buildAmeTheme({
     searchBarTheme: SearchBarThemeData(
       elevation: const WidgetStatePropertyAll(0),
       backgroundColor: WidgetStatePropertyAll(
-        colorScheme.surfaceContainerHighest,
+        AmeWorkbenchSurfaces.from(colorScheme).content,
       ),
       shape: WidgetStatePropertyAll(
         RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),

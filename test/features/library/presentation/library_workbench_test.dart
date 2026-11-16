@@ -25,7 +25,8 @@ void main() {
         child: MaterialApp(
           home: Scaffold(
             body: LibraryWorkbench(
-              albumsNavigationBuilder: (_) => const Text("Album list"),
+              albumsNavigationBuilder: (_) =>
+                  ListTile(title: const Text("Album list"), onTap: () {}),
               navigationBuilder: (width) => SizedBox(
                 key: const Key("folders"),
                 width: width,

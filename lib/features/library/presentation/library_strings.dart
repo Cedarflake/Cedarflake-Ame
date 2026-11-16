@@ -16,6 +16,7 @@ abstract final class LibraryStrings {
 
   // 顶部栏｜应用名称、搜索框占位文字和清除搜索按钮。
   static const appName = "Cedarflake Ame";
+  static const workbenchName = "Ame";
   static const searchHint = "在图库中搜索";
   static const clearSearch = "清除搜索";
 

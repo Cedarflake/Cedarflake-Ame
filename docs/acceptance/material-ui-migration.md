@@ -1,5 +1,37 @@
 # Standalone Material migration
 
+## Material workbench composition, 2026-11-16
+
+Scope: [Material workbench plan](../plans/material-workbench.md), branch
+`codex/material-workbench`, starting from `88b5cc2c`. The installed Flutter 3.47.8 / Dart 3.13.7
+and `material_ui` 1.11.0 supply the SearchBar leading/trailing slots, circular IconButton shape,
+NavigationRail, Material ink and rounded content surfaces. No package or native contract changed.
+The [Android canonical layouts](https://developer.android.com/develop/ui/views/layout/canonical-layouts)
+inform the supporting-pane composition; Ame retains its existing desktop actions and state owners.
+
+MW1 resolves navigation, chrome and content from the current color scheme. The frame owns a single
+continuous top/sidebar backing surface. Search options are trailing, the short workbench title is
+`Ame`, and the settings selection is circular. The retained gallery and sidebar animation drivers
+are unchanged. Workbench composition has 322 production lines after extracting the 63-line frame;
+the surface role owner has 34 lines. These owners contain no inline tests; the existing dedicated
+workbench test has 171 lines.
+
+A current Debug Windows build completed in 146.8 seconds. Its optimized native build uses Rust
+debug assertions and a DLL-hash-bound isolated-storage receipt. The existing `build/test/sources/mixed`
+corpus supplied 10,000 images to a leased temporary profile; no real library was opened. The actual
+client showed three distinct surfaces in light and dark appearance, trailing search choices,
+keyboard text input, source import, sidebar show/hide, Albums/Favorites navigation and circular
+Settings selection. The title and continuous background correction were hot-reloaded in that client.
+A Material ink assertion exposed the need for an inner transparent sidebar Material after removing
+the old opaque backing; that ownership was restored and the next reload completed without it.
+
+The focused theme hierarchy/contrast, retained-workspace, search focus and sidebar right-edge
+checks passed before the backing-surface change. The updated frame is checked against the retained
+workspace/search/edge suites: all 12 checks passed, with an interactive album ListTile included in
+the retained-workspace fixture. The first new search assertion used the wrong literal (`全部图库` instead of the existing
+`整个图库`); correcting the assertion preserved the product wording. Later slices and integrated
+qualification are tracked only in the roadmap.
+
 Date: 2026-11-08
 
 The [roadmap](../roadmap.md#current-execution-queue) owns delivery status;

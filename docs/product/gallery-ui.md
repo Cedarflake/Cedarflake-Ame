@@ -9,14 +9,14 @@ accepted user workflow; it does not supersede technical or accessibility decisio
 
 ## Scope and authority
 
-The current UI source of truth is the user-confirmed Microsoft Photos-like structure recorded in
-this document. Flutter Material 3 supplies components, tokens, focus behavior, and accessibility; it
-does not redefine the information architecture.
+The current UI source of truth is the accepted Google Material wide-screen composition, with the
+existing Ame workflows retained. Three tonal layers distinguish primary navigation, contextual
+chrome and content. Flutter Material 3 supplies components, tokens, focus and accessibility.
 
-The UX reference application is **Microsoft Photos Legacy**, as clarified on 2026-10-10. Compare
-new interaction decisions with that application and the accepted behavior below. Observations of
-the newer Microsoft Photos application retain their recorded version and evidence scope; they do
-not establish Photos Legacy behavior or supersede this contract.
+Google Chat and Android large-screen layouts inform surface hierarchy and workspace composition.
+Microsoft Photos Legacy remains the historical reference for the accepted image-browsing behavior;
+its visual shell does not constrain the new composition. Preserve the product-specific behaviors
+below and Windows desktop interaction rather than importing another application's features.
 
 The [component implementation requirements](#component-implementation) own reuse order, capability
 evidence and framework interaction boundaries for every affected surface.

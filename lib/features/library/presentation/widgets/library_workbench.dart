@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 
 import "../../../settings/domain/ame_preferences.dart";
 import "../../../settings/application/ame_preferences.dart";
@@ -16,6 +17,7 @@ import "library_navigation_resize_handle.dart";
 import "library_sidebar_content.dart";
 import "library_sidebar_transition.dart";
 import "library_workbench_metrics.dart";
+import "library_workbench_frame.dart";
 
 class LibraryWorkbench extends ConsumerStatefulWidget {
   const LibraryWorkbench({
@@ -185,40 +187,23 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
             onWidthChangeCancel: () => widget.onSidebarResizeChanged(false),
           ),
           frameBuilder: (context, extent, panels) {
-            final body = ColoredBox(
-              color: Theme.of(context).colorScheme.surfaceContainerHigh,
-              child: Row(
+            return LibraryWorkbenchFrame(
+              navigation: rail,
+              globalBar: widget.globalBarBuilder?.call(
+                sidebarWidth,
+                extent / sidebarWidth,
+              ),
+              content: Stack(
+                fit: StackFit.expand,
                 children: [
-                  rail,
-                  Expanded(
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        _retainedWorkspace(
-                          workspace: LibraryWorkspace.gallery,
-                          visible: workspace.isBrowsing,
-                          child: Material(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerLow,
-                            borderRadius: LibraryMainSurface.borderRadius,
-                            child: panels,
-                          ),
-                        ),
-                        ...destinations,
-                      ],
-                    ),
+                  _retainedWorkspace(
+                    workspace: LibraryWorkspace.gallery,
+                    visible: workspace.isBrowsing,
+                    child: panels,
                   ),
+                  ...destinations,
                 ],
               ),
-            );
-            final globalBarBuilder = widget.globalBarBuilder;
-            if (globalBarBuilder == null) return body;
-            return Column(
-              children: [
-                globalBarBuilder(sidebarWidth, extent / sidebarWidth),
-                Expanded(child: body),
-              ],
             );
           },
         );
@@ -257,7 +242,7 @@ class _FunctionRail extends ConsumerWidget {
     return NavigationRail(
       key: const Key("library-function-rail"),
       minWidth: LibraryWorkbenchMetrics.railWidth,
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+      backgroundColor: AmeWorkbenchSurfaces.of(context).navigation,
       labelType: NavigationRailLabelType.all,
       selectedIndex: switch (workspace) {
         LibraryWorkspace.gallery => 0,
@@ -310,6 +295,13 @@ class _FunctionRail extends ConsumerWidget {
               child: IconButton(
                 key: const Key("library-sidebar-settings"),
                 isSelected: workspace == LibraryWorkspace.settings,
+                style: IconButton.styleFrom(
+                  fixedSize: const Size.square(48),
+                  shape: const CircleBorder(),
+                  backgroundColor: workspace == LibraryWorkspace.settings
+                      ? Theme.of(context).colorScheme.secondaryContainer
+                      : null,
+                ),
                 onPressed: () => select(LibraryWorkspace.settings),
                 icon: const Icon(
                   Symbols.settings_rounded,

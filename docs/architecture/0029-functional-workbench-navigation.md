@@ -9,6 +9,33 @@ Its gallery, viewer, source safety and Material interaction contracts remain in 
 
 ## Context and decision
 
+### Material surface composition
+
+The 2026-11-16 accepted layout uses distinct tonal roles for the primary rail, contextual chrome
+and content. Resolve them from the existing Material color scheme in both brightness modes;
+retain dynamic accent and theme preferences. Gallery and Albums keep one bounded gallery and
+their existing contextual sidebars. Duplicates places exact/similar/ignored navigation in its own
+sidebar while retaining degree and cleanup beside the result heading. Secondary sidebars omit a
+redundant large destination title.
+
+One backing surface joins the top bar and contextual sidebar, with rounded outer left corners.
+Sidebars do not introduce another rounded cutout below the top bar. The main content has its own
+rounded surface and a small outer inset. The frame owns this geometry; sidebar transitions retain
+their existing destination-width rendering and clipping.
+
+The shared search field has a leading search symbol and a trailing options arrow. Existing mode,
+scope, clear, progress and retry semantics remain intact. Settings uses a circular selected surface.
+The image viewer keeps straight canvas edges and its existing operation placements. Its rounded,
+elevated thumbnail strip remains an overlay, with no change to image geometry when toggled.
+
+Use the installed `material_ui` 1.11.0 SearchBar, NavigationRail, ListTile, Material/Card and popup
+components, plus the existing window and transition owners. No new navigation stack, widget
+framework, dependency, catalog state or source read is introduced. The owning
+[plan](../plans/material-workbench.md) identifies affected workflow verification; rollback restores
+composition without a data migration.
+
+### Retained workspace behavior
+
 Ame needs stable destinations for browsing and duplicate analysis as its organizing capabilities
 grow. A permanent narrow function rail selects Library, Albums and Duplicates in that order;
 Settings is pinned below.

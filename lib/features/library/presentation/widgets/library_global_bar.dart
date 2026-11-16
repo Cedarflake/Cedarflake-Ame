@@ -40,7 +40,7 @@ class LibraryGlobalBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       key: const Key("library-global-surface"),
-      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+      type: MaterialType.transparency,
       child: SizedBox(
         key: const Key("library-global-bar"),
         height: 64,
@@ -110,13 +110,20 @@ class LibraryGlobalBar extends StatelessWidget {
                               ),
                             ),
                             if (!isCompact) ...[
-                              const SizedBox(width: 12),
+                              const SizedBox(
+                                width:
+                                    LibraryWorkbenchMetrics.railWidth -
+                                    LibraryWorkbenchMetrics.railIconInset -
+                                    LibraryWorkbenchMetrics.iconSize +
+                                    16,
+                              ),
                               Flexible(
                                 child: Text(
-                                  LibraryStrings.appName,
+                                  LibraryStrings.workbenchName,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
+                                    fontSize: 22,
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.primary,

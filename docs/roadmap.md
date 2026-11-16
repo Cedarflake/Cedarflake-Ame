@@ -66,6 +66,15 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
+### Material desktop workbench
+
+The accepted Google Material wide-screen layout is being implemented on
+`codex/material-workbench` before the remaining R10 diagnostics and Beta slices. The
+[execution plan](plans/material-workbench.md) orders shared Gallery/Albums composition, Duplicates,
+the image viewer, and integrated desktop qualification. Preserve existing actions, bounded browsing,
+source safety and the completed responsiveness work. This presentation update does not reopen the
+completed R10a–R10c scopes or authorize Beta publication.
+
 R8 and its follow-ups, including the loading-feedback update, and R9 album file organization are
 integrated. The current release is `v0.1.0-alpha.3`. Transition-performance preparation is integrated.
 The R10
