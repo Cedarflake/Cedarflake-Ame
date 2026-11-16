@@ -127,14 +127,17 @@ could turn journal access into cross-user disclosure or privilege escalation. Th
 its restricted LocalSystem service profile. Its protected local pipe rejects remote clients;
 connection-bound proofs are checked against OS process/token facts. The client authenticates the
 installed service and protected image identity. Every disclosed scope is checked under the captured
-caller token, including ancestor listing and containment.
+caller token, including ancestor listing and containment. The two-slot production lifetime admits
+at most one retained connection per verified user SID, so one local account cannot hold all global
+capacity.
 
 The broker reads an existing journal; its protocol does not grant media-content reads, source writes
 or journal creation/reset. A client need not have an approved executable path or signature: caller
 rights and root evidence provide authorization. Service authentication failure falls back to the
 explicit `LiveOnly` mode. Local denial of service and defects in unsafe Win32/IPC code remain review
 targets. Owner: [broker boundary](0024-windows-change-driven-library-continuity.md#journal-broker-boundary);
-implementation: [`pipe admission`](../../rust/src/journal_broker/windows/pipe_listener.rs) and
+implementation: [`pipe admission`](../../rust/src/journal_broker/windows/pipe_listener.rs),
+[`production lifetime`](../../rust/src/journal_broker/windows/production_host/lifetime.rs), and
 [`caller-scoped disclosure`](../../rust/src/journal_broker/service/windows_security/disclosure.rs).
 
 ### T5 — Model delivery or DLL lookup admits substituted code or data

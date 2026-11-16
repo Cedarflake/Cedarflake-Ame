@@ -28,8 +28,8 @@ use super::transport::{
 use crate::journal_broker::client::AdapterPoll;
 use crate::journal_broker::framing::decode_frame;
 use crate::journal_broker::service::{
-    AuthenticatedConnection, BrokerService, ConnectedPipeAdmission, TerminalFrame,
-    TerminalFrameBatch, WindowsPipeAuthorizer, WindowsRootRegistrationBudget,
+    AuthenticatedConnection, AuthenticatedPrincipal, BrokerService, ConnectedPipeAdmission,
+    TerminalFrame, TerminalFrameBatch, WindowsPipeAuthorizer, WindowsRootRegistrationBudget,
 };
 use crate::journal_broker::windows::WindowsExistingJournalBackend;
 use crate::journal_broker::wire::{BrokerRequest, BrokerResponse, decode_request, decode_response};
@@ -65,6 +65,7 @@ fn run_disposable_console_host_inner() -> Result<(), HostError> {
         None,
         WindowsRootRegistrationBudget::production(),
         ReadWorkerBudget::new(MAX_HOST_READ_WORKERS),
+        |_| Ok(()),
     )
 }
 
@@ -74,6 +75,7 @@ pub(super) fn serve_named_pipe(
     stop_requested: Option<&AtomicBool>,
     root_budget: WindowsRootRegistrationBudget,
     worker_budget: ReadWorkerBudget,
+    authenticated_admission: impl FnOnce(AuthenticatedPrincipal) -> Result<(), HostError>,
 ) -> Result<(), HostError> {
     let handshake = encode_handshake(identity);
     write_exact_bounded(
@@ -88,7 +90,7 @@ pub(super) fn serve_named_pipe(
     )?;
     validate_client_proof(identity, &client_proof).map_err(|_| HostError::ClientProofRejected)?;
     let (process_id, session_id) = observed_client(pipe)?;
-    let (authenticated, authorizer) = WindowsPipeAuthorizer::from_connected_pipe(
+    let (authenticated, principal, authorizer) = WindowsPipeAuthorizer::from_connected_pipe(
         pipe.raw(),
         ConnectedPipeAdmission::new(
             identity.connection_id,
@@ -100,6 +102,7 @@ pub(super) fn serve_named_pipe(
         root_budget,
     )
     .map_err(|error| HostError::ClientTokenRejected(error.to_string()))?;
+    authenticated_admission(principal)?;
     let backend_security = authorizer
         .backend_security()
         .map_err(|error| HostError::ClientTokenRejected(error.to_string()))?;
