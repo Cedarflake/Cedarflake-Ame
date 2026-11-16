@@ -39,6 +39,29 @@ try {
     }
     $session = $null
 
+    $failureRoot = Join-Path $scratchRoot "worker-failure"
+    $null = New-Item -ItemType Directory -Path $failureRoot
+    $session = Start-AmeWindowsUiaSession -ScratchRoot $failureRoot -Token ([guid]::NewGuid().ToString("N"))
+    [IO.File]::WriteAllText((Join-Path $failureRoot "uia-command-00.json"), '{}', [Text.UTF8Encoding]::new($false))
+    if (-not $session.Process.WaitForExit(3000)) { throw "The invalid worker request did not exit" }
+    $failure = Get-AmeWindowsUiaSessionExitFailure $session "runtime-preparation"
+    if (-not $failure.Message.Contains("exit code 1") -or
+        -not $failure.Message.Contains("does not match its owned sequence") -or
+        -not $failure.Message.Contains("integration_windows_accessibility_session_protocol.ps1")) {
+        throw "The worker failure lost its exit code, cause or source position: $failure"
+    }
+    $rejected = $false
+    try {
+        Read-AmeWindowsUiaSessionFailure -ScratchRoot $failureRoot -Token "unowned" `
+            -Sequence 0 -ProbeProcessId $session.Process.Id | Out-Null
+    } catch { $rejected = $true }
+    if (-not $rejected) { throw "The session admitted another owner's failure evidence" }
+    Stop-AmeWindowsUiaSession $session
+    if ($session.Cleanup.ProcessExited -ne $true -or $session.Cleanup.JobClosed -ne $true) {
+        throw "A failed worker retained its owned process"
+    }
+    $session = $null
+
     $fixtureSource = @'
 param([string]$ScratchRoot, [string]$Token)
 $ErrorActionPreference = "Stop"
@@ -54,6 +77,7 @@ while ($true) {
         -Phase $request.phase -TargetProcessId $request.targetProcessId
     $completion = [Threading.EventWaitHandle]::OpenExisting($name)
     try {
+        if ($request.resultFile -ceq "exited.json") { [Environment]::Exit(23) }
         $record = @{
             ResultPath = $resultPath; Token = $Token; Phase = $request.phase
             TargetProcessId = $request.targetProcessId; ProbeProcessId = $PID
@@ -79,6 +103,7 @@ while ($true) {
         @{ Name = "wrong-owner"; Message = "does not match its owned request" },
         @{ Name = "failed"; Message = "controlled native assertion failure" },
         @{ Name = "partial"; Message = "produced no complete result" },
+        @{ Name = "exited"; Message = "exit code 23" },
         @{ Name = "blocked"; Message = "exceeded its parent deadline" }
     )) {
         $caseRoot = Join-Path $scratchRoot $case.Name
@@ -119,7 +144,7 @@ while ($true) {
         if (-not $rejected) { throw "UIA session accepted an invalid $($invalid.Field)" }
     }
     $canRetireStorage = $true
-    Write-Host "Windows UIA session passed: retained loader $($timings -join '/') ms, invalid results and blocked invocation retired"
+    Write-Host "Windows UIA session passed: retained loader $($timings -join '/') ms, worker failures diagnosed, invalid results and blocked invocation retired"
 } finally {
     if ($null -ne $session) { Stop-AmeWindowsUiaSession $session }
     if ($canRetireStorage) {

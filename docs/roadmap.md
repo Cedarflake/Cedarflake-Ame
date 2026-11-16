@@ -80,9 +80,10 @@ MW1–MW3 implementation and focused desktop qualification are recorded in the
 MW4 includes the requested primary-navigation content-width transition, filmstrip frame-time
 qualification and the Google-style tonal/typographic refinement guided by Material canonical layouts,
 including consistent secondary-navigation row geometry.
-The refined client and focused regressions are verified; final branch hosted checks remain pending,
-including the accessibility probe initialization and theme-expectation follow-ups. Merging and
-release publication remain separate decisions.
+The refined client and focused regressions are verified. The complete Flutter, Static and Windows
+Scan gates passed at `c1fb5622`; native accessibility qualification remains open after an early worker
+exit. The session now retains exit diagnostics for the next hosted run. Final branch verification,
+merging and release publication remain separate decisions.
 
 R8 and its follow-ups, including the loading-feedback update, and R9 album file organization are
 integrated. The current release is `v0.1.0-alpha.3`. Transition-performance preparation is integrated.

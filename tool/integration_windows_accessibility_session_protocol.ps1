@@ -51,3 +51,44 @@ function Read-AmeWindowsUiaSessionRequest {
     Assert-AmeWindowsUiaSessionRequest -Request $request -Token $Token -Sequence $Sequence
     return $request
 }
+
+function Write-AmeWindowsUiaSessionFailure {
+    param(
+        [string]$ScratchRoot, [string]$Token, [int]$Sequence, [int]$ProbeProcessId,
+        [System.Management.Automation.ErrorRecord]$Failure
+    )
+
+    $message = $Failure.Exception.Message
+    $position = [string]$Failure.InvocationInfo.PositionMessage
+    $record = [ordered]@{
+        format = "ame-windows-uia-session-failure-v1"
+        token = $Token
+        sequence = $Sequence
+        probeProcessId = $ProbeProcessId
+        message = $message.Substring(0, [Math]::Min(2048, $message.Length))
+        position = $position.Substring(0, [Math]::Min(2048, $position.Length))
+    }
+    $path = Join-Path $ScratchRoot "uia-session-failure.json"
+    if ([IO.File]::Exists($path)) { throw "Windows UIA session failure must use fresh storage" }
+    [IO.File]::WriteAllText($path, ($record | ConvertTo-Json -Compress), [Text.UTF8Encoding]::new($false))
+}
+
+function Read-AmeWindowsUiaSessionFailure {
+    param([string]$ScratchRoot, [string]$Token, [int]$Sequence, [int]$ProbeProcessId)
+
+    $path = Join-Path $ScratchRoot "uia-session-failure.json"
+    if (-not [IO.File]::Exists($path)) { return $null }
+    if ((Get-Item -LiteralPath $path).Length -gt 32768) {
+        throw "Windows UIA session failure exceeds its bounded record size"
+    }
+    $record = [IO.File]::ReadAllText($path) | ConvertFrom-Json
+    if ($record.format -cne "ame-windows-uia-session-failure-v1" -or
+        $record.token -cne $Token -or $record.sequence -ne $Sequence -or
+        $record.probeProcessId -ne $ProbeProcessId -or
+        ($record.sequence -isnot [int] -and $record.sequence -isnot [long]) -or
+        ($record.probeProcessId -isnot [int] -and $record.probeProcessId -isnot [long]) -or
+        $record.message -isnot [string] -or $record.position -isnot [string]) {
+        throw "Windows UIA session failure does not match its owned invocation"
+    }
+    return $record
+}

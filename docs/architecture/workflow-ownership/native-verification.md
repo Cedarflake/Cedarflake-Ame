@@ -64,6 +64,8 @@ metrics must survive scratch cleanup, just as failed traversal evidence does.
 The session owner manages process and invocation lifetimes; its protocol owner validates bounded,
 sequenced messages and direct-child result names. The worker dispatches only the fixed preparation
 and native-probe scripts, keeping native observations and assertions in their existing owner.
+Early worker exits retain the native exit code and a bounded, invocation-bound exception record
+before scratch retirement. This diagnostic evidence cannot satisfy a phase or change its deadline.
 
 `integration_windows_accessibility_timing.ps1` owns monotonic accounting and validation for the fixed
 internal probe stages. Evidence records preserve accumulated stage durations and publication time;

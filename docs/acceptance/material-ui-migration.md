@@ -280,6 +280,14 @@ retiring the owned process. The preparation owner has 51 production lines, no in
 `43940151561` at `b5643406`. The earlier timeout's underlying operating-system/compiler scheduling
 cause is not inferred.
 
+Run `43943022745` at `c1fb5622` passed the complete Flutter suite, Static and Windows Scan.
+Its UIA worker exited 245 ms into `settings-menu-open`, before producing that phase's record;
+the preceding eight native phases passed. The session now retains the worker exit code and bounded
+exception position in its owned failure evidence. Controlled malformed-request and exit-code-23
+cases verified diagnosis, ownership rejection and process retirement; retained preparation took
+588/24 ms. Native assertions, deadlines and failure status are unchanged. The original worker-exit
+cause remains unconfirmed until a diagnostic native run supplies it.
+
 The `0f7483ad` Profile client uses the unchanged receipt-verified optimized debug-assertion native
 library and in-memory preferences. An initial fresh catalog failed with `unable to open database
 file`; an independent SQLite write in the same leased directory succeeded. Confined process-level
