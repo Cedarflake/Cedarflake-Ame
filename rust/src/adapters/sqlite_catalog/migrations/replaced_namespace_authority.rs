@@ -1,9 +1,9 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::{Connection, Transaction};
 
 use crate::domain::ScanError;
 
 use super::super::change_queue::namespace_retirement::UNSTARTED_AUTHORITY_IDS;
-use super::{SCHEMA_VERSION, current_schema, database_error, schema_shape};
+use super::{current_schema, database_error};
 
 fn replacement_ids() -> String {
     format!(
@@ -46,17 +46,4 @@ pub(super) fn apply(transaction: &Transaction<'_>, version: i64) -> Result<(), S
         )
         .map_err(database_error)?;
     Ok(())
-}
-
-pub(super) fn repair_before_upgrade(connection: &mut Connection) -> Result<(), ScanError> {
-    let version = schema_shape::schema_version(connection)?;
-    if !(81..SCHEMA_VERSION).contains(&version) || !needed(connection, version)? {
-        return Ok(());
-    }
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    apply(&transaction, version)?;
-    current_schema::validate_schema_version(&transaction, version)?;
-    transaction.commit().map_err(database_error)
 }

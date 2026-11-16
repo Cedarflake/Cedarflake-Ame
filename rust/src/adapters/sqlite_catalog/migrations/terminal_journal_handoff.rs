@@ -1,9 +1,9 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::{Connection, Transaction};
 
 use crate::domain::ScanError;
 
 use super::super::handoff_retirement;
-use super::{SCHEMA_VERSION, current_schema, database_error, journal_scope_recovery, schema_shape};
+use super::{current_schema, database_error, journal_scope_recovery};
 
 const COMPLETED_RECOVERY_EVIDENCE: &str = "
     SELECT retained.catch_up_source, retained.catch_up_watermark
@@ -66,19 +66,6 @@ pub(super) fn apply(transaction: &Transaction<'_>, version: i64) -> Result<(), S
         }
         handoff_retirement::cleanup_terminal_catch_up_handoffs_batch(transaction, &evidence)?;
     }
-}
-
-pub(super) fn repair_before_upgrade(connection: &mut Connection) -> Result<(), ScanError> {
-    let version = schema_shape::schema_version(connection)?;
-    if !(37..SCHEMA_VERSION).contains(&version) || !needed(connection, version)? {
-        return Ok(());
-    }
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    apply(&transaction, version)?;
-    current_schema::validate_schema_version(&transaction, version)?;
-    transaction.commit().map_err(database_error)
 }
 
 #[cfg(test)]

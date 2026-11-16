@@ -4,6 +4,7 @@ use super::super::classification_merge::downgrade_to_v72_for_test;
 use super::super::current_schema::validate_current_schema_contract;
 
 mod fixture;
+mod namespace_upgrade;
 use fixture::{RecoveryFixture, active_sibling, handoffs};
 
 #[test]

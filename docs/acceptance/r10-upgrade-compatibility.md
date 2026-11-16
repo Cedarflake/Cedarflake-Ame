@@ -35,8 +35,9 @@ admission remains a 135-line facade; service configuration, startup and previous
 are separate 186-, 143- and 104-line owners with no inline tests. Recovery admission has 57 dedicated
 test lines alongside the retained native identity, privilege and lifecycle tests.
 
-The namespace-authority owner has 43 production lines, its historical compatibility owner has 62,
-and their dedicated regression has 110 lines. The existing 1,463-line queue-persistence owner receives
+The namespace-authority owner has 43 production lines, its compatibility proof has 49,
+and the historical repair transaction has 36. Their dedicated regressions have 110 and 143 lines,
+with no inline tests in these owners. The existing 1,463-line queue-persistence owner receives
 only a composition call. The migration coordinator has 4,213 production/declaration lines and 2,289
 inline-test lines; new repair SQL remains outside it. Neither facade gains a separate state machine.
 
@@ -214,3 +215,23 @@ classification prediction; all four System32 runtime files remained absent.
 Local qualification uses the receipt-bound artifacts above. Hosted checks attached to the delivered
 revision own the exact-commit regression, analysis and build results; this local matrix does not
 substitute for them.
+
+### Combined historical recovery
+
+A focused Windows SQLite fixture reproduced an additional schema-81 upgrade failure after local
+package qualification: a replaced namespace's unretired authority and a completed journal recovery's
+retained handoff could coexist. Each separate repair validated the whole catalog before the other
+repair ran, rejecting the second known legacy residue with
+`catalog_change_catch_up_contract_unverifiable`.
+
+Historical repair now detects and applies both eligible changes in one immediate transaction,
+rechecks the schema after acquiring that transaction and validates all rows before committing.
+The same production `SqliteCatalog::open` fixture passed for schema 81 and current schema 83;
+an additional unproven handoff rolled both repairs back, and reopening after successful repair
+preserved the retired authority unchanged. All nine terminal-journal recovery cases passed,
+including the existing older-schema, active-owner and failure boundaries.
+
+This follow-up changes only historical repair composition. The package hashes above identify the
+earlier binaries; installation, rollback, runtime packaging and UI observations retain their
+unchanged inputs. The native SQLite regressions and current-head hosted checks cover this later
+migration change.

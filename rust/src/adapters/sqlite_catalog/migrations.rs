@@ -37,6 +37,7 @@ mod exact_duplicate_review;
 mod exact_duplicates;
 mod file_operation_exports;
 mod file_operation_notifications;
+mod historical_recovery_state;
 mod organization_group_filters;
 #[cfg(test)]
 pub(super) use file_operation_notifications::downgrade_for_test as downgrade_to_v79_for_test;
@@ -210,8 +211,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         return transaction.commit().map_err(database_error);
     }
 
-    replaced_namespace_authority::repair_before_upgrade(connection)?;
-    terminal_journal_handoff::repair_before_upgrade(connection)?;
+    historical_recovery_state::repair_before_upgrade(connection)?;
     loop {
         let version: i64 = connection
             .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {

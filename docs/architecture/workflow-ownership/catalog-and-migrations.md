@@ -213,7 +213,9 @@ shared principles; the roadmap owns current delivery order and acceptance status
   admits only retired-root/generation residue. `current_recovery_state.rs` keeps their combined
   repair and validation in one transaction. `replaced_namespace_authority.rs` retires unstarted
   recovery authority only when matching superseded work, an absent old namespace and a newer active
-  root generation prove replacement; schema-81/82 upgrade repair validates all rows before commit.
+  root generation prove replacement. `historical_recovery_state.rs` combines eligible namespace
+  retirement and completed journal-handoff repair in one transaction before upgrading an older
+  schema, validating all rows before commit so neither repair rejects the other's known residue.
   `change_queue/namespace_retirement.rs` owns the shared unstarted-authority proof and normal
   transactional retirement alongside namespace changes. `interrupted_foreground_repair.rs` owns lease/claim
   restoration and cleanup after an interrupted explicit scan. `prerelease_journal_repair.rs`
