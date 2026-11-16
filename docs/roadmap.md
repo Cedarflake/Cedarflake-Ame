@@ -81,8 +81,8 @@ MW4 includes the requested primary-navigation content-width transition, filmstri
 qualification and the Google-style tonal/typographic refinement guided by Material canonical layouts,
 including consistent secondary-navigation row geometry.
 The refined client and focused regressions are verified; final branch hosted checks remain pending,
-including the accessibility probe initialization follow-up. Merging and release publication remain
-separate decisions.
+including the accessibility probe initialization and theme-expectation follow-ups. Merging and
+release publication remain separate decisions.
 
 R8 and its follow-ups, including the loading-feedback update, and R9 album file organization are
 integrated. The current release is `v0.1.0-alpha.3`. Transition-performance preparation is integrated.

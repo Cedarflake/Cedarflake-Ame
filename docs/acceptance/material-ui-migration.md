@@ -40,6 +40,13 @@ Duplicates, selected a group and maximized/restored without losing that selectio
 folding retained the outer inset and search cap. Viewer entry, overlay-filmstrip display and return
 retained the current image and gallery position. No Flutter exception or layout overflow was logged.
 
+Run `43937512673` at `83faa357` exposed six obsolete color expectations: four system-accent
+scenarios still used the superseded fidelity palette, and the two selected-row menu cases expected
+the former primary foreground. The expectations now follow the accepted tonal-spot and
+on-secondary-container roles. All 22 existing application-theme and menu checks passed locally,
+retaining startup/update ordering, fallback, popup isolation and disabled-menu behavior. This
+follow-up changes tests only; the native client and visual evidence above remain applicable.
+
 The modified theme owner has 114 production lines, navigation 554, source tile 551 and workbench
 345, with no inline tests. Their existing theme, workbench and review-layout fixtures have 142,
 215 and 393 dedicated lines respectively. This refinement adds no query, lifecycle or animation work;

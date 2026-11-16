@@ -57,7 +57,7 @@ void main() {
     final context = tester.element(find.byType(UnifiedLibraryScreen));
     final expected = ColorScheme.fromSeed(
       seedColor: accent,
-      dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+      dynamicSchemeVariant: DynamicSchemeVariant.tonalSpot,
     );
     expect(Theme.of(context).colorScheme.primary, expected.primary);
   });
@@ -88,7 +88,7 @@ void main() {
     final context = tester.element(find.byType(UnifiedLibraryScreen));
     final expected = ColorScheme.fromSeed(
       seedColor: ameFallbackSeedColor,
-      dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+      dynamicSchemeVariant: DynamicSchemeVariant.tonalSpot,
     );
     expect(Theme.of(context).colorScheme.primary, expected.primary);
   });
@@ -119,7 +119,7 @@ void main() {
     final context = tester.element(find.byType(UnifiedLibraryScreen));
     final expected = ColorScheme.fromSeed(
       seedColor: accent,
-      dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+      dynamicSchemeVariant: DynamicSchemeVariant.tonalSpot,
     );
     expect(Theme.of(context).colorScheme.primary, expected.primary);
   });
@@ -163,7 +163,7 @@ void main() {
     final context = tester.element(find.byType(UnifiedLibraryScreen));
     final expected = ColorScheme.fromSeed(
       seedColor: newestAccent,
-      dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+      dynamicSchemeVariant: DynamicSchemeVariant.tonalSpot,
     );
     expect(Theme.of(context).colorScheme.primary, expected.primary);
   });

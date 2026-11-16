@@ -291,7 +291,7 @@ void main() {
 
       expect(
         _renderedIconColor(tester, Symbols.more_vert_rounded),
-        theme.colorScheme.primary,
+        theme.colorScheme.onSecondaryContainer,
       );
       await tester.tap(find.byIcon(Symbols.more_vert_rounded));
       await tester.pumpAndSettle();
