@@ -84,7 +84,7 @@ void main() {
     expect(heading, findsOneWidget);
     expect(
       tester.widget<Text>(heading).style?.fontWeight,
-      ameFontWeightSemibold,
+      ameFontWeightRegular,
     );
     expect(
       tester.widget<Text>(find.text("个性化")).style?.fontWeight,

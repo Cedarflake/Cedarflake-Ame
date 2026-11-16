@@ -43,9 +43,12 @@ retained the current image and gallery position. No Flutter exception or layout 
 Run `43937512673` at `83faa357` exposed six obsolete color expectations: four system-accent
 scenarios still used the superseded fidelity palette, and the two selected-row menu cases expected
 the former primary foreground. The expectations now follow the accepted tonal-spot and
-on-secondary-container roles. All 22 existing application-theme and menu checks passed locally,
-retaining startup/update ordering, fallback, popup isolation and disabled-menu behavior. This
-follow-up changes tests only; the native client and visual evidence above remain applicable.
+on-secondary-container roles. Run `43940151561` at `b5643406` passed those scenarios and reported
+one remaining old semibold expectation for the Settings page title. That expectation now uses
+the accepted regular workspace-heading weight; section and setting labels retain their emphasis.
+All 38 existing application-theme, menu and Settings checks passed locally, retaining startup/update
+ordering, fallback, popup isolation, disabled-menu behavior and Settings operations. These follow-ups
+change tests only; the native client and visual evidence above remain applicable.
 
 The modified theme owner has 114 production lines, navigation 554, source tile 551 and workbench
 345, with no inline tests. Their existing theme, workbench and review-layout fixtures have 142,
@@ -273,8 +276,9 @@ The real preparation regression passed in 616 ms, including compilation, and rej
 phase. The persistent-session fixture completed its first/repeated preparation in 580/17 ms and
 rejected mismatched ownership, reported failure, partial results and a blocked invocation while
 retiring the owned process. The preparation owner has 51 production lines, no inline tests and a
-66-line dedicated fixture. Exact-head hosted validation remains the delivery boundary for this
-follow-up; the earlier timeout's underlying operating-system/compiler scheduling cause is not inferred.
+66-line dedicated fixture. The Windows Accessibility and Windows Scan jobs passed in run
+`43940151561` at `b5643406`. The earlier timeout's underlying operating-system/compiler scheduling
+cause is not inferred.
 
 The `0f7483ad` Profile client uses the unchanged receipt-verified optimized debug-assertion native
 library and in-memory preferences. An initial fresh catalog failed with `unable to open database
