@@ -228,8 +228,26 @@ column in the native window; that isolated client remains open for inspection.
 
 The `0f7483ad` hosted Flutter failure asserted absolute preview bounds after the compact doubled-text
 toolbar wrapped. The fixture now protects card-relative placement and retained size/state; all nine
-layout cases pass. Its separate accessibility job timed out in native activation initialization,
-before window discovery or assertions. That hosted result remains failed pending the owned follow-up.
+layout cases pass. The Flutter, Static and Accessibility jobs passed on `fca882dc`; that result
+does not replace its earlier intermittent initialization failure described below.
+
+### Native accessibility preparation follow-up, 2026-11-17
+
+Run `43920047435` stopped at the eight-second native-semantics-ready deadline before window discovery
+or assertions. The last record was `loading-assemblies` at 44 ms, while runtime preparation had
+already loaded both UIA assemblies in 147 ms. The native activation helper still compiled through
+`Add-Type` on the first application phase, after the client started. Its existing idempotent
+initialization now runs in the owned preparation process and records that cost separately under
+`loading-assemblies`; the same process retains the compiled type for native phases. Preparation
+continues to observe zero windows/elements. All phase assertions, the eight-second per-phase limit,
+the whole-run clock and cleanup ownership remain intact.
+
+The real preparation regression passed in 616 ms, including compilation, and rejected an application
+phase. The persistent-session fixture completed its first/repeated preparation in 580/17 ms and
+rejected mismatched ownership, reported failure, partial results and a blocked invocation while
+retiring the owned process. The preparation owner has 51 production lines, no inline tests and a
+66-line dedicated fixture. Exact-head hosted validation remains the delivery boundary for this
+follow-up; the earlier timeout's underlying operating-system/compiler scheduling cause is not inferred.
 
 The `0f7483ad` Profile client uses the unchanged receipt-verified optimized debug-assertion native
 library and in-memory preferences. An initial fresh catalog failed with `unable to open database

@@ -10,6 +10,7 @@ param(
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_evidence.ps1")
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_assemblies.ps1")
+. (Join-Path $PSScriptRoot "integration_windows_accessibility_activation.ps1")
 
 $elapsed = [Diagnostics.Stopwatch]::StartNew()
 $record = @{
@@ -33,6 +34,11 @@ try {
         Import-AmeWindowsUiaAssembly -Name $assembly -Progress $progress
         $stageMilliseconds[$stage] = $elapsed.ElapsedMilliseconds - $startedMilliseconds
     }
+    Write-AmeWindowsUiaProbeRecord @record -Stage "loading-assemblies" `
+        -ElapsedMilliseconds $elapsed.ElapsedMilliseconds
+    $startedMilliseconds = $elapsed.ElapsedMilliseconds
+    Initialize-AmeWindowsAccessibilityActivation
+    $stageMilliseconds["loading-assemblies"] = $elapsed.ElapsedMilliseconds - $startedMilliseconds
 } catch {
     $failure = $_.Exception.Message
 }
