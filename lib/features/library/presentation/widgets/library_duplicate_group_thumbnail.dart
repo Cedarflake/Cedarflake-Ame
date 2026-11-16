@@ -36,9 +36,8 @@ class LibraryDuplicateGroupThumbnail extends StatelessWidget {
         child: InkWell(
           onTap: onPressed,
           borderRadius: BorderRadius.circular(8),
-          child: SizedBox(
-            height: LibraryDuplicateReviewMetrics.groupPreviewHeight,
-            width: double.infinity,
+          child: SizedBox.square(
+            dimension: LibraryDuplicateReviewMetrics.groupPreviewExtent,
             child: Stack(
               fit: StackFit.expand,
               children: [

@@ -34,23 +34,27 @@ qualification are tracked only in the roadmap.
 
 MW2 keeps destination changes in `LibraryDuplicateWorkspace` and moves only their presentation to
 the contextual sidebar. Its compact fallback uses the installed NavigationBar. Group image and
-details composition now has its own 93-line owner; the existing 263-line member-card owner retains
+details composition has its own 99-line owner; the existing 263-line member-card owner retains
 viewer launch geometry and file actions. The page has 396 production lines, with no inline tests;
-the dedicated layout fixture has 374 lines. The group grid requests a 320-pixel logical preview
+the dedicated 387-line layout fixture covers the shared card/grid boundary. The group grid requests a 144-pixel logical preview
 for visible representatives and one prefetched row, retaining immediate retirement when hidden.
 
 The 18 focused review checks passed across 400/800/1200/1280 widths, ordinary/doubled text,
 continuous group/member paging, late responses, preferred decisions, ignore/restore, similarity
 degree, selection and comparison. The preview-demand fixture scrolls by actual card rows;
-the compact cards request twelve representatives across visible rows and one prefetched row.
+the compact cards request nine representatives across visible rows and one prefetched row.
 In the same isolated Windows client, 72 exact groups and six standard-similarity groups rendered
 with the new sidebar. The degree popup retained its existing choices and neighboring cleanup action.
-The subsequent compact-card refinement passed all nine layout/selection checks, including retained
-preview state and bounds. A fresh isolated client using the existing 640x480 corpus subset displayed
-three columns at normal window width. Clicking the image retained its pixels and added a circular
-check and thin card outline; entering the 210-member group through its filename and returning kept
-that selection. The earlier client exited normally and preserved all 10,000 fixture files by size
-and modification time. No source cleanup operation was executed.
+The compact-card refinement retains the established widths and uses a square preview beside its
+details. A fresh isolated client using the existing 640x480 corpus subset displayed six groups in
+two columns, with approximately 148-pixel card height. Clicking the image retained its pixels and
+added a circular check and thin card outline. A separate 20-pixel end gutter kept the native
+scrollbar outside both group cards and member rows. The earlier client exited normally and preserved
+all 10,000 fixture files by size and modification time. No source cleanup operation was executed.
+The final nine layout checks passed again after the square-preview composition, covering retained
+preview state, square bounds, compact height, separate scrollbar space, paging and 2x text.
+The actual client also retained preferred-file decisions and comparison selections through preview
+and comparison returns, and showed the ignored group in its contextual destination before restoration.
 
 Date: 2026-11-08
 

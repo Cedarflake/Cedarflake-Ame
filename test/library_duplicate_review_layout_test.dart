@@ -90,6 +90,14 @@ void main() {
         final heading = find.byKey(const Key("duplicate-review-title"));
         final results = tester.getRect(find.byType(GridView));
         expect(tester.getTopRight(actions).dx, results.right);
+        final lastColumn = cards.at(groupDelegate.crossAxisCount - 1);
+        expect(
+          tester.getTopRight(lastColumn).dx,
+          closeTo(results.right - 20, .1),
+        );
+        if (scale == 1) {
+          expect(tester.getSize(cards.first).height, lessThan(210));
+        }
         if (width > 1000) {
           expect(
             tester.getTopRight(category).dx,
@@ -114,6 +122,7 @@ void main() {
         );
         final previewState = tester.state(preview);
         final previewBounds = tester.getRect(preview);
+        expect(previewBounds.width, previewBounds.height);
         await tester.tap(selection);
         await tester.pumpAndSettle();
         expect(find.text("取消选择"), findsOneWidget);
@@ -190,6 +199,10 @@ void main() {
         }
         expect(memberDelegate.crossAxisCount, 1);
         final memberCard = find.byKey(const ValueKey("duplicate-card-one"));
+        expect(
+          tester.getTopRight(memberCard).dx,
+          closeTo(tester.getTopRight(grid).dx - 20, .1),
+        );
         if (width >= 800 && scale == 1) {
           expect(
             tester.getCenter(find.byKey(const ValueKey("prefer-one"))).dy,
@@ -298,7 +311,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         library.demands.values.single,
-        List.generate(12, (index) => "item-$index"),
+        List.generate(9, (index) => "item-$index"),
       );
       final grid = tester.widget<GridView>(find.byType(GridView));
       final layout =
@@ -309,7 +322,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         library.demands.values.single,
-        List.generate(12, (index) => "item-${index + 16}"),
+        List.generate(9, (index) => "item-${index + 12}"),
       );
       active.value = false;
       await tester.pumpAndSettle();

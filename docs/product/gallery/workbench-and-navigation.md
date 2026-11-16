@@ -106,9 +106,10 @@ separate instruction/count toolbar. Wide layouts align actions with the heading;
 enlarged text wrap actions below it with right alignment. Primary-destination changes reset nested
 navigation and temporary selection. Ordinary return from viewing or comparison preserves the group.
 
-Groups use responsive multi-column cards with one bounded representative image above the filename,
-details and open action. Keep group cards compact enough for three columns at ordinary desktop
-widths. Clicking the image selects the group while retaining its preview; a small circular check
+Groups use responsive multi-column cards with a bounded square representative image on the left
+and filename, details and open action on the right. Keep the established card widths
+and reduce vertical whitespace; the result grid reserves a separate end gutter for its scrollbar,
+including member rows. Clicking the image selects the group while retaining its preview; a small circular check
 and thin card outline indicate selection. Selection cannot replace or resize the preview. The
 card details and open action enter the group. Ignored groups remain non-selectable. Do not fetch
 all member images to decorate a group card. Members use full-width rows with their existing
@@ -177,7 +178,7 @@ A two-logical-pixel contour in the theme's primary color surrounds a `primaryCon
 separated by a 1.5-logical-pixel transparent gap. The cutout has no inner stroke. The mark shares a
 28-logical-pixel size and horizontal center with the primary navigation rail. The Windows application
 icon uses the colored artwork; the title-bar mark retains the same vector shape. The adjacent
-"Cedarflake Ame" label uses semibold text in the theme's primary
+"Ame" label uses semibold text in the theme's primary
 color and follows the existing compact-window rule that keeps only the mark visible.
 
 There is no permanent Task button or task-center navigation entry. While an import or library update

@@ -107,17 +107,20 @@ class _LibraryDuplicateReviewGridState
     builder: (context, constraints) {
       _height = constraints.maxHeight;
       final textSize = MediaQuery.textScalerOf(context).scale(16);
-      final minimumWidth = 260 * (textSize / 16).clamp(1.0, 1.5);
-      const spacing = 8.0;
+      final minimumWidth = 340 * (textSize / 16).clamp(1.0, 1.5);
+      const spacing = 12.0;
+      const scrollbarGutter = 20.0;
+      final contentWidth = math.max(
+        1.0,
+        constraints.maxWidth - scrollbarGutter,
+      );
       _columns = widget.singleColumn
           ? 1
           : math.max(
               1,
-              ((constraints.maxWidth + spacing) / (minimumWidth + spacing))
-                  .floor(),
+              ((contentWidth + spacing) / (minimumWidth + spacing)).floor(),
             );
-      final cardWidth =
-          (constraints.maxWidth - (_columns - 1) * spacing) / _columns;
+      final cardWidth = (contentWidth - (_columns - 1) * spacing) / _columns;
       final cardHeight = LibraryDuplicateReviewMetrics.height(
         context,
         cardWidth,
@@ -132,7 +135,7 @@ class _LibraryDuplicateReviewGridState
         child: GridView.builder(
           key: PageStorageKey(widget.key),
           controller: _scroll,
-          padding: EdgeInsets.zero,
+          padding: const EdgeInsetsDirectional.only(end: scrollbarGutter),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: _columns,
             mainAxisExtent: cardHeight,

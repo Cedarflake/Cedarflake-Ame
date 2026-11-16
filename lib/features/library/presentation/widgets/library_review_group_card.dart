@@ -6,7 +6,7 @@ import "library_duplicate_review_metrics.dart";
 import "library_path_text.dart";
 import "library_viewer_filmstrip_thumbnail.dart";
 
-/// Group previews and selection occupy one bounded image slot above the details.
+/// Group previews and selection share one bounded image slot beside the details.
 class LibraryReviewGroupCard extends StatelessWidget {
   const LibraryReviewGroupCard({
     required this.asset,
@@ -43,11 +43,10 @@ class LibraryReviewGroupCard extends StatelessWidget {
       onTap: onOpen,
       child: Padding(
         padding: const EdgeInsets.all(LibraryDuplicateReviewMetrics.padding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Row(
           children: [
-            SizedBox(
-              height: LibraryDuplicateReviewMetrics.groupPreviewHeight,
+            SizedBox.square(
+              dimension: LibraryDuplicateReviewMetrics.groupPreviewExtent,
               child:
                   thumbnail ??
                   IgnorePointer(
@@ -64,25 +63,32 @@ class LibraryReviewGroupCard extends StatelessWidget {
                     ),
                   ),
             ),
-            const SizedBox(height: 12),
-            AmeTooltip(
-              message: displayLibraryFileName(asset.displayPath),
-              child: Text(
-                displayLibraryFileName(asset.displayPath),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Expanded(child: details),
-            const SizedBox(height: LibraryDuplicateReviewMetrics.gap),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                style: LibraryDuplicateReviewMetrics.actionStyle,
-                onPressed: onOpen,
-                child: Text(actionLabel),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AmeTooltip(
+                    message: displayLibraryFileName(asset.displayPath),
+                    child: Text(
+                      displayLibraryFileName(asset.displayPath),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  details,
+                  const Spacer(),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      style: LibraryDuplicateReviewMetrics.actionStyle,
+                      onPressed: onOpen,
+                      child: Text(actionLabel),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
