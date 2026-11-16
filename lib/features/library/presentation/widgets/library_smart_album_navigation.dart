@@ -68,6 +68,8 @@ class _LibrarySmartAlbumNavigationState
                       if (value == null || value.visibleCategories.isEmpty)
                         ListTile(
                           key: const Key("library-sidebar-smart-empty"),
+                          minTileHeight:
+                              LibraryWorkbenchMetrics.sidebarRowHeight,
                           contentPadding: const EdgeInsets.only(
                             left: 16,
                             right: 4,
@@ -195,13 +197,13 @@ class _SmartAlbumRow extends StatelessWidget {
           "meme" => Symbols.mood_rounded,
           "screenshot" => Symbols.desktop_windows_rounded,
           _ => Symbols.photo_album_rounded,
-        }, size: 20),
+        }, size: 24),
       ),
       title: Text(
         category.label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodyMedium?.copyWith(
+        style: theme.textTheme.bodyLarge?.copyWith(
           fontWeight: selected ? ameFontWeightSemibold : ameFontWeightRegular,
         ),
       ),

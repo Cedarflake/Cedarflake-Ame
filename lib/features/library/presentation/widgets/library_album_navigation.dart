@@ -23,6 +23,7 @@ import "library_sidebar_section_toggle.dart";
 import "library_sidebar_rows_disclosure.dart";
 import "library_sidebar_removal_dialog.dart";
 import "library_sidebar_selection_region.dart";
+import "library_workbench_metrics.dart";
 
 class LibraryAlbumNavigation extends ConsumerStatefulWidget {
   const LibraryAlbumNavigation({
@@ -138,6 +139,7 @@ class _LibraryAlbumNavigationState
         child: _expanded && page?.total == 0
             ? const ListTile(
                 key: Key("library-sidebar-album-empty"),
+                minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
                 contentPadding: EdgeInsets.only(left: 16, right: 6),
                 minLeadingWidth: 24,
                 horizontalTitleGap: 12,

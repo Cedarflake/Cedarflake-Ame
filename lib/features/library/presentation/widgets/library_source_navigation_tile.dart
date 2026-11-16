@@ -163,44 +163,41 @@ class _LibrarySourceNavigationTileState
             titleKey: ValueKey("source-title-${widget.root.id}"),
             subtitle: expandedSubtitle,
             isSelected: widget.isSelected,
-            trailing: SizedBox(
-              width: 96,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (widget.onToggleExpansion != null)
-                    AmeTooltip(
-                      message: widget.isExpanded
-                          ? LibraryStrings.collapseFolder
-                          : LibraryStrings.expandFolder,
-                      child: IconButton(
-                        key: ValueKey("source-expand-${widget.root.id}"),
-                        onPressed: widget.onToggleExpansion,
-                        icon: AmeExpansionIcon(
-                          expanded: widget.isExpanded,
-                          icon: Symbols.keyboard_arrow_down_rounded,
-                        ),
-                      ),
-                    ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.onToggleExpansion != null)
                   AmeTooltip(
-                    message: LibraryStrings.more,
-                    child: SizedBox(
-                      key: _moreButtonAnchorKey,
-                      child: IconButton(
-                        key: ValueKey("source-more-${widget.root.id}"),
-                        onPressed: () {
-                          final anchorContext =
-                              _moreButtonAnchorKey.currentContext;
-                          if (anchorContext != null) {
-                            unawaited(_showMenuAtAnchor(anchorContext));
-                          }
-                        },
-                        icon: const Icon(Symbols.more_vert_rounded),
+                    message: widget.isExpanded
+                        ? LibraryStrings.collapseFolder
+                        : LibraryStrings.expandFolder,
+                    child: IconButton(
+                      key: ValueKey("source-expand-${widget.root.id}"),
+                      onPressed: widget.onToggleExpansion,
+                      icon: AmeExpansionIcon(
+                        expanded: widget.isExpanded,
+                        icon: Symbols.keyboard_arrow_down_rounded,
                       ),
                     ),
                   ),
-                ],
-              ),
+                AmeTooltip(
+                  message: LibraryStrings.more,
+                  child: SizedBox(
+                    key: _moreButtonAnchorKey,
+                    child: IconButton(
+                      key: ValueKey("source-more-${widget.root.id}"),
+                      onPressed: () {
+                        final anchorContext =
+                            _moreButtonAnchorKey.currentContext;
+                        if (anchorContext != null) {
+                          unawaited(_showMenuAtAnchor(anchorContext));
+                        }
+                      },
+                      icon: const Icon(Symbols.more_vert_rounded),
+                    ),
+                  ),
+                ),
+              ],
             ),
             onTap: widget.isBrowseDisabled ? null : widget.onSelect,
           );
@@ -441,12 +438,12 @@ class PendingLibrarySourceTile extends StatelessWidget {
       titleKey: const Key("pending-source-title"),
       subtitle: source.statusLabel,
       trailing: SizedBox(
-        width: 96,
+        width: 40,
         child: source.isProcessing
             ? const Align(
                 alignment: Alignment.centerRight,
                 child: SizedBox(
-                  width: 48,
+                  width: 40,
                   child: Center(
                     child: SizedBox.square(
                       key: Key("pending-source-progress"),
@@ -505,11 +502,8 @@ class _ExpandedSourceTile extends StatelessWidget {
       selected: isSelected,
       selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
       shape: LibraryWorkbenchMetrics.sidebarRowShape,
-      minTileHeight: subtitle == null
-          ? LibraryWorkbenchMetrics.sidebarRowHeight
-          : LibraryWorkbenchMetrics.sidebarStatusRowHeight,
+      minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
       minVerticalPadding: 4,
-      dense: true,
       contentPadding: EdgeInsets.only(left: leading == null ? 16 : 8, right: 4),
       minLeadingWidth: leading == null ? 24 : 40,
       horizontalTitleGap: leading == null ? 12 : 4,
@@ -533,8 +527,7 @@ class _ExpandedSourceTile extends StatelessWidget {
           if (subtitle != null)
             Text(
               subtitle!,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontSize: 12,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: isSelected
                     ? Theme.of(context).colorScheme.onSecondaryContainer
                     : Theme.of(context).colorScheme.onSurfaceVariant,

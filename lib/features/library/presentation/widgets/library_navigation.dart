@@ -331,6 +331,8 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           )
                         else
                           const ListTile(
+                            minTileHeight:
+                                LibraryWorkbenchMetrics.sidebarRowHeight,
                             contentPadding: EdgeInsets.only(left: 16, right: 6),
                             minLeadingWidth: 24,
                             horizontalTitleGap: 12,

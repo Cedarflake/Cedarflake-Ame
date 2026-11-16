@@ -86,7 +86,6 @@ class _LibraryFolderNavigationTileState
           selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
           shape: LibraryWorkbenchMetrics.sidebarRowShape,
           minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
-          dense: true,
           contentPadding: EdgeInsets.only(
             left: 16 + (widget.depth * 28),
             right: 4,

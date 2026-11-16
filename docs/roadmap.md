@@ -78,7 +78,8 @@ completed R10a–R10c scopes or authorize Beta publication.
 MW1–MW3 implementation and focused desktop qualification are recorded in the
 [Material acceptance record](acceptance/material-ui-migration.md#material-workbench-composition-2026-11-16).
 MW4 includes the requested primary-navigation content-width transition, filmstrip frame-time
-qualification and the Google-style tonal/typographic refinement guided by Material canonical layouts.
+qualification and the Google-style tonal/typographic refinement guided by Material canonical layouts,
+including consistent secondary-navigation row geometry.
 The refined client and focused regressions are verified; final branch hosted checks remain pending,
 including the accessibility probe initialization follow-up. Merging and release publication remain
 separate decisions.

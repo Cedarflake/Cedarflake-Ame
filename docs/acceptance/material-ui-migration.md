@@ -2,6 +2,26 @@
 
 ## Material workbench composition, 2026-11-16
 
+### Navigation density refinement, 2026-11-17
+
+The follow-up to `1323a3ea` gives Library, Favorites, folders, albums, smart albums and duplicate
+destinations the same 48-pixel minimum row height, body-large labels and 24-pixel icon column.
+Source status remains body-small and centered with its name. Source actions consume their actual
+width; empty rows share the navigation rhythm. The first duplicate destination follows the
+primary-action centerline. The existing selection shape, color roles and motion remain unchanged.
+
+Scoped formatting and analysis passed, followed by 36 existing navigation, album and retained
+date-navigation checks. The final Profile build completed in 62.7 seconds. Native verification used
+the existing 700-file isolated corpus: source selection/menu, album creation and selection, Favorites,
+light/dark appearance, Settings, Duplicates, sidebar folding and maximize/restore. Selection rows and
+trailing controls aligned; folded content retained its gutter and search-width cap. No Flutter
+exception or layout overflow was logged. The completed client exited normally and preserved all
+700 source lengths and modification times; its scratch lease was retired before opening the update.
+
+The affected navigation, source, album and smart-album owners have 556, 544, 289 and 213 production
+lines, with no inline tests. Existing navigation-semantics and smart-album fixtures contain 1,093
+and 384 dedicated test lines. No query, persistence, image-painting or animation lifecycle changed.
+
 ### Tonal and typographic refinement, 2026-11-17
 
 The follow-up to `fca882dc` uses the system accent's tonal-spot palette and separates

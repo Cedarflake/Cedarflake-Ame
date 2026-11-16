@@ -100,8 +100,13 @@ retains current item identities through metadata updates, appends new items and 
 order on failure through the shared feedback surface. It does not reorder gallery images or mutate
 physical folders. Sidebar navigation rows and their drag proxies share a framework
 RoundedRectangleBorder with eight-pixel corners. Their 16-pixel side insets align the background's
-leading edge with the primary action. Single-line rows have a 40-pixel minimum height and source
-rows with status have 56 pixels; text scaling and embedded controls can increase these minimums.
+leading edge with the primary action. Single-line rows and source rows with status share a 48-pixel
+minimum height; text scaling and embedded controls can increase that minimum. This replaces the
+40/56-pixel split so the selection surface does not change proportion between navigation types.
+Navigation uses the theme's body-large labels and 24-pixel icons. Source and child-folder rows
+omit ListTile's legacy dense setting, which overrides the title with a 13-pixel size even when
+the theme supplies body-large text. Source status uses body-small typography; trailing controls
+take their intrinsic width instead of reserving space for an absent expansion button.
 Source names and statuses compose a minimum-height Column in ListTile's title slot, allowing the
 framework to center them together rather than applying fixed two-line baselines to a compact row.
 

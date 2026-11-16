@@ -193,10 +193,12 @@ The global bar and contextual sidebar share one continuous chrome surface. The f
 main workspace use the distinct navigation and content roles, resolved for light and dark themes
 by the shared workbench surface owner. The frame and content own their outer rounded corners;
 the sidebar introduces no cutout below the global bar. Tonal surfaces separate the regions without
-divider lines. Sidebar navigation rows use eight-pixel corners and compact heights. Their backgrounds
-have 16-pixel side insets, aligning the leading edge with the primary-action background; icons and
-section headings retain their existing alignment. Source rows with status retain room for both text
-lines. Dragging preserves the row's shape.
+divider lines. Sidebar navigation rows share a 48-pixel minimum height and eight-pixel corners.
+Their backgrounds have 16-pixel side insets, aligning the leading edge with the primary-action
+background. Navigation labels use body-large text and 24-pixel icons in aligned columns.
+Source names and body-small status lines remain centered as one block within the same row height;
+enlarged text can grow the row. Trailing controls occupy only their actual width, leaving the
+remaining space for names. Dragging preserves the row's shape.
 Settings retains the same small outer inset on both sides of its content surface.
 Use the system accent's tonal-spot palette. The sidebar's primary action uses primary-container
 colors, while selected navigation uses secondary-container colors and their matching foreground.
@@ -229,10 +231,11 @@ silhouette is approximately 32 pixels beside the 22-pixel wordmark. The action's
 icons and section headings share an inset column. Keep 32 pixels below the primary action and
 24 pixels above each folder, manual-album or smart-album section; rows within each section retain
 their compact spacing. The first primary-navigation icon aligns vertically with the
-primary-action label; the hamburger stays in the brand row. The three primary destinations have
+primary-action label; the hamburger stays in the brand row. The first Duplicates destination uses
+that same control centerline without adding a section title. The three primary destinations have
 12 additional pixels between adjacent entries; Settings remains anchored at the bottom.
 Section headings use medium weight. Album names match Favorites and folder navigation: regular
-by default and semibold when selected, retaining the existing font sizes.
+by default and semibold when selected, using the same body-large size across navigation types.
 Manual and smart albums have independent section disclosure controls, with counts beside the labels.
 The folder heading shows the imported-root count. Section disclosure and row menus share the same
 trailing column; a source name and its status form one vertically centered text block.

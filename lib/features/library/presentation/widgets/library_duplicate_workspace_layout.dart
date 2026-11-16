@@ -95,12 +95,15 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
         sidebar: Material(
           type: MaterialType.transparency,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
             children: [
               for (final (value, label, icon) in _destinations)
                 ListTile(
                   key: ValueKey("duplicate-view-${value.name}"),
-                  leading: Icon(icon, size: 22),
+                  contentPadding: const EdgeInsets.only(left: 16, right: 4),
+                  minLeadingWidth: 24,
+                  horizontalTitleGap: 12,
+                  leading: SizedBox(width: 24, child: Icon(icon, size: 24)),
                   title: Text(
                     label,
                     style: TextStyle(
