@@ -22,6 +22,7 @@ use super::connection::{
 #[cfg(test)]
 use super::pipe_listener::MAX_PRODUCTION_CONNECTIONS;
 use super::pipe_listener::{CONSOLE_PIPE_PREFIX, DISPOSABLE_PIPE_SDDL, create_pipe};
+use super::production_host::lifetime::{ConnectionLease, PrincipalLease};
 use super::transport::{
     OwnedHandle, PendingFrameRead, WindowsTransportError, read_exact_bounded, write_exact_bounded,
 };
@@ -40,6 +41,7 @@ const PRODUCTION_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 const PRODUCTION_MAX_LIFETIME: Duration = Duration::from_secs(5 * 60);
 const HOST_POLL_INTERVAL: Duration = Duration::from_millis(25);
 const WORKER_DRAIN_TIMEOUT: Duration = Duration::from_secs(2);
+const PRINCIPAL_HANDOVER_TIMEOUT: Duration = Duration::from_secs(1);
 pub(super) const MAX_HOST_READ_WORKERS: usize = 8;
 pub(super) fn run_disposable_console_host() -> ExitCode {
     match run_disposable_console_host_inner() {
@@ -65,6 +67,7 @@ fn run_disposable_console_host_inner() -> Result<(), HostError> {
         None,
         WindowsRootRegistrationBudget::production(),
         ReadWorkerBudget::new(MAX_HOST_READ_WORKERS),
+        None,
     )
 }
 
@@ -74,6 +77,7 @@ pub(super) fn serve_named_pipe(
     stop_requested: Option<&AtomicBool>,
     root_budget: WindowsRootRegistrationBudget,
     worker_budget: ReadWorkerBudget,
+    admission: Option<&mut ConnectionLease>,
 ) -> Result<(), HostError> {
     let handshake = encode_handshake(identity);
     write_exact_bounded(
@@ -88,7 +92,7 @@ pub(super) fn serve_named_pipe(
     )?;
     validate_client_proof(identity, &client_proof).map_err(|_| HostError::ClientProofRejected)?;
     let (process_id, session_id) = observed_client(pipe)?;
-    let (authenticated, authorizer) = WindowsPipeAuthorizer::from_connected_pipe(
+    let (authenticated, principal, authorizer) = WindowsPipeAuthorizer::from_connected_pipe(
         pipe.raw(),
         ConnectedPipeAdmission::new(
             identity.connection_id,
@@ -100,6 +104,18 @@ pub(super) fn serve_named_pipe(
         root_budget,
     )
     .map_err(|error| HostError::ClientTokenRejected(error.to_string()))?;
+    let principal_lease = match admission {
+        Some(connection) => Some(
+            connection
+                .bind_principal(
+                    principal,
+                    Instant::now() + PRINCIPAL_HANDOVER_TIMEOUT,
+                    stop_requested,
+                )
+                .map_err(|_| HostError::AdmissionRejected)?,
+        ),
+        None => None,
+    };
     let backend_security = authorizer
         .backend_security()
         .map_err(|error| HostError::ClientTokenRejected(error.to_string()))?;
@@ -114,7 +130,7 @@ pub(super) fn serve_named_pipe(
     )?;
     let mut io = NamedPipeHostIo::new(pipe, stop_requested);
     let mut dispatch = ServiceHostDispatch::new(service, authenticated, worker_budget);
-    serve_connection(&mut io, &mut dispatch)
+    serve_connection(&mut io, &mut dispatch, principal_lease)
 }
 
 trait HostIo {
@@ -156,6 +172,7 @@ struct HostBatch {
 fn serve_connection(
     io: &mut impl HostIo,
     dispatch: &mut impl HostDispatch,
+    principal_lease: Option<PrincipalLease<'_>>,
 ) -> Result<(), HostError> {
     let result = (|| {
         dispatch.open()?;
@@ -185,6 +202,8 @@ fn serve_connection(
         }
         Ok(())
     })();
+    // Request admission ends here; the global connection lease still covers worker drain.
+    drop(principal_lease);
     dispatch.disconnect();
     result
 }
@@ -642,6 +661,8 @@ impl From<super::connection::ConnectionIdentityError> for HostError {
 
 #[cfg(test)]
 mod tests {
+    mod principal_admission;
+
     use super::*;
     use std::collections::VecDeque;
     use std::ptr::null_mut;
@@ -684,6 +705,7 @@ mod tests {
         disconnected: bool,
         accept_next: bool,
         completed: Vec<Vec<u8>>,
+        disconnect_wait: Option<(SyncSender<()>, Receiver<()>)>,
     }
 
     impl HostDispatch for FakeDispatch {
@@ -721,6 +743,10 @@ mod tests {
 
         fn disconnect(&mut self) {
             self.disconnected = true;
+            if let Some((entered, release)) = self.disconnect_wait.take() {
+                entered.send(()).unwrap();
+                release.recv_timeout(Duration::from_secs(5)).unwrap();
+            }
         }
     }
 
@@ -735,7 +761,7 @@ mod tests {
             ..FakeDispatch::default()
         };
 
-        serve_connection(&mut io, &mut dispatch).expect("host loop");
+        serve_connection(&mut io, &mut dispatch, None).expect("host loop");
 
         assert!(dispatch.opened);
         assert_eq!(dispatch.executed, vec![7]);
@@ -756,10 +782,54 @@ mod tests {
             ..FakeDispatch::default()
         };
 
-        assert!(serve_connection(&mut io, &mut dispatch).is_err());
+        assert!(serve_connection(&mut io, &mut dispatch, None).is_err());
         assert!(dispatch.executed.is_empty());
         assert_eq!(dispatch.aborted, vec![7]);
         assert!(dispatch.disconnected);
+    }
+
+    #[test]
+    fn replacement_principal_is_admitted_while_previous_dispatch_drains() {
+        use super::super::production_host::lifetime::{AdmissionError, ServiceLifetime};
+        use crate::journal_broker::service::AuthenticatedPrincipal;
+
+        for fail_ack in [false, true] {
+            let lifetime = ServiceLifetime::new(Instant::now(), Duration::from_secs(10), 2);
+            let principal = AuthenticatedPrincipal::for_test(1);
+            let mut first = lifetime.admit().unwrap().unwrap();
+            let (entered, draining) = sync_channel(1);
+            let (release, released) = sync_channel(1);
+            let worker = std::thread::spawn(move || {
+                let binding = first
+                    .bind_principal(principal, Instant::now(), None)
+                    .unwrap();
+                let mut io = FakeIo {
+                    incoming: VecDeque::from([vec![9]]),
+                    fail_write_at: fail_ack.then_some(0),
+                    ..FakeIo::default()
+                };
+                let mut dispatch = FakeDispatch {
+                    accept_next: true,
+                    disconnect_wait: Some((entered, released)),
+                    ..FakeDispatch::default()
+                };
+                serve_connection(&mut io, &mut dispatch, Some(binding)).is_ok()
+            });
+            draining.recv_timeout(Duration::from_secs(5)).unwrap();
+            let mut replacement = lifetime.admit().unwrap().unwrap();
+            let binding = replacement
+                .bind_principal(principal, Instant::now(), None)
+                .unwrap();
+            assert!(matches!(lifetime.admit(), Err(AdmissionError::Capacity)));
+            release.send(()).unwrap();
+            assert_eq!(worker.join().unwrap(), !fail_ack);
+            let mut next = lifetime.admit().unwrap().unwrap();
+            assert!(matches!(
+                next.bind_principal(principal, Instant::now(), None),
+                Err(AdmissionError::PrincipalBusy)
+            ));
+            drop(binding);
+        }
     }
 
     #[test]

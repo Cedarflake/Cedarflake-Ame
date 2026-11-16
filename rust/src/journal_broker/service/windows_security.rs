@@ -58,6 +58,23 @@ pub(in crate::journal_broker) struct WindowsPipeAuthorizer {
     security: Option<Arc<ConnectionSecurity>>,
 }
 
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+pub(in crate::journal_broker) struct AuthenticatedPrincipal([u8; 32]);
+
+impl AuthenticatedPrincipal {
+    fn from_verified_user_sid(user_sid: &[u8]) -> Self {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"cedarflake-ame-pipe-principal-v1\0");
+        hasher.update(user_sid);
+        Self(*hasher.finalize().as_bytes())
+    }
+
+    #[cfg(test)]
+    pub(in crate::journal_broker) const fn for_test(value: u8) -> Self {
+        Self([value; 32])
+    }
+}
+
 #[derive(Clone)]
 pub(in crate::journal_broker) struct WindowsRootRegistrationBudget(Arc<RootBudgetState>);
 
@@ -142,7 +159,7 @@ impl WindowsPipeAuthorizer {
         pipe: HANDLE,
         admission: ConnectedPipeAdmission,
         root_budget: WindowsRootRegistrationBudget,
-    ) -> Result<(AuthenticatedConnection, Self), WindowsSecurityError> {
+    ) -> Result<(AuthenticatedConnection, AuthenticatedPrincipal, Self), WindowsSecurityError> {
         let ConnectedPipeAdmission {
             connection_id,
             connection_generation,
@@ -165,6 +182,7 @@ impl WindowsPipeAuthorizer {
         if evidence.session_id != observed_session_id || !primary.matches_impersonation(&evidence) {
             return Err(WindowsSecurityError::CallerRejected);
         }
+        let principal = AuthenticatedPrincipal::from_verified_user_sid(&evidence.user_sid);
         let client_process_identity = client_process.opaque_identity();
         let namespace = token_binding(
             &evidence,
@@ -191,6 +209,7 @@ impl WindowsPipeAuthorizer {
         .map_err(|_| WindowsSecurityError::CallerRejected)?;
         Ok((
             authenticated,
+            principal,
             Self {
                 security: Some(Arc::new(ConnectionSecurity {
                     token,
