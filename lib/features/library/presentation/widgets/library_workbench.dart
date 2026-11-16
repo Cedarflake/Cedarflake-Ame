@@ -320,6 +320,9 @@ class _FunctionRail extends ConsumerWidget {
                     backgroundColor: workspace == LibraryWorkspace.settings
                         ? Theme.of(context).colorScheme.secondaryContainer
                         : null,
+                    foregroundColor: workspace == LibraryWorkspace.settings
+                        ? Theme.of(context).colorScheme.onSecondaryContainer
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   onPressed: () => select(LibraryWorkspace.settings),
                   icon: const Icon(

@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
+import "../../../../app/presentation/ame_typography.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../../settings/domain/ame_preferences.dart";
 import "../../application/library_workbench_controller.dart";
@@ -100,7 +101,14 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
                 ListTile(
                   key: ValueKey("duplicate-view-${value.name}"),
                   leading: Icon(icon, size: 22),
-                  title: Text(label),
+                  title: Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: view == value
+                          ? ameFontWeightSemibold
+                          : ameFontWeightRegular,
+                    ),
+                  ),
                   selected: view == value,
                   selectedTileColor: colors.secondaryContainer,
                   selectedColor: colors.onSecondaryContainer,

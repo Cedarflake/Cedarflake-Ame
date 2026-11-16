@@ -42,8 +42,9 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
                 Flexible(
                   child: Text(
                     selectedCount > 0 ? "已选择 $selectedCount" : title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: ameFontWeightSemibold,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: ameFontWeightMedium,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -51,7 +52,9 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     "($count)",
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ],

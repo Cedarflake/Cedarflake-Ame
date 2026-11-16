@@ -174,9 +174,10 @@ control, and app-drawn window controls; library import and settings do not appea
 notification control is immediately before the caption controls. It uses the ordinary notification
 icon when read and the notification-with-dot icon when unread, without a text label or count.
 
-The application mark and semibold `Ame` label sit together to the right of the hamburger. The mark
+The application mark and regular-weight `Ame` label sit together to the right of the hamburger. The mark
 uses the theme's primary color without an extra outline; its visible silhouette, text height and
-optical spacing are balanced as one identity. Collapsing the sidebar hides this identity to leave
+optical spacing are balanced as one identity. The wordmark uses the neutral on-surface color.
+Collapsing the sidebar hides this identity to leave
 room for search. The Windows application icon retains its colored artwork. Search starts at the
 sidebar/content boundary rather than the inset content heading. Both expanded and collapsed
 sidebars keep the search field within its 720-pixel maximum width.
@@ -197,6 +198,10 @@ have 16-pixel side insets, aligning the leading edge with the primary-action bac
 section headings retain their existing alignment. Source rows with status retain room for both text
 lines. Dragging preserves the row's shape.
 Settings retains the same small outer inset on both sides of its content surface.
+Use the system accent's tonal-spot palette. The sidebar's primary action uses primary-container
+colors, while selected navigation uses secondary-container colors and their matching foreground.
+Workspace headings use regular weight; section labels and counts use the quieter on-surface-variant
+color. Emphasize the primary action and current selection without accent-colored ordinary text.
 Collapsing a sidebar retains that eight-pixel gap between the function rail and the content surface,
 with search aligned above it. Primary-destination changes animate the content boundary and keep the
 right edge fixed; the image wall retains its destination-width layout during the transition.
@@ -226,8 +231,8 @@ icons and section headings share an inset column. Keep 32 pixels below the prima
 their compact spacing. The first primary-navigation icon aligns vertically with the
 primary-action label; the hamburger stays in the brand row. The three primary destinations have
 12 additional pixels between adjacent entries; Settings remains anchored at the bottom.
-The album section heading uses semibold. Album names match Favorites and folder navigation: medium
-by default and semibold when selected, retaining the existing font sizes and selected-state colors.
+Section headings use medium weight. Album names match Favorites and folder navigation: regular
+by default and semibold when selected, retaining the existing font sizes.
 Manual and smart albums have independent section disclosure controls, with counts beside the labels.
 The folder heading shows the imported-root count. Section disclosure and row menus share the same
 trailing column; a source name and its status form one vertically centered text block.

@@ -141,7 +141,7 @@ class _LibraryAlbumNavigationTileState
           style: TextStyle(
             fontWeight: widget.selected
                 ? ameFontWeightSemibold
-                : ameFontWeightMedium,
+                : ameFontWeightRegular,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,

@@ -31,8 +31,8 @@ class LibrarySidebarPrimaryAction extends StatelessWidget {
             key: buttonKey,
             onPressed: onPressed,
             style: FilledButton.styleFrom(
-              backgroundColor: colors.secondaryContainer,
-              foregroundColor: colors.onSecondaryContainer,
+              backgroundColor: colors.primaryContainer,
+              foregroundColor: colors.onPrimaryContainer,
               textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
                 fontWeight: ameFontWeightSemibold,
               ),

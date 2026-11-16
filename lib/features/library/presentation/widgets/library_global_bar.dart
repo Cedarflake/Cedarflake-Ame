@@ -136,8 +136,8 @@ class LibraryGlobalBar extends StatelessWidget {
                                     fontSize: 22,
                                     color: Theme.of(
                                       context,
-                                    ).colorScheme.primary,
-                                    fontWeight: ameFontWeightSemibold,
+                                    ).colorScheme.onSurface,
+                                    fontWeight: ameFontWeightRegular,
                                   ),
                                 ),
                               ),

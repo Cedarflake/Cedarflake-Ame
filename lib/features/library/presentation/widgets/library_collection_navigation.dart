@@ -44,7 +44,7 @@ class LibraryCollectionNavigation extends StatelessWidget {
       title: Text(
         "收藏夹",
         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          fontWeight: selected ? ameFontWeightSemibold : ameFontWeightMedium,
+          fontWeight: selected ? ameFontWeightSemibold : ameFontWeightRegular,
         ),
       ),
       onTap: onFavorites,

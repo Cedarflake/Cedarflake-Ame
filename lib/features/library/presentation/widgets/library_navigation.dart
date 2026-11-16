@@ -549,6 +549,6 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
 
 TextStyle? _navigationTitleStyle(BuildContext context, bool isSelected) {
   return Theme.of(context).textTheme.bodyLarge?.copyWith(
-    fontWeight: isSelected ? ameFontWeightSemibold : ameFontWeightMedium,
+    fontWeight: isSelected ? ameFontWeightSemibold : ameFontWeightRegular,
   );
 }

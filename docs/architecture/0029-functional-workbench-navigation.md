@@ -18,6 +18,19 @@ their existing contextual sidebars. Duplicates places exact/similar/ignored navi
 sidebar while retaining degree and cleanup beside the result heading. Secondary sidebars omit a
 redundant large destination title.
 
+Material's [canonical layouts](https://m3.material.io/foundations/layout/canonical-examples/overview)
+and the [Android layout guidance](https://developer.android.com/develop/adaptive-apps/guides/canonical-layouts)
+inform the existing adaptive gallery feed and viewer supporting content. Navigation remains
+separate from those content regions; this does not introduce another pane or navigation model.
+Use `ColorScheme.fromSeed` with `DynamicSchemeVariant.tonalSpot` to retain the system accent hue
+with restrained surface and selection chroma. The earlier fidelity palette made primary actions
+and selected rows similarly prominent. Primary-container action colors and secondary-container
+selection colors now carry separate emphasis, with their matching on-container foregrounds.
+Regular workspace headings and ordinary navigation text keep the content hierarchy legible;
+selected labels and primary actions retain emphasis. Calendar and dialog typography stays owned
+by those surfaces. The installed color-scheme and text-style APIs provide this composition without
+new fonts, palette code or dependencies.
+
 One backing surface joins the top bar and contextual sidebar, with rounded outer left corners.
 Sidebars do not introduce another rounded cutout below the top bar. The main content has its own
 rounded surface and a small outer inset. The frame owns this geometry; sidebar transitions retain
@@ -70,7 +83,7 @@ snapshot provide the existing upgrade/rollback boundary.
 Library and Albums use one section-heading component below their Library and Favorites entries.
 Each sidebar starts with its filled `添加文件夹` or `新建相册` action, replacing the heading's plus.
 The installed `material_ui` 1.11.0 `FilledButton.icon` provides nullable activation, disabled styling,
-keyboard focus and semantics. Its style API supplies the existing secondary-container colors and
+keyboard focus and semantics. Its style API supplies primary-container colors and
 56-pixel minimum height with 12-pixel corners. Semibold labels and a heavier plus mark identify the
 primary action. An icon-only action lacks the accepted visible label;
 an extended FAB is unnecessary for an inline sidebar action with a disabled state. No custom input

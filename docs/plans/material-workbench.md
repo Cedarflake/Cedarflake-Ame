@@ -20,6 +20,13 @@ with the content boundary. Manual/smart album sections collapse independently wh
 and selection. Primary-destination changes animate the content boundary without per-frame image
 reflow. Retain the filmstrip appearance while isolating its motion from unchanged image painting.
 
+Apply Material canonical-layout guidance to the existing composition: the gallery is an adaptive
+feed, contextual sidebars select its scope, and the viewer filmstrip supports the current image.
+Refine the shared visual hierarchy with the system accent's tonal-spot palette, a primary-container
+sidebar action, quieter secondary-container selection and regular-weight workspace headings.
+Keep the three surface layers and established control geometry. Validate the palette in both
+appearances and retain the existing compact layout and text-scaling behavior.
+
 Duplicates moves its exact/similar/ignored choices into its contextual sidebar. Degree, selection
 and cleanup remain with the results. Group cards emphasize the existing representative preview;
 member rows, comparison, preferred-file decisions, ignored groups and cleanup use the existing

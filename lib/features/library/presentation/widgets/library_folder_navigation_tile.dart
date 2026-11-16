@@ -105,7 +105,7 @@ class _LibraryFolderNavigationTileState
             style: TextStyle(
               fontWeight: widget.isSelected
                   ? ameFontWeightSemibold
-                  : ameFontWeightMedium,
+                  : ameFontWeightRegular,
             ),
             child: LibraryPathText(
               text: widget.folder.name,

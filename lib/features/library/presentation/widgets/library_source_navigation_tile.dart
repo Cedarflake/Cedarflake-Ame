@@ -526,7 +526,7 @@ class _ExpandedSourceTile extends StatelessWidget {
             style: TextStyle(
               fontWeight: isSelected
                   ? ameFontWeightSemibold
-                  : ameFontWeightMedium,
+                  : ameFontWeightRegular,
             ),
             child: LibraryPathText(text: title, path: path, textKey: titleKey),
           ),
@@ -536,7 +536,7 @@ class _ExpandedSourceTile extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontSize: 12,
                 color: isSelected
-                    ? Theme.of(context).colorScheme.primary
+                    ? Theme.of(context).colorScheme.onSecondaryContainer
                     : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               maxLines: 1,

@@ -202,7 +202,7 @@ class _SmartAlbumRow extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: theme.textTheme.bodyMedium?.copyWith(
-          fontWeight: selected ? ameFontWeightSemibold : ameFontWeightMedium,
+          fontWeight: selected ? ameFontWeightSemibold : ameFontWeightRegular,
         ),
       ),
       onTap: onSelect,

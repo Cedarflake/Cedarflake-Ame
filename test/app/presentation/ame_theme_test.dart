@@ -16,8 +16,14 @@ void main() {
         surfaces.chrome.computeLuminance(),
         lessThan(surfaces.content.computeLuminance()),
       );
-      for (final surface in [surfaces.chrome, surfaces.content]) {
-        final foreground = colors.onSurface.computeLuminance();
+      for (final (text, surface) in [
+        (colors.onSurface, surfaces.chrome),
+        (colors.onSurface, surfaces.content),
+        (colors.onSurfaceVariant, surfaces.chrome),
+        (colors.onPrimaryContainer, colors.primaryContainer),
+        (colors.onSecondaryContainer, colors.secondaryContainer),
+      ]) {
+        final foreground = text.computeLuminance();
         final background = surface.computeLuminance();
         final contrast = foreground > background
             ? (foreground + .05) / (background + .05)
@@ -46,7 +52,7 @@ void main() {
       }
       expect(
         theme.listTileTheme.titleTextStyle?.fontWeight,
-        ameFontWeightMedium,
+        ameFontWeightRegular,
       );
     }
   });
@@ -58,7 +64,7 @@ void main() {
       final expected = ColorScheme.fromSeed(
         seedColor: seedColor,
         brightness: brightness,
-        dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+        dynamicSchemeVariant: DynamicSchemeVariant.tonalSpot,
       );
       expect(theme.colorScheme.primary, expected.primary);
       expect(theme.colorScheme.secondary, expected.secondary);

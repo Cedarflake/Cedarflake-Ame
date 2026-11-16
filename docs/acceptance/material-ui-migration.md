@@ -2,6 +2,31 @@
 
 ## Material workbench composition, 2026-11-16
 
+### Tonal and typographic refinement, 2026-11-17
+
+The follow-up to `fca882dc` uses the system accent's tonal-spot palette and separates
+primary-container sidebar actions from secondary-container navigation selection. Matching
+on-container foregrounds preserve contrast; regular workspace headings and navigation text leave
+emphasis on primary actions and selected labels. The existing three surfaces, row shapes, gaps,
+search-width cap and motion/rendering owners remain unchanged.
+
+Formatting and scoped analysis passed. All 16 existing theme, retained-workbench and duplicate
+layout checks passed, including contrast in both appearances, 400/800/1200/1280 widths, doubled
+text and bounded preview retirement. The Profile build completed in 45.7 seconds and reused the
+unchanged receipt-verified optimized native library with isolated storage and in-memory preferences.
+The native client imported the existing 700-file corpus, switched light/dark appearance and selected
+a folder, created and selected a temporary album, collapsed/reopened its section, switched to
+Duplicates, selected a group and maximized/restored without losing that selection. Gallery sidebar
+folding retained the outer inset and search cap. Viewer entry, overlay-filmstrip display and return
+retained the current image and gallery position. No Flutter exception or layout overflow was logged.
+
+The modified theme owner has 114 production lines, navigation 554, source tile 551 and workbench
+345, with no inline tests. Their existing theme, workbench and review-layout fixtures have 142,
+215 and 393 dedicated lines respectively. This refinement adds no query, lifecycle or animation work;
+the completed filmstrip frame-time evidence below remains applicable.
+
+### Workbench implementation and qualification
+
 Scope: [Material workbench plan](../plans/material-workbench.md), branch
 `codex/material-workbench`, starting from `88b5cc2c`. The installed Flutter 3.47.8 / Dart 3.13.7
 and `material_ui` 1.11.0 supply the SearchBar leading/trailing slots, circular IconButton shape,
