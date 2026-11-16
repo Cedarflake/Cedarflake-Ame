@@ -9,6 +9,7 @@ import "../presentation/ame_localizations.dart";
 import "../presentation/ame_system_theme.dart";
 import "../presentation/ame_theme.dart";
 import "../presentation/ame_transient_feedback.dart";
+import "../window/ame_build_identity.dart";
 import "../window/ame_window_frame.dart";
 
 class AmeBootstrapFailure extends StatelessWidget {
@@ -77,7 +78,11 @@ class AmeBootstrapFailure extends StatelessWidget {
   }
 
   Future<void> _copyDiagnostics(BuildContext context) async {
-    await Clipboard.setData(ClipboardData(text: error.toString()));
+    await Clipboard.setData(
+      ClipboardData(
+        text: const AmeBuildIdentity.current().startupDiagnostics(error),
+      ),
+    );
     if (!context.mounted) {
       return;
     }

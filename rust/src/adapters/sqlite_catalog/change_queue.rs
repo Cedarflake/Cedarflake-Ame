@@ -34,6 +34,7 @@ mod media_rechecks;
 mod metadata_rechecks;
 pub(super) use metadata_rechecks::MetadataRecheckAdmission;
 mod metrics;
+pub(super) mod namespace_retirement;
 mod persistence;
 mod readiness;
 pub(super) mod root_retirement;

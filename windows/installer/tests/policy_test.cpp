@@ -8,6 +8,7 @@
 int RunIdentityTests();
 int RunLifecycleTests();
 int RunPrivilegeTests();
+int RunRollbackTests();
 
 namespace {
 
@@ -79,7 +80,8 @@ int main() {
     const int identity_cases = RunIdentityTests();
     const int lifecycle_cases = RunLifecycleTests();
     const int privilege_cases = RunPrivilegeTests();
-    std::cout << "installer_policy: " << 13 + identity_cases + lifecycle_cases + privilege_cases
+    const int rollback_cases = RunRollbackTests();
+    std::cout << "installer_policy: " << 13 + identity_cases + lifecycle_cases + privilege_cases + rollback_cases
               << " cases passed\n";
     return 0;
   } catch (const std::exception& error) {

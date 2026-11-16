@@ -182,6 +182,12 @@ pub(super) fn establish_root_generation(
         .map_err(database_error)?;
     retire_persistent_journal_authority(transaction, root_id, previous_generation, now_unix_ms)?;
     retire_root_publication_namespace(transaction, root_id, stored_generation)?;
+    super::namespace_retirement::retire_unstarted_authorities(
+        transaction,
+        root_id,
+        stored_generation,
+        now_unix_ms,
+    )?;
     transaction
         .execute(
             "UPDATE library_change_root_state

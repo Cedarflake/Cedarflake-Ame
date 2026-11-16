@@ -1,5 +1,6 @@
 import "package:cedarflake_ame/app/bootstrap/ame_bootstrap_failure.dart";
 import "package:cedarflake_ame/app/window/ame_window_actions.dart";
+import "package:cedarflake_ame/app/window/ame_build_identity.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:flutter/foundation.dart";
@@ -88,6 +89,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(clipboardText, contains(diagnostics));
+    expect(
+      clipboardText,
+      startsWith("${const AmeBuildIdentity.current().applicationLabel}\n"),
+    );
     expect(find.text("诊断信息已复制"), findsOneWidget);
   });
 }

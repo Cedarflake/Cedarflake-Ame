@@ -11,6 +11,8 @@ function Assert-InstallerRejected {
 foreach ($case in @(
         @('v0.1.0-alpha.1', '0.1.0-alpha.1+1', '0.1.1'),
         @('v0.1.0-alpha.2', '0.1.0-alpha.2+2', '0.1.2'),
+        @('v0.1.0-alpha.3', '0.1.0-alpha.3+3', '0.1.3'),
+        @('v0.1.0-beta.1', '0.1.0-beta.1+4', '0.1.4'),
         @('v0.1.0', '0.1.0+3', '0.1.3'),
         @('v0.1.1', '0.1.1+4', '0.1.4'),
         @('v255.255.0-rc.1', '255.255.0-rc.1+65535', '255.255.65535')
@@ -39,10 +41,12 @@ if ($firstProduct -cne (Get-AmeInstallerGuid "product/0.1.0") -or
 $names = @(
     "cedarflake_ame.exe", "cedarflake_ame_journal_broker.exe", "cedarflake_ame_classification_worker.exe", "rust_lib_cedarflake_ame.dll",
     "flutter_windows.dll", "data/app.so", "data/icudtl.dat", "data/flutter_assets/AssetManifest.bin"
-) + @(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeClassificationModelsPayloadNames)
+) + @(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeClassificationModelsPayloadNames) +
+    @(Get-AmeMsvcRuntimePayloadPaths)
 $files = @($names | ForEach-Object { [pscustomobject]@{ relativePath = $_; length = 1L; sha256 = "a" * 64 } })
 Assert-AmeInstallerPayloadNames $files
-foreach ($missing in (@(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeClassificationModelsPayloadNames))) {
+foreach ($missing in (@(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeClassificationModelsPayloadNames) +
+        @(Get-AmeMsvcRuntimePayloadPaths))) {
     $failure = $null
     try { Assert-AmeInstallerPayloadNames @($files | Where-Object { $_.relativePath -cne $missing }) } catch { $failure = $_ }
     if ($null -eq $failure -or $failure.Exception.Message -cne "Installer payload is missing $missing") {
@@ -72,12 +76,21 @@ try {
             throw 'Model installer components must bind the separately verified model payload'
         }
     }
-    if ($entries.Count -ne 28 -or
+    if ($entries.Count -ne 43 -or
         @($entries | Where-Object { $_.Source -like "*cedarflake_ame_journal_broker.exe" }).Count -ne 0 -or
         $source.SelectNodes("//w:Shortcut", $namespaces).Count -ne 2 -or
-        $source.SelectNodes("//w:ComponentRef", $namespaces).Count -ne 37 -or
-        $source.SelectNodes("//w:PermissionEx", $namespaces).Count -ne 35) {
+        $source.SelectNodes("//w:ComponentRef", $namespaces).Count -ne 52 -or
+        $source.SelectNodes("//w:PermissionEx", $namespaces).Count -ne 50) {
         throw "MSI generated component, broker exclusion, shortcut or ACL ownership is incomplete"
+    }
+    foreach ($name in (Get-AmeMsvcRuntimePayloadNames)) {
+        $sourcePath = Join-Path 'C:\bounded-fixture' $name
+        $copies = @($entries | Where-Object Source -CEQ $sourcePath)
+        $brokerCopy = @($copies | Where-Object { $_.ParentNode.ParentNode.Id -ceq 'AmeBrokerFolder' })
+        if ($copies.Count -ne 2 -or $brokerCopy.Count -ne 1 -or
+            $brokerCopy[0].PermissionEx.Sddl -cnotlike '*S-1-5-80-2098581772-366539847-2170527201-1913264099-3006267874)*') {
+            throw 'MSVC runtime must accompany both executables with protected broker access'
+        }
     }
     foreach ($name in @('AmeStartMenu', 'AmeDesktop')) {
         $shortcut = $source.SelectSingleNode("//w:Shortcut[@Id='$name']", $namespaces)

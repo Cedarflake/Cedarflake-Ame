@@ -12,10 +12,38 @@ function Test-AmeInstallerPolicyRegressions {
         missing_caller_impersonation = { param($value) ($value.MsiServiceConfig | Where-Object ConfigType -CEQ '6').Argument = 'SeManageVolumePrivilege' }
         unrestricted_sid = { param($value) $value.MsiServiceConfig[0].Argument = '1' }
         pretransaction_removal = { param($value) ($value.InstallExecuteSequence | Where-Object Action -CEQ 'RemoveExistingProducts').Sequence = '1499' }
+        late_previous_service_recovery = {
+            param($value)
+            ($value.InstallExecuteSequence | Where-Object Action -CEQ 'AmeRestorePreviousBroker').Sequence = '1600'
+        }
+        late_upgrade_execution = {
+            param($value)
+            ($value.InstallExecuteSequence | Where-Object Action -CEQ 'InstallExecute').Sequence = '6500'
+        }
+        previous_service_forward_action = {
+            param($value)
+            ($value.CustomAction | Where-Object Action -CEQ 'AmeRestorePreviousBroker').Type = '3073'
+        }
+        unbound_previous_service_recovery = {
+            param($value)
+            ($value.InstallExecuteSequence | Where-Object Action -CEQ 'AmeRestorePreviousBroker').Condition = '1'
+        }
         early_service_start = { param($value) ($value.InstallExecuteSequence | Where-Object Action -CEQ 'AmeStartInstalledService').Sequence = '5849' }
         disabled_admission = { param($value) ($value.InstallExecuteSequence | Where-Object Action -CEQ 'AmeValidateInstallation').Condition = '0' }
         shell_action = { param($value) $value.CustomAction[0].Type = '34'; $value.CustomAction[0].Target = 'powershell.exe' }
         writable_broker = { param($value) ($value.MsiLockPermissionsEx | Where-Object LockObject -CEQ 'AmeBrokerExecutable').SDDLText += '(A;;FA;;;BU)' }
+        writable_broker_runtime = {
+            param($value)
+            ($value.MsiLockPermissionsEx | Where-Object LockObject -CEQ 'AmeBrokerRuntime_vcruntime140_dll_file').SDDLText += '(A;;FA;;;BU)'
+        }
+        missing_broker_runtime = {
+            param($value)
+            $value.File = @($value.File | Where-Object File -CNE 'AmeBrokerRuntime_vcruntime140_dll_file')
+        }
+        misplaced_broker_runtime = {
+            param($value)
+            ($value.Component | Where-Object Component -CEQ 'AmeBrokerRuntime_vcruntime140_dll').Directory_ = 'AMEAPPDIR'
+        }
         external_destination = { param($value) ($value.Directory | Where-Object Directory -CEQ 'AmeProductFolder').Directory_Parent = 'LocalAppDataFolder' }
         source_deletion = { param($value) $value.RemoveFile[0].FileName = '*' }
         optional_broker = { param($value) ($value.Feature | Where-Object Feature -CEQ 'Ame').Attributes = '0' }

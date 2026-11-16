@@ -52,6 +52,7 @@ mod recovery_authority_contract;
 mod recovery_execution_contract;
 #[cfg(test)]
 mod recovery_test_catalog;
+mod replaced_namespace_authority;
 mod retired_live_gap_repair;
 mod root_namespace_contract;
 mod scan_handoff_contract;
@@ -59,6 +60,8 @@ mod scan_owner_contract;
 mod similar_images;
 mod terminal_inventory_repair;
 mod terminal_journal_handoff;
+#[cfg(test)]
+pub(super) use album_year_exports::downgrade_for_test as downgrade_to_v81_for_test;
 #[cfg(test)]
 pub(crate) use exact_duplicates::downgrade_to_v39_for_test;
 mod foreground_queue_index;
@@ -207,6 +210,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         return transaction.commit().map_err(database_error);
     }
 
+    replaced_namespace_authority::repair_before_upgrade(connection)?;
     terminal_journal_handoff::repair_before_upgrade(connection)?;
     loop {
         let version: i64 = connection

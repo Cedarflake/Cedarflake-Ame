@@ -8,9 +8,13 @@ namespace ame::installer {
 
 std::vector<std::wstring> ReadBrokerPrivileges(const std::vector<BYTE>& bytes,
                                               const wchar_t* text) {
+  // SCM returns null when no required privilege list has been configured.
+  if (!text) {
+    return {};
+  }
   const auto begin = reinterpret_cast<uintptr_t>(bytes.data());
   const auto address = reinterpret_cast<uintptr_t>(text);
-  if (!text || address < begin || address - begin >= bytes.size() ||
+  if (address < begin || address - begin >= bytes.size() ||
       address % alignof(wchar_t) != 0) {
     throw std::runtime_error("Journal broker privileges are outside their buffer");
   }

@@ -5,7 +5,7 @@
            UpgradeCode="C284E6B0-1484-4926-A94B-C3EC3840DBBD"
            Scope="perMachine" InstallerVersion="500" Codepage="65001">
     <SummaryInformation Description="Cedarflake Ame Windows x64 installer" />
-    <MajorUpgrade Schedule="afterInstallInitialize" AllowSameVersionUpgrades="no"
+    <MajorUpgrade Schedule="afterInstallExecute" AllowSameVersionUpgrades="no"
                   DowngradeErrorMessage="已安装更新版本的 Ame，请使用更新的安装包。" />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
     <Launch Condition="VersionNT64 AND MsiNTProductType = 1 AND AME_WINDOWS_BUILD &gt;= 22000"
@@ -82,6 +82,8 @@
     <CustomAction Id="AmeValidateInstallation" BinaryRef="AmeInstallerAdmission"
                   DllEntry="AmeValidateInstallation" Execute="immediate" Return="check" />
     <CustomAction Id="AmeRequireRollback" Error="Windows Installer 回滚已关闭，无法安全升级 Ame。" />
+    <CustomAction Id="AmeRestorePreviousBroker" BinaryRef="AmeInstallerAdmission"
+                  DllEntry="AmeRestorePreviousBroker" Execute="rollback" Impersonate="no" Return="check" />
     <SetProperty Id="AmeVerifyInstalledService" Value="$(var.BrokerIdentity)"
                  Before="AmeVerifyInstalledService" Sequence="execute" />
     <CustomAction Id="AmeVerifyInstalledService" BinaryRef="AmeInstallerAdmission"
@@ -96,8 +98,11 @@
                   DllEntry="AmeStartInstalledService" Execute="deferred" Impersonate="no" Return="check" />
     <InstallExecuteSequence>
       <Custom Action="AmeValidateInstallation" Before="InstallValidate" />
-      <Custom Action="AmeRequireRollback" Before="RemoveExistingProducts"
+      <Custom Action="AmeRequireRollback" Before="AmeRestorePreviousBroker"
               Condition="RollbackDisabled OR DISABLEROLLBACK" />
+      <Custom Action="AmeRestorePreviousBroker" After="InstallInitialize"
+              Condition="WIX_UPGRADE_DETECTED AND AmeRestorePreviousBroker" />
+      <InstallExecute After="AmeRestorePreviousBroker" />
       <Custom Action="AmeVerifyInstalledService" After="MsiConfigureServices" Condition="$AmeBroker = 3" />
       <Custom Action="AmeStopInstalledService" After="AmeVerifyInstalledService" Condition="$AmeBroker = 3" />
       <Custom Action="AmeStartInstalledService" After="AmeStopInstalledService" Condition="$AmeBroker = 3" />
@@ -109,6 +114,7 @@
       <ComponentRef Id="AmeProductDirectory" />
       <ComponentRef Id="AmeBrokerDirectory" />
       <ComponentRef Id="AmeBroker" />
+      <ComponentGroupRef Id="AmeBrokerRuntimeFiles" />
       <ComponentGroupRef Id="AmeApplicationFiles" />
       <Feature Id="AmeStartMenuFeature" Title="开始菜单快捷方式" Description="在开始菜单中添加 Ame。"
                Level="1" AllowAdvertise="no">

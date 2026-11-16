@@ -8,6 +8,7 @@ enum RecoveryRepair {
     TerminalInventory,
     RetiredLiveGap,
     RemovedRootAuthority,
+    ReplacedNamespaceAuthority,
     RetainedSourceState,
     ForegroundScanCapture,
     TerminalJournalHandoff,
@@ -23,6 +24,9 @@ impl RecoveryRepair {
                 super::retired_live_gap_repair::needed(connection, SCHEMA_VERSION)
             }
             Self::RemovedRootAuthority => super::retired_root_authority::repair_needed(connection),
+            Self::ReplacedNamespaceAuthority => {
+                super::replaced_namespace_authority::needed(connection, SCHEMA_VERSION)
+            }
             Self::RetainedSourceState => super::retained_source_state::repair_needed(connection),
             Self::ForegroundScanCapture => {
                 super::foreground_scan_capture::repair_needed(connection)
@@ -44,6 +48,9 @@ impl RecoveryRepair {
             Self::RemovedRootAuthority => {
                 super::retired_root_authority::repair_in_transaction(transaction)
             }
+            Self::ReplacedNamespaceAuthority => {
+                super::replaced_namespace_authority::apply(transaction, SCHEMA_VERSION)
+            }
             Self::RetainedSourceState => {
                 super::retained_source_state::repair_in_transaction(transaction)
             }
@@ -62,6 +69,7 @@ pub(super) fn repair_and_validate(connection: &mut Connection) -> Result<(), Sca
         RecoveryRepair::TerminalInventory,
         RecoveryRepair::RetiredLiveGap,
         RecoveryRepair::RemovedRootAuthority,
+        RecoveryRepair::ReplacedNamespaceAuthority,
         RecoveryRepair::RetainedSourceState,
         RecoveryRepair::ForegroundScanCapture,
         RecoveryRepair::TerminalJournalHandoff,

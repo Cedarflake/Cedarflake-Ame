@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-12
-- Last amended: 2026-11-07
+- Last amended: 2026-11-16
 
 ## Context and decision drivers
 
@@ -22,8 +22,8 @@ MSI's internal interface, requesting elevation at the start. Burn owns package c
 maintenance; the MSI remains the sole owner of installed files and service registration.
 The installed product never invokes PowerShell, `sc.exe`, a downloaded helper or an elevated copy
 of the desktop application. Native actions validate protected destinations and existing objects,
-then own one bounded service-start/readiness operation and its paired rollback stop. They do not
-implement a second installation transaction engine.
+then own bounded service startup, its paired rollback stop and restoration of the preceding
+service's restricted configuration. MSI retains the installation transaction.
 
 The upgrade identity is `C284E6B0-1484-4926-A94B-C3EC3840DBBD`. The release tag and application
 retain their full semantic version, including prerelease identifiers. MSI `ProductVersion` uses
@@ -48,7 +48,13 @@ ACL generator owns every model file; no installer-time network request or model 
 added. Installed clients verify and read the models in place. Portable builds may omit this separate
 payload and retain explicit managed download with restart recovery.
 
-Schedule major-upgrade removal after `InstallInitialize`, inside the rollback transaction.
+Schedule major-upgrade removal after `InstallExecute` and before `InstallFinalize`, inside the
+rollback transaction. Run that first `InstallExecute` immediately after queuing preceding-service
+recovery and before `ProcessComponents`; no incoming files or product registration have changed.
+The old installer therefore validates its own single product and broker. `InstallFinalize` executes
+the remaining incoming installation script. The former `afterInstallInitialize` position forbids
+prior script-generating actions and cannot queue that recovery; a late `InstallExecute` would expose
+two registered products to the published Alpha 3 admission, which correctly rejects ambiguity.
 Reject downgrades and disabled rollback. Repair reinstalls owned components and revalidates
 service configuration and protected ACLs. The package owns only its installed files, service,
 product registration and shortcut. It never owns source directories, catalogs, previews, settings,
@@ -86,6 +92,16 @@ SCM start request, reads terminal failures immediately and checks MSI cancellati
 during a ten-second readiness window. The synchronous SCM call itself remains subject to Windows
 service-manager scheduling. A rollback action stops only the matching protected incoming broker
 before MSI restores the previous components. MSI retains stop/removal and registration rollback.
+Before major-upgrade removal, admission captures the preceding broker identity and running state
+from its validated registration in a private rollback property. A native rollback action is queued
+before `RemoveExistingProducts`, so it runs after MSI restores the old files and registration.
+`ServiceInstall` rollback does not restore the `MsiServiceConfig` SID and privilege fields; the
+`service_rollback` owner fills only those missing fields. It checks the old protected executable
+hash, fixed registration and service ACL before changing them, rejects unexpected configuration,
+revalidates the complete policy, and restarts the old broker only when it was previously active.
+Rollback recovery ignores the original install cancellation while retaining the startup deadline.
+Normal admission continues to reject missing SID/privilege configuration. The rollback snapshot
+contains no caller-supplied paths, accounts, privileges or permission descriptors.
 Use `MSIFASTINSTALL=1` and Burn `DisableSystemRestore=yes` to omit this package's restore-point
 creation; retain MSI and bundle transactional rollback, file costing and normal progress messages.
 These properties do not change machine-wide restore-point or security settings.
@@ -95,6 +111,12 @@ entrypoints remain historical diagnostic/recovery tools, not the user-facing ins
 custom action. Adoption of a legacy script installation requires a separately proven migration;
 an unknown service or unregistered nonempty installation tree is rejected. General automatic
 update discovery/download, downgrade and catalog rollback remain outside this decision.
+
+The MSI installs ADR 0015's app-local MSVC runtime with the application and copies its three required
+DLLs into the protected broker directory. Each broker runtime file is a versioned MSI component
+with the broker SID's read/execute access and the same restricted write ownership as the executable.
+Both destinations bind to the immutable candidate's runtime bytes; repair, upgrade and uninstall
+remain standard MSI component operations. A system-wide VC++ installer is not added to Ame's chain.
 
 ## Dependency, licensing and alternatives
 

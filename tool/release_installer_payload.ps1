@@ -3,6 +3,7 @@ Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
 . (Join-Path $PSScriptRoot "release_classification_models.ps1")
 . (Join-Path $PSScriptRoot "release_installer_version.ps1")
+. (Join-Path $PSScriptRoot "release_installer_broker_runtime.ps1")
 
 $script:AmeInstallerUpgradeCode = "C284E6B0-1484-4926-A94B-C3EC3840DBBD"
 $script:AmeInstallerNamespace = "http://wixtoolset.org/schemas/v4/wxs"
@@ -53,7 +54,7 @@ function Assert-AmeInstallerPayloadNames {
         "cedarflake_ame.exe", "cedarflake_ame_journal_broker.exe",
         "cedarflake_ame_classification_worker.exe",
         "rust_lib_cedarflake_ame.dll", "flutter_windows.dll", "data/app.so", "data/icudtl.dat"
-    ) + @(Get-AmeClassificationRuntimePayloadNames)
+    ) + @(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeMsvcRuntimePayloadPaths)
     if ($RequireModels) { $requiredFiles += @(Get-AmeClassificationModelsPayloadNames $ModelManifest) }
     foreach ($required in $requiredFiles) {
         if (-not $names.Contains($required)) { throw "Installer payload is missing $required" }
@@ -92,6 +93,7 @@ function New-AmeInstallerApplicationSource {
     $root = $document.CreateElement("Wix", $script:AmeInstallerNamespace)
     [void]$document.AppendChild($root)
     $fragment = Add-AmeInstallerXmlElement $root "Fragment"
+    Add-AmeInstallerBrokerRuntime -Fragment $fragment -BundlePath $BundlePath
     $directory = Add-AmeInstallerXmlElement $fragment "DirectoryRef" @{ Id = "AMEAPPDIR" }
     $group = Add-AmeInstallerXmlElement $fragment "ComponentGroup" @{ Id = "AmeApplicationFiles" }
     $directories = @{ "" = $directory }

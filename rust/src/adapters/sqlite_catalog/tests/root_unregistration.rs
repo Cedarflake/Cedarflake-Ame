@@ -17,6 +17,7 @@ use crate::ports::{
 };
 
 mod compatibility;
+mod namespace_replacement;
 mod preview_ownership;
 mod source_safety;
 

@@ -65,6 +65,7 @@ void ValidateApplicationPath(const std::filesystem::path& destination,
 void ValidateApplicationDestination(const std::filesystem::path& destination,
                                     const std::optional<RegisteredProduct>& registered);
 void VerifyServiceConfiguration(const std::wstring& identity_manifest);
+void VerifyServicePermissions();
 
 enum class BrokerStartState { Pending, Ready, Failed, Cancelled, TimedOut };
 BrokerStartState ClassifyBrokerStart(const SERVICE_STATUS_PROCESS& status,

@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-02
-- Last amended: 2026-11-04
+- Last amended: 2026-11-16
 
 ## Context
 
@@ -163,6 +163,9 @@ selection in bootstrap. They remain separate from framework-independent applicat
 [preview rendering](workflow-ownership/dart-gallery-and-viewer.md#preview-image-construction) contracts
 own those boundaries. The read-only `app/window/ame_runtime_platform.dart` host fact is an admitted
 desktop contract; its conditional implementation files are private to that platform boundary.
+`app/window/ame_build_identity.dart` exposes the compiled Flutter build name and number to Settings
+and bootstrap diagnostics. It is a read-only desktop fact, without native calls or feature policy;
+its named presentation admission does not expose other window implementations.
 
 Assign a class by its responsibility rather than its `Controller`, `Service`, `Page` or `Widget`
 suffix. Moving a file does not justify moving cancellation, query-generation or source-lease

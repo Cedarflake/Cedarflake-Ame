@@ -8,6 +8,7 @@ import "../../../../app/presentation/ame_choice.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/notifications/ame_notification_strings.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
+import "../../../../app/window/ame_build_identity.dart";
 import "../../application/ame_preferences.dart";
 import "../../domain/ame_preferences.dart";
 import "../widgets/album_settings_section.dart";
@@ -29,6 +30,7 @@ class AmeSettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final preferences = ref.watch(amePreferencesControllerProvider);
+    final buildIdentity = ref.watch(ameBuildIdentityProvider);
     return ColoredBox(
       color: Theme.of(context).colorScheme.surfaceContainerLowest,
       child: AmeScrollMotion(
@@ -215,10 +217,10 @@ class AmeSettingsPage extends ConsumerWidget {
                         SettingsSection(
                           title: "关于",
                           children: [
-                            const SettingsRow(
+                            SettingsRow(
                               icon: Symbols.info_rounded,
                               title: "版本",
-                              subtitle: Text("Cedarflake Ame 0.1.0-alpha.2"),
+                              subtitle: Text(buildIdentity.applicationLabel),
                             ),
                             SettingsRow(
                               key: const Key("open-source-notices-setting"),
@@ -231,7 +233,7 @@ class AmeSettingsPage extends ConsumerWidget {
                               onTap: () => showLicensePage(
                                 context: context,
                                 applicationName: "Cedarflake Ame",
-                                applicationVersion: "0.1.0-alpha.2",
+                                applicationVersion: buildIdentity.version,
                               ),
                             ),
                           ],

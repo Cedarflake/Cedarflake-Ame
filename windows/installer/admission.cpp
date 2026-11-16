@@ -1,4 +1,5 @@
 #include "policy.h"
+#include "service_rollback.h"
 
 #include <msi.h>
 #include <msiquery.h>
@@ -47,6 +48,9 @@ UINT ReportFailure(MSIHANDLE session, const std::exception& error) noexcept {
 extern "C" __declspec(dllexport) UINT __stdcall AmeValidateInstallation(MSIHANDLE session) {
   try {
     using namespace ame::installer;
+    if (MsiSetPropertyW(session, L"AmeRestorePreviousBroker", L"") != ERROR_SUCCESS) {
+      throw std::runtime_error("Cannot initialize preceding broker recovery");
+    }
     const auto product = ProductDirectory();
     if (Property(session, L"ALLUSERS") != L"1" ||
         !SamePath(TargetPath(session, L"AmeProductFolder"), product) ||
@@ -67,7 +71,24 @@ extern "C" __declspec(dllexport) UINT __stdcall AmeValidateInstallation(MSIHANDL
       if (installed_identity && *installed_identity != registered->broker_identity) {
         throw std::runtime_error("Existing broker bytes differ from the registered product");
       }
+      if (!Property(session, L"WIX_UPGRADE_DETECTED").empty()) {
+        const auto previous = CapturePreviousBrokerState(registered->broker_identity);
+        if (MsiSetPropertyW(session, L"AmeRestorePreviousBroker", previous.c_str()) != ERROR_SUCCESS) {
+          throw std::runtime_error("Cannot retain preceding broker recovery state");
+        }
+      }
     }
+    return ERROR_SUCCESS;
+  } catch (const std::exception& error) {
+    return ReportFailure(session, error);
+  } catch (...) {
+    return ERROR_INSTALL_FAILURE;
+  }
+}
+
+extern "C" __declspec(dllexport) UINT __stdcall AmeRestorePreviousBroker(MSIHANDLE session) {
+  try {
+    ame::installer::RestorePreviousBroker(session, Property(session, L"CustomActionData"));
     return ERROR_SUCCESS;
   } catch (const std::exception& error) {
     return ReportFailure(session, error);

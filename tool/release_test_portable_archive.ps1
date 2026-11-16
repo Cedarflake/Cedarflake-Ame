@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
+. (Join-Path $PSScriptRoot "release_msvc_runtime.ps1")
 
 $repositoryRoot = Get-AmeRepositoryRoot
 $buildRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot "build"))
@@ -59,7 +60,7 @@ try {
         $fixturePath = Join-Path $releaseRoot $relativePath
         [System.IO.File]::WriteAllText($fixturePath, $relativePath, $utf8)
     }
-    foreach ($relativePath in (Get-AmeClassificationRuntimePayloadNames)) {
+    foreach ($relativePath in (@(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeMsvcRuntimePayloadPaths))) {
         $fixturePath = Join-Path $releaseRoot $relativePath
         [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($fixturePath))
         [IO.File]::WriteAllText($fixturePath, $relativePath, $utf8)
@@ -96,7 +97,7 @@ try {
         -PubspecPath $pubspecFixture `
         -CargoManifestPath $cargoFixture
     $archivePath = $expectedArchivePath
-    foreach ($missing in (Get-AmeClassificationRuntimePayloadNames)) {
+    foreach ($missing in (@(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeMsvcRuntimePayloadPaths))) {
         $missingDirectory = Join-Path $scratchRoot ([Guid]::NewGuid().ToString("N"))
         [void][IO.Directory]::CreateDirectory($missingDirectory)
         $missingArchivePath = Join-Path $missingDirectory $archiveName
@@ -109,7 +110,7 @@ try {
                 -PubspecPath $pubspecFixture -CargoManifestPath $cargoFixture
         } catch { $failure = $_ }
         if ($null -eq $failure -or -not $failure.Exception.Message.Contains("missing required entry: Cedarflake-Ame/$missing")) {
-            throw "Portable archive verification did not reject the missing classification payload: $missing"
+            throw "Portable archive verification did not reject the missing runtime payload: $missing"
         }
     }
     if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {

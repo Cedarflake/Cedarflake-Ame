@@ -54,7 +54,7 @@ fn replace_tables(connection: &Connection, batches: &str) -> Result<(), ScanErro
 }
 
 #[cfg(test)]
-pub(super) fn downgrade_for_test(connection: &Connection) {
+pub(in crate::adapters::sqlite_catalog) fn downgrade_for_test(connection: &Connection) {
     super::organization_group_filters::downgrade_for_test(connection);
     if super::schema_shape::schema_version(connection).unwrap() == 82 {
         let transaction = connection.unchecked_transaction().unwrap();
