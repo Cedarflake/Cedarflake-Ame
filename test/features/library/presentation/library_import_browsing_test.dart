@@ -42,7 +42,7 @@ void main() {
         expect(fixture.state.primaryScanSnapshot, same(scan));
         expect(
           tester
-              .widget<IconButton>(
+              .widget<FilledButton>(
                 find.byKey(const Key("library-sidebar-import")),
               )
               .onPressed,

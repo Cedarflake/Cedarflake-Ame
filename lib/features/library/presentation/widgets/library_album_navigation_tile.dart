@@ -12,6 +12,7 @@ import "../../application/library_album_requests.dart";
 import "../../domain/library_organization.dart";
 import "library_album_icon.dart";
 import "library_sidebar_selection_icon.dart";
+import "library_workbench_metrics.dart";
 
 class LibraryAlbumNavigationTile extends StatefulWidget {
   const LibraryAlbumNavigationTile({
@@ -123,7 +124,8 @@ class _LibraryAlbumNavigationTileState
         focusNode: _focus,
         selected: widget.selected,
         selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: const StadiumBorder(),
+        minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
         contentPadding: const EdgeInsets.only(left: 8, right: 4),
         minLeadingWidth: 40,
         horizontalTitleGap: 4,

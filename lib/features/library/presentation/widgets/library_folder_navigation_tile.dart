@@ -14,6 +14,7 @@ import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
 import "library_path_text.dart";
+import "library_workbench_metrics.dart";
 
 class LibraryFolderNavigationTile extends StatefulWidget {
   const LibraryFolderNavigationTile({
@@ -83,9 +84,8 @@ class _LibraryFolderNavigationTileState
           focusNode: _focusNode,
           selected: widget.isSelected,
           selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: const StadiumBorder(),
+          minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
           dense: true,
           contentPadding: EdgeInsets.only(
             left: 16 + (widget.depth * 28),

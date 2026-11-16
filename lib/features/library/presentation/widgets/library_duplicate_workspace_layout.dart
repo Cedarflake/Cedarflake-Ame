@@ -1,12 +1,17 @@
 import "package:material_ui/material_ui.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
+import "../../../settings/application/ame_preferences.dart";
+import "../../../settings/domain/ame_preferences.dart";
 import "../coordination/library_duplicate_workspace.dart";
 import "../library_duplicate_strings.dart";
 import "library_main_surface.dart";
+import "library_sidebar_transition.dart";
+import "library_workbench_metrics.dart";
 
-class LibraryDuplicateWorkspaceLayout extends StatelessWidget {
+class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
   const LibraryDuplicateWorkspaceLayout({
     required this.view,
     required this.onViewChanged,
@@ -37,7 +42,7 @@ class LibraryDuplicateWorkspaceLayout extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
+  Widget build(BuildContext context, WidgetRef ref) => LayoutBuilder(
     builder: (context, constraints) {
       final colors = Theme.of(context).colorScheme;
       final content = Expanded(child: LibraryMainSurface(child: child));
@@ -64,33 +69,36 @@ class LibraryDuplicateWorkspaceLayout extends StatelessWidget {
           ],
         );
       }
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: 200,
-            child: Material(
-              type: MaterialType.transparency,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
-                children: [
-                  for (final (value, label, icon) in _destinations)
-                    ListTile(
-                      key: ValueKey("duplicate-view-${value.name}"),
-                      leading: Icon(icon, size: 22),
-                      title: Text(label),
-                      selected: view == value,
-                      selectedTileColor: colors.secondaryContainer,
-                      selectedColor: colors.onSecondaryContainer,
-                      shape: const StadiumBorder(),
-                      onTap: () => onViewChanged(value),
-                    ),
-                ],
-              ),
-            ),
+      final preferences = ref.watch(amePreferencesControllerProvider);
+      return LibrarySidebarTransition(
+        expanded:
+            preferences.sidebarExpanded ??
+            MediaQuery.sizeOf(context).width >= 940,
+        sidebarWidth: preferences.sidebarWidth.clamp(
+          ameMinimumSidebarWidth,
+          ameMaximumSidebarWidth,
+        ),
+        gallery: child,
+        sidebar: Material(
+          type: MaterialType.transparency,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+            children: [
+              for (final (value, label, icon) in _destinations)
+                ListTile(
+                  key: ValueKey("duplicate-view-${value.name}"),
+                  leading: Icon(icon, size: 22),
+                  title: Text(label),
+                  selected: view == value,
+                  selectedTileColor: colors.secondaryContainer,
+                  selectedColor: colors.onSecondaryContainer,
+                  shape: const StadiumBorder(),
+                  minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
+                  onTap: () => onViewChanged(value),
+                ),
+            ],
           ),
-          content,
-        ],
+        ),
       );
     },
   );

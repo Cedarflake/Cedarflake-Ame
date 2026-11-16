@@ -68,10 +68,11 @@ void main() {
         findsNothing,
       );
       expect(find.text("其他"), findsNothing);
-      final headingText = find.byKey(
-        const Key("library-sidebar-smart-heading"),
+      final headingText = find.descendant(
+        of: find.byKey(const Key("library-sidebar-smart-heading")),
+        matching: find.text("智能相册"),
       );
-      expect(tester.widget(headingText), isA<Text>());
+      expect(headingText, findsOneWidget);
       expect(
         tester.getTopLeft(smartEntry).dy,
         greaterThan(

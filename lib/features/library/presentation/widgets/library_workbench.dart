@@ -30,7 +30,7 @@ class LibraryWorkbench extends ConsumerStatefulWidget {
     required this.onPreferenceError,
     this.onWorkspaceSelected,
     this.albumLanding,
-    this.globalBarBuilder,
+    required this.globalBarBuilder,
     super.key,
   });
 
@@ -43,7 +43,11 @@ class LibraryWorkbench extends ConsumerStatefulWidget {
   final void Function(String title, Object error) onPreferenceError;
   final ValueChanged<LibraryWorkspace>? onWorkspaceSelected;
   final Widget? albumLanding;
-  final Widget Function(double sidebarWidth, double sidebarExpansion)?
+  final Widget Function(
+    double sidebarWidth,
+    double sidebarExpansion,
+    Widget sidebarToggle,
+  )
   globalBarBuilder;
 
   @override
@@ -109,18 +113,20 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
               : LibraryWorkbenchStrings.expandSidebar,
           child: IconButton(
             key: const Key("library-sidebar-toggle"),
-            onPressed: () => unawaited(_persistSidebar(expanded: !expanded)),
-            icon: Icon(
-              expanded
-                  ? Symbols.left_panel_close_rounded
-                  : Symbols.left_panel_open_rounded,
+            onPressed:
+                workspace.isBrowsing ||
+                    (workspace == LibraryWorkspace.duplicates &&
+                        constraints.maxWidth >= 920)
+                ? () => unawaited(_persistSidebar(expanded: !expanded))
+                : null,
+            icon: const Icon(
+              Symbols.menu_rounded,
               size: LibraryWorkbenchMetrics.iconSize,
             ),
           ),
         );
         final rail = _FunctionRail(
           workspace: workspace,
-          sidebarToggle: toggle,
           onSelected: widget.onWorkspaceSelected,
         );
         final destinations = [
@@ -134,7 +140,12 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
             _retainedWorkspace(
               workspace: LibraryWorkspace.settings,
               visible: workspace == LibraryWorkspace.settings,
-              child: LibraryMainSurface(child: widget.settingsBuilder(context)),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: LibraryMainSurface(
+                  child: widget.settingsBuilder(context),
+                ),
+              ),
             ),
         ];
         return LibrarySidebarTransition(
@@ -187,9 +198,10 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
           frameBuilder: (context, extent, panels) {
             return LibraryWorkbenchFrame(
               navigation: rail,
-              globalBar: widget.globalBarBuilder?.call(
+              globalBar: widget.globalBarBuilder(
                 sidebarWidth,
                 extent / sidebarWidth,
+                toggle,
               ),
               content: Stack(
                 fit: StackFit.expand,
@@ -224,13 +236,8 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
 }
 
 class _FunctionRail extends ConsumerWidget {
-  const _FunctionRail({
-    required this.workspace,
-    required this.sidebarToggle,
-    this.onSelected,
-  });
+  const _FunctionRail({required this.workspace, this.onSelected});
   final LibraryWorkspace workspace;
-  final Widget sidebarToggle;
   final ValueChanged<LibraryWorkspace>? onSelected;
 
   @override
@@ -287,7 +294,6 @@ class _FunctionRail extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (workspace.isBrowsing) sidebarToggle,
             AmeTooltip(
               message: LibraryStrings.settings,
               child: IconButton(

@@ -4,6 +4,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../domain/library_gallery_collection.dart";
+import "library_workbench_metrics.dart";
 
 class LibraryCollectionNavigation extends StatelessWidget {
   const LibraryCollectionNavigation({
@@ -34,7 +35,8 @@ class LibraryCollectionNavigation extends StatelessWidget {
       key: const Key("library-sidebar-favorites"),
       selected: selected,
       selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: const StadiumBorder(),
+      minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
       contentPadding: const EdgeInsets.only(left: 16, right: 4),
       minLeadingWidth: 24,
       horizontalTitleGap: 12,

@@ -12,7 +12,7 @@ class LibrarySidebarTransition extends StatefulWidget {
     required this.sidebarWidth,
     required this.sidebar,
     required this.gallery,
-    required this.resizeHandle,
+    this.resizeHandle,
     this.frameBuilder,
     super.key,
   });
@@ -21,7 +21,7 @@ class LibrarySidebarTransition extends StatefulWidget {
   final double sidebarWidth;
   final Widget sidebar;
   final Widget gallery;
-  final Widget resizeHandle;
+  final Widget? resizeHandle;
   final Widget Function(BuildContext context, double extent, Widget panels)?
   frameBuilder;
 
@@ -135,13 +135,15 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
                   ),
                 ),
               ),
-              if (widget.expanded && _controller.isCompleted)
+              if (widget.expanded &&
+                  _controller.isCompleted &&
+                  widget.resizeHandle != null)
                 Positioned(
                   left:
                       extent - LibraryNavigationResizeHandle.hitTargetWidth / 2,
                   top: 0,
                   bottom: 0,
-                  child: widget.resizeHandle,
+                  child: widget.resizeHandle!,
                 ),
             ],
           );

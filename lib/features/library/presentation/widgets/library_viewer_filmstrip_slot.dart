@@ -49,20 +49,22 @@ class _LibraryViewerFilmstripSlotState
                     excluding: !active,
                     child: IgnorePointer(
                       ignoring: !active,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        child: Material(
-                          color: AmeWorkbenchSurfaces.of(context).chrome,
-                          elevation: 3,
-                          surfaceTintColor: Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                          clipBehavior: Clip.antiAlias,
-                          child: SizedBox(
-                            height: LibraryViewerFilmstripSlot.height,
-                            child: widget.child,
+                      child: RepaintBoundary(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          child: Material(
+                            color: AmeWorkbenchSurfaces.of(context).chrome,
+                            elevation: 3,
+                            surfaceTintColor: Colors.transparent,
+                            borderRadius: BorderRadius.circular(16),
+                            clipBehavior: Clip.antiAlias,
+                            child: SizedBox(
+                              height: LibraryViewerFilmstripSlot.height,
+                              child: widget.child,
+                            ),
                           ),
                         ),
                       ),
@@ -72,16 +74,18 @@ class _LibraryViewerFilmstripSlotState
               ),
             )
           : const SizedBox.shrink(),
-      builder: (context, animation, child) => AnimatedBuilder(
-        animation: animation,
-        child: child,
-        builder: (context, child) => Visibility(
-          visible: widget.visible || animation.value > 0,
-          maintainState: true,
-          child: ClipRect(
-            child: FractionalTranslation(
-              translation: Offset(0, 1 - animation.value.clamp(0, 1)),
-              child: child,
+      builder: (context, animation, child) => RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: animation,
+          child: child,
+          builder: (context, child) => Visibility(
+            visible: widget.visible || animation.value > 0,
+            maintainState: true,
+            child: ClipRect(
+              child: FractionalTranslation(
+                translation: Offset(0, 1 - animation.value.clamp(0, 1)),
+                child: child,
+              ),
             ),
           ),
         ),

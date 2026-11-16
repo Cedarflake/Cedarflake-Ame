@@ -8,12 +8,13 @@ shared principles; the roadmap owns current delivery order and acceptance status
 ## Workbench blueprint
 
 The workbench has three regions in Library and Albums: a narrow function rail, a contextual sidebar,
-and the photo wall. Library shows sources and Favorites; Albums shows Favorites and the album list. The rail
+and the photo wall. Library shows sources; Albums shows Favorites and the album list. The rail
 remains visible while the secondary sidebar can collapse. The normal desktop window has a
 1,100-by-700 logical-pixel minimum, capped by the selected monitor's available work area. Restoring
-an older smaller window expands it to that minimum before showing it. The sidebar toggle
-stays in the function rail immediately above Settings while either is active, with `收起侧栏` and
-`展开侧栏` tooltips. Animate the sidebar boundary and photo content's left edge together over a short
+an older smaller window expands it to that minimum before showing it. The hamburger in the global
+bar above the function rail controls the secondary sidebar, with `收起侧栏` and `展开侧栏` tooltips.
+It applies to Library, Albums and the wide Duplicates layout; Settings has no secondary sidebar.
+Animate the sidebar boundary and photo content's left edge together over a short
 transition. The gallery title and count follow that same left edge independently of the toolbar.
 Empty, loading and no-result content, the bottom organization dock and the Albums landing content
 follow the visible content area's center throughout the same transition. Their shared containers
@@ -166,20 +167,18 @@ message or animation, establish these guarantees.
 Ame | [在图库中搜索] | 通知 | 最小化 / 最大化 / 关闭
 ```
 
-The Library row's folder-plus action is the current entry point into the Ame-owned `AddLibraryRoot`
+The sidebar's `添加文件夹` button is the entry point into the Ame-owned `AddLibraryRoot`
 use case. It opens the folder picker and owns validation, progress, cancellation, and error state.
 The global bar contains application identity, gallery search, one icon-only notification-history
 control, and app-drawn window controls; library import and settings do not appear there. The
 notification control is immediately before the caption controls. It uses the ordinary notification
 icon when read and the notification-with-dot icon when unread, without a text label or count.
 
-The application mark in the global bar retains its outer silhouette and central cutout.
-A two-logical-pixel contour in the theme's primary color surrounds a `primaryContainer` fill,
-separated by a 1.5-logical-pixel transparent gap. The cutout has no inner stroke. The mark shares a
-28-logical-pixel size and horizontal center with the primary navigation rail. The Windows application
-icon uses the colored artwork; the title-bar mark retains the same vector shape. The adjacent
-"Ame" label uses semibold text in the theme's primary
-color and follows the existing compact-window rule that keeps only the mark visible.
+The application mark and semibold `Ame` label sit together to the right of the hamburger. The mark
+uses the theme's primary color without an extra outline; its visible silhouette, text height and
+optical spacing are balanced as one identity. Collapsing the sidebar hides this identity to leave
+room for search. The Windows application icon retains its colored artwork. Search starts at the
+sidebar/content boundary rather than the inset content heading.
 
 There is no permanent Task button or task-center navigation entry. While an import or library update
 is active, a temporary bottom progress surface uses the concrete action name, reports progress and
@@ -188,14 +187,17 @@ retains the final counts, removes cancellation, and remains until the user ackno
 
 ## Left sidebar
 
-The global bar and function rail share `surfaceContainerHigh`. The source/folder sidebar uses
-`surfaceContainerLow`, and the main workspace retains `surfaceContainerLowest`. The sidebar and
-main workspace have matching 18-logical-pixel top-left corners, with the enclosing surface visible
-behind each corner. Theme-derived tonal surfaces distinguish these levels without divider lines.
+The global bar and contextual sidebar share one continuous chrome surface. The function rail and
+main workspace use the distinct navigation and content roles, resolved for light and dark themes
+by the shared workbench surface owner. The frame and content own their outer rounded corners;
+the sidebar introduces no cutout below the global bar. Tonal surfaces separate the regions without
+divider lines. Sidebar navigation rows use fully rounded ends and compact heights; source rows
+with status retain room for both text lines. Dragging preserves the row's shape.
+Settings retains the same small outer inset on both sides of its content surface.
 
 The Library sidebar contains only navigation and source scope:
 
-- `图库` followed by a separate `文件夹` heading with the trailing import action;
+- a filled `添加文件夹` action above `图库`, followed by a separate `文件夹` heading;
 - imported folders in one aligned source list, without separating OneDrive and local folders into
   different navigation hierarchies;
 - expandable folder trees when functional.
@@ -208,12 +210,16 @@ the sidebar. Each browsing destination retains its own query. Primary-sidebar sw
 position and selection; an organizing Library retains its mode, queue, position and selection across
 Albums, Duplicates and Settings visits. The accepted narrow-window sidebar rule, tonal surfaces,
 resizing and transition remain shared.
-The album creation button and each album's More button share the same trailing alignment and inset.
+The Albums sidebar starts with a filled `新建相册` action matching the folder action's placement,
+shape and tonal color. Both use semibold labels, a leading plus and their existing disabled-state rules.
 The album section heading uses semibold. Album names match Favorites and folder navigation: medium
 by default and semibold when selected, retaining the existing font sizes and selected-state colors.
-Library and Albums share the same sidebar structure: the Library/Favorites destination comes first,
-followed by a `文件夹`/`相册` section heading. The plus button on the right of that heading imports a
-source folder or creates an album. The Library destination itself has no trailing import action.
+Manual and smart albums have independent section disclosure controls, with counts beside the labels.
+Collapsing a section retains its active collection and selection; it does not change the gallery query.
+Library and Albums share the same sidebar structure: the primary action comes first, then the
+Library/Favorites destination and a `文件夹`/`相册` section heading. The heading and destination do
+not repeat the creation action. Folder import opens the existing system picker; album creation opens
+the existing name/icon editor.
 An empty manual-album list uses the same static icon-and-text row as an empty folder list, with
 `还没有创建相册`. It appears only after loading confirms that the album total is zero, not for an
 empty page of a larger collection or a loading/error state.
@@ -224,8 +230,8 @@ new entries append, and renames, refreshes and restarts retain the arrangement. 
 and physical paths are unchanged. Album pages follow the same saved order.
 In sidebar multi-selection, an unselected row retains its original leading icon. A selected row uses
 a filled circular check from the existing icon library. The heading keeps the selected count at
-the left and Select all, removal/deletion and plus at the right. Select all is an 18-pixel neutral
-outlined square with no selected color fill; deletion and plus use 20-pixel icons, with all three
+the left and Select all and removal/deletion at the right. Select all is an 18-pixel neutral
+outlined square with no selected color fill; deletion uses a 20-pixel icon, with both
 actions in 36-pixel targets. Normal navigation resumes after selection is cleared; dragging is
 available outside multi-selection. Pointer selection does not leave a row focus highlight after
 the pointer leaves; keyboard navigation retains visible focus. Primary-workspace switches clear
@@ -256,9 +262,9 @@ or removable-media properties may appear as a row status or badge, but they do n
 OneDrive and `此电脑` groups. Folder icons, labels, optional status text, and overflow actions use
 shared column constraints so every source row aligns.
 
-The folder-plus icon is a separate hit target from the `图库` navigation row. Its tooltip and
-accessible label are `添加目录到图库`; activating it opens the same folder picker as the global
-`导入` action.
+The `添加文件夹` button is separate from the `图库` navigation row. Its visible text, tooltip and
+accessible label identify the same action; activating it opens the existing folder picker.
+The compact icon-only sidebar retains its import icon and descriptive tooltip.
 
 Selecting an exact registered source retains its normal update behavior. Selecting an unregistered
 child already covered by a registered parent opens that parent's existing folder scope without

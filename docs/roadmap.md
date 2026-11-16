@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-16
+Last planning update: 2026-11-17
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -77,8 +77,8 @@ completed R10a–R10c scopes or authorize Beta publication.
 
 MW1–MW3 implementation and focused desktop qualification are recorded in the
 [Material acceptance record](acceptance/material-ui-migration.md#material-workbench-composition-2026-11-16).
-MW4 awaits the final branch's hosted checks and delivery review; merging and release publication
-remain separate decisions.
+MW4 includes the requested primary-navigation content-width transition and awaits the final branch's
+hosted checks and sidebar/filmstrip review; merging and release publication remain separate decisions.
 
 R8 and its follow-ups, including the loading-feedback update, and R9 album file organization are
 integrated. The current release is `v0.1.0-alpha.3`. Transition-performance preparation is integrated.

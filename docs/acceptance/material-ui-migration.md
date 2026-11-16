@@ -74,6 +74,55 @@ runs exited with code 0, preserved all 10,000 fixture files by size and modifica
 their leased temporary profiles. The final client logs contained no Flutter exception, assertion or
 overflow diagnostic. Hosted verification and integration disposition remain in the roadmap.
 
+The sidebar refinement uses `material_ui` 1.11.0 `FilledButton.icon` for `添加文件夹` and
+`新建相册`, retaining the original picker/editor callbacks and disabled states. The installed
+`filled_button.dart` exposes nullable activation and style; its button and icon children retain
+framework focus, semantics and variable icon weight;
+the [Material button reference](https://m3.material.io/components/buttons/overview) was consulted,
+but its script-only response did not establish SDK capability. No replacement input handling or
+dependency was added. The shared action has 52 production lines; source navigation, album navigation
+and source tiles initially had 551, 254 and 534 lines, with no inline tests. Existing import, album creation
+and album-selection fixtures had 105, 112 and 82 lines. Their six focused checks passed, including
+disabled import with retained browsing, album creation/undo and selection/removal cancellation.
+The obsolete assertion placing creation beside removal was removed with that layout requirement.
+Sidebar navigation now uses framework stadium shapes and smaller minimum heights; text retains
+its scaling behavior. The existing navigation/scroll fixtures have 1,093 and 332 lines; their
+focused run with album selection passed all 25 cases after the shape and height changes.
+The later header/disclosure refinement moves the toggle to the global hamburger, places the plain
+mark beside `Ame`, aligns search with the content boundary and adds independent album section
+disclosure. The navigation reference was consulted; its script-only response does not establish
+component support. Installed framework SizeTransition/FadeTransition and the existing Ame motion
+owner supply row animation; the original lazy reorder scroll remains intact. The focused
+album-selection, smart-album and viewer-geometry run passed nine checks. The retained-workspace and
+duplicate-viewer semantics fixtures passed four checks, including reduced motion. Current workbench,
+album navigation, reorder list and row disclosure owners have 326, 271, 133 and 69 production lines;
+their existing workbench and album-selection fixtures have 185 and 95 lines. These owners have no
+inline tests.
+
+The filmstrip repaint fixture reproduced six extra main-canvas paints across six animation frames.
+The installed framework [RepaintBoundary](https://api.flutter.dev/flutter/widgets/RepaintBoundary-class.html)
+now separates moving and static painting without changing the transition. The new 70-line regression
+and existing pixel/paging fixtures passed all 18 checks: unchanged image surfaces do not repaint
+during movement; source replacement, decoded-pixel retention, paging and hidden-demand retirement
+remain covered. The slot has 95 production lines and no inline tests.
+
+A third Debug client exited with `0xC0000409` on 2026-11-17; Dart reported an out-of-memory abort.
+It had received a user-initiated real-root import and repeated hot reloads. The preceding result file
+belonged to an earlier successful run and does not cover that exit. No system resource-exhaustion
+event was returned by the scoped check; the allocation cause remains unconfirmed. A new Debug build
+completed in 27.5 seconds and opened a fresh isolated profile. Its header/brand screenshot reflects
+the refinement; the user retained control for inspection. Final sidebar click-through and filmstrip
+frame-time qualification are not yet recorded.
+
+The first hosted run for `01abdfdf` reported `use_null_aware_elements` in the workbench frame.
+The optional top-bar child now uses the corresponding null-aware element; focused analysis of
+that owner reports no issues. Flutter also reported obsolete long-title/surface expectations and
+loss of the return card when a hidden provisional gallery resized from 1000 to 980 pixels. Geometry
+publication now remains active while hidden; preview demand remains retired. All five existing
+viewer-geometry cases and all five updated shell cases passed without weakening return-position
+assertions. The gallery owner has 1,597 production lines and its dedicated geometry fixture has
+488 lines, with no inline tests. The current-head hosted rerun remains the delivery gate.
+
 Date: 2026-11-08
 
 The [roadmap](../roadmap.md#current-execution-queue) owns delivery status;

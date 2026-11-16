@@ -16,7 +16,10 @@ import "library_album_editor.dart";
 import "library_album_icon.dart";
 import "library_album_navigation_tile.dart";
 import "library_sidebar_reorder_list.dart";
+import "library_sidebar_primary_action.dart";
 import "library_sidebar_section_header.dart";
+import "library_sidebar_section_toggle.dart";
+import "library_sidebar_rows_disclosure.dart";
 import "library_sidebar_removal_dialog.dart";
 import "library_sidebar_selection_region.dart";
 
@@ -48,6 +51,7 @@ class _LibraryAlbumNavigationState
   final List<String?> _previous = [];
   final _selection = LibrarySidebarSelection();
   bool _removing = false;
+  bool _expanded = true;
 
   @override
   void didUpdateWidget(LibraryAlbumNavigation oldWidget) {
@@ -97,11 +101,23 @@ class _LibraryAlbumNavigationState
 
   Widget _header(LibraryOrganizationAlbumPage? page, bool busy) => Column(
     children: [
+      LibrarySidebarPrimaryAction(
+        label: "新建相册",
+        buttonKey: const Key("library-sidebar-create-album"),
+        onPressed: !widget.enabled || busy || page == null
+            ? null
+            : () => _edit(LibraryAlbumEditKind.create, page.revision),
+      ),
       widget.header,
       LibrarySidebarSectionHeader(
         title: "相册",
-        createLabel: "新建相册",
-        createKey: const Key("library-sidebar-create-album"),
+        count: page?.total,
+        trailing: LibrarySidebarSectionToggle(
+          key: const Key("library-sidebar-album-expand"),
+          label: "相册",
+          expanded: _expanded,
+          onPressed: () => setState(() => _expanded = !_expanded),
+        ),
         selectedCount: _selection.count,
         selectAllLabel: page != null && page.total > page.albums.length
             ? "全选本页相册"
@@ -116,11 +132,8 @@ class _LibraryAlbumNavigationState
               ),
         removeLabel: "删除所选相册",
         onRemove: busy || page == null ? null : () => _removeSelected(page),
-        onCreate: !widget.enabled || busy || page == null
-            ? null
-            : () => _edit(LibraryAlbumEditKind.create, page.revision),
       ),
-      if (page?.total == 0)
+      if (_expanded && page?.total == 0)
         const ListTile(
           key: Key("library-sidebar-album-empty"),
           leading: Icon(Symbols.photo_album_rounded),
@@ -146,87 +159,93 @@ class _LibraryAlbumNavigationState
           : null,
       child: page.when(
         skipLoadingOnRefresh: true,
-        data: (value) => LibrarySidebarReorderList<LibraryOrganizationAlbum>(
-          key: ValueKey(_after),
-          items: value.albums,
-          itemId: (album) => album.id,
-          enabled: widget.enabled && !busy && !_selection.isActive,
-          onReorder: (move) => ref
-              .read(librarySidebarOrderProvider)
-              .move(LibrarySidebarKind.albums, move),
-          onSaved: () => ref.invalidate(libraryAlbumPageProvider),
-          header: (saving) => _header(value, busy || saving),
-          itemBuilder: (context, album, index, draggable) =>
-              ReorderableDragStartListener(
-                index: index,
-                enabled: draggable,
-                child: LibraryAlbumNavigationTile(
-                  album: album,
-                  selected:
-                      widget.collection ==
-                      LibraryGalleryCollection.album(album.id),
-                  checked: _selection.contains(album.id),
-                  onToggleSelection: !widget.enabled || busy
-                      ? null
-                      : () => setState(() => _selection.toggle(album.id)),
-                  onSelect: !widget.enabled || busy
-                      ? null
-                      : () {
-                          if (_selection.isActive) {
-                            setState(() => _selection.toggle(album.id));
-                          } else {
-                            widget.onSelect(album);
-                          }
-                        },
-                  onEdit: busy || _selection.isActive
-                      ? null
-                      : (kind) => _edit(kind, value.revision, album),
+        data: (value) => LibrarySidebarRowsDisclosure(
+          expanded: _expanded,
+          child: LibrarySidebarReorderList<LibraryOrganizationAlbum>(
+            key: ValueKey(_after),
+            items: value.albums,
+            itemId: (album) => album.id,
+            enabled: widget.enabled && !busy && !_selection.isActive,
+            onReorder: (move) => ref
+                .read(librarySidebarOrderProvider)
+                .move(LibrarySidebarKind.albums, move),
+            onSaved: () => ref.invalidate(libraryAlbumPageProvider),
+            header: (saving) => _header(value, busy || saving),
+            itemBuilder: (context, album, index, draggable) =>
+                ReorderableDragStartListener(
+                  index: index,
+                  enabled: draggable,
+                  child: LibraryAlbumNavigationTile(
+                    album: album,
+                    selected:
+                        widget.collection ==
+                        LibraryGalleryCollection.album(album.id),
+                    checked: _selection.contains(album.id),
+                    onToggleSelection: !widget.enabled || busy
+                        ? null
+                        : () => setState(() => _selection.toggle(album.id)),
+                    onSelect: !widget.enabled || busy
+                        ? null
+                        : () {
+                            if (_selection.isActive) {
+                              setState(() => _selection.toggle(album.id));
+                            } else {
+                              widget.onSelect(album);
+                            }
+                          },
+                    onEdit: busy || _selection.isActive
+                        ? null
+                        : (kind) => _edit(kind, value.revision, album),
+                  ),
                 ),
-              ),
-          footer: (saving) => Column(
-            children: [
-              if (_previous.isNotEmpty || value.nextAlbumId != null)
-                Row(
-                  children: [
-                    TextButton(
-                      onPressed:
-                          saving ||
-                              busy ||
-                              _selection.isActive ||
-                              _previous.isEmpty
-                          ? null
-                          : () =>
-                                setState(() => _after = _previous.removeLast()),
-                      child: const Text("上一页"),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed:
-                          saving ||
-                              busy ||
-                              _selection.isActive ||
-                              value.nextAlbumId == null
-                          ? null
-                          : () => setState(() {
-                              _previous.add(_after);
-                              _after = value.nextAlbumId;
-                            }),
-                      child: const Text("下一页"),
-                    ),
-                  ],
-                ),
-              if (widget.footer != null) widget.footer!,
-            ],
+            footer: (saving) => Column(
+              children: [
+                if (_expanded &&
+                    (_previous.isNotEmpty || value.nextAlbumId != null))
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed:
+                            saving ||
+                                busy ||
+                                _selection.isActive ||
+                                _previous.isEmpty
+                            ? null
+                            : () => setState(
+                                () => _after = _previous.removeLast(),
+                              ),
+                        child: const Text("上一页"),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed:
+                            saving ||
+                                busy ||
+                                _selection.isActive ||
+                                value.nextAlbumId == null
+                            ? null
+                            : () => setState(() {
+                                _previous.add(_after);
+                                _after = value.nextAlbumId;
+                              }),
+                        child: const Text("下一页"),
+                      ),
+                    ],
+                  ),
+                if (widget.footer != null) widget.footer!,
+              ],
+            ),
           ),
         ),
         loading: () => ListView(
           padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
           children: [
             _header(null, true),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: AmeLinearProgress(),
-            ),
+            if (_expanded)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: AmeLinearProgress(),
+              ),
             if (widget.footer != null) widget.footer!,
           ],
         ),
@@ -234,14 +253,15 @@ class _LibraryAlbumNavigationState
           padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
           children: [
             _header(null, true),
-            ListTile(
-              title: const Text("相册暂时无法加载"),
-              trailing: TextButton(
-                onPressed: () =>
-                    ref.invalidate(libraryAlbumPageProvider(_after)),
-                child: const Text("重试"),
+            if (_expanded)
+              ListTile(
+                title: const Text("相册暂时无法加载"),
+                trailing: TextButton(
+                  onPressed: () =>
+                      ref.invalidate(libraryAlbumPageProvider(_after)),
+                  child: const Text("重试"),
+                ),
               ),
-            ),
             if (widget.footer != null) widget.footer!,
           ],
         ),

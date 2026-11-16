@@ -25,6 +25,13 @@ void main() {
         child: MaterialApp(
           home: Scaffold(
             body: LibraryWorkbench(
+              globalBarBuilder: (_, _, toggle) => SizedBox(
+                height: 64,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(width: 72, child: Center(child: toggle)),
+                ),
+              ),
               albumsNavigationBuilder: (_) =>
                   ListTile(title: const Text("Album list"), onTap: () {}),
               navigationBuilder: (width) => SizedBox(
@@ -143,6 +150,13 @@ void main() {
         child: MaterialApp(
           home: Scaffold(
             body: LibraryWorkbench(
+              globalBarBuilder: (_, _, toggle) => SizedBox(
+                height: 64,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(width: 72, child: Center(child: toggle)),
+                ),
+              ),
               albumsNavigationBuilder: (_) => const Text("Album list"),
               navigationBuilder: (width) =>
                   SizedBox(width: width, child: const Text("Folder tree")),

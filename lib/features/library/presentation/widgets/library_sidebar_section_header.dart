@@ -8,9 +8,8 @@ import "../../../../app/presentation/ame_selection_checkbox.dart";
 class LibrarySidebarSectionHeader extends StatelessWidget {
   const LibrarySidebarSectionHeader({
     required this.title,
-    required this.createLabel,
-    required this.createKey,
-    required this.onCreate,
+    this.count,
+    this.trailing,
     this.selectedCount = 0,
     this.allSelected = false,
     this.onSelectAll,
@@ -21,9 +20,8 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
   });
 
   final String title;
-  final String createLabel;
-  final Key createKey;
-  final VoidCallback? onCreate;
+  final int? count;
+  final Widget? trailing;
   final int selectedCount;
   final bool allSelected;
   final VoidCallback? onSelectAll;
@@ -34,53 +32,61 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(16, 8, 6, 0),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            selectedCount > 0 ? "已选择 $selectedCount" : title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: ameFontWeightSemibold),
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 36),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    selectedCount > 0 ? "已选择 $selectedCount" : title,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: ameFontWeightSemibold,
+                    ),
+                  ),
+                ),
+                if (selectedCount == 0 && count != null) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    "($count)",
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
-        if (selectedCount > 0)
-          AmeTooltip(
-            message: allSelected ? "取消全选" : selectAllLabel ?? "全选$title",
-            child: AmeSelectionCheckbox(
-              key: const Key("library-sidebar-select-all"),
-              markExtent: 18,
-              tapTargetSize: 36,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(2),
+          if (selectedCount > 0)
+            AmeTooltip(
+              message: allSelected ? "取消全选" : selectAllLabel ?? "全选$title",
+              child: AmeSelectionCheckbox(
+                key: const Key("library-sidebar-select-all"),
+                markExtent: 18,
+                tapTargetSize: 36,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(2),
+                ),
+                value: allSelected ? true : null,
+                tristate: true,
+                isOutlined: true,
+                semanticLabel: selectAllLabel ?? "全选$title",
+                onChanged: onSelectAll == null ? null : (_) => onSelectAll!(),
               ),
-              value: allSelected ? true : null,
-              tristate: true,
-              isOutlined: true,
-              semanticLabel: selectAllLabel ?? "全选$title",
-              onChanged: onSelectAll == null ? null : (_) => onSelectAll!(),
             ),
-          ),
-        if (selectedCount > 0)
-          AmeTooltip(
-            message: removeLabel ?? "删除",
-            child: IconButton(
-              key: const Key("library-sidebar-remove-selected"),
-              onPressed: onRemove,
-              style: _actionStyle,
-              icon: const Icon(Symbols.delete_rounded),
+          if (selectedCount > 0)
+            AmeTooltip(
+              message: removeLabel ?? "删除",
+              child: IconButton(
+                key: const Key("library-sidebar-remove-selected"),
+                onPressed: onRemove,
+                style: _actionStyle,
+                icon: const Icon(Symbols.delete_rounded),
+              ),
             ),
-          ),
-        AmeTooltip(
-          message: createLabel,
-          child: IconButton(
-            key: createKey,
-            onPressed: onCreate,
-            style: _actionStyle,
-            icon: const Icon(Symbols.add_rounded),
-          ),
-        ),
-      ],
+          ?trailing,
+        ],
+      ),
     ),
   );
 

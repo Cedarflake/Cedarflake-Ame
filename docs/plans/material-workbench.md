@@ -13,6 +13,12 @@ Retain the system accent, light/dark appearance, thin Material Symbols, existing
 keyboard behavior, data scopes and operation semantics. Secondary sidebars use contextual rows and
 small section labels without a redundant page heading. Keep search options at the trailing end of
 the search field and the settings selection circular.
+Place the filled `添加文件夹` and `新建相册` actions at the top of their respective sidebars,
+using the existing picker and album editor rather than trailing section-heading plus icons.
+Use the global hamburger for sidebar visibility, keep the plain mark beside `Ame`, and align search
+with the content boundary. Manual/smart album sections collapse independently while retaining scope
+and selection. Primary-destination changes animate the content boundary without per-frame image
+reflow. Retain the filmstrip appearance while isolating its motion from unchanged image painting.
 
 Duplicates moves its exact/similar/ignored choices into its contextual sidebar. Degree, selection
 and cleanup remain with the results. Group cards emphasize the existing representative preview;

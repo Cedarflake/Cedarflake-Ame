@@ -40,7 +40,7 @@ class LibraryWorkbenchFrame extends StatelessWidget {
           ),
           Column(
             children: [
-              if (globalBar != null) globalBar!,
+              ?globalBar,
               Expanded(
                 child: Row(
                   children: [

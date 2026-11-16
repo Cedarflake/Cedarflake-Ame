@@ -18,6 +18,7 @@ class LibraryGlobalBar extends StatelessWidget {
     required this.searchController,
     required this.sidebarWidth,
     required this.sidebarExpansion,
+    required this.sidebarToggle,
     this.onSearchChanged,
     this.discovery,
     required this.notifications,
@@ -30,6 +31,7 @@ class LibraryGlobalBar extends StatelessWidget {
   final TextEditingController searchController;
   final double sidebarWidth;
   final double sidebarExpansion;
+  final Widget sidebarToggle;
   final ValueChanged<String>? onSearchChanged;
   final LibrarySearch? discovery;
   final AmeNotificationState notifications;
@@ -46,9 +48,7 @@ class LibraryGlobalBar extends StatelessWidget {
         height: 64,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            const collapsedLeading =
-                LibraryWorkbenchMetrics.railWidth +
-                LibraryWorkbenchMetrics.galleryHeadingInset;
+            const collapsedLeading = LibraryWorkbenchMetrics.railWidth;
             final contentLeading =
                 collapsedLeading + sidebarWidth * sidebarExpansion;
             final leadingWidth = (contentLeading - 16).clamp(
@@ -91,32 +91,31 @@ class LibraryGlobalBar extends StatelessWidget {
                 const Positioned.fill(
                   child: AmeWindowDragRegion(child: SizedBox.expand()),
                 ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: AmeWindowDragRegion(
-                    child: SizedBox(
-                      width: leadingWidth,
-                      child: Padding(
-                        padding: const EdgeInsets.only(
-                          left: LibraryWorkbenchMetrics.railIconInset,
-                        ),
-                        child: Row(
-                          children: [
-                            Semantics(
-                              label: isCompact ? LibraryStrings.appName : null,
-                              image: isCompact,
-                              child: const AmeBrandMark(
-                                size: LibraryWorkbenchMetrics.iconSize,
+                Positioned(
+                  left: 0,
+                  top: 8,
+                  bottom: 8,
+                  width: LibraryWorkbenchMetrics.railWidth,
+                  child: Center(child: sidebarToggle),
+                ),
+                if (!isCompact)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: AmeWindowDragRegion(
+                      child: SizedBox(
+                        width: leadingWidth,
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            left: LibraryWorkbenchMetrics.railWidth + 16,
+                          ),
+                          child: Row(
+                            children: [
+                              Semantics(
+                                label: LibraryStrings.appName,
+                                image: true,
+                                child: const AmeBrandMark(size: 32),
                               ),
-                            ),
-                            if (!isCompact) ...[
-                              const SizedBox(
-                                width:
-                                    LibraryWorkbenchMetrics.railWidth -
-                                    LibraryWorkbenchMetrics.railIconInset -
-                                    LibraryWorkbenchMetrics.iconSize +
-                                    16,
-                              ),
+                              const SizedBox(width: 6),
                               Flexible(
                                 child: Text(
                                   LibraryStrings.workbenchName,
@@ -132,12 +131,11 @@ class LibraryGlobalBar extends StatelessWidget {
                                 ),
                               ),
                             ],
-                          ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
                 Positioned(
                   left: contentLeading,
                   top: 0,

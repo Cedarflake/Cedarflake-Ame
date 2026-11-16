@@ -61,12 +61,20 @@ void main() {
       await tester.tap(find.byKey(const Key("library-sidebar-select-all")));
       await tester.pumpAndSettle();
       expect(find.text("已选择 2"), findsOneWidget);
+      final collapse = find.byKey(const Key("library-sidebar-album-expand"));
+      await tester.tap(collapse);
+      await tester.pumpAndSettle();
+      expect(find.text("First"), findsNothing);
+      expect(find.text("Second"), findsNothing);
+      expect(find.text("已选择 2"), findsOneWidget);
+      expect(service.albumWrites, isEmpty);
+      expect(selected, isEmpty);
+      await tester.tap(collapse);
+      await tester.pumpAndSettle();
+      expect(find.text("First"), findsOneWidget);
+      expect(find.text("Second"), findsOneWidget);
+      expect(find.text("已选择 2"), findsOneWidget);
       final remove = find.byKey(const Key("library-sidebar-remove-selected"));
-      final create = find.byKey(const Key("library-sidebar-create-album"));
-      expect(
-        tester.getCenter(remove).dx,
-        lessThan(tester.getCenter(create).dx),
-      );
       await tester.tap(remove);
       await tester.pumpAndSettle();
       expect(find.text("删除 2 个相册？"), findsOneWidget);

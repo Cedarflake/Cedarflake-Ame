@@ -17,6 +17,7 @@ import "../library_strings.dart";
 import "../library_synchronization_feedback.dart";
 import "library_path_text.dart";
 import "library_sidebar_selection_icon.dart";
+import "library_workbench_metrics.dart";
 
 class LibrarySourceNavigationTile extends StatefulWidget {
   const LibrarySourceNavigationTile({
@@ -503,7 +504,11 @@ class _ExpandedSourceTile extends StatelessWidget {
       focusNode: focusNode,
       selected: isSelected,
       selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: const StadiumBorder(),
+      minTileHeight: subtitle == null
+          ? LibraryWorkbenchMetrics.sidebarRowHeight
+          : LibraryWorkbenchMetrics.sidebarStatusRowHeight,
+      minVerticalPadding: 4,
       dense: true,
       contentPadding: EdgeInsets.only(left: leading == null ? 16 : 8, right: 4),
       minLeadingWidth: leading == null ? 24 : 40,

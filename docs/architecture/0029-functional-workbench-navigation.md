@@ -25,8 +25,12 @@ their existing destination-width rendering and clipping.
 
 The shared search field has a leading search symbol and a trailing options arrow. Existing mode,
 scope, clear, progress and retry semantics remain intact. Settings uses a circular selected surface.
+The top-left hamburger controls contextual-sidebar visibility; the plain application mark and `Ame`
+wordmark share the adjacent brand area. Search aligns with the content boundary.
 The image viewer keeps straight canvas edges and its existing operation placements. Its rounded,
 elevated thumbnail strip remains an overlay, with no change to image geometry when toggled.
+Repaint boundaries isolate the strip's moving clip from the main image and retain the static strip
+display list; movement retains its shared motion driver, shadow, clipping and preview lifetimes.
 
 Use the installed `material_ui` 1.11.0 SearchBar, NavigationRail, ListTile, Material/Card and popup
 components, plus the existing window and transition owners. No new navigation stack, widget
@@ -59,7 +63,13 @@ sidebar without overwriting an existing arrangement. A forward migration and ver
 snapshot provide the existing upgrade/rollback boundary.
 
 Library and Albums use one section-heading component below their Library and Favorites entries.
-The heading's trailing plus imports a root or creates an album. Flutter 3.47.8's
+Each sidebar starts with its filled `添加文件夹` or `新建相册` action, replacing the heading's plus.
+The installed `material_ui` 1.11.0 `FilledButton.icon` provides nullable activation, disabled styling,
+keyboard focus and semantics. Its style API supplies the existing secondary-container colors and
+56-pixel minimum height with 12-pixel corners. Semibold labels and a heavier plus mark identify the
+primary action. An icon-only action lacks the accepted visible label;
+an extended FAB is unnecessary for an inline sidebar action with a disabled state. No custom input
+handling is introduced. Flutter 3.47.8's
 `ReorderableListView.builder`, `ReorderableDragStartListener` and `onReorderItem` provide lazy rows,
 drag geometry, scrolling and reorder semantics. Only the imported root row starts a folder drag;
 its expanded descendants remain ordinary navigation. `LibraryFolderReorderItem` collapses the branch
@@ -70,12 +80,21 @@ local `Overlay.wrap` owns proxy coordinates and clipping within the sidebar, bel
 captured themes. The presentation order owner serializes saves,
 retains current item identities through metadata updates, appends new items and restores the prior
 order on failure through the shared feedback surface. It does not reorder gallery images or mutate
-physical folders.
+physical folders. Sidebar navigation rows and their drag proxies use the framework StadiumBorder.
+Single-line rows have a 48-pixel minimum height, source rows with status have 56 pixels, and existing
+40-pixel smart-album rows retain their compact height. Text scaling can increase these minimums.
+
+Manual and smart albums use shared section headings and framework icon buttons for disclosure.
+Manual rows share one Ame motion controller and native SizeTransition/FadeTransition widgets inside
+the existing lazy reorder list. The completed collapsed state has no row children; the bounded page,
+scroll owner, order, selection and active collection remain retained. Smart albums reuse the existing
+folder disclosure owner. Closing retires row input, focus and semantics immediately. A nested
+shrink-wrapped scrolling list is unnecessary and would disconnect native drag auto-scrolling.
 
 Sidebar selection is a separate presentation owner. The installed Flutter 3.47.8 `IconButton`
 provides focus, toggled semantics and the original/selected icons; a 24-pixel filled circle with the
 existing Material Symbols check identifies a selected row inside its 40-pixel target. The section
-heading groups Select all, removal and creation at the trailing edge. The shared framework tristate
+heading groups Select all and removal at the trailing edge. The shared framework tristate
 `Checkbox` uses an 18-pixel neutral square outline without fill; the other actions use 20-pixel
 symbols, all within 36-pixel targets. Material's checkbox and icon-button component documentation was inspected;
 no replacement gesture, checkbox painter or package is needed. Selection disables reordering, and
@@ -107,8 +126,9 @@ retiring input and animation. Existing source navigation and resize controls rem
 The product-specific responsibility is destination lifetime, folder-panel preference and composing
 the existing gallery with a dedicated duplicate workspace. No new UI package is needed.
 
-The secondary-sidebar toggle lives in the function rail above Settings while Library or Albums is active,
-outside the collapsible sidebar.
+The secondary-sidebar toggle is the global bar's hamburger above the function rail, outside the
+collapsible sidebar. Library, Albums and wide Duplicates share the visibility preference and motion;
+the compact Duplicates navigation bar and Settings have no collapsible contextual panel.
 Store its visibility with existing presentation preferences. Preserve source scope, expanded
 folders on workspace switches. Primary-sidebar switches to Albums, Duplicates or Settings clear
 ordinary selected images, exit selection mode and reset the scroll position on return. An organizing
