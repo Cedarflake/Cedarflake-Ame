@@ -2,6 +2,15 @@
 
 ## Material workbench composition, 2026-11-16
 
+### Hosted qualification, 2026-11-17
+
+Implementation head `d4b1c66738d5cd6879aa1fa63432e1c3ff7b82ae` passed
+[Quality / CI run 43946356308](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43946356308):
+Static, all four Rust groups, all 1,866 Flutter tests, Windows Scan, Windows Accessibility,
+Windows production-bundle verification and the aggregate Windows Gate. All ten native UIA phases
+completed, with normal process/job retirement and scratch removal. The closeout changes only this
+record and the roadmap; product, test, tool and workflow inputs retain that verified head's contents.
+
 ### Navigation density refinement, 2026-11-17
 
 The follow-up to `1323a3ea` gives Library, Favorites, folders, albums, smart albums and duplicate
@@ -285,8 +294,9 @@ Its UIA worker exited 245 ms into `settings-menu-open`, before producing that ph
 the preceding eight native phases passed. The session now retains the worker exit code and bounded
 exception position in its owned failure evidence. Controlled malformed-request and exit-code-23
 cases verified diagnosis, ownership rejection and process retirement; retained preparation took
-588/24 ms. Native assertions, deadlines and failure status are unchanged. The original worker-exit
-cause remains unconfirmed until a diagnostic native run supplies it.
+588/24 ms. Native assertions, deadlines and failure status are unchanged. All ten native phases
+passed at `d4b1c667`; the worker exit did not recur. Its original cause remains unconfirmed, with
+the bounded diagnostic retained for a recurrence.
 
 The `0f7483ad` Profile client uses the unchanged receipt-verified optimized debug-assertion native
 library and in-memory preferences. An initial fresh catalog failed with `unable to open database

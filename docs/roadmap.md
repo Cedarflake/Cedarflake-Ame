@@ -68,22 +68,22 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ### Material desktop workbench
 
-The accepted Google Material wide-screen layout is being implemented on
-`codex/material-workbench` before the remaining R10 diagnostics and Beta slices. The
+The accepted Google Material wide-screen layout is implemented and qualified on
+`codex/material-workbench`, awaiting integration through [PR 69](https://github.com/Cedarflake/Cedarflake-Ame/pull/69)
+before the remaining R10 diagnostics and Beta slices. The
 [execution plan](plans/material-workbench.md) orders shared Gallery/Albums composition, Duplicates,
 the image viewer, and integrated desktop qualification. Preserve existing actions, bounded browsing,
 source safety and the completed responsiveness work. This presentation update does not reopen the
 completed R10a–R10c scopes or authorize Beta publication.
 
-MW1–MW3 implementation and focused desktop qualification are recorded in the
+MW1–MW4 implementation, desktop qualification and hosted verification are recorded in the
 [Material acceptance record](acceptance/material-ui-migration.md#material-workbench-composition-2026-11-16).
 MW4 includes the requested primary-navigation content-width transition, filmstrip frame-time
 qualification and the Google-style tonal/typographic refinement guided by Material canonical layouts,
 including consistent secondary-navigation row geometry.
-The refined client and focused regressions are verified. The complete Flutter, Static and Windows
-Scan gates passed at `c1fb5622`; native accessibility qualification remains open after an early worker
-exit. The session now retains exit diagnostics for the next hosted run. Final branch verification,
-merging and release publication remain separate decisions.
+The scope is complete at implementation head `d4b1c667`. The acceptance record retains the earlier
+intermittent accessibility-worker observations and their diagnostic follow-up. Merging and release
+publication remain separate decisions.
 
 R8 and its follow-ups, including the loading-feedback update, and R9 album file organization are
 integrated. The current release is `v0.1.0-alpha.3`. Transition-performance preparation is integrated.
