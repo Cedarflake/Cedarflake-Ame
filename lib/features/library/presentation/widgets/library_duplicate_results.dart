@@ -67,6 +67,7 @@ class LibraryDuplicateResults extends StatelessWidget {
             LibraryExactGroupEntry(:final group) => LibraryDuplicateGroupCard(
               entry: group,
               thumbnail: _groupThumbnail(entry),
+              selected: workspace.cleanupSelection.contains(entry.cleanupKey),
               kindLabel: workspace.view == LibraryDuplicateView.ignored
                   ? LibraryDuplicateStrings.pendingGroups
                   : null,
@@ -76,6 +77,7 @@ class LibraryDuplicateResults extends StatelessWidget {
               key: ValueKey("similar-group-${group.id}"),
               group: group,
               thumbnail: _groupThumbnail(entry),
+              selected: workspace.cleanupSelection.contains(entry.cleanupKey),
               onOpen: () => unawaited(workspace.openGroup(entry)),
             ),
             null => const SizedBox.shrink(),

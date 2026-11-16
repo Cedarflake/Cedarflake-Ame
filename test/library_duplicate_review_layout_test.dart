@@ -14,6 +14,7 @@ import "package:cedarflake_ame/features/library/presentation/pages/library_dupli
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_review_cards.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_review_grid.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_message.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_filmstrip_thumbnail.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -106,9 +107,18 @@ void main() {
             tester.getTopLeft(cards.first).dx,
           );
         }
-        await tester.tap(find.byType(LibraryDuplicateGroupThumbnail).first);
+        final selection = find.byType(LibraryDuplicateGroupThumbnail).first;
+        final preview = find.descendant(
+          of: selection,
+          matching: find.byType(LibraryViewerFilmstripThumbnail),
+        );
+        final previewState = tester.state(preview);
+        final previewBounds = tester.getRect(preview);
+        await tester.tap(selection);
         await tester.pumpAndSettle();
         expect(find.text("取消选择"), findsOneWidget);
+        expect(tester.state(preview), same(previewState));
+        expect(tester.getRect(preview), previewBounds);
         expect(tester.takeException(), isNull);
         await tester.tap(find.text("取消选择"));
         await tester.pumpAndSettle();
@@ -288,7 +298,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         library.demands.values.single,
-        List.generate(6, (index) => "item-$index"),
+        List.generate(12, (index) => "item-$index"),
       );
       final grid = tester.widget<GridView>(find.byType(GridView));
       final layout =
@@ -299,7 +309,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         library.demands.values.single,
-        List.generate(6, (index) => "item-${index + 12}"),
+        List.generate(12, (index) => "item-${index + 16}"),
       );
       active.value = false;
       await tester.pumpAndSettle();

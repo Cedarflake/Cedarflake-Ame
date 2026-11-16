@@ -107,8 +107,8 @@ class _LibraryDuplicateReviewGridState
     builder: (context, constraints) {
       _height = constraints.maxHeight;
       final textSize = MediaQuery.textScalerOf(context).scale(16);
-      final minimumWidth = 340 * (textSize / 16).clamp(1.0, 1.5);
-      const spacing = 12.0;
+      final minimumWidth = 260 * (textSize / 16).clamp(1.0, 1.5);
+      const spacing = 8.0;
       _columns = widget.singleColumn
           ? 1
           : math.max(

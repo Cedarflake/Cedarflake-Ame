@@ -14,6 +14,7 @@ class LibraryReviewGroupCard extends StatelessWidget {
     required this.actionLabel,
     required this.onOpen,
     this.thumbnail,
+    this.selected = false,
     super.key,
   });
 
@@ -22,11 +23,21 @@ class LibraryReviewGroupCard extends StatelessWidget {
   final String actionLabel;
   final VoidCallback onOpen;
   final Widget? thumbnail;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) => Card(
     margin: EdgeInsets.zero,
     clipBehavior: Clip.antiAlias,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+      side: BorderSide(
+        color: selected
+            ? Theme.of(context).colorScheme.primary
+            : Colors.transparent,
+        width: 1.5,
+      ),
+    ),
     child: InkWell(
       key: ValueKey("duplicate-card-${asset.locationId}"),
       onTap: onOpen,

@@ -1,7 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
-import "../../../../app/presentation/ame_flip_transition.dart";
+import "../../../../app/presentation/ame_motion.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_models.dart";
 import "../library_duplicate_strings.dart";
@@ -39,32 +39,47 @@ class LibraryDuplicateGroupThumbnail extends StatelessWidget {
           child: SizedBox(
             height: LibraryDuplicateReviewMetrics.groupPreviewHeight,
             width: double.infinity,
-            child: AmeFlipTransition(
-              showBack: selected,
-              front: IgnorePointer(
-                child: ExcludeFocus(
-                  child: ExcludeSemantics(
-                    child: LibraryViewerFilmstripThumbnail(
-                      asset: asset,
-                      isSelected: false,
-                      onPressed: onPressed,
-                      previewWidth:
-                          LibraryDuplicateReviewMetrics.groupPreviewWidth,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                IgnorePointer(
+                  child: ExcludeFocus(
+                    child: ExcludeSemantics(
+                      child: LibraryViewerFilmstripThumbnail(
+                        asset: asset,
+                        isSelected: false,
+                        onPressed: onPressed,
+                        previewWidth:
+                            LibraryDuplicateReviewMetrics.groupPreviewWidth,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              back: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colors.primaryContainer,
-                  borderRadius: BorderRadius.circular(8),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: AmeStateTransition(
+                    active: selected,
+                    motion: AmeMotion.fastEffects,
+                    builder: (context, opacity, child) =>
+                        FadeTransition(opacity: opacity, child: child),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: colors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: SizedBox.square(
+                        dimension: 24,
+                        child: Icon(
+                          Symbols.check_rounded,
+                          size: 18,
+                          color: colors.onPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                child: Icon(
-                  Symbols.check_rounded,
-                  size: 32,
-                  color: colors.onPrimaryContainer,
-                ),
-              ),
+              ],
             ),
           ),
         ),

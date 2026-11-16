@@ -34,19 +34,23 @@ qualification are tracked only in the roadmap.
 
 MW2 keeps destination changes in `LibraryDuplicateWorkspace` and moves only their presentation to
 the contextual sidebar. Its compact fallback uses the installed NavigationBar. Group image and
-details composition now has its own 82-line owner; the existing 260-line member-card owner retains
+details composition now has its own 93-line owner; the existing 263-line member-card owner retains
 viewer launch geometry and file actions. The page has 396 production lines, with no inline tests;
-the dedicated layout fixture has 364 lines. The group grid requests a 320-pixel logical preview
+the dedicated layout fixture has 374 lines. The group grid requests a 320-pixel logical preview
 for visible representatives and one prefetched row, retaining immediate retirement when hidden.
 
 The 18 focused review checks passed across 400/800/1200/1280 widths, ordinary/doubled text,
 continuous group/member paging, late responses, preferred decisions, ignore/restore, similarity
-degree, selection and comparison. The preview-demand fixture now scrolls by actual card rows;
-the taller cards request six representatives in its viewport instead of the previous nine.
+degree, selection and comparison. The preview-demand fixture scrolls by actual card rows;
+the compact cards request twelve representatives across visible rows and one prefetched row.
 In the same isolated Windows client, 72 exact groups and six standard-similarity groups rendered
-with the new sidebar and larger previews. Clicking a preview flipped its selection; entering its
-210-member group and returning retained that selection. The degree popup retained its existing
-choices and neighboring cleanup action. No source cleanup operation was executed.
+with the new sidebar. The degree popup retained its existing choices and neighboring cleanup action.
+The subsequent compact-card refinement passed all nine layout/selection checks, including retained
+preview state and bounds. A fresh isolated client using the existing 640x480 corpus subset displayed
+three columns at normal window width. Clicking the image retained its pixels and added a circular
+check and thin card outline; entering the 210-member group through its filename and returning kept
+that selection. The earlier client exited normally and preserved all 10,000 fixture files by size
+and modification time. No source cleanup operation was executed.
 
 Date: 2026-11-08
 

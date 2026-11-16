@@ -11,7 +11,7 @@ class LibraryDuplicateReviewMetrics {
   static const padding = 12.0;
   static const gap = 8.0;
   static const thumbnailExtent = 80.0;
-  static const groupPreviewHeight = 168.0;
+  static const groupPreviewHeight = 104.0;
   static const groupPreviewWidth = 320.0;
   static const iconActionExtent = 48.0;
   static const selectionExtent = 48.0;

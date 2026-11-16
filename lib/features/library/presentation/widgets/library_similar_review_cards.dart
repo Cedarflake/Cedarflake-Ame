@@ -15,16 +15,19 @@ class LibrarySimilarGroupCard extends StatelessWidget {
     required this.group,
     required this.onOpen,
     this.thumbnail,
+    this.selected = false,
     super.key,
   });
   final LibrarySimilarGroup group;
   final VoidCallback onOpen;
   final Widget? thumbnail;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) => LibraryReviewGroupCard(
     asset: group.representative,
     thumbnail: thumbnail,
+    selected: selected,
     onOpen: onOpen,
     details: Text(
       "${LibraryDuplicateStrings.similarGroups} · ${LibraryDuplicateStrings.similarImages(group.memberCount)}",

@@ -22,17 +22,20 @@ class LibraryDuplicateGroupCard extends StatelessWidget {
     required this.onOpen,
     this.kindLabel,
     this.thumbnail,
+    this.selected = false,
     super.key,
   });
   final LibraryDuplicateReviewGroup entry;
   final VoidCallback onOpen;
   final String? kindLabel;
   final Widget? thumbnail;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) => LibraryReviewGroupCard(
     asset: entry.representative,
     thumbnail: thumbnail,
+    selected: selected,
     onOpen: onOpen,
     details: Text(
       [

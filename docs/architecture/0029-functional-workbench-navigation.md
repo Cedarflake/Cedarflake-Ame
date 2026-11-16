@@ -265,7 +265,8 @@ supplies pointer, keyboard and hover behavior, while
 the text/icon buttons keep their separate actions. The pinned SDK's `Card.clipBehavior` clips the ink to
 the shared card shape; an embedded clickable `ListTile` would restrict feedback to the path region.
 Group cards place their representative image above details, with a shared bounded preview demand.
-The existing flip-selection target occupies that image slot; all member reads remain demand-driven.
+The image slot selects its group without replacing the preview; a circular check and thin card
+outline show selection. All member reads remain demand-driven.
 The selected group retains its initial representative filename as the heading while scrolling;
 content aligns beneath that heading. Member cards omit a separate preferred-copy label and the
 decorative folder icon beside their existing thumbnail. Preference and reveal actions remain.

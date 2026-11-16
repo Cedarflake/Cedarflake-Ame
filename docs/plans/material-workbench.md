@@ -18,6 +18,8 @@ Duplicates moves its exact/similar/ignored choices into its contextual sidebar. 
 and cleanup remain with the results. Group cards emphasize the existing representative preview;
 member rows, comparison, preferred-file decisions, ignored groups and cleanup use the existing
 controllers and bounded reads. Do not fetch all members just to decorate a group card.
+Use compact group cards. Selecting their image retains the preview and adds a circular check and
+thin card outline; opening the details still enters the group.
 
 The viewer retains its current top and bottom actions, zoom, rotation, copy and source lifecycle.
 Its image canvas has straight edges. The thumbnail strip overlays the canvas with rounded corners

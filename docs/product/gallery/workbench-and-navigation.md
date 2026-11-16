@@ -107,8 +107,10 @@ enlarged text wrap actions below it with right alignment. Primary-destination ch
 navigation and temporary selection. Ordinary return from viewing or comparison preserves the group.
 
 Groups use responsive multi-column cards with one bounded representative image above the filename,
-details and open action. Clicking the image retains the existing flip-to-selection interaction;
-the card details and open action enter the group. Ignored groups remain non-selectable. Do not fetch
+details and open action. Keep group cards compact enough for three columns at ordinary desktop
+widths. Clicking the image selects the group while retaining its preview; a small circular check
+and thin card outline indicate selection. Selection cannot replace or resize the preview. The
+card details and open action enter the group. Ignored groups remain non-selectable. Do not fetch
 all member images to decorate a group card. Members use full-width rows with their existing
 whole-row hover/open interaction. Member rows retain filename, path,
 availability and accessible preference/Explorer actions; similar members also expose exact-copy
