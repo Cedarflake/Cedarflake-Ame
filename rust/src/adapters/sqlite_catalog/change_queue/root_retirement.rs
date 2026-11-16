@@ -114,5 +114,13 @@ pub(in crate::adapters::sqlite_catalog) fn retire_root_change_queue(
             params![now_unix_ms, root_id, current_generation],
         )
         .map_err(database_error)?;
+    if let Some(generation) = current_generation {
+        super::namespace_retirement::retire_unstarted_authorities(
+            transaction,
+            root_id,
+            generation,
+            now_unix_ms,
+        )?;
+    }
     Ok(())
 }

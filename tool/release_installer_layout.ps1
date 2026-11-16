@@ -1,5 +1,6 @@
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'release_msvc_runtime.ps1')
 
 function Assert-AmeInstallerLayout {
     param([Parameter(Mandatory = $true)]$Model, [Parameter(Mandatory = $true)]$Receipt)
@@ -48,7 +49,8 @@ function Assert-AmeInstallerLayout {
     }
     $payload = @{}
     foreach ($file in $Receipt.payload.files) { $payload[$file.relativePath] = $file }
-    Require ($Model.File.Count -eq $payload.Count) 'package file count differs from verified payload'
+    $brokerRuntime = @(Get-AmeMsvcRuntimePayloadNames)
+    Require ($Model.File.Count -eq $payload.Count + $brokerRuntime.Count) 'package file count differs from verified payload'
     $installed = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach ($file in $Model.File) {
         $component = $components[$file.Component_]
@@ -62,9 +64,15 @@ function Assert-AmeInstallerLayout {
             $name = $parent.DefaultDir.Split('|')[-1] + '/' + $name
             $directory = $parent.Directory_Parent
         }
-        Require ($directory -cne 'AmeBrokerFolder' -or $name -ceq 'cedarflake_ame_journal_broker.exe') 'unexpected broker payload'
-        Require ($payload.ContainsKey($name) -and $installed.Add($name)) 'unknown or duplicate installed file'
+        Require ($directory -cne 'AmeBrokerFolder' -or
+            $name -ceq 'cedarflake_ame_journal_broker.exe' -or $name -cin $brokerRuntime) 'unexpected broker payload'
+        Require ($directory -ceq 'AmeBrokerFolder' -or $name -cne 'cedarflake_ame_journal_broker.exe') 'broker outside its protected directory'
+        Require ($payload.ContainsKey($name) -and $installed.Add("$directory/$name")) 'unknown or duplicate installed file'
         Require ([long]$file.FileSize -eq [long]$payload[$name].length) 'installed file length differs from verified payload'
+    }
+    foreach ($name in $brokerRuntime) {
+        Require ($installed.Contains("AMEAPPDIR/$name") -and
+            $installed.Contains("AmeBrokerFolder/$name")) 'missing application or broker runtime'
     }
     foreach ($row in $Model.RemoveFile) {
         Require ($row.FileName -ceq '' -and $row.InstallMode -ceq '2' -and
@@ -107,7 +115,10 @@ function Assert-AmeInstallerLayout {
         switch -CaseSensitive ($row.Table) {
             'File' {
                 $expected = $fileAcl
-                if ($row.LockObject -ceq 'AmeBrokerExecutable') { $expected += "(A;;0x1200A9;;;$brokerSid)" }
+                $file = @($Model.File | Where-Object File -CEQ $row.LockObject)
+                if ($file.Count -eq 1 -and $components[$file[0].Component_].Directory_ -ceq 'AmeBrokerFolder') {
+                    $expected += "(A;;0x1200A9;;;$brokerSid)"
+                }
             }
             'CreateFolder' {
                 $expected = $directoryAcl

@@ -10,6 +10,7 @@ param(
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "release_journal_broker_common.ps1")
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
+. (Join-Path $PSScriptRoot "release_msvc_runtime.ps1")
 
 if (($SigningMode -ceq 'signed' -and [string]::IsNullOrWhiteSpace($ExpectedBrokerPublisher)) -or
     ($SigningMode -ceq 'unsigned' -and -not [string]::IsNullOrWhiteSpace($ExpectedBrokerPublisher))) {
@@ -130,7 +131,7 @@ $requiredFiles = @(
     "flutter_windows.dll",
     "data/app.so",
     "data/icudtl.dat"
-) + @(Get-AmeClassificationRuntimePayloadNames)
+) + @(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeMsvcRuntimePayloadPaths)
 foreach ($requiredFile in $requiredFiles) {
     if (-not $manifestPaths.Contains($requiredFile)) {
         throw "Unsigned candidate misses required runtime file: $requiredFile"

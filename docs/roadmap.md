@@ -35,7 +35,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
 | R8 | Authorized file organization and recovery | Merged into `main` on 2026-11-11 through [PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57); incorporates former R9 |
 | R9 | Move album files into year-based folders | Merged into `main` on 2026-11-12 through [PR 60](https://github.com/Cedarflake/Cedarflake-Ame/pull/60) |
-| R10 | Large-library maturity and release readiness | R10a (R10-01) integrated through [PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64); R10b (R10-02) integrated through [PR 66](https://github.com/Cedarflake/Cedarflake-Ame/pull/66); R10-03 through R10-05 pending for `v0.1.0-beta.1` |
+| R10 | Large-library maturity and release readiness | R10a (R10-01) integrated through [PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64); R10b (R10-02) integrated through [PR 66](https://github.com/Cedarflake/Cedarflake-Ame/pull/66); R10c (R10-03) implemented, integration pending; R10-04 and R10-05 pending for `v0.1.0-beta.1` |
 
 R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
 feature. The R9 identifier now denotes the separate album-by-year movement scope below; the former
@@ -77,7 +77,10 @@ R10b (R10-02) is integrated through [PR 66](https://github.com/Cedarflake/Cedarf
 sustained-use resource bounds, compatible semantic-index reuse and interruption/restart recovery.
 Its [integration record](acceptance/r10-resource-recovery.md#r10b-integration--2026-11-16) retains
 review, verification and branch cleanup; the closeout retains remaining observations.
-R10-03 is the next planned slice.
+R10c (R10-03) is implemented on `codex/r10c-upgrade-compatibility`, pending integration: shared build
+identity and Alpha 3 upgrade, installation and catalog compatibility. Its
+[qualification record](acceptance/r10-upgrade-compatibility.md) retains the package, retained-data,
+recovery and clean-system results. R10-04 and R10-05 remain pending.
 
 ### Gallery group discovery
 
@@ -104,8 +107,8 @@ upgrade compatibility, diagnostics and user guidance, then the first Beta candid
 R10a completes R10-01 in `main`. Its [closeout](acceptance/r10-responsiveness.md#r10a-closeout)
 records retained-library Release/Profile targets, publication behavior and passing full CI; the
 [integration record](acceptance/r10-responsiveness.md#r10a-integration--2026-11-14) retains review and merge evidence.
-R10-02 is integrated in `main`. The plan owns the detailed workloads and completion criteria;
-this disposition does not start the later slices.
+R10-02 is integrated in `main`; R10-03 is implemented, pending integration. The plan owns the detailed workloads and
+completion criteria. Diagnostics export and Beta publication remain in the later slices.
 
 R10-02's [resource and recovery evidence](acceptance/r10-resource-recovery.md) records the sustained
 session, index reuse, current-root recovery and bounded layout measurements. R2c-M now uses R10's

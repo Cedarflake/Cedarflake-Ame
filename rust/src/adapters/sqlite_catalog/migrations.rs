@@ -37,6 +37,7 @@ mod exact_duplicate_review;
 mod exact_duplicates;
 mod file_operation_exports;
 mod file_operation_notifications;
+mod historical_recovery_state;
 mod organization_group_filters;
 #[cfg(test)]
 pub(super) use file_operation_notifications::downgrade_for_test as downgrade_to_v79_for_test;
@@ -52,6 +53,7 @@ mod recovery_authority_contract;
 mod recovery_execution_contract;
 #[cfg(test)]
 mod recovery_test_catalog;
+mod replaced_namespace_authority;
 mod retired_live_gap_repair;
 mod root_namespace_contract;
 mod scan_handoff_contract;
@@ -59,6 +61,8 @@ mod scan_owner_contract;
 mod similar_images;
 mod terminal_inventory_repair;
 mod terminal_journal_handoff;
+#[cfg(test)]
+pub(super) use album_year_exports::downgrade_for_test as downgrade_to_v81_for_test;
 #[cfg(test)]
 pub(crate) use exact_duplicates::downgrade_to_v39_for_test;
 mod foreground_queue_index;
@@ -207,7 +211,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         return transaction.commit().map_err(database_error);
     }
 
-    terminal_journal_handoff::repair_before_upgrade(connection)?;
+    historical_recovery_state::repair_before_upgrade(connection)?;
     loop {
         let version: i64 = connection
             .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {

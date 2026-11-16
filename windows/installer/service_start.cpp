@@ -39,6 +39,9 @@ ServiceHandle OpenBroker(DWORD access) {
 }
 
 bool Cancelled(MSIHANDLE session) {
+  if (MsiGetMode(session, MSIRUNMODE_ROLLBACK)) {
+    return false;
+  }
   const MSIHANDLE record = MsiCreateRecord(4);
   if (!record) {
     throw std::runtime_error("Cannot report journal broker startup progress");

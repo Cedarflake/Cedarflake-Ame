@@ -13,6 +13,7 @@ param(
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
+. (Join-Path $PSScriptRoot "release_msvc_runtime.ps1")
 . (Join-Path $PSScriptRoot "release_journal_broker_common.ps1")
 
 $repositoryRoot = Get-AmeRepositoryRoot
@@ -56,7 +57,7 @@ $requiredSourcePaths = @(
     "data\app.so",
     "data\icudtl.dat",
     "data\flutter_assets"
-)
+) + @(Get-AmeMsvcRuntimePayloadPaths)
 foreach ($requiredSourcePath in $requiredSourcePaths) {
     $candidatePath = Join-Path $resolvedReleaseRoot $requiredSourcePath
     if (-not (Test-Path -LiteralPath $candidatePath)) {
@@ -66,7 +67,8 @@ foreach ($requiredSourcePath in $requiredSourcePaths) {
 foreach ($accelerator in @($false, $true)) {
     $runtimeManifest = Get-AmeClassificationRuntimeManifest -Accelerator:$accelerator
     Assert-AmeClassificationRuntimeDirectory `
-        (Join-Path $resolvedReleaseRoot $runtimeManifest.bundleDirectory) $runtimeManifest
+        (Join-Path $resolvedReleaseRoot $runtimeManifest.bundleDirectory) $runtimeManifest `
+        -CompanionFiles @(Get-AmeMsvcRuntimeCompanionFiles $resolvedReleaseRoot)
 }
 $brokerSourcePath = Join-Path $resolvedReleaseRoot (Get-AmeBrokerServicePlan).BinaryName
 $applicationSourcePath = Join-Path $resolvedReleaseRoot $script:AmeApplicationBinaryName

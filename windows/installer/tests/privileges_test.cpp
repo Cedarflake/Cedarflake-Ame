@@ -31,7 +31,9 @@ int RunPrivilegeTests() {
   if (!HasRequiredBrokerPrivileges({L"SeImpersonatePrivilege", L"SeManageVolumePrivilege"})) {
     throw std::runtime_error("SCM privilege order changed the required set");
   }
-  RequireRejected([&] { ReadBrokerPrivileges(bytes, nullptr); });
+  if (!ReadBrokerPrivileges(bytes, nullptr).empty()) {
+    throw std::runtime_error("An unconfigured SCM privilege list must remain empty");
+  }
   RequireRejected([&] {
     ReadBrokerPrivileges(bytes, reinterpret_cast<const wchar_t*>(bytes.data() + bytes.size()));
   });

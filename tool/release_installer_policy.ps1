@@ -52,6 +52,7 @@ function Assert-AmeInstallerPolicy {
         SetAmeDesktopChoice = @('51', 'AmeDesktopChoice', '1')
         AmeValidateInstallation = @('1', 'AmeInstallerAdmission', 'AmeValidateInstallation')
         AmeRequireRollback = @('19', '', $null)
+        AmeRestorePreviousBroker = @('3329', 'AmeInstallerAdmission', 'AmeRestorePreviousBroker')
         SetAmeVerifyInstalledService = @('51', 'AmeVerifyInstalledService', $Receipt.brokerIdentity)
         AmeVerifyInstalledService = @('3073', 'AmeInstallerAdmission', 'AmeVerifyInstalledService')
         SetAmeStopInstalledService = @('51', 'AmeStopInstalledService', $Receipt.brokerIdentity)
@@ -71,7 +72,8 @@ function Assert-AmeInstallerPolicy {
     $sequence = @{}
     foreach ($row in $Model.InstallExecuteSequence) { $sequence[$row.Action] = $row }
     $orderedActions = @('AmeValidateInstallation', 'InstallValidate', 'InstallInitialize',
-        'AmeRequireRollback', 'RemoveExistingProducts', 'ProcessComponents', 'StopServices',
+        'AmeRequireRollback', 'AmeRestorePreviousBroker', 'InstallExecute',
+        'RemoveExistingProducts', 'ProcessComponents', 'StopServices',
         'DeleteServices', 'RemoveFiles', 'InstallFiles', 'InstallServices', 'MsiConfigureServices',
         'SetAmeVerifyInstalledService', 'AmeVerifyInstalledService',
         'SetAmeStopInstalledService', 'AmeStopInstalledService',
@@ -85,6 +87,7 @@ function Assert-AmeInstallerPolicy {
     }
     Require ($sequence.AmeValidateInstallation.Condition -ceq '' -and
         $sequence.AmeRequireRollback.Condition -ceq 'RollbackDisabled OR DISABLEROLLBACK' -and
+        $sequence.AmeRestorePreviousBroker.Condition -ceq 'WIX_UPGRADE_DETECTED AND AmeRestorePreviousBroker' -and
         $sequence.AmeVerifyInstalledService.Condition -ceq '$AmeBroker = 3' -and
         $sequence.AmeStartInstalledService.Condition -ceq '$AmeBroker = 3' -and
         $sequence.AmeStopInstalledService.Condition -ceq '$AmeBroker = 3') 'admission conditions changed'

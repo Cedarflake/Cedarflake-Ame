@@ -71,6 +71,25 @@ try {
     Assert-RuntimeRejected { Assert-AmeClassificationRuntimeDirectory $destination $fixture } 'exactly the admitted payload'
     Remove-Item -LiteralPath $extra
 
+    $companionPath = Join-Path $destination 'msvcp140.dll'
+    $ownedFiles.Add($companionPath)
+    [IO.File]::WriteAllBytes($companionPath, $retained)
+    $companion = [pscustomobject]@{
+        name = 'msvcp140.dll'
+        length = $retained.Length
+        sha256 = (Get-FileHash -LiteralPath $companionPath -Algorithm SHA256).Hash
+    }
+    Assert-RuntimeRejected { Assert-AmeClassificationRuntimeDirectory $destination $fixture } 'exactly the admitted payload'
+    Assert-AmeClassificationRuntimeDirectory $destination $fixture -CompanionFiles @($companion)
+    [IO.File]::WriteAllBytes($companionPath, $changed)
+    Assert-RuntimeRejected {
+        Assert-AmeClassificationRuntimeDirectory $destination $fixture -CompanionFiles @($companion)
+    } 'pinned length or digest'
+    Remove-Item -LiteralPath $companionPath
+    Assert-RuntimeRejected {
+        Assert-AmeClassificationRuntimeDirectory $destination $fixture -CompanionFiles @($companion)
+    } 'exactly the admitted payload'
+
     $fixture.archive.sha256 = '0' * 64
     Assert-RuntimeRejected { Expand-AmeClassificationRuntimeArchive $zipPath $rejected $fixture } 'pinned length or digest'
     if (Test-Path -LiteralPath $rejected) { throw "Rejected archive created extraction state" }

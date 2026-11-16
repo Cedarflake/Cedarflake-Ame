@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-11
-- Last amended: 2026-11-09
+- Last amended: 2026-11-16
 
 ## Context
 
@@ -64,6 +64,12 @@ zeroes; identifiers such as `-01` and `-rc.01` are rejected at every hosted and 
 The current initial release line is `0.1.0`; the Flutter build suffix remains build metadata and is
 not part of the tag or artifact name.
 
+The desktop About and license surfaces use Flutter's compiled `appBuildName` and `appBuildNumber`
+constants through `AmeBuildIdentity`. The pinned SDK supplies them from the same build options as
+the executable's `FLUTTER_VERSION` resource. Startup diagnostics attach that identity even when the
+Rust runtime or catalog cannot open. Reading it needs no platform request, catalog or startup wait.
+Package receipts use the matching manifest version, and release-note admission uses its tag.
+
 Only Windows 11 x64 is supported and published. ARM packages are not produced or implied. A hosted
 `windows-2025` Windows Server runner supplies reproducible build and release checks, but it does not
 replace the separately authorized Windows 11 client acceptance evidence.
@@ -80,6 +86,19 @@ The portable archive contains the complete repository-built Flutter Release dire
 verification rejects an unexpected filename, entries outside the single archive root, traversal or
 absolute paths, duplicate paths, missing executable or core runtime DLLs, missing Rust bridge DLL,
 missing ICU or application data, and missing Flutter assets.
+
+CMake's `InstallRequiredSystemLibraries` copies the selected MSVC toolchain's redistributable
+Release libraries beside the executable. Candidate and archive admission require `msvcp140.dll`, `msvcp140_1.dll`,
+`vcruntime140.dll` and `vcruntime140_1.dll`; Debug runtimes and system-directory copies are excluded.
+The same four libraries accompany each CPU/GPU model runtime in its own directory, preserving
+the worker's restricted DLL search. Portable admission checks these copies against the application
+root's lengths and hashes while retaining the pinned engine manifest and exact directory contents.
+This follows Flutter's [Windows deployment guidance](https://docs.flutter.dev/platform-integration/windows/building)
+and Microsoft's [redistributable-file terms](https://learn.microsoft.com/en-us/cpp/windows/redistributing-visual-cpp-files).
+The Visual Studio build operator must hold the applicable distribution rights; the binaries retain
+Microsoft's license and are not relicensed under Ame's Apache license. App-local deployment keeps
+the portable package self-contained and avoids changes to other applications' runtime installation.
+Runtime security servicing requires a new Ame package from the updated supported toolchain.
 
 The release-candidate workflow is manually dispatched only from `main`; a tag push
 never obtains publication or signing credentials. The default `unsigned` channel verifies the

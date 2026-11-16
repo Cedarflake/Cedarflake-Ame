@@ -172,6 +172,10 @@ void VerifyServiceConfiguration(const std::wstring& identity_manifest) {
   if (!file_identity || *file_identity != identity_manifest) {
     throw std::runtime_error("Installed broker bytes differ from this package; restart-delayed replacement is not accepted");
   }
+  VerifyServicePermissions();
+}
+
+void VerifyServicePermissions() {
   const auto service = OpenBroker(READ_CONTROL);
   if (!service) {
     throw std::runtime_error("Installed journal broker disappeared during verification");

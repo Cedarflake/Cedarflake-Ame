@@ -17,6 +17,8 @@ foreach ($case in @(
     @{ paths = @('tool/release_package_installer_windows.ps1'); stage = 'candidate' },
     @{ paths = @('windows/installer/package.wxs'); stage = 'candidate' },
     @{ paths = @('tool/release_verify_windows_candidate.ps1'); stage = 'fresh' },
+    @{ paths = @('tool/release_msvc_runtime.ps1'); stage = 'fresh' },
+    @{ paths = @('windows/cmake/msvc_runtime.cmake'); stage = 'fresh' },
     @{ paths = @('tool/quality_common.ps1'); stage = 'fresh' },
     @{ paths = @('unknown/owner.ps1'); stage = 'fresh' }
 )) {

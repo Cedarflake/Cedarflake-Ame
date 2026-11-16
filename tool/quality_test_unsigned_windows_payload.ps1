@@ -27,7 +27,7 @@ $nativeNames = @(
     'cedarflake_ame.exe', 'cedarflake_ame_journal_broker.exe',
     'cedarflake_ame_classification_worker.exe',
     'rust_lib_cedarflake_ame.dll', 'flutter_windows.dll'
-)
+) + @(Get-AmeMsvcRuntimePayloadPaths)
 $ownedFiles = @(
     $source, $dependencies, $builtLibrary, $builtBroker,
     (Join-Path $bundle 'data\app.so'), (Join-Path $bundle 'data\icudtl.dat'),
@@ -59,13 +59,13 @@ try {
     [System.IO.File]::WriteAllText($dependencies, $dependencyRule)
     [System.IO.File]::SetLastWriteTimeUtc($source, [DateTime]::UtcNow.AddMinutes(-1))
     $facts = Get-AmeUnsignedWindowsPayloadFacts @arguments
-    if ($facts.machine -cne 'windows-x64' -or $facts.fileCount -ne 24 -or $facts.rustDependencyCount -ne 1) {
+    if ($facts.machine -cne 'windows-x64' -or $facts.fileCount -ne 36 -or $facts.rustDependencyCount -ne 1) {
         throw "Valid unsigned Release fixture was not completely described"
     }
     if (@($facts.files | Where-Object { [System.IO.Path]::IsPathRooted($_.relativePath) }).Count -ne 0) {
         throw "Unsigned evidence must not contain machine-specific payload paths"
     }
-    foreach ($missing in (Get-AmeClassificationRuntimePayloadNames)) {
+    foreach ($missing in (@(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeMsvcRuntimePayloadPaths))) {
         $file = Join-Path $bundle $missing
         Remove-Item -LiteralPath $file
         Assert-AmeUnsignedFixtureRejected { Get-AmeUnsignedWindowsPayloadFacts @arguments } 'missing required'
@@ -120,7 +120,7 @@ try {
         [System.IO.Directory]::Delete($junction, $false)
     }
     Get-AmeUnsignedWindowsPayloadFacts @arguments | Out-Null
-    Write-Host 'Unsigned Windows payload guardrails passed: valid bundle and 25 distinct rejection cases'
+    Write-Host 'Unsigned Windows payload guardrails passed: valid bundle, omitted runtime, tamper, dependency and path cases'
 } finally {
     foreach ($file in $ownedFiles) {
         if (Test-Path -LiteralPath $file) {

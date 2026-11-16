@@ -211,7 +211,13 @@ shared principles; the roadmap owns current delivery order and acceptance status
   transactions; historical DDL steps retain the same canonical schema definitions.
   `terminal_inventory_repair.rs` owns exact terminal-run cleanup; `retired_live_gap_repair.rs`
   admits only retired-root/generation residue. `current_recovery_state.rs` keeps their combined
-  repair and validation in one transaction. `interrupted_foreground_repair.rs` owns lease/claim
+  repair and validation in one transaction. `replaced_namespace_authority.rs` retires unstarted
+  recovery authority only when matching superseded work, an absent old namespace and a newer active
+  root generation prove replacement. `historical_recovery_state.rs` combines eligible namespace
+  retirement and completed journal-handoff repair in one transaction before upgrading an older
+  schema, validating all rows before commit so neither repair rejects the other's known residue.
+  `change_queue/namespace_retirement.rs` owns the shared unstarted-authority proof and normal
+  transactional retirement alongside namespace changes. `interrupted_foreground_repair.rs` owns lease/claim
   restoration and cleanup after an interrupted explicit scan. `prerelease_journal_repair.rs`
   admits only the exact historical trigger/window shapes. Each retains its original admission,
   recheck and rollback rules; ordinary migration ordering remains in the coordinator.

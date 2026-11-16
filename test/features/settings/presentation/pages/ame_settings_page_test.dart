@@ -4,6 +4,7 @@ import "dart:ui" show CheckedState;
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
+import "package:cedarflake_ame/app/window/ame_build_identity.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/ports/ame_preference_store.dart";
 import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
@@ -22,6 +23,38 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../support/application_test_bindings.dart";
 
 void main() {
+  testWidgets("About and licenses use the same executable version", (
+    tester,
+  ) async {
+    final gateway = _FakeStorageSettingsGateway(_status());
+    addTearDown(gateway.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: applicationTestOverrides([
+          storageSettingsGatewayProvider.overrideWithValue(gateway),
+          ameBuildIdentityProvider.overrideWithValue(
+            const AmeBuildIdentity(name: "0.1.0-beta.1", number: "4"),
+          ),
+        ]),
+        child: MaterialApp(
+          theme: buildAmeTheme(),
+          home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text("Cedarflake Ame 0.1.0-beta.1+4"), findsOneWidget);
+    final licenses = find.byKey(const Key("open-source-notices-setting"));
+    await tester.ensureVisible(licenses);
+    await tester.pumpAndSettle();
+    await tester.tap(licenses);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<LicensePage>(find.byType(LicensePage)).applicationVersion,
+      "0.1.0-beta.1+4",
+    );
+  });
+
   testWidgets("renders settings in the main canvas with plain-language rows", (
     tester,
   ) async {

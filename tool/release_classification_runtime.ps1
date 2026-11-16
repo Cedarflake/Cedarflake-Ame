@@ -50,15 +50,17 @@ function Assert-AmeClassificationRuntimeArtifact {
 function Assert-AmeClassificationRuntimeDirectory {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
-        [Parameter(Mandatory = $true)][object]$Manifest
+        [Parameter(Mandatory = $true)][object]$Manifest,
+        [object[]]$CompanionFiles = @()
     )
 
     Assert-AmeClassificationRuntimeLocalPath $Path
     $entries = @(Get-ChildItem -LiteralPath $Path -Force)
-    if ($entries.Count -ne $Manifest.files.Count) {
+    $files = @($Manifest.files) + $CompanionFiles
+    if ($entries.Count -ne $files.Count) {
         throw "Classification runtime directory must contain exactly the admitted payload"
     }
-    foreach ($file in $Manifest.files) {
+    foreach ($file in $files) {
         Assert-AmeClassificationRuntimeArtifact (Join-Path $Path $file.name) $file
     }
 }
