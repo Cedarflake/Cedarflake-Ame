@@ -1,16 +1,12 @@
 use std::fs::{File, OpenOptions};
 use std::io;
-use std::mem::size_of;
 use std::os::windows::fs::OpenOptionsExt;
-use std::os::windows::io::{AsRawHandle, FromRawHandle};
 use std::path::{Component, Path, PathBuf, Prefix};
 
-use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
 use windows_sys::Win32::Storage::FileSystem::{
-    ExtendedFileIdType, FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_REPARSE_POINT,
-    FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, FILE_ID_128, FILE_ID_DESCRIPTOR,
-    FILE_ID_DESCRIPTOR_0, FILE_READ_ATTRIBUTES, FILE_SHARE_DELETE, FILE_SHARE_READ,
-    FILE_SHARE_WRITE, OpenFileById,
+    FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS,
+    FILE_FLAG_OPEN_REPARSE_POINT, FILE_READ_ATTRIBUTES, FILE_SHARE_DELETE, FILE_SHARE_READ,
+    FILE_SHARE_WRITE,
 };
 
 use crate::domain::{FileIdentityEvidence, MetadataInventoryPlaceholderState, ScanError};
@@ -79,23 +75,7 @@ fn local_volume_hint(path: &Path) -> Option<PathBuf> {
 }
 
 fn parse_identity(identity: &FileIdentityEvidence) -> Result<Option<(u64, [u8; 16])>, ScanError> {
-    if identity.scheme != "windows-file-id-128-v1" {
-        return Ok(None);
-    }
-    let bytes = identity.value.as_bytes();
-    if bytes.len() != 49
-        || bytes[16] != b':'
-        || bytes.iter().enumerate().any(|(index, byte)| {
-            index != 16 && !byte.is_ascii_digit() && !(b'a'..=b'f').contains(byte)
-        })
-    {
-        return Err(invalid_identity());
-    }
-    let volume = u64::from_str_radix(&identity.value[..16], 16).map_err(|_| invalid_identity())?;
-    let file_id = u128::from_str_radix(&identity.value[17..], 16)
-        .map_err(|_| invalid_identity())?
-        .to_le_bytes();
-    Ok(Some((volume, file_id)))
+    super::identity_lookup::parse_identity(identity).map_err(|_| invalid_identity())
 }
 
 fn invalid_identity() -> ScanError {
@@ -121,33 +101,11 @@ fn lookup_directory(
     {
         return Ok(None);
     }
-    let descriptor = FILE_ID_DESCRIPTOR {
-        dwSize: u32::try_from(size_of::<FILE_ID_DESCRIPTOR>()).expect("descriptor size fits u32"),
-        Type: ExtendedFileIdType,
-        Anonymous: FILE_ID_DESCRIPTOR_0 {
-            ExtendedFileId: FILE_ID_128 {
-                Identifier: file_id,
-            },
-        },
-    };
-    // SAFETY: ADR 0024 admits this attribute-only lookup. The live hint and initialized extended
-    // descriptor are borrowed only for this call; OpenFileById retains neither pointer.
-    let raw = unsafe {
-        OpenFileById(
-            hint.as_raw_handle(),
-            &raw const descriptor,
-            FILE_READ_ATTRIBUTES,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            std::ptr::null(),
-            FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
-        )
-    };
-    if raw == INVALID_HANDLE_VALUE {
-        return Err(io::Error::last_os_error());
-    }
-    // SAFETY: the successful call transferred exactly one owned handle. File closes it on every
-    // return path, and no other owner is created from it.
-    let directory = unsafe { File::from_raw_handle(raw) };
+    let directory = super::identity_lookup::open_by_id(
+        &hint,
+        file_id,
+        FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
+    )?;
     if !is_available_directory(&directory)?
         || file_identity_from_handle(&directory)?.as_ref() != Some(expected)
     {

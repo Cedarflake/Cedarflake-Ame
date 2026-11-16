@@ -40,6 +40,10 @@ pub(crate) trait PublicationFileSource: PublicationNamespace + MediaSource {
         relative_path: &str,
     ) -> Result<MetadataInventoryEntry, ScanIssue>;
     fn visit_relative_path(&self, relative_path: &str) -> FileVisit;
+    fn locate_relative_file(
+        &self,
+        identity: &FileIdentityEvidence,
+    ) -> Result<Option<String>, ScanIssue>;
 }
 
 pub(crate) trait PublicationDirectorySource: PublicationFileSource {

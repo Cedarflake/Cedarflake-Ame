@@ -58,6 +58,11 @@ shared principles; the roadmap owns current delivery order and acceptance status
   `library_scan_completion_recovery.dart` retains pre-run source facts and resolves a drained stream's
   durable result. The primary session retains confirmation/refresh obligations through read failures;
   dismissal or a new import cannot discard them, and Retry performs only the outstanding read.
+- `local_files/identity_lookup.rs` owns the complete Windows identity parser and attribute-only
+  native lookup. `local_files/relocated_file.rs` limits file candidates to the pinned publication
+  root without content reads or hydration. `incremental_library_changes/relocated_file.rs` owns
+  live unpaired-removal continuity, delegating normal file admission and revalidating old absence
+  and the current file before the existing atomic delta publication.
 - `local_files/root_location.rs` owns attribute-only lookup of one retained Windows directory
   identity and the full namespace capability returned for a candidate. It performs no media
   enumeration, content read or other-volume search. `production/root_location.rs` owns one

@@ -58,6 +58,8 @@ mod media_admission_recheck;
 mod metadata_recheck;
 #[cfg(windows)]
 mod preparation_rebase;
+#[cfg(windows)]
+mod relocated_file;
 mod revision_races;
 #[cfg(windows)]
 mod terminal_media;

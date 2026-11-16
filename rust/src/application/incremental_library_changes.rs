@@ -31,6 +31,7 @@ mod media_admission_recheck;
 mod preparation_catalog;
 mod preparation_rebase;
 pub(super) mod production;
+mod relocated_file;
 mod rename_change;
 mod terminal_media;
 pub(super) use authoritative_path_set::{
@@ -674,6 +675,14 @@ where
         return Ok(change);
     }
     let observed = observed.unwrap_or_else(|| inspect_path(discovery, relative_path));
+    if matches!(observed, InspectedPath::CatalogAbsent)
+        && let Some(prior) = path_prior.as_ref()
+        && let Some(prepared) = relocated_file::prepare_relocated_file(
+            repository, discovery, inspector, leased, prior, &removals,
+        )?
+    {
+        return Ok(prepared);
+    }
     if let InspectedPath::TerminalMedia {
         file,
         issue,

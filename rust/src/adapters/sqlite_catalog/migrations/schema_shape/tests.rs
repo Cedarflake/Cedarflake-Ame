@@ -120,7 +120,12 @@ fn schema_object_proof_ignores_formatting_but_preserves_literal_values() {
         .execute_batch("CREATE TABLE sample (name TEXT CHECK(name = 'A B'));")
         .unwrap();
     let expected = "create table sample(name text check(name='A B'))";
-    assert!(schema_object_sql_matches(&connection, "table", "sample", expected).unwrap());
+    for definition in [
+        "CREATE TABLE sample (name TEXT CHECK(name = 'A B'))",
+        expected,
+    ] {
+        assert!(schema_object_sql_matches(&connection, "table", "sample", definition).unwrap());
+    }
     assert!(!schema_object_sql_matches(&connection, "table", "missing", expected).unwrap());
     assert!(
         !schema_object_sql_matches(

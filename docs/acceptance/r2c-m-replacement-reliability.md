@@ -13,6 +13,12 @@ R2c-H USN catch-up evidence. It has two serial phases:
 - an isolated online backup of the retained catalog exercises production metadata inventory against
   the two explicitly authorized roots.
 
+The disposable phase uses the production file watcher with a LiveOnly connection. It establishes
+its root through production scanning and persists an uncovered watcher gap before the interruption.
+That retained evidence authorizes recovery under [ADR 0024](../architecture/0024-windows-change-driven-library-continuity.md#recovery-and-one-time-baseline);
+ordinary startup without a gap does not request an inventory. The current R2c-R matrix owns native
+overflow admission and journal-backed closed-process catch-up.
+
 The retained source paths are represented only as `local-primary` and `cloud-primary`. Machine
 paths, account identity, and local mapping data are not acceptance output.
 
@@ -24,19 +30,28 @@ The disposable phase must prove:
   reach the catalog;
 - event-to-visible P95 is no greater than 1,000 ms;
 - a write storm coalesces into bounded durable work;
-- changes made after the runtime stops converge through the next continuity epoch;
+- changes made after interruption with a retained uncovered gap converge through the next
+  continuity epoch;
 - shutdown remains bounded and continuity creates no full-scan row.
 
 The retained phase must prove:
 
 - a fresh post-backup process opens the retained catalog and makes the initial 500-item gallery
-  page plus 4,096-item layout manifest available before continuity work begins;
+  page plus 4,096-item layout manifest available within five seconds, before continuity work begins;
+- the root-scoped cached pages and initial manifests take no more than one second after the catalog
+  has opened and completed validation;
 - each root metadata inventory completes within 45 seconds;
 - the inventory invokes no media inspection, preview, signature, or hashing path;
 - a separate repeated-inventory safety pass is enclosed by complete Windows directory-entry
   metadata snapshots, and placeholder attributes remain unchanged;
 - no full-scan row is created;
 - queue, isolated catalog, elapsed-time, and Job Object memory evidence remain bounded.
+
+The timing boundary was aligned with R10 on 2026-11-15. The five-second native startup window includes
+catalog opening, validation, root admission and the initial reads; the one-second cached-read window
+starts after opening and remains inside that total. This replaces the former one-second combined
+window. Neither window includes metadata recovery or backup preparation. Desktop process-to-usable-
+gallery timing remains separately measured by the R10 client workflow.
 
 The production adapter and deterministic test suite separately own no-recall handle behavior,
 overflow conversion, cancellation, supersession, incomplete-scope absence rejection, v19-to-v20

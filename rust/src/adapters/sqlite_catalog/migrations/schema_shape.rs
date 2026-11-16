@@ -88,10 +88,9 @@ pub(super) fn schema_object_sql_matches(
         )
         .optional()
         .map_err(database_error)?;
-    Ok(
-        actual
-            .is_some_and(|actual| normalize_schema_sql(&actual) == normalize_schema_sql(expected)),
-    )
+    Ok(actual.is_some_and(|actual| {
+        actual == expected || normalize_schema_sql(&actual) == normalize_schema_sql(expected)
+    }))
 }
 
 pub(super) fn normalize_schema_sql(value: &str) -> String {

@@ -67,14 +67,16 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
     assert_eq!(observation[0].visibility, "");
     assert_eq!(observation[0].attributes, ["cfg(all(windows,test))"]);
     assert!(!observation[0].is_inline);
-    let location = LOCAL_MODULE_CONTRACTS
-        .iter()
-        .filter(|contract| contract.name == "root_location")
-        .collect::<Vec<_>>();
-    assert_eq!(location.len(), 1);
-    assert_eq!(location[0].visibility, "");
-    assert_eq!(location[0].attributes, ["cfg(windows)"]);
-    assert!(!location[0].is_inline);
+    for module_name in ["root_location", "identity_lookup", "relocated_file"] {
+        let contracts = LOCAL_MODULE_CONTRACTS
+            .iter()
+            .filter(|contract| contract.name == module_name)
+            .collect::<Vec<_>>();
+        assert_eq!(contracts.len(), 1, "{module_name}");
+        assert_eq!(contracts[0].visibility, "", "{module_name}");
+        assert_eq!(contracts[0].attributes, ["cfg(windows)"], "{module_name}");
+        assert!(!contracts[0].is_inline, "{module_name}");
+    }
     let fixtures = CRATE_PARENT_MODULE_CONTRACTS
         .iter()
         .filter(|contract| contract.name == "media_fixtures")
@@ -95,7 +97,6 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
     let local_source = LOCAL_SOURCE.replace("\r\n", "\n");
     let crate_source = CRATE_SOURCE.replace("\r\n", "\n");
     let signature = "mod media_signature;";
-    let location = "#[cfg(windows)]\nmod root_location;";
     let observation = concat!(
         "#[cfg(all(windows, test))]\n",
         "mod source_content_observation;"
@@ -153,23 +154,6 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
             ],
             "local",
             "directory_coverage",
-        ),
-        (
-            local_source.as_str(),
-            location,
-            vec![
-                "".to_owned(),
-                format!("{location}\n{location}"),
-                location.replace("mod root_location", "pub mod root_location"),
-                "mod root_location;".to_owned(),
-                location.replace("cfg(windows)", "cfg(test)"),
-                format!("#[path = \"alternate.rs\"]\n{location}"),
-                format!("#[cfg_attr(test, path = \"alternate.rs\")]\n{location}"),
-                location.replace(';', " { mod generated {} }"),
-                "include!(\"alternate.rs\");".to_owned(),
-            ],
-            "local",
-            "root_location",
         ),
         (
             local_source.as_str(),
@@ -318,6 +302,36 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
                 .expect_err("changing an admitted module must still fail closed");
             assert!(
                 error.contains(&format!("availability module topology source {source_key}")),
+                "the exact loading owner must reject {replacement:?}: {error}"
+            );
+        }
+    }
+}
+
+#[test]
+fn root_availability_windows_modules_reject_alternate_generated_or_broader_loading() {
+    let source = LOCAL_SOURCE.replace("\r\n", "\n");
+    for module_name in ["root_location", "identity_lookup", "relocated_file"] {
+        let declaration = format!("#[cfg(windows)]\nmod {module_name};");
+        assert!(source.contains(&declaration), "{module_name}");
+        for replacement in [
+            String::new(),
+            format!("{declaration}\n{declaration}"),
+            declaration.replace("mod ", "pub mod "),
+            format!("mod {module_name};"),
+            declaration.replace("cfg(windows)", "cfg(test)"),
+            format!("#[path = \"alternate.rs\"]\n{declaration}"),
+            format!("#[cfg_attr(test, path = \"alternate.rs\")]\n{declaration}"),
+            format!("#[adversarial_loader]\n{declaration}"),
+            declaration.replace(';', " { mod generated {} }"),
+            "include!(\"alternate.rs\");".to_owned(),
+        ] {
+            let mutated = source.replacen(&declaration, &replacement, 1);
+            assert_ne!(mutated, source, "{module_name}");
+            let error = assert_contract(&mutated, CRATE_SOURCE)
+                .expect_err("changing an admitted Windows module must still fail closed");
+            assert!(
+                error.contains("availability module topology source local"),
                 "the exact loading owner must reject {replacement:?}: {error}"
             );
         }

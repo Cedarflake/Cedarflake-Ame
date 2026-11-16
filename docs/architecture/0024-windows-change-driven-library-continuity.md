@@ -850,6 +850,23 @@ read/write/delete sharing during lookup and use backup/open-reparse semantics wi
 Unavailable volumes, unsupported path kinds, regular files, malformed evidence, identity drift,
 reparse directories and unpinnable candidate ancestors cannot authorize a path transition.
 
+For a live unpaired removal, the publication source may also locate the retained complete file
+identity through its already pinned root handle. This uses the same attribute-only `OpenFileById`
+boundary, adds `FILE_FLAG_OPEN_NO_RECALL`, checks the volume and complete returned identity, and
+rejects directories, reparse files and candidates outside that root. It enumerates no directories
+and reads no source content; an unavailable cloud file remains retryable without hydration.
+The final path is only a candidate for the ordinary root-relative admission and media checks.
+The application publishes the old-location removal and new-location upsert atomically, retaining
+asset identity and revalidating both old absence and new file state. Permission failures remain
+retryable. A missing identity or an outside-root destination permits ordinary removal; this lookup
+does not authorize another root or replace journal lineage. Paired renames and journal/inventory
+work keep their existing owners. Destination terminal-media evidence requires its own scoped lease.
+This prevents notification ordering from discarding identity during an in-root move without a
+time-based tombstone or whole-root scan. The native lookup/parser is shared with directory recovery;
+its RAII and pointer invariants remain unchanged. Adapter containment/deletion cases and a removal-
+before-creation publication regression cover the boundary. Reverting this capability requires no
+schema migration. The native API contract is [OpenFileById](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-openfilebyid).
+
 Same-directory background recovery transfers the existing publication-namespace record only after
 unique retained identity and the full candidate guard reproduce the same directory. The transaction
 rechecks the expected registered path, generation and published scan, refuses running/paused scans

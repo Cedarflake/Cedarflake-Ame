@@ -70,6 +70,8 @@ authoritative recovery and combined `local-primary`/`cloud-primary` reads. Bind 
 the ignored local-context mapping and existing read-only safeguards. Record unavailable roots as
 an evidence gap; do not substitute the retired direct-USN harness or hydrate cloud placeholders.
 Use disposable Sandbox files for mutation, locked-file, missing-root and interruption scenarios.
+R2c-M applies the separate startup and cached-read targets through its
+[timing boundary](../acceptance/r2c-m-replacement-reliability.md#required-evidence).
 
 Reuse targeted worker, catalog, migration and R8/R9 recovery cases. Verify restarting after a worker
 failure or interrupted application retains completed work and exposes actionable unfinished work.
