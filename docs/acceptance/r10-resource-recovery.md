@@ -418,3 +418,21 @@ completed in disposable Sandbox. Empty-preview-store starts measured 5.45–5.66
 mixed-workload search requests exceeded one second, and one earlier worker initialization timed
 out without recurrence in the completed session. Those observations retain their measurements and
 scope above. Performance thresholds and accepted UI behavior remain unchanged.
+
+## R10b integration — 2026-11-16
+
+[PR 66](https://github.com/Cedarflake/Cedarflake-Ame/pull/66) was squash-merged as
+`121786ebabfa96a5a7297f8cd2e9b153ea0b3428`. Review covered all 24 changed files at
+`cc4f866e84e3c4d30cc4e2b3e86df706ec776a96`, their admission/publication call chains and the retained
+native evidence, with no new blocking finding. The review checked notification ordering, actual
+deletion, root containment, file-state revalidation, schema comparisons and recovery assertions.
+The native inputs remain unchanged from the validated `2da11054` revision.
+
+The PR's [Quality / CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43798952656)
+passed all four Rust partitions, Flutter tests, Static, Windows Scan, Windows Accessibility,
+the production build and the aggregate Windows Gate. Release and synthetic workload jobs were
+not selected by this run. The closeout observations above retain their original scope.
+
+All 24 reviewed paths matched the merged tree before the local and remote
+`codex/r10b-resource-recovery` branches were deleted. The independent security documentation from
+`c1f84b70` remains in `main`. The roadmap owns the next slice; this integration starts no later stage.

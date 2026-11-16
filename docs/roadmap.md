@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-15
+Last planning update: 2026-11-16
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -35,7 +35,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
 | R8 | Authorized file organization and recovery | Merged into `main` on 2026-11-11 through [PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57); incorporates former R9 |
 | R9 | Move album files into year-based folders | Merged into `main` on 2026-11-12 through [PR 60](https://github.com/Cedarflake/Cedarflake-Ame/pull/60) |
-| R10 | Large-library maturity and release readiness | R10a (R10-01) integrated through [PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64); R10b (R10-02) completed on its work branch; R10-03 through R10-05 pending for `v0.1.0-beta.1` |
+| R10 | Large-library maturity and release readiness | R10a (R10-01) integrated through [PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64); R10b (R10-02) integrated through [PR 66](https://github.com/Cedarflake/Cedarflake-Ame/pull/66); R10-03 through R10-05 pending for `v0.1.0-beta.1` |
 
 R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
 feature. The R9 identifier now denotes the separate album-by-year movement scope below; the former
@@ -73,10 +73,11 @@ The R10
 is decomposed in the [execution plan](plans/r10-beta-readiness.md). R10a is integrated through
 [PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64), with
 [integration evidence](acceptance/r10-responsiveness.md#r10a-integration--2026-11-14).
-R10b (R10-02) is completed on `codex/r10b-resource-recovery`: sustained-use resource bounds,
-compatible semantic-index reuse and interruption/restart recovery. Its
-[closeout](acceptance/r10-resource-recovery.md#r10b-closeout--2026-11-15) records the delivered scope
-and remaining observations. Branch integration is pending; R10-03 is the next planned slice.
+R10b (R10-02) is integrated through [PR 66](https://github.com/Cedarflake/Cedarflake-Ame/pull/66):
+sustained-use resource bounds, compatible semantic-index reuse and interruption/restart recovery.
+Its [integration record](acceptance/r10-resource-recovery.md#r10b-integration--2026-11-16) retains
+review, verification and branch cleanup; the closeout retains remaining observations.
+R10-03 is the next planned slice.
 
 ### Gallery group discovery
 
@@ -103,7 +104,7 @@ upgrade compatibility, diagnostics and user guidance, then the first Beta candid
 R10a completes R10-01 in `main`. Its [closeout](acceptance/r10-responsiveness.md#r10a-closeout)
 records retained-library Release/Profile targets, publication behavior and passing full CI; the
 [integration record](acceptance/r10-responsiveness.md#r10a-integration--2026-11-14) retains review and merge evidence.
-R10-02 is completed on its work branch. The plan owns the detailed workloads and completion criteria;
+R10-02 is integrated in `main`. The plan owns the detailed workloads and completion criteria;
 this disposition does not start the later slices.
 
 R10-02's [resource and recovery evidence](acceptance/r10-resource-recovery.md) records the sustained
