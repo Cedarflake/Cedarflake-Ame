@@ -95,8 +95,8 @@ component support. Installed framework SizeTransition/FadeTransition and the exi
 owner supply row animation; the original lazy reorder scroll remains intact. The focused
 album-selection, smart-album and viewer-geometry run passed nine checks. The retained-workspace and
 duplicate-viewer semantics fixtures passed four checks, including reduced motion. Current workbench,
-album navigation, reorder list and row disclosure owners have 326, 271, 133 and 69 production lines;
-their existing workbench and album-selection fixtures have 185 and 95 lines. These owners have no
+album navigation, reorder list and row disclosure owners had 326, 271, 133 and 69 production lines;
+their existing workbench and album-selection fixtures had 185 and 95 lines. These owners have no
 inline tests.
 
 The filmstrip repaint fixture reproduced six extra main-canvas paints across six animation frames.
@@ -121,7 +121,37 @@ loss of the return card when a hidden provisional gallery resized from 1000 to 9
 publication now remains active while hidden; preview demand remains retired. All five existing
 viewer-geometry cases and all five updated shell cases passed without weakening return-position
 assertions. The gallery owner has 1,597 production lines and its dedicated geometry fixture has
-488 lines, with no inline tests. The current-head hosted rerun remains the delivery gate.
+488 lines, with no inline tests.
+
+The `cd7946a6` hosted run reported two test assemblies missing the required global-bar builder,
+an unavailable duplicate-navigation target, and undeclared preference consumers in the duplicate
+layout. The assemblies now provide the global bar; duplicate visibility uses its layout constraints
+consistently with the parent workbench, and the two exact preference imports are registered under
+ADR 0037. All 15 focused workbench, disclosure, retained-semantics and duplicate cases passed.
+Dependency verification covered 623 modules with no frozen exceptions; changed-file analysis found
+no issues. Current-head hosted results remain the delivery gate.
+
+The subsequent boundary check reproduced the sidebar's rectangular material painting over the
+shared backing's lower-left corner. The sidebar now renders on transparent Material. It also found
+the brand drag region overlapping the hamburger target; the drag region now starts after that target.
+The production-shell regression exercises the actual hamburger, immediate movement, eight-pixel
+collapsed inset, search alignment and expansion. Its five existing cases passed. A disposable
+production-widget render checked expanded, collapsed, Settings and transition geometry in both
+themes: at 1280 by 800, the content's collapsed/Settings bounds are (80, 64) to (1272, 792), and the
+transition's right and bottom edges stay fixed. All eight renders preserve complete content corners.
+This render uses test bindings and does not establish native desktop input or font fidelity.
+
+Primary-destination geometry now has a separate 154-line transition owner. Workbench, album
+navigation and row disclosure have 340, 287 and 81 production lines; their dedicated workbench,
+album-selection and shell fixtures have 215, 123 and 367 lines, with no inline tests. The workbench
+case covers rapid destination reversal, retained scroll/state and stable settings layout during the
+transition. The album-selection case now also checks the empty row's intermediate disclosure height.
+
+The isolated Debug client received the latest Dart payload through attach and restart. Its native
+snapshot shows the adjusted alignment and continuous lower-left backing corner. The desktop helper
+then repeatedly returned `foreground window did not report a process id` for clicking after a fresh
+window binding. No click result is claimed for that attempt. The current window remains available;
+native collapse/switch click-through and filmstrip frame-time qualification remain open.
 
 Date: 2026-11-08
 

@@ -1,4 +1,5 @@
 import "package:cedarflake_ame/app/presentation/ame_overlay_semantics.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_main_surface.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_workbench.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:material_ui/material_ui.dart";
@@ -19,6 +20,7 @@ void main() {
     addTearDown(scroll.dispose);
     final container = ProviderContainer(overrides: applicationTestOverrides());
     addTearDown(container.dispose);
+    final settingsWidths = <double>[];
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
@@ -53,8 +55,12 @@ void main() {
                 ],
               ),
               duplicatesBuilder: (_) => const Text("Duplicate results"),
-              settingsBuilder: (_) =>
-                  const TextField(key: Key("settings-input")),
+              settingsBuilder: (_) => LayoutBuilder(
+                builder: (_, constraints) {
+                  settingsWidths.add(constraints.maxWidth);
+                  return const TextField(key: Key("settings-input"));
+                },
+              ),
               onSidebarResizeChanged: (_) {},
               onPreferenceError: (_, error) => fail("$error"),
             ),
@@ -89,8 +95,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text("Album list"), findsNothing);
     expect(find.text("Expanded folder state"), findsOneWidget);
+    final surface = find.byType(LibraryMainSurface);
+    final galleryBounds = tester.getRect(surface);
+    await tester.tap(find.byKey(const Key("library-sidebar-settings")));
+    await tester.pump();
+    expect(tester.getRect(surface), galleryBounds);
+    final settingsLayoutCount = settingsWidths.length;
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(settingsWidths.length, settingsLayoutCount);
+    final intermediate = tester.getRect(surface);
+    expect(intermediate.left, inExclusiveRange(80, galleryBounds.left));
+    expect(intermediate.right, galleryBounds.right);
+    expect(intermediate.top, galleryBounds.top);
+    expect(intermediate.bottom, galleryBounds.bottom);
+    await tester.tap(find.byKey(const Key("workbench-gallery")));
+    await tester.pump();
+    expect(tester.getRect(surface), intermediate);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(surface), galleryBounds);
     await tester.tap(find.byKey(const Key("library-sidebar-settings")));
     await tester.pumpAndSettle();
+    expect(tester.getRect(surface).left, 80);
+    expect(tester.getRect(surface).right, 1272);
+    expect(tester.getRect(surface).bottom, 792);
+    expect(settingsWidths.toSet(), {1192});
     await tester.enterText(
       find.byKey(const Key("settings-input")),
       "Retained setting",
@@ -116,6 +144,8 @@ void main() {
     await tester.tap(find.byKey(const Key("library-sidebar-toggle")));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key("folders")), findsNothing);
+    expect(tester.getRect(surface).left, 80);
+    expect(tester.getRect(surface).right, 1272);
     expect(
       find.byWidgetPredicate(
         (widget) => widget is AmeTooltip && widget.message == "展开侧栏",

@@ -126,7 +126,7 @@ class _LibraryAlbumNavigationTileState
         selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
         shape: const StadiumBorder(),
         minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
-        contentPadding: const EdgeInsets.only(left: 8, right: 4),
+        contentPadding: const EdgeInsets.only(left: 16, right: 4),
         minLeadingWidth: 40,
         horizontalTitleGap: 4,
         leading: LibrarySidebarSelectionIcon(

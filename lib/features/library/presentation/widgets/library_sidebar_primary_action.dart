@@ -22,7 +22,7 @@ class LibrarySidebarPrimaryAction extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 0, 8, 20),
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 32),
       child: Align(
         alignment: AlignmentDirectional.centerStart,
         child: AmeTooltip(
@@ -37,7 +37,7 @@ class LibrarySidebarPrimaryAction extends StatelessWidget {
                 fontWeight: ameFontWeightSemibold,
               ),
               minimumSize: const Size(0, 56),
-              padding: const EdgeInsetsDirectional.only(start: 14, end: 18),
+              padding: const EdgeInsetsDirectional.only(start: 16, end: 20),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

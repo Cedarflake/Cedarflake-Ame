@@ -17,14 +17,20 @@ class LibrarySidebarRowsDisclosure extends StatelessWidget {
     active: expanded,
     motion: AmeMotion.fastSpatial,
     child: child,
-    builder: (context, progress, child) => AnimatedBuilder(
-      animation: progress,
+    builder: (context, progress, child) => AmeStateTransition(
+      active: expanded,
+      motion: AmeMotion.fastEffects,
       child: child,
-      builder: (context, child) => LibrarySidebarRowsVisibility(
-        expanded: expanded,
-        visible: expanded || !progress.isDismissed,
-        progress: progress,
-        child: child!,
+      builder: (context, opacity, child) => AnimatedBuilder(
+        animation: Listenable.merge([progress, opacity]),
+        child: child,
+        builder: (context, child) => LibrarySidebarRowsVisibility(
+          expanded: expanded,
+          visible: expanded || !progress.isDismissed || !opacity.isDismissed,
+          progress: progress,
+          opacity: opacity,
+          child: child!,
+        ),
       ),
     ),
   );
@@ -35,6 +41,7 @@ class LibrarySidebarRowsVisibility extends InheritedWidget {
     required this.expanded,
     required this.visible,
     required this.progress,
+    required this.opacity,
     required super.child,
     super.key,
   });
@@ -42,6 +49,7 @@ class LibrarySidebarRowsVisibility extends InheritedWidget {
   final bool expanded;
   final bool visible;
   final Animation<double> progress;
+  final Animation<double> opacity;
 
   static LibrarySidebarRowsVisibility? maybeOf(BuildContext context) => context
       .dependOnInheritedWidgetOfExactType<LibrarySidebarRowsVisibility>();
@@ -50,12 +58,15 @@ class LibrarySidebarRowsVisibility extends InheritedWidget {
     sizeFactor: progress,
     alignment: Alignment.topCenter,
     child: FadeTransition(
-      opacity: progress,
+      opacity: opacity,
       child: IgnorePointer(
         ignoring: !expanded,
         child: ExcludeFocus(
           excluding: !expanded,
-          child: ExcludeSemantics(excluding: !expanded, child: child),
+          child: ExcludeSemantics(
+            excluding: !expanded,
+            child: TickerMode(enabled: expanded, child: child),
+          ),
         ),
       ),
     ),
@@ -65,5 +76,6 @@ class LibrarySidebarRowsVisibility extends InheritedWidget {
   bool updateShouldNotify(LibrarySidebarRowsVisibility oldWidget) =>
       expanded != oldWidget.expanded ||
       visible != oldWidget.visible ||
-      progress != oldWidget.progress;
+      progress != oldWidget.progress ||
+      opacity != oldWidget.opacity;
 }

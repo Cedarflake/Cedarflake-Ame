@@ -5,7 +5,6 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
-import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../application/library_folder_controller.dart";
 import "../../domain/library_sidebar_order.dart";
 import "../../domain/library_folder_models.dart";
@@ -209,7 +208,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
         width: widget.width,
         child: Material(
           key: const Key("library-navigation-surface"),
-          color: AmeWorkbenchSurfaces.of(context).chrome,
+          type: MaterialType.transparency,
           child: Column(
             children: [
               Expanded(
@@ -279,7 +278,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           minTileHeight:
                               LibraryWorkbenchMetrics.sidebarRowHeight,
                           contentPadding: const EdgeInsets.only(
-                            left: 16,
+                            left: 24,
                             right: 4,
                           ),
                           minLeadingWidth: 24,
@@ -331,7 +330,10 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           )
                         else
                           const ListTile(
-                            leading: Icon(Symbols.folder_off_rounded),
+                            contentPadding: EdgeInsets.only(left: 24, right: 6),
+                            minLeadingWidth: 24,
+                            horizontalTitleGap: 12,
+                            leading: Icon(Symbols.folder_off_rounded, size: 24),
                             title: Text(LibraryStrings.noFolder),
                           ),
                     ],

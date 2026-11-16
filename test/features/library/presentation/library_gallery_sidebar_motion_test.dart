@@ -61,7 +61,7 @@ void main() {
         }
         await tester.pumpAndSettle();
         expectAligned();
-        expect(widths, [1340, 1600, 1340, 1600]);
+        expect(widths, [1340, 1592, 1340, 1592]);
         await tester.tap(find.widgetWithText(FilledButton, "导入"));
         expect(imports, 1);
       },
@@ -91,7 +91,7 @@ void main() {
     await tester.pumpAndSettle();
     expanded.value = false;
     await tester.pump();
-    expect(tester.getCenter(find.text("建立你的图片图库")).dx, 400);
+    expect(tester.getCenter(find.text("建立你的图片图库")).dx, 404);
     await tester.pump();
     expect(tester.binding.transientCallbackCount, 0);
     expect(tester.takeException(), isNull);

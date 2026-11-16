@@ -5,6 +5,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../../settings/domain/ame_preferences.dart";
+import "../../application/library_workbench_controller.dart";
 import "../coordination/library_duplicate_workspace.dart";
 import "../library_duplicate_strings.dart";
 import "library_main_surface.dart";
@@ -45,7 +46,14 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => LayoutBuilder(
     builder: (context, constraints) {
       final colors = Theme.of(context).colorScheme;
-      final content = Expanded(child: LibraryMainSurface(child: child));
+      final content = Expanded(
+        child: Padding(
+          padding: const EdgeInsets.only(
+            left: LibraryWorkbenchMetrics.contentInset,
+          ),
+          child: LibraryMainSurface(child: child),
+        ),
+      );
       if (constraints.maxWidth < 840) {
         return Column(
           children: [
@@ -71,9 +79,13 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
       }
       final preferences = ref.watch(amePreferencesControllerProvider);
       return LibrarySidebarTransition(
+        workspace: LibraryWorkspace.duplicates,
         expanded:
             preferences.sidebarExpanded ??
-            MediaQuery.sizeOf(context).width >= 940,
+            constraints.maxWidth +
+                    LibraryWorkbenchMetrics.railWidth +
+                    LibraryWorkbenchMetrics.contentInset >=
+                940,
         sidebarWidth: preferences.sidebarWidth.clamp(
           ameMinimumSidebarWidth,
           ameMaximumSidebarWidth,

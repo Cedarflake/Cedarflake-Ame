@@ -68,10 +68,13 @@ class _LibrarySmartAlbumNavigationState
                         ListTile(
                           key: const Key("library-sidebar-smart-empty"),
                           contentPadding: const EdgeInsets.only(
-                            left: 16,
+                            left: 24,
                             right: 6,
                           ),
-                          leading: const Icon(Symbols.photo_album_rounded),
+                          leading: const Icon(
+                            Symbols.photo_album_rounded,
+                            size: 24,
+                          ),
                           minLeadingWidth: 24,
                           horizontalTitleGap: 12,
                           title: const Text(
@@ -179,17 +182,20 @@ class _SmartAlbumRow extends StatelessWidget {
       shape: const StadiumBorder(),
       minTileHeight: 40,
       minVerticalPadding: 6,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      contentPadding: const EdgeInsets.only(left: 24, right: 16),
       minLeadingWidth: 24,
       horizontalTitleGap: 12,
-      leading: Icon(switch (category.id) {
-        "photo" => Symbols.photo_camera_rounded,
-        "illustration" => Symbols.palette_rounded,
-        "comic" => Symbols.menu_book_rounded,
-        "meme" => Symbols.mood_rounded,
-        "screenshot" => Symbols.desktop_windows_rounded,
-        _ => Symbols.photo_album_rounded,
-      }, size: 20),
+      leading: SizedBox(
+        width: 24,
+        child: Icon(switch (category.id) {
+          "photo" => Symbols.photo_camera_rounded,
+          "illustration" => Symbols.palette_rounded,
+          "comic" => Symbols.menu_book_rounded,
+          "meme" => Symbols.mood_rounded,
+          "screenshot" => Symbols.desktop_windows_rounded,
+          _ => Symbols.photo_album_rounded,
+        }, size: 20),
+      ),
       title: Text(
         category.label,
         maxLines: 1,

@@ -155,7 +155,7 @@ void main() {
 
     expect(scaffold.backgroundColor, colorScheme.surfaceContainerLow);
     expect(globalSurface.type, MaterialType.transparency);
-    expect(navigationSurface.color, colorScheme.surfaceContainerLow);
+    expect(navigationSurface.type, MaterialType.transparency);
     expect(mainSurface.type, MaterialType.transparency);
     expect(mainSurface.clipBehavior, Clip.none);
     final backgrounds = find.ancestor(
@@ -193,6 +193,19 @@ void main() {
       ),
       findsOneWidget,
     );
+    final toggle = find.byKey(const Key("library-sidebar-toggle"));
+    final surface = find.byKey(const Key("library-main-surface"));
+    final expandedBounds = tester.getRect(surface);
+    await tester.tap(toggle);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(tester.getRect(surface).left, lessThan(expandedBounds.left));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(surface), const Rect.fromLTRB(80, 64, 1272, 792));
+    expect(tester.getTopLeft(find.byKey(const Key("library-search"))).dx, 80);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(surface), expandedBounds);
   });
 
   testWidgets("resizes, resets, and persists the expanded sidebar width", (

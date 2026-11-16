@@ -22,11 +22,16 @@ One backing surface joins the top bar and contextual sidebar, with rounded outer
 Sidebars do not introduce another rounded cutout below the top bar. The main content has its own
 rounded surface and a small outer inset. The frame owns this geometry; sidebar transitions retain
 their existing destination-width rendering and clipping.
+Sidebar materials remain transparent so they cannot paint over the shared backing's outer corners.
+Collapsed sidebars and Settings retain the same eight-pixel content inset. The workspace-width
+owner carries the visible boundary through destination changes, including reversals, while each
+destination lays out at its final width. Reduced motion completes the boundary change immediately.
 
 The shared search field has a leading search symbol and a trailing options arrow. Existing mode,
 scope, clear, progress and retry semantics remain intact. Settings uses a circular selected surface.
 The top-left hamburger controls contextual-sidebar visibility; the plain application mark and `Ame`
 wordmark share the adjacent brand area. Search aligns with the content boundary.
+The brand's drag region starts after the hamburger's rail-width target.
 The image viewer keeps straight canvas edges and its existing operation placements. Its rounded,
 elevated thumbnail strip remains an overlay, with no change to image geometry when toggled.
 Repaint boundaries isolate the strip's moving clip from the main image and retain the static strip
@@ -85,10 +90,11 @@ Single-line rows have a 48-pixel minimum height, source rows with status have 56
 40-pixel smart-album rows retain their compact height. Text scaling can increase these minimums.
 
 Manual and smart albums use shared section headings and framework icon buttons for disclosure.
-Manual rows share one Ame motion controller and native SizeTransition/FadeTransition widgets inside
+Manual rows share Ame spatial/effects controllers and native SizeTransition/FadeTransition widgets inside
 the existing lazy reorder list. The completed collapsed state has no row children; the bounded page,
 scroll owner, order, selection and active collection remain retained. Smart albums reuse the existing
-folder disclosure owner. Closing retires row input, focus and semantics immediately. A nested
+folder disclosure owner; empty, loading and failed manual-album states use that same owner and timing.
+Closing retires row input, focus and semantics immediately. A nested
 shrink-wrapped scrolling list is unnecessary and would disconnect native drag auto-scrolling.
 
 Sidebar selection is a separate presentation owner. The installed Flutter 3.47.8 `IconButton`

@@ -14,6 +14,7 @@ import "../../domain/library_organization.dart";
 import "../coordination/library_sidebar_selection.dart";
 import "library_album_editor.dart";
 import "library_album_icon.dart";
+import "library_folder_disclosure.dart";
 import "library_album_navigation_tile.dart";
 import "library_sidebar_reorder_list.dart";
 import "library_sidebar_primary_action.dart";
@@ -133,12 +134,18 @@ class _LibraryAlbumNavigationState
         removeLabel: "删除所选相册",
         onRemove: busy || page == null ? null : () => _removeSelected(page),
       ),
-      if (_expanded && page?.total == 0)
-        const ListTile(
-          key: Key("library-sidebar-album-empty"),
-          leading: Icon(Symbols.photo_album_rounded),
-          title: Text("还没有创建相册"),
-        ),
+      LibraryFolderDisclosure(
+        child: _expanded && page?.total == 0
+            ? const ListTile(
+                key: Key("library-sidebar-album-empty"),
+                contentPadding: EdgeInsets.only(left: 24, right: 6),
+                minLeadingWidth: 24,
+                horizontalTitleGap: 12,
+                leading: Icon(Symbols.photo_album_rounded, size: 24),
+                title: Text("还没有创建相册"),
+              )
+            : null,
+      ),
     ],
   );
 
@@ -241,11 +248,17 @@ class _LibraryAlbumNavigationState
           padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
           children: [
             _header(null, true),
-            if (_expanded)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: AmeLinearProgress(),
-              ),
+            LibraryFolderDisclosure(
+              child: _expanded
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: AmeLinearProgress(),
+                    )
+                  : null,
+            ),
             if (widget.footer != null) widget.footer!,
           ],
         ),
@@ -253,15 +266,18 @@ class _LibraryAlbumNavigationState
           padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
           children: [
             _header(null, true),
-            if (_expanded)
-              ListTile(
-                title: const Text("相册暂时无法加载"),
-                trailing: TextButton(
-                  onPressed: () =>
-                      ref.invalidate(libraryAlbumPageProvider(_after)),
-                  child: const Text("重试"),
-                ),
-              ),
+            LibraryFolderDisclosure(
+              child: _expanded
+                  ? ListTile(
+                      title: const Text("相册暂时无法加载"),
+                      trailing: TextButton(
+                        onPressed: () =>
+                            ref.invalidate(libraryAlbumPageProvider(_after)),
+                        child: const Text("重试"),
+                      ),
+                    )
+                  : null,
+            ),
             if (widget.footer != null) widget.footer!,
           ],
         ),

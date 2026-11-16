@@ -1,11 +1,14 @@
 import "package:material_ui/material_ui.dart";
 import "package:flutter/rendering.dart";
 
+import "library_workbench_metrics.dart";
+
 class LibrarySidebarMotion extends InheritedWidget {
   const LibrarySidebarMotion({
     required this.progress,
     required this.sidebarWidth,
     required this.expanded,
+    this.workspaceOffset,
     required super.child,
     super.key,
   });
@@ -13,15 +16,21 @@ class LibrarySidebarMotion extends InheritedWidget {
   final Animation<double> progress;
   final double sidebarWidth;
   final bool expanded;
+  final Animation<double>? workspaceOffset;
+
+  Listenable get changes => Listenable.merge([progress, ?workspaceOffset]);
 
   double get leadingOffset =>
-      sidebarWidth * (progress.value - (expanded ? 1 : 0));
+      (sidebarWidth - LibraryWorkbenchMetrics.contentInset) *
+          (progress.value - (expanded ? 1 : 0)) +
+      (workspaceOffset?.value ?? 0);
 
   @override
   bool updateShouldNotify(LibrarySidebarMotion oldWidget) =>
       progress != oldWidget.progress ||
       sidebarWidth != oldWidget.sidebarWidth ||
-      expanded != oldWidget.expanded;
+      expanded != oldWidget.expanded ||
+      workspaceOffset != oldWidget.workspaceOffset;
 }
 
 class LibrarySidebarLeading extends StatelessWidget {
@@ -34,7 +43,7 @@ class LibrarySidebarLeading extends StatelessWidget {
     final motion = context
         .dependOnInheritedWidgetOfExactType<LibrarySidebarMotion>();
     return AnimatedBuilder(
-      animation: motion?.progress ?? const AlwaysStoppedAnimation(1.0),
+      animation: motion?.changes ?? const AlwaysStoppedAnimation(1.0),
       child: child,
       builder: (context, child) => Transform.translate(
         offset: Offset(motion?.leadingOffset ?? 0, 0),
@@ -104,10 +113,10 @@ class _RenderSidebarContentViewport extends RenderProxyBox {
 
   void update(LibrarySidebarMotion? motion, Alignment alignment) {
     if (_motion == motion && _alignment == alignment) return;
-    if (attached) _motion?.progress.removeListener(_repaint);
+    if (attached) _motion?.changes.removeListener(_repaint);
     _motion = motion;
     _alignment = alignment;
-    if (attached) _motion?.progress.addListener(_repaint);
+    if (attached) _motion?.changes.addListener(_repaint);
     _repaint();
   }
 
@@ -119,12 +128,12 @@ class _RenderSidebarContentViewport extends RenderProxyBox {
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
-    _motion?.progress.addListener(_repaint);
+    _motion?.changes.addListener(_repaint);
   }
 
   @override
   void detach() {
-    _motion?.progress.removeListener(_repaint);
+    _motion?.changes.removeListener(_repaint);
     super.detach();
   }
 

@@ -12,12 +12,12 @@ import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_workbench_controller.dart";
 import "../library_strings.dart";
 import "../library_workbench_strings.dart";
-import "library_main_surface.dart";
 import "library_navigation_resize_handle.dart";
 import "library_sidebar_content.dart";
 import "library_sidebar_transition.dart";
 import "library_workbench_metrics.dart";
 import "library_workbench_frame.dart";
+import "library_workspace_width_transition.dart";
 
 class LibraryWorkbench extends ConsumerStatefulWidget {
   const LibraryWorkbench({
@@ -140,82 +140,93 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
             _retainedWorkspace(
               workspace: LibraryWorkspace.settings,
               visible: workspace == LibraryWorkspace.settings,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: LibraryMainSurface(
-                  child: widget.settingsBuilder(context),
-                ),
+              child: LibraryWorkspaceContentPane(
+                child: widget.settingsBuilder(context),
               ),
             ),
         ];
-        return LibrarySidebarTransition(
-          expanded: expanded,
-          sidebarWidth: sidebarWidth,
-          sidebar: Stack(
-            fit: StackFit.expand,
-            children: [
-              _retainedWorkspace(
-                workspace: LibraryWorkspace.gallery,
-                visible: workspace != LibraryWorkspace.albums,
-                child: widget.navigationBuilder(sidebarWidth),
-              ),
-              if (_visited.contains(LibraryWorkspace.albums))
+        return LibraryWorkspaceWidthTransition(
+          destination: workspace,
+          contentInset:
+              workspace == LibraryWorkspace.settings ||
+                  !expanded ||
+                  (workspace == LibraryWorkspace.duplicates &&
+                      constraints.maxWidth < 920)
+              ? LibraryWorkbenchMetrics.contentInset
+              : sidebarWidth,
+          child: LibrarySidebarTransition(
+            workspace: workspace.isBrowsing
+                ? workspace
+                : LibraryWorkspace.gallery,
+            expanded: expanded,
+            sidebarWidth: sidebarWidth,
+            sidebar: Stack(
+              fit: StackFit.expand,
+              children: [
                 _retainedWorkspace(
-                  workspace: LibraryWorkspace.albums,
-                  visible: workspace == LibraryWorkspace.albums,
-                  child: widget.albumsNavigationBuilder(sidebarWidth),
+                  workspace: LibraryWorkspace.gallery,
+                  visible: workspace != LibraryWorkspace.albums,
+                  child: widget.navigationBuilder(sidebarWidth),
                 ),
-            ],
-          ),
-          gallery: Stack(
-            fit: StackFit.expand,
-            children: [
-              _retainedWorkspace(
-                workspace: LibraryWorkspace.gallery,
-                visible:
-                    workspace != LibraryWorkspace.albums ||
-                    widget.albumLanding == null,
-                child: widget.galleryBuilder(context),
-              ),
-              if (workspace == LibraryWorkspace.albums &&
-                  widget.albumLanding != null)
-                LibrarySidebarContent(
-                  alignment: Alignment.topCenter,
-                  child: widget.albumLanding!,
-                ),
-            ],
-          ),
-          resizeHandle: LibraryNavigationResizeHandle(
-            width: sidebarWidth,
-            minimumWidth: ameMinimumSidebarWidth,
-            maximumWidth: ameMaximumSidebarWidth,
-            defaultWidth: ameDefaultSidebarWidth,
-            onWidthChangeStart: () => widget.onSidebarResizeChanged(true),
-            onWidthChanged: (width) => setState(() => _sidebarWidth = width),
-            onWidthChangeEnd: _finishResize,
-            onWidthChangeCancel: () => widget.onSidebarResizeChanged(false),
-          ),
-          frameBuilder: (context, extent, panels) {
-            return LibraryWorkbenchFrame(
-              navigation: rail,
-              globalBar: widget.globalBarBuilder(
-                sidebarWidth,
-                extent / sidebarWidth,
-                toggle,
-              ),
-              content: Stack(
-                fit: StackFit.expand,
-                children: [
+                if (_visited.contains(LibraryWorkspace.albums))
                   _retainedWorkspace(
-                    workspace: LibraryWorkspace.gallery,
-                    visible: workspace.isBrowsing,
-                    child: panels,
+                    workspace: LibraryWorkspace.albums,
+                    visible: workspace == LibraryWorkspace.albums,
+                    child: widget.albumsNavigationBuilder(sidebarWidth),
                   ),
-                  ...destinations,
-                ],
-              ),
-            );
-          },
+              ],
+            ),
+            gallery: Stack(
+              fit: StackFit.expand,
+              children: [
+                _retainedWorkspace(
+                  workspace: LibraryWorkspace.gallery,
+                  visible:
+                      workspace != LibraryWorkspace.albums ||
+                      widget.albumLanding == null,
+                  child: widget.galleryBuilder(context),
+                ),
+                if (workspace == LibraryWorkspace.albums &&
+                    widget.albumLanding != null)
+                  LibrarySidebarContent(
+                    alignment: Alignment.topCenter,
+                    child: widget.albumLanding!,
+                  ),
+              ],
+            ),
+            resizeHandle: LibraryNavigationResizeHandle(
+              width: sidebarWidth,
+              minimumWidth: ameMinimumSidebarWidth,
+              maximumWidth: ameMaximumSidebarWidth,
+              defaultWidth: ameDefaultSidebarWidth,
+              onWidthChangeStart: () => widget.onSidebarResizeChanged(true),
+              onWidthChanged: (width) => setState(() => _sidebarWidth = width),
+              onWidthChangeEnd: _finishResize,
+              onWidthChangeCancel: () => widget.onSidebarResizeChanged(false),
+            ),
+            frameBuilder: (context, extent, panels) {
+              return LibraryWorkbenchFrame(
+                navigation: rail,
+                globalBar: widget.globalBarBuilder(
+                  sidebarWidth,
+                  (extent - LibraryWorkbenchMetrics.contentInset) /
+                      (sidebarWidth - LibraryWorkbenchMetrics.contentInset),
+                  toggle,
+                ),
+                content: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _retainedWorkspace(
+                      workspace: LibraryWorkspace.gallery,
+                      visible: workspace.isBrowsing,
+                      child: panels,
+                    ),
+                    ...destinations,
+                  ],
+                ),
+              );
+            },
+          ),
         );
       },
     );
@@ -244,81 +255,84 @@ class _FunctionRail extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(libraryWorkbenchControllerProvider.notifier);
     final select = onSelected ?? controller.select;
-    return NavigationRail(
-      key: const Key("library-function-rail"),
-      minWidth: LibraryWorkbenchMetrics.railWidth,
-      backgroundColor: AmeWorkbenchSurfaces.of(context).navigation,
-      labelType: NavigationRailLabelType.all,
-      selectedIndex: switch (workspace) {
-        LibraryWorkspace.gallery => 0,
-        LibraryWorkspace.albums => 1,
-        LibraryWorkspace.duplicates => 2,
-        LibraryWorkspace.settings => null,
-      },
-      onDestinationSelected: (index) => select(
-        [
-          LibraryWorkspace.gallery,
-          LibraryWorkspace.albums,
-          LibraryWorkspace.duplicates,
-        ][index],
-      ),
-      destinations: const [
-        NavigationRailDestination(
-          icon: Icon(
-            Symbols.photo_library_rounded,
-            size: LibraryWorkbenchMetrics.iconSize,
-            key: Key("workbench-gallery"),
-          ),
-          label: Text(LibraryStrings.library),
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: NavigationRail(
+        key: const Key("library-function-rail"),
+        minWidth: LibraryWorkbenchMetrics.railWidth,
+        backgroundColor: AmeWorkbenchSurfaces.of(context).navigation,
+        labelType: NavigationRailLabelType.all,
+        selectedIndex: switch (workspace) {
+          LibraryWorkspace.gallery => 0,
+          LibraryWorkspace.albums => 1,
+          LibraryWorkspace.duplicates => 2,
+          LibraryWorkspace.settings => null,
+        },
+        onDestinationSelected: (index) => select(
+          [
+            LibraryWorkspace.gallery,
+            LibraryWorkspace.albums,
+            LibraryWorkspace.duplicates,
+          ][index],
         ),
-        NavigationRailDestination(
-          icon: Icon(
-            Symbols.photo_album_rounded,
-            size: LibraryWorkbenchMetrics.iconSize,
-            key: Key("workbench-albums"),
+        destinations: const [
+          NavigationRailDestination(
+            icon: Icon(
+              Symbols.photo_library_rounded,
+              size: LibraryWorkbenchMetrics.iconSize,
+              key: Key("workbench-gallery"),
+            ),
+            label: Text(LibraryStrings.library),
           ),
-          label: Text("相册"),
-        ),
-        NavigationRailDestination(
-          icon: Icon(
-            Symbols.stacks_rounded,
-            size: LibraryWorkbenchMetrics.iconSize,
-            key: Key("workbench-duplicates"),
+          NavigationRailDestination(
+            icon: Icon(
+              Symbols.photo_album_rounded,
+              size: LibraryWorkbenchMetrics.iconSize,
+              key: Key("workbench-albums"),
+            ),
+            label: Text("相册"),
           ),
-          label: Text(LibraryWorkbenchStrings.duplicates),
-        ),
-      ],
-      trailingAtBottom: true,
-      trailing: Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AmeTooltip(
-              message: LibraryStrings.settings,
-              child: IconButton(
-                key: const Key("library-sidebar-settings"),
-                isSelected: workspace == LibraryWorkspace.settings,
-                style: IconButton.styleFrom(
-                  fixedSize: const Size.square(48),
-                  shape: const CircleBorder(),
-                  backgroundColor: workspace == LibraryWorkspace.settings
-                      ? Theme.of(context).colorScheme.secondaryContainer
-                      : null,
-                ),
-                onPressed: () => select(LibraryWorkspace.settings),
-                icon: const Icon(
-                  Symbols.settings_rounded,
-                  size: LibraryWorkbenchMetrics.iconSize,
-                ),
-                selectedIcon: const Icon(
-                  Symbols.settings_rounded,
-                  size: LibraryWorkbenchMetrics.iconSize,
-                  fill: 1,
+          NavigationRailDestination(
+            icon: Icon(
+              Symbols.stacks_rounded,
+              size: LibraryWorkbenchMetrics.iconSize,
+              key: Key("workbench-duplicates"),
+            ),
+            label: Text(LibraryWorkbenchStrings.duplicates),
+          ),
+        ],
+        trailingAtBottom: true,
+        trailing: Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AmeTooltip(
+                message: LibraryStrings.settings,
+                child: IconButton(
+                  key: const Key("library-sidebar-settings"),
+                  isSelected: workspace == LibraryWorkspace.settings,
+                  style: IconButton.styleFrom(
+                    fixedSize: const Size.square(48),
+                    shape: const CircleBorder(),
+                    backgroundColor: workspace == LibraryWorkspace.settings
+                        ? Theme.of(context).colorScheme.secondaryContainer
+                        : null,
+                  ),
+                  onPressed: () => select(LibraryWorkspace.settings),
+                  icon: const Icon(
+                    Symbols.settings_rounded,
+                    size: LibraryWorkbenchMetrics.iconSize,
+                  ),
+                  selectedIcon: const Icon(
+                    Symbols.settings_rounded,
+                    size: LibraryWorkbenchMetrics.iconSize,
+                    fill: 1,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

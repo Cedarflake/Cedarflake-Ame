@@ -37,7 +37,7 @@ class LibraryCollectionNavigation extends StatelessWidget {
       selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
       shape: const StadiumBorder(),
       minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
-      contentPadding: const EdgeInsets.only(left: 16, right: 4),
+      contentPadding: const EdgeInsets.only(left: 24, right: 4),
       minLeadingWidth: 24,
       horizontalTitleGap: 12,
       leading: const SizedBox(width: 24, child: Icon(Symbols.favorite_rounded)),

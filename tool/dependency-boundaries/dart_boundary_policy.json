@@ -46,6 +46,16 @@
       "target": "lib/features/settings/application/ame_preferences.dart",
       "contract": "amePreferencesControllerProvider and declared preference state"
     },
+      {
+        "source": "lib/features/library/presentation/widgets/library_duplicate_workspace_layout.dart",
+        "target": "lib/features/settings/application/ame_preferences.dart",
+        "contract": "amePreferencesControllerProvider sidebar presentation preferences"
+      },
+      {
+        "source": "lib/features/library/presentation/widgets/library_duplicate_workspace_layout.dart",
+        "target": "lib/features/settings/domain/ame_preferences.dart",
+        "contract": "Sidebar width limits for the retained duplicate workspace"
+      },
     {
       "source": "lib/features/library/presentation/widgets/library_image_viewer.dart",
       "target": "lib/features/settings/application/ame_preferences.dart",

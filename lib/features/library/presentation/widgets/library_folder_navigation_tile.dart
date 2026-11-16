@@ -88,7 +88,7 @@ class _LibraryFolderNavigationTileState
           minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
           dense: true,
           contentPadding: EdgeInsets.only(
-            left: 16 + (widget.depth * 28),
+            left: 24 + (widget.depth * 28),
             right: 4,
           ),
           minLeadingWidth: 24,

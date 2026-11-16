@@ -510,7 +510,10 @@ class _ExpandedSourceTile extends StatelessWidget {
           : LibraryWorkbenchMetrics.sidebarStatusRowHeight,
       minVerticalPadding: 4,
       dense: true,
-      contentPadding: EdgeInsets.only(left: leading == null ? 16 : 8, right: 4),
+      contentPadding: EdgeInsets.only(
+        left: leading == null ? 24 : 16,
+        right: 4,
+      ),
       minLeadingWidth: leading == null ? 24 : 40,
       horizontalTitleGap: leading == null ? 12 : 4,
       leading: SizedBox(

@@ -31,6 +31,10 @@ void main() {
           child: MaterialApp(
             home: Scaffold(
               body: LibraryWorkbench(
+                globalBarBuilder: (_, _, toggle) => SizedBox(
+                  height: 64,
+                  child: Align(alignment: Alignment.centerLeft, child: toggle),
+                ),
                 albumsNavigationBuilder: (_) => const Text("Album list"),
                 navigationBuilder: (width) =>
                     SizedBox(width: width, child: const Text("Folders")),

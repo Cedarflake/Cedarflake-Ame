@@ -194,6 +194,9 @@ the sidebar introduces no cutout below the global bar. Tonal surfaces separate t
 divider lines. Sidebar navigation rows use fully rounded ends and compact heights; source rows
 with status retain room for both text lines. Dragging preserves the row's shape.
 Settings retains the same small outer inset on both sides of its content surface.
+Collapsing a sidebar retains that eight-pixel gap between the function rail and the content surface,
+with search aligned above it. Primary-destination changes animate the content boundary and keep the
+right edge fixed; the image wall retains its destination-width layout during the transition.
 
 The Library sidebar contains only navigation and source scope:
 
@@ -212,10 +215,15 @@ Albums, Duplicates and Settings visits. The accepted narrow-window sidebar rule,
 resizing and transition remain shared.
 The Albums sidebar starts with a filled `新建相册` action matching the folder action's placement,
 shape and tonal color. Both use semibold labels, a leading plus and their existing disabled-state rules.
+The brand mark is larger than its wordmark and its visible left edge aligns with the primary-action
+background. The action's icon, navigation icons and section headings share an inset column, with
+more space below the primary action. The first primary-navigation icon aligns vertically with the
+primary-action label; the hamburger stays in the brand row.
 The album section heading uses semibold. Album names match Favorites and folder navigation: medium
 by default and semibold when selected, retaining the existing font sizes and selected-state colors.
 Manual and smart albums have independent section disclosure controls, with counts beside the labels.
 Collapsing a section retains its active collection and selection; it does not change the gallery query.
+Manual and smart sections share the same size/fade timing, including empty and loading states.
 Library and Albums share the same sidebar structure: the primary action comes first, then the
 Library/Favorites destination and a `文件夹`/`相册` section heading. The heading and destination do
 not repeat the creation action. Folder import opens the existing system picker; album creation opens

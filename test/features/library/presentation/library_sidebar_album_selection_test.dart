@@ -3,6 +3,7 @@ import "package:cedarflake_ame/features/library/application/library_organization
 import "package:cedarflake_ame/features/library/domain/library_gallery_collection.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_album_navigation.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_folder_disclosure.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -89,6 +90,33 @@ void main() {
       expect(service.albumWrites.map((w) => w.albumId), ["one", "two"]);
       expect(find.text("已选择 2"), findsNothing);
       expect(find.text("相册"), findsOneWidget);
+      final empty = find.byKey(const Key("library-sidebar-album-empty"));
+      expect(empty, findsOneWidget);
+      final disclosure = find.ancestor(
+        of: empty,
+        matching: find.byType(LibraryFolderDisclosure),
+      );
+      final expandedHeight = tester.getSize(disclosure).height;
+      await tester.tap(collapse);
+      await tester.pump();
+      expect(tester.getSize(disclosure).height, expandedHeight);
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(
+        tester.getSize(disclosure).height,
+        inExclusiveRange(0, expandedHeight),
+      );
+      await tester.pumpAndSettle();
+      expect(empty, findsNothing);
+      await tester.tap(collapse);
+      await tester.pump();
+      expect(tester.getSize(disclosure).height, 0);
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(
+        tester.getSize(disclosure).height,
+        inExclusiveRange(0, expandedHeight),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.getSize(disclosure).height, expandedHeight);
       expect(tester.takeException(), isNull);
     },
   );

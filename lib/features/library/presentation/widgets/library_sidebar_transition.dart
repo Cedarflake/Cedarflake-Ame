@@ -1,9 +1,12 @@
 import "package:material_ui/material_ui.dart";
 
 import "../../../../app/presentation/ame_motion.dart";
+import "../../application/library_workbench_controller.dart";
 import "library_main_surface.dart";
 import "library_navigation_resize_handle.dart";
 import "library_sidebar_content.dart";
+import "library_workbench_metrics.dart";
+import "library_workspace_width_transition.dart";
 
 /// Animates the left boundary of a right-anchored, destination-width gallery.
 class LibrarySidebarTransition extends StatefulWidget {
@@ -14,6 +17,7 @@ class LibrarySidebarTransition extends StatefulWidget {
     required this.gallery,
     this.resizeHandle,
     this.frameBuilder,
+    this.workspace,
     super.key,
   });
 
@@ -22,6 +26,7 @@ class LibrarySidebarTransition extends StatefulWidget {
   final Widget sidebar;
   final Widget gallery;
   final Widget? resizeHandle;
+  final LibraryWorkspace? workspace;
   final Widget Function(BuildContext context, double extent, Widget panels)?
   frameBuilder;
 
@@ -73,83 +78,96 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
   }
 
   @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _progress,
-    child: LibrarySidebarMotion(
-      progress: _progress,
-      sidebarWidth: widget.sidebarWidth,
-      expanded: widget.expanded,
-      child: RepaintBoundary(child: widget.gallery),
-    ),
-    builder: (context, gallery) {
-      final extent = widget.sidebarWidth * _progress.value;
-      final panels = LayoutBuilder(
-        builder: (context, constraints) {
-          final galleryWidth =
-              constraints.maxWidth -
-              (widget.expanded ? widget.sidebarWidth : 0);
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: extent,
-                child: ClipRect(
-                  child: OverflowBox(
-                    alignment: Alignment.topLeft,
-                    minWidth: widget.sidebarWidth,
-                    maxWidth: widget.sidebarWidth,
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: Visibility(
-                        visible: extent > 0,
-                        maintainState: true,
-                        child: ExcludeFocus(
-                          excluding: !widget.expanded,
-                          child: IgnorePointer(
-                            ignoring: !widget.expanded,
-                            child: widget.sidebar,
+  Widget build(BuildContext context) {
+    final workspaceOffset = LibraryWorkspaceWidthMotion.of(
+      context,
+      destination: widget.workspace,
+    );
+    return AnimatedBuilder(
+      animation: Listenable.merge([_progress, ?workspaceOffset]),
+      child: LibrarySidebarMotion(
+        progress: _progress,
+        sidebarWidth: widget.sidebarWidth,
+        expanded: widget.expanded,
+        workspaceOffset: workspaceOffset,
+        child: RepaintBoundary(child: widget.gallery),
+      ),
+      builder: (context, gallery) {
+        final extent =
+            LibraryWorkbenchMetrics.contentInset +
+            (widget.sidebarWidth - LibraryWorkbenchMetrics.contentInset) *
+                _progress.value;
+        final panels = LayoutBuilder(
+          builder: (context, constraints) {
+            final galleryWidth =
+                constraints.maxWidth -
+                (widget.expanded
+                    ? widget.sidebarWidth
+                    : LibraryWorkbenchMetrics.contentInset);
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: widget.sidebarWidth * _progress.value,
+                  child: ClipRect(
+                    child: OverflowBox(
+                      alignment: Alignment.topLeft,
+                      minWidth: widget.sidebarWidth,
+                      maxWidth: widget.sidebarWidth,
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: Visibility(
+                          visible: _progress.value > 0,
+                          maintainState: true,
+                          child: ExcludeFocus(
+                            excluding: !widget.expanded,
+                            child: IgnorePointer(
+                              ignoring: !widget.expanded,
+                              child: widget.sidebar,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                left: extent,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                child: LibraryMainSurface(
-                  key: const Key("library-gallery-transition"),
-                  // Keep right-edge controls stationary as the left clip moves.
-                  // Reflowing the gallery at every intermediate width is costly.
-                  child: OverflowBox(
-                    alignment: Alignment.topRight,
-                    minWidth: galleryWidth,
-                    maxWidth: galleryWidth,
-                    child: gallery,
-                  ),
-                ),
-              ),
-              if (widget.expanded &&
-                  _controller.isCompleted &&
-                  widget.resizeHandle != null)
                 Positioned(
-                  left:
-                      extent - LibraryNavigationResizeHandle.hitTargetWidth / 2,
+                  left: extent + (workspaceOffset?.value ?? 0),
+                  right: 0,
                   top: 0,
                   bottom: 0,
-                  child: widget.resizeHandle!,
+                  child: LibraryMainSurface(
+                    key: const Key("library-gallery-transition"),
+                    // Keep right-edge controls stationary as the left clip moves.
+                    // Reflowing the gallery at every intermediate width is costly.
+                    child: OverflowBox(
+                      alignment: Alignment.topRight,
+                      minWidth: galleryWidth,
+                      maxWidth: galleryWidth,
+                      child: gallery,
+                    ),
+                  ),
                 ),
-            ],
-          );
-        },
-      );
-      return widget.frameBuilder?.call(context, extent, panels) ?? panels;
-    },
-  );
+                if (widget.expanded &&
+                    _controller.isCompleted &&
+                    widget.resizeHandle != null)
+                  Positioned(
+                    left:
+                        extent -
+                        LibraryNavigationResizeHandle.hitTargetWidth / 2,
+                    top: 0,
+                    bottom: 0,
+                    child: widget.resizeHandle!,
+                  ),
+              ],
+            );
+          },
+        );
+        return widget.frameBuilder?.call(context, extent, panels) ?? panels;
+      },
+    );
+  }
 }

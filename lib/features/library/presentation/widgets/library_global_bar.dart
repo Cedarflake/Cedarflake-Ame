@@ -48,9 +48,13 @@ class LibraryGlobalBar extends StatelessWidget {
         height: 64,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            const collapsedLeading = LibraryWorkbenchMetrics.railWidth;
+            const collapsedLeading =
+                LibraryWorkbenchMetrics.railWidth +
+                LibraryWorkbenchMetrics.contentInset;
             final contentLeading =
-                collapsedLeading + sidebarWidth * sidebarExpansion;
+                collapsedLeading +
+                (sidebarWidth - LibraryWorkbenchMetrics.contentInset) *
+                    sidebarExpansion;
             final leadingWidth = (contentLeading - 16).clamp(
               LibraryWorkbenchMetrics.railWidth,
               244.0,
@@ -76,7 +80,7 @@ class LibraryGlobalBar extends StatelessWidget {
                 0.0,
                 constraints.maxWidth -
                     collapsedLeading -
-                    sidebarWidth -
+                    (sidebarWidth - LibraryWorkbenchMetrics.contentInset) -
                     trailingWidth -
                     expandedSearchGap,
               ),
@@ -99,21 +103,25 @@ class LibraryGlobalBar extends StatelessWidget {
                   child: Center(child: sidebarToggle),
                 ),
                 if (!isCompact)
-                  Align(
-                    alignment: Alignment.centerLeft,
+                  Positioned(
+                    left: LibraryWorkbenchMetrics.railWidth,
+                    top: 0,
+                    bottom: 0,
+                    width: leadingWidth - LibraryWorkbenchMetrics.railWidth,
                     child: AmeWindowDragRegion(
-                      child: SizedBox(
-                        width: leadingWidth,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
                         child: Padding(
                           padding: const EdgeInsets.only(
-                            left: LibraryWorkbenchMetrics.railWidth + 16,
+                            // The asset's transparent inset aligns its visible edge with the action.
+                            left: 12,
                           ),
                           child: Row(
                             children: [
                               Semantics(
                                 label: LibraryStrings.appName,
                                 image: true,
-                                child: const AmeBrandMark(size: 32),
+                                child: const AmeBrandMark(size: 36),
                               ),
                               const SizedBox(width: 6),
                               Flexible(
