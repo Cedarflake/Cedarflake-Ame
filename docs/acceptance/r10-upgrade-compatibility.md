@@ -235,3 +235,19 @@ This follow-up changes only historical repair composition. The package hashes ab
 earlier binaries; installation, rollback, runtime packaging and UI observations retain their
 unchanged inputs. The native SQLite regressions and current-head hosted checks cover this later
 migration change.
+
+## R10c integration — 2026-11-16
+
+[PR 68](https://github.com/Cedarflake/Cedarflake-Ame/pull/68) was squash-merged as
+`f26b6132fdef213c06cf2bdce1936d0ca8098162` from head
+`391e3745093189af2d9c0fd75c5414ed20cfa4ba`. The merged tree matches that head exactly.
+The local and remote `codex/r10c-upgrade-compatibility` branches were deleted, and the checkout
+returned to `main`.
+
+The user explicitly authorized integration before CI completion. At merge time,
+[Quality / CI 1163](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43863270308)
+had passed Flutter tests, Static, Windows scan/accessibility, production build verification and
+the Rust Remaining partition. Rust Catalog, Schema/Queue/Organization and Scan/Sync/Classification
+were still running. The linked run and
+[post-merge checks](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/43869904990)
+own their final results; integration does not record those pending checks as passed.
