@@ -84,11 +84,11 @@ class _LibraryFolderNavigationTileState
           focusNode: _focusNode,
           selected: widget.isSelected,
           selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
-          shape: const StadiumBorder(),
+          shape: LibraryWorkbenchMetrics.sidebarRowShape,
           minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
           dense: true,
           contentPadding: EdgeInsets.only(
-            left: 24 + (widget.depth * 28),
+            left: 16 + (widget.depth * 28),
             right: 4,
           ),
           minLeadingWidth: 24,
@@ -212,7 +212,7 @@ class LibraryFolderErrorTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(left: 16 + (depth * 28), right: 4),
+      padding: EdgeInsets.only(left: 8 + (depth * 28), right: 4),
       child: TextButton.icon(
         key: const Key("folder-tree-retry"),
         onPressed: onRetry,
@@ -238,7 +238,7 @@ class LoadMoreLibraryFoldersTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(left: 16 + (depth * 28), right: 4),
+      padding: EdgeInsets.only(left: 8 + (depth * 28), right: 4),
       child: TextButton(
         key: const Key("folder-tree-load-more"),
         onPressed: isLoading ? null : onPressed,

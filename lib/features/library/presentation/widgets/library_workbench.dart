@@ -277,6 +277,7 @@ class _FunctionRail extends ConsumerWidget {
         ),
         destinations: const [
           NavigationRailDestination(
+            padding: EdgeInsets.only(bottom: 12),
             icon: Icon(
               Symbols.photo_library_rounded,
               size: LibraryWorkbenchMetrics.iconSize,
@@ -285,6 +286,7 @@ class _FunctionRail extends ConsumerWidget {
             label: Text(LibraryStrings.library),
           ),
           NavigationRailDestination(
+            padding: EdgeInsets.only(bottom: 12),
             icon: Icon(
               Symbols.photo_album_rounded,
               size: LibraryWorkbenchMetrics.iconSize,

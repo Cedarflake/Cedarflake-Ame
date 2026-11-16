@@ -122,12 +122,18 @@ void main() {
         );
         final previewState = tester.state(preview);
         final previewBounds = tester.getRect(preview);
+        final previewOffset =
+            previewBounds.topLeft - tester.getTopLeft(cards.first);
         expect(previewBounds.width, previewBounds.height);
         await tester.tap(selection);
         await tester.pumpAndSettle();
         expect(find.text("取消选择"), findsOneWidget);
         expect(tester.state(preview), same(previewState));
-        expect(tester.getRect(preview), previewBounds);
+        expect(tester.getSize(preview), previewBounds.size);
+        expect(
+          tester.getTopLeft(preview) - tester.getTopLeft(cards.first),
+          previewOffset,
+        );
         expect(tester.takeException(), isNull);
         await tester.tap(find.text("取消选择"));
         await tester.pumpAndSettle();

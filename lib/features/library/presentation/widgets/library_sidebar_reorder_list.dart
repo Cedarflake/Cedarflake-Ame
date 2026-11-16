@@ -8,6 +8,7 @@ import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../domain/library_sidebar_order.dart";
 import "../../application/library_sidebar_ordering.dart";
 import "library_sidebar_rows_disclosure.dart";
+import "library_workbench_metrics.dart";
 
 class LibrarySidebarReorderList<T extends Object> extends StatefulWidget {
   const LibrarySidebarReorderList({
@@ -96,14 +97,14 @@ class _LibrarySidebarReorderListState<T extends Object>
 
       final rows = ReorderableListView.builder(
         key: ValueKey(_itemsRevision),
-        padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         buildDefaultDragHandles: false,
         proxyDecorator: (child, index, animation) => AnimatedBuilder(
           animation: animation,
           child: child,
           builder: (context, child) => Material(
             elevation: 6 * Curves.easeInOut.transform(animation.value),
-            shape: const StadiumBorder(),
+            shape: LibraryWorkbenchMetrics.sidebarRowShape,
             clipBehavior: Clip.antiAlias,
             child: child,
           ),

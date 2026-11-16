@@ -94,7 +94,7 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
         sidebar: Material(
           type: MaterialType.transparency,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             children: [
               for (final (value, label, icon) in _destinations)
                 ListTile(
@@ -104,7 +104,7 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
                   selected: view == value,
                   selectedTileColor: colors.secondaryContainer,
                   selectedColor: colors.onSecondaryContainer,
-                  shape: const StadiumBorder(),
+                  shape: LibraryWorkbenchMetrics.sidebarRowShape,
                   minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
                   onTap: () => onViewChanged(value),
                 ),

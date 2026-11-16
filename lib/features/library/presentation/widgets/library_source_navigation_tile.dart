@@ -504,16 +504,13 @@ class _ExpandedSourceTile extends StatelessWidget {
       focusNode: focusNode,
       selected: isSelected,
       selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
-      shape: const StadiumBorder(),
+      shape: LibraryWorkbenchMetrics.sidebarRowShape,
       minTileHeight: subtitle == null
           ? LibraryWorkbenchMetrics.sidebarRowHeight
           : LibraryWorkbenchMetrics.sidebarStatusRowHeight,
       minVerticalPadding: 4,
       dense: true,
-      contentPadding: EdgeInsets.only(
-        left: leading == null ? 24 : 16,
-        right: 4,
-      ),
+      contentPadding: EdgeInsets.only(left: leading == null ? 16 : 8, right: 4),
       minLeadingWidth: leading == null ? 24 : 40,
       horizontalTitleGap: leading == null ? 12 : 4,
       leading: SizedBox(
@@ -521,15 +518,32 @@ class _ExpandedSourceTile extends StatelessWidget {
         width: leading == null ? 24 : 40,
         child: leading ?? Icon(icon),
       ),
-      title: DefaultTextStyle.merge(
-        style: TextStyle(
-          fontWeight: isSelected ? ameFontWeightSemibold : ameFontWeightMedium,
-        ),
-        child: LibraryPathText(text: title, path: path, textKey: titleKey),
+      title: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DefaultTextStyle.merge(
+            style: TextStyle(
+              fontWeight: isSelected
+                  ? ameFontWeightSemibold
+                  : ameFontWeightMedium,
+            ),
+            child: LibraryPathText(text: title, path: path, textKey: titleKey),
+          ),
+          if (subtitle != null)
+            Text(
+              subtitle!,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontSize: 12,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+        ],
       ),
-      subtitle: subtitle == null
-          ? null
-          : Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: trailing,
       onTap: onTap,
     );

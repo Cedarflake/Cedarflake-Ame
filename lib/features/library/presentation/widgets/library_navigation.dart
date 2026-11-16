@@ -274,11 +274,11 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           selectedTileColor: Theme.of(
                             context,
                           ).colorScheme.secondaryContainer,
-                          shape: const StadiumBorder(),
+                          shape: LibraryWorkbenchMetrics.sidebarRowShape,
                           minTileHeight:
                               LibraryWorkbenchMetrics.sidebarRowHeight,
                           contentPadding: const EdgeInsets.only(
-                            left: 24,
+                            left: 16,
                             right: 4,
                           ),
                           minLeadingWidth: 24,
@@ -302,6 +302,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       if (!widget.isCompact)
                         LibrarySidebarSectionHeader(
                           title: "文件夹",
+                          count: widget.roots.length,
                           selectedCount: _selection.count,
                           allSelected: _selection.allSelected(
                             widget.roots.map((root) => root.id),
@@ -330,7 +331,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           )
                         else
                           const ListTile(
-                            contentPadding: EdgeInsets.only(left: 24, right: 6),
+                            contentPadding: EdgeInsets.only(left: 16, right: 6),
                             minLeadingWidth: 24,
                             horizontalTitleGap: 12,
                             leading: Icon(Symbols.folder_off_rounded, size: 24),

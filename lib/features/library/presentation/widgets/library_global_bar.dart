@@ -67,12 +67,15 @@ class LibraryGlobalBar extends StatelessWidget {
             const expandedSearchGap = 32.0;
             const trailingWidth =
                 captionWidth + notificationWidth + notificationGap;
-            final collapsedSearchWidth = math.max(
-              0.0,
-              constraints.maxWidth -
-                  collapsedLeading -
-                  trailingWidth -
-                  collapsedSearchGap,
+            final collapsedSearchWidth = math.min(
+              720.0,
+              math.max(
+                0.0,
+                constraints.maxWidth -
+                    collapsedLeading -
+                    trailingWidth -
+                    collapsedSearchGap,
+              ),
             );
             final expandedSearchWidth = math.min(
               720.0,

@@ -44,6 +44,7 @@ class LibraryReviewGroupCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(LibraryDuplicateReviewMetrics.padding),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox.square(
               dimension: LibraryDuplicateReviewMetrics.groupPreviewExtent,

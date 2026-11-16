@@ -138,7 +138,7 @@ class _LibraryAlbumNavigationState
         child: _expanded && page?.total == 0
             ? const ListTile(
                 key: Key("library-sidebar-album-empty"),
-                contentPadding: EdgeInsets.only(left: 24, right: 6),
+                contentPadding: EdgeInsets.only(left: 16, right: 6),
                 minLeadingWidth: 24,
                 horizontalTitleGap: 12,
                 leading: Icon(Symbols.photo_album_rounded, size: 24),
@@ -245,7 +245,7 @@ class _LibraryAlbumNavigationState
           ),
         ),
         loading: () => ListView(
-          padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           children: [
             _header(null, true),
             LibraryFolderDisclosure(
@@ -263,7 +263,7 @@ class _LibraryAlbumNavigationState
           ],
         ),
         error: (error, stack) => ListView(
-          padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           children: [
             _header(null, true),
             LibraryFolderDisclosure(

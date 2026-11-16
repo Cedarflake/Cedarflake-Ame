@@ -85,9 +85,12 @@ local `Overlay.wrap` owns proxy coordinates and clipping within the sidebar, bel
 captured themes. The presentation order owner serializes saves,
 retains current item identities through metadata updates, appends new items and restores the prior
 order on failure through the shared feedback surface. It does not reorder gallery images or mutate
-physical folders. Sidebar navigation rows and their drag proxies use the framework StadiumBorder.
-Single-line rows have a 48-pixel minimum height, source rows with status have 56 pixels, and existing
-40-pixel smart-album rows retain their compact height. Text scaling can increase these minimums.
+physical folders. Sidebar navigation rows and their drag proxies share a framework
+RoundedRectangleBorder with eight-pixel corners. Their 16-pixel side insets align the background's
+leading edge with the primary action. Single-line rows have a 40-pixel minimum height and source
+rows with status have 56 pixels; text scaling and embedded controls can increase these minimums.
+Source names and statuses compose a minimum-height Column in ListTile's title slot, allowing the
+framework to center them together rather than applying fixed two-line baselines to a compact row.
 
 Manual and smart albums use shared section headings and framework icon buttons for disclosure.
 Manual rows share Ame spatial/effects controllers and native SizeTransition/FadeTransition widgets inside
@@ -291,6 +294,7 @@ supplies pointer, keyboard and hover behavior, while
 the text/icon buttons keep their separate actions. The pinned SDK's `Card.clipBehavior` clips the ink to
 the shared card shape; an embedded clickable `ListTile` would restrict feedback to the path region.
 Group cards place a square representative image beside details, with a shared bounded preview demand.
+The preview and detail slots align at the top, with the group action retained at the lower right.
 The image slot selects its group without replacing the preview; a circular check and thin card
 outline show selection. All member reads remain demand-driven.
 The selected group retains its initial representative filename as the heading while scrolling;

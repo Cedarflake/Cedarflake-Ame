@@ -153,8 +153,10 @@ disclosure, Settings width changes and light/dark surfaces. Collapsed content re
 gutter and complete corners. Importing the existing 700-image 640x480 subset produced six merged
 representatives. Viewer filmstrip show/hide preserved the image position and 100% zoom; thumbnail
 selection and viewer return remained functional. This run used isolated derived storage and its
-logs contained no Flutter exception or overflow. It remains open for inspection; source-baseline
-comparison and scratch retirement occur after exit. Profile frame-time qualification remains open.
+interaction logs contained no Flutter exception or overflow. It later exited with code 0, preserved
+all 10,000 fixture files by size and modification time, and retired its scratch profile. Shutdown
+logged two AXTree update errors; no corresponding failure occurred during the interaction checks.
+The later Profile qualification below covers the same filmstrip implementation.
 
 The brand sizing check found that the image's default scale-down fit kept the 28-pixel asset small
 inside larger layout bounds. Contain fit now uses the requested 44-pixel box; the density asset's
@@ -170,6 +172,47 @@ fixed-right-edge, hit-target, no-relayout, reversal and reduced-motion assertion
 The affected four cases and six existing application/album cases passed locally. Analysis of the
 changed Dart owners reported no issues. The same hosted run passed Static, Windows Scan and Windows
 Accessibility; remaining/current-head hosted results stay with the run and roadmap.
+
+The compact-sidebar refinement aligns navigation backgrounds with the primary-action background,
+using 16-pixel side insets and shared eight-pixel corners for rows and drag proxies. Existing icon
+and heading alignment is retained. Single-line minimum height is 40 pixels; status rows retain 56.
+The three primary destinations have 12 additional pixels between entries, and both sidebar states
+cap search at 720 pixels. The existing sidebar selection, drag, navigation-semantics and application
+fixtures passed all 30 cases; scoped analysis reported no issues. The updated Debug client built in
+37.2 seconds. Native Profile inspection confirmed aligned primary-action/selection backgrounds,
+the 720-pixel collapsed search cap, and the retained content gutter. Folder names and statuses now
+center as one text block, the heading shows the imported-root count, and section controls share the
+row-menu trailing column. Group preview/detail slots align at the top while actions remain below.
+The updated nine card-layout cases passed, including 400-pixel width with doubled text. Selection
+retains preview state, size and position within its card; a wrapping toolbar may shift the whole grid.
+Source-tile and navigation owners have 551 and 554 production lines with no inline tests; the
+existing dedicated card-layout fixture has 393 lines.
+
+The 78.5-second Profile build was inspected with the existing 700-image corpus in isolated storage.
+The folder heading changed from zero to one after import, its selected status row stayed centered,
+and exact groups retained compact previews, selection and detail actions. The client exited with
+code 0 and preserved all 700 fixtures by size and modification time; its scratch profile was retired.
+Two filmstrip show/hide cycles retained the 100% image bounds. At 165 Hz, the capture contained
+340 frames, including hover/tooltip frames: UI p95/p99/max were 0.619/7.600/10.679 ms; raster values
+were 0.763/5.554/24.084 ms. Four UI frames and three raster frames exceeded the 6.061-ms budget.
+The four interaction bursts had UI p95 0.487–0.720 ms and raster p95 0.710–0.842 ms; these timings
+do not establish display FPS or remove the retained occasional slow frames. RSS changed from
+255.8 MiB to 264.3 MiB, peaking at 269.5 MiB. No Flutter exception or overflow was logged.
+The final 61.1-second Profile build also aligned section disclosure with the trailing menu/download
+column in the native window; that isolated client remains open for inspection.
+
+The `0f7483ad` hosted Flutter failure asserted absolute preview bounds after the compact doubled-text
+toolbar wrapped. The fixture now protects card-relative placement and retained size/state; all nine
+layout cases pass. Its separate accessibility job timed out in native activation initialization,
+before window discovery or assertions. That hosted result remains failed pending the owned follow-up.
+
+The `0f7483ad` Profile client uses the unchanged receipt-verified optimized debug-assertion native
+library and in-memory preferences. An initial fresh catalog failed with `unable to open database
+file`; an independent SQLite write in the same leased directory succeeded. Confined process-level
+TEMP/TMP inside the leased profile allowed the same client to initialize normally. This observation
+isolates a temporary-directory dependency but does not identify its underlying Windows error.
+No product storage policy or global environment setting changed. The failed client exited with
+code 0 and preserved all 700 source fixtures; its scratch profile was retired.
 
 Date: 2026-11-08
 

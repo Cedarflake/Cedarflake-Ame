@@ -12,6 +12,7 @@ import "library_model_setup.dart";
 import "library_folder_disclosure.dart";
 import "library_sidebar_section_header.dart";
 import "library_sidebar_section_toggle.dart";
+import "library_workbench_metrics.dart";
 
 class LibrarySmartAlbumNavigation extends ConsumerStatefulWidget {
   const LibrarySmartAlbumNavigation({
@@ -68,8 +69,8 @@ class _LibrarySmartAlbumNavigationState
                         ListTile(
                           key: const Key("library-sidebar-smart-empty"),
                           contentPadding: const EdgeInsets.only(
-                            left: 24,
-                            right: 6,
+                            left: 16,
+                            right: 4,
                           ),
                           leading: const Icon(
                             Symbols.photo_album_rounded,
@@ -179,10 +180,10 @@ class _SmartAlbumRow extends StatelessWidget {
       key: ValueKey("library-sidebar-smart-${category.id}"),
       selected: selected,
       selectedTileColor: theme.colorScheme.secondaryContainer,
-      shape: const StadiumBorder(),
-      minTileHeight: 40,
+      shape: LibraryWorkbenchMetrics.sidebarRowShape,
+      minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
       minVerticalPadding: 6,
-      contentPadding: const EdgeInsets.only(left: 24, right: 16),
+      contentPadding: const EdgeInsets.only(left: 16, right: 16),
       minLeadingWidth: 24,
       horizontalTitleGap: 12,
       leading: SizedBox(

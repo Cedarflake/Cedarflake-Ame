@@ -124,9 +124,9 @@ class _LibraryAlbumNavigationTileState
         focusNode: _focus,
         selected: widget.selected,
         selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
-        shape: const StadiumBorder(),
+        shape: LibraryWorkbenchMetrics.sidebarRowShape,
         minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
-        contentPadding: const EdgeInsets.only(left: 16, right: 4),
+        contentPadding: const EdgeInsets.only(left: 8, right: 4),
         minLeadingWidth: 40,
         horizontalTitleGap: 4,
         leading: LibrarySidebarSelectionIcon(

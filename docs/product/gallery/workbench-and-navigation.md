@@ -178,7 +178,8 @@ The application mark and semibold `Ame` label sit together to the right of the h
 uses the theme's primary color without an extra outline; its visible silhouette, text height and
 optical spacing are balanced as one identity. Collapsing the sidebar hides this identity to leave
 room for search. The Windows application icon retains its colored artwork. Search starts at the
-sidebar/content boundary rather than the inset content heading.
+sidebar/content boundary rather than the inset content heading. Both expanded and collapsed
+sidebars keep the search field within its 720-pixel maximum width.
 
 There is no permanent Task button or task-center navigation entry. While an import or library update
 is active, a temporary bottom progress surface uses the concrete action name, reports progress and
@@ -191,8 +192,10 @@ The global bar and contextual sidebar share one continuous chrome surface. The f
 main workspace use the distinct navigation and content roles, resolved for light and dark themes
 by the shared workbench surface owner. The frame and content own their outer rounded corners;
 the sidebar introduces no cutout below the global bar. Tonal surfaces separate the regions without
-divider lines. Sidebar navigation rows use fully rounded ends and compact heights; source rows
-with status retain room for both text lines. Dragging preserves the row's shape.
+divider lines. Sidebar navigation rows use eight-pixel corners and compact heights. Their backgrounds
+have 16-pixel side insets, aligning the leading edge with the primary-action background; icons and
+section headings retain their existing alignment. Source rows with status retain room for both text
+lines. Dragging preserves the row's shape.
 Settings retains the same small outer inset on both sides of its content surface.
 Collapsing a sidebar retains that eight-pixel gap between the function rail and the content surface,
 with search aligned above it. Primary-destination changes animate the content boundary and keep the
@@ -221,10 +224,13 @@ silhouette is approximately 32 pixels beside the 22-pixel wordmark. The action's
 icons and section headings share an inset column. Keep 32 pixels below the primary action and
 24 pixels above each folder, manual-album or smart-album section; rows within each section retain
 their compact spacing. The first primary-navigation icon aligns vertically with the
-primary-action label; the hamburger stays in the brand row.
+primary-action label; the hamburger stays in the brand row. The three primary destinations have
+12 additional pixels between adjacent entries; Settings remains anchored at the bottom.
 The album section heading uses semibold. Album names match Favorites and folder navigation: medium
 by default and semibold when selected, retaining the existing font sizes and selected-state colors.
 Manual and smart albums have independent section disclosure controls, with counts beside the labels.
+The folder heading shows the imported-root count. Section disclosure and row menus share the same
+trailing column; a source name and its status form one vertically centered text block.
 Collapsing a section retains its active collection and selection; it does not change the gallery query.
 Manual and smart sections share the same size/fade timing, including empty and loading states.
 Library and Albums share the same sidebar structure: the primary action comes first, then the

@@ -31,7 +31,7 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(24, 24, 6, 0),
+    padding: const EdgeInsets.fromLTRB(16, 24, 4, 0),
     child: ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 36),
       child: Row(
@@ -84,7 +84,8 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
                 icon: const Icon(Symbols.delete_rounded),
               ),
             ),
-          ?trailing,
+          if (trailing != null)
+            SizedBox(width: 40, child: Center(child: trailing)),
         ],
       ),
     ),
