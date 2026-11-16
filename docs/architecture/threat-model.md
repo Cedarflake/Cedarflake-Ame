@@ -127,9 +127,11 @@ could turn journal access into cross-user disclosure or privilege escalation. Th
 its restricted LocalSystem service profile. Its protected local pipe rejects remote clients;
 connection-bound proofs are checked against OS process/token facts. The client authenticates the
 installed service and protected image identity. Every disclosed scope is checked under the captured
-caller token, including ancestor listing and containment. The two-slot production lifetime admits
-at most one retained connection per verified user SID, so one local account cannot hold all global
-capacity.
+caller token, including ancestor listing and containment. Production admission limits each verified
+user SID to one active request session. The SID reservation ends when request dispatch stops;
+the two-slot global bound continues to include handshakes and draining connections. A short,
+cancellable admission wait permits session replacement without admitting concurrent request
+sessions for the same SID.
 
 The broker reads an existing journal; its protocol does not grant media-content reads, source writes
 or journal creation/reset. A client need not have an approved executable path or signature: caller

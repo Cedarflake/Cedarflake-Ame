@@ -21,7 +21,9 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
 
 - `journal_broker/windows/production_host.rs` owns production listener readiness and joined shutdown.
   Its lifetime owner linearizes connection admission against idle retirement and holds each lease
-  through request drain and disconnect. `identity_query_access.rs` owns only the verified service's
+  through request drain and disconnect. A separate borrowed SID lease covers request dispatch;
+  releasing it admits a same-user replacement through a bounded, cancellable wait while the global
+  connection lease continues to cover worker drain. `identity_query_access.rs` owns only the verified service's
   process/token query grants. The service activation owner handles bounded SCM state transitions;
   the transport connection owner admits one fully reauthenticated handover only after proven process
   retirement. Protocol dispatch and partial I/O remain in their existing owners.

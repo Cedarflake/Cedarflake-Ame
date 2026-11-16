@@ -579,9 +579,14 @@ service SID, and local Interactive Users. The service SID grant admits the addit
 access check when creating a second or replacement instance; no other service SID receives that grant.
 The pipe rejects remote clients and keeps exactly two bounded listener instances. Each accepted pipe
 holds a provisional global lease through its bounded handshake. After process/token agreement, that
-lease binds to the verified user SID, and one SID can retain at most one production lease. A
-duplicate SID is rejected before server acceptance and request framing, leaving the second global
-slot available to another authenticated principal. The first listener uses
+connection obtains a separate request-session lease for the verified user SID. One SID can hold
+at most one request-session lease. Admission may wait up to one second for a preceding session to
+finish, within the existing client acceptance timeout, and checks service stop every 25 milliseconds.
+A still-occupied SID is rejected before server acceptance and request framing. Request dispatch
+releases the SID lease before cancelling and draining its workers; its global connection lease
+remains held through worker retirement and pipe disconnect. A replacement session can therefore
+start while old work retires without increasing the two-connection or shared worker/root limits.
+Provisional handshakes and bounded teardown still occupy global capacity. The first listener uses
 `FILE_FLAG_FIRST_PIPE_INSTANCE`; the second is another instance of that same protected pipe, not a
 second endpoint or name.
 Pipe access is not caller authorization: the server obtains process and session IDs from the pipe,

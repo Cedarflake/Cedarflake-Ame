@@ -238,3 +238,42 @@ Daily and Windows Release gates, and independent read-only audit remain outstand
 roadmap may mark R2c-P complete. No real library, elevated SCM operation, or real FSCTL acceptance
 was run for this remediation. R2c-O's authorization-bound elevated service evidence also remains an
 explicit separate gap and is not implied by deterministic or non-accessing guardrails.
+
+## Authenticated-user admission — 2026-11-16
+
+[PR 67](https://github.com/Cedarflake/Cedarflake-Ame/pull/67) binds user admission to verified
+pipe/process/token evidence. A borrowed principal lease limits each SID to one active request
+session; the separate global lease still covers worker drain and pipe disconnect. A waiting
+replacement can acquire the principal lease after dispatch stops, with a one-second admission
+deadline and cancellation checks at most 25 milliseconds apart. No protocol version, source
+access right, two-connection limit, shared worker/root budget or client handshake timeout changes.
+
+The focused cases exercise duplicate and racing principals, rejected-lease cleanup, handover
+without global capacity release, timeout and service stop. The production dispatch loop is also
+held inside teardown after both normal closure and a failed acknowledgement; a replacement must
+be admitted while a third global connection remains blocked. A native named-pipe case performs
+actual connection proofs and Windows token admission, rejects a concurrent same-user session,
+then accepts its replacement when the prior pipe closes. These cases use disposable handles and
+no installed service, registered media root or source content. Installed SCM/FSCTL acceptance
+retains its separate authorization boundary.
+
+The initial Static run at `cb237a6d` stopped at a production-host formatting difference. The
+`69293701` correction passed the pinned formatter locally. The admission changes and their focused
+cases are included in the normal Windows Rust and broker integration owners.
+
+The local Debug build completed with locked offline dependencies and one compiler job. The seven
+`principal` cases passed serially, including the native same-user pipe reconnection, and the
+unchanged partial-frame native case passed as a control. In the restricted command environment,
+both native cases first failed at the shared pipe-connection fixture; the same executable passed
+both in the ordinary process environment. Formatting, PowerShell parsing and diff whitespace checks
+also passed. These focused results do not cover installed-service acceptance.
+
+Physical review boundaries after this change:
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `service.rs` | 1,707 + 3 test-module wiring | 0 | 2,964 |
+| `service/windows_security.rs` | 1,364 | 274 | 0 |
+| `windows/host.rs` | 660 | 348 | 93 |
+| `windows/production_host.rs` | 140 | 0 | 0 |
+| `windows/production_host/lifetime.rs` | 183 + 3 test-module wiring | 0 | 250 |

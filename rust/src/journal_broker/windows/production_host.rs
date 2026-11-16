@@ -1,4 +1,4 @@
-mod lifetime;
+pub(super) mod lifetime;
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -125,11 +125,7 @@ fn run_listener(
                     Some(stop_requested),
                     root_budget.clone(),
                     worker_budget.clone(),
-                    |principal| match connection.bind_principal(principal) {
-                        Ok(true) => Ok(()),
-                        Ok(false) => Err(HostError::AdmissionRejected),
-                        Err(_) => Err(HostError::DispatchFailed),
-                    },
+                    Some(&mut connection),
                 );
                 // SAFETY: serving has retired its I/O and drained all request workers. Keep the
                 // admission lease until the connected pipe is also detached.
