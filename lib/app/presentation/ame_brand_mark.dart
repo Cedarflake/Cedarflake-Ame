@@ -14,6 +14,7 @@ class AmeBrandMark extends StatelessWidget {
         "assets/branding/ame_light.png",
         color: colors.primary,
         colorBlendMode: BlendMode.srcIn,
+        fit: BoxFit.contain,
         filterQuality: FilterQuality.medium,
         excludeFromSemantics: true,
       ),

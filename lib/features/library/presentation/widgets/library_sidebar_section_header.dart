@@ -31,7 +31,7 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(24, 8, 6, 0),
+    padding: const EdgeInsets.fromLTRB(24, 24, 6, 0),
     child: ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 36),
       child: Row(

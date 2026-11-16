@@ -46,7 +46,7 @@ void main() {
       progress.value = 0.5;
       await tester.pump();
       expect(layouts, initialLayouts);
-      expect(tester.getTopLeft(find.byKey(const Key("moving-content"))).dx, 65);
+      expect(tester.getTopLeft(find.byKey(const Key("moving-content"))).dx, 63);
       await tester.tapAt(const Offset(100, 50));
       expect(taps, 0);
       await tester.tapAt(const Offset(150, 50));
@@ -71,24 +71,24 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 70));
       final middle = tester.getTopLeft(boundary).dx;
-      expect(middle, greaterThan(0));
+      expect(middle, greaterThan(8));
       expect(middle, lessThan(260));
       expect(
         tester.getTopRight(find.byKey(const Key("gallery-content"))).dx,
         800,
       );
       await tester.pumpAndSettle();
-      expect(tester.getTopLeft(boundary).dx, 0);
+      expect(tester.getTopLeft(boundary).dx, 8);
       expect(find.text("Folders"), findsNothing);
-      expect(widths, [540, 800]);
+      expect(widths, [540, 792]);
       expanded.value = true;
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 70));
-      expect(tester.getTopLeft(boundary).dx, greaterThan(0));
+      expect(tester.getTopLeft(boundary).dx, greaterThan(8));
       expect(tester.getTopLeft(boundary).dx, lessThan(260));
       await tester.pumpAndSettle();
       expect(tester.getTopLeft(boundary).dx, 260);
-      expect(widths, [540, 800, 540]);
+      expect(widths, [540, 792, 540]);
       expect(find.text("Folders"), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
@@ -115,7 +115,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(boundary).dx, 260);
-    expect(widths, [540, 800, 540]);
+    expect(widths, [540, 792, 540]);
     expect(tester.takeException(), isNull);
   });
 
@@ -131,7 +131,7 @@ void main() {
     await tester.pump();
     expect(
       tester.getTopLeft(find.byKey(const Key("library-gallery-transition"))).dx,
-      0,
+      8,
     );
     expect(find.text("Folders"), findsNothing);
     // ExcludeFocus schedules a layout rebuild after its focus microtask. Flush

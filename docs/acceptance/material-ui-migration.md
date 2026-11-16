@@ -111,8 +111,7 @@ It had received a user-initiated real-root import and repeated hot reloads. The 
 belonged to an earlier successful run and does not cover that exit. No system resource-exhaustion
 event was returned by the scoped check; the allocation cause remains unconfirmed. A new Debug build
 completed in 27.5 seconds and opened a fresh isolated profile. Its header/brand screenshot reflects
-the refinement; the user retained control for inspection. Final sidebar click-through and filmstrip
-frame-time qualification are not yet recorded.
+the refinement; the subsequent sidebar and filmstrip interaction checks are recorded below.
 
 The first hosted run for `01abdfdf` reported `use_null_aware_elements` in the workbench frame.
 The optional top-bar child now uses the corresponding null-aware element; focused analysis of
@@ -147,11 +146,30 @@ album-selection and shell fixtures have 215, 123 and 367 lines, with no inline t
 case covers rapid destination reversal, retained scroll/state and stable settings layout during the
 transition. The album-selection case now also checks the empty row's intermediate disclosure height.
 
-The isolated Debug client received the latest Dart payload through attach and restart. Its native
-snapshot shows the adjusted alignment and continuous lower-left backing corner. The desktop helper
-then repeatedly returned `foreground window did not report a process id` for clicking after a fresh
-window binding. No click result is claimed for that attempt. The current window remains available;
-native collapse/switch click-through and filmstrip frame-time qualification remain open.
+The isolated Debug client received the `e75cd95f` Dart payload through attach and restart. Resetting
+the desktop helper resolved its `foreground window did not report a process id` input failure.
+Native checks covered Gallery and Duplicates sidebar collapse/expansion, manual/smart album empty
+disclosure, Settings width changes and light/dark surfaces. Collapsed content retained its left
+gutter and complete corners. Importing the existing 700-image 640x480 subset produced six merged
+representatives. Viewer filmstrip show/hide preserved the image position and 100% zoom; thumbnail
+selection and viewer return remained functional. This run used isolated derived storage and its
+logs contained no Flutter exception or overflow. It remains open for inspection; source-baseline
+comparison and scratch retirement occur after exit. Profile frame-time qualification remains open.
+
+The brand sizing check found that the image's default scale-down fit kept the 28-pixel asset small
+inside larger layout bounds. Contain fit now uses the requested 44-pixel box; the density asset's
+visible silhouette occupies approximately 32 pixels. Native inspection confirmed the larger mark
+beside the 22-pixel wordmark and its alignment with the primary action. Folder, manual-album and
+smart-album headings now have 24 pixels above them, while the action retains 32 pixels below and
+the row spacing is unchanged. The new-album button still opened the existing editor and cancellation
+returned to the same sidebar.
+
+The `e75cd95f` Flutter job failed four sidebar geometry expectations that still assumed no collapsed
+gutter. Their expected boundary and destination widths now include the accepted eight-pixel inset;
+fixed-right-edge, hit-target, no-relayout, reversal and reduced-motion assertions remain in place.
+The affected four cases and six existing application/album cases passed locally. Analysis of the
+changed Dart owners reported no issues. The same hosted run passed Static, Windows Scan and Windows
+Accessibility; remaining/current-head hosted results stay with the run and roadmap.
 
 Date: 2026-11-08
 

@@ -114,16 +114,16 @@ class LibraryGlobalBar extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.only(
                             // The asset's transparent inset aligns its visible edge with the action.
-                            left: 12,
+                            left: 10,
                           ),
                           child: Row(
                             children: [
                               Semantics(
                                 label: LibraryStrings.appName,
                                 image: true,
-                                child: const AmeBrandMark(size: 36),
+                                child: const AmeBrandMark(size: 44),
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
                                   LibraryStrings.workbenchName,

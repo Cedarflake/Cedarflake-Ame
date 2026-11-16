@@ -216,8 +216,11 @@ resizing and transition remain shared.
 The Albums sidebar starts with a filled `新建相册` action matching the folder action's placement,
 shape and tonal color. Both use semibold labels, a leading plus and their existing disabled-state rules.
 The brand mark is larger than its wordmark and its visible left edge aligns with the primary-action
-background. The action's icon, navigation icons and section headings share an inset column, with
-more space below the primary action. The first primary-navigation icon aligns vertically with the
+background. Account for the artwork's transparent padding when sizing the mark: its visible
+silhouette is approximately 32 pixels beside the 22-pixel wordmark. The action's icon, navigation
+icons and section headings share an inset column. Keep 32 pixels below the primary action and
+24 pixels above each folder, manual-album or smart-album section; rows within each section retain
+their compact spacing. The first primary-navigation icon aligns vertically with the
 primary-action label; the hamburger stays in the brand row.
 The album section heading uses semibold. Album names match Favorites and folder navigation: medium
 by default and semibold when selected, retaining the existing font sizes and selected-state colors.
