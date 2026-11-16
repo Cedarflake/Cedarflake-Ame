@@ -113,7 +113,8 @@ fn run_listener(
                 if stop_requested.load(Ordering::Acquire) {
                     break;
                 }
-                let Some(mut connection) = lifetime.admit().map_err(|_| HostError::DispatchFailed)?
+                let Some(mut connection) =
+                    lifetime.admit().map_err(|_| HostError::DispatchFailed)?
                 else {
                     break;
                 };
