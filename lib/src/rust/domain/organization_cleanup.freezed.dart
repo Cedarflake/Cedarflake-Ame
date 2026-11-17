@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'organization_cleanup.dart';
@@ -9,6 +9,7 @@ part of 'organization_cleanup.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$OrganizationCleanupEvent {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationCleanupEvent);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationCleanupEvent);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'OrganizationCleanupEvent()';
+    return 'OrganizationCleanupEvent()';
 }
 
 
@@ -208,16 +209,18 @@ $OrganizationCleanupEvent_ProgressCopyWith<OrganizationCleanupEvent_Progress> ge
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationCleanupEvent_Progress&&(identical(other.progress, progress) || other.progress == progress));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationCleanupEvent_Progress&&(identical(other.progress, progress) || other.progress == progress));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,progress);
+int get hashCode {
+    return Object.hash(runtimeType,progress);
+}
 
 @override
 String toString() {
-  return 'OrganizationCleanupEvent.progress(progress: $progress)';
+    return 'OrganizationCleanupEvent.progress(progress: $progress)';
 }
 
 
@@ -274,16 +277,18 @@ $OrganizationCleanupEvent_InspectedCopyWith<OrganizationCleanupEvent_Inspected> 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationCleanupEvent_Inspected&&(identical(other.inspection, inspection) || other.inspection == inspection));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationCleanupEvent_Inspected&&(identical(other.inspection, inspection) || other.inspection == inspection));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,inspection);
+int get hashCode {
+    return Object.hash(runtimeType,inspection);
+}
 
 @override
 String toString() {
-  return 'OrganizationCleanupEvent.inspected(inspection: $inspection)';
+    return 'OrganizationCleanupEvent.inspected(inspection: $inspection)';
 }
 
 
@@ -340,16 +345,18 @@ $OrganizationCleanupEvent_CompletedCopyWith<OrganizationCleanupEvent_Completed> 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationCleanupEvent_Completed&&(identical(other.receipt, receipt) || other.receipt == receipt));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationCleanupEvent_Completed&&(identical(other.receipt, receipt) || other.receipt == receipt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,receipt);
+int get hashCode {
+    return Object.hash(runtimeType,receipt);
+}
 
 @override
 String toString() {
-  return 'OrganizationCleanupEvent.completed(receipt: $receipt)';
+    return 'OrganizationCleanupEvent.completed(receipt: $receipt)';
 }
 
 
@@ -401,7 +408,7 @@ class OrganizationCleanupEvent_Cancelled extends OrganizationCleanupEvent {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationCleanupEvent_Cancelled);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationCleanupEvent_Cancelled);
 }
 
 
@@ -410,7 +417,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'OrganizationCleanupEvent.cancelled()';
+    return 'OrganizationCleanupEvent.cancelled()';
 }
 
 
@@ -439,16 +446,18 @@ $OrganizationCleanupEvent_FailedCopyWith<OrganizationCleanupEvent_Failed> get co
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationCleanupEvent_Failed&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationCleanupEvent_Failed&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,code,message);
+int get hashCode {
+    return Object.hash(runtimeType,code,message);
+}
 
 @override
 String toString() {
-  return 'OrganizationCleanupEvent.failed(code: $code, message: $message)';
+    return 'OrganizationCleanupEvent.failed(code: $code, message: $message)';
 }
 
 

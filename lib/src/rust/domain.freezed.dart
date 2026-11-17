@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'domain.dart';
@@ -9,6 +9,7 @@ part of 'domain.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$GalleryCollection {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'GalleryCollection()';
+    return 'GalleryCollection()';
 }
 
 
@@ -197,7 +198,7 @@ class GalleryCollection_Library extends GalleryCollection {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection_Library);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection_Library);
 }
 
 
@@ -206,7 +207,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'GalleryCollection.library_()';
+    return 'GalleryCollection.library_()';
 }
 
 
@@ -229,7 +230,7 @@ class GalleryCollection_Favorites extends GalleryCollection {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection_Favorites);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection_Favorites);
 }
 
 
@@ -238,7 +239,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'GalleryCollection.favorites()';
+    return 'GalleryCollection.favorites()';
 }
 
 
@@ -266,16 +267,18 @@ $GalleryCollection_AlbumCopyWith<GalleryCollection_Album> get copyWith => _$Gall
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection_Album&&(identical(other.albumId, albumId) || other.albumId == albumId));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection_Album&&(identical(other.albumId, albumId) || other.albumId == albumId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,albumId);
+int get hashCode {
+    return Object.hash(runtimeType,albumId);
+}
 
 @override
 String toString() {
-  return 'GalleryCollection.album(albumId: $albumId)';
+    return 'GalleryCollection.album(albumId: $albumId)';
 }
 
 
@@ -333,16 +336,18 @@ $GalleryCollection_SmartAlbumCopyWith<GalleryCollection_SmartAlbum> get copyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection_SmartAlbum&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.review, review) || other.review == review));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection_SmartAlbum&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.review, review) || other.review == review));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,categoryId,review);
+int get hashCode {
+    return Object.hash(runtimeType,categoryId,review);
+}
 
 @override
 String toString() {
-  return 'GalleryCollection.smartAlbum(categoryId: $categoryId, review: $review)';
+    return 'GalleryCollection.smartAlbum(categoryId: $categoryId, review: $review)';
 }
 
 
@@ -395,16 +400,21 @@ $PreviewCleanupEventCopyWith<PreviewCleanupEvent> get copyWith => _$PreviewClean
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent&&(identical(other.operationId, operationId) || other.operationId == operationId));
+  final _this = this as PreviewCleanupEvent;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent&&(identical(other.operationId, _this.operationId) || other.operationId == _this.operationId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,operationId);
+int get hashCode {
+  final _this = this as PreviewCleanupEvent;
+  return Object.hash(runtimeType,_this.operationId);
+}
 
 @override
 String toString() {
-  return 'PreviewCleanupEvent(operationId: $operationId)';
+  final _this = this as PreviewCleanupEvent;
+  return 'PreviewCleanupEvent(operationId: ${_this.operationId})';
 }
 
 
@@ -617,16 +627,18 @@ $PreviewCleanupEvent_StartedCopyWith<PreviewCleanupEvent_Started> get copyWith =
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Started&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.totalFiles, totalFiles) || other.totalFiles == totalFiles)&&(identical(other.totalBytes, totalBytes) || other.totalBytes == totalBytes));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Started&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.totalFiles, totalFiles) || other.totalFiles == totalFiles)&&(identical(other.totalBytes, totalBytes) || other.totalBytes == totalBytes));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,operationId,totalFiles,totalBytes);
+int get hashCode {
+    return Object.hash(runtimeType,operationId,totalFiles,totalBytes);
+}
 
 @override
 String toString() {
-  return 'PreviewCleanupEvent.started(operationId: $operationId, totalFiles: $totalFiles, totalBytes: $totalBytes)';
+    return 'PreviewCleanupEvent.started(operationId: $operationId, totalFiles: $totalFiles, totalBytes: $totalBytes)';
 }
 
 
@@ -691,16 +703,18 @@ $PreviewCleanupEvent_ProgressCopyWith<PreviewCleanupEvent_Progress> get copyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Progress&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.processedFiles, processedFiles) || other.processedFiles == processedFiles)&&(identical(other.removedFiles, removedFiles) || other.removedFiles == removedFiles)&&(identical(other.removedBytes, removedBytes) || other.removedBytes == removedBytes)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount)&&(identical(other.totalFiles, totalFiles) || other.totalFiles == totalFiles)&&(identical(other.totalBytes, totalBytes) || other.totalBytes == totalBytes));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Progress&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.processedFiles, processedFiles) || other.processedFiles == processedFiles)&&(identical(other.removedFiles, removedFiles) || other.removedFiles == removedFiles)&&(identical(other.removedBytes, removedBytes) || other.removedBytes == removedBytes)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount)&&(identical(other.totalFiles, totalFiles) || other.totalFiles == totalFiles)&&(identical(other.totalBytes, totalBytes) || other.totalBytes == totalBytes));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,operationId,processedFiles,removedFiles,removedBytes,issueCount,totalFiles,totalBytes);
+int get hashCode {
+    return Object.hash(runtimeType,operationId,processedFiles,removedFiles,removedBytes,issueCount,totalFiles,totalBytes);
+}
 
 @override
 String toString() {
-  return 'PreviewCleanupEvent.progress(operationId: $operationId, processedFiles: $processedFiles, removedFiles: $removedFiles, removedBytes: $removedBytes, issueCount: $issueCount, totalFiles: $totalFiles, totalBytes: $totalBytes)';
+    return 'PreviewCleanupEvent.progress(operationId: $operationId, processedFiles: $processedFiles, removedFiles: $removedFiles, removedBytes: $removedBytes, issueCount: $issueCount, totalFiles: $totalFiles, totalBytes: $totalBytes)';
 }
 
 
@@ -764,16 +778,18 @@ $PreviewCleanupEvent_IssueCopyWith<PreviewCleanupEvent_Issue> get copyWith => _$
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Issue&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.issue, issue) || other.issue == issue));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Issue&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.issue, issue) || other.issue == issue));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,operationId,issue);
+int get hashCode {
+    return Object.hash(runtimeType,operationId,issue);
+}
 
 @override
 String toString() {
-  return 'PreviewCleanupEvent.issue(operationId: $operationId, issue: $issue)';
+    return 'PreviewCleanupEvent.issue(operationId: $operationId, issue: $issue)';
 }
 
 
@@ -834,16 +850,18 @@ $PreviewCleanupEvent_CompletedCopyWith<PreviewCleanupEvent_Completed> get copyWi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Completed&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.removedFiles, removedFiles) || other.removedFiles == removedFiles)&&(identical(other.removedBytes, removedBytes) || other.removedBytes == removedBytes)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Completed&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.removedFiles, removedFiles) || other.removedFiles == removedFiles)&&(identical(other.removedBytes, removedBytes) || other.removedBytes == removedBytes)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,operationId,removedFiles,removedBytes,issueCount);
+int get hashCode {
+    return Object.hash(runtimeType,operationId,removedFiles,removedBytes,issueCount);
+}
 
 @override
 String toString() {
-  return 'PreviewCleanupEvent.completed(operationId: $operationId, removedFiles: $removedFiles, removedBytes: $removedBytes, issueCount: $issueCount)';
+    return 'PreviewCleanupEvent.completed(operationId: $operationId, removedFiles: $removedFiles, removedBytes: $removedBytes, issueCount: $issueCount)';
 }
 
 
@@ -906,16 +924,18 @@ $PreviewCleanupEvent_CancelledCopyWith<PreviewCleanupEvent_Cancelled> get copyWi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Cancelled&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.removedFiles, removedFiles) || other.removedFiles == removedFiles)&&(identical(other.removedBytes, removedBytes) || other.removedBytes == removedBytes)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Cancelled&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.removedFiles, removedFiles) || other.removedFiles == removedFiles)&&(identical(other.removedBytes, removedBytes) || other.removedBytes == removedBytes)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,operationId,removedFiles,removedBytes,issueCount);
+int get hashCode {
+    return Object.hash(runtimeType,operationId,removedFiles,removedBytes,issueCount);
+}
 
 @override
 String toString() {
-  return 'PreviewCleanupEvent.cancelled(operationId: $operationId, removedFiles: $removedFiles, removedBytes: $removedBytes, issueCount: $issueCount)';
+    return 'PreviewCleanupEvent.cancelled(operationId: $operationId, removedFiles: $removedFiles, removedBytes: $removedBytes, issueCount: $issueCount)';
 }
 
 
@@ -977,16 +997,18 @@ $PreviewCleanupEvent_FailedCopyWith<PreviewCleanupEvent_Failed> get copyWith => 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Failed&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviewCleanupEvent_Failed&&(identical(other.operationId, operationId) || other.operationId == operationId)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,operationId,code,message);
+int get hashCode {
+    return Object.hash(runtimeType,operationId,code,message);
+}
 
 @override
 String toString() {
-  return 'PreviewCleanupEvent.failed(operationId: $operationId, code: $code, message: $message)';
+    return 'PreviewCleanupEvent.failed(operationId: $operationId, code: $code, message: $message)';
 }
 
 
@@ -1040,16 +1062,21 @@ $ScanEventCopyWith<ScanEvent> get copyWith => _$ScanEventCopyWithImpl<ScanEvent>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent&&(identical(other.scanId, scanId) || other.scanId == scanId));
+  final _this = this as ScanEvent;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent&&(identical(other.scanId, _this.scanId) || other.scanId == _this.scanId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,scanId);
+int get hashCode {
+  final _this = this as ScanEvent;
+  return Object.hash(runtimeType,_this.scanId);
+}
 
 @override
 String toString() {
-  return 'ScanEvent(scanId: $scanId)';
+  final _this = this as ScanEvent;
+  return 'ScanEvent(scanId: ${_this.scanId})';
 }
 
 
@@ -1293,16 +1320,18 @@ $ScanEvent_StartedCopyWith<ScanEvent_Started> get copyWith => _$ScanEvent_Starte
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Started&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.rootPath, rootPath) || other.rootPath == rootPath)&&(identical(other.itemLimit, itemLimit) || other.itemLimit == itemLimit)&&(identical(other.entryLimit, entryLimit) || other.entryLimit == entryLimit));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Started&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.rootPath, rootPath) || other.rootPath == rootPath)&&(identical(other.itemLimit, itemLimit) || other.itemLimit == itemLimit)&&(identical(other.entryLimit, entryLimit) || other.entryLimit == entryLimit));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,scanId,rootPath,itemLimit,entryLimit);
+int get hashCode {
+    return Object.hash(runtimeType,scanId,rootPath,itemLimit,entryLimit);
+}
 
 @override
 String toString() {
-  return 'ScanEvent.started(scanId: $scanId, rootPath: $rootPath, itemLimit: $itemLimit, entryLimit: $entryLimit)';
+    return 'ScanEvent.started(scanId: $scanId, rootPath: $rootPath, itemLimit: $itemLimit, entryLimit: $entryLimit)';
 }
 
 
@@ -1365,16 +1394,18 @@ $ScanEvent_ProgressCopyWith<ScanEvent_Progress> get copyWith => _$ScanEvent_Prog
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Progress&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.visitedEntries, visitedEntries) || other.visitedEntries == visitedEntries)&&(identical(other.acceptedItems, acceptedItems) || other.acceptedItems == acceptedItems)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Progress&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.visitedEntries, visitedEntries) || other.visitedEntries == visitedEntries)&&(identical(other.acceptedItems, acceptedItems) || other.acceptedItems == acceptedItems)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,scanId,visitedEntries,acceptedItems,issueCount);
+int get hashCode {
+    return Object.hash(runtimeType,scanId,visitedEntries,acceptedItems,issueCount);
+}
 
 @override
 String toString() {
-  return 'ScanEvent.progress(scanId: $scanId, visitedEntries: $visitedEntries, acceptedItems: $acceptedItems, issueCount: $issueCount)';
+    return 'ScanEvent.progress(scanId: $scanId, visitedEntries: $visitedEntries, acceptedItems: $acceptedItems, issueCount: $issueCount)';
 }
 
 
@@ -1439,16 +1470,18 @@ $ScanEvent_FinalizingCopyWith<ScanEvent_Finalizing> get copyWith => _$ScanEvent_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Finalizing&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.validatedItems, validatedItems) || other.validatedItems == validatedItems)&&(identical(other.totalItems, totalItems) || other.totalItems == totalItems)&&(identical(other.visitedEntries, visitedEntries) || other.visitedEntries == visitedEntries)&&(identical(other.acceptedItems, acceptedItems) || other.acceptedItems == acceptedItems)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Finalizing&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.validatedItems, validatedItems) || other.validatedItems == validatedItems)&&(identical(other.totalItems, totalItems) || other.totalItems == totalItems)&&(identical(other.visitedEntries, visitedEntries) || other.visitedEntries == visitedEntries)&&(identical(other.acceptedItems, acceptedItems) || other.acceptedItems == acceptedItems)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,scanId,validatedItems,totalItems,visitedEntries,acceptedItems,issueCount);
+int get hashCode {
+    return Object.hash(runtimeType,scanId,validatedItems,totalItems,visitedEntries,acceptedItems,issueCount);
+}
 
 @override
 String toString() {
-  return 'ScanEvent.finalizing(scanId: $scanId, validatedItems: $validatedItems, totalItems: $totalItems, visitedEntries: $visitedEntries, acceptedItems: $acceptedItems, issueCount: $issueCount)';
+    return 'ScanEvent.finalizing(scanId: $scanId, validatedItems: $validatedItems, totalItems: $totalItems, visitedEntries: $visitedEntries, acceptedItems: $acceptedItems, issueCount: $issueCount)';
 }
 
 
@@ -1511,16 +1544,18 @@ $ScanEvent_AssetDiscoveredCopyWith<ScanEvent_AssetDiscovered> get copyWith => _$
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_AssetDiscovered&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.asset, asset) || other.asset == asset));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_AssetDiscovered&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.asset, asset) || other.asset == asset));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,scanId,asset);
+int get hashCode {
+    return Object.hash(runtimeType,scanId,asset);
+}
 
 @override
 String toString() {
-  return 'ScanEvent.assetDiscovered(scanId: $scanId, asset: $asset)';
+    return 'ScanEvent.assetDiscovered(scanId: $scanId, asset: $asset)';
 }
 
 
@@ -1579,16 +1614,18 @@ $ScanEvent_IssueCopyWith<ScanEvent_Issue> get copyWith => _$ScanEvent_IssueCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Issue&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.issue, issue) || other.issue == issue));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Issue&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.issue, issue) || other.issue == issue));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,scanId,issue);
+int get hashCode {
+    return Object.hash(runtimeType,scanId,issue);
+}
 
 @override
 String toString() {
-  return 'ScanEvent.issue(scanId: $scanId, issue: $issue)';
+    return 'ScanEvent.issue(scanId: $scanId, issue: $issue)';
 }
 
 
@@ -1631,7 +1668,7 @@ as ScanIssue,
 
 
 class ScanEvent_Completed extends ScanEvent {
-  const ScanEvent_Completed({required this.scanId, required this.rootId, required this.assetCount, required this.issueCount, required this.catalogPath, required this.wasLimited, required final  List<ConsolidatedLibraryRoot> consolidatedRoots}): _consolidatedRoots = consolidatedRoots,super._();
+  const ScanEvent_Completed({required this.scanId, required this.rootId, required this.assetCount, required this.issueCount, required this.catalogPath, required this.wasLimited, required  List<ConsolidatedLibraryRoot> consolidatedRoots}): _consolidatedRoots = consolidatedRoots,super._();
 
 
 @override final  String scanId;
@@ -1658,16 +1695,18 @@ $ScanEvent_CompletedCopyWith<ScanEvent_Completed> get copyWith => _$ScanEvent_Co
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Completed&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.rootId, rootId) || other.rootId == rootId)&&(identical(other.assetCount, assetCount) || other.assetCount == assetCount)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount)&&(identical(other.catalogPath, catalogPath) || other.catalogPath == catalogPath)&&(identical(other.wasLimited, wasLimited) || other.wasLimited == wasLimited)&&const DeepCollectionEquality().equals(other._consolidatedRoots, _consolidatedRoots));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Completed&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.rootId, rootId) || other.rootId == rootId)&&(identical(other.assetCount, assetCount) || other.assetCount == assetCount)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount)&&(identical(other.catalogPath, catalogPath) || other.catalogPath == catalogPath)&&(identical(other.wasLimited, wasLimited) || other.wasLimited == wasLimited)&&const DeepCollectionEquality().equals(other.consolidatedRoots, _consolidatedRoots));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,scanId,rootId,assetCount,issueCount,catalogPath,wasLimited,const DeepCollectionEquality().hash(_consolidatedRoots));
+int get hashCode {
+    return Object.hash(runtimeType,scanId,rootId,assetCount,issueCount,catalogPath,wasLimited,const DeepCollectionEquality().hash(_consolidatedRoots));
+}
 
 @override
 String toString() {
-  return 'ScanEvent.completed(scanId: $scanId, rootId: $rootId, assetCount: $assetCount, issueCount: $issueCount, catalogPath: $catalogPath, wasLimited: $wasLimited, consolidatedRoots: $consolidatedRoots)';
+    return 'ScanEvent.completed(scanId: $scanId, rootId: $rootId, assetCount: $assetCount, issueCount: $issueCount, catalogPath: $catalogPath, wasLimited: $wasLimited, consolidatedRoots: $consolidatedRoots)';
 }
 
 
@@ -1732,16 +1771,18 @@ $ScanEvent_CancelledCopyWith<ScanEvent_Cancelled> get copyWith => _$ScanEvent_Ca
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Cancelled&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.acceptedItems, acceptedItems) || other.acceptedItems == acceptedItems)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Cancelled&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.acceptedItems, acceptedItems) || other.acceptedItems == acceptedItems)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,scanId,acceptedItems,issueCount);
+int get hashCode {
+    return Object.hash(runtimeType,scanId,acceptedItems,issueCount);
+}
 
 @override
 String toString() {
-  return 'ScanEvent.cancelled(scanId: $scanId, acceptedItems: $acceptedItems, issueCount: $issueCount)';
+    return 'ScanEvent.cancelled(scanId: $scanId, acceptedItems: $acceptedItems, issueCount: $issueCount)';
 }
 
 
@@ -1803,16 +1844,18 @@ $ScanEvent_PausedCopyWith<ScanEvent_Paused> get copyWith => _$ScanEvent_PausedCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Paused&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.visitedEntries, visitedEntries) || other.visitedEntries == visitedEntries)&&(identical(other.acceptedItems, acceptedItems) || other.acceptedItems == acceptedItems)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Paused&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.visitedEntries, visitedEntries) || other.visitedEntries == visitedEntries)&&(identical(other.acceptedItems, acceptedItems) || other.acceptedItems == acceptedItems)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,scanId,visitedEntries,acceptedItems,issueCount);
+int get hashCode {
+    return Object.hash(runtimeType,scanId,visitedEntries,acceptedItems,issueCount);
+}
 
 @override
 String toString() {
-  return 'ScanEvent.paused(scanId: $scanId, visitedEntries: $visitedEntries, acceptedItems: $acceptedItems, issueCount: $issueCount)';
+    return 'ScanEvent.paused(scanId: $scanId, visitedEntries: $visitedEntries, acceptedItems: $acceptedItems, issueCount: $issueCount)';
 }
 
 
@@ -1874,16 +1917,18 @@ $ScanEvent_StaleCopyWith<ScanEvent_Stale> get copyWith => _$ScanEvent_StaleCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Stale&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.acceptedItems, acceptedItems) || other.acceptedItems == acceptedItems)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Stale&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.acceptedItems, acceptedItems) || other.acceptedItems == acceptedItems)&&(identical(other.issueCount, issueCount) || other.issueCount == issueCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,scanId,acceptedItems,issueCount);
+int get hashCode {
+    return Object.hash(runtimeType,scanId,acceptedItems,issueCount);
+}
 
 @override
 String toString() {
-  return 'ScanEvent.stale(scanId: $scanId, acceptedItems: $acceptedItems, issueCount: $issueCount)';
+    return 'ScanEvent.stale(scanId: $scanId, acceptedItems: $acceptedItems, issueCount: $issueCount)';
 }
 
 
@@ -1944,16 +1989,18 @@ $ScanEvent_FailedCopyWith<ScanEvent_Failed> get copyWith => _$ScanEvent_FailedCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Failed&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_Failed&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,scanId,code,message);
+int get hashCode {
+    return Object.hash(runtimeType,scanId,code,message);
+}
 
 @override
 String toString() {
-  return 'ScanEvent.failed(scanId: $scanId, code: $code, message: $message)';
+    return 'ScanEvent.failed(scanId: $scanId, code: $code, message: $message)';
 }
 
 
@@ -2014,16 +2061,18 @@ $ScanEvent_AlreadyCoveredCopyWith<ScanEvent_AlreadyCovered> get copyWith => _$Sc
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_AlreadyCovered&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.rootId, rootId) || other.rootId == rootId)&&(identical(other.relativePath, relativePath) || other.relativePath == relativePath));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ScanEvent_AlreadyCovered&&(identical(other.scanId, scanId) || other.scanId == scanId)&&(identical(other.rootId, rootId) || other.rootId == rootId)&&(identical(other.relativePath, relativePath) || other.relativePath == relativePath));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,scanId,rootId,relativePath);
+int get hashCode {
+    return Object.hash(runtimeType,scanId,rootId,relativePath);
+}
 
 @override
 String toString() {
-  return 'ScanEvent.alreadyCovered(scanId: $scanId, rootId: $rootId, relativePath: $relativePath)';
+    return 'ScanEvent.alreadyCovered(scanId: $scanId, rootId: $rootId, relativePath: $relativePath)';
 }
 
 

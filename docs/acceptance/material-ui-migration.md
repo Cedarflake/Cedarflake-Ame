@@ -1,5 +1,74 @@
 # Standalone Material migration
 
+## Flutter 3.50 compatibility, 2026-11-17
+
+The upgrade uses Flutter 3.50.0 / Dart 3.14.0, Material 1.11.1, Cupertino 1.1.7,
+Riverpod 3.5.0, shared_preferences 2.5.6 and matching Dart/Rust/codegen FRB 2.13.0.
+Freezed 4.0.3, analyzer 14.7.0 and build_runner 2.17.1 regenerate the existing DTOs;
+the bridge content hash remains `356806720`. Hosted SDK pins and the local SDK match.
+The application retains its Dart 3.12 language mode. The native window/display API migration
+is deferred; the [plugin evaluation](#windowdisplay-plugin-evaluation-2026-11-18) records its boundary.
+
+The [official release notes](https://docs.flutter.dev/release/release-notes/release-notes-3.50.0)
+were compared with the installed SDK and Ame's compatibility owners:
+
+| Area | Comparison and disposition |
+| --- | --- |
+| Image streams | New frame-callback guarding does not dispose a frame arriving after retirement or a codec created after retirement. Substituting SDK `MultiFrameImageStreamCompleter` in the five existing cases passed three and failed those two resource-release assertions. Retain `library_source_image_stream.dart`; its five cases pass. |
+| Tooltips | The SDK includes [sibling-conflict invalidation](https://github.com/flutter/flutter/pull/190431); [distinct traversal parents](https://github.com/flutter/flutter/pull/190344) remains unmerged. Official Tooltip plus explicit target semantics passes focus/hover and live-message changes, but its visible overlay remains after the owning retained surface disables `TickerMode`. The same two-frame retirement check passes with Ame's adapter. Keep the adapter and retain that regression. |
+| Preview motion | The Hero fix concerns Navigator resizing. Ame's retained viewer uses its own source-frame lease, clipping and return geometry. No equivalent replacement was established. |
+| Spring motion | Ame already delegates the physics and tokens to official `SpringSimulation` and Material `Springs`; its remaining wrapper owns interruption and inactive/reduced-motion state. |
+| Loading indicator | Material 1.11.1 still does not export the proposed `LoadingIndicator`; retain the attributed compatibility renderer. |
+| Windows scheduling | The release's TimerThread predicate change is already present in 3.47.8. The newer platform-task cancellation fix does not replace the UI-thread or image-I/O policy. Keep the accepted renderer/thread settings; no new frame-rate claim is made. |
+
+Dependency resolution updated 63 entries. Newly resolved Dart native-binding/tooling packages
+`jni`, `jni_util`, `objective_c`, `hooks`, `code_assets` and `record_use` retain Dart's BSD license;
+`analyzer_buffer` uses MIT. Their published license headers and JNI's optional desktop CMake
+configuration were inspected. The Windows build resolves the generated JNI plugin entry.
+No application Java API or new source-media workflow is introduced.
+
+Local diagnosis passed 11 production widget cases across source-image retirement, tooltip lifetime,
+workbench semantics and timeline semantics; 39 asynchronous bridge contracts; the 622-module Dart
+dependency check; owned-file analysis; and formatting. The Rust Release library builds.
+The Windows Debug integration rebuilt in 189 seconds and passed both suites, including all ten
+native UIA checkpoints for gallery, menus, viewer and Settings. Its process/job exited cleanly
+and its scratch directory was removed. Three runner-lifecycle and two real-engine retirement
+cases passed; the latter also confirms the matching image-I/O thread at normal priority.
+
+Dart 3.14 launches a separate `dartvm.exe`. The offline engine-input preflight now requires it;
+the existing missing-artifact and orchestration fixture accepts the complete SDK and rejects its
+absence. This owner has 119 production lines and no inline tests; its dedicated fixture has 251
+lines. The tooltip owner remains 386 production lines with no inline tests and 188 dedicated-test
+lines. Hosted full-suite and production Release checks remain pending for the committed upgrade.
+
+The first hosted Flutter batch found three bootstrap cases still expecting `FlutterError` from
+disposed notifiers. Flutter 3.50 delegates `ChangeNotifier.debugAssertNotDisposed` to `listen`,
+which reports `StateError`. The four disposal assertions now require that exact error type while
+retaining lifecycle, subscription and joined-shutdown checks. All seven cases in the two affected
+bootstrap suites pass locally; application disposal behavior is unchanged.
+The hosted analyzer also identified a redundant `flutter/rendering.dart` import in the viewer
+filmstrip after the Material export update; the redundant import was removed.
+
+### Window/display plugin evaluation, 2026-11-18
+
+The `window_manager` 0.7.0 / `screen_retriever` 0.4.0 migration, using nativeapi 0.6.1,
+was withdrawn before committing it. A rapid maximize/restore, full-screen round trip and
+minimize/restore sequence exposed a system-painted blue caption and intermittent blank or
+transparent content. Skipping the minimized child resize and narrowing nativeapi's region
+cleanup did not resolve the reproduction. A root cause was not established.
+
+The retained product uses `window_manager` 0.5.2 and `screen_retriever` 0.2.2 with their existing
+startup, placement, close and drag adapters. Migration-only host channels, manifest changes,
+native adapters, fixtures and dependency overrides were removed. The Flutter 3.50 baseline
+and other dependency updates in `8e76e082` remain intact.
+
+After restoration, offline dependency resolution and the isolated Windows debug build passed
+(40.4 seconds). The real client imported 700 reusable fixture images and passed a manual sequence
+covering startup, maximize/restore, viewer full-screen entry/exit, minimize/restore and normal
+close. The stable window states retained app-drawn chrome and image content. The client exited
+with code 0; the scratch wrapper verified unchanged lengths and modification times across the
+10,000-file reusable source corpus. This check did not repeat the rapid nativeapi probe sequence.
+
 ## Material workbench composition, 2026-11-16
 
 ### Material workbench integration, 2026-11-17

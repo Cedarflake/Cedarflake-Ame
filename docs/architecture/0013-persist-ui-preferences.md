@@ -2,7 +2,7 @@
 
 - Status: Accepted for validation
 - Date: 2026-08-08
-- Last amended: 2026-08-12
+- Last amended: 2026-11-18
 
 ## Context
 
@@ -40,14 +40,14 @@ behavior, replacement, and corruption recovery for a small non-critical preferen
 
 ### Flutter `shared_preferences`
 
-Version 2.5.5 is maintained by the Flutter publisher, BSD-3-Clause licensed, supports Windows, and
+Version 2.5.6 is maintained by the Flutter publisher, BSD-3-Clause licensed, supports Windows, and
 provides the recommended asynchronous API without a process-local cache. The package explicitly
 does not guarantee critical-data durability, which is acceptable for rebuildable UI preferences but
 not for catalogs, user decisions, or operation history.
 
 ## Accepted decision
 
-Admit `shared_preferences` 2.5.5 behind three Ame-owned typed contracts:
+Admit `shared_preferences` 2.5.6 behind three Ame-owned typed contracts:
 
 - `AmePreferenceStore` owns theme, viewer mouse-wheel behavior, the initial viewer scale mode,
   thumbnail-strip visibility (hidden when missing),

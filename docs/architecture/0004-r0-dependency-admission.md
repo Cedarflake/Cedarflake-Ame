@@ -18,8 +18,8 @@ models.
 
 | Capability | Dependency | Version | License | Admission reason |
 | --- | --- | --- | --- | --- |
-| Typed Dart/Rust bridge | `flutter_rust_bridge` | 2.12.0 | MIT | Stable v2 release, active project, generated typed streams and errors, narrow replaceable boundary |
-| Flutter state | `flutter_riverpod` | 3.4.2 | MIT | Mature testable state container; used only for presentation and interaction state |
+| Typed Dart/Rust bridge | `flutter_rust_bridge` | 2.13.0 | MIT | Stable v2 release, active project, generated typed streams and errors, narrow replaceable boundary |
+| Flutter state | `flutter_riverpod` | 3.5.0 | MIT | Mature testable state container; used only for presentation and interaction state |
 | Directory picker | `file_selector` | 1.1.0 | BSD-3-Clause | Flutter-maintained desktop plugin with a small platform capability surface |
 | SQLite | `rusqlite` | 0.40.1 | MIT | Mature direct SQLite binding, explicit transactions, bundled library for predictable packaging |
 | Raster previews | `image` | 0.25.10 | MIT or Apache-2.0 | Pure Rust decoders, explicit allocation and dimension limits, selectable format features |
@@ -32,6 +32,17 @@ The Flutter, Riverpod, file-selector, bridge, SQLite, image, and jpeg-decoder li
 inspected from the resolved local packages before this decision was recorded. Transitive
 dependencies remain captured in `pubspec.lock` and `rust/Cargo.lock` and require review before
 distribution.
+
+The Dart package, Rust crate and generator for `flutter_rust_bridge` use the same exact version.
+The 2.13.0 upgrade retains CargoKit and regenerates both bridge sides together; its optional
+Native Assets integration is not part of this SDK update. Generated DTOs and source contracts
+retain their existing boundaries.
+
+Keep `window_manager` 0.5.2 and `screen_retriever` 0.2.2 for the current desktop adapter.
+Their newer releases replace the platform implementations with `nativeapi` and deprecate the
+existing API behind a compatibility import. That is a separate native lifecycle and packaging
+migration, rather than a requirement for Flutter 3.50. Reassess it with the runner's close,
+resize, display, input and accessibility workflows before admitting the replacement.
 
 The JPEG inspection adapter directly pins the already-resolved zune packages; this changes neither
 decoder version nor supported formats. Their local package manifests and MIT license texts were

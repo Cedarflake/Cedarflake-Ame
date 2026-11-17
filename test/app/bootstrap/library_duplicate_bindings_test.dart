@@ -77,7 +77,7 @@ void main() {
       await runtime.close();
       expect(
         () => ChangeNotifier.debugAssertNotDisposed(runtime.analysis),
-        throwsFlutterError,
+        throwsStateError,
       );
       expect(foreground.isObserved, isFalse);
       foreground.dispose();
@@ -164,7 +164,7 @@ void main() {
     expect(foreground.isObserved, isFalse);
     expect(
       () => ChangeNotifier.debugAssertNotDisposed(runtime.analysis),
-      throwsFlutterError,
+      throwsStateError,
     );
     foreground.dispose();
   });

@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'file_operation_exports.dart';
@@ -9,6 +9,7 @@ part of 'file_operation_exports.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$FileExportReport {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileExportReport);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FileExportReport);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'FileExportReport()';
+    return 'FileExportReport()';
 }
 
 
@@ -197,7 +198,7 @@ class FileExportReport_Pending extends FileExportReport {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileExportReport_Pending);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FileExportReport_Pending);
 }
 
 
@@ -206,7 +207,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'FileExportReport.pending()';
+    return 'FileExportReport.pending()';
 }
 
 
@@ -229,7 +230,7 @@ class FileExportReport_NotNeeded extends FileExportReport {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileExportReport_NotNeeded);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FileExportReport_NotNeeded);
 }
 
 
@@ -238,7 +239,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'FileExportReport.notNeeded()';
+    return 'FileExportReport.notNeeded()';
 }
 
 
@@ -266,16 +267,18 @@ $FileExportReport_WrittenCopyWith<FileExportReport_Written> get copyWith => _$Fi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileExportReport_Written&&(identical(other.field0, field0) || other.field0 == field0));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FileExportReport_Written&&(identical(other.field0, field0) || other.field0 == field0));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,field0);
+int get hashCode {
+    return Object.hash(runtimeType,field0);
+}
 
 @override
 String toString() {
-  return 'FileExportReport.written(field0: $field0)';
+    return 'FileExportReport.written(field0: $field0)';
 }
 
 
@@ -332,16 +335,18 @@ $FileExportReport_FailedCopyWith<FileExportReport_Failed> get copyWith => _$File
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileExportReport_Failed&&(identical(other.field0, field0) || other.field0 == field0));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FileExportReport_Failed&&(identical(other.field0, field0) || other.field0 == field0));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,field0);
+int get hashCode {
+    return Object.hash(runtimeType,field0);
+}
 
 @override
 String toString() {
-  return 'FileExportReport.failed(field0: $field0)';
+    return 'FileExportReport.failed(field0: $field0)';
 }
 
 

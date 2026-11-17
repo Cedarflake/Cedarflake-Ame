@@ -56,7 +56,7 @@ recovery of interrupted work where applicable.
 
 ## Run from source
 
-Ame is still in development. To build it, use Windows 11 x64, Flutter **3.47.8**, the Rust toolchain
+Ame is still in development. To build it, use Windows 11 x64, Flutter **3.50.0**, the Rust toolchain
 in [rust-toolchain.toml](rust-toolchain.toml), and Visual Studio 2022 with the **Desktop development
 with C++** workload, Windows SDK, and CMake tools.
 

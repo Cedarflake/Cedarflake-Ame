@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-17
+Last planning update: 2026-11-18
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -65,6 +65,21 @@ archive compatibility and authorized model-installation recovery. The
 Reuse completed acceptance when its inputs are unchanged; new behavior receives its affected checks.
 
 ## Current execution queue
+
+### Flutter 3.50 compatibility
+
+Upgrade the installed and hosted Flutter SDK to 3.50.0 and refresh compatible Dart dependencies
+and the paired Rust bridge. Preserve the accepted desktop appearance, window lifecycle, renderer
+and source-safety boundaries. Retain `window_manager` 0.5.2 and `screen_retriever` 0.2.2.
+Their nativeapi migration is deferred by the 2026-11-18 decision after rapid window-state
+transitions exposed native-caption and content-rendering regressions. Resume that migration only
+when requested, with its own lifecycle, multi-display and DPI verification.
+Complete dependency resolution, bridge regeneration and affected desktop verification for the
+SDK upgrade before returning to R10-04. Compare upstream fixes
+with the existing image-stream, tooltip, motion and Windows adaptations; retire an adaptation only
+when the same lifecycle and interaction checks pass on the new SDK.
+The [compatibility evidence](acceptance/material-ui-migration.md#flutter-350-compatibility-2026-11-17)
+records the SDK baseline and retained adapters.
 
 ### Material desktop workbench
 

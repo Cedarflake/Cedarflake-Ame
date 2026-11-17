@@ -6,10 +6,10 @@ import "package:material_ui/material_ui.dart";
 
 import "../window/ame_runtime_platform.dart";
 
-// Flutter 3.44 can merge sibling OverlayPortal traversal parents and serialize
-// an orphan node on Windows. Windows tooltips avoid that portal below; this
-// boundary remains for other bounded anchors until flutter/flutter#190344 and
-// #190431 reach the pinned SDK.
+// Flutter 3.50 includes flutter/flutter#190431, but still permits merging
+// semantics configurations with different traversal parents (#190344).
+// Windows tooltips avoid that portal below; other bounded anchors retain
+// distinct semantics containers.
 class AmeOverlayTraversalBoundary extends StatelessWidget {
   const AmeOverlayTraversalBoundary({required this.child, super.key});
 

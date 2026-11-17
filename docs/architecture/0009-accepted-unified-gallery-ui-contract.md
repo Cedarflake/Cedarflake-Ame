@@ -3,7 +3,7 @@
 - Status: Accepted; shell navigation and duplicate entry/review placement are superseded by
   [ADR 0029](0029-functional-workbench-navigation.md).
 - Date: 2026-08-07
-- Last amended: 2026-09-06
+- Last amended: 2026-11-17
 - Supersedes: ADR 0003
 
 ## Context
@@ -388,9 +388,12 @@ framework-owned; the product layer owns only queue state, text, severity, and ac
 Flutter 3.44.9 can publish retained `OverlayPortal` semantics updates that violate Windows
 `AccessibilityBridge` transaction preconditions. Real retained-catalog interaction produced
 repeated orphan-node rejection after the earlier dedicated `Semantics` container mitigation, so
-that wrapper is not accepted as sufficient on Windows 11 x64. The first-party `Tooltip` was
-evaluated but cannot be retained on this pinned Windows engine because its visual surface is owned
-by that failing portal path. `AmeTooltip` instead keeps one stable framework `Semantics.tooltip` on
+that wrapper was insufficient on that Windows engine. Flutter 3.50 includes the sibling-conflict
+invalidation fix in flutter/flutter#190431, while the distinct traversal-parent fix in #190344
+remains unmerged. Its official tooltip, even with explicit target semantics, also retains the
+visible overlay when the owning retained surface disables `TickerMode`. Keep the Windows adapter
+until both the native accessibility sequence and retained-surface retirement contract pass.
+`AmeTooltip` keeps one stable framework `Semantics.tooltip` on
 the target and creates a visual `OverlayEntry` only after pointer hover. The visual entry is
 `IgnorePointer`, excluded from semantics, bounded to the screen, fades through a lazily allocated
 framework `AnimationController`, and is removed after exit or target disposal. It neither retains
@@ -424,11 +427,12 @@ recycling. Photo tiles therefore keep their Material focus, pointer, and keyboar
 create one root-navigator popup route only when a menu is requested. Dynamically expanded folder
 rows use the same on-demand route ownership rule.
 
-Material `Slider` also retains a value-indicator portal. When the gallery's timeline Slider becomes
-offstage inside the viewer `IndexedStack`, Flutter can prune that portal node and then serialize its
-old child identifier when the retained Slider returns. Ame therefore recreates only the timeline
-navigation subtree when the viewer closes; the gallery `Scrollable`, its `ScrollController`, and
-the logical viewport anchor remain intact.
+Material `Slider` also retains a value-indicator portal. Taking the retained gallery offstage can
+prune that portal node and later publish its old child identifier. `LibraryViewerTransition` keeps
+the gallery traversal anchors through `Opacity.alwaysIncludeSemantics`; its enclosing `Semantics`
+marks the covered gallery hidden while input, focus and tickers are disabled. The gallery, timeline,
+`ScrollController` and logical viewport anchor remain retained. Separate viewer routes place their
+slider in `Overlay.wrap` so its traversal parent and overlay child share the route lifecycle.
 
 The regression harness forwards real incremental Flutter semantics updates into a retained
 child-graph model. It commits a batch only after validating the initial root, child existence,

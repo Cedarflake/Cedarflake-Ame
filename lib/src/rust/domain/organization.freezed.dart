@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'organization.dart';
@@ -9,6 +9,7 @@ part of 'organization.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$OrganizationAction {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'OrganizationAction()';
+    return 'OrganizationAction()';
 }
 
 
@@ -208,16 +209,18 @@ $OrganizationAction_AssignAlbumCopyWith<OrganizationAction_AssignAlbum> get copy
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_AssignAlbum&&(identical(other.albumId, albumId) || other.albumId == albumId));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_AssignAlbum&&(identical(other.albumId, albumId) || other.albumId == albumId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,albumId);
+int get hashCode {
+    return Object.hash(runtimeType,albumId);
+}
 
 @override
 String toString() {
-  return 'OrganizationAction.assignAlbum(albumId: $albumId)';
+    return 'OrganizationAction.assignAlbum(albumId: $albumId)';
 }
 
 
@@ -269,7 +272,7 @@ class OrganizationAction_RemoveAlbum extends OrganizationAction {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_RemoveAlbum);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_RemoveAlbum);
 }
 
 
@@ -278,7 +281,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'OrganizationAction.removeAlbum()';
+    return 'OrganizationAction.removeAlbum()';
 }
 
 
@@ -301,7 +304,7 @@ class OrganizationAction_Defer extends OrganizationAction {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_Defer);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_Defer);
 }
 
 
@@ -310,7 +313,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'OrganizationAction.defer()';
+    return 'OrganizationAction.defer()';
 }
 
 
@@ -333,7 +336,7 @@ class OrganizationAction_Ignore extends OrganizationAction {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_Ignore);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_Ignore);
 }
 
 
@@ -342,7 +345,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'OrganizationAction.ignore()';
+    return 'OrganizationAction.ignore()';
 }
 
 
@@ -365,7 +368,7 @@ class OrganizationAction_RestorePending extends OrganizationAction {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_RestorePending);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_RestorePending);
 }
 
 
@@ -374,7 +377,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'OrganizationAction.restorePending()';
+    return 'OrganizationAction.restorePending()';
 }
 
 
@@ -392,7 +395,7 @@ mixin _$OrganizationGroupKey {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationGroupKey);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationGroupKey);
 }
 
 
@@ -401,7 +404,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'OrganizationGroupKey()';
+    return 'OrganizationGroupKey()';
 }
 
 
@@ -563,16 +566,18 @@ $OrganizationGroupKey_ConfirmedCopyWith<OrganizationGroupKey_Confirmed> get copy
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationGroupKey_Confirmed&&(identical(other.digest, digest) || other.digest == digest)&&(identical(other.byteLength, byteLength) || other.byteLength == byteLength));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationGroupKey_Confirmed&&(identical(other.digest, digest) || other.digest == digest)&&(identical(other.byteLength, byteLength) || other.byteLength == byteLength));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,digest,byteLength);
+int get hashCode {
+    return Object.hash(runtimeType,digest,byteLength);
+}
 
 @override
 String toString() {
-  return 'OrganizationGroupKey.confirmed(digest: $digest, byteLength: $byteLength)';
+    return 'OrganizationGroupKey.confirmed(digest: $digest, byteLength: $byteLength)';
 }
 
 
@@ -631,16 +636,18 @@ $OrganizationGroupKey_ProvisionalCopyWith<OrganizationGroupKey_Provisional> get 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationGroupKey_Provisional&&(identical(other.assetId, assetId) || other.assetId == assetId)&&(identical(other.sourceGeneration, sourceGeneration) || other.sourceGeneration == sourceGeneration));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationGroupKey_Provisional&&(identical(other.assetId, assetId) || other.assetId == assetId)&&(identical(other.sourceGeneration, sourceGeneration) || other.sourceGeneration == sourceGeneration));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,assetId,sourceGeneration);
+int get hashCode {
+    return Object.hash(runtimeType,assetId,sourceGeneration);
+}
 
 @override
 String toString() {
-  return 'OrganizationGroupKey.provisional(assetId: $assetId, sourceGeneration: $sourceGeneration)';
+    return 'OrganizationGroupKey.provisional(assetId: $assetId, sourceGeneration: $sourceGeneration)';
 }
 
 
