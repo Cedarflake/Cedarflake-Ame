@@ -6,7 +6,7 @@ import "package:cedarflake_ame/features/library/application/library_organization
 import "package:cedarflake_ame/features/library/domain/library_gallery_collection.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_album_navigation.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_folder_disclosure.dart";
+import "package:cedarflake_ame/app/presentation/ame_disclosure.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -198,7 +198,7 @@ void main() {
       expect(empty, findsOneWidget);
       final disclosure = find.ancestor(
         of: empty,
-        matching: find.byType(LibraryFolderDisclosure),
+        matching: find.byType(AmeDisclosure),
       );
       final expandedHeight = tester.getSize(disclosure).height;
       await tester.tap(collapse);

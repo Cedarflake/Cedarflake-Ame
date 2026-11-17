@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_disclosure.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
@@ -10,7 +11,6 @@ import "../../application/library_model_installation.dart";
 import "../../domain/library_classification_configuration.dart";
 import "../../domain/library_gallery_collection.dart";
 import "library_model_setup.dart";
-import "library_folder_disclosure.dart";
 import "library_sidebar_section_header.dart";
 import "library_sidebar_section_toggle.dart";
 import "library_workbench_metrics.dart";
@@ -60,7 +60,7 @@ class _LibrarySmartAlbumNavigationState
             onPressed: () => setState(() => _expanded = !_expanded),
           ),
         ),
-        LibraryFolderDisclosure(
+        AmeDisclosure(
           child: _expanded
               ? Column(
                   children: settings.when(

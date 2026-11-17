@@ -1,7 +1,7 @@
 import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 
-import "library_folder_disclosure.dart";
+import "../../../../app/presentation/ame_disclosure.dart";
 
 class LibraryFolderReorderItem extends StatefulWidget {
   const LibraryFolderReorderItem({
@@ -46,7 +46,7 @@ class _LibraryFolderReorderItemState extends State<LibraryFolderReorderItem> {
         finish: _finishDrag,
         child: widget.header,
       ),
-      LibraryFolderDisclosure(
+      AmeDisclosure(
         animate: !_preparingDrag,
         child: _preparingDrag ? null : widget.child,
       ),

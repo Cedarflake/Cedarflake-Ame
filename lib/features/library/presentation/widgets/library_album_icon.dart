@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_organization.dart";
 
 IconData libraryAlbumIcon(LibraryAlbumIcon icon) => switch (icon) {
@@ -53,12 +54,14 @@ class LibraryAlbumIconPicker extends StatelessWidget {
         for (final icon in LibraryAlbumIcon.values)
           SizedBox.square(
             dimension: 48,
-            child: IconButton.filledTonal(
-              key: ValueKey("album-icon-${icon.name}"),
-              tooltip: libraryAlbumIconLabel(icon),
-              isSelected: value == icon,
-              onPressed: onChanged == null ? null : () => onChanged!(icon),
-              icon: Icon(libraryAlbumIcon(icon)),
+            child: AmeTooltip(
+              message: libraryAlbumIconLabel(icon),
+              child: IconButton.filledTonal(
+                key: ValueKey("album-icon-${icon.name}"),
+                isSelected: value == icon,
+                onPressed: onChanged == null ? null : () => onChanged!(icon),
+                icon: Icon(libraryAlbumIcon(icon)),
+              ),
             ),
           ),
       ],

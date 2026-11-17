@@ -2,6 +2,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/presentation/ame_dialog.dart";
+import "../../../../app/presentation/ame_disclosure.dart";
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_album_requests.dart";
 import "../../application/library_organization_actions.dart";
 import "../../domain/library_organization.dart";
@@ -126,47 +128,63 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
               ),
               const Text("其中的图片组将进入已忽略。图片文件和收藏状态会保留。"),
             ] else if (!changingIcon)
-              TextField(
-                key: const Key("library-album-name"),
-                controller: _name,
-                autofocus: true,
-                enabled: !_saving,
-                decoration: InputDecoration(
-                  labelText: "相册名称",
-                  errorText: nameError
-                      ? libraryOrganizationErrorMessage(_errorCode!)
-                      : null,
-                  icon: widget.kind == LibraryAlbumEditKind.create
-                      ? SizedBox.square(
-                          dimension: 48,
-                          child: IconButton.filledTonal(
-                            key: const Key("library-album-choose-icon"),
-                            tooltip: "选择相册图标",
-                            isSelected: _choosingIcon,
-                            icon: Icon(libraryAlbumIcon(_icon)),
-                            onPressed: _saving
-                                ? null
-                                : () => setState(
-                                    () => _choosingIcon = !_choosingIcon,
-                                  ),
-                          ),
-                        )
-                      : null,
-                ),
-                onSubmitted: (_) => _save(),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    key: const Key("library-album-name"),
+                    controller: _name,
+                    autofocus: true,
+                    enabled: !_saving,
+                    decoration: InputDecoration(
+                      labelText: "相册名称",
+                      errorText: nameError
+                          ? libraryOrganizationErrorMessage(_errorCode!)
+                          : null,
+                      icon: widget.kind == LibraryAlbumEditKind.create
+                          ? SizedBox.square(
+                              dimension: 48,
+                              child: AmeTooltip(
+                                message: "选择相册图标",
+                                child: IconButton.filledTonal(
+                                  key: const Key("library-album-choose-icon"),
+                                  isSelected: _choosingIcon,
+                                  icon: Icon(libraryAlbumIcon(_icon)),
+                                  onPressed: _saving
+                                      ? null
+                                      : () => setState(
+                                          () => _choosingIcon = !_choosingIcon,
+                                        ),
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                    onSubmitted: (_) => _save(),
+                  ),
+                  if (widget.kind == LibraryAlbumEditKind.create)
+                    AmeDisclosure(
+                      child: _choosingIcon
+                          ? SizedBox(
+                              width: double.infinity,
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 16),
+                                child: LibraryAlbumIconPicker(
+                                  value: _icon,
+                                  onChanged: _saving
+                                      ? null
+                                      : (icon) => setState(() {
+                                          _icon = icon;
+                                          _choosingIcon = false;
+                                        }),
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                ],
               ),
-            if (widget.kind == LibraryAlbumEditKind.create &&
-                _choosingIcon) ...[
-              LibraryAlbumIconPicker(
-                value: _icon,
-                onChanged: _saving
-                    ? null
-                    : (icon) => setState(() {
-                        _icon = icon;
-                        _choosingIcon = false;
-                      }),
-              ),
-            ],
             if (_errorCode case final code? when !nameError)
               AmeDialogError(libraryOrganizationErrorMessage(code)),
           ],

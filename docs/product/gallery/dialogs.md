@@ -49,6 +49,11 @@ framework date picker retain their own interaction owners; they are not converte
 - New albums place an icon-selection button beside the name input. Expand icon choices on demand.
   Keep the button square and outside the input border, aligned with its content rather than error
   text. Album deletion shows the actual album icon and name above the consequence.
+- Optional form sections use `AmeDisclosure` for shared size and opacity motion, including album
+  icon choices and file-organization explanations. Section spacing expands with its content so the
+  dialog surface and actions move together. Closing sections immediately leave input, focus and
+  semantics; reduced motion completes the change immediately. Material retains dialog placement,
+  scrolling and route transitions.
 - Diagnostic codes retain their original source text, such as `os error 32`, and complete hexadecimal
   values. Separate them from the explanation without reducing a typed code to an unexplained number.
 - Restoration presents the backup identity, creation date and relevant nonzero contents as labeled

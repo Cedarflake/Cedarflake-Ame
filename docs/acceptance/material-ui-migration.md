@@ -2,6 +2,29 @@
 
 ## Material workbench composition, 2026-11-16
 
+### Dialog section transitions, 2026-11-17
+
+Album icon choices and file-organization explanations share the retained size/fade owner promoted
+from folder disclosure to `AmeDisclosure`. Existing sidebar callers retain the same implementation.
+Section padding participates in the height transition, with full content width retained throughout;
+Material continues to position and size the dialog surface and actions.
+
+Formatting, scoped analysis, the 622-module dependency check and 23 affected album, file-operation,
+disclosure and tooltip checks passed. The album fixture checks intermediate opening/closing bounds,
+the stationary dialog center, moving actions, restored geometry, left alignment and saving the
+chosen icon. The Windows variant also retains semantics while hovering a choice and confirms its
+tooltip retires before the closing section finishes. Existing disclosure coverage checks reversal,
+reduced motion, clipped selection ink and immediate input/focus retirement.
+
+The isolated Profile client exercised expansion, selection, saving and manual collapse. Copy
+settings retained left alignment while their organization explanation expanded. Hovering album
+choices initially exposed native AXTree orphan updates; the chooser and choices now use the
+existing Windows-compatible `AmeTooltip`. The same hover/collapse and dialog-dismissal sequence
+with accessibility reads produced no AXTree, Dart exception or overflow records in the rebuilt
+client. Previous clients exited normally and preserved all 700 fixture lengths and times.
+The shared disclosure, album editor and file dialog contain 104, 206 and 289 production lines;
+the extended album fixture contains 398 test lines.
+
 ### Duplicate empty-result placement, 2026-11-17
 
 Duplicate review now uses the shared gallery viewport to center empty and failed results across

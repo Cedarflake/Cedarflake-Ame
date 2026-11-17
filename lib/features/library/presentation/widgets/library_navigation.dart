@@ -3,6 +3,7 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_disclosure.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
@@ -15,7 +16,6 @@ import "../library_pending_source.dart";
 import "../library_strings.dart";
 import "../coordination/library_sidebar_selection.dart";
 import "library_folder_navigation_tile.dart";
-import "library_folder_disclosure.dart";
 import "library_folder_reorder_item.dart";
 import "library_source_navigation_tile.dart";
 import "library_sidebar_section_header.dart";
@@ -477,7 +477,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
       );
       if (folder.hasChildFolders) {
         children.add(
-          LibraryFolderDisclosure(
+          AmeDisclosure(
             key: ValueKey((root.id, folder.relativePath)),
             child: isExpanded
                 ? Column(

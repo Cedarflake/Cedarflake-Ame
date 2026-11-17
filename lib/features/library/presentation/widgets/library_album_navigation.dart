@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_disclosure.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../application/library_album_pages.dart";
 import "../../application/library_album_requests.dart";
@@ -14,7 +15,6 @@ import "../../domain/library_organization.dart";
 import "../coordination/library_sidebar_selection.dart";
 import "library_album_editor.dart";
 import "library_album_icon.dart";
-import "library_folder_disclosure.dart";
 import "library_album_navigation_tile.dart";
 import "library_sidebar_reorder_list.dart";
 import "library_sidebar_section_header.dart";
@@ -132,7 +132,7 @@ class _LibraryAlbumNavigationState
         removeLabel: "删除所选相册",
         onRemove: busy || page == null ? null : () => _removeSelected(page),
       ),
-      LibraryFolderDisclosure(
+      AmeDisclosure(
         child: _expanded && page?.total == 0
             ? const ListTile(
                 key: Key("library-sidebar-album-empty"),
@@ -248,7 +248,7 @@ class _LibraryAlbumNavigationState
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
           children: [
             _header(null, true),
-            LibraryFolderDisclosure(
+            AmeDisclosure(
               child: _expanded
                   ? const Padding(
                       padding: EdgeInsets.symmetric(
@@ -266,7 +266,7 @@ class _LibraryAlbumNavigationState
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
           children: [
             _header(null, true),
-            LibraryFolderDisclosure(
+            AmeDisclosure(
               child: _expanded
                   ? ListTile(
                       title: const Text("相册暂时无法加载"),
