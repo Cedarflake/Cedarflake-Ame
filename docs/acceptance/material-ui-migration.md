@@ -2,6 +2,25 @@
 
 ## Material workbench composition, 2026-11-16
 
+### Segmented settings groups, 2026-11-17
+
+Settings groups now use the segmented composition specified in
+[the settings contract](../product/gallery/settings.md#settings-page). The official AndroidX
+`ListItemDefaults`, `ListTokens` and `ShapeTokens` establish the two-pixel gap, four-pixel interior
+corners and sixteen-pixel outside corners. Installed `material_ui` 1.11.0 has no segmented-list
+component; its existing Card shape/clipping and ListTile controls compose the required geometry.
+The existing surface fill and row contents remain unchanged.
+
+Formatting, scoped analysis and all 19 existing settings-page, album-settings and analysis-settings
+checks passed. They cover selection, saving, disabled controls, keyboard semantics and storage
+feedback. The Flutter-only Profile build completed with the receipt-verified native library reused.
+The isolated Windows client exercised theme selection in both appearances, toggled and restored
+the album prompt switch, and scrolled through single- and multiple-row groups, organization records
+and storage rows with longer content. Separators are absent; gaps and outside/interior corners are
+consistent, with no new Flutter exception or layout overflow. The previous client exited normally
+with all 700 fixture lengths and modification times unchanged. The updated client remains open on
+the light Settings page.
+
 ### Navigation appearance, 2026-11-17
 
 Primary rail, menu and Settings symbols use 24 logical pixels. The brand asset box is 36 pixels,
