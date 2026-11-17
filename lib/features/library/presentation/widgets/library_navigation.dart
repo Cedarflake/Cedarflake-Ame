@@ -17,7 +17,6 @@ import "library_folder_navigation_tile.dart";
 import "library_folder_disclosure.dart";
 import "library_folder_reorder_item.dart";
 import "library_source_navigation_tile.dart";
-import "library_sidebar_primary_action.dart";
 import "library_sidebar_section_header.dart";
 import "library_sidebar_reorder_list.dart";
 import "library_sidebar_selection_region.dart";
@@ -224,18 +223,6 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                   header: (saving) => Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (!widget.isCompact)
-                        LibrarySidebarPrimaryAction(
-                          label: "添加文件夹",
-                          buttonKey: const Key("library-sidebar-import"),
-                          disabledReason: widget.addingSourceDisabledReason,
-                          onPressed:
-                              saving ||
-                                  widget.isBusy ||
-                                  widget.isAddingSourceDisabled
-                              ? null
-                              : widget.onAddSource,
-                        ),
                       if (widget.isCompact) ...[
                         AmeTooltip(
                           message: LibraryStrings.library,
@@ -303,6 +290,16 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                         LibrarySidebarSectionHeader(
                           title: "文件夹",
                           count: widget.roots.length,
+                          createLabel:
+                              widget.addingSourceDisabledReason ??
+                              LibraryStrings.addFolder,
+                          createKey: const Key("library-sidebar-import"),
+                          onCreate:
+                              saving ||
+                                  widget.isBusy ||
+                                  widget.isAddingSourceDisabled
+                              ? null
+                              : widget.onAddSource,
                           selectedCount: _selection.count,
                           allSelected: _selection.allSelected(
                             widget.roots.map((root) => root.id),

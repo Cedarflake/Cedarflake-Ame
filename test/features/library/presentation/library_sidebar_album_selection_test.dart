@@ -32,7 +32,7 @@ void main() {
         child: MaterialApp(
           home: Scaffold(
             body: SizedBox(
-              width: 300,
+              width: 220,
               child: LibraryAlbumNavigation(
                 isActive: active,
                 collection: const LibraryGalleryCollection.library(),
@@ -62,6 +62,14 @@ void main() {
       await tester.tap(find.byKey(const Key("library-sidebar-select-all")));
       await tester.pumpAndSettle();
       expect(find.text("已选择 2"), findsOneWidget);
+      expect(
+        tester.getSize(find.text("已选择 2")).height,
+        lessThanOrEqualTo(
+          tester
+              .getSize(find.byKey(const Key("library-sidebar-select-all")))
+              .height,
+        ),
+      );
       final collapse = find.byKey(const Key("library-sidebar-album-expand"));
       await tester.tap(collapse);
       await tester.pumpAndSettle();

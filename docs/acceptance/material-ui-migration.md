@@ -2,6 +2,32 @@
 
 ## Material workbench composition, 2026-11-16
 
+### Compact creation entries, 2026-11-17
+
+The follow-up to `41c5d564` restores folder import and album creation to the shared section-heading
+plus controls and removes the dedicated large-action component. Library/Favorites now start at the
+same top inset as Duplicates navigation. Existing import admission, album revision checks and section
+disclosure remain connected to their original owners.
+
+Formatting and scoped analysis passed. The existing creation/undo, import-browsing, navigation,
+selection-focus and album-selection cases passed together (27 checks). Import-browsing retains its
+disabled-action assertion with the restored IconButton type. Native inspection reproduced a vertically squeezed selection count
+at the 220-pixel sidebar minimum; selected headings now place the count above the complete action
+row. The existing album-selection workflow runs at that minimum, checks readable count height and
+retains cancellation, selection, collapse/reopen and removal assertions; it passed.
+
+The final Profile build completed in 88.3 seconds. Native checks opened the folder picker through
+the heading plus and imported the existing 700-file corpus, then created an album through the
+corresponding album control. The completed client exited normally and preserved all 700 source
+lengths and modification times. The final client confirmed creation, readable selection counts and
+retained selection through section collapse at the 220-pixel minimum. Both normal and minimum
+widths retain the compact creation controls and the aligned first navigation row. The client remains
+open with isolated storage; current-head hosted verification is pending.
+
+The navigation, album, section-header and reorder owners contain 553, 286, 138 and 134 production
+lines, with no inline tests. The retained navigation, creation/undo, import-browsing, selection-focus
+and album-selection fixtures contain 1,093, 112, 105, 91 and 131 dedicated test lines respectively.
+
 ### Hosted qualification, 2026-11-17
 
 Implementation head `d4b1c66738d5cd6879aa1fa63432e1c3ff7b82ae` passed

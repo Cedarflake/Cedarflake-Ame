@@ -194,23 +194,23 @@ main workspace use the distinct navigation and content roles, resolved for light
 by the shared workbench surface owner. The frame and content own their outer rounded corners;
 the sidebar introduces no cutout below the global bar. Tonal surfaces separate the regions without
 divider lines. Sidebar navigation rows share a 48-pixel minimum height and eight-pixel corners.
-Their backgrounds have 16-pixel side insets, aligning the leading edge with the primary-action
-background. Navigation labels use body-large text and 24-pixel icons in aligned columns.
+Their backgrounds have 16-pixel side insets. Navigation labels use body-large text and 24-pixel
+icons in aligned columns.
 Source names and body-small status lines remain centered as one block within the same row height;
 enlarged text can grow the row. Trailing controls occupy only their actual width, leaving the
 remaining space for names. Dragging preserves the row's shape.
 Settings retains the same small outer inset on both sides of its content surface.
-Use the system accent's tonal-spot palette. The sidebar's primary action uses primary-container
-colors, while selected navigation uses secondary-container colors and their matching foreground.
+Use the system accent's tonal-spot palette. Selected navigation uses secondary-container colors
+and their matching foreground; section-heading actions use standard icon buttons.
 Workspace headings use regular weight; section labels and counts use the quieter on-surface-variant
-color. Emphasize the primary action and current selection without accent-colored ordinary text.
+color. Emphasize the current selection without accent-colored ordinary text.
 Collapsing a sidebar retains that eight-pixel gap between the function rail and the content surface,
 with search aligned above it. Primary-destination changes animate the content boundary and keep the
 right edge fixed; the image wall retains its destination-width layout during the transition.
 
 The Library sidebar contains only navigation and source scope:
 
-- a filled `添加文件夹` action above `图库`, followed by a separate `文件夹` heading;
+- `图库`, followed by a separate `文件夹` heading with an `添加文件夹` plus action;
 - imported folders in one aligned source list, without separating OneDrive and local folders into
   different navigation hierarchies;
 - expandable folder trees when functional.
@@ -223,17 +223,17 @@ the sidebar. Each browsing destination retains its own query. Primary-sidebar sw
 position and selection; an organizing Library retains its mode, queue, position and selection across
 Albums, Duplicates and Settings visits. The accepted narrow-window sidebar rule, tonal surfaces,
 resizing and transition remain shared.
-The Albums sidebar starts with a filled `新建相册` action matching the folder action's placement,
-shape and tonal color. Both use semibold labels, a leading plus and their existing disabled-state rules.
-The brand mark is larger than its wordmark and its visible left edge aligns with the primary-action
+The Albums sidebar starts with Favorites, followed by the `相册` heading and its `新建相册` plus
+action. Creation controls retain their existing disabled-state rules and descriptive tooltips.
+The brand mark is larger than its wordmark and its visible left edge aligns with the navigation
 background. Account for the artwork's transparent padding when sizing the mark: its visible
-silhouette is approximately 32 pixels beside the 22-pixel wordmark. The action's icon, navigation
-icons and section headings share an inset column. Keep 32 pixels below the primary action and
-24 pixels above each folder, manual-album or smart-album section; rows within each section retain
-their compact spacing. The first primary-navigation icon aligns vertically with the
-primary-action label; the hamburger stays in the brand row. The first Duplicates destination uses
-that same control centerline without adding a section title. The three primary destinations have
-12 additional pixels between adjacent entries; Settings remains anchored at the bottom.
+silhouette is approximately 32 pixels beside the 22-pixel wordmark. Navigation icons and section
+headings share an inset column. Keep 24 pixels above each folder, manual-album or smart-album
+section; rows within each section retain their compact spacing. The first primary-navigation icon
+aligns vertically with the Library/Favorites row; the hamburger stays in the brand row. The first
+Duplicates destination uses that same control centerline without adding a section title. The three
+primary destinations have 12 additional pixels between adjacent entries; Settings remains anchored
+at the bottom.
 Section headings use medium weight. Album names match Favorites and folder navigation: regular
 by default and semibold when selected, using the same body-large size across navigation types.
 Manual and smart albums have independent section disclosure controls, with counts beside the labels.
@@ -241,9 +241,11 @@ The folder heading shows the imported-root count. Section disclosure and row men
 trailing column; a source name and its status form one vertically centered text block.
 Collapsing a section retains its active collection and selection; it does not change the gallery query.
 Manual and smart sections share the same size/fade timing, including empty and loading states.
-Library and Albums share the same sidebar structure: the primary action comes first, then the
-Library/Favorites destination and a `文件夹`/`相册` section heading. The heading and destination do
-not repeat the creation action. Folder import opens the existing system picker; album creation opens
+During sidebar multi-selection, the selected count sits above the right-aligned action row so all
+creation, disclosure and batch actions remain reachable at the minimum sidebar width.
+Library and Albums share the same sidebar structure: the Library/Favorites destination comes first,
+then a `文件夹`/`相册` section heading with one creation action. There is no separate large top
+button. Folder import opens the existing system picker; album creation opens
 the existing name/icon editor.
 An empty manual-album list uses the same static icon-and-text row as an empty folder list, with
 `还没有创建相册`. It appears only after loading confirms that the album total is zero, not for an
@@ -287,8 +289,8 @@ or removable-media properties may appear as a row status or badge, but they do n
 OneDrive and `此电脑` groups. Folder icons, labels, optional status text, and overflow actions use
 shared column constraints so every source row aligns.
 
-The `添加文件夹` button is separate from the `图库` navigation row. Its visible text, tooltip and
-accessible label identify the same action; activating it opens the existing folder picker.
+The `添加文件夹` plus is beside the `文件夹` heading, separate from the `图库` navigation row.
+Its tooltip and accessible label identify the action; activating it opens the existing folder picker.
 The compact icon-only sidebar retains its import icon and descriptive tooltip.
 
 Selecting an exact registered source retains its normal update behavior. Selecting an unregistered

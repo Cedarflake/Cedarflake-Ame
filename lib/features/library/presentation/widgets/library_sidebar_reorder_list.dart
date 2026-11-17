@@ -97,7 +97,7 @@ class _LibrarySidebarReorderListState<T extends Object>
 
       final rows = ReorderableListView.builder(
         key: ValueKey(_itemsRevision),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
         buildDefaultDragHandles: false,
         proxyDecorator: (child, index, animation) => AnimatedBuilder(
           animation: animation,

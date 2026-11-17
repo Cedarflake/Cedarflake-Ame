@@ -68,7 +68,7 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ### Material desktop workbench
 
-The accepted Google Material wide-screen layout is implemented and qualified on
+The accepted Google Material wide-screen layout is implemented on
 `codex/material-workbench`, awaiting integration through [PR 69](https://github.com/Cedarflake/Cedarflake-Ame/pull/69)
 before the remaining R10 diagnostics and Beta slices. The
 [execution plan](plans/material-workbench.md) orders shared Gallery/Albums composition, Duplicates,
@@ -80,8 +80,10 @@ MW1–MW4 implementation, desktop qualification and hosted verification are reco
 [Material acceptance record](acceptance/material-ui-migration.md#material-workbench-composition-2026-11-16).
 MW4 includes the requested primary-navigation content-width transition, filmstrip frame-time
 qualification and the Google-style tonal/typographic refinement guided by Material canonical layouts,
-including consistent secondary-navigation row geometry.
-The scope is complete at implementation head `d4b1c667`. The acceptance record retains the earlier
+including consistent secondary-navigation row geometry. The compact creation-entry follow-up
+restores section-heading plus controls and removes the large top action blocks; local verification
+is complete and its hosted checks are pending. The preceding implementation qualified at
+`d4b1c667`. The acceptance record retains the earlier
 intermittent accessibility-worker observations and their diagnostic follow-up. Merging and release
 publication remain separate decisions.
 

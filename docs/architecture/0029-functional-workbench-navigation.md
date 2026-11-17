@@ -24,10 +24,10 @@ inform the existing adaptive gallery feed and viewer supporting content. Navigat
 separate from those content regions; this does not introduce another pane or navigation model.
 Use `ColorScheme.fromSeed` with `DynamicSchemeVariant.tonalSpot` to retain the system accent hue
 with restrained surface and selection chroma. The earlier fidelity palette made primary actions
-and selected rows similarly prominent. Primary-container action colors and secondary-container
-selection colors now carry separate emphasis, with their matching on-container foregrounds.
+and selected rows similarly prominent. Secondary-container selection colors with matching
+on-container foregrounds now distinguish selected navigation from ordinary rows.
 Regular workspace headings and ordinary navigation text keep the content hierarchy legible;
-selected labels and primary actions retain emphasis. Calendar and dialog typography stays owned
+selected labels retain emphasis. Calendar and dialog typography stays owned
 by those surfaces. The installed color-scheme and text-style APIs provide this composition without
 new fonts, palette code or dependencies.
 
@@ -81,13 +81,12 @@ sidebar without overwriting an existing arrangement. A forward migration and ver
 snapshot provide the existing upgrade/rollback boundary.
 
 Library and Albums use one section-heading component below their Library and Favorites entries.
-Each sidebar starts with its filled `添加文件夹` or `新建相册` action, replacing the heading's plus.
-The installed `material_ui` 1.11.0 `FilledButton.icon` provides nullable activation, disabled styling,
-keyboard focus and semantics. Its style API supplies primary-container colors and
-56-pixel minimum height with 12-pixel corners. Semibold labels and a heavier plus mark identify the
-primary action. An icon-only action lacks the accepted visible label;
-an extended FAB is unnecessary for an inline sidebar action with a disabled state. No custom input
-handling is introduced. Flutter 3.47.8's
+The 2026-11-17 layout revision restores `添加文件夹` and `新建相册` as compact plus actions
+beside those headings. Large filled top actions gave creation disproportionate space and emphasis.
+The installed `material_ui` 1.11.0 `IconButton` supplies nullable activation, disabled styling,
+keyboard focus and semantics; existing descriptive tooltips name both actions. Album disclosure
+remains separate beside creation. Library/Favorites begin the sidebars, without a reserved action
+block. No custom input handling is introduced. Flutter 3.47.8's
 `ReorderableListView.builder`, `ReorderableDragStartListener` and `onReorderItem` provide lazy rows,
 drag geometry, scrolling and reorder semantics. Only the imported root row starts a folder drag;
 its expanded descendants remain ordinary navigation. `LibraryFolderReorderItem` collapses the branch
@@ -100,7 +99,7 @@ retains current item identities through metadata updates, appends new items and 
 order on failure through the shared feedback surface. It does not reorder gallery images or mutate
 physical folders. Sidebar navigation rows and their drag proxies share a framework
 RoundedRectangleBorder with eight-pixel corners. Their 16-pixel side insets align the background's
-leading edge with the primary action. Single-line rows and source rows with status share a 48-pixel
+leading edge with the brand mark. Single-line rows and source rows with status share a 48-pixel
 minimum height; text scaling and embedded controls can increase that minimum. This replaces the
 40/56-pixel split so the selection surface does not change proportion between navigation types.
 Navigation uses the theme's body-large labels and 24-pixel icons. Source and child-folder rows
@@ -121,7 +120,8 @@ shrink-wrapped scrolling list is unnecessary and would disconnect native drag au
 Sidebar selection is a separate presentation owner. The installed Flutter 3.47.8 `IconButton`
 provides focus, toggled semantics and the original/selected icons; a 24-pixel filled circle with the
 existing Material Symbols check identifies a selected row inside its 40-pixel target. The section
-heading groups Select all and removal at the trailing edge. The shared framework tristate
+heading groups Select all and removal with the other actions below the selected count, preserving
+readability and action reachability at the minimum sidebar width. The shared framework tristate
 `Checkbox` uses an 18-pixel neutral square outline without fill; the other actions use 20-pixel
 symbols, all within 36-pixel targets. Material's checkbox and icon-button component documentation was inspected;
 no replacement gesture, checkbox painter or package is needed. Selection disables reordering, and

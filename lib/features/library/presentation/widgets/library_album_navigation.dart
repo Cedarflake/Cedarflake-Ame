@@ -17,7 +17,6 @@ import "library_album_icon.dart";
 import "library_folder_disclosure.dart";
 import "library_album_navigation_tile.dart";
 import "library_sidebar_reorder_list.dart";
-import "library_sidebar_primary_action.dart";
 import "library_sidebar_section_header.dart";
 import "library_sidebar_section_toggle.dart";
 import "library_sidebar_rows_disclosure.dart";
@@ -103,17 +102,15 @@ class _LibraryAlbumNavigationState
 
   Widget _header(LibraryOrganizationAlbumPage? page, bool busy) => Column(
     children: [
-      LibrarySidebarPrimaryAction(
-        label: "新建相册",
-        buttonKey: const Key("library-sidebar-create-album"),
-        onPressed: !widget.enabled || busy || page == null
-            ? null
-            : () => _edit(LibraryAlbumEditKind.create, page.revision),
-      ),
       widget.header,
       LibrarySidebarSectionHeader(
         title: "相册",
         count: page?.total,
+        createLabel: "新建相册",
+        createKey: const Key("library-sidebar-create-album"),
+        onCreate: !widget.enabled || busy || page == null
+            ? null
+            : () => _edit(LibraryAlbumEditKind.create, page.revision),
         trailing: LibrarySidebarSectionToggle(
           key: const Key("library-sidebar-album-expand"),
           label: "相册",
@@ -247,7 +244,7 @@ class _LibraryAlbumNavigationState
           ),
         ),
         loading: () => ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
           children: [
             _header(null, true),
             LibraryFolderDisclosure(
@@ -265,7 +262,7 @@ class _LibraryAlbumNavigationState
           ],
         ),
         error: (error, stack) => ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
           children: [
             _header(null, true),
             LibraryFolderDisclosure(

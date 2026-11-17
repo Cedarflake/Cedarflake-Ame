@@ -13,8 +13,8 @@ Retain the system accent, light/dark appearance, thin Material Symbols, existing
 keyboard behavior, data scopes and operation semantics. Secondary sidebars use contextual rows and
 small section labels without a redundant page heading. Keep search options at the trailing end of
 the search field and the settings selection circular.
-Place the filled `添加文件夹` and `新建相册` actions at the top of their respective sidebars,
-using the existing picker and album editor rather than trailing section-heading plus icons.
+Place compact `添加文件夹` and `新建相册` plus actions beside their section headings,
+using the existing picker and album editor. Library and Favorites begin their respective sidebars.
 Use the global hamburger for sidebar visibility, keep the plain mark beside `Ame`, and align search
 with the content boundary. Manual/smart album sections collapse independently while retaining scope
 and selection. Primary-destination changes animate the content boundary without per-frame image
@@ -22,8 +22,8 @@ reflow. Retain the filmstrip appearance while isolating its motion from unchange
 
 Apply Material canonical-layout guidance to the existing composition: the gallery is an adaptive
 feed, contextual sidebars select its scope, and the viewer filmstrip supports the current image.
-Refine the shared visual hierarchy with the system accent's tonal-spot palette, a primary-container
-sidebar action, quieter secondary-container selection and regular-weight workspace headings.
+Refine the shared visual hierarchy with the system accent's tonal-spot palette,
+quieter secondary-container selection and regular-weight workspace headings.
 Keep the three surface layers and established control geometry. Validate the palette in both
 appearances and retain the existing compact layout and text-scaling behavior.
 
