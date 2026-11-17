@@ -58,11 +58,11 @@ void main() {
       expect(fixture.foreground.isObserved, isFalse);
       expect(
         () => ChangeNotifier.debugAssertNotDisposed(runtime.lifecycle),
-        throwsFlutterError,
+        throwsStateError,
       );
       expect(
         () => ChangeNotifier.debugAssertNotDisposed(runtime.modelInstallation),
-        throwsFlutterError,
+        throwsStateError,
       );
       fixture.foreground.dispose();
     },

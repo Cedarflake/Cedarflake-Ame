@@ -41,6 +41,12 @@ absence. This owner has 119 production lines and no inline tests; its dedicated 
 lines. The tooltip owner remains 386 production lines with no inline tests and 188 dedicated-test
 lines. Hosted full-suite and production Release checks remain pending for the committed upgrade.
 
+The first hosted Flutter batch found three bootstrap cases still expecting `FlutterError` from
+disposed notifiers. Flutter 3.50 delegates `ChangeNotifier.debugAssertNotDisposed` to `listen`,
+which reports `StateError`. The four disposal assertions now require that exact error type while
+retaining lifecycle, subscription and joined-shutdown checks. All seven cases in the two affected
+bootstrap suites pass locally; application disposal behavior is unchanged.
+
 ### Window/display plugin evaluation, 2026-11-18
 
 The `window_manager` 0.7.0 / `screen_retriever` 0.4.0 migration, using nativeapi 0.6.1,
