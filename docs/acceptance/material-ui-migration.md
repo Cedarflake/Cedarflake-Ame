@@ -2,6 +2,23 @@
 
 ## Material workbench composition, 2026-11-16
 
+### Material workbench integration, 2026-11-17
+
+[PR 69](https://github.com/Cedarflake/Cedarflake-Ame/pull/69) integrated `bb344c82` into `main`
+as `cb5efadd` after explicit authorization to merge before CI completion. Their file trees match.
+The local and remote `codex/material-workbench` branches were deleted and the local checkout was
+fast-forwarded to `main`. The final update includes the refreshed gallery screenshot and the
+`所有图片` sidebar entry and content heading. All five existing shell checks passed; the rebuilt
+isolated client displayed both labels without wrapping or clipping and retained its two roots.
+
+At merge, [PR run 44079685276](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/44079685276)
+was queued. The subsequent
+[main run 44080318567](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/44080318567)
+owns verification of the merged tree. The preceding run at `54b44d67` passed Static, Flutter Tests,
+Windows Scan, Windows Accessibility, Windows Build Verification and three Rust groups. Its Schema,
+Queue and Organization group was unfinished when that run was superseded and canceled. These
+partial results do not establish a completed full gate for the final revision.
+
 ### Interrupted sidebar and workspace motion, 2026-11-17
 
 The workspace transition now starts at the active pane's displayed inset. Sidebar motion settles
