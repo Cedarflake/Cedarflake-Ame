@@ -50,12 +50,12 @@ String libraryGalleryTitle(
     return collectionName == null ? name : "$collectionName · $name";
   }
   final rootId = state.query.rootId;
-  if (rootId == null) return collectionName ?? LibraryStrings.library;
+  if (rootId == null) return collectionName ?? LibraryStrings.allImages;
   for (final root in state.roots) {
     if (root.id == rootId) {
       final name = librarySourceName(root.displayPath);
       return collectionName == null ? name : "$collectionName · $name";
     }
   }
-  return LibraryStrings.library;
+  return LibraryStrings.allImages;
 }

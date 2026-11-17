@@ -226,7 +226,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                     children: [
                       if (widget.isCompact) ...[
                         AmeTooltip(
-                          message: LibraryStrings.library,
+                          message: LibraryStrings.allImages,
                           child: IconButton(
                             key: const Key("library-sidebar-library"),
                             focusNode: _libraryFocusNode,
@@ -279,7 +279,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                             child: Icon(Symbols.photo_library_rounded),
                           ),
                           title: Text(
-                            LibraryStrings.library,
+                            LibraryStrings.allImages,
                             style: _navigationTitleStyle(
                               context,
                               widget.selectedRootId == null &&

@@ -14,7 +14,10 @@ both collapse and expansion retain the gallery's scroll owner and offset. All 24
 workbench, sidebar, right-edge and duplicate-layout checks passed, including reduced motion,
 enlarged text, stationary right-edge controls and unchanged content-layout counts during motion.
 Formatting and scoped analysis passed. The Profile payload was rebuilt with the receipt-verified
-native library; interactive follow-up is pending. The width-transition and sidebar owners contain
+native library. The isolated Windows client exercised switching to Settings during both sidebar
+collapse and expansion, then returning before the workspace transition finished. Each transition
+continued from an intermediate boundary, retaining the gallery position; normal animation speed
+was restored after slow-motion inspection. The width-transition and sidebar owners contain
 171 and 183 production lines, and the retained-workbench fixture contains 242 test lines.
 
 ### Folder refresh and import recovery, 2026-11-17
@@ -33,7 +36,8 @@ case still retries the original path. Storage admission and native contracts are
 The isolated Profile client reproduced the recurring displacement with an expanded `local-primary`
 branch above the failed source. The rebuilt client retained its position across 18 observations
 during background updates and displayed the storage-conflict reason. The final recovery-button
-build is open for interactive inspection; its native picker/cancel sequence remains unverified.
+build opened the native directory picker after a rejected storage-overlap selection. Canceling
+removed the failed pending row and retained both existing roots and the gallery position.
 The local build reused the receipt-verified native library. Earlier clients exited normally with
 all 700 fixture lengths and modification times unchanged; no new Dart exception, overflow or AXTree
 error was logged. The navigation owner contains 555 production lines; the two affected fixtures

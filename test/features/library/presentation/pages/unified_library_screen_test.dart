@@ -24,13 +24,19 @@ void main() {
       ),
     );
 
+    expect(
+      find.descendant(
+        of: find.byKey(const Key("library-function-rail")),
+        matching: find.text("图库"),
+      ),
+      findsOneWidget,
+    );
     for (final key in const [
-      Key("library-function-rail"),
       Key("library-sidebar-library"),
       Key("library-gallery-header"),
     ]) {
       expect(
-        find.descendant(of: find.byKey(key), matching: find.text("图库")),
+        find.descendant(of: find.byKey(key), matching: find.text("所有图片")),
         findsOneWidget,
       );
     }

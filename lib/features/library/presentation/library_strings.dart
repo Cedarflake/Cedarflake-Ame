@@ -21,8 +21,8 @@ abstract final class LibraryStrings {
   static const clearSearch = "清除搜索";
 
   // 左侧栏｜图库入口、添加目录入口、设置入口和未添加目录的提示。
-  // “图库”也用作主内容区的默认标题。
   static const library = "图库";
+  static const allImages = "所有图片";
   static const addFolder = "添加目录到图库";
   static const settings = "设置";
   static const noFolder = "还没有添加目录";

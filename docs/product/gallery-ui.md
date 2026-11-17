@@ -29,6 +29,7 @@ information-architecture choices:
 - one reusable gallery for folder, timeline, category and search scopes;
 - a permanent function rail selects `图库`, `相册`, and `去重`, in that order;
 - the Library workspace owns the collapsible source/folder sidebar and Add folder;
+  its all-source entry and corresponding content heading use `所有图片`;
 - the Albums workspace owns its flat album list and shares the gallery and viewer;
 - Settings remains pinned to the bottom of the function rail;
 - the gallery filter changes duplicate display; the Duplicates workspace owns group review;
