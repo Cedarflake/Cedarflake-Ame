@@ -80,14 +80,15 @@ void main() {
         find.byKey(const ValueKey("library-sidebar-select-root-one")),
       );
       await tester.pumpAndSettle();
-      expect(find.text("1"), findsOneWidget);
+      expect(find.text("已选择"), findsOneWidget);
+      expect(find.text("(1)"), findsOneWidget);
       expect(find.byKey(const Key("library-sidebar-import")), findsNothing);
       expect(navigated, isEmpty);
       await tester.tap(find.text("Child"));
       expect(navigated, "child");
       await tester.tap(find.byKey(const Key("library-sidebar-select-all")));
       await tester.pumpAndSettle();
-      expect(find.text("2"), findsOneWidget);
+      expect(find.text("(2)"), findsOneWidget);
       await tester.tap(
         find.byKey(const Key("library-sidebar-remove-selected")),
       );
@@ -114,7 +115,7 @@ void main() {
       await tester.pumpWidget(view(false));
       await tester.pumpWidget(view(true));
       expect(find.text("文件夹"), findsOneWidget);
-      expect(find.text("1"), findsNothing);
+      expect(find.text("(1)"), findsNothing);
     },
   );
 }

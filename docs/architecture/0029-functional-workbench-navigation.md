@@ -120,10 +120,10 @@ shrink-wrapped scrolling list is unnecessary and would disconnect native drag au
 Sidebar selection is a separate presentation owner. The installed Flutter 3.47.8 `IconButton`
 provides focus, toggled semantics and the original/selected icons; a 24-pixel filled circle with the
 existing Material Symbols check identifies a selected row inside its 40-pixel target. The section
-heading keeps the numeric selected count, Select all, removal and disclosure in one row. Creation
+heading keeps `已选择 (N)` (`已选 (N)` at compact widths), Select all, removal and disclosure in one row. Creation
 is shown outside selection. This replaces the two-row arrangement that shifted the list on selection;
 the full selected-count label remains available to accessibility. The shared framework tristate
-`Checkbox` uses an 18-pixel neutral square outline without fill; the other actions use 20-pixel
+`Checkbox` uses the shared circular shape with an 18-pixel neutral outline without fill; the other actions use 20-pixel
 symbols, all within 36-pixel targets. Material's checkbox and icon-button component documentation was inspected;
 no replacement gesture, checkbox painter or package is needed. Selection disables reordering, and
 Escape clears it. A shared selection region owns pointer focus and the Escape shortcut outside row

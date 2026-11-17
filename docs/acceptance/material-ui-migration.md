@@ -9,8 +9,9 @@ viewport previously removed them for every loading interval, including reads too
 loading feedback. The published snapshot and heading now remain together until the next result
 arrives; only the delayed top line accompanies a refresh. Initial reads retain the centered indicator.
 
-Sidebar selection now keeps the heading and actions in one row. A numeric count with a full
-accessibility label replaces the section title; creation returns after selection clears. This
+Sidebar selection keeps `已选择 (N)` and its actions in one row. At compact widths the label uses
+`已选 (N)` instead of truncating its meaning. Parenthesized counts retain the normal body-small
+typography; Select all uses the shared circular outline. Creation returns after selection clears. This
 supersedes the two-row arrangement below, which changed the list's vertical position on selection.
 
 Formatting, scoped analysis and 15 focused checks passed. Production-composition coverage retains
@@ -18,6 +19,11 @@ the same empty-result element and rectangle through short and longer query reads
 with an empty album and populated gallery. Existing checks cover loading geometry, initial waiting,
 sidebar motion at normal/enlarged text, review notices, and source/album selection at 220 pixels.
 The album check now asserts unchanged row bounds and a shared count/action centerline.
+The header refinement passed four affected checks again; its final width/typography cases confirm
+the count style is identical before and after selection and that resizing retains selection.
+Empty-result coverage includes consecutive
+passive timeline refreshes with an idle query-activity state, matching the background synchronization
+path, as well as an explicit collection change.
 
 The Profile build completed in 78.9 seconds. The isolated Windows client imported the existing
 700-file corpus and exercised source selection, album creation, Favorites/album navigation, minimum
@@ -25,11 +31,15 @@ sidebar width, section collapse/reopen and Escape. The selected row retained its
 heading stayed on one line, and the empty result remained visible through sidebar operations and
 background updates. Native semantics exposed the full selected-count label. No Flutter exception
 or layout overflow was logged. The updated isolated client remains open; current-head CI is pending.
+The final header build completed in 47.3 seconds. Native inspection confirmed the full and compact
+labels at 260/220 pixels, consistent count sizing, and cancellation through the circular Select all
+control. The preceding isolated client exited normally with all 700 source file lengths and times
+unchanged; the final client remains open with a temporary album.
 
-The screen composition, viewport and section header contain 2,010, 65 and 136 production lines,
+The screen composition, viewport and section header contain 2,010, 65 and 155 production lines,
 with no inline tests. The screen change only supplies the existing snapshot-publication state;
 rendering remains in the viewport owner. The affected loading-geometry and album-selection test
-files contain 238 and 138 lines.
+files contain 239 and 149 lines.
 
 ### Compact creation entries, 2026-11-17
 

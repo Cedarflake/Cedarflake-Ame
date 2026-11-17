@@ -39,8 +39,16 @@ void main() {
       const albumQuery = LibraryGalleryQuery(
         collection: LibraryGalleryCollection.album("one"),
       );
-      for (final requestedQuery in [favorites.query, albumQuery]) {
-        controller.requestQuery(requestedQuery);
+      final backgroundRefresh = favorites.copyWith(isLoadingTimeline: true);
+      for (final pending in [
+        backgroundRefresh,
+        backgroundRefresh,
+        favorites.copyWith(
+          queryActivity: const LibraryQueryLoading(albumQuery),
+          isLoadingTimeline: true,
+        ),
+      ]) {
+        controller.publish(pending);
         await tester.pump();
         for (final elapsed in [100, 600]) {
           await tester.pump(Duration(milliseconds: elapsed));
@@ -159,13 +167,6 @@ enum _LoadingActivity {
 }
 
 class _LoadingFeedbackController extends LibraryController {
-  void requestQuery(LibraryGalleryQuery query) {
-    state = state.copyWith(
-      queryActivity: LibraryQueryLoading(query),
-      isLoadingTimeline: true,
-    );
-  }
-
   void publish(LibraryState value) => state = value;
 
   @override

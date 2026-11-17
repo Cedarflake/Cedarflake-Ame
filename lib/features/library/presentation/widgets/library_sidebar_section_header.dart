@@ -37,30 +37,52 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final heading = Row(
-      children: [
-        Flexible(
-          child: Text(
-            selectedCount > 0 ? "$selectedCount" : title,
-            semanticsLabel: selectedCount > 0 ? "已选择 $selectedCount" : null,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              fontWeight: ameFontWeightMedium,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+    final labelStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+      fontWeight: ameFontWeightMedium,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
+    final heading = Semantics(
+      label: selectedCount > 0 ? "已选择 $selectedCount" : null,
+      excludeSemantics: selectedCount > 0,
+      child: Row(
+        children: [
+          Flexible(
+            child: selectedCount > 0
+                ? LayoutBuilder(
+                    builder: (context, constraints) {
+                      final measure = TextPainter(
+                        text: TextSpan(text: "已选择", style: labelStyle),
+                        textDirection: Directionality.of(context),
+                        textScaler: MediaQuery.textScalerOf(context),
+                      )..layout();
+                      final compact = measure.width > constraints.maxWidth;
+                      measure.dispose();
+                      return Text(
+                        compact ? "已选" : "已选择",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: labelStyle,
+                      );
+                    },
+                  )
+                : Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: labelStyle,
+                  ),
           ),
-        ),
-        if (selectedCount == 0 && count != null) ...[
-          const SizedBox(width: 4),
-          Text(
-            "($count)",
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+          if (selectedCount > 0 || count != null) ...[
+            const SizedBox(width: 4),
+            Text(
+              "(${selectedCount > 0 ? selectedCount : count})",
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
+          ],
         ],
-      ],
+      ),
     );
     final actions = Row(
       mainAxisSize: MainAxisSize.min,
@@ -73,9 +95,6 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
               key: const Key("library-sidebar-select-all"),
               markExtent: 18,
               tapTargetSize: 36,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(2),
-              ),
               value: allSelected ? true : null,
               tristate: true,
               isOutlined: true,

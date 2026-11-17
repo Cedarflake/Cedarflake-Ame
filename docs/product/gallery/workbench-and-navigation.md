@@ -258,11 +258,13 @@ new entries append, and renames, refreshes and restarts retain the arrangement. 
 and physical paths are unchanged. Album pages follow the same saved order.
 In sidebar multi-selection, an unselected row retains its original leading icon. A selected row uses
 a filled circular check from the existing icon library. The heading stays one row high, with a
-numeric selected count at the left and Select all, removal/deletion and disclosure at the right.
+`已选择 (N)` label at the left and Select all, removal/deletion and disclosure at the right.
+When the full label cannot fit, it shortens to `已选 (N)` while retaining the complete count.
+Parenthesized counts retain the same body-small typography in normal and selection states.
 The count retains its full selected-state accessibility label. Creation returns when selection is
 cleared, keeping the batch actions reachable at the minimum sidebar width without moving list rows.
 Select all is an 18-pixel neutral
-outlined square with no selected color fill; deletion uses a 20-pixel icon, with both
+outlined circle with no selected color fill; deletion uses a 20-pixel icon, with both
 actions in 36-pixel targets. Normal navigation resumes after selection is cleared; dragging is
 available outside multi-selection. Pointer selection does not leave a row focus highlight after
 the pointer leaves; keyboard navigation retains visible focus. Primary-workspace switches clear

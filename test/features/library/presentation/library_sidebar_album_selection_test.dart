@@ -22,7 +22,7 @@ void main() {
           LibraryOrganizationAlbum("two", "Second"),
         ];
       var selected = "";
-      Widget view(bool active) => ProviderScope(
+      Widget view(bool active, {double width = 220}) => ProviderScope(
         overrides: applicationTestOverrides([
           libraryOrganizationProvider.overrideWithValue(service),
           libraryControllerProvider.overrideWith(
@@ -32,7 +32,7 @@ void main() {
         child: MaterialApp(
           home: Scaffold(
             body: SizedBox(
-              width: 220,
+              width: width,
               child: LibraryAlbumNavigation(
                 isActive: active,
                 collection: const LibraryGalleryCollection.library(),
@@ -49,18 +49,28 @@ void main() {
       final firstAlbum = find.text("First");
       final albumBounds = tester.getRect(firstAlbum);
       final create = find.byKey(const Key("library-sidebar-create-album"));
+      final countStyle = tester.widget<Text>(find.text("(2)")).style;
       expect(create, findsOneWidget);
       await tester.tap(
         find.byKey(const ValueKey("library-sidebar-select-album-one")),
       );
       await tester.pumpAndSettle();
       expect(selected, isEmpty);
+      expect(find.text("已选"), findsOneWidget);
       expect(tester.getRect(firstAlbum), albumBounds);
       expect(create, findsNothing);
+      await tester.pumpWidget(view(true, width: 260));
+      await tester.pumpAndSettle();
+      expect(find.text("已选择"), findsOneWidget);
+      expect(find.text("(1)"), findsOneWidget);
+      await tester.pumpWidget(view(true));
+      await tester.pumpAndSettle();
+      expect(find.text("已选"), findsOneWidget);
       await tester.pumpWidget(view(false));
       await tester.pumpWidget(view(true));
       await tester.pumpAndSettle();
-      expect(find.text("1"), findsNothing);
+      expect(find.text("(1)"), findsNothing);
+      expect(find.text("已选择"), findsNothing);
       expect(create, findsOneWidget);
       await tester.tap(
         find.byKey(const ValueKey("library-sidebar-select-album-one")),
@@ -68,10 +78,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key("library-sidebar-select-all")));
       await tester.pumpAndSettle();
-      expect(find.text("2"), findsOneWidget);
+      expect(find.text("(2)"), findsOneWidget);
+      expect(tester.widget<Text>(find.text("(2)")).style, countStyle);
       expect(tester.getRect(firstAlbum), albumBounds);
       expect(
-        tester.getCenter(find.text("2")).dy,
+        tester.getCenter(find.text("(2)")).dy,
         tester
             .getCenter(find.byKey(const Key("library-sidebar-select-all")))
             .dy,
@@ -81,14 +92,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text("First"), findsNothing);
       expect(find.text("Second"), findsNothing);
-      expect(find.text("2"), findsOneWidget);
+      expect(find.text("(2)"), findsOneWidget);
       expect(service.albumWrites, isEmpty);
       expect(selected, isEmpty);
       await tester.tap(collapse);
       await tester.pumpAndSettle();
       expect(find.text("First"), findsOneWidget);
       expect(find.text("Second"), findsOneWidget);
-      expect(find.text("2"), findsOneWidget);
+      expect(find.text("(2)"), findsOneWidget);
       final remove = find.byKey(const Key("library-sidebar-remove-selected"));
       await tester.tap(remove);
       await tester.pumpAndSettle();
@@ -96,13 +107,13 @@ void main() {
       expect(service.albumWrites, isEmpty);
       await tester.tap(find.text("取消"));
       await tester.pumpAndSettle();
-      expect(find.text("2"), findsOneWidget);
+      expect(find.text("(2)"), findsOneWidget);
       await tester.tap(remove);
       await tester.pumpAndSettle();
       await tester.tap(find.text("删除相册"));
       await tester.pumpAndSettle();
       expect(service.albumWrites.map((w) => w.albumId), ["one", "two"]);
-      expect(find.text("2"), findsNothing);
+      expect(find.text("(2)"), findsNothing);
       expect(create, findsOneWidget);
       expect(find.text("相册"), findsOneWidget);
       final empty = find.byKey(const Key("library-sidebar-album-empty"));
