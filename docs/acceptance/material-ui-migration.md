@@ -2,6 +2,18 @@
 
 ## Material workbench composition, 2026-11-16
 
+### Duplicate empty-result placement, 2026-11-17
+
+Duplicate review now uses the shared gallery viewport to center empty and failed results across
+the complete content pane. Populated grids retain their header spacing, and initial member reads
+retain both their centered indicator and delayed loading line.
+
+Formatting, scoped analysis and 11 existing layout/loading checks passed. The width and text-scale
+matrix checks the empty message against the pane center while retaining toolbar clearance, card
+geometry and pending-member feedback. The isolated Profile client showed the corrected placement
+in exact, similar and ignored views, with no new Flutter exception or overflow. The page and shared
+viewport contain 392 and 68 production lines; the layout fixture contains 410 test lines.
+
 ### Album sidebar refresh continuity, 2026-11-17
 
 Album navigation retains its published page during dependency-driven reloads after edits. A

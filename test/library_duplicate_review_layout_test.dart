@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_group_thumbnail.dart";
 
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
@@ -148,6 +149,21 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text("0 个组"), findsOneWidget);
         expect(find.byType(LibraryGalleryMessage), findsOneWidget);
+        final emptyContents = find.descendant(
+          of: find.byType(LibraryGalleryMessage),
+          matching: find.byType(Column),
+        );
+        final contentBounds = tester.getRect(
+          find.byKey(const Key("library-main-surface")),
+        );
+        expect(
+          tester.getCenter(emptyContents).dy,
+          closeTo(contentBounds.center.dy, 8),
+        );
+        expect(
+          tester.getTopLeft(emptyContents).dy,
+          greaterThan(tester.getBottomLeft(actions).dy),
+        );
         expect(tester.getTopLeft(category).dy, categoryTop);
         service.pendingGroups = null;
         await tester.tap(category);
@@ -255,6 +271,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 250));
         await tester.pump(const Duration(seconds: 1));
         expect(tester.widget<FadeTransition>(feedback).opacity.value, 1);
+        expect(find.byType(AmeLoadingIndicator), findsOneWidget);
         final progress = find.byKey(const Key("library-top-loading"));
         expect(tester.getSize(progress).height, 2);
         expect(tester.widget<LinearProgressIndicator>(progress).minHeight, 2);
