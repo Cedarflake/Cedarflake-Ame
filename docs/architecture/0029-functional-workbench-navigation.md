@@ -18,14 +18,16 @@ their existing contextual sidebars. Duplicates places exact/similar/ignored navi
 sidebar while retaining degree and cleanup beside the result heading. Secondary sidebars omit a
 redundant large destination title.
 
-Follow Material's [surface-role mapping](https://m3.material.io/styles/color/the-color-system/):
-the navigation backing uses `surfaceContainer`, contextual chrome uses `surfaceContainerLow`,
-and the main content uses `surface`. Keep these roles unchanged across light and dark appearances;
-the generated scheme owns their tones. This replaces the brightness-dependent lowest/high role
-swap that kept the content lighter than navigation in both appearances.
-The contextual sidebar matches the installed Material `NavigationDrawer` default container role.
+Follow Material's [bright/dim large-screen example](https://m3.material.io/styles/color/the-color-system/):
+the navigation backing uses `surfaceDim` and the main content uses `surfaceBright`.
+Contextual chrome uses `surfaceContainer` between them. Keep these roles unchanged across light
+and dark appearances; the generated scheme owns their tones. This retains a darker navigation
+backing and brighter content in both appearances without swapping lowest/high roles by brightness.
+The earlier `surfaceContainer` / `surfaceContainerLow` / `surface` combination made the light-theme
+regions too similar. The wider tonal range separates the existing three regions without new borders
+or shadows.
 The search field retains the installed `SearchBar` default `surfaceContainerHigh` background,
-independently of the main content surface. Both defaults were checked in `material_ui` 1.11.0.
+independently of the main content surface; this default was checked in `material_ui` 1.11.0.
 
 Material's [canonical layouts](https://m3.material.io/foundations/layout/canonical-examples/overview)
 and the [Android layout guidance](https://developer.android.com/develop/adaptive-apps/guides/canonical-layouts)

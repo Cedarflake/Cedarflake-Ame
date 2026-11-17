@@ -4,16 +4,18 @@
 
 ### Standard Material surface roles, 2026-11-17
 
-The follow-up to `a154b9b9` keeps navigation, contextual chrome and content on the same Material
-roles in both appearances, as specified in [ADR 0029](../architecture/0029-functional-workbench-navigation.md#material-surface-composition).
-Search uses the installed component's default background. The existing theme fixture drops the
-superseded always-brighter-content assertion and checks foreground contrast across all three regions.
+The follow-up to `de1e6272` uses Material's large-screen bright/dim roles for content and outer
+navigation, with `surfaceContainer` between them, as specified in
+[ADR 0029](../architecture/0029-functional-workbench-navigation.md#material-surface-composition).
+These roles remain fixed across both appearances. Search uses the installed component's default
+background. The existing theme fixture checks foreground contrast across all three regions.
 All five theme checks, owned-file formatting and scoped analysis passed.
 
 The isolated Profile client reused the receipt-verified native library with a rebuilt Flutter
 payload. Gallery and Settings were checked in both appearances, including sidebar collapse and
-expansion; Albums and Duplicates retained the shared backgrounds on navigation. The search background
-remained distinct from the surrounding chrome. No new Flutter exception or layout overflow was logged.
+expansion. Both appearances showed distinct outer, contextual and content regions; the search
+background remained distinct from the surrounding chrome. No new Flutter exception or layout
+overflow was logged.
 
 ### Empty-result and selection continuity, 2026-11-17
 

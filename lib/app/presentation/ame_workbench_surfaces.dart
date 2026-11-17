@@ -13,9 +13,9 @@ class AmeWorkbenchSurfaces {
   factory AmeWorkbenchSurfaces.from(ColorScheme colors) {
     final dark = colors.brightness == Brightness.dark;
     return AmeWorkbenchSurfaces._(
-      navigation: colors.surfaceContainer,
-      chrome: colors.surfaceContainerLow,
-      content: colors.surface,
+      navigation: colors.surfaceDim,
+      chrome: colors.surfaceContainer,
+      content: colors.surfaceBright,
       viewerCanvas: dark ? colors.surfaceContainerLowest : colors.surface,
     );
   }
