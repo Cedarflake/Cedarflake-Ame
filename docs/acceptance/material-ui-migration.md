@@ -7,7 +7,7 @@ Riverpod 3.5.0, shared_preferences 2.5.6 and matching Dart/Rust/codegen FRB 2.13
 Freezed 4.0.3, analyzer 14.7.0 and build_runner 2.17.1 regenerate the existing DTOs;
 the bridge content hash remains `356806720`. Hosted SDK pins and the local SDK match.
 The application retains its Dart 3.12 language mode. The native window/display API migration
-is evaluated after this baseline, with its own lifecycle and packaging evidence.
+is deferred; the [plugin evaluation](#windowdisplay-plugin-evaluation-2026-11-18) records its boundary.
 
 The [official release notes](https://docs.flutter.dev/release/release-notes/release-notes-3.50.0)
 were compared with the installed SDK and Ame's compatibility owners:
@@ -40,6 +40,26 @@ the existing missing-artifact and orchestration fixture accepts the complete SDK
 absence. This owner has 119 production lines and no inline tests; its dedicated fixture has 251
 lines. The tooltip owner remains 386 production lines with no inline tests and 188 dedicated-test
 lines. Hosted full-suite and production Release checks remain pending for the committed upgrade.
+
+### Window/display plugin evaluation, 2026-11-18
+
+The `window_manager` 0.7.0 / `screen_retriever` 0.4.0 migration, using nativeapi 0.6.1,
+was withdrawn before committing it. A rapid maximize/restore, full-screen round trip and
+minimize/restore sequence exposed a system-painted blue caption and intermittent blank or
+transparent content. Skipping the minimized child resize and narrowing nativeapi's region
+cleanup did not resolve the reproduction. A root cause was not established.
+
+The retained product uses `window_manager` 0.5.2 and `screen_retriever` 0.2.2 with their existing
+startup, placement, close and drag adapters. Migration-only host channels, manifest changes,
+native adapters, fixtures and dependency overrides were removed. The Flutter 3.50 baseline
+and other dependency updates in `8e76e082` remain intact.
+
+After restoration, offline dependency resolution and the isolated Windows debug build passed
+(40.4 seconds). The real client imported 700 reusable fixture images and passed a manual sequence
+covering startup, maximize/restore, viewer full-screen entry/exit, minimize/restore and normal
+close. The stable window states retained app-drawn chrome and image content. The client exited
+with code 0; the scratch wrapper verified unchanged lengths and modification times across the
+10,000-file reusable source corpus. This check did not repeat the rapid nativeapi probe sequence.
 
 ## Material workbench composition, 2026-11-16
 
