@@ -2,15 +2,24 @@
 
 ## Material workbench composition, 2026-11-16
 
-### Navigation and brand proportions, 2026-11-17
+### Navigation appearance, 2026-11-17
 
 Primary rail, menu and Settings symbols use 24 logical pixels. The brand asset box is 36 pixels,
 with a 20-pixel wordmark. Navigation destinations use the component's standard padding.
 Installed `material_ui` 1.11.0 and the upstream NavigationRail implementation use four pixels
 between the indicator and label, plus 12 pixels below each destination. The earlier additional
 12-pixel separation is removed. Selected destinations provide the filled Material Symbol through
-`selectedIcon`, retaining the component's default colors and unchanged symbol weight and size.
+`selectedIcon`, retaining unchanged symbol weight and size.
 Search retains the component's `surfaceContainerHigh` background default.
+
+Navigation uses the shared selection pair in
+[ADR 0029](../architecture/0029-functional-workbench-navigation.md#material-surface-composition).
+Light appearance uses a deeper accent container and dark appearance uses a more chromatic container;
+both blend 40% of that accent into the default secondary container. The full-strength containers
+were too prominent. Both retain colors derived from the existing system accent. All five theme
+checks passed again after the blend adjustment. The contrast case covers five accent seeds in both
+appearances, including eight- and twelve-percent selection state layers, with a minimum 4.5:1 text
+contrast requirement.
 
 Owned-file formatting and scoped analysis passed. The isolated Profile client reused the verified
 native library and exercised Gallery, Albums, Duplicates and Settings navigation. Light and dark
@@ -20,8 +29,16 @@ client remains open; no new Flutter exception or layout overflow was logged. The
 follow-up exercised all three destinations and return from Settings: only the active destination
 uses its filled symbol, and theme colors remain correct in both appearances. The initial attempt
 to set fill through partial icon themes lost the default colors; `selectedIcon` avoids that override.
-The affected workbench contains 361 production lines and no inline tests; its retained navigation
-and semantics fixtures contain 215 and 213 lines respectively.
+The selection-color follow-up checked Gallery and Settings in both appearances, then imported the
+existing 700-file corpus and checked source-row name/status contrast, Favorites, and exact-group
+navigation in the isolated client. Primary and contextual navigation use the same selected palette;
+switching destinations restores the previous row. No new Flutter exception or overflow was logged.
+That client exited normally with the 700 source lengths and modification times unchanged. The final
+40% blend was checked in Gallery and Settings in both appearances; that isolated client remains open.
+
+The affected workbench, navigation and source-row owners contain 364, 557 and 546 production lines
+with no inline tests. The retained workbench navigation and semantics fixtures contain 215 and 213
+lines; the updated theme fixture contains 160 lines.
 
 ### Standard Material surface roles, 2026-11-17
 

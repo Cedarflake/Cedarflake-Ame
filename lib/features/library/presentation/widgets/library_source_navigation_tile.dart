@@ -9,6 +9,7 @@ import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/presentation/ame_typography.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../../../app/presentation/ame_transition_icon.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_synchronization_models.dart";
@@ -500,7 +501,8 @@ class _ExpandedSourceTile extends StatelessWidget {
     return ListTile(
       focusNode: focusNode,
       selected: isSelected,
-      selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
+      selectedTileColor: AmeWorkbenchSurfaces.of(context).selection,
+      selectedColor: AmeWorkbenchSurfaces.of(context).onSelection,
       shape: LibraryWorkbenchMetrics.sidebarRowShape,
       minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
       minVerticalPadding: 4,
@@ -529,7 +531,7 @@ class _ExpandedSourceTile extends StatelessWidget {
               subtitle!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: isSelected
-                    ? Theme.of(context).colorScheme.onSecondaryContainer
+                    ? AmeWorkbenchSurfaces.of(context).onSelection
                     : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               maxLines: 1,

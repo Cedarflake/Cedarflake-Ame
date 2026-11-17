@@ -5,6 +5,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../application/library_folder_controller.dart";
 import "../../domain/library_sidebar_order.dart";
 import "../../domain/library_folder_models.dart";
@@ -258,9 +259,12 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           selected:
                               widget.selectedRootId == null &&
                               widget.collection is LibraryAllCollection,
-                          selectedTileColor: Theme.of(
+                          selectedTileColor: AmeWorkbenchSurfaces.of(
                             context,
-                          ).colorScheme.secondaryContainer,
+                          ).selection,
+                          selectedColor: AmeWorkbenchSurfaces.of(
+                            context,
+                          ).onSelection,
                           shape: LibraryWorkbenchMetrics.sidebarRowShape,
                           minTileHeight:
                               LibraryWorkbenchMetrics.sidebarRowHeight,

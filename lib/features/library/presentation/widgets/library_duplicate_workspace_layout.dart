@@ -46,7 +46,7 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => LayoutBuilder(
     builder: (context, constraints) {
-      final colors = Theme.of(context).colorScheme;
+      final surfaces = AmeWorkbenchSurfaces.of(context);
       final content = Expanded(
         child: Padding(
           padding: const EdgeInsets.only(
@@ -59,7 +59,8 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
         return Column(
           children: [
             NavigationBar(
-              backgroundColor: AmeWorkbenchSurfaces.of(context).chrome,
+              backgroundColor: surfaces.chrome,
+              indicatorColor: surfaces.selection,
               selectedIndex: _destinations.indexWhere(
                 (item) => item.$1 == view,
               ),
@@ -69,7 +70,10 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
                 for (final (value, label, icon) in _destinations)
                   NavigationDestination(
                     key: ValueKey("duplicate-view-${value.name}"),
-                    icon: Icon(icon),
+                    icon: Icon(
+                      icon,
+                      color: value == view ? surfaces.onSelection : null,
+                    ),
                     label: label,
                   ),
               ],
@@ -113,8 +117,8 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
                     ),
                   ),
                   selected: view == value,
-                  selectedTileColor: colors.secondaryContainer,
-                  selectedColor: colors.onSecondaryContainer,
+                  selectedTileColor: surfaces.selection,
+                  selectedColor: surfaces.onSelection,
                   shape: LibraryWorkbenchMetrics.sidebarRowShape,
                   minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
                   onTap: () => onViewChanged(value),

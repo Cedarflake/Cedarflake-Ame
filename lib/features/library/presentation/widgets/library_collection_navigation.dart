@@ -3,6 +3,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../domain/library_gallery_collection.dart";
 import "library_workbench_metrics.dart";
 
@@ -34,7 +35,8 @@ class LibraryCollectionNavigation extends StatelessWidget {
     return ListTile(
       key: const Key("library-sidebar-favorites"),
       selected: selected,
-      selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
+      selectedTileColor: AmeWorkbenchSurfaces.of(context).selection,
+      selectedColor: AmeWorkbenchSurfaces.of(context).onSelection,
       shape: LibraryWorkbenchMetrics.sidebarRowShape,
       minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
       contentPadding: const EdgeInsets.only(left: 16, right: 4),

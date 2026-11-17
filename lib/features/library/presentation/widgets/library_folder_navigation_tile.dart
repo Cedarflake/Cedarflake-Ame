@@ -9,6 +9,7 @@ import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/presentation/ame_typography.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../../../app/presentation/ame_transition_icon.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
@@ -83,7 +84,8 @@ class _LibraryFolderNavigationTileState
           key: ValueKey("folder-tile-$keySuffix"),
           focusNode: _focusNode,
           selected: widget.isSelected,
-          selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
+          selectedTileColor: AmeWorkbenchSurfaces.of(context).selection,
+          selectedColor: AmeWorkbenchSurfaces.of(context).onSelection,
           shape: LibraryWorkbenchMetrics.sidebarRowShape,
           minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
           contentPadding: EdgeInsets.only(

@@ -35,8 +35,14 @@ inform the existing adaptive gallery feed and viewer supporting content. Navigat
 separate from those content regions; this does not introduce another pane or navigation model.
 Use `ColorScheme.fromSeed` with `DynamicSchemeVariant.tonalSpot` to retain the system accent hue
 with restrained surface and selection chroma. The earlier fidelity palette made primary actions
-and selected rows similarly prominent. Secondary-container selection colors with matching
-on-container foregrounds now distinguish selected navigation from ordinary rows.
+and selected rows similarly prominent. Navigation uses a shared selection pair from
+`AmeWorkbenchSurfaces`: blend 40% `primaryFixedDim` in light appearance or `primaryContainer` in
+dark appearance over `secondaryContainer`, with `onPrimaryFixed` or `onPrimaryContainer` text
+respectively. The default secondary container appeared too pale against the workbench backing,
+while the full-strength primary containers were too prominent. This intermediate selection gives
+navigation clearer accent without competing with primary actions. The primary rail, Settings destination,
+collection/source/album rows and duplicate navigation share the pair; other controls retain their
+existing color roles. Hover and focus continue to use the framework state layers.
 Regular workspace headings and ordinary navigation text keep the content hierarchy legible;
 selected labels retain emphasis. Calendar and dialog typography stays owned
 by those surfaces. The installed color-scheme and text-style APIs provide this composition without

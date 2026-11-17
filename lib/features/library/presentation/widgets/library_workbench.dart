@@ -255,12 +255,15 @@ class _FunctionRail extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(libraryWorkbenchControllerProvider.notifier);
     final select = onSelected ?? controller.select;
+    final surfaces = AmeWorkbenchSurfaces.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 20),
       child: NavigationRail(
         key: const Key("library-function-rail"),
         minWidth: LibraryWorkbenchMetrics.railWidth,
-        backgroundColor: AmeWorkbenchSurfaces.of(context).navigation,
+        backgroundColor: surfaces.navigation,
+        indicatorColor: surfaces.selection,
+        selectedIconTheme: IconThemeData(color: surfaces.onSelection),
         labelType: NavigationRailLabelType.all,
         selectedIndex: switch (workspace) {
           LibraryWorkspace.gallery => 0,
@@ -334,10 +337,10 @@ class _FunctionRail extends ConsumerWidget {
                     fixedSize: const Size.square(48),
                     shape: const CircleBorder(),
                     backgroundColor: workspace == LibraryWorkspace.settings
-                        ? Theme.of(context).colorScheme.secondaryContainer
+                        ? surfaces.selection
                         : null,
                     foregroundColor: workspace == LibraryWorkspace.settings
-                        ? Theme.of(context).colorScheme.onSecondaryContainer
+                        ? surfaces.onSelection
                         : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   onPressed: () => select(LibraryWorkspace.settings),

@@ -4,6 +4,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_typography.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../application/library_classification_settings.dart";
 import "../../application/library_model_installation.dart";
 import "../../domain/library_classification_configuration.dart";
@@ -181,7 +182,8 @@ class _SmartAlbumRow extends StatelessWidget {
     return ListTile(
       key: ValueKey("library-sidebar-smart-${category.id}"),
       selected: selected,
-      selectedTileColor: theme.colorScheme.secondaryContainer,
+      selectedTileColor: AmeWorkbenchSurfaces.of(context).selection,
+      selectedColor: AmeWorkbenchSurfaces.of(context).onSelection,
       shape: LibraryWorkbenchMetrics.sidebarRowShape,
       minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
       minVerticalPadding: 6,
