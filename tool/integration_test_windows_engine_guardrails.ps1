@@ -59,7 +59,7 @@ $actualSource = Join-Path (Get-AmeRepositoryRoot) "windows/runner/tests/engine_r
 $required = @(
     "engine.stamp", "engine-dart-sdk.stamp", "flutter_sdk.stamp", "windows-sdk.stamp",
     "engine_stamp.stamp", "flutter_tools.stamp", "flutter_tools.snapshot",
-    "dart-sdk/bin/dart.exe", "dart-sdk/bin/dartaotruntime.exe",
+    "dart-sdk/bin/dart.exe", "dart-sdk/bin/dartvm.exe", "dart-sdk/bin/dartaotruntime.exe",
     "dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot",
     "artifacts/engine/common/flutter_patched_sdk/platform_strong.dill",
     "artifacts/engine/windows-x64/flutter_windows.dll",

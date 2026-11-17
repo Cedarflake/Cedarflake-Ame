@@ -66,6 +66,19 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
+### Flutter 3.50 compatibility
+
+Upgrade the installed and hosted Flutter SDK to 3.50.0 and refresh compatible Dart dependencies
+and the paired Rust bridge. Preserve the accepted desktop appearance, window lifecycle, renderer
+and source-safety boundaries. Establish the SDK baseline first, then migrate the window/display
+plugins together on this branch, preserving their lifecycle, multi-display and DPI behavior.
+Complete dependency resolution, bridge
+regeneration and affected desktop verification before returning to R10-04. Compare upstream fixes
+with the existing image-stream, tooltip, motion and Windows adaptations; retire an adaptation only
+when the same lifecycle and interaction checks pass on the new SDK.
+The [compatibility evidence](acceptance/material-ui-migration.md#flutter-350-compatibility-2026-11-17)
+records the SDK baseline and retained adapters.
+
 ### Material desktop workbench
 
 The accepted Google Material wide-screen layout, MW1–MW4, was integrated through

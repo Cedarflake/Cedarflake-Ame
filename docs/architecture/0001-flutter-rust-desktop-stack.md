@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Last amended: 2026-11-08
+- Last amended: 2026-11-17
 
 ## Context
 
@@ -96,9 +96,9 @@ and [bitmap formats](https://learn.microsoft.com/en-us/windows/win32/dataxchg/cl
 
 ## Windows SDK and renderer
 
-Pin Flutter stable 3.47.8 with Dart 3.13.7. The framework revision is
-`737ba8f885dc774b53b442759999a312c9461e4e`, and the matching engine revision is
-`cf636b1dfb818dd6a3ff16e390e93b1a036969c8`. Keep the hosted workflow pins, local toolchain and
+Pin Flutter stable 3.50.0 with Dart 3.14.0. The framework revision is
+`ab2912035e160d9cad6306df307576da6128ebdb`, and the matching engine revision is
+`371f77202a73e8dff57a8b3bff75bca55c090aee`. Keep the hosted workflow pins, local toolchain and
 dependency lock consistent. Flutter retains its BSD-3-Clause license; this upgrade introduces no
 additional renderer dependency or source-media authority.
 
@@ -118,15 +118,15 @@ version references identify the framework sources inspected for those decisions.
 
 The public switch is the renderer rollback boundary. A future measured improvement can remove the
 explicit disablement after the affected Windows clients pass. If the SDK itself regresses, restore
-the previous 3.44.9 pin and dependency lock together, remove the new public switch call, and rebuild
+the previous 3.47.8 pin and dependency lock together, retain its public renderer/thread switches, and rebuild
 the complete runtime; never mix engine DLLs and Dart payloads between SDK versions. The previous SDK
 revision remains available locally. Preserve the image I/O scheduling and native lifecycle checks
 when changing either path.
 
 ## Standalone Material library
 
-Pin the official `material_ui` package to 1.11.0; the dependency lock also records its required
-`cupertino_ui` 1.1.6 dependency. Both retain Flutter's BSD-3-Clause license. Material components,
+Pin the official `material_ui` package to 1.11.1; the dependency lock also records its required
+`cupertino_ui` 1.1.7 dependency. Both retain Flutter's BSD-3-Clause license. Material components,
 themes and translated delegates come from `package:material_ui/material_ui.dart`; framework
 foundation, widgets, rendering and input primitives remain in the Flutter SDK. New UI libraries
 remain presentation dependencies and cannot enter domain, application, ports or adapters.
@@ -142,9 +142,10 @@ may use the official compatibility bridge at that subtree; the bridge cannot con
 Material types in a dependency's public API. The currently used Riverpod consumers and window-manager
 gesture/platform APIs do not require that bridge.
 
-Keep the application's existing Dart language mode. The package constraints and Flutter minimum
-enforce a compatible runtime SDK; raising the application's language version also affects generated
-Freezed syntax and is a separate generator/toolchain change. Migration uses the official
+Keep the application's existing Dart 3.12 language mode. The package constraints and Flutter minimum
+enforce a compatible runtime SDK; the SDK upgrade does not require new application syntax.
+The generator toolchain uses Freezed 4.0.3, analyzer 14.7.0 and build_runner 2.17.1.
+Migration uses the official
 `dart fix --apply --code=migrate_design_widgets`, followed by explicit package pinning and delegate
 updates. Rollback restores imports, delegates and the dependency lock together; Rust contracts,
 catalogs and original media are unchanged. The [migration evidence](../acceptance/material-ui-migration.md)
@@ -154,7 +155,7 @@ owns actual compatibility and desktop results.
 
 `AmeLoadingIndicator` temporarily adapts the indeterminate renderer from
 [flutter/packages PR 13429](https://github.com/flutter/packages/pull/13429) at
-`9eaa17df4e0ba4b067a7203e857953e3d4bc04bd`. The installed `material_ui` 1.11.0 exports
+`9eaa17df4e0ba4b067a7203e857953e3d4bc04bd`. The installed `material_ui` 1.11.1 exports
 `MaterialShapes` and `MaterialShapeBorder`, but not `LoadingIndicator` or its internal `Morph`.
 Use public shape-border interpolation, its bounded morph cache and the upstream morph/rotation
 timing instead of private imports, another animation dependency or a package fork.
@@ -300,7 +301,7 @@ without measured failure evidence.
 - <https://docs.flutter.dev/perf/impeller#windows>
 - <https://docs.flutter.dev/cookbook/design/themes>
 - <https://docs.flutter.dev/release/breaking-changes/material-ui-and-cupertino-ui>
-- <https://pub.dev/packages/material_ui/versions/1.11.0>
+- <https://pub.dev/packages/material_ui/versions/1.11.1>
 - <https://api.flutter.dev/flutter/widgets/SliverGrid-class.html>
 - <https://github.com/fzyzcjy/flutter_rust_bridge>
 - <https://github.com/material-components/material-web>

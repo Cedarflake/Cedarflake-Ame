@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'file_operation_selection.dart';
@@ -9,6 +9,7 @@ part of 'file_operation_selection.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$DuplicateCleanupGroup {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupGroup);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupGroup);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'DuplicateCleanupGroup()';
+    return 'DuplicateCleanupGroup()';
 }
 
 
@@ -190,16 +191,18 @@ $DuplicateCleanupGroup_ExactCopyWith<DuplicateCleanupGroup_Exact> get copyWith =
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupGroup_Exact&&(identical(other.key, key) || other.key == key));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupGroup_Exact&&(identical(other.key, key) || other.key == key));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,key);
+int get hashCode {
+    return Object.hash(runtimeType,key);
+}
 
 @override
 String toString() {
-  return 'DuplicateCleanupGroup.exact(key: $key)';
+    return 'DuplicateCleanupGroup.exact(key: $key)';
 }
 
 
@@ -256,16 +259,18 @@ $DuplicateCleanupGroup_SimilarCopyWith<DuplicateCleanupGroup_Similar> get copyWi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupGroup_Similar&&(identical(other.groupId, groupId) || other.groupId == groupId));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupGroup_Similar&&(identical(other.groupId, groupId) || other.groupId == groupId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,groupId);
+int get hashCode {
+    return Object.hash(runtimeType,groupId);
+}
 
 @override
 String toString() {
-  return 'DuplicateCleanupGroup.similar(groupId: $groupId)';
+    return 'DuplicateCleanupGroup.similar(groupId: $groupId)';
 }
 
 
@@ -312,7 +317,7 @@ mixin _$DuplicateCleanupKind {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupKind);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupKind);
 }
 
 
@@ -321,7 +326,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'DuplicateCleanupKind()';
+    return 'DuplicateCleanupKind()';
 }
 
 
@@ -477,7 +482,7 @@ class DuplicateCleanupKind_Exact extends DuplicateCleanupKind {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupKind_Exact);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupKind_Exact);
 }
 
 
@@ -486,7 +491,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'DuplicateCleanupKind.exact()';
+    return 'DuplicateCleanupKind.exact()';
 }
 
 
@@ -514,16 +519,18 @@ $DuplicateCleanupKind_SimilarCopyWith<DuplicateCleanupKind_Similar> get copyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupKind_Similar&&(identical(other.degree, degree) || other.degree == degree));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DuplicateCleanupKind_Similar&&(identical(other.degree, degree) || other.degree == degree));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,degree);
+int get hashCode {
+    return Object.hash(runtimeType,degree);
+}
 
 @override
 String toString() {
-  return 'DuplicateCleanupKind.similar(degree: $degree)';
+    return 'DuplicateCleanupKind.similar(degree: $degree)';
 }
 
 
@@ -570,7 +577,7 @@ mixin _$FileOperationSelectionScope {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope);
 }
 
 
@@ -579,7 +586,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'FileOperationSelectionScope()';
+    return 'FileOperationSelectionScope()';
 }
 
 
@@ -760,16 +767,18 @@ $FileOperationSelectionScope_GalleryCopyWith<FileOperationSelectionScope_Gallery
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope_Gallery&&(identical(other.query, query) || other.query == query)&&(identical(other.catalogRevision, catalogRevision) || other.catalogRevision == catalogRevision)&&(identical(other.allMatching, allMatching) || other.allMatching == allMatching));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope_Gallery&&(identical(other.query, query) || other.query == query)&&(identical(other.catalogRevision, catalogRevision) || other.catalogRevision == catalogRevision)&&(identical(other.allMatching, allMatching) || other.allMatching == allMatching));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,query,catalogRevision,allMatching);
+int get hashCode {
+    return Object.hash(runtimeType,query,catalogRevision,allMatching);
+}
 
 @override
 String toString() {
-  return 'FileOperationSelectionScope.gallery(query: $query, catalogRevision: $catalogRevision, allMatching: $allMatching)';
+    return 'FileOperationSelectionScope.gallery(query: $query, catalogRevision: $catalogRevision, allMatching: $allMatching)';
 }
 
 
@@ -830,16 +839,18 @@ $FileOperationSelectionScope_MergedGalleryGroupsCopyWith<FileOperationSelectionS
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope_MergedGalleryGroups&&(identical(other.query, query) || other.query == query)&&(identical(other.catalogRevision, catalogRevision) || other.catalogRevision == catalogRevision)&&(identical(other.allMatching, allMatching) || other.allMatching == allMatching));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope_MergedGalleryGroups&&(identical(other.query, query) || other.query == query)&&(identical(other.catalogRevision, catalogRevision) || other.catalogRevision == catalogRevision)&&(identical(other.allMatching, allMatching) || other.allMatching == allMatching));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,query,catalogRevision,allMatching);
+int get hashCode {
+    return Object.hash(runtimeType,query,catalogRevision,allMatching);
+}
 
 @override
 String toString() {
-  return 'FileOperationSelectionScope.mergedGalleryGroups(query: $query, catalogRevision: $catalogRevision, allMatching: $allMatching)';
+    return 'FileOperationSelectionScope.mergedGalleryGroups(query: $query, catalogRevision: $catalogRevision, allMatching: $allMatching)';
 }
 
 
@@ -893,7 +904,7 @@ class FileOperationSelectionScope_Locations extends FileOperationSelectionScope 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope_Locations);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope_Locations);
 }
 
 
@@ -902,7 +913,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'FileOperationSelectionScope.locations()';
+    return 'FileOperationSelectionScope.locations()';
 }
 
 
@@ -931,16 +942,18 @@ $FileOperationSelectionScope_DuplicateCleanupCopyWith<FileOperationSelectionScop
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope_DuplicateCleanup&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.allGroups, allGroups) || other.allGroups == allGroups));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope_DuplicateCleanup&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.allGroups, allGroups) || other.allGroups == allGroups));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,kind,allGroups);
+int get hashCode {
+    return Object.hash(runtimeType,kind,allGroups);
+}
 
 @override
 String toString() {
-  return 'FileOperationSelectionScope.duplicateCleanup(kind: $kind, allGroups: $allGroups)';
+    return 'FileOperationSelectionScope.duplicateCleanup(kind: $kind, allGroups: $allGroups)';
 }
 
 
@@ -1009,16 +1022,18 @@ $FileOperationSelectionScope_GalleryCleanupCopyWith<FileOperationSelectionScope_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope_GalleryCleanup&&(identical(other.query, query) || other.query == query)&&(identical(other.catalogRevision, catalogRevision) || other.catalogRevision == catalogRevision)&&(identical(other.allMatching, allMatching) || other.allMatching == allMatching));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FileOperationSelectionScope_GalleryCleanup&&(identical(other.query, query) || other.query == query)&&(identical(other.catalogRevision, catalogRevision) || other.catalogRevision == catalogRevision)&&(identical(other.allMatching, allMatching) || other.allMatching == allMatching));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,query,catalogRevision,allMatching);
+int get hashCode {
+    return Object.hash(runtimeType,query,catalogRevision,allMatching);
+}
 
 @override
 String toString() {
-  return 'FileOperationSelectionScope.galleryCleanup(query: $query, catalogRevision: $catalogRevision, allMatching: $allMatching)';
+    return 'FileOperationSelectionScope.galleryCleanup(query: $query, catalogRevision: $catalogRevision, allMatching: $allMatching)';
 }
 
 

@@ -25,7 +25,7 @@ required-features = ["broker-acceptance-client"]
 [dependencies]
 blake3 = "=1.8.6"
 directories = "6.0.0"
-flutter_rust_bridge = "=2.12.0"
+flutter_rust_bridge = "=2.13.0"
 half = { version = "=2.7.1", optional = true, default-features = false, features = ["std"] }
 image = { version = "=0.25.10", default-features = false, features = ["bmp", "gif", "ico", "jpeg", "png", "tiff", "webp"] }
 image_hasher = { version = "=3.1.1", default-features = false }

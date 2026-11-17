@@ -5,6 +5,54 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets("a retained inactive surface removes its visible tooltip", (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    final active = ValueNotifier(true);
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ValueListenableBuilder<bool>(
+              valueListenable: active,
+              builder: (context, enabled, child) =>
+                  TickerMode(enabled: enabled, child: child!),
+              child: const Center(
+                child: AmeTooltip(
+                  message: "Retained tooltip",
+                  waitDuration: Duration.zero,
+                  child: SizedBox(
+                    key: Key("retained-target"),
+                    width: 40,
+                    height: 40,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(
+        tester.getCenter(find.byKey(const Key("retained-target"))),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.text("Retained tooltip"), findsOneWidget);
+      active.value = false;
+      await tester.pump();
+      await tester.pump();
+      expect(find.text("Retained tooltip"), findsNothing);
+    } finally {
+      await mouse.removePointer();
+      await tester.pumpWidget(const SizedBox.shrink());
+      active.dispose();
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
   testWidgets(
     "focus retains the accessible name without holding a visual tooltip",
     (tester) async {
