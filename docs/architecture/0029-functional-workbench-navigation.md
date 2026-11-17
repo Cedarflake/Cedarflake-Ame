@@ -56,6 +56,9 @@ scope, clear, progress and retry semantics remain intact. Settings uses a circul
 The top-left hamburger controls contextual-sidebar visibility; the plain application mark and `Ame`
 wordmark share the adjacent brand area. Search aligns with the content boundary.
 The brand's drag region starts after the hamburger's rail-width target.
+Primary navigation symbols use the standard 24-pixel Material size without reducing their targets.
+The workbench brand pairs a 36-pixel asset box with a 20-pixel wordmark. Navigation destinations
+retain the additional 12-pixel separation alongside the component's built-in spacing.
 The image viewer keeps straight canvas edges and its existing operation placements. Its rounded,
 elevated thumbnail strip remains an overlay, with no change to image geometry when toggled.
 Repaint boundaries isolate the strip's moving clip from the main image and retain the static strip

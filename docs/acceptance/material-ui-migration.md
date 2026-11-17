@@ -2,6 +2,20 @@
 
 ## Material workbench composition, 2026-11-16
 
+### Navigation and brand proportions, 2026-11-17
+
+Primary rail, menu and Settings symbols use 24 logical pixels. The brand asset box is 36 pixels,
+with a 20-pixel wordmark. Existing target geometry and destination padding remain unchanged.
+Installed `material_ui` 1.11.0 and the upstream NavigationRail implementation use four pixels
+between the indicator and label, plus 12 pixels below each destination; Ame retains its additional
+12-pixel separation. Search retains the component's `surfaceContainerHigh` background default.
+
+Owned-file formatting and scoped analysis passed. The isolated Profile client reused the verified
+native library and exercised Gallery, Albums, Duplicates and Settings navigation. Light and dark
+appearances retained centered, unclipped symbols and branding. The preceding client exited
+normally and preserved all 700 reusable source file lengths and modification times. The updated
+client remains open; no new Flutter exception or layout overflow was logged.
+
 ### Standard Material surface roles, 2026-11-17
 
 The follow-up to `de1e6272` uses Material's large-screen bright/dim roles for content and outer

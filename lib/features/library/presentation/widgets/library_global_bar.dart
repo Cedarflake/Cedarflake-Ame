@@ -124,7 +124,7 @@ class LibraryGlobalBar extends StatelessWidget {
                               Semantics(
                                 label: LibraryStrings.appName,
                                 image: true,
-                                child: const AmeBrandMark(size: 44),
+                                child: const AmeBrandMark(size: 36),
                               ),
                               const SizedBox(width: 4),
                               Flexible(
@@ -133,7 +133,7 @@ class LibraryGlobalBar extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    fontSize: 22,
+                                    fontSize: 20,
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.onSurface,
