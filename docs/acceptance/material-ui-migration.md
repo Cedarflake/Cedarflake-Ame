@@ -46,6 +46,8 @@ disposed notifiers. Flutter 3.50 delegates `ChangeNotifier.debugAssertNotDispose
 which reports `StateError`. The four disposal assertions now require that exact error type while
 retaining lifecycle, subscription and joined-shutdown checks. All seven cases in the two affected
 bootstrap suites pass locally; application disposal behavior is unchanged.
+The hosted analyzer also identified a redundant `flutter/rendering.dart` import in the viewer
+filmstrip after the Material export update; the redundant import was removed.
 
 ### Window/display plugin evaluation, 2026-11-18
 
