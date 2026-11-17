@@ -5,16 +5,23 @@
 ### Navigation and brand proportions, 2026-11-17
 
 Primary rail, menu and Settings symbols use 24 logical pixels. The brand asset box is 36 pixels,
-with a 20-pixel wordmark. Existing target geometry and destination padding remain unchanged.
+with a 20-pixel wordmark. Navigation destinations use the component's standard padding.
 Installed `material_ui` 1.11.0 and the upstream NavigationRail implementation use four pixels
-between the indicator and label, plus 12 pixels below each destination; Ame retains its additional
-12-pixel separation. Search retains the component's `surfaceContainerHigh` background default.
+between the indicator and label, plus 12 pixels below each destination. The earlier additional
+12-pixel separation is removed. Selected destinations provide the filled Material Symbol through
+`selectedIcon`, retaining the component's default colors and unchanged symbol weight and size.
+Search retains the component's `surfaceContainerHigh` background default.
 
 Owned-file formatting and scoped analysis passed. The isolated Profile client reused the verified
 native library and exercised Gallery, Albums, Duplicates and Settings navigation. Light and dark
 appearances retained centered, unclipped symbols and branding. The preceding client exited
 normally and preserved all 700 reusable source file lengths and modification times. The updated
-client remains open; no new Flutter exception or layout overflow was logged.
+client remains open; no new Flutter exception or layout overflow was logged. The spacing and fill
+follow-up exercised all three destinations and return from Settings: only the active destination
+uses its filled symbol, and theme colors remain correct in both appearances. The initial attempt
+to set fill through partial icon themes lost the default colors; `selectedIcon` avoids that override.
+The affected workbench contains 361 production lines and no inline tests; its retained navigation
+and semantics fixtures contain 215 and 213 lines respectively.
 
 ### Standard Material surface roles, 2026-11-17
 

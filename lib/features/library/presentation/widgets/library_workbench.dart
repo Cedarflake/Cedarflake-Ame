@@ -277,19 +277,29 @@ class _FunctionRail extends ConsumerWidget {
         ),
         destinations: const [
           NavigationRailDestination(
-            padding: EdgeInsets.only(bottom: 12),
             icon: Icon(
               Symbols.photo_library_rounded,
               size: LibraryWorkbenchMetrics.iconSize,
               key: Key("workbench-gallery"),
             ),
+            selectedIcon: Icon(
+              Symbols.photo_library_rounded,
+              size: LibraryWorkbenchMetrics.iconSize,
+              fill: 1,
+              key: Key("workbench-gallery"),
+            ),
             label: Text(LibraryStrings.library),
           ),
           NavigationRailDestination(
-            padding: EdgeInsets.only(bottom: 12),
             icon: Icon(
               Symbols.photo_album_rounded,
               size: LibraryWorkbenchMetrics.iconSize,
+              key: Key("workbench-albums"),
+            ),
+            selectedIcon: Icon(
+              Symbols.photo_album_rounded,
+              size: LibraryWorkbenchMetrics.iconSize,
+              fill: 1,
               key: Key("workbench-albums"),
             ),
             label: Text("相册"),
@@ -298,6 +308,12 @@ class _FunctionRail extends ConsumerWidget {
             icon: Icon(
               Symbols.stacks_rounded,
               size: LibraryWorkbenchMetrics.iconSize,
+              key: Key("workbench-duplicates"),
+            ),
+            selectedIcon: Icon(
+              Symbols.stacks_rounded,
+              size: LibraryWorkbenchMetrics.iconSize,
+              fill: 1,
               key: Key("workbench-duplicates"),
             ),
             label: Text(LibraryWorkbenchStrings.duplicates),
