@@ -137,6 +137,12 @@ These roles remain fixed across both appearances. Search uses the installed comp
 background. The existing theme fixture checks foreground contrast across all three regions.
 All five theme checks, owned-file formatting and scoped analysis passed.
 
+The Flutter job in [run 44066385574](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/44066385574)
+at `7907172c` found one obsolete shell expectation for `surfaceContainerLowest`. The production
+composition follows the accepted `surfaceBright` role; the shell assertion now checks that role
+while retaining rounded clipping, sidebar transition and content-inset checks. All five shell
+checks, formatting and scoped analysis passed. This correction changes no product behavior.
+
 The isolated Profile client reused the receipt-verified native library with a rebuilt Flutter
 payload. Gallery and Settings were checked in both appearances, including sidebar collapse and
 expansion. Both appearances showed distinct outer, contextual and content regions; the search

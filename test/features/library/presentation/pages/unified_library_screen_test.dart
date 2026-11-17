@@ -164,7 +164,7 @@ void main() {
     );
     final backgroundBox = tester.widget<DecoratedBox>(backgrounds.first);
     final background = backgroundBox.decoration as BoxDecoration;
-    expect(background.color, colorScheme.surfaceContainerLowest);
+    expect(background.color, colorScheme.surfaceBright);
     expect(background.borderRadius, LibraryMainSurface.borderRadius);
     final galleryClips = find.ancestor(
       of: find.byKey(const Key("library-main-surface")),
