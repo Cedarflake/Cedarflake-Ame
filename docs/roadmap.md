@@ -81,9 +81,10 @@ MW1–MW4 implementation, desktop qualification and hosted verification are reco
 MW4 includes the requested primary-navigation content-width transition, filmstrip frame-time
 qualification and the Google-style tonal/typographic refinement guided by Material canonical layouts,
 including consistent secondary-navigation row geometry. The compact creation-entry follow-up
-restores section-heading plus controls and removes the large top action blocks; local verification
-is complete and its hosted checks are pending. The preceding implementation qualified at
-`d4b1c667`. The acceptance record retains the earlier
+restores section-heading plus controls and removes the large top action blocks, qualifying at
+`ac88a70e`. Its continuity follow-up retains published empty results during refreshes and keeps
+sidebar selection in one row; local verification is complete and hosted checks are pending.
+The acceptance record retains the earlier
 intermittent accessibility-worker observations and their diagnostic follow-up. Merging and release
 publication remain separate decisions.
 

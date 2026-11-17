@@ -2,6 +2,35 @@
 
 ## Material workbench composition, 2026-11-16
 
+### Empty-result and selection continuity, 2026-11-17
+
+The follow-up to `ac88a70e` keeps published empty results mounted while a query refreshes. The
+viewport previously removed them for every loading interval, including reads too short to show
+loading feedback. The published snapshot and heading now remain together until the next result
+arrives; only the delayed top line accompanies a refresh. Initial reads retain the centered indicator.
+
+Sidebar selection now keeps the heading and actions in one row. A numeric count with a full
+accessibility label replaces the section title; creation returns after selection clears. This
+supersedes the two-row arrangement below, which changed the list's vertical position on selection.
+
+Formatting, scoped analysis and 15 focused checks passed. Production-composition coverage retains
+the same empty-result element and rectangle through short and longer query reads, then replaces it
+with an empty album and populated gallery. Existing checks cover loading geometry, initial waiting,
+sidebar motion at normal/enlarged text, review notices, and source/album selection at 220 pixels.
+The album check now asserts unchanged row bounds and a shared count/action centerline.
+
+The Profile build completed in 78.9 seconds. The isolated Windows client imported the existing
+700-file corpus and exercised source selection, album creation, Favorites/album navigation, minimum
+sidebar width, section collapse/reopen and Escape. The selected row retained its position, the
+heading stayed on one line, and the empty result remained visible through sidebar operations and
+background updates. Native semantics exposed the full selected-count label. No Flutter exception
+or layout overflow was logged. The updated isolated client remains open; current-head CI is pending.
+
+The screen composition, viewport and section header contain 2,010, 65 and 136 production lines,
+with no inline tests. The screen change only supplies the existing snapshot-publication state;
+rendering remains in the viewport owner. The affected loading-geometry and album-selection test
+files contain 238 and 138 lines.
+
 ### Compact creation entries, 2026-11-17
 
 The follow-up to `41c5d564` restores folder import and album creation to the shared section-heading
@@ -11,18 +40,20 @@ disclosure remain connected to their original owners.
 
 Formatting and scoped analysis passed. The existing creation/undo, import-browsing, navigation,
 selection-focus and album-selection cases passed together (27 checks). Import-browsing retains its
-disabled-action assertion with the restored IconButton type. Native inspection reproduced a vertically squeezed selection count
-at the 220-pixel sidebar minimum; selected headings now place the count above the complete action
-row. The existing album-selection workflow runs at that minimum, checks readable count height and
-retains cancellation, selection, collapse/reopen and removal assertions; it passed.
+disabled-action assertion with the restored IconButton type. Native inspection reproduced a vertically
+squeezed selection count at the 220-pixel sidebar minimum; that revision placed the count above the
+complete action row, superseded by the single-row continuity follow-up above. The album-selection
+workflow ran at that minimum, checked readable count height and retained cancellation, selection,
+collapse/reopen and removal assertions; it passed.
 
 The final Profile build completed in 88.3 seconds. Native checks opened the folder picker through
 the heading plus and imported the existing 700-file corpus, then created an album through the
 corresponding album control. The completed client exited normally and preserved all 700 source
 lengths and modification times. The final client confirmed creation, readable selection counts and
 retained selection through section collapse at the 220-pixel minimum. Both normal and minimum
-widths retain the compact creation controls and the aligned first navigation row. The client remains
-open with isolated storage; current-head hosted verification is pending.
+widths retained the compact creation controls and the aligned first navigation row. That client
+subsequently exited normally and preserved all 700 source lengths and modification times.
+Commit `ac88a70e` passed [Quality / CI run 44018820656](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/44018820656).
 
 The navigation, album, section-header and reorder owners contain 553, 286, 138 and 134 production
 lines, with no inline tests. The retained navigation, creation/undo, import-browsing, selection-focus

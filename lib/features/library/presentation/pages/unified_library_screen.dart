@@ -946,6 +946,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
               ? LibraryReviewModeNotice(mode: _review)
               : null,
           isEmpty: state.assets.isEmpty,
+          hasPublishedResults: state.catalogRevision != null,
           isLoading:
               _review.busy ||
               (state.assets.isEmpty &&

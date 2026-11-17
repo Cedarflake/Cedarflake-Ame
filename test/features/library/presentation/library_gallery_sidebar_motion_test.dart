@@ -137,6 +137,7 @@ Widget _fixture({
                 onImport: onImport,
               ),
               isEmpty: true,
+              hasPublishedResults: true,
               isLoading: false,
             );
           },

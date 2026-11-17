@@ -19,6 +19,9 @@ transition. The gallery title and count follow that same left edge independently
 Empty, loading and no-result content, the bottom organization dock and the Albums landing content
 follow the visible content area's center throughout the same transition. Their shared containers
 own this placement so later content does not require another sidebar animation.
+Published empty and no-result content remains visible during refreshes, with the same query heading
+until the next result publishes. Refresh feedback uses the delayed top loading line; the centered
+loading indicator is reserved for waiting without a published result.
 Smoothly move and resize visible photos when sidebar or window dimensions change,
 including maximize/restore, while retaining the current browsing anchor.
 Keep the gallery's right edge, toolbar and time rail anchored to the window. Ordinary actions remain
@@ -241,8 +244,6 @@ The folder heading shows the imported-root count. Section disclosure and row men
 trailing column; a source name and its status form one vertically centered text block.
 Collapsing a section retains its active collection and selection; it does not change the gallery query.
 Manual and smart sections share the same size/fade timing, including empty and loading states.
-During sidebar multi-selection, the selected count sits above the right-aligned action row so all
-creation, disclosure and batch actions remain reachable at the minimum sidebar width.
 Library and Albums share the same sidebar structure: the Library/Favorites destination comes first,
 then a `文件夹`/`相册` section heading with one creation action. There is no separate large top
 button. Folder import opens the existing system picker; album creation opens
@@ -256,8 +257,11 @@ Albums and imported top-level folders support saved drag order. Upgrade preserve
 new entries append, and renames, refreshes and restarts retain the arrangement. Child-folder ordering
 and physical paths are unchanged. Album pages follow the same saved order.
 In sidebar multi-selection, an unselected row retains its original leading icon. A selected row uses
-a filled circular check from the existing icon library. The heading keeps the selected count at
-the left and Select all and removal/deletion at the right. Select all is an 18-pixel neutral
+a filled circular check from the existing icon library. The heading stays one row high, with a
+numeric selected count at the left and Select all, removal/deletion and disclosure at the right.
+The count retains its full selected-state accessibility label. Creation returns when selection is
+cleared, keeping the batch actions reachable at the minimum sidebar width without moving list rows.
+Select all is an 18-pixel neutral
 outlined square with no selected color fill; deletion uses a 20-pixel icon, with both
 actions in 36-pixel targets. Normal navigation resumes after selection is cleared; dragging is
 available outside multi-selection. Pointer selection does not leave a row focus highlight after

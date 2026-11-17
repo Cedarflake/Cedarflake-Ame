@@ -41,7 +41,10 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
       children: [
         Flexible(
           child: Text(
-            selectedCount > 0 ? "已选择 $selectedCount" : title,
+            selectedCount > 0 ? "$selectedCount" : title,
+            semanticsLabel: selectedCount > 0 ? "已选择 $selectedCount" : null,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
               fontWeight: ameFontWeightMedium,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -90,7 +93,7 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
               icon: const Icon(Symbols.delete_rounded),
             ),
           ),
-        if (createLabel != null)
+        if (selectedCount == 0 && createLabel != null)
           SizedBox(
             width: 40,
             child: Center(
@@ -113,17 +116,12 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 24, 4, 0),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 36),
-        child: selectedCount > 0
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [heading, const SizedBox(height: 4), actions],
-              )
-            : Row(
-                children: [
-                  Expanded(child: heading),
-                  actions,
-                ],
-              ),
+        child: Row(
+          children: [
+            Expanded(child: heading),
+            actions,
+          ],
+        ),
       ),
     );
   }
