@@ -2,6 +2,19 @@
 
 ## Material workbench composition, 2026-11-16
 
+### Standard Material surface roles, 2026-11-17
+
+The follow-up to `a154b9b9` keeps navigation, contextual chrome and content on the same Material
+roles in both appearances, as specified in [ADR 0029](../architecture/0029-functional-workbench-navigation.md#material-surface-composition).
+Search uses the installed component's default background. The existing theme fixture drops the
+superseded always-brighter-content assertion and checks foreground contrast across all three regions.
+All five theme checks, owned-file formatting and scoped analysis passed.
+
+The isolated Profile client reused the receipt-verified native library with a rebuilt Flutter
+payload. Gallery and Settings were checked in both appearances, including sidebar collapse and
+expansion; Albums and Duplicates retained the shared backgrounds on navigation. The search background
+remained distinct from the surrounding chrome. No new Flutter exception or layout overflow was logged.
+
 ### Empty-result and selection continuity, 2026-11-17
 
 The follow-up to `ac88a70e` keeps published empty results mounted while a query refreshes. The

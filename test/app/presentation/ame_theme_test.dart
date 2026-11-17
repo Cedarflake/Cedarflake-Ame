@@ -4,22 +4,17 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
-  test("workbench tonal hierarchy remains distinct in both appearances", () {
+  test("workbench text remains readable in both appearances", () {
     for (final brightness in Brightness.values) {
       final colors = buildAmeTheme(brightness: brightness).colorScheme;
       final surfaces = AmeWorkbenchSurfaces.from(colors);
-      expect(
-        surfaces.navigation.computeLuminance(),
-        lessThan(surfaces.chrome.computeLuminance()),
-      );
-      expect(
-        surfaces.chrome.computeLuminance(),
-        lessThan(surfaces.content.computeLuminance()),
-      );
       for (final (text, surface) in [
+        (colors.onSurface, surfaces.navigation),
         (colors.onSurface, surfaces.chrome),
         (colors.onSurface, surfaces.content),
+        (colors.onSurfaceVariant, surfaces.navigation),
         (colors.onSurfaceVariant, surfaces.chrome),
+        (colors.onSurfaceVariant, surfaces.content),
         (colors.onPrimaryContainer, colors.primaryContainer),
         (colors.onSecondaryContainer, colors.secondaryContainer),
       ]) {
