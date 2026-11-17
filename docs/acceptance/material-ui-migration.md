@@ -39,7 +39,10 @@ Dart 3.14 launches a separate `dartvm.exe`. The offline engine-input preflight n
 the existing missing-artifact and orchestration fixture accepts the complete SDK and rejects its
 absence. This owner has 119 production lines and no inline tests; its dedicated fixture has 251
 lines. The tooltip owner remains 386 production lines with no inline tests and 188 dedicated-test
-lines. Hosted full-suite and production Release checks remain pending for the committed upgrade.
+lines. The hosted full suite and production Release checks passed in
+[run 44143907656](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/44143907656)
+for head `a83ef068`: Flutter, four Rust groups, static checks, Windows scanning, native UIA
+and production build verification all succeeded.
 
 The first hosted Flutter batch found three bootstrap cases still expecting `FlutterError` from
 disposed notifiers. Flutter 3.50 delegates `ChangeNotifier.debugAssertNotDisposed` to `listen`,
@@ -48,6 +51,14 @@ retaining lifecycle, subscription and joined-shutdown checks. All seven cases in
 bootstrap suites pass locally; application disposal behavior is unchanged.
 The hosted analyzer also identified a redundant `flutter/rendering.dart` import in the viewer
 filmstrip after the Material export update; the redundant import was removed.
+
+### Flutter upgrade integration, 2026-11-18
+
+[PR 70](https://github.com/Cedarflake/Cedarflake-Ame/pull/70) integrated `a83ef068` into `main`
+as `8acb927c` after the full CI run passed. Their file trees match. The local and remote
+`codex/flutter-3-50` branches were deleted and the local checkout was fast-forwarded to `main`.
+The optional automated security review did not run because the account's review quota was
+exhausted; it was not counted as passed verification.
 
 ### Window/display plugin evaluation, 2026-11-18
 
