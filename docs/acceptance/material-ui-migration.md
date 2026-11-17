@@ -2,6 +2,28 @@
 
 ## Material workbench composition, 2026-11-16
 
+### Folder refresh and import recovery, 2026-11-17
+
+Refreshing a loaded folder branch appended a 40-pixel loading row below its existing children,
+displacing later sources on every background publication. The controlled pending-read regression
+failed against the prior implementation with the pending source moving from y=272 to y=312.
+It now retains the same bounds during the read and after publishing changed folder names. Initial
+loading and explicit paging retain their existing feedback.
+
+All 14 focused folder-continuity and task-feedback checks passed, together with owned-file
+formatting and scoped analysis. Storage-overlap recovery opens the directory picker without
+repeating the rejected scan; canceling retains existing roots. The ordinary unavailable-folder
+case still retries the original path. Storage admission and native contracts are unchanged.
+
+The isolated Profile client reproduced the recurring displacement with an expanded `local-primary`
+branch above the failed source. The rebuilt client retained its position across 18 observations
+during background updates and displayed the storage-conflict reason. The final recovery-button
+build is open for interactive inspection; its native picker/cancel sequence remains unverified.
+The local build reused the receipt-verified native library. Earlier clients exited normally with
+all 700 fixture lengths and modification times unchanged; no new Dart exception, overflow or AXTree
+error was logged. The navigation owner contains 555 production lines; the two affected fixtures
+contain 411 and 452 test lines.
+
 ### Dialog section transitions, 2026-11-17
 
 Album icon choices and file-organization explanations share the retained size/fade owner promoted

@@ -197,6 +197,7 @@ abstract final class LibraryStrings {
     final separator = error.indexOf(":");
     final code = separator < 0 ? error : error.substring(0, separator);
     return switch (code) {
+      "source_root_overlaps_storage" => "这个文件夹与 Ame 的数据存储位置重叠，请选择其他文件夹。",
       "library_update_in_progress" => "另一个目录正在更新，结束后再继续。",
       "library_retained_cancel_failed" => "取消失败，请重试。",
       "catalog_root_consolidation_incomplete" =>

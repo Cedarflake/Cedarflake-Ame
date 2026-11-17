@@ -7,6 +7,7 @@ import "../../../../app/presentation/ame_feedback_style.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_update_controller.dart";
 import "../../domain/library_state.dart";
+import "../library_primary_task_feedback.dart";
 import "../library_task_surface_selection.dart";
 import "library_task_surface.dart";
 import "library_update_task_surface.dart";
@@ -140,7 +141,10 @@ class _LibraryTaskFeedbackState extends ConsumerState<LibraryTaskFeedback> {
                 onPause: controller.pauseScan,
                 onCancel: controller.cancelScan,
                 onResume: controller.resumePausedScan,
-                onRetry: widget.onRetryPrimary,
+                onRetry:
+                    LibraryPrimaryTaskFeedback(state).shouldChooseAnotherFolder
+                    ? controller.chooseDirectoryAndScan
+                    : widget.onRetryPrimary,
                 onDismiss: controller.dismissTaskFeedback,
               ),
           ],

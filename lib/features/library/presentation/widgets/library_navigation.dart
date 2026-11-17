@@ -509,8 +509,6 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
               unawaited(widget.onLoadMoreFolders(root.id, parentRelativePath)),
         ),
       );
-    } else if (branch.isLoading) {
-      children.add(const LibraryFolderLoadingTile());
     }
     return children;
   }

@@ -1,4 +1,6 @@
 import "package:cedarflake_ame/app/ame_app.dart";
+import "package:cedarflake_ame/features/library/application/directory_picker.dart";
+import "package:cedarflake_ame/features/library/application/ports/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_update_controller.dart";
@@ -14,6 +16,55 @@ import "support/library_screen_fixture.dart";
 import "../../../support/application_test_bindings.dart";
 
 void main() {
+  for (final overlapsStorage in [true, false]) {
+    testWidgets(
+      "import recovery chooses another folder only for storage overlap ($overlapsStorage)",
+      (tester) async {
+        tester.view.physicalSize = const Size(1280, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final picker = _CancellingDirectoryPicker();
+        final scanner = _RecordingScanner();
+        final code = overlapsStorage
+            ? "source_root_overlaps_storage"
+            : "source_root_unavailable";
+        final state = populatedScreenState(totalItems: 1).copyWith(
+          status: LibraryStatus.failed,
+          taskKind: LibraryTaskKind.import,
+          scanId: "scan-rejected",
+          rootPath: "C:\\Rejected",
+          displayRootPath: "C:\\Rejected",
+          errorMessage: "$code: The selected folder was rejected",
+        );
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: applicationTestOverrides([
+              initialLibraryStateProvider.overrideWithValue(state),
+              directoryPickerProvider.overrideWithValue(picker),
+              libraryScannerProvider.overrideWithValue(scanner),
+            ]),
+            child: const AmeApp(),
+          ),
+        );
+        await tester.pump();
+        expect(find.text(overlapsStorage ? "重新选择文件夹" : "重试"), findsOneWidget);
+        await tester.tap(find.byKey(const Key("library-retry-button")));
+        await tester.pump();
+        await tester.pump();
+        expect(picker.calls, overlapsStorage ? 1 : 0);
+        expect(scanner.paths, overlapsStorage ? isEmpty : ["C:\\Rejected"]);
+        if (overlapsStorage) {
+          expect(find.text("添加目录失败"), findsNothing);
+          final container = ProviderScope.containerOf(
+            tester.element(find.byType(AmeApp)),
+          );
+          expect(container.read(libraryControllerProvider).roots, state.roots);
+        }
+      },
+    );
+  }
+
   testWidgets("shows scan controls in temporary import feedback", (
     tester,
   ) async {
@@ -371,5 +422,31 @@ class _FixedLibraryUpdateController extends LibraryUpdateController {
   @override
   void cancel(String rootId) {
     cancelledRootId = rootId;
+  }
+}
+
+class _CancellingDirectoryPicker implements DirectoryPicker {
+  int calls = 0;
+
+  @override
+  Future<String?> pickDirectory() async {
+    calls++;
+    return null;
+  }
+}
+
+class _RecordingScanner extends NoopLibraryScanner {
+  final paths = <String>[];
+
+  @override
+  Stream<LibraryScanUpdate> scan({
+    required String scanId,
+    required String rootPath,
+    required int? itemLimit,
+    required int? entryLimit,
+    required int previewEdge,
+  }) {
+    paths.add(rootPath);
+    return const Stream.empty();
   }
 }
