@@ -32,6 +32,7 @@ void main() {
                 secondary: LibraryReviewToolbar(mode: mode),
               ),
               isEmpty: false,
+              hasPublishedResults: true,
               isLoading: false,
               body: GestureDetector(
                 key: const Key("photos"),
@@ -92,6 +93,7 @@ void main() {
               header: const SizedBox(height: 80),
               body: const SizedBox.expand(),
               isEmpty: false,
+              hasPublishedResults: true,
               isLoading: false,
               notice: LibraryReviewModeNotice(mode: mode),
             ),

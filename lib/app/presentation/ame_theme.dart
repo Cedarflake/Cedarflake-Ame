@@ -16,7 +16,7 @@ ThemeData buildAmeTheme({
   final colorScheme = ColorScheme.fromSeed(
     seedColor: seedColor,
     brightness: brightness,
-    dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+    dynamicSchemeVariant: DynamicSchemeVariant.tonalSpot,
   );
   final baseTheme = ThemeData(
     colorScheme: colorScheme,
@@ -48,9 +48,6 @@ ThemeData buildAmeTheme({
     ),
     searchBarTheme: SearchBarThemeData(
       elevation: const WidgetStatePropertyAll(0),
-      backgroundColor: WidgetStatePropertyAll(
-        colorScheme.surfaceContainerHighest,
-      ),
       shape: WidgetStatePropertyAll(
         RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
@@ -65,9 +62,9 @@ ThemeData buildAmeTheme({
     textTheme: textTheme,
     primaryTextTheme: primaryTextTheme,
     listTileTheme: baseTheme.listTileTheme.copyWith(
-      titleTextStyle: textTheme.bodyLarge?.copyWith(
-        fontWeight: ameFontWeightMedium,
-      ),
+      selectedColor: colorScheme.onSecondaryContainer,
+      iconColor: colorScheme.onSurfaceVariant,
+      titleTextStyle: textTheme.bodyLarge,
     ),
   );
 }

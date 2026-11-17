@@ -3,6 +3,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../domain/library_models.dart";
 import "../library_asset_summary.dart";
 import "../library_strings.dart";
@@ -65,7 +66,7 @@ class LibraryViewerToolbar extends StatelessWidget {
     final textStyle = Theme.of(context).textTheme.bodyMedium;
     return Material(
       key: const Key("viewer-zoom-controls"),
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      color: AmeWorkbenchSurfaces.of(context).chrome,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxWidth < 900;

@@ -4,12 +4,35 @@ import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:material_ui/material_ui.dart";
+import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../support/retained_scan_fixture.dart";
 
 void main() {
+  testWidgets("trailing search options preserve the entered query", (
+    tester,
+  ) async {
+    await _show(tester);
+    await tester.enterText(find.byKey(const Key("library-search")), "20");
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    final input = find.byType(EditableText);
+    final options = find.byKey(const Key("library-search-menu"));
+    expect(
+      tester.getRect(options).left,
+      greaterThan(tester.getRect(input).right),
+    );
+    await tester.tap(options);
+    await tester.pumpAndSettle();
+    expect(find.text("整个图库"), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(tester.widget<EditableText>(input).controller.text, "20");
+    expect(find.text("整个图库"), findsNothing);
+  });
+
   testWidgets("uncommitted removal failure does not interrupt another search", (
     tester,
   ) async {

@@ -9,9 +9,17 @@ shared principles; the roadmap owns current delivery order and acceptance status
 
 The Settings button pinned to the function rail opens one shallow settings canvas while the global bar and
 sidebar remain visible. It is not a dialog, engineering dashboard, or hierarchy of abstract
-configuration pages. The visual pattern follows Microsoft Photos: a clear `设置` title, a centered
-readable column, plain section headings, and full-width rows containing an icon, a user-facing
-title, one short explanation, and a control on the right.
+configuration pages. A clear `设置` title, a centered readable column and plain section headings
+organize full-width rows containing an icon, a user-facing title, one short explanation, and a
+control on the right.
+
+Sections use Material 3 Expressive's segmented-list composition: independent filled rows separated
+by two logical pixels, without divider lines. Outside group corners use a 16-pixel radius and
+corners between rows use four pixels; a single-row group uses 16 pixels at every corner. Retain the
+existing `surfaceContainerLow` fill so rows remain distinct from Ame's content surface. Compose
+the installed Material Card/ListTile primitives; their clipping and existing controls own hover,
+focus, activation and semantics. Group geometry follows the
+[official list defaults](https://developer.android.com/reference/kotlin/androidx/compose/material3/ListItemDefaults).
 
 Row actions use Material filled tonal buttons. Fixed choices show the current value and a dropdown
 arrow through the shared Ame menu; the default-album text button opens its existing album picker.

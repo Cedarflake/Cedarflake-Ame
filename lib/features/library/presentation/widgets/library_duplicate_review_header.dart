@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../../../app/presentation/ame_typography.dart";
 import "../library_duplicate_strings.dart";
 import "library_path_text.dart";
 
@@ -34,7 +35,9 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
         Text(
           title,
           key: const Key("duplicate-review-title"),
-          style: Theme.of(context).textTheme.headlineSmall,
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: ameFontWeightRegular),
         ),
         const SizedBox(height: 8),
         Visibility(
@@ -91,7 +94,9 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: DefaultTextStyle(
-            style: Theme.of(context).textTheme.headlineSmall!,
+            style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+              fontWeight: ameFontWeightRegular,
+            ),
             child: LibraryPathText(
               text: title,
               path: title,

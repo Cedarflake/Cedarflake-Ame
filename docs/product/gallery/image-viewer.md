@@ -102,7 +102,11 @@ action are on the right; full screen is the last action. The strip starts hidden
 visibility. It uses bounded catalog paging and lazily creates visible thumbnails; selecting one opens
 that image in the current query order. Its ordinary mouse wheel moves horizontally through the native
 scroll position, alongside native horizontal-wheel, touchpad and scrollbar input.
-The strip overlays the bottom of the image viewport, immediately above the fixed toolbar. Opening
+The viewer canvas keeps straight edges and a neutral surface distinct from its contextual chrome.
+The strip overlays the bottom of the image viewport above the fixed toolbar. Its Material surface
+has 16-pixel corners, elevation 3, 16-pixel horizontal insets and 12-pixel vertical breathing room;
+the inner thumbnail area remains 104 pixels high. Rounded clipping and shadow belong only to this
+strip, not to the main image canvas. Opening
 and closing slide the strip through the shared Standard spatial motion without reserving image
 height or changing the main image's position or zoom. Reduced motion switches it immediately.
 

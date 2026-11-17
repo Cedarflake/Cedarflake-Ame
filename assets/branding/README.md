@@ -1,10 +1,9 @@
 # Ame marks
 
 `ame.svg` and `ame_light.svg` are the supplied Revaea artwork.
-The colored mark supplies the Windows application and installer icon. The title bar keeps the outer
-silhouette, with a two-pixel theme-colored contour and an inset tonal fill separated by a 1.5-pixel
-transparent gap. The original central cutout remains without an inner stroke. Its 28-pixel size
-and horizontal center match the primary navigation rail through shared workbench metrics.
+The colored mark supplies the Windows application and installer icon. The workbench uses the
+theme-colored fill beside the `Ame` wordmark, without an added contour. The shared workbench bar
+owns its display size, alignment and spacing, accounting for the artwork's transparent padding.
 
 Regenerate the checked-in PNG density variants and multi-resolution ICO with:
 
@@ -12,9 +11,9 @@ Regenerate the checked-in PNG density variants and multi-resolution ICO with:
 uv run tool/branding_generate_icons.py
 ```
 
-Flutter loads the 28-pixel fill and outline PNGs and their 2x, 3x and 4x variants through the built-in
-asset bundle. Their shared padding keeps the contour inside the icon bounds. The fill uses a vector
-mask to keep its gap from the contour uniform around the curved silhouette.
+The generator produces 28-pixel fill and outline PNGs with 2x, 3x and 4x variants. Flutter loads the
+fill through its built-in asset bundle and resolves a variant for the display density.
+The generated artwork retains the original central cutout and the shared transparent inset.
 No SVG renderer ships with the application. The generation tool uses
 [resvg-py](https://github.com/baseplate-admin/resvg-py) (MIT) and
 [Pillow](https://python-pillow.org/) (MIT-CMU) only during asset preparation.

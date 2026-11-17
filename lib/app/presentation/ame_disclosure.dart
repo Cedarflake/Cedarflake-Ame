@@ -1,23 +1,18 @@
 import "package:material_ui/material_ui.dart";
 
-import "../../../../app/presentation/ame_motion.dart";
+import "ame_motion.dart";
 
-class LibraryFolderDisclosure extends StatefulWidget {
-  const LibraryFolderDisclosure({
-    required this.child,
-    this.animate = true,
-    super.key,
-  });
+class AmeDisclosure extends StatefulWidget {
+  const AmeDisclosure({required this.child, this.animate = true, super.key});
 
   final Widget? child;
   final bool animate;
 
   @override
-  State<LibraryFolderDisclosure> createState() =>
-      _LibraryFolderDisclosureState();
+  State<AmeDisclosure> createState() => _AmeDisclosureState();
 }
 
-class _LibraryFolderDisclosureState extends State<LibraryFolderDisclosure>
+class _AmeDisclosureState extends State<AmeDisclosure>
     with TickerProviderStateMixin {
   late Widget? _retainedChild = widget.child;
   late final AnimationController _size;
@@ -45,7 +40,7 @@ class _LibraryFolderDisclosureState extends State<LibraryFolderDisclosure>
   }
 
   @override
-  void didUpdateWidget(covariant LibraryFolderDisclosure oldWidget) {
+  void didUpdateWidget(covariant AmeDisclosure oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.child != null) _retainedChild = widget.child;
     if (_skipMotion) {

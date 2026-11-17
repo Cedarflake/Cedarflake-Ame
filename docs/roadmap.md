@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-16
+Last planning update: 2026-11-17
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -65,6 +65,28 @@ archive compatibility and authorized model-installation recovery. The
 Reuse completed acceptance when its inputs are unchanged; new behavior receives its affected checks.
 
 ## Current execution queue
+
+### Material desktop workbench
+
+The accepted Google Material wide-screen layout is implemented on
+`codex/material-workbench`, awaiting integration through [PR 69](https://github.com/Cedarflake/Cedarflake-Ame/pull/69)
+before the remaining R10 diagnostics and Beta slices. The
+[execution plan](plans/material-workbench.md) orders shared Gallery/Albums composition, Duplicates,
+the image viewer, and integrated desktop qualification. Preserve existing actions, bounded browsing,
+source safety and the completed responsiveness work. This presentation update does not reopen the
+completed R10a–R10c scopes or authorize Beta publication.
+
+MW1–MW4 implementation, desktop qualification and hosted verification are recorded in the
+[Material acceptance record](acceptance/material-ui-migration.md#material-workbench-composition-2026-11-16).
+MW4 includes the requested primary-navigation content-width transition, filmstrip frame-time
+qualification and the Google-style tonal/typographic refinement guided by Material canonical layouts,
+including consistent secondary-navigation row geometry. The compact creation-entry follow-up
+restores section-heading plus controls and removes the large top action blocks, qualifying at
+`ac88a70e`. Its continuity follow-up retains published empty results during refreshes and keeps
+sidebar selection in one row; local verification is complete and hosted checks are pending.
+The acceptance record retains the earlier
+intermittent accessibility-worker observations and their diagnostic follow-up. Merging and release
+publication remain separate decisions.
 
 R8 and its follow-ups, including the loading-feedback update, and R9 album file organization are
 integrated. The current release is `v0.1.0-alpha.3`. Transition-performance preparation is integrated.

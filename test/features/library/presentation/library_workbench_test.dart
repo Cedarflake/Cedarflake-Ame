@@ -1,4 +1,5 @@
 import "package:cedarflake_ame/app/presentation/ame_overlay_semantics.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_main_surface.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_workbench.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:material_ui/material_ui.dart";
@@ -19,13 +20,22 @@ void main() {
     addTearDown(scroll.dispose);
     final container = ProviderContainer(overrides: applicationTestOverrides());
     addTearDown(container.dispose);
+    final settingsWidths = <double>[];
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
         child: MaterialApp(
           home: Scaffold(
             body: LibraryWorkbench(
-              albumsNavigationBuilder: (_) => const Text("Album list"),
+              globalBarBuilder: (_, _, toggle) => SizedBox(
+                height: 64,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(width: 72, child: Center(child: toggle)),
+                ),
+              ),
+              albumsNavigationBuilder: (_) =>
+                  ListTile(title: const Text("Album list"), onTap: () {}),
               navigationBuilder: (width) => SizedBox(
                 key: const Key("folders"),
                 width: width,
@@ -45,8 +55,12 @@ void main() {
                 ],
               ),
               duplicatesBuilder: (_) => const Text("Duplicate results"),
-              settingsBuilder: (_) =>
-                  const TextField(key: Key("settings-input")),
+              settingsBuilder: (_) => LayoutBuilder(
+                builder: (_, constraints) {
+                  settingsWidths.add(constraints.maxWidth);
+                  return const TextField(key: Key("settings-input"));
+                },
+              ),
               onSidebarResizeChanged: (_) {},
               onPreferenceError: (_, error) => fail("$error"),
             ),
@@ -81,8 +95,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text("Album list"), findsNothing);
     expect(find.text("Expanded folder state"), findsOneWidget);
+    final surface = find.byType(LibraryMainSurface);
+    final galleryBounds = tester.getRect(surface);
+    await tester.tap(find.byKey(const Key("library-sidebar-settings")));
+    await tester.pump();
+    expect(tester.getRect(surface), galleryBounds);
+    final settingsLayoutCount = settingsWidths.length;
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(settingsWidths.length, settingsLayoutCount);
+    final intermediate = tester.getRect(surface);
+    expect(intermediate.left, inExclusiveRange(80, galleryBounds.left));
+    expect(intermediate.right, galleryBounds.right);
+    expect(intermediate.top, galleryBounds.top);
+    expect(intermediate.bottom, galleryBounds.bottom);
+    await tester.tap(find.byKey(const Key("workbench-gallery")));
+    await tester.pump();
+    expect(tester.getRect(surface), intermediate);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(surface), galleryBounds);
     await tester.tap(find.byKey(const Key("library-sidebar-settings")));
     await tester.pumpAndSettle();
+    expect(tester.getRect(surface).left, 80);
+    expect(tester.getRect(surface).right, 1272);
+    expect(tester.getRect(surface).bottom, 792);
+    expect(settingsWidths.toSet(), {1192});
     await tester.enterText(
       find.byKey(const Key("settings-input")),
       "Retained setting",
@@ -108,6 +144,8 @@ void main() {
     await tester.tap(find.byKey(const Key("library-sidebar-toggle")));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key("folders")), findsNothing);
+    expect(tester.getRect(surface).left, 80);
+    expect(tester.getRect(surface).right, 1272);
     expect(
       find.byWidgetPredicate(
         (widget) => widget is AmeTooltip && widget.message == "展开侧栏",
@@ -125,6 +163,33 @@ void main() {
     await tester.tap(find.byKey(const Key("library-sidebar-settings")));
     await tester.pumpAndSettle();
     expect(find.text("Retained setting"), findsOneWidget);
+    await tester.tap(find.byKey(const Key("workbench-gallery")));
+    await tester.pumpAndSettle();
+    for (final expanding in [false, true]) {
+      await tester.tap(find.byKey(const Key("library-sidebar-toggle")));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      final interrupted = tester.getRect(surface);
+      expect(interrupted.left, inExclusiveRange(80, galleryBounds.left));
+
+      await tester.tap(find.byKey(const Key("library-sidebar-settings")));
+      await tester.pump();
+      expect(tester.getRect(surface), interrupted);
+      final layouts = settingsWidths.length;
+      await tester.pump(const Duration(milliseconds: 60));
+      final returning = tester.getRect(surface);
+      expect(returning.left, inExclusiveRange(80, interrupted.left));
+      expect(settingsWidths.length, layouts);
+
+      await tester.tap(find.byKey(const Key("workbench-gallery")));
+      await tester.pump();
+      expect(tester.getRect(surface), returning);
+      await tester.pumpAndSettle();
+      expect(tester.getRect(surface).left, expanding ? galleryBounds.left : 80);
+      expect(tester.getRect(surface).right, galleryBounds.right);
+      expect(identical(scroll.position, originalPosition), isTrue);
+      expect(scroll.offset, 1200);
+    }
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -142,6 +207,13 @@ void main() {
         child: MaterialApp(
           home: Scaffold(
             body: LibraryWorkbench(
+              globalBarBuilder: (_, _, toggle) => SizedBox(
+                height: 64,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(width: 72, child: Center(child: toggle)),
+                ),
+              ),
               albumsNavigationBuilder: (_) => const Text("Album list"),
               navigationBuilder: (width) =>
                   SizedBox(width: width, child: const Text("Folder tree")),

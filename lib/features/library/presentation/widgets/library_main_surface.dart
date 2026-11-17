@@ -1,9 +1,11 @@
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
+
 class LibraryMainSurface extends StatelessWidget {
   const LibraryMainSurface({required this.child, super.key});
 
-  static const borderRadius = BorderRadius.only(topLeft: Radius.circular(18));
+  static const borderRadius = BorderRadius.all(Radius.circular(24));
 
   final Widget child;
 
@@ -11,7 +13,7 @@ class LibraryMainSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLowest,
+        color: AmeWorkbenchSurfaces.of(context).content,
         borderRadius: borderRadius,
       ),
       child: ClipRRect(

@@ -51,11 +51,29 @@ function Complete-AmeWindowsUiaSession {
     param([AllowNull()] [object]$Session)
 
     if ($null -eq $Session) { return }
-    $exitedEarly = $null -ne $Session.Process -and $Session.Process.HasExited
+    $exitFailure = $null
+    if ($null -ne $Session.Process -and $Session.Process.HasExited) {
+        $exitFailure = Get-AmeWindowsUiaSessionExitFailure $Session "session-completion"
+    }
     Stop-AmeWindowsUiaSession -Session $Session
-    if ($exitedEarly) { throw "Windows UIA session exited before completion" }
+    if ($null -ne $exitFailure) { throw $exitFailure }
     $failure = Get-AmeWindowsAccessibilityCleanupFailure $Session.Cleanup
     if ($null -ne $failure) { throw $failure }
+}
+
+function Get-AmeWindowsUiaSessionExitFailure {
+    param([object]$Session, [string]$Phase)
+
+    $exitCode = $Session.Job.PrimaryExitCode
+    $message = "Windows UIA session exited during '$Phase' with exit code $exitCode"
+    try {
+        $record = Read-AmeWindowsUiaSessionFailure -ScratchRoot $Session.ScratchRoot `
+            -Token $Session.Token -Sequence $Session.Sequence -ProbeProcessId $Session.Process.Id
+        if ($null -ne $record) { $message += ": $($record.message) $($record.position)" }
+    } catch {
+        $message += "; failure evidence rejected: $($_.Exception.Message)"
+    }
+    return [InvalidOperationException]::new($message)
 }
 
 function Invoke-AmeWindowsUiaSessionPhase {
@@ -67,9 +85,10 @@ function Invoke-AmeWindowsUiaSessionPhase {
         [TimeSpan]$Timeout
     )
 
-    if ($null -eq $Session.Process -or $Session.Process.HasExited) {
+    if ($null -eq $Session.Process) {
         throw "Windows UIA session exited before its next phase"
     }
+    if ($Session.Process.HasExited) { throw (Get-AmeWindowsUiaSessionExitFailure $Session $Phase) }
     if ($Timeout -le [TimeSpan]::Zero) { throw "Windows UIA phase has no remaining parent deadline" }
     $resolvedResult = [IO.Path]::GetFullPath($ResultPath)
     if (-not [IO.Path]::GetDirectoryName($resolvedResult).Equals($Session.ScratchRoot, [StringComparison]::OrdinalIgnoreCase) -or
@@ -104,14 +123,14 @@ function Invoke-AmeWindowsUiaSessionPhase {
         if (-not $created) { throw "Windows UIA phase completion already has an owner" }
         Write-AmeWindowsUiaSessionRequest -ScratchRoot $Session.ScratchRoot -Request $request
         while ($true) {
-            if ($Session.Process.HasExited) { throw "Windows UIA session exited during '$Phase'" }
+            if ($Session.Process.HasExited) { throw (Get-AmeWindowsUiaSessionExitFailure $Session $Phase) }
             $remaining = $Timeout - $clock.Elapsed
             if ($remaining -le [TimeSpan]::Zero) { throw "Windows UIA probe '$Phase' exceeded its parent deadline" }
             $wait = [int][Math]::Min(50, [Math]::Max(1, [Math]::Ceiling($remaining.TotalMilliseconds)))
             if ($completion.WaitOne($wait)) { break }
         }
         if ($clock.Elapsed -gt $Timeout) { throw "Windows UIA probe '$Phase' exceeded its parent deadline" }
-        if ($Session.Process.HasExited) { throw "Windows UIA session exited during '$Phase'" }
+        if ($Session.Process.HasExited) { throw (Get-AmeWindowsUiaSessionExitFailure $Session $Phase) }
         $result = Read-AmeWindowsUiaProbeRecord -ResultPath $resolvedResult -Token $Session.Token `
             -Phase $Phase -TargetProcessId $TargetProcessId -ProbeProcessId $probeProcessId
         if ($result.status -cne "complete") { throw "Windows UIA probe '$Phase' produced no complete result" }

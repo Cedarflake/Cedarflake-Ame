@@ -8,6 +8,8 @@ import "../../../../app/presentation/ame_choice.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/notifications/ame_notification_strings.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
+import "../../../../app/presentation/ame_typography.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../../../app/window/ame_build_identity.dart";
 import "../../application/ame_preferences.dart";
 import "../../domain/ame_preferences.dart";
@@ -32,7 +34,7 @@ class AmeSettingsPage extends ConsumerWidget {
     final preferences = ref.watch(amePreferencesControllerProvider);
     final buildIdentity = ref.watch(ameBuildIdentityProvider);
     return ColoredBox(
-      color: Theme.of(context).colorScheme.surfaceContainerLowest,
+      color: AmeWorkbenchSurfaces.of(context).content,
       child: AmeScrollMotion(
         child: CustomScrollView(
           key: const Key("ame-settings-page"),
@@ -52,7 +54,8 @@ class AmeSettingsPage extends ConsumerWidget {
                             const SizedBox(width: 12),
                             Text(
                               "设置",
-                              style: Theme.of(context).textTheme.headlineMedium,
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(fontWeight: ameFontWeightRegular),
                             ),
                           ],
                         ),

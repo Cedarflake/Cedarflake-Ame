@@ -244,7 +244,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(enteringTop, greaterThan(tester.getTopLeft(filmstrip).dy));
-      expect(tester.getBottomRight(filmstrip).dy, viewportBounds.bottom);
+      final stripBounds = tester.getRect(filmstrip);
+      expect(stripBounds.bottom, viewportBounds.bottom - 12);
+      expect(stripBounds.left, viewportBounds.left + 16);
+      expect(stripBounds.right, viewportBounds.right - 16);
       expect(tester.getRect(imageViewport), viewportBounds);
       await tester.tap(stripToggle);
       await tester.pumpAndSettle();

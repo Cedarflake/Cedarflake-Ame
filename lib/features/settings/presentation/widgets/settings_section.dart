@@ -14,6 +14,8 @@ class SettingsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const outerCorner = Radius.circular(16);
+    const innerCorner = Radius.circular(4);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -26,25 +28,24 @@ class SettingsSection extends StatelessWidget {
             ),
           ),
         ),
-        Card(
-          margin: EdgeInsets.zero,
-          elevation: 0,
-          color: Theme.of(context).colorScheme.surfaceContainerLow,
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              for (var index = 0; index < children.length; index++) ...[
-                children[index],
-                if (index != children.length - 1)
-                  Divider(
-                    height: 1,
-                    indent: 64,
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-              ],
-            ],
+        for (var index = 0; index < children.length; index++) ...[
+          if (index > 0) const SizedBox(height: 2),
+          Card(
+            margin: EdgeInsets.zero,
+            elevation: 0,
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(
+                top: index == 0 ? outerCorner : innerCorner,
+                bottom: index == children.length - 1
+                    ? outerCorner
+                    : innerCorner,
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: children[index],
           ),
-        ),
+        ],
       ],
     );
   }

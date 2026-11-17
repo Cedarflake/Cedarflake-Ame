@@ -3,8 +3,10 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_disclosure.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../application/library_folder_controller.dart";
 import "../../domain/library_sidebar_order.dart";
 import "../../domain/library_folder_models.dart";
@@ -14,12 +16,12 @@ import "../library_pending_source.dart";
 import "../library_strings.dart";
 import "../coordination/library_sidebar_selection.dart";
 import "library_folder_navigation_tile.dart";
-import "library_folder_disclosure.dart";
 import "library_folder_reorder_item.dart";
 import "library_source_navigation_tile.dart";
 import "library_sidebar_section_header.dart";
 import "library_sidebar_reorder_list.dart";
 import "library_sidebar_selection_region.dart";
+import "library_workbench_metrics.dart";
 
 export "library_source_navigation_tile.dart" show librarySourceName;
 
@@ -206,7 +208,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
         width: widget.width,
         child: Material(
           key: const Key("library-navigation-surface"),
-          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          type: MaterialType.transparency,
           child: Column(
             children: [
               Expanded(
@@ -224,7 +226,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                     children: [
                       if (widget.isCompact) ...[
                         AmeTooltip(
-                          message: LibraryStrings.library,
+                          message: LibraryStrings.allImages,
                           child: IconButton(
                             key: const Key("library-sidebar-library"),
                             focusNode: _libraryFocusNode,
@@ -257,12 +259,15 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           selected:
                               widget.selectedRootId == null &&
                               widget.collection is LibraryAllCollection,
-                          selectedTileColor: Theme.of(
+                          selectedTileColor: AmeWorkbenchSurfaces.of(
                             context,
-                          ).colorScheme.secondaryContainer,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          ).selection,
+                          selectedColor: AmeWorkbenchSurfaces.of(
+                            context,
+                          ).onSelection,
+                          shape: LibraryWorkbenchMetrics.sidebarRowShape,
+                          minTileHeight:
+                              LibraryWorkbenchMetrics.sidebarRowHeight,
                           contentPadding: const EdgeInsets.only(
                             left: 16,
                             right: 4,
@@ -274,7 +279,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                             child: Icon(Symbols.photo_library_rounded),
                           ),
                           title: Text(
-                            LibraryStrings.library,
+                            LibraryStrings.allImages,
                             style: _navigationTitleStyle(
                               context,
                               widget.selectedRootId == null &&
@@ -288,6 +293,17 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       if (!widget.isCompact)
                         LibrarySidebarSectionHeader(
                           title: "文件夹",
+                          count: widget.roots.length,
+                          createLabel:
+                              widget.addingSourceDisabledReason ??
+                              LibraryStrings.addFolder,
+                          createKey: const Key("library-sidebar-import"),
+                          onCreate:
+                              saving ||
+                                  widget.isBusy ||
+                                  widget.isAddingSourceDisabled
+                              ? null
+                              : widget.onAddSource,
                           selectedCount: _selection.count,
                           allSelected: _selection.allSelected(
                             widget.roots.map((root) => root.id),
@@ -303,16 +319,6 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           onRemove: widget.isBusy || _removing
                               ? null
                               : _removeSelected,
-                          createLabel:
-                              widget.addingSourceDisabledReason ??
-                              LibraryStrings.addFolder,
-                          createKey: const Key("library-sidebar-import"),
-                          onCreate:
-                              saving ||
-                                  widget.isBusy ||
-                                  widget.isAddingSourceDisabled
-                              ? null
-                              : widget.onAddSource,
                         ),
                       if (widget.roots.isEmpty &&
                           widget.transientSource == null)
@@ -326,7 +332,12 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           )
                         else
                           const ListTile(
-                            leading: Icon(Symbols.folder_off_rounded),
+                            minTileHeight:
+                                LibraryWorkbenchMetrics.sidebarRowHeight,
+                            contentPadding: EdgeInsets.only(left: 16, right: 6),
+                            minLeadingWidth: 24,
+                            horizontalTitleGap: 12,
+                            leading: Icon(Symbols.folder_off_rounded, size: 24),
                             title: Text(LibraryStrings.noFolder),
                           ),
                     ],
@@ -466,7 +477,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
       );
       if (folder.hasChildFolders) {
         children.add(
-          LibraryFolderDisclosure(
+          AmeDisclosure(
             key: ValueKey((root.id, folder.relativePath)),
             child: isExpanded
                 ? Column(
@@ -498,8 +509,6 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
               unawaited(widget.onLoadMoreFolders(root.id, parentRelativePath)),
         ),
       );
-    } else if (branch.isLoading) {
-      children.add(const LibraryFolderLoadingTile());
     }
     return children;
   }
@@ -541,6 +550,6 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
 
 TextStyle? _navigationTitleStyle(BuildContext context, bool isSelected) {
   return Theme.of(context).textTheme.bodyLarge?.copyWith(
-    fontWeight: isSelected ? ameFontWeightSemibold : ameFontWeightMedium,
+    fontWeight: isSelected ? ameFontWeightSemibold : ameFontWeightRegular,
   );
 }

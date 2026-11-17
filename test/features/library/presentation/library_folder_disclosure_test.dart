@@ -1,4 +1,4 @@
-import "package:cedarflake_ame/features/library/presentation/widgets/library_folder_disclosure.dart";
+import "package:cedarflake_ame/app/presentation/ame_disclosure.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:flutter/rendering.dart";
 import "package:material_ui/material_ui.dart";
@@ -27,7 +27,7 @@ void main() {
                     builder: (context, value, _) => Column(
                       children: [
                         const SizedBox(height: 50),
-                        LibraryFolderDisclosure(
+                        AmeDisclosure(
                           child: value
                               ? const SizedBox(
                                   height: 100,
@@ -85,7 +85,7 @@ void main() {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  LibraryFolderDisclosure(
+                  AmeDisclosure(
                     child: expanded.value
                         ? SizedBox(
                             height: 100,

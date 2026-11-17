@@ -7,6 +7,7 @@ import "package:cedarflake_ame/features/library/application/library_folder_contr
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/presentation/library_pending_source.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -15,6 +16,79 @@ import "package:flutter_test/flutter_test.dart";
 import "../../../support/application_test_bindings.dart";
 
 void main() {
+  testWidgets(
+    "refreshing a loaded branch does not displace the pending source",
+    (tester) async {
+      final catalog = _FolderCatalog(
+        firstPage: LibraryFolderPage(
+          revision: BigInt.one,
+          rootId: _root.id,
+          parentRelativePath: "",
+          folders: [_folder(0), _folder(1)],
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: applicationTestOverrides([
+          libraryFolderCatalogProvider.overrideWithValue(catalog),
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState(catalogRevision: BigInt.one, roots: const [_root]),
+          ),
+        ]),
+      );
+      addTearDown(container.dispose);
+      final pending = LibraryPendingSource.fromState(
+        const LibraryState(
+          status: LibraryStatus.failed,
+          rootPath: "C:\\Pending",
+          displayRootPath: "C:\\Pending",
+        ),
+      );
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: _Navigation(revision: BigInt.one, transientSource: pending),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey("source-expand-root-1")));
+      await tester.pumpAndSettle();
+      final pendingTile = find.byKey(const Key("pending-source-tile"));
+      final before = tester.getRect(pendingTile);
+      final refresh = container
+          .read(libraryFolderControllerProvider.notifier)
+          .loadBranch(
+            catalogRevision: BigInt.two,
+            rootId: _root.id,
+            parentRelativePath: "",
+          );
+      await tester.pump();
+      expect(tester.getRect(pendingTile), before);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.getRect(pendingTile), before);
+      expect(find.text("Album 0"), findsOneWidget);
+
+      catalog.replacement.complete(
+        LibraryFolderPage(
+          revision: BigInt.two,
+          rootId: _root.id,
+          parentRelativePath: "",
+          folders: [
+            _folder(0, name: "Updated"),
+            _folder(1),
+          ],
+        ),
+      );
+      await refresh;
+      await tester.pumpAndSettle();
+      expect(tester.getRect(pendingTile), before);
+      expect(find.text("Updated"), findsOneWidget);
+    },
+  );
+
   testWidgets(
     "a refreshed leaf retires an expanded child and can be expanded again after recovery",
     (tester) async {
@@ -169,9 +243,10 @@ void main() {
 }
 
 class _Navigation extends ConsumerWidget {
-  const _Navigation({required this.revision});
+  const _Navigation({required this.revision, this.transientSource});
 
   final BigInt revision;
+  final LibraryPendingSource? transientSource;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -185,7 +260,7 @@ class _Navigation extends ConsumerWidget {
         roots: const [_root],
         selectedRootId: "root-1",
         selectedFolderRelativePath: null,
-        transientSource: null,
+        transientSource: transientSource,
         folderTree: tree,
         isBusy: false,
         isBrowseDisabled: false,
@@ -249,6 +324,10 @@ LibraryFolderPage _page(BigInt revision, {String? firstName}) =>
     );
 
 class _FolderCatalog implements LibraryFolderCatalog {
+  _FolderCatalog({LibraryFolderPage? firstPage})
+    : firstPage = firstPage ?? _page(BigInt.one);
+
+  final LibraryFolderPage firstPage;
   final replacement = Completer<LibraryFolderPage>();
   final requests = <LibraryFolderCursor?>[];
 
@@ -262,7 +341,7 @@ class _FolderCatalog implements LibraryFolderCatalog {
     requests.add(after);
     expect(maxItems, libraryFolderWindow);
     if (requests.length == 1) {
-      return _page(BigInt.one);
+      return firstPage;
     }
     if (requests.length == 2) {
       return replacement.future;

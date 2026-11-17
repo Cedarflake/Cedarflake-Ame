@@ -9,6 +9,7 @@ import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/presentation/ame_typography.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../../../app/presentation/ame_transition_icon.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_synchronization_models.dart";
@@ -17,6 +18,7 @@ import "../library_strings.dart";
 import "../library_synchronization_feedback.dart";
 import "library_path_text.dart";
 import "library_sidebar_selection_icon.dart";
+import "library_workbench_metrics.dart";
 
 class LibrarySourceNavigationTile extends StatefulWidget {
   const LibrarySourceNavigationTile({
@@ -162,44 +164,41 @@ class _LibrarySourceNavigationTileState
             titleKey: ValueKey("source-title-${widget.root.id}"),
             subtitle: expandedSubtitle,
             isSelected: widget.isSelected,
-            trailing: SizedBox(
-              width: 96,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (widget.onToggleExpansion != null)
-                    AmeTooltip(
-                      message: widget.isExpanded
-                          ? LibraryStrings.collapseFolder
-                          : LibraryStrings.expandFolder,
-                      child: IconButton(
-                        key: ValueKey("source-expand-${widget.root.id}"),
-                        onPressed: widget.onToggleExpansion,
-                        icon: AmeExpansionIcon(
-                          expanded: widget.isExpanded,
-                          icon: Symbols.keyboard_arrow_down_rounded,
-                        ),
-                      ),
-                    ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.onToggleExpansion != null)
                   AmeTooltip(
-                    message: LibraryStrings.more,
-                    child: SizedBox(
-                      key: _moreButtonAnchorKey,
-                      child: IconButton(
-                        key: ValueKey("source-more-${widget.root.id}"),
-                        onPressed: () {
-                          final anchorContext =
-                              _moreButtonAnchorKey.currentContext;
-                          if (anchorContext != null) {
-                            unawaited(_showMenuAtAnchor(anchorContext));
-                          }
-                        },
-                        icon: const Icon(Symbols.more_vert_rounded),
+                    message: widget.isExpanded
+                        ? LibraryStrings.collapseFolder
+                        : LibraryStrings.expandFolder,
+                    child: IconButton(
+                      key: ValueKey("source-expand-${widget.root.id}"),
+                      onPressed: widget.onToggleExpansion,
+                      icon: AmeExpansionIcon(
+                        expanded: widget.isExpanded,
+                        icon: Symbols.keyboard_arrow_down_rounded,
                       ),
                     ),
                   ),
-                ],
-              ),
+                AmeTooltip(
+                  message: LibraryStrings.more,
+                  child: SizedBox(
+                    key: _moreButtonAnchorKey,
+                    child: IconButton(
+                      key: ValueKey("source-more-${widget.root.id}"),
+                      onPressed: () {
+                        final anchorContext =
+                            _moreButtonAnchorKey.currentContext;
+                        if (anchorContext != null) {
+                          unawaited(_showMenuAtAnchor(anchorContext));
+                        }
+                      },
+                      icon: const Icon(Symbols.more_vert_rounded),
+                    ),
+                  ),
+                ),
+              ],
             ),
             onTap: widget.isBrowseDisabled ? null : widget.onSelect,
           );
@@ -440,12 +439,12 @@ class PendingLibrarySourceTile extends StatelessWidget {
       titleKey: const Key("pending-source-title"),
       subtitle: source.statusLabel,
       trailing: SizedBox(
-        width: 96,
+        width: 40,
         child: source.isProcessing
             ? const Align(
                 alignment: Alignment.centerRight,
                 child: SizedBox(
-                  width: 48,
+                  width: 40,
                   child: Center(
                     child: SizedBox.square(
                       key: Key("pending-source-progress"),
@@ -502,9 +501,11 @@ class _ExpandedSourceTile extends StatelessWidget {
     return ListTile(
       focusNode: focusNode,
       selected: isSelected,
-      selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      dense: true,
+      selectedTileColor: AmeWorkbenchSurfaces.of(context).selection,
+      selectedColor: AmeWorkbenchSurfaces.of(context).onSelection,
+      shape: LibraryWorkbenchMetrics.sidebarRowShape,
+      minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
+      minVerticalPadding: 4,
       contentPadding: EdgeInsets.only(left: leading == null ? 16 : 8, right: 4),
       minLeadingWidth: leading == null ? 24 : 40,
       horizontalTitleGap: leading == null ? 12 : 4,
@@ -513,15 +514,31 @@ class _ExpandedSourceTile extends StatelessWidget {
         width: leading == null ? 24 : 40,
         child: leading ?? Icon(icon),
       ),
-      title: DefaultTextStyle.merge(
-        style: TextStyle(
-          fontWeight: isSelected ? ameFontWeightSemibold : ameFontWeightMedium,
-        ),
-        child: LibraryPathText(text: title, path: path, textKey: titleKey),
+      title: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DefaultTextStyle.merge(
+            style: TextStyle(
+              fontWeight: isSelected
+                  ? ameFontWeightSemibold
+                  : ameFontWeightRegular,
+            ),
+            child: LibraryPathText(text: title, path: path, textKey: titleKey),
+          ),
+          if (subtitle != null)
+            Text(
+              subtitle!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: isSelected
+                    ? AmeWorkbenchSurfaces.of(context).onSelection
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+        ],
       ),
-      subtitle: subtitle == null
-          ? null
-          : Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: trailing,
       onTap: onTap,
     );

@@ -358,12 +358,12 @@ void main() {
     await tester.pumpAndSettle();
     final strip = find.byKey(const Key("viewer-filmstrip"));
     final scroll = tester.widget<ListView>(strip).controller!;
-    expect(scroll.offset, 1700);
+    expect(scroll.offset, 1716);
     final initialDemands = controller.demands;
     await tester.tap(find.byKey(const ValueKey("location-21")));
     await tester.pumpAndSettle();
     expect(selection.value.locationId, "location-21");
-    expect(scroll.offset, 1700);
+    expect(scroll.offset, 1716);
     scroll.jumpTo(3000);
     await tester.pumpAndSettle();
     visible.value = false;

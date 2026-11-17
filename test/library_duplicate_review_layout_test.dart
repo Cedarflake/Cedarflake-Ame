@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_group_thumbnail.dart";
 
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
@@ -14,6 +15,7 @@ import "package:cedarflake_ame/features/library/presentation/pages/library_dupli
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_review_cards.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_review_grid.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_message.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_filmstrip_thumbnail.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -73,7 +75,7 @@ void main() {
         final groupDelegate =
             tester.widget<GridView>(find.byType(GridView)).gridDelegate
                 as SliverGridDelegateWithFixedCrossAxisCount;
-        if (width > 1000) {
+        if (width > 1000 && scale == 1) {
           expect(groupDelegate.crossAxisCount, greaterThan(1));
           expect(
             tester.getTopLeft(cards.at(0)).dy,
@@ -84,40 +86,61 @@ void main() {
             greaterThan(tester.getTopLeft(cards.at(0)).dx),
           );
         }
-        final category = find.byKey(const Key("duplicate-group-menu"));
+        final category = find.byKey(const ValueKey("duplicate-view-exact"));
         final actions = find.byKey(const Key("duplicate-review-actions"));
         final heading = find.byKey(const Key("duplicate-review-title"));
-        final groupCount = find.byKey(const Key("duplicate-review-count"));
         final results = tester.getRect(find.byType(GridView));
         expect(tester.getTopRight(actions).dx, results.right);
-        if (width > 1000 && scale == 1) {
-          expect(tester.getCenter(category).dy, tester.getCenter(actions).dy);
+        final lastColumn = cards.at(groupDelegate.crossAxisCount - 1);
+        expect(
+          tester.getTopRight(lastColumn).dx,
+          closeTo(results.right - 20, .1),
+        );
+        if (scale == 1) {
+          expect(tester.getSize(cards.first).height, lessThan(210));
+        }
+        if (width > 1000) {
           expect(
-            tester.getTopLeft(category).dx,
-            greaterThan(tester.getTopRight(heading).dx),
+            tester.getTopRight(category).dx,
+            lessThan(tester.getTopLeft(heading).dx),
+          );
+        } else {
+          expect(
+            tester.getBottomLeft(category).dy,
+            lessThan(tester.getTopLeft(heading).dy),
           );
         }
         if (width == 400) {
-          expect(
-            tester.getTopLeft(category).dy,
-            greaterThan(tester.getBottomLeft(groupCount).dy),
-          );
           expect(
             tester.getTopLeft(heading).dx,
             tester.getTopLeft(cards.first).dx,
           );
         }
-        await tester.tap(find.byType(LibraryDuplicateGroupThumbnail).first);
+        final selection = find.byType(LibraryDuplicateGroupThumbnail).first;
+        final preview = find.descendant(
+          of: selection,
+          matching: find.byType(LibraryViewerFilmstripThumbnail),
+        );
+        final previewState = tester.state(preview);
+        final previewBounds = tester.getRect(preview);
+        final previewOffset =
+            previewBounds.topLeft - tester.getTopLeft(cards.first);
+        expect(previewBounds.width, previewBounds.height);
+        await tester.tap(selection);
         await tester.pumpAndSettle();
         expect(find.text("取消选择"), findsOneWidget);
+        expect(tester.state(preview), same(previewState));
+        expect(tester.getSize(preview), previewBounds.size);
+        expect(
+          tester.getTopLeft(preview) - tester.getTopLeft(cards.first),
+          previewOffset,
+        );
         expect(tester.takeException(), isNull);
         await tester.tap(find.text("取消选择"));
         await tester.pumpAndSettle();
         final categoryTop = tester.getTopLeft(category).dy;
         service.pendingGroups = Completer();
-        await tester.tap(category);
-        await tester.pumpAndSettle();
-        await tester.tap(find.text("已忽略"));
+        await tester.tap(find.byKey(const ValueKey("duplicate-view-ignored")));
         await tester.pump();
         expect(tester.getTopLeft(category).dy, categoryTop);
         service.pendingGroups!.complete(
@@ -126,11 +149,24 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text("0 个组"), findsOneWidget);
         expect(find.byType(LibraryGalleryMessage), findsOneWidget);
+        final emptyContents = find.descendant(
+          of: find.byType(LibraryGalleryMessage),
+          matching: find.byType(Column),
+        );
+        final contentBounds = tester.getRect(
+          find.byKey(const Key("library-main-surface")),
+        );
+        expect(
+          tester.getCenter(emptyContents).dy,
+          closeTo(contentBounds.center.dy, 8),
+        );
+        expect(
+          tester.getTopLeft(emptyContents).dy,
+          greaterThan(tester.getBottomLeft(actions).dy),
+        );
         expect(tester.getTopLeft(category).dy, categoryTop);
         service.pendingGroups = null;
         await tester.tap(category);
-        await tester.pumpAndSettle();
-        await tester.tap(find.text("重复组"));
         await tester.pumpAndSettle();
         expect(find.text("上一页"), findsNothing);
         expect(find.text("下一页"), findsNothing);
@@ -171,7 +207,10 @@ void main() {
               .dx,
           tester.getTopRight(grid).dx,
         );
-        expect(find.byType(ListTile), findsNothing);
+        expect(
+          find.descendant(of: grid, matching: find.byType(ListTile)),
+          findsNothing,
+        );
         expect(find.text("查看图片"), findsNothing);
         final memberDelegate =
             tester.widget<GridView>(grid).gridDelegate
@@ -182,6 +221,10 @@ void main() {
         }
         expect(memberDelegate.crossAxisCount, 1);
         final memberCard = find.byKey(const ValueKey("duplicate-card-one"));
+        expect(
+          tester.getTopRight(memberCard).dx,
+          closeTo(tester.getTopRight(grid).dx - 20, .1),
+        );
         if (width >= 800 && scale == 1) {
           expect(
             tester.getCenter(find.byKey(const ValueKey("prefer-one"))).dy,
@@ -228,6 +271,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 250));
         await tester.pump(const Duration(seconds: 1));
         expect(tester.widget<FadeTransition>(feedback).opacity.value, 1);
+        expect(find.byType(AmeLoadingIndicator), findsOneWidget);
         final progress = find.byKey(const Key("library-top-loading"));
         expect(tester.getSize(progress).height, 2);
         expect(tester.widget<LinearProgressIndicator>(progress).minHeight, 2);
@@ -293,7 +337,11 @@ void main() {
         List.generate(9, (index) => "item-$index"),
       );
       final grid = tester.widget<GridView>(find.byType(GridView));
-      grid.controller!.jumpTo(688);
+      final layout =
+          grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+      grid.controller!.jumpTo(
+        4 * (layout.mainAxisExtent! + layout.mainAxisSpacing),
+      );
       await tester.pumpAndSettle();
       expect(
         library.demands.values.single,

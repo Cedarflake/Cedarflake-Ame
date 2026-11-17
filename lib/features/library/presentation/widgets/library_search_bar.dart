@@ -41,9 +41,13 @@ class LibrarySearchBar extends StatelessWidget {
       controller: controller,
       enabled: enabled,
       hintText: hint,
-      leading: search == null
-          ? const Icon(Symbols.search_rounded)
-          : _SearchMenu(search: search, enabled: enabled),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsetsDirectional.only(start: 8, end: 4),
+      ),
+      leading: const SizedBox.square(
+        dimension: 40,
+        child: Center(child: Icon(Symbols.search_rounded, size: 24)),
+      ),
       trailing: [
         SizedBox.square(
           dimension: 40,
@@ -87,6 +91,7 @@ class LibrarySearchBar extends StatelessWidget {
               icon: const Icon(Symbols.close_rounded),
             ),
           ),
+        if (search != null) _SearchMenu(search: search, enabled: enabled),
       ],
       onChanged: onChanged,
       onSubmitted: search == null ? onChanged : (_) => search.submit(),
@@ -157,19 +162,12 @@ class _SearchMenu extends StatelessWidget {
       builder: (context, openMenu) => AmeTooltip(
         message:
             "$label · ${search.wholeLibrary ? LibrarySearchStrings.entireLibrary : LibrarySearchStrings.currentScope}",
-        child: IconButton(
-          key: const Key("library-search-menu"),
-          onPressed: enabled ? openMenu : null,
-          icon: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                search.mode == LibrarySearchMode.content
-                    ? Symbols.image_rounded
-                    : Symbols.search_rounded,
-              ),
-              const Icon(Symbols.arrow_drop_down_rounded, size: 18),
-            ],
+        child: SizedBox.square(
+          dimension: 40,
+          child: IconButton(
+            key: const Key("library-search-menu"),
+            onPressed: enabled ? openMenu : null,
+            icon: const Icon(Symbols.arrow_drop_down_rounded, size: 24),
           ),
         ),
       ),

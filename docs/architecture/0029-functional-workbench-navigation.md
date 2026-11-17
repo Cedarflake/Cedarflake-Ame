@@ -9,6 +9,81 @@ Its gallery, viewer, source safety and Material interaction contracts remain in 
 
 ## Context and decision
 
+### Material surface composition
+
+The 2026-11-16 accepted layout uses distinct tonal roles for the primary rail, contextual chrome
+and content. Resolve them from the existing Material color scheme in both brightness modes;
+retain dynamic accent and theme preferences. Gallery and Albums keep one bounded gallery and
+their existing contextual sidebars. Duplicates places exact/similar/ignored navigation in its own
+sidebar while retaining degree and cleanup beside the result heading. Secondary sidebars omit a
+redundant large destination title.
+
+Follow Material's [bright/dim large-screen example](https://m3.material.io/styles/color/the-color-system/):
+the navigation backing uses `surfaceDim` and the main content uses `surfaceBright`.
+Contextual chrome uses `surfaceContainer` between them. Keep these roles unchanged across light
+and dark appearances; the generated scheme owns their tones. This retains a darker navigation
+backing and brighter content in both appearances without swapping lowest/high roles by brightness.
+The earlier `surfaceContainer` / `surfaceContainerLow` / `surface` combination made the light-theme
+regions too similar. The wider tonal range separates the existing three regions without new borders
+or shadows.
+The search field retains the installed `SearchBar` default `surfaceContainerHigh` background,
+independently of the main content surface; this default was checked in `material_ui` 1.11.0.
+
+Material's [canonical layouts](https://m3.material.io/foundations/layout/canonical-examples/overview)
+and the [Android layout guidance](https://developer.android.com/develop/adaptive-apps/guides/canonical-layouts)
+inform the existing adaptive gallery feed and viewer supporting content. Navigation remains
+separate from those content regions; this does not introduce another pane or navigation model.
+Use `ColorScheme.fromSeed` with `DynamicSchemeVariant.tonalSpot` to retain the system accent hue
+with restrained surface and selection chroma. The earlier fidelity palette made primary actions
+and selected rows similarly prominent. Navigation uses a shared selection pair from
+`AmeWorkbenchSurfaces`: blend 40% `primaryFixedDim` in light appearance or `primaryContainer` in
+dark appearance over `secondaryContainer`, with `onPrimaryFixed` or `onPrimaryContainer` text
+respectively. The default secondary container appeared too pale against the workbench backing,
+while the full-strength primary containers were too prominent. This intermediate selection gives
+navigation clearer accent without competing with primary actions. The primary rail, Settings destination,
+collection/source/album rows and duplicate navigation share the pair; other controls retain their
+existing color roles. Hover and focus continue to use the framework state layers.
+Regular workspace headings and ordinary navigation text keep the content hierarchy legible;
+selected labels retain emphasis. Calendar and dialog typography stays owned
+by those surfaces. The installed color-scheme and text-style APIs provide this composition without
+new fonts, palette code or dependencies.
+
+One backing surface joins the top bar and contextual sidebar, with rounded outer left corners.
+Sidebars do not introduce another rounded cutout below the top bar. The main content has its own
+rounded surface and a small outer inset. The frame owns this geometry; sidebar transitions retain
+their existing destination-width rendering and clipping.
+Sidebar materials remain transparent so they cannot paint over the shared backing's outer corners.
+Collapsed sidebars and Settings retain the same eight-pixel content inset. The workspace-width
+owner carries the visible boundary through destination changes, including reversals, while each
+destination lays out at its final width. Reduced motion completes the boundary change immediately.
+Each active pane reports its displayed inset to the workspace-motion owner. A destination change
+starts from that inset, including an interrupted sidebar transition; the sidebar then settles its
+local extent so the workspace transition alone carries the handoff. Hidden panes cannot replace
+the active pane's reported boundary.
+
+The shared search field has a leading search symbol and a trailing options arrow. Existing mode,
+scope, clear, progress and retry semantics remain intact. Settings uses a circular selected surface.
+The top-left hamburger controls contextual-sidebar visibility; the plain application mark and `Ame`
+wordmark share the adjacent brand area. Search aligns with the content boundary.
+The brand's drag region starts after the hamburger's rail-width target.
+Primary navigation symbols use the standard 24-pixel Material size without reducing their targets.
+The workbench brand pairs a 36-pixel asset box with a 20-pixel wordmark. Navigation destinations
+use the component's built-in spacing; the earlier additional 12 pixels made the group too spread
+out. Selected symbols use the filled variant and unselected symbols use the outline variant,
+retaining their existing weight, size and framework-owned selection motion.
+The image viewer keeps straight canvas edges and its existing operation placements. Its rounded,
+elevated thumbnail strip remains an overlay, with no change to image geometry when toggled.
+Repaint boundaries isolate the strip's moving clip from the main image and retain the static strip
+display list; movement retains its shared motion driver, shadow, clipping and preview lifetimes.
+
+Use the installed `material_ui` 1.11.0 SearchBar, NavigationRail, ListTile, Material/Card and popup
+components, plus the existing window and transition owners. No new navigation stack, widget
+framework, dependency, catalog state or source read is introduced. The owning
+[plan](../plans/material-workbench.md) identifies affected workflow verification; rollback restores
+composition without a data migration.
+
+### Retained workspace behavior
+
 Ame needs stable destinations for browsing and duplicate analysis as its organizing capabilities
 grow. A permanent narrow function rail selects Library, Albums and Duplicates in that order;
 Settings is pinned below.
@@ -32,7 +107,12 @@ sidebar without overwriting an existing arrangement. A forward migration and ver
 snapshot provide the existing upgrade/rollback boundary.
 
 Library and Albums use one section-heading component below their Library and Favorites entries.
-The heading's trailing plus imports a root or creates an album. Flutter 3.47.8's
+The 2026-11-17 layout revision restores `添加文件夹` and `新建相册` as compact plus actions
+beside those headings. Large filled top actions gave creation disproportionate space and emphasis.
+The installed `material_ui` 1.11.0 `IconButton` supplies nullable activation, disabled styling,
+keyboard focus and semantics; existing descriptive tooltips name both actions. Album disclosure
+remains separate beside creation. Library/Favorites begin the sidebars, without a reserved action
+block. No custom input handling is introduced. Flutter 3.47.8's
 `ReorderableListView.builder`, `ReorderableDragStartListener` and `onReorderItem` provide lazy rows,
 drag geometry, scrolling and reorder semantics. Only the imported root row starts a folder drag;
 its expanded descendants remain ordinary navigation. `LibraryFolderReorderItem` collapses the branch
@@ -43,13 +123,33 @@ local `Overlay.wrap` owns proxy coordinates and clipping within the sidebar, bel
 captured themes. The presentation order owner serializes saves,
 retains current item identities through metadata updates, appends new items and restores the prior
 order on failure through the shared feedback surface. It does not reorder gallery images or mutate
-physical folders.
+physical folders. Sidebar navigation rows and their drag proxies share a framework
+RoundedRectangleBorder with eight-pixel corners. Their 16-pixel side insets align the background's
+leading edge with the brand mark. Single-line rows and source rows with status share a 48-pixel
+minimum height; text scaling and embedded controls can increase that minimum. This replaces the
+40/56-pixel split so the selection surface does not change proportion between navigation types.
+Navigation uses the theme's body-large labels and 24-pixel icons. Source and child-folder rows
+omit ListTile's legacy dense setting, which overrides the title with a 13-pixel size even when
+the theme supplies body-large text. Source status uses body-small typography; trailing controls
+take their intrinsic width instead of reserving space for an absent expansion button.
+Source names and statuses compose a minimum-height Column in ListTile's title slot, allowing the
+framework to center them together rather than applying fixed two-line baselines to a compact row.
+
+Manual and smart albums use shared section headings and framework icon buttons for disclosure.
+Manual rows share Ame spatial/effects controllers and native SizeTransition/FadeTransition widgets inside
+the existing lazy reorder list. The completed collapsed state has no row children; the bounded page,
+scroll owner, order, selection and active collection remain retained. Smart albums reuse the existing
+folder disclosure owner; empty, loading and failed manual-album states use that same owner and timing.
+Closing retires row input, focus and semantics immediately. A nested
+shrink-wrapped scrolling list is unnecessary and would disconnect native drag auto-scrolling.
 
 Sidebar selection is a separate presentation owner. The installed Flutter 3.47.8 `IconButton`
 provides focus, toggled semantics and the original/selected icons; a 24-pixel filled circle with the
 existing Material Symbols check identifies a selected row inside its 40-pixel target. The section
-heading groups Select all, removal and creation at the trailing edge. The shared framework tristate
-`Checkbox` uses an 18-pixel neutral square outline without fill; the other actions use 20-pixel
+heading keeps `已选择 (N)` (`已选 (N)` at compact widths), Select all, removal and disclosure in one row. Creation
+is shown outside selection. This replaces the two-row arrangement that shifted the list on selection;
+the full selected-count label remains available to accessibility. The shared framework tristate
+`Checkbox` uses the shared circular shape with an 18-pixel neutral outline without fill; the other actions use 20-pixel
 symbols, all within 36-pixel targets. Material's checkbox and icon-button component documentation was inspected;
 no replacement gesture, checkbox painter or package is needed. Selection disables reordering, and
 Escape clears it. A shared selection region owns pointer focus and the Escape shortcut outside row
@@ -80,8 +180,9 @@ retiring input and animation. Existing source navigation and resize controls rem
 The product-specific responsibility is destination lifetime, folder-panel preference and composing
 the existing gallery with a dedicated duplicate workspace. No new UI package is needed.
 
-The secondary-sidebar toggle lives in the function rail above Settings while Library or Albums is active,
-outside the collapsible sidebar.
+The secondary-sidebar toggle is the global bar's hamburger above the function rail, outside the
+collapsible sidebar. Library, Albums and wide Duplicates share the visibility preference and motion;
+the compact Duplicates navigation bar and Settings have no collapsible contextual panel.
 Store its visibility with existing presentation preferences. Preserve source scope, expanded
 folders on workspace switches. Primary-sidebar switches to Albums, Duplicates or Settings clear
 ordinary selected images, exit selection mode and reset the scroll position on return. An organizing
@@ -223,11 +324,10 @@ viewer requests adjacent members through the same bounded window rather than sto
 The page heading is `重复图片查找`, followed by the current review category's total group count.
 Normal analysis status, scope and explanatory paragraphs are omitted from this surface. Refresh,
 pause/resume and the selected group's ignore/restore operation share one wrapping action row.
-The group-list heading/count block, centered category switch and right-aligned analysis actions
-share one row. Equal Expanded regions on both sides keep the switch at the content-area center.
-LayoutBuilder uses a text-scaled compact-width boundary to stack these blocks when necessary,
-retaining the switch's centered alignment. The count line reserves space during loading.
-The existing Material SegmentedButton retains selection, focus and semantics. Material
+The group-list heading/count block and right-aligned actions share one row and stack at a
+text-scaled compact-width boundary. The count line reserves space during loading. Exact, similar
+and ignored destinations use contextual Material ListTiles, or the installed NavigationBar when
+the supporting pane cannot fit. The existing workspace owns destination changes. Material
 `TextButton.icon` and `FilledButton.icon`, available in the pinned SDK, pair the existing action
 labels with leading icons and retain framework padding, focus, disabled state and semantics.
 The selected group's back/title block and right-aligned actions share a centered Row above the
@@ -238,6 +338,10 @@ A card-wide `InkWell`
 supplies pointer, keyboard and hover behavior, while
 the text/icon buttons keep their separate actions. The pinned SDK's `Card.clipBehavior` clips the ink to
 the shared card shape; an embedded clickable `ListTile` would restrict feedback to the path region.
+Group cards place a square representative image beside details, with a shared bounded preview demand.
+The preview and detail slots align at the top, with the group action retained at the lower right.
+The image slot selects its group without replacing the preview; a circular check and thin card
+outline show selection. All member reads remain demand-driven.
 The selected group retains its initial representative filename as the heading while scrolling;
 content aligns beneath that heading. Member cards omit a separate preferred-copy label and the
 decorative folder icon beside their existing thumbnail. Preference and reveal actions remain.

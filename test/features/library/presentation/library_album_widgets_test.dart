@@ -8,6 +8,7 @@ import "package:cedarflake_ame/features/library/domain/library_organization.dart
 import "package:cedarflake_ame/features/library/presentation/widgets/library_album_editor.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_album_picker.dart";
 import "package:material_ui/material_ui.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -57,53 +58,104 @@ void main() {
   testWidgets(
     "album editor keeps validation in the dialog and offers the saved album",
     (tester) async {
-      LibraryOrganizationReceipt? saved;
-      await host(
-        tester,
-        (context) => () async {
-          saved = await showLibraryAlbumEditor(
-            context: context,
-            kind: LibraryAlbumEditKind.create,
-            revision: BigInt.one,
-          );
-        },
-      );
-      await tester.tap(find.byKey(const Key("library-album-save")));
-      await tester.pumpAndSettle();
-      expect(service.albumWrites, isEmpty);
-      expect(find.text("请输入 1 至 128 个字符的相册名称。"), findsOneWidget);
-      await tester.enterText(
-        find.byKey(const Key("library-album-name")),
-        "Landscape",
-      );
-      service.saveAlbum = (_) async => throw const LibraryOrganizationFailure(
-        "organization_album_name_exists",
-        "internal duplicate",
-      );
-      await tester.tap(find.byKey(const Key("library-album-save")));
-      await tester.pumpAndSettle();
-      expect(find.text("已有同名相册，请换一个名字。"), findsOneWidget);
-      expect(find.textContaining("internal duplicate"), findsNothing);
-      expect(
-        container.read(ameNotificationControllerProvider).history,
-        isEmpty,
-      );
-      service.saveAlbum = null;
-      await tester.enterText(
-        find.byKey(const Key("library-album-name")),
-        "Other",
-      );
-      await tester.tap(find.byKey(const Key("library-album-choose-icon")));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey("album-icon-nature")));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key("library-album-save")));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key("library-album-editor")), findsNothing);
-      expect(saved?.album?.name, "Other");
-      expect(saved?.album?.icon, LibraryAlbumIcon.nature);
-      expect(service.albumWrites[1].id, isNot(service.albumWrites[0].id));
+      final semantics = tester.ensureSemantics();
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      try {
+        LibraryOrganizationReceipt? saved;
+        await host(
+          tester,
+          (context) => () async {
+            saved = await showLibraryAlbumEditor(
+              context: context,
+              kind: LibraryAlbumEditKind.create,
+              revision: BigInt.one,
+            );
+          },
+        );
+        await tester.tap(find.byKey(const Key("library-album-save")));
+        await tester.pumpAndSettle();
+        expect(service.albumWrites, isEmpty);
+        expect(find.text("请输入 1 至 128 个字符的相册名称。"), findsOneWidget);
+        await tester.enterText(
+          find.byKey(const Key("library-album-name")),
+          "Landscape",
+        );
+        service.saveAlbum = (_) async => throw const LibraryOrganizationFailure(
+          "organization_album_name_exists",
+          "internal duplicate",
+        );
+        await tester.tap(find.byKey(const Key("library-album-save")));
+        await tester.pumpAndSettle();
+        expect(find.text("已有同名相册，请换一个名字。"), findsOneWidget);
+        expect(find.textContaining("internal duplicate"), findsNothing);
+        expect(
+          container.read(ameNotificationControllerProvider).history,
+          isEmpty,
+        );
+        service.saveAlbum = null;
+        await tester.enterText(
+          find.byKey(const Key("library-album-name")),
+          "Other",
+        );
+        await tester.pumpAndSettle();
+        final surface = find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byWidgetPredicate(
+            (widget) => widget is Material && widget.type == MaterialType.card,
+          ),
+        );
+        final save = find.byKey(const Key("library-album-save"));
+        final collapsed = tester.getRect(surface);
+        final collapsedSave = tester.getCenter(save);
+        await tester.tap(find.byKey(const Key("library-album-choose-icon")));
+        await tester.pump();
+        expect(tester.getRect(surface), collapsed);
+        await tester.pump(const Duration(milliseconds: 40));
+        final opening = tester.getRect(surface);
+        expect(opening.height, greaterThan(collapsed.height));
+        expect(opening.center, collapsed.center);
+        expect(tester.getCenter(save).dy, greaterThan(collapsedSave.dy));
+        await tester.pumpAndSettle();
+        final expanded = tester.getRect(surface);
+        expect(expanded.height, greaterThan(opening.height));
+        expect(
+          tester.getTopLeft(find.byKey(const ValueKey("album-icon-album"))).dx,
+          tester
+              .getTopLeft(find.byKey(const Key("library-album-choose-icon")))
+              .dx,
+        );
+        final nature = find.byKey(const ValueKey("album-icon-nature"));
+        await mouse.addPointer(location: Offset.zero);
+        await mouse.moveTo(tester.getCenter(nature));
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.pumpAndSettle();
+        expect(find.text("自然"), findsOneWidget);
+        await tester.tap(nature);
+        await tester.pump();
+        await tester.pump();
+        expect(find.text("自然"), findsNothing);
+        expect(tester.getRect(surface), expanded);
+        await tester.pump(const Duration(milliseconds: 40));
+        final closing = tester.getRect(surface);
+        expect(closing.height, lessThan(expanded.height));
+        expect(closing.height, greaterThan(collapsed.height));
+        expect(closing.center, collapsed.center);
+        await tester.pumpAndSettle();
+        expect(tester.getRect(surface), collapsed);
+        expect(tester.getCenter(save), collapsedSave);
+        expect(find.byKey(const ValueKey("album-icon-nature")), findsNothing);
+        await tester.tap(find.byKey(const Key("library-album-save")));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key("library-album-editor")), findsNothing);
+        expect(saved?.album?.name, "Other");
+        expect(saved?.album?.icon, LibraryAlbumIcon.nature);
+        expect(service.albumWrites[1].id, isNot(service.albumWrites[0].id));
+      } finally {
+        await mouse.removePointer();
+        semantics.dispose();
+      }
     },
+    variant: TargetPlatformVariant.only(TargetPlatform.windows),
   );
 
   testWidgets(

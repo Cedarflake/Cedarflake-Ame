@@ -17,6 +17,12 @@ class LibraryPrimaryTaskFeedback {
   bool get isPublishedReload =>
       state.primaryScanSnapshot.publication ==
       LibraryScanPublication.reloadPending;
+  bool get shouldChooseAnotherFolder =>
+      state.status == LibraryStatus.failed &&
+      state.taskKind == LibraryTaskKind.import &&
+      !state.primaryScanSnapshot.hasUnresolvedPublication &&
+      (state.errorMessage?.startsWith("source_root_overlaps_storage:") ??
+          false);
 
   // 卡片首行｜按任务阶段选择标题；添加和更新共用此处的状态分支。
   String get title {
@@ -101,6 +107,9 @@ class LibraryPrimaryTaskFeedback {
 
   // 卡片右侧恢复按钮｜失败后按实际动作显示重新读取、重新加载或重试。
   String get retryLabel {
+    if (shouldChooseAnotherFolder) {
+      return "重新选择文件夹";
+    }
     if (isRootRemoval) {
       return state.isRemovalCommitted ? LibraryStrings.reload : "重试移除";
     }

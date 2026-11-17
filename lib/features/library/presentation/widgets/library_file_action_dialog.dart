@@ -8,6 +8,7 @@ import "../../application/directory_picker.dart";
 import "../../../../app/presentation/ame_choice.dart";
 import "../../../../app/presentation/ame_dialog.dart";
 import "../../../../app/presentation/ame_dialog_location.dart";
+import "../../../../app/presentation/ame_disclosure.dart";
 import "../../application/library_file_operations.dart";
 import "../../application/library_file_selection.dart";
 import "../../domain/library_file_operations.dart";
@@ -203,10 +204,19 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
                       ),
                     ),
                   ),
-                  if (_rule != LibraryFileOrganizationRule.direct) ...[
-                    const SizedBox(height: 8),
-                    Text(LibraryFileStrings.ruleDescription(_rule)),
-                  ],
+                  AmeDisclosure(
+                    child: _rule == LibraryFileOrganizationRule.direct
+                        ? null
+                        : SizedBox(
+                            width: double.infinity,
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                LibraryFileStrings.ruleDescription(_rule),
+                              ),
+                            ),
+                          ),
+                  ),
                 ],
                 if (rename) ...[
                   TextField(

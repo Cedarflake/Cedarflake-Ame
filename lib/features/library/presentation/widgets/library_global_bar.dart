@@ -18,6 +18,7 @@ class LibraryGlobalBar extends StatelessWidget {
     required this.searchController,
     required this.sidebarWidth,
     required this.sidebarExpansion,
+    required this.sidebarToggle,
     this.onSearchChanged,
     this.discovery,
     required this.notifications,
@@ -30,6 +31,7 @@ class LibraryGlobalBar extends StatelessWidget {
   final TextEditingController searchController;
   final double sidebarWidth;
   final double sidebarExpansion;
+  final Widget sidebarToggle;
   final ValueChanged<String>? onSearchChanged;
   final LibrarySearch? discovery;
   final AmeNotificationState notifications;
@@ -40,7 +42,7 @@ class LibraryGlobalBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       key: const Key("library-global-surface"),
-      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+      type: MaterialType.transparency,
       child: SizedBox(
         key: const Key("library-global-bar"),
         height: 64,
@@ -48,9 +50,11 @@ class LibraryGlobalBar extends StatelessWidget {
           builder: (context, constraints) {
             const collapsedLeading =
                 LibraryWorkbenchMetrics.railWidth +
-                LibraryWorkbenchMetrics.galleryHeadingInset;
+                LibraryWorkbenchMetrics.contentInset;
             final contentLeading =
-                collapsedLeading + sidebarWidth * sidebarExpansion;
+                collapsedLeading +
+                (sidebarWidth - LibraryWorkbenchMetrics.contentInset) *
+                    sidebarExpansion;
             final leadingWidth = (contentLeading - 16).clamp(
               LibraryWorkbenchMetrics.railWidth,
               244.0,
@@ -63,12 +67,15 @@ class LibraryGlobalBar extends StatelessWidget {
             const expandedSearchGap = 32.0;
             const trailingWidth =
                 captionWidth + notificationWidth + notificationGap;
-            final collapsedSearchWidth = math.max(
-              0.0,
-              constraints.maxWidth -
-                  collapsedLeading -
-                  trailingWidth -
-                  collapsedSearchGap,
+            final collapsedSearchWidth = math.min(
+              720.0,
+              math.max(
+                0.0,
+                constraints.maxWidth -
+                    collapsedLeading -
+                    trailingWidth -
+                    collapsedSearchGap,
+              ),
             );
             final expandedSearchWidth = math.min(
               720.0,
@@ -76,7 +83,7 @@ class LibraryGlobalBar extends StatelessWidget {
                 0.0,
                 constraints.maxWidth -
                     collapsedLeading -
-                    sidebarWidth -
+                    (sidebarWidth - LibraryWorkbenchMetrics.contentInset) -
                     trailingWidth -
                     expandedSearchGap,
               ),
@@ -91,46 +98,55 @@ class LibraryGlobalBar extends StatelessWidget {
                 const Positioned.fill(
                   child: AmeWindowDragRegion(child: SizedBox.expand()),
                 ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: AmeWindowDragRegion(
-                    child: SizedBox(
-                      width: leadingWidth,
-                      child: Padding(
-                        padding: const EdgeInsets.only(
-                          left: LibraryWorkbenchMetrics.railIconInset,
-                        ),
-                        child: Row(
-                          children: [
-                            Semantics(
-                              label: isCompact ? LibraryStrings.appName : null,
-                              image: isCompact,
-                              child: const AmeBrandMark(
-                                size: LibraryWorkbenchMetrics.iconSize,
+                Positioned(
+                  left: 0,
+                  top: 8,
+                  bottom: 8,
+                  width: LibraryWorkbenchMetrics.railWidth,
+                  child: Center(child: sidebarToggle),
+                ),
+                if (!isCompact)
+                  Positioned(
+                    left: LibraryWorkbenchMetrics.railWidth,
+                    top: 0,
+                    bottom: 0,
+                    width: leadingWidth - LibraryWorkbenchMetrics.railWidth,
+                    child: AmeWindowDragRegion(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            // The asset's transparent inset aligns its visible edge with the action.
+                            left: 10,
+                          ),
+                          child: Row(
+                            children: [
+                              Semantics(
+                                label: LibraryStrings.appName,
+                                image: true,
+                                child: const AmeBrandMark(size: 36),
                               ),
-                            ),
-                            if (!isCompact) ...[
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
-                                  LibraryStrings.appName,
+                                  LibraryStrings.workbenchName,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
+                                    fontSize: 20,
                                     color: Theme.of(
                                       context,
-                                    ).colorScheme.primary,
-                                    fontWeight: ameFontWeightSemibold,
+                                    ).colorScheme.onSurface,
+                                    fontWeight: ameFontWeightRegular,
                                   ),
                                 ),
                               ),
                             ],
-                          ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
                 Positioned(
                   left: contentLeading,
                   top: 0,

@@ -85,6 +85,10 @@ only when independent consumers need the same stable behavior; shared visual pri
 depend on feature modules. A common directory must not become a second implementation of feature
 policy. Page count alone does not justify splitting a feature into packages or Rust crates.
 
+The duplicate-workspace layout consumes the Settings preference controller and sidebar-width limits
+already used by the workbench. Settings retains persistence; the layout only renders sidebar width
+and visibility. Exact consumer-to-contract registrations remain in the boundary policy.
+
 ### Provider and resource composition
 
 Keep Provider declarations beside the application or presentation state they expose. Port files

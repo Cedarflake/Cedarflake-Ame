@@ -1,4 +1,5 @@
 import "package:cedarflake_ame/app/ame_app.dart";
+import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
@@ -10,6 +11,69 @@ import "package:flutter_test/flutter_test.dart";
 import "../../../support/application_test_bindings.dart";
 
 void main() {
+  testWidgets(
+    "published empty favorites stay visible through query refreshes",
+    (tester) async {
+      final controller = _LoadingFeedbackController();
+      final favorites = _populatedState().copyWith(
+        assets: const [],
+        timeline: null,
+        query: const LibraryGalleryQuery(
+          collection: LibraryGalleryCollection.favorites(),
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: applicationTestOverrides([
+          initialLibraryStateProvider.overrideWithValue(favorites),
+          libraryControllerProvider.overrideWith(() => controller),
+        ]),
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: const AmeApp()),
+      );
+      await tester.pumpAndSettle();
+      final title = find.text("收藏夹里还没有图片");
+      final bounds = tester.getRect(title);
+      final element = tester.element(title);
+      const albumQuery = LibraryGalleryQuery(
+        collection: LibraryGalleryCollection.album("one"),
+      );
+      final backgroundRefresh = favorites.copyWith(isLoadingTimeline: true);
+      for (final pending in [
+        backgroundRefresh,
+        backgroundRefresh,
+        favorites.copyWith(
+          queryActivity: const LibraryQueryLoading(albumQuery),
+          isLoadingTimeline: true,
+        ),
+      ]) {
+        controller.publish(pending);
+        await tester.pump();
+        for (final elapsed in [100, 600]) {
+          await tester.pump(Duration(milliseconds: elapsed));
+          expect(tester.element(title), same(element));
+          expect(tester.getRect(title), bounds);
+          expect(find.byType(AmeLoadingIndicator), findsNothing);
+          expect(find.text("这个相册里还没有图片"), findsNothing);
+        }
+        controller.publish(favorites);
+        await tester.pumpAndSettle();
+        expect(tester.element(title), same(element));
+        expect(tester.getRect(title), bounds);
+      }
+      controller.publish(favorites.copyWith(query: albumQuery));
+      await tester.pumpAndSettle();
+      expect(title, findsNothing);
+      expect(find.text("这个相册里还没有图片"), findsOneWidget);
+      controller.publish(_populatedState());
+      await tester.pumpAndSettle();
+      expect(find.text("这个相册里还没有图片"), findsNothing);
+      expect(find.byType(LibraryPhotoTile), findsWidgets);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
   testWidgets("loading feedback preserves the populated gallery viewport", (
     tester,
   ) async {
@@ -103,6 +167,8 @@ enum _LoadingActivity {
 }
 
 class _LoadingFeedbackController extends LibraryController {
+  void publish(LibraryState value) => state = value;
+
   @override
   void ensureVisibleRange({
     required int startItemOffset,

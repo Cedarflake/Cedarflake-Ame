@@ -8,10 +8,12 @@ import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/presentation/ame_typography.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../application/library_album_requests.dart";
 import "../../domain/library_organization.dart";
 import "library_album_icon.dart";
 import "library_sidebar_selection_icon.dart";
+import "library_workbench_metrics.dart";
 
 class LibraryAlbumNavigationTile extends StatefulWidget {
   const LibraryAlbumNavigationTile({
@@ -122,8 +124,10 @@ class _LibraryAlbumNavigationTileState
         key: ValueKey("library-sidebar-album-${widget.album.id}"),
         focusNode: _focus,
         selected: widget.selected,
-        selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        selectedTileColor: AmeWorkbenchSurfaces.of(context).selection,
+        selectedColor: AmeWorkbenchSurfaces.of(context).onSelection,
+        shape: LibraryWorkbenchMetrics.sidebarRowShape,
+        minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
         contentPadding: const EdgeInsets.only(left: 8, right: 4),
         minLeadingWidth: 40,
         horizontalTitleGap: 4,
@@ -139,7 +143,7 @@ class _LibraryAlbumNavigationTileState
           style: TextStyle(
             fontWeight: widget.selected
                 ? ameFontWeightSemibold
-                : ameFontWeightMedium,
+                : ameFontWeightRegular,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,

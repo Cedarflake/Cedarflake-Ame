@@ -24,13 +24,19 @@ void main() {
       ),
     );
 
+    expect(
+      find.descendant(
+        of: find.byKey(const Key("library-function-rail")),
+        matching: find.text("图库"),
+      ),
+      findsOneWidget,
+    );
     for (final key in const [
-      Key("library-function-rail"),
       Key("library-sidebar-library"),
       Key("library-gallery-header"),
     ]) {
       expect(
-        find.descendant(of: find.byKey(key), matching: find.text("图库")),
+        find.descendant(of: find.byKey(key), matching: find.text("所有图片")),
         findsOneWidget,
       );
     }
@@ -40,8 +46,7 @@ void main() {
     expect(find.byKey(const Key("library-import-button")), findsNothing);
     expect(find.byKey(const Key("library-sidebar-import")), findsOneWidget);
     expect(find.byKey(const Key("library-sidebar-settings")), findsOneWidget);
-    expect(find.text("Cedarflake Ame"), findsOneWidget);
-    expect(find.text("Ame"), findsNothing);
+    expect(find.text("Ame"), findsOneWidget);
     expect(
       find.ancestor(
         of: find.byKey(const Key("window-close")),
@@ -155,8 +160,8 @@ void main() {
     );
 
     expect(scaffold.backgroundColor, colorScheme.surfaceContainerLow);
-    expect(globalSurface.color, colorScheme.surfaceContainerHigh);
-    expect(navigationSurface.color, colorScheme.surfaceContainerLow);
+    expect(globalSurface.type, MaterialType.transparency);
+    expect(navigationSurface.type, MaterialType.transparency);
     expect(mainSurface.type, MaterialType.transparency);
     expect(mainSurface.clipBehavior, Clip.none);
     final backgrounds = find.ancestor(
@@ -165,7 +170,7 @@ void main() {
     );
     final backgroundBox = tester.widget<DecoratedBox>(backgrounds.first);
     final background = backgroundBox.decoration as BoxDecoration;
-    expect(background.color, colorScheme.surfaceContainerLowest);
+    expect(background.color, colorScheme.surfaceBright);
     expect(background.borderRadius, LibraryMainSurface.borderRadius);
     final galleryClips = find.ancestor(
       of: find.byKey(const Key("library-main-surface")),
@@ -194,6 +199,19 @@ void main() {
       ),
       findsOneWidget,
     );
+    final toggle = find.byKey(const Key("library-sidebar-toggle"));
+    final surface = find.byKey(const Key("library-main-surface"));
+    final expandedBounds = tester.getRect(surface);
+    await tester.tap(toggle);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(tester.getRect(surface).left, lessThan(expandedBounds.left));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(surface), const Rect.fromLTRB(80, 64, 1272, 792));
+    expect(tester.getTopLeft(find.byKey(const Key("library-search"))).dx, 80);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(surface), expandedBounds);
   });
 
   testWidgets("resizes, resets, and persists the expanded sidebar width", (
@@ -302,8 +320,7 @@ void main() {
     await tester.pump();
 
     expect(tester.takeException(), isNull);
-    expect(find.text("Cedarflake Ame"), findsOneWidget);
-    expect(find.text("Ame"), findsNothing);
+    expect(find.text("Ame"), findsOneWidget);
     expect(find.byKey(const Key("library-search")), findsOneWidget);
     expect(find.byKey(const Key("library-import-button")), findsNothing);
     expect(find.byKey(const Key("library-sidebar-import")), findsOneWidget);
@@ -322,7 +339,7 @@ void main() {
       find.byKey(const Key("library-sidebar-toggle")),
     );
     expect(galleryHeader.left, closeTo(sidebar.right, 0.1));
-    expect(galleryHeader.right, 1100);
+    expect(galleryHeader.right, 1092);
     for (final key in const [
       Key("library-select-button"),
       Key("library-sort-menu"),

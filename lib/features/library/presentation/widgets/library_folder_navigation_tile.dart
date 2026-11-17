@@ -9,11 +9,13 @@ import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/presentation/ame_typography.dart";
+import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../../../app/presentation/ame_transition_icon.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
 import "library_path_text.dart";
+import "library_workbench_metrics.dart";
 
 class LibraryFolderNavigationTile extends StatefulWidget {
   const LibraryFolderNavigationTile({
@@ -82,11 +84,10 @@ class _LibraryFolderNavigationTileState
           key: ValueKey("folder-tile-$keySuffix"),
           focusNode: _focusNode,
           selected: widget.isSelected,
-          selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          dense: true,
+          selectedTileColor: AmeWorkbenchSurfaces.of(context).selection,
+          selectedColor: AmeWorkbenchSurfaces.of(context).onSelection,
+          shape: LibraryWorkbenchMetrics.sidebarRowShape,
+          minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
           contentPadding: EdgeInsets.only(
             left: 16 + (widget.depth * 28),
             right: 4,
@@ -105,7 +106,7 @@ class _LibraryFolderNavigationTileState
             style: TextStyle(
               fontWeight: widget.isSelected
                   ? ameFontWeightSemibold
-                  : ameFontWeightMedium,
+                  : ameFontWeightRegular,
             ),
             child: LibraryPathText(
               text: widget.folder.name,
@@ -212,7 +213,7 @@ class LibraryFolderErrorTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(left: 16 + (depth * 28), right: 4),
+      padding: EdgeInsets.only(left: 8 + (depth * 28), right: 4),
       child: TextButton.icon(
         key: const Key("folder-tree-retry"),
         onPressed: onRetry,
@@ -238,7 +239,7 @@ class LoadMoreLibraryFoldersTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(left: 16 + (depth * 28), right: 4),
+      padding: EdgeInsets.only(left: 8 + (depth * 28), right: 4),
       child: TextButton(
         key: const Key("folder-tree-load-more"),
         onPressed: isLoading ? null : onPressed,

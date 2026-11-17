@@ -8,9 +8,11 @@ import "../../../../app/presentation/ame_selection_checkbox.dart";
 class LibrarySidebarSectionHeader extends StatelessWidget {
   const LibrarySidebarSectionHeader({
     required this.title,
-    required this.createLabel,
-    required this.createKey,
-    required this.onCreate,
+    this.count,
+    this.trailing,
+    this.createLabel,
+    this.createKey,
+    this.onCreate,
     this.selectedCount = 0,
     this.allSelected = false,
     this.onSelectAll,
@@ -21,8 +23,10 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
   });
 
   final String title;
-  final String createLabel;
-  final Key createKey;
+  final int? count;
+  final Widget? trailing;
+  final String? createLabel;
+  final Key? createKey;
   final VoidCallback? onCreate;
   final int selectedCount;
   final bool allSelected;
@@ -32,18 +36,58 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
   final VoidCallback? onRemove;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 8, 6, 0),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            selectedCount > 0 ? "已选择 $selectedCount" : title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: ameFontWeightSemibold),
+  Widget build(BuildContext context) {
+    final labelStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+      fontWeight: ameFontWeightMedium,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
+    final heading = Semantics(
+      label: selectedCount > 0 ? "已选择 $selectedCount" : null,
+      excludeSemantics: selectedCount > 0,
+      child: Row(
+        children: [
+          Flexible(
+            child: selectedCount > 0
+                ? LayoutBuilder(
+                    builder: (context, constraints) {
+                      final measure = TextPainter(
+                        text: TextSpan(text: "已选择", style: labelStyle),
+                        textDirection: Directionality.of(context),
+                        textScaler: MediaQuery.textScalerOf(context),
+                      )..layout();
+                      final compact = measure.width > constraints.maxWidth;
+                      measure.dispose();
+                      return Text(
+                        compact ? "已选" : "已选择",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: labelStyle,
+                      );
+                    },
+                  )
+                : Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: labelStyle,
+                  ),
           ),
-        ),
+          if (selectedCount > 0 || count != null) ...[
+            const SizedBox(width: 4),
+            Text(
+              "(${selectedCount > 0 ? selectedCount : count})",
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+    final actions = Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
         if (selectedCount > 0)
           AmeTooltip(
             message: allSelected ? "取消全选" : selectAllLabel ?? "全选$title",
@@ -51,9 +95,6 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
               key: const Key("library-sidebar-select-all"),
               markExtent: 18,
               tapTargetSize: 36,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(2),
-              ),
               value: allSelected ? true : null,
               tristate: true,
               isOutlined: true,
@@ -71,18 +112,38 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
               icon: const Icon(Symbols.delete_rounded),
             ),
           ),
-        AmeTooltip(
-          message: createLabel,
-          child: IconButton(
-            key: createKey,
-            onPressed: onCreate,
-            style: _actionStyle,
-            icon: const Icon(Symbols.add_rounded),
+        if (selectedCount == 0 && createLabel != null)
+          SizedBox(
+            width: 40,
+            child: Center(
+              child: AmeTooltip(
+                message: createLabel!,
+                child: IconButton(
+                  key: createKey,
+                  onPressed: onCreate,
+                  style: _actionStyle,
+                  icon: const Icon(Symbols.add_rounded),
+                ),
+              ),
+            ),
           ),
-        ),
+        if (trailing != null)
+          SizedBox(width: 40, child: Center(child: trailing)),
       ],
-    ),
-  );
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 4, 0),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 36),
+        child: Row(
+          children: [
+            Expanded(child: heading),
+            actions,
+          ],
+        ),
+      ),
+    );
+  }
 
   static final _actionStyle = IconButton.styleFrom(
     iconSize: 20,

@@ -16,12 +16,13 @@ abstract final class LibraryStrings {
 
   // 顶部栏｜应用名称、搜索框占位文字和清除搜索按钮。
   static const appName = "Cedarflake Ame";
+  static const workbenchName = "Ame";
   static const searchHint = "在图库中搜索";
   static const clearSearch = "清除搜索";
 
   // 左侧栏｜图库入口、添加目录入口、设置入口和未添加目录的提示。
-  // “图库”也用作主内容区的默认标题。
   static const library = "图库";
+  static const allImages = "所有图片";
   static const addFolder = "添加目录到图库";
   static const settings = "设置";
   static const noFolder = "还没有添加目录";
@@ -196,6 +197,7 @@ abstract final class LibraryStrings {
     final separator = error.indexOf(":");
     final code = separator < 0 ? error : error.substring(0, separator);
     return switch (code) {
+      "source_root_overlaps_storage" => "这个文件夹与 Ame 的数据存储位置重叠，请选择其他文件夹。",
       "library_update_in_progress" => "另一个目录正在更新，结束后再继续。",
       "library_retained_cancel_failed" => "取消失败，请重试。",
       "catalog_root_consolidation_incomplete" =>

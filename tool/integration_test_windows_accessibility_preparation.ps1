@@ -30,6 +30,9 @@ try {
     if ($result.attempt -ne 0 -or $result.windowCount -ne 0 -or $result.elementCount -ne 0) {
         throw "Runtime preparation cannot substitute for an application assertion"
     }
+    if ($result.stageMilliseconds.PSObject.Properties.Name -cnotcontains "loading-assemblies") {
+        throw "Runtime preparation omitted native activation initialization timing"
+    }
     $failure = $null
     try {
         Invoke-AmeWindowsAccessibilityProbe -ProbeScriptPath $probe `

@@ -1,6 +1,7 @@
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_states.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_viewport.dart";
 import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -14,7 +15,13 @@ void main() {
       final state = LibraryState(catalogRevision: BigInt.one);
       Future<void> show(LibraryState value) => tester.pumpWidget(
         MaterialApp(
-          home: EmptyLibraryGallery(state: value, onImport: () => imports++),
+          home: LibraryGalleryViewport(
+            header: const SizedBox(height: 80),
+            isEmpty: true,
+            isLoading: value.isRefreshingQuery,
+            hasPublishedResults: value.catalogRevision != null,
+            body: EmptyLibraryGallery(state: value, onImport: () => imports++),
+          ),
         ),
       );
       await show(state);

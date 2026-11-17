@@ -297,12 +297,13 @@ class LibraryGalleryWall extends StatelessWidget {
         }
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted ||
-              !isActive ||
+          if (!context.mounted) return;
+          // A hidden viewer background still needs its resized return geometry.
+          onLayoutChanged(layoutMetrics, virtualGeometry);
+          if (!isActive ||
               !TickerMode.getValuesNotifier(context).value.enabled) {
             return;
           }
-          onLayoutChanged(layoutMetrics, virtualGeometry);
           if (scrollController.hasClients) {
             synchronizeVisibleViewport(
               scrollController.position,

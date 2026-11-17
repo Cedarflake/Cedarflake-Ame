@@ -7,6 +7,8 @@ import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../domain/library_sidebar_order.dart";
 import "../../application/library_sidebar_ordering.dart";
+import "library_sidebar_rows_disclosure.dart";
+import "library_workbench_metrics.dart";
 
 class LibrarySidebarReorderList<T extends Object> extends StatefulWidget {
   const LibrarySidebarReorderList({
@@ -84,46 +86,49 @@ class _LibrarySidebarReorderListState<T extends Object>
         for (final item in widget.items) widget.itemId(item): item,
       };
       final ids = _ordering.ids;
+      final disclosure = LibrarySidebarRowsVisibility.maybeOf(context);
       final draggable =
-          widget.enabled && widget.onReorder != null && !_ordering.saving;
+          widget.enabled &&
+          widget.onReorder != null &&
+          !_ordering.saving &&
+          (disclosure?.expanded ?? true);
       // Keep the drag proxy inside the sidebar, below route-only captured
       // themes such as AmeScrollMotionTheme.
-      return Overlay.wrap(
-        child: AmeScrollMotion(
-          child: ReorderableListView.builder(
-            key: ValueKey(_itemsRevision),
-            padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
-            buildDefaultDragHandles: false,
-            proxyDecorator: (child, index, animation) => AnimatedBuilder(
-              animation: animation,
-              child: child,
-              builder: (context, child) => Material(
-                elevation: 6 * Curves.easeInOut.transform(animation.value),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: child,
-              ),
-            ),
-            itemCount: ids.length,
-            onReorderItem: (from, to) {
-              if (draggable) unawaited(_reorder(from, to));
-            },
-            header: widget.header(_ordering.saving),
-            footer: widget.footer?.call(_ordering.saving),
-            itemBuilder: (context, index) => KeyedSubtree(
-              key: ValueKey(ids[index]),
-              child: widget.itemBuilder(
-                context,
-                items[ids[index]]!,
-                index,
-                draggable,
-              ),
-            ),
+
+      final rows = ReorderableListView.builder(
+        key: ValueKey(_itemsRevision),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+        buildDefaultDragHandles: false,
+        proxyDecorator: (child, index, animation) => AnimatedBuilder(
+          animation: animation,
+          child: child,
+          builder: (context, child) => Material(
+            elevation: 6 * Curves.easeInOut.transform(animation.value),
+            shape: LibraryWorkbenchMetrics.sidebarRowShape,
+            clipBehavior: Clip.antiAlias,
+            child: child,
           ),
         ),
+        itemCount: disclosure?.visible == false ? 0 : ids.length,
+        onReorderItem: (from, to) {
+          if (draggable) unawaited(_reorder(from, to));
+        },
+        header: widget.header(_ordering.saving),
+        footer: widget.footer?.call(_ordering.saving),
+        itemBuilder: (context, index) {
+          final item = widget.itemBuilder(
+            context,
+            items[ids[index]]!,
+            index,
+            draggable,
+          );
+          return KeyedSubtree(
+            key: ValueKey(ids[index]),
+            child: disclosure?.wrapRow(item) ?? item,
+          );
+        },
       );
+      return Overlay.wrap(child: AmeScrollMotion(child: rows));
     },
   );
 }

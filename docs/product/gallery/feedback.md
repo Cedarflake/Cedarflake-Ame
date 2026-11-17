@@ -54,6 +54,9 @@ Content waiting takes priority over the timeline's compact circular feedback bef
 Only a rail waiting independently of available content shows its own circle. The rail has no left
 divider; its width, hit targets and navigation behavior stay unchanged. Compact search/sidebar
 controls, filmstrip edge cards, task progress and capacity gauges retain their existing indicators.
+Folder branches retain their published rows during background reads without appending a loading
+row that displaces later sources. First reads retain their loading placeholder; explicit paging
+keeps progress inside its existing load-more action.
 
 Confirmation reads center the indicator in the content area, retaining the buttons and their
 admission rules below. The indicator remains mounted through its dismissal fade; completing a read
@@ -110,6 +113,10 @@ and verifies the two themes, shared geometry, text wrapping and connected action
 [verification map](../../acceptance/quality/ui-verification.md#ui-workflow-verification) owns the required checks.
 
 ### Source status and notification ownership
+
+Import rejection because the selected folder overlaps Ame's data storage explains the conflict
+and offers `重新选择文件夹`. That action opens the folder picker instead of repeating the rejected
+path; canceling preserves the existing library. Other recoverable failures retain their retry.
 
 The sidebar keeps only compact per-source state such as `已同步`, `正在更新图库`, `更新受阻`, or
 `目录不可用`. Failure and reconciliation detail belongs to the bottom notification queue and

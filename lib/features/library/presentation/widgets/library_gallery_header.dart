@@ -5,6 +5,7 @@ import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
+import "../../../../app/presentation/ame_typography.dart";
 import "../../domain/library_gallery_group.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
@@ -111,7 +112,9 @@ class LibraryGalleryHeader extends StatelessWidget {
                   Text(
                     title,
                     key: const Key("library-gallery-title"),
-                    style: Theme.of(context).textTheme.headlineSmall,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: ameFontWeightRegular,
+                    ),
                   ),
                   if (isReviewing)
                     Text(

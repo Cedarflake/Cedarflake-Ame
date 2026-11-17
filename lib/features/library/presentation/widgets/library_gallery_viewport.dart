@@ -11,6 +11,8 @@ class LibraryGalleryViewport extends StatelessWidget {
     required this.body,
     required this.isEmpty,
     required this.isLoading,
+    required this.hasPublishedResults,
+    this.showContentIndicator,
     this.failure,
     this.notice,
     this.loadingDelay = ameProgressDelay,
@@ -23,6 +25,8 @@ class LibraryGalleryViewport extends StatelessWidget {
   final Widget? notice;
   final bool isEmpty;
   final bool isLoading;
+  final bool hasPublishedResults;
+  final bool? showContentIndicator;
   final Duration loadingDelay;
 
   @override
@@ -30,7 +34,7 @@ class LibraryGalleryViewport extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (isEmpty && !isLoading)
+        if (isEmpty && (!isLoading || hasPublishedResults))
           Positioned.fill(
             child: Semantics(
               sortKey: const OrdinalSortKey(1),
@@ -47,7 +51,8 @@ class LibraryGalleryViewport extends StatelessWidget {
             Expanded(
               child: LibraryGalleryLoadingRegion(
                 isLoading: isLoading,
-                showContentIndicator: isEmpty,
+                showContentIndicator:
+                    showContentIndicator ?? (isEmpty && !hasPublishedResults),
                 delay: loadingDelay,
                 child: Stack(
                   fit: StackFit.expand,
