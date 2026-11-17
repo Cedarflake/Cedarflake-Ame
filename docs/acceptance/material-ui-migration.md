@@ -2,6 +2,21 @@
 
 ## Material workbench composition, 2026-11-16
 
+### Interrupted sidebar and workspace motion, 2026-11-17
+
+The workspace transition now starts at the active pane's displayed inset. Sidebar motion settles
+when a different workspace takes over that boundary; hidden panes cannot overwrite the sample.
+Destination-width content layout, final bounds and existing motion drivers are unchanged.
+
+The retained-workbench fixture reproduced a jump from x=206 to x=80 when Settings interrupted
+sidebar collapse. The same case now preserves its boundary on entry and on immediate return;
+both collapse and expansion retain the gallery's scroll owner and offset. All 24 affected
+workbench, sidebar, right-edge and duplicate-layout checks passed, including reduced motion,
+enlarged text, stationary right-edge controls and unchanged content-layout counts during motion.
+Formatting and scoped analysis passed. The Profile payload was rebuilt with the receipt-verified
+native library; interactive follow-up is pending. The width-transition and sidebar owners contain
+171 and 183 production lines, and the retained-workbench fixture contains 242 test lines.
+
 ### Folder refresh and import recovery, 2026-11-17
 
 Refreshing a loaded folder branch appended a 40-pixel loading row below its existing children,

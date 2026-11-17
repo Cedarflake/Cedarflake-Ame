@@ -29,6 +29,7 @@ class _LibraryWorkspaceWidthTransitionState
     with SingleTickerProviderStateMixin {
   late final _controller = AnimationController(vsync: this, value: 1);
   Animation<double> _offset = const AlwaysStoppedAnimation(0);
+  (LibraryWorkspace, double)? _displayedBoundary;
 
   bool get _skipMotion =>
       MediaQuery.disableAnimationsOf(context) ||
@@ -49,7 +50,12 @@ class _LibraryWorkspaceWidthTransitionState
       }
       return;
     }
-    final displayedInset = oldWidget.contentInset + _offset.value;
+    final displayedInset = switch (_displayedBoundary) {
+      (final destination, final inset)
+          when destination == oldWidget.destination =>
+        inset,
+      _ => oldWidget.contentInset + _offset.value,
+    };
     if ((displayedInset - widget.contentInset).abs() < 0.01) {
       _controller.value = 1;
       _offset = const AlwaysStoppedAnimation(0);
@@ -64,11 +70,15 @@ class _LibraryWorkspaceWidthTransitionState
   }
 
   @override
-  Widget build(BuildContext context) => LibraryWorkspaceWidthMotion(
-    destination: widget.destination,
-    offset: _offset,
-    child: widget.child,
-  );
+  Widget build(BuildContext context) {
+    final destination = widget.destination;
+    return LibraryWorkspaceWidthMotion(
+      destination: destination,
+      offset: _offset,
+      recordInset: (inset) => _displayedBoundary = (destination, inset),
+      child: widget.child,
+    );
+  }
 
   @override
   void dispose() {
@@ -81,21 +91,23 @@ class LibraryWorkspaceWidthMotion extends InheritedWidget {
   const LibraryWorkspaceWidthMotion({
     required this.destination,
     required this.offset,
+    required this.recordInset,
     required super.child,
     super.key,
   });
 
   final Animation<double> offset;
   final LibraryWorkspace destination;
+  final ValueChanged<double> recordInset;
 
-  static Animation<double>? of(
+  static LibraryWorkspaceWidthMotion? of(
     BuildContext context, {
     LibraryWorkspace? destination,
   }) {
     final motion = context
         .dependOnInheritedWidgetOfExactType<LibraryWorkspaceWidthMotion>();
     if (destination != null && motion?.destination != destination) return null;
-    return motion?.offset;
+    return motion;
   }
 
   @override
@@ -111,10 +123,11 @@ class LibraryWorkspaceContentPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final offset = LibraryWorkspaceWidthMotion.of(
+    final motion = LibraryWorkspaceWidthMotion.of(
       context,
       destination: LibraryWorkspace.settings,
     );
+    final offset = motion?.offset;
     const inset = LibraryWorkbenchMetrics.contentInset;
     return LayoutBuilder(
       builder: (context, constraints) => AnimatedBuilder(
@@ -129,25 +142,29 @@ class LibraryWorkspaceContentPane extends StatelessWidget {
             child: RepaintBoundary(child: child),
           ),
         ),
-        builder: (context, child) => Stack(
-          fit: StackFit.expand,
-          children: [
-            Positioned(
-              left: inset + (offset?.value ?? 0),
-              right: 0,
-              top: 0,
-              bottom: 0,
-              child: LibraryMainSurface(
-                child: OverflowBox(
-                  alignment: Alignment.topRight,
-                  minWidth: constraints.maxWidth - inset,
-                  maxWidth: constraints.maxWidth - inset,
-                  child: child,
+        builder: (context, child) {
+          final displayedInset = inset + (offset?.value ?? 0);
+          motion?.recordInset(displayedInset);
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned(
+                left: displayedInset,
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: LibraryMainSurface(
+                  child: OverflowBox(
+                    alignment: Alignment.topRight,
+                    minWidth: constraints.maxWidth - inset,
+                    maxWidth: constraints.maxWidth - inset,
+                    child: child,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          );
+        },
       ),
     );
   }

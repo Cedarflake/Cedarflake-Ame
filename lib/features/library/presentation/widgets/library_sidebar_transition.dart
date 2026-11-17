@@ -39,6 +39,7 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _progress;
+  LibraryWorkspace? _activeWorkspace;
   bool get _skipMotion =>
       MediaQuery.disableAnimationsOf(context) ||
       !TickerMode.valuesOf(context).enabled;
@@ -56,7 +57,13 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_skipMotion) _finish();
+    final workspace = LibraryWorkspaceWidthMotion.of(context)?.destination;
+    if (_skipMotion ||
+        (_activeWorkspace != null && workspace != _activeWorkspace)) {
+      // Workspace motion takes over the visible boundary from sidebar motion.
+      _finish();
+    }
+    _activeWorkspace = workspace;
   }
 
   @override
@@ -79,10 +86,11 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
 
   @override
   Widget build(BuildContext context) {
-    final workspaceOffset = LibraryWorkspaceWidthMotion.of(
+    final workspaceMotion = LibraryWorkspaceWidthMotion.of(
       context,
       destination: widget.workspace,
     );
+    final workspaceOffset = workspaceMotion?.offset;
     return AnimatedBuilder(
       animation: Listenable.merge([_progress, ?workspaceOffset]),
       child: LibrarySidebarMotion(
@@ -97,6 +105,8 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
             LibraryWorkbenchMetrics.contentInset +
             (widget.sidebarWidth - LibraryWorkbenchMetrics.contentInset) *
                 _progress.value;
+        final displayedInset = extent + (workspaceOffset?.value ?? 0);
+        workspaceMotion?.recordInset(displayedInset);
         final panels = LayoutBuilder(
           builder: (context, constraints) {
             final galleryWidth =
@@ -135,7 +145,7 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
                   ),
                 ),
                 Positioned(
-                  left: extent + (workspaceOffset?.value ?? 0),
+                  left: displayedInset,
                   right: 0,
                   top: 0,
                   bottom: 0,

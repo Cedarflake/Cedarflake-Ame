@@ -163,6 +163,33 @@ void main() {
     await tester.tap(find.byKey(const Key("library-sidebar-settings")));
     await tester.pumpAndSettle();
     expect(find.text("Retained setting"), findsOneWidget);
+    await tester.tap(find.byKey(const Key("workbench-gallery")));
+    await tester.pumpAndSettle();
+    for (final expanding in [false, true]) {
+      await tester.tap(find.byKey(const Key("library-sidebar-toggle")));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      final interrupted = tester.getRect(surface);
+      expect(interrupted.left, inExclusiveRange(80, galleryBounds.left));
+
+      await tester.tap(find.byKey(const Key("library-sidebar-settings")));
+      await tester.pump();
+      expect(tester.getRect(surface), interrupted);
+      final layouts = settingsWidths.length;
+      await tester.pump(const Duration(milliseconds: 60));
+      final returning = tester.getRect(surface);
+      expect(returning.left, inExclusiveRange(80, interrupted.left));
+      expect(settingsWidths.length, layouts);
+
+      await tester.tap(find.byKey(const Key("workbench-gallery")));
+      await tester.pump();
+      expect(tester.getRect(surface), returning);
+      await tester.pumpAndSettle();
+      expect(tester.getRect(surface).left, expanding ? galleryBounds.left : 80);
+      expect(tester.getRect(surface).right, galleryBounds.right);
+      expect(identical(scroll.position, originalPosition), isTrue);
+      expect(scroll.offset, 1200);
+    }
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });

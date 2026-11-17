@@ -56,6 +56,10 @@ Sidebar materials remain transparent so they cannot paint over the shared backin
 Collapsed sidebars and Settings retain the same eight-pixel content inset. The workspace-width
 owner carries the visible boundary through destination changes, including reversals, while each
 destination lays out at its final width. Reduced motion completes the boundary change immediately.
+Each active pane reports its displayed inset to the workspace-motion owner. A destination change
+starts from that inset, including an interrupted sidebar transition; the sidebar then settles its
+local extent so the workspace transition alone carries the handoff. Hidden panes cannot replace
+the active pane's reported boundary.
 
 The shared search field has a leading search symbol and a trailing options arrow. Existing mode,
 scope, clear, progress and retry semantics remain intact. Settings uses a circular selected surface.
