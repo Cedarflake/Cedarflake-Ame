@@ -165,6 +165,7 @@ class _LibraryAlbumNavigationState
           : null,
       child: page.when(
         skipLoadingOnRefresh: true,
+        skipLoadingOnReload: true,
         data: (value) => LibrarySidebarRowsDisclosure(
           expanded: _expanded,
           child: LibrarySidebarReorderList<LibraryOrganizationAlbum>(

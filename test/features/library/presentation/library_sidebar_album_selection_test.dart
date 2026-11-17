@@ -1,3 +1,6 @@
+import "dart:async";
+
+import "package:cedarflake_ame/app/presentation/ame_progress.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_gallery_collection.dart";
@@ -13,6 +16,81 @@ import "../support/library_organization_fixture.dart";
 import "../../../support/application_test_bindings.dart";
 
 void main() {
+  testWidgets("creating an album retains visible rows while reloading", (
+    tester,
+  ) async {
+    final service = OrganizationServiceFixture()
+      ..albumItems = const [
+        LibraryOrganizationAlbum("one", "First"),
+        LibraryOrganizationAlbum("two", "Second"),
+      ];
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: applicationTestOverrides([
+          libraryOrganizationProvider.overrideWithValue(service),
+          libraryControllerProvider.overrideWith(
+            OrganizationLibraryFixture.new,
+          ),
+        ]),
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 260,
+              child: LibraryAlbumNavigation(
+                collection: const LibraryGalleryCollection.library(),
+                enabled: true,
+                onSelect: (_) {},
+                header: const Text("收藏夹"),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final first = find.text("First");
+    final originalElement = tester.element(first);
+    final originalBounds = tester.getRect(first);
+    await tester.tap(find.byKey(const Key("library-sidebar-create-album")));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key("library-album-name")),
+      "Third",
+    );
+
+    final pending = Completer<LibraryOrganizationAlbumPage>();
+    var reloading = false;
+    service.readAlbums = (_) {
+      reloading = true;
+      return pending.future;
+    };
+    await tester.tap(find.byKey(const Key("library-album-save")));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(reloading, isTrue);
+    expect(first, findsOneWidget);
+    expect(tester.element(first), same(originalElement));
+    expect(tester.getRect(first), originalBounds);
+    expect(find.text("Second"), findsOneWidget);
+    expect(find.text("(2)"), findsOneWidget);
+    expect(find.byType(AmeLinearProgress), findsNothing);
+
+    pending.complete(
+      LibraryOrganizationAlbumPage(
+        albums: service.albumItems,
+        revision: BigInt.two,
+        total: service.albumItems.length,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(first, findsOneWidget);
+    expect(tester.getRect(first), originalBounds);
+    expect(find.text("Second"), findsOneWidget);
+    expect(find.text("Third"), findsOneWidget);
+    expect(find.text("(3)"), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     "album multi-selection confirms once, cancellation preserves it and deletion clears it",
     (tester) async {

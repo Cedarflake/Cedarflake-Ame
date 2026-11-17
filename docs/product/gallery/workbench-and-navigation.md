@@ -251,6 +251,9 @@ the existing name/icon editor.
 An empty manual-album list uses the same static icon-and-text row as an empty folder list, with
 `还没有创建相册`. It appears only after loading confirms that the album total is zero, not for an
 empty page of a larger collection or a loading/error state.
+After an album edit, retain the published sidebar rows and count while reloading that page. Replace
+them when the refreshed page arrives, without replaying the section disclosure or an initial loading
+state. A first read, a different page and a failed read retain their own feedback.
 Library sidebar multi-selection includes only imported top-level sources. Child-folder rows remain
 browsing destinations, with no selection control, and are excluded from Select all and batch removal.
 Albums and imported top-level folders support saved drag order. Upgrade preserves the existing order;

@@ -2,6 +2,18 @@
 
 ## Material workbench composition, 2026-11-16
 
+### Album sidebar refresh continuity, 2026-11-17
+
+Album navigation retains its published page during dependency-driven reloads after edits. A
+controlled creation/read fixture reproduced removal of the existing `First` row while the next
+album page was pending. The corrected case retains that element, its bounds and the old count
+without a loading bar, then publishes all three albums and the new count together.
+
+Formatting, scoped analysis and four sidebar-selection and creation/undo checks passed. The
+isolated Profile client created two albums consecutively; the first row stayed in place as the
+second appeared and the count changed. No new Flutter exception or overflow was logged. The
+previous client exited normally with all 700 reusable fixture lengths and times unchanged.
+
 ### Segmented settings groups, 2026-11-17
 
 Settings groups now use the segmented composition specified in
