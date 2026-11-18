@@ -9,12 +9,6 @@
     "sha256": "5869e26bb25314375f2d5ef1877e3ea06b1543d6c710e6e4a1ec2f7177ab4b2c",
     "prefix": "onnxruntime-win-x64-1.31.1/"
   },
-  "bundledArchive": {
-    "url": "https://github.com/Cedarflake/Cedarflake-Ame/releases/download/v0.1.0-alpha.3/Cedarflake-Ame-v0.1.0-alpha.3-windows-x64-portable.zip",
-    "length": 47862449,
-    "sha256": "f11f62f0c87c0d25f20e377040a989d4e117b2740792f991896e76538e38e2a1",
-    "payloadPrefix": "Cedarflake-Ame/data/classification-runtime/"
-  },
   "files": [
     {
       "name": "onnxruntime.dll",

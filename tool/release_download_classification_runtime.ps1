@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 
 function Receive-AmeClassificationRuntimeArchive {
     param(
-        [Parameter(Mandatory = $true)][object]$Manifest,
+        [Parameter(Mandatory = $true)][object]$Expected,
         [Parameter(Mandatory = $true)][string]$Download
     )
     Add-Type -AssemblyName System.Net.Http
@@ -11,17 +11,11 @@ function Receive-AmeClassificationRuntimeArchive {
     $timeout = [Threading.CancellationTokenSource]::new([TimeSpan]::FromMinutes(5))
     $response = $null
     try {
-        $archives = @($Manifest.archive)
-        if ($Manifest.PSObject.Properties['bundledArchive']) { $archives += $Manifest.bundledArchive }
-        foreach ($expected in $archives) {
-            if ($null -ne $response) { $response.Dispose() }
-            $response = $client.GetAsync(
-                $expected.url, [Net.Http.HttpCompletionOption]::ResponseHeadersRead, $timeout.Token
-            ).GetAwaiter().GetResult()
-            if ([int]$response.StatusCode -notin @(404, 410)) { break }
-        }
+        $response = $client.GetAsync(
+            $Expected.url, [Net.Http.HttpCompletionOption]::ResponseHeadersRead, $timeout.Token
+        ).GetAwaiter().GetResult()
         [void]$response.EnsureSuccessStatusCode()
-        if ($response.Content.Headers.ContentLength -gt $expected.length) {
+        if ($response.Content.Headers.ContentLength -gt $Expected.length) {
             throw "Runtime download exceeds its admitted size"
         }
         $source = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
@@ -31,14 +25,13 @@ function Receive-AmeClassificationRuntimeArchive {
             $total = 0L
             while (($read = $source.ReadAsync($buffer, 0, $buffer.Length, $timeout.Token).GetAwaiter().GetResult()) -gt 0) {
                 $total += $read
-                if ($total -gt $expected.length) { throw "Runtime download exceeds its admitted size" }
+                if ($total -gt $Expected.length) { throw "Runtime download exceeds its admitted size" }
                 $destination.Write($buffer, 0, $read)
             }
         } finally {
             $destination.Dispose()
             $source.Dispose()
         }
-        return $expected
     } finally {
         if ($null -ne $response) { $response.Dispose() }
         $timeout.Dispose()

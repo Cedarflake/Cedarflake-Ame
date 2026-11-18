@@ -250,11 +250,6 @@ and GIT_COMMIT_ID. The distribution manifest binds the official archive and ever
 its length and SHA-256. Native regression coverage compares the DLL pins to the worker contract.
 This changes distribution, not the admitted encoder, pipeline revisions or inference policy.
 
-On 2026-11-18 the upstream CPU archive returned HTTP 404. The Windows build preparation command
-recovered the seven files into an empty build directory from the published Ame v0.1.0-alpha.3
-portable ZIP. Its archive SHA-256 matched the release asset. The extracted files totaled
-17,627,781 bytes and each matched its original length and SHA-256 digest.
-
 Focused PowerShell checks passed for selective archive extraction, altered and truncated artifacts,
 unexpected files, a rejected archive digest, a missing license, reparse traversal, existing extraction
 output and output outside the repository build directory. The initial restricted-token attempt
