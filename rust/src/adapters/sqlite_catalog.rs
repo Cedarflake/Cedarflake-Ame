@@ -1802,12 +1802,9 @@ impl CatalogRepository for SqliteCatalog {
         scan_id: &str,
         checkpoint: &ScanCheckpoint,
     ) -> Result<(), ScanError> {
-        scan_checkpoint::persist_progress(
-            self,
-            scan_id,
-            checkpoint,
-            scan_checkpoint::ProgressBoundary::Checkpoint,
-        )
+        scan_checkpoint::persist_progress(self, |tx| {
+            scan_checkpoint::write_checkpoint(tx, scan_id, checkpoint)
+        })
     }
 
     #[cfg(test)]
@@ -1856,25 +1853,11 @@ impl CatalogRepository for SqliteCatalog {
             transaction.commit().map_err(database_error)?;
             return Ok(current);
         }
-        let next = transaction
-            .query_row(
-                "SELECT id, relative_path FROM scan_directory_frontier
-                 WHERE scan_id = ?1 ORDER BY id LIMIT 1",
-                [scan_id],
-                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
-            )
-            .optional()
-            .map_err(database_error)?;
-        let Some((frontier_id, relative_path)) = next else {
+        let Some(relative_path) = scan_directories::take_next_directory(&transaction, scan_id)?
+        else {
             transaction.commit().map_err(database_error)?;
             return Ok(None);
         };
-        transaction
-            .execute(
-                "DELETE FROM scan_directory_frontier WHERE id = ?1 AND scan_id = ?2",
-                params![frontier_id, scan_id],
-            )
-            .map_err(database_error)?;
         transaction
             .execute(
                 "UPDATE scan_runs
@@ -1941,20 +1924,12 @@ impl CatalogRepository for SqliteCatalog {
                 "Directory entries cannot be staged outside the active enumeration",
             ));
         }
-        {
-            let mut statement = transaction
-                .prepare_cached(
-                    "INSERT OR IGNORE INTO scan_directory_entries(
-                       scan_id, directory_relative_path, relative_path
-                     ) VALUES (?1, ?2, ?3)",
-                )
-                .map_err(database_error)?;
-            for relative_path in relative_paths {
-                statement
-                    .execute(params![scan_id, relative_directory, relative_path])
-                    .map_err(database_error)?;
-            }
-        }
+        scan_directories::insert_directory_entries(
+            &transaction,
+            scan_id,
+            relative_directory,
+            relative_paths,
+        )?;
         transaction.commit().map_err(database_error)
     }
 
@@ -1964,7 +1939,7 @@ impl CatalogRepository for SqliteCatalog {
         scan_id: &str,
         relative_directory: &str,
     ) -> Result<(), ScanError> {
-        self.complete_directory_with_identity(scan_id, relative_directory, None)
+        self.complete_directory_with_identity(scan_id, relative_directory, &[], None)
     }
 
     fn has_directory_entry(
@@ -2077,17 +2052,14 @@ impl CatalogRepository for SqliteCatalog {
         transaction.commit().map_err(database_error)
     }
 
-    fn complete_directory(
+    fn advance_directory(
         &mut self,
         scan_id: &str,
         checkpoint: &ScanCheckpoint,
-    ) -> Result<(), ScanError> {
-        scan_checkpoint::persist_progress(
-            self,
-            scan_id,
-            checkpoint,
-            scan_checkpoint::ProgressBoundary::DirectoryCompletion,
-        )
+    ) -> Result<Option<String>, ScanError> {
+        scan_checkpoint::persist_progress(self, |tx| {
+            scan_checkpoint::advance_directory(tx, scan_id, checkpoint)
+        })
     }
 
     fn pause_scan(&mut self, scan_id: &str, checkpoint: &ScanCheckpoint) -> Result<(), ScanError> {

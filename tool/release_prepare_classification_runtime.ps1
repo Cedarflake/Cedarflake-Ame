@@ -54,11 +54,12 @@ try {
         $ownedDirectories.Add($extracted)
         foreach ($file in $part.files) { $ownedFiles.Add((Join-Path $extracted $file.name)) }
         $archive = if ($index -eq 0) { $ArchivePath } else { $DirectMLArchivePath }
+        $sourceArchive = $part.archive
         if ([string]::IsNullOrWhiteSpace($archive)) {
-            Receive-AmeClassificationRuntimeArchive $part.archive $download
+            $sourceArchive = Receive-AmeClassificationRuntimeArchive $part $download
             $archive = $download
         }
-        Expand-AmeClassificationRuntimeArchive $archive $extracted $part
+        Expand-AmeClassificationRuntimeArchive $archive $extracted $part -SourceArchive $sourceArchive
         foreach ($file in $part.files) {
             [IO.File]::Move((Join-Path $extracted $file.name), (Join-Path $prepared $file.name))
         }

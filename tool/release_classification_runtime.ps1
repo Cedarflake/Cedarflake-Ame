@@ -69,10 +69,11 @@ function Expand-AmeClassificationRuntimeArchive {
     param(
         [Parameter(Mandatory = $true)][string]$ArchivePath,
         [Parameter(Mandatory = $true)][string]$Destination,
-        [Parameter(Mandatory = $true)][object]$Manifest
+        [Parameter(Mandatory = $true)][object]$Manifest,
+        [object]$SourceArchive = $Manifest.archive
     )
 
-    Assert-AmeClassificationRuntimeArtifact $ArchivePath $Manifest.archive
+    Assert-AmeClassificationRuntimeArtifact $ArchivePath $SourceArchive
     Assert-AmeClassificationRuntimeLocalPath $Destination
     if (Test-Path -LiteralPath $Destination) {
         throw "Runtime extraction requires a new directory"
@@ -83,7 +84,11 @@ function Expand-AmeClassificationRuntimeArchive {
     try {
         [void][IO.Directory]::CreateDirectory($Destination)
         foreach ($file in $Manifest.files) {
-            $entryName = $Manifest.archive.prefix + $file.entry
+            $entryName = if ($SourceArchive.PSObject.Properties['payloadPrefix']) {
+                $SourceArchive.payloadPrefix + $file.name
+            } else {
+                $SourceArchive.prefix + $file.entry
+            }
             $entries = @($archive.Entries | Where-Object { $_.FullName -ceq $entryName })
             if ($entries.Count -ne 1 -or $entries[0].Length -ne $file.length) {
                 throw "Runtime archive has a missing, duplicate or wrong-sized entry: $entryName"

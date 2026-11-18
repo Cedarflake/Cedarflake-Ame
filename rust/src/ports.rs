@@ -1093,11 +1093,12 @@ pub trait CatalogRepository {
         limit: u32,
     ) -> Result<Vec<String>, ScanError>;
     fn enqueue_directory(&mut self, scan_id: &str, relative_path: &str) -> Result<(), ScanError>;
-    fn complete_directory(
+    /// Persists the finished directory's progress and selects the next durable cursor atomically.
+    fn advance_directory(
         &mut self,
         scan_id: &str,
         checkpoint: &ScanCheckpoint,
-    ) -> Result<(), ScanError>;
+    ) -> Result<Option<String>, ScanError>;
     fn pause_scan(&mut self, scan_id: &str, checkpoint: &ScanCheckpoint) -> Result<(), ScanError>;
     fn count_staged_file_states(&mut self, scan_id: &str) -> Result<u64, ScanError>;
     fn load_staged_file_state_window(

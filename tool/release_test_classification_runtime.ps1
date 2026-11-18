@@ -20,37 +20,59 @@ $scratch = Join-Path $repository ("build/runtime-distribution-test-" + [Guid]::N
 $manifest = Get-AmeClassificationRuntimeManifest
 $fixture = $manifest | ConvertTo-Json -Depth 10 | ConvertFrom-Json
 $zipPath = Join-Path $scratch "fixture.zip"
+$bundledZipPath = Join-Path $scratch "portable.zip"
 $destination = Join-Path $scratch "prepared"
+$bundledDestination = Join-Path $scratch "bundled"
 $rejected = Join-Path $scratch "rejected"
 $linked = Join-Path $scratch "linked"
 $utf8 = [Text.UTF8Encoding]::new($false)
 $ownedFiles = [Collections.Generic.List[string]]::new()
+$ownedFiles.Add($bundledZipPath)
 $ownedDirectories = [Collections.Generic.List[string]]::new()
 [void][IO.Directory]::CreateDirectory($scratch)
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 try {
     $archive = [IO.Compression.ZipFile]::Open($zipPath, [IO.Compression.ZipArchiveMode]::Create)
+    $bundledArchive = $null
     try {
+        $bundledArchive = [IO.Compression.ZipFile]::Open($bundledZipPath, [IO.Compression.ZipArchiveMode]::Create)
         foreach ($file in $fixture.files) {
             $bytes = $utf8.GetBytes("fixed runtime fixture: $($file.name)")
             $file.length = $bytes.Length
             $hash = [Security.Cryptography.SHA256]::Create()
             try { $file.sha256 = ([BitConverter]::ToString($hash.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant() }
             finally { $hash.Dispose() }
-            $entry = $archive.CreateEntry($fixture.archive.prefix + $file.entry)
-            $stream = $entry.Open()
-            try { $stream.Write($bytes, 0, $bytes.Length) } finally { $stream.Dispose() }
+            $entries = @(
+                $archive.CreateEntry($fixture.archive.prefix + $file.entry)
+                $bundledArchive.CreateEntry($fixture.bundledArchive.payloadPrefix + $file.name)
+            )
+            foreach ($entry in $entries) {
+                $stream = $entry.Open()
+                try { $stream.Write($bytes, 0, $bytes.Length) } finally { $stream.Dispose() }
+            }
         }
         [void]$archive.CreateEntry("../not-selected.pdb")
-    } finally { $archive.Dispose() }
+    } finally {
+        if ($null -ne $bundledArchive) { $bundledArchive.Dispose() }
+        $archive.Dispose()
+    }
     Set-FixtureArchiveDigest
-    foreach ($directory in @($destination, $rejected)) {
+    foreach ($directory in @($destination, $bundledDestination, $rejected)) {
         $ownedDirectories.Add($directory)
         foreach ($file in $fixture.files) { $ownedFiles.Add((Join-Path $directory $file.name)) }
     }
     Expand-AmeClassificationRuntimeArchive $zipPath $destination $fixture
     Assert-AmeClassificationRuntimeDirectory $destination $fixture
+    $fixture.bundledArchive.length = (Get-Item -LiteralPath $bundledZipPath).Length
+    $fixture.bundledArchive.sha256 = $fixture.archive.sha256
+    Assert-RuntimeRejected {
+        Expand-AmeClassificationRuntimeArchive $bundledZipPath $bundledDestination $fixture -SourceArchive $fixture.bundledArchive
+    } 'pinned length or digest'
+    if (Test-Path -LiteralPath $bundledDestination) { throw "Rejected portable archive created extraction state" }
+    $fixture.bundledArchive.sha256 = (Get-FileHash -LiteralPath $bundledZipPath -Algorithm SHA256).Hash
+    Expand-AmeClassificationRuntimeArchive $bundledZipPath $bundledDestination $fixture -SourceArchive $fixture.bundledArchive
+    Assert-AmeClassificationRuntimeDirectory $bundledDestination $fixture
     if (Test-Path -LiteralPath (Join-Path $scratch "not-selected.pdb")) {
         throw "Runtime preparation extracted an unselected archive entry"
     }

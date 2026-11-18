@@ -157,7 +157,7 @@ fn publish_root(catalog: &mut SqliteCatalog, root_id: &str, scan_id: &str) {
     catalog.begin_scan(&request, root_id, root_id).unwrap();
     catalog.claim_next_directory(scan_id).unwrap();
     catalog
-        .complete_directory(scan_id, &ScanCheckpoint::default())
+        .advance_directory(scan_id, &ScanCheckpoint::default())
         .unwrap();
     catalog
         .prove_live_only_first_import_handoff_for_test(scan_id)
