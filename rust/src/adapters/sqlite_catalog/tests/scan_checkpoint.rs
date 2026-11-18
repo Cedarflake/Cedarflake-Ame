@@ -26,7 +26,7 @@ impl ProgressBoundary {
         };
         match self {
             Self::Checkpoint => catalog.checkpoint_scan("scan", &checkpoint),
-            Self::DirectoryCompletion => catalog.complete_directory("scan", &checkpoint),
+            Self::DirectoryCompletion => catalog.advance_directory("scan", &checkpoint).map(|_| ()),
         }
     }
 }
@@ -379,6 +379,94 @@ fn refused_progress_commit_retains_the_batch_for_a_single_retry() {
 }
 
 #[test]
+fn directory_handoff_can_be_retried_and_reopened_without_skipping_a_folder() {
+    let directory = tempdir().expect("isolated storage");
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = prepared_catalog(path.clone());
+    for child in ["second", "first"] {
+        catalog
+            .enqueue_directory("scan", child)
+            .expect("queue child");
+    }
+    let checkpoint = ScanCheckpoint {
+        visited_entries: 3,
+        ..ScanCheckpoint::default()
+    };
+    catalog
+        .connection
+        .commit_hook(Some(|| true))
+        .expect("reject handoff");
+    assert!(catalog.advance_directory("scan", &checkpoint).is_err());
+    catalog
+        .connection
+        .commit_hook(None::<fn() -> bool>)
+        .expect("allow retry");
+    assert_eq!(
+        catalog
+            .claim_next_directory("scan")
+            .expect("old cursor")
+            .as_deref(),
+        Some("")
+    );
+    assert!(
+        catalog
+            .has_directory_entry("scan", "", "image.png")
+            .expect("old roster")
+    );
+
+    let commits = Arc::new(AtomicUsize::new(0));
+    let observed = Arc::clone(&commits);
+    catalog
+        .connection
+        .commit_hook(Some(move || {
+            observed.fetch_add(1, Ordering::SeqCst);
+            false
+        }))
+        .expect("count commits across handoff");
+    assert_eq!(
+        catalog
+            .advance_directory("scan", &checkpoint)
+            .expect("retry")
+            .as_deref(),
+        Some("second")
+    );
+    assert_eq!(commits.load(Ordering::SeqCst), 1);
+    drop(catalog);
+
+    let mut reopened = SqliteCatalog::open(path).expect("reopen interrupted handoff");
+    assert_eq!(
+        reopened
+            .claim_next_directory("scan")
+            .expect("durable cursor")
+            .as_deref(),
+        Some("second")
+    );
+    assert!(
+        !reopened
+            .is_current_directory_enumerated("scan", "second")
+            .expect("fresh folder")
+    );
+    assert!(
+        !reopened
+            .has_directory_entry("scan", "", "image.png")
+            .expect("consumed roster")
+    );
+    assert_eq!(
+        reopened
+            .advance_directory("scan", &checkpoint)
+            .expect("remaining folder")
+            .as_deref(),
+        Some("first")
+    );
+    assert_eq!(
+        reopened
+            .advance_directory("scan", &checkpoint)
+            .expect("end of scan"),
+        None
+    );
+}
+
+#[test]
 fn directory_entry_frontier_is_idempotent_sorted_and_windowed() {
     let directory = tempdir().expect("temporary directory");
     let path = directory.path().join("catalog.sqlite3");
@@ -436,7 +524,7 @@ fn directory_entry_frontier_is_idempotent_sorted_and_windowed() {
             .expect("entry identity")
     );
     catalog
-        .complete_directory("wide-scan", &ScanCheckpoint::default())
+        .advance_directory("wide-scan", &ScanCheckpoint::default())
         .expect("complete directory");
     let queued: i64 = catalog
         .connection

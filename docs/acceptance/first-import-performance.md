@@ -2,6 +2,44 @@
 
 Status: production client verified; current-head hosted verification pending
 
+## Small-folder imports on Windows
+
+The November 2026 comparison used the desktop scan API, foreground synchronization, optimized
+Debug native libraries, and fresh derived catalogs on a separate local volume. The reference
+was `a8471e80`. The small-folder case contains 1,185 images in 602 image-bearing folders
+and traverses 1,038 directories in total. The same two subtrees were imported in the order
+reference, candidate, candidate, reference.
+
+| Measured interval | Reference | Candidate |
+| --- | ---: | ---: |
+| 1,185 images spread across small folders, two runs | 10.81 s / 9.67 s | 7.71 s / 7.66 s |
+| 1,104 images in one folder, two runs | 1.50 s / 1.37 s | 1.41 s / 1.40 s |
+| Complete `local-primary` discovery, one run per build | 332.38 s | 271.92 s |
+| Complete `local-primary` import through publication | 360.13 s | 283.98 s |
+
+Both complete catalogs contain the same 63,071 image locations, 3,382 directory identities
+and 1,072 issues from 68,689 visited entries. The comparison matched file identities, metadata,
+directory bindings and individual issues. Three original-file hashes per subtree matched before
+and after each paired import. The full imports ran sequentially under variable machine load.
+The alternating subtree measurements give the more repeatable estimate for directory overhead.
+
+On the fragmented subtree, the native diagnostic counted 8,306 directory-persistence calls on
+the reference and 5,192 on the candidate, three fewer per traversed directory. Those calls took
+12.92 and 5.41 seconds in the diagnostic builds. Both performed 7,950 filesystem discovery
+calls, 1,185 media inspections and 19 periodic checkpoints.
+
+The final directory page commits with its verified identity. Consuming a directory commits
+the buffered locations, progress and next queued directory together. The scanner stops reading
+a finalized roster after a short page. Neither transaction spans filesystem inspection.
+
+The Windows client displayed the discovery count during import and 1,185 images at completion.
+A separate run paused at 301 images. After restarting the process, the resumed catalog matched
+the uninterrupted reference row for row. Cancelling at 301 left zero published images.
+All 28 focused directory, checkpoint, cancellation and recovery tests passed. The traversal,
+directory adapter and checkpoint adapter have 355, 100 and 114 source lines respectively, with
+no inline test cases. Their dedicated SQLite directory and checkpoint test files have 222 and
+617 lines. The catalog facade has 2,977 source lines.
+
 ## Baseline
 
 The affected Windows trial uses the functional source at

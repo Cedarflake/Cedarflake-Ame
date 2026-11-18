@@ -35,9 +35,15 @@ impl ScanStagingRepository for SqliteCatalog {
         &mut self,
         scan_id: &str,
         relative_directory: &str,
+        remaining_entries: &[String],
         identity: Option<&FileIdentityEvidence>,
     ) -> Result<(), ScanError> {
-        self.complete_directory_with_identity(scan_id, relative_directory, identity)
+        self.complete_directory_with_identity(
+            scan_id,
+            relative_directory,
+            remaining_entries,
+            identity,
+        )
     }
 
     fn finish_retained_import_inventory(&mut self, scan_id: &str) -> Result<(), ScanError> {

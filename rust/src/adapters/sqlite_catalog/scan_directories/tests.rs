@@ -43,9 +43,17 @@ impl Fixture {
         }
     }
 
+    fn capture_entries(&mut self, remaining: &[String]) -> Result<(), ScanError> {
+        self.catalog.complete_directory_with_identity(
+            &self.request.scan_id,
+            "",
+            remaining,
+            Some(&identity()),
+        )
+    }
+
     fn capture(&mut self) -> Result<(), ScanError> {
-        self.catalog
-            .complete_directory_with_identity(&self.request.scan_id, "", Some(&identity()))
+        self.capture_entries(&[])
     }
 
     fn count(&self) -> i64 {
@@ -70,6 +78,11 @@ fn identity() -> FileIdentityEvidence {
 #[test]
 fn directory_binding_and_enumeration_checkpoint_commit_atomically() {
     let mut fixture = Fixture::new();
+    let entries = ["existing".to_owned(), "remaining".to_owned()];
+    fixture
+        .catalog
+        .stage_directory_entries(&fixture.request.scan_id, "", &entries[..1])
+        .expect("durable partial directory");
     fixture
         .catalog
         .connection
@@ -78,7 +91,19 @@ fn directory_binding_and_enumeration_checkpoint_commit_atomically() {
          BEGIN SELECT RAISE(ABORT, 'controlled write failure'); END;",
         )
         .expect("rollback fixture");
-    assert!(fixture.capture().is_err());
+    assert!(fixture.capture_entries(&entries).is_err());
+    assert!(
+        !fixture
+            .catalog
+            .has_directory_entry(&fixture.request.scan_id, "", "remaining")
+            .expect("rolled back final entry")
+    );
+    assert!(
+        fixture
+            .catalog
+            .has_directory_entry(&fixture.request.scan_id, "", "existing")
+            .expect("earlier page survives")
+    );
     assert_eq!(fixture.count(), 0);
     assert!(
         !fixture
@@ -91,7 +116,14 @@ fn directory_binding_and_enumeration_checkpoint_commit_atomically() {
         .connection
         .execute_batch("DROP TRIGGER reject_directory_identity")
         .expect("remove controlled failure");
-    fixture.capture().expect("atomic capture");
+    fixture.capture_entries(&entries).expect("atomic capture");
+    assert_eq!(
+        fixture
+            .catalog
+            .load_directory_entry_window(&fixture.request.scan_id, "", None, 3)
+            .expect("captured directory"),
+        entries,
+    );
     assert_eq!(fixture.count(), 1);
     assert!(
         fixture
@@ -107,7 +139,7 @@ fn consumed_frontier_does_not_remove_published_directory_history() {
     fixture.capture().expect("root binding");
     fixture
         .catalog
-        .complete_directory(&fixture.request.scan_id, &ScanCheckpoint::default())
+        .advance_directory(&fixture.request.scan_id, &ScanCheckpoint::default())
         .expect("consume frontier");
     assert_eq!(fixture.count(), 1);
     let active_count = |catalog: &SqliteCatalog| {
@@ -176,7 +208,15 @@ fn stale_root_generation_cannot_complete_directory_capture() {
     fixture.catalog.connection.execute(
         "UPDATE library_change_root_state SET generation = generation + 1 WHERE root_id = 'root'", [],
     ).expect("retire previous generation");
-    let error = fixture.capture().expect_err("stale capture");
+    let error = fixture
+        .capture_entries(&["unverified".to_owned()])
+        .expect_err("stale capture");
     assert_eq!(error.code, "catalog_scan_directory_not_enumerable");
     assert_eq!(fixture.count(), 0);
+    assert!(
+        !fixture
+            .catalog
+            .has_directory_entry(&fixture.request.scan_id, "", "unverified")
+            .expect("stale directory tail")
+    );
 }

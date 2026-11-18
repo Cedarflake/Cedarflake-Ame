@@ -51,6 +51,10 @@ pub(super) fn traverse_scan<Repository: ScanPublicationRepository>(
     let mut visited_entries = checkpoint.visited_entries;
     let mut accepted_items = checkpoint.accepted_items;
     let mut was_limited = false;
+    let mut next_directory = measure_scan_operation!(
+        DirectoryPersistence,
+        catalog.claim_next_directory(&request.scan_id)
+    )?;
     'traversal: loop {
         if finish_if_controlled(
             control.load(Ordering::Relaxed),
@@ -63,11 +67,7 @@ pub(super) fn traverse_scan<Repository: ScanPublicationRepository>(
         )? {
             return Ok(ScanTraversalOutcome::Stopped);
         }
-        let Some(relative_directory) = measure_scan_operation!(
-            DirectoryPersistence,
-            catalog.claim_next_directory(&request.scan_id)
-        )?
-        else {
+        let Some(relative_directory) = next_directory else {
             break;
         };
         if !measure_scan_operation!(
@@ -107,9 +107,9 @@ pub(super) fn traverse_scan<Repository: ScanPublicationRepository>(
                         });
                         return Ok(ScanTraversalOutcome::Stopped);
                     }
-                    measure_scan_operation!(
+                    next_directory = measure_scan_operation!(
                         DirectoryPersistence,
-                        catalog.complete_directory(&request.scan_id, checkpoint)
+                        catalog.advance_directory(&request.scan_id, checkpoint)
                     )?;
                     continue;
                 }
@@ -143,10 +143,6 @@ pub(super) fn traverse_scan<Repository: ScanPublicationRepository>(
                     }
                 }
             }
-            measure_scan_operation!(
-                DirectoryPersistence,
-                catalog.stage_directory_entries(&request.scan_id, &relative_directory, &batch)
-            )?;
             #[cfg(test)]
             let entries = entries.into_inner();
             let identity = measure_scan_operation!(SourceDiscovery, entries.finish())
@@ -156,6 +152,7 @@ pub(super) fn traverse_scan<Repository: ScanPublicationRepository>(
                 catalog.complete_directory_with_identity(
                     &request.scan_id,
                     &relative_directory,
+                    &batch,
                     identity.as_ref(),
                 )
             )?;
@@ -208,9 +205,7 @@ pub(super) fn traverse_scan<Repository: ScanPublicationRepository>(
                     DIRECTORY_ENTRY_WINDOW,
                 )
             )?;
-            if relative_paths.is_empty() {
-                break;
-            }
+            let last_window = relative_paths.len() < DIRECTORY_ENTRY_WINDOW as usize;
 
             for relative_path in relative_paths {
                 if finish_if_controlled(
@@ -334,12 +329,15 @@ pub(super) fn traverse_scan<Repository: ScanPublicationRepository>(
                     break 'traversal;
                 }
             }
+            if last_window {
+                break;
+            }
         }
 
         checkpoint.last_visited_relative_path = None;
-        measure_scan_operation!(
+        next_directory = measure_scan_operation!(
             DirectoryPersistence,
-            catalog.complete_directory(&request.scan_id, checkpoint)
+            catalog.advance_directory(&request.scan_id, checkpoint)
         )?;
     }
 

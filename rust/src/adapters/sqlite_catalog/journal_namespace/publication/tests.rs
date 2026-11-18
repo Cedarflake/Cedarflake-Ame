@@ -28,7 +28,7 @@ fn catalog() -> (tempfile::TempDir, SqliteCatalog) {
         .unwrap();
     catalog.claim_next_directory("scan").unwrap();
     catalog
-        .complete_directory("scan", &ScanCheckpoint::default())
+        .advance_directory("scan", &ScanCheckpoint::default())
         .unwrap();
     catalog
         .prove_live_only_first_import_handoff_for_test("scan")

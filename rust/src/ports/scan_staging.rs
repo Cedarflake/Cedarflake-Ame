@@ -18,10 +18,12 @@ pub(crate) trait ScanStagingRepository:
         scan_id: &str,
         location_id: &str,
     ) -> Result<Option<AssetLocationView>, ScanError>;
+    /// Makes the staged roster readable together with its final entries and directory identity.
     fn complete_directory_with_identity(
         &mut self,
         scan_id: &str,
         relative_directory: &str,
+        remaining_entries: &[String],
         identity: Option<&FileIdentityEvidence>,
     ) -> Result<(), ScanError>;
     fn finish_retained_import_inventory(&mut self, scan_id: &str) -> Result<(), ScanError>;

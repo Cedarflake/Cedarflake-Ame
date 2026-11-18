@@ -68,7 +68,7 @@ impl Fixture {
             )
             .expect("directory entries");
         catalog
-            .complete_directory_with_identity(&request.scan_id, "", Some(&identity))
+            .complete_directory_with_identity(&request.scan_id, "", &[], Some(&identity))
             .expect("complete enumeration");
         let asset = AssetLocationView {
             asset_id: "asset-a".to_owned(),

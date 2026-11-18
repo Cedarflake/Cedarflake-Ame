@@ -2,35 +2,24 @@ use rusqlite::{OptionalExtension, Transaction, params};
 
 use crate::domain::{ScanCheckpoint, ScanError};
 
+use super::scan_directories::take_next_directory;
 use super::scan_staging::persist_pending_locations;
 use super::{SqliteCatalog, database_error, sqlite_integer};
 
-pub(super) enum ProgressBoundary {
-    Checkpoint,
-    DirectoryCompletion,
-}
-
-pub(super) fn persist_progress(
+pub(super) fn persist_progress<T>(
     catalog: &mut SqliteCatalog,
-    scan_id: &str,
-    checkpoint: &ScanCheckpoint,
-    boundary: ProgressBoundary,
-) -> Result<(), ScanError> {
+    write: impl FnOnce(&Transaction<'_>) -> Result<T, ScanError>,
+) -> Result<T, ScanError> {
     let pending = catalog.pending_locations.clone();
     let transaction = catalog.begin_write()?;
     persist_pending_locations(&transaction, &pending)?;
-    match boundary {
-        ProgressBoundary::Checkpoint => write_checkpoint(&transaction, scan_id, checkpoint)?,
-        ProgressBoundary::DirectoryCompletion => {
-            complete_directory(&transaction, scan_id, checkpoint)?;
-        }
-    }
+    let result = write(&transaction)?;
     transaction.commit().map_err(database_error)?;
     catalog.pending_locations.clear();
-    Ok(())
+    Ok(result)
 }
 
-fn write_checkpoint(
+pub(super) fn write_checkpoint(
     transaction: &Transaction<'_>,
     scan_id: &str,
     checkpoint: &ScanCheckpoint,
@@ -64,11 +53,11 @@ fn write_checkpoint(
     Ok(())
 }
 
-fn complete_directory(
+pub(super) fn advance_directory(
     transaction: &Transaction<'_>,
     scan_id: &str,
     checkpoint: &ScanCheckpoint,
-) -> Result<(), ScanError> {
+) -> Result<Option<String>, ScanError> {
     let visited_entries = sqlite_integer(checkpoint.visited_entries, "visited entry count")?;
     let accepted_items = sqlite_integer(checkpoint.accepted_items, "accepted item count")?;
     let issue_count = sqlite_integer(checkpoint.issue_count, "issue count")?;
@@ -95,10 +84,11 @@ fn complete_directory(
             params![scan_id, current_directory],
         )
         .map_err(database_error)?;
+    let next = take_next_directory(transaction, scan_id)?;
     let updated = transaction
         .execute(
             "UPDATE scan_runs
-             SET current_directory_relative_path = NULL,
+             SET current_directory_relative_path = ?6,
                  current_directory_enumerated = 0,
                  last_visited_relative_path = NULL,
                  visited_entries = ?2, accepted_items = ?3, issue_count = ?4,
@@ -110,6 +100,7 @@ fn complete_directory(
                 accepted_items,
                 issue_count,
                 checkpoint.requires_previous_snapshot,
+                next,
             ],
         )
         .map_err(database_error)?;
@@ -119,5 +110,5 @@ fn complete_directory(
             "The current scan directory could not be completed",
         ));
     }
-    Ok(())
+    Ok(next)
 }

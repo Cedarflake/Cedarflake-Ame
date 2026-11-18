@@ -1,4 +1,4 @@
-use rusqlite::params;
+use rusqlite::{OptionalExtension, Transaction, params};
 
 use crate::domain::{FileIdentityEvidence, ScanError};
 
@@ -9,6 +9,7 @@ impl SqliteCatalog {
         &mut self,
         scan_id: &str,
         relative_directory: &str,
+        remaining_entries: &[String],
         identity: Option<&FileIdentityEvidence>,
     ) -> Result<(), ScanError> {
         if let Some(identity) = identity {
@@ -34,6 +35,7 @@ impl SqliteCatalog {
                 "The current directory enumeration could not be completed",
             ));
         }
+        insert_directory_entries(&transaction, scan_id, relative_directory, remaining_entries)?;
         if let Some(identity) = identity {
             transaction
                 .execute(
@@ -51,6 +53,47 @@ impl SqliteCatalog {
         // asset projection. Consumed traversal frontiers are not namespace history.
         transaction.commit().map_err(database_error)
     }
+}
+
+pub(super) fn insert_directory_entries(
+    transaction: &Transaction<'_>,
+    scan_id: &str,
+    relative_directory: &str,
+    entries: &[String],
+) -> Result<(), ScanError> {
+    if entries.is_empty() {
+        return Ok(());
+    }
+    let mut insert = transaction
+        .prepare_cached(
+            "INSERT OR IGNORE INTO scan_directory_entries(
+                scan_id, directory_relative_path, relative_path
+             ) VALUES (?1, ?2, ?3)",
+        )
+        .map_err(database_error)?;
+    for entry in entries {
+        insert
+            .execute(params![scan_id, relative_directory, entry])
+            .map_err(database_error)?;
+    }
+    Ok(())
+}
+
+pub(super) fn take_next_directory(
+    transaction: &Transaction<'_>,
+    scan_id: &str,
+) -> Result<Option<String>, ScanError> {
+    transaction
+        .query_row(
+            "DELETE FROM scan_directory_frontier
+             WHERE id = (SELECT id FROM scan_directory_frontier
+                         WHERE scan_id = ?1 ORDER BY id LIMIT 1)
+             RETURNING relative_path",
+            [scan_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(database_error)
 }
 
 #[cfg(test)]
