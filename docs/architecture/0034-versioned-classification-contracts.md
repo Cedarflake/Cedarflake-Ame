@@ -2,7 +2,7 @@
 
 - Status: Accepted for implementation
 - Date: 2026-10-30
-- Last amended: 2026-11-03
+- Last amended: 2026-11-18
 
 ## Context
 
@@ -871,8 +871,10 @@ the existing runtime-retirement boundary. Preparing files alone does not enable 
 storage is a separate rebuildable database beside the active catalog, outside the source tree.
 
 The Windows CMake dependency prepares the hash-pinned official runtime archive before the application
-target can complete. Its distribution manifest records archive and individual-file lengths and
-SHA-256 digests, with a regression binding both DLL entries to the worker's compiled artifact pins.
+target can complete. If the upstream URL returns HTTP 404 or 410, the build reads the same seven
+files from a pinned Ame portable release. The distribution manifest records both archive digests
+and lengths and each file's length and SHA-256. Both sources use the same file pins, with a
+regression binding both DLL entries to the worker's compiled artifact pins.
 Preparation streams at most the admitted archive length with a five-minute timeout, extracts only
 the seven admitted files, verifies them and publishes a complete new build directory by rename.
 Interrupted staging is disposable; an existing build directory must pass every artifact check before
