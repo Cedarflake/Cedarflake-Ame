@@ -2540,7 +2540,7 @@ void main() {
     );
     expect(
       container.read(libraryControllerProvider).errorMessage,
-      contains("其他图库更新正在运行"),
+      startsWith("library_update_in_progress:"),
     );
 
     expect(scanner.startedScanId, isNull);

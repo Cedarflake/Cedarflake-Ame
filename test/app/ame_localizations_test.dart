@@ -4,6 +4,7 @@ import "package:cedarflake_ame/app/presentation/l10n/generated/app_localizations
 import "package:cedarflake_ame/features/library/domain/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/presentation/library_category_label.dart";
 import "package:cedarflake_ame/features/library/presentation/library_gallery_date.dart";
+import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:flutter/widgets.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -69,5 +70,17 @@ void main() {
     );
     expect(libraryCategoryLabel(english, category("discovered-1", "插画")), "插画");
     expect(original.descriptions, ["model input"]);
+  });
+
+  test("a scan admission error is displayed in the active language", () {
+    const diagnostic = "library_update_in_progress: scan lease held";
+    expect(
+      LibraryStrings.scanFailureDetail(english, diagnostic),
+      "Another folder is updating. Wait for it to finish, then continue.",
+    );
+    expect(
+      LibraryStrings.scanFailureDetail(chinese, diagnostic),
+      "另一个目录正在更新，结束后再继续。",
+    );
   });
 }
