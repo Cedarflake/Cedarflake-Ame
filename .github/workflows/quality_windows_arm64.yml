@@ -72,11 +72,13 @@ jobs:
         run: |
           $arch = $env:FLUTTER_HOST_ARCH
           $tag = 'v' + ((Select-String -LiteralPath pubspec.yaml -Pattern '^version: ([^+]+)\+' -Encoding utf8).Matches.Groups[1].Value)
+          $cache = Get-Content -LiteralPath "build/windows/$arch/CMakeCache.txt" -Encoding utf8
+          $env:CMAKE_GENERATOR = ($cache | Select-String '^CMAKE_GENERATOR:INTERNAL=(.+)$').Matches.Groups[1].Value
+          $cmake = ($cache | Select-String '^CMAKE_COMMAND:INTERNAL=(.+)$').Matches.Groups[1].Value
           $wix = ./tool/release_prepare_installer_toolchain.ps1 -OutputDirectory build/installer-toolchain
           ./tool/release_package_installer_windows.ps1 @wix -Tag $tag -Architecture $arch `
             -BundlePath "build/windows/$arch/runner/Release" -UnsignedEvidencePath "build/windows/$arch/preview-evidence.json" `
-            -CMakePath (Get-Command cmake -CommandType Application | Select-Object -First 1).Source `
-            -OutputDirectory build/preview-installer -AcceptWixBinaryEula -MsiOnly
+            -CMakePath $cmake -OutputDirectory build/preview-installer -AcceptWixBinaryEula -MsiOnly
 
       - name: Install, repair and uninstall on Windows 11
         if: matrix.architecture == 'arm64'

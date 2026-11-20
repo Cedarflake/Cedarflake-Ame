@@ -211,6 +211,7 @@ jobs:
         id: installer_identity
         shell: pwsh
         env:
+          CMAKE_GENERATOR: Visual Studio 17 2022
           AME_PORTABLE_ARCHIVE: ${{ steps.portable_identity.outputs.archive_path }}
         run: |
           $ErrorActionPreference = 'Stop'

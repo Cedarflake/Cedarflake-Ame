@@ -106,7 +106,7 @@ try {
     $platform = if ($Architecture -eq 'arm64') { 'ARM64' } else { 'x64' }
     $nativeBuild = Join-Path $output "native"
     Invoke-AmeChecked $CMakePath @("-S", (Join-Path $repository "windows/installer"), "-B", $nativeBuild,
-        "-G", "Visual Studio 17 2022", "-A", $platform)
+        "-A", $platform)
     Invoke-AmeChecked $CMakePath @("--build", $nativeBuild, "--config", "Release", "--parallel", "1")
     & (Join-Path $nativeBuild "Release/ame_installer_policy_test.exe")
     if ($LASTEXITCODE -ne 0) { throw "Installer native policy tests failed" }
