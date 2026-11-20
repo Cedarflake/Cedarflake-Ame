@@ -76,8 +76,7 @@ It builds Flutter, the Rust bridge, worker and broker for ARM64 and bundles arch
 CPU and DirectML engines. Its Actions artifact is available after a native startup and shutdown
 check. MSI, broker installation, signing and release publication remain x64-only.
 
-A hosted
-`windows-2025` Windows Server runner supplies reproducible build and release checks, but it does not
+A hosted `windows-2025` Windows Server runner supplies reproducible x64 build and release checks, but it does not
 replace the separately authorized Windows 11 client acceptance evidence.
 Installer packaging uses `windows-2022` to retain the Visual Studio 2022 generator required by
 the native installer policy module. This packaging host does not change the supported client OS.
@@ -96,9 +95,11 @@ missing ICU or application data, and missing Flutter assets.
 CMake's `InstallRequiredSystemLibraries` copies the selected MSVC toolchain's redistributable
 Release libraries beside the executable. Candidate and archive admission require `msvcp140.dll`, `msvcp140_1.dll`,
 `vcruntime140.dll` and `vcruntime140_1.dll`; Debug runtimes and system-directory copies are excluded.
-The same four libraries accompany each CPU/GPU model runtime in its own directory, preserving
+The same four libraries accompany each x64 CPU/GPU model runtime in its own directory, preserving
 the worker's restricted DLL search. Portable admission checks these copies against the application
 root's lengths and hashes while retaining the pinned engine manifest and exact directory contents.
+The native ARM64 engines import `msvcp140.dll`, `msvcp140_1.dll` and `vcruntime140.dll`.
+The ARM64 preview excludes the x64 `vcruntime140_1.dll` supplied for emulation.
 This follows Flutter's [Windows deployment guidance](https://docs.flutter.dev/platform-integration/windows/building)
 and Microsoft's [redistributable-file terms](https://learn.microsoft.com/en-us/cpp/windows/redistributing-visual-cpp-files).
 The Visual Studio build operator must hold the applicable distribution rights; the binaries retain

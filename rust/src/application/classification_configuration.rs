@@ -17,7 +17,7 @@ use super::catalog_session::open_catalog;
 use super::classification_candidate;
 use super::classification_desktop::installation_path;
 use super::classification_model_installation::production::{
-    installation_repository, model_package,
+    application_data, installation_for_execution, installation_repository, model_package,
 };
 use super::classification_runtime::while_retired;
 use super::storage::{StoragePaths, storage_paths};
@@ -81,14 +81,14 @@ fn save_with_storage(
     change: &ClassificationConfigurationChange,
 ) -> Result<ClassificationSettings, ScanError> {
     if change.action == ClassificationConfigurationAction::Enable {
-        let installation = installation_repository()
-            .load(&installation_path(storage))?
-            .ok_or_else(|| {
-                ScanError::new(
-                    "classification_installation_missing",
-                    "Install the classification model before enabling analysis",
-                )
-            })?;
+        let installation =
+            installation_for_execution(&installation_path(storage), &application_data()?)?
+                .ok_or_else(|| {
+                    ScanError::new(
+                        "classification_installation_missing",
+                        "Install the classification model before enabling analysis",
+                    )
+                })?;
         model_package().verify(&installation)?;
     }
     let mut catalog = open_catalog(&storage.catalog_path, LibraryChangeLane::Recovery)?;

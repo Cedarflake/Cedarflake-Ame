@@ -47,6 +47,14 @@ jobs:
         shell: pwsh
         run: ./tool/quality_windows_arm64_preview.ps1
 
+      - name: Read the catalog through the packaged ARM64 bridge
+        shell: pwsh
+        run: |
+          $env:CEDARFLAKE_AME_TEST_LIBRARY_PATH = Join-Path $env:RUNNER_TEMP 'ame-arm64-release-smoke.dll'
+          Copy-Item -LiteralPath build/windows/arm64/runner/Release/rust_lib_cedarflake_ame.dll `
+            -Destination $env:CEDARFLAKE_AME_TEST_LIBRARY_PATH
+          flutter test integration_test/release_bridge_smoke_test.dart -d windows --no-pub
+
       - name: Upload portable preview
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:

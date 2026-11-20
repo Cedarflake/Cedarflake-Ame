@@ -14,7 +14,7 @@ use super::classification_dispatch::{
     ClassificationDispatchSignals, ClassificationForegroundState, MonotonicDispatchClock,
 };
 use super::classification_model_installation::production::{
-    installation_repository, model_package,
+    installation_for_execution, installation_repository, model_package,
 };
 use super::classification_runtime::{ClassificationRuntimePaths, NativeClassificationRuntime};
 use super::{StoragePaths, storage_paths};
@@ -80,14 +80,16 @@ fn open_runtime(
         return Ok(None);
     }
     drop(catalog);
-    let installation = installation_repository()
-        .load(&installation_path(storage))?
-        .ok_or_else(|| {
-            ScanError::new(
-                "classification_installation_missing",
-                "Choose the local classification model and runtime directories",
-            )
-        })?;
+    let installation = installation_for_execution(
+        &installation_path(storage),
+        &executable.with_file_name("data"),
+    )?
+    .ok_or_else(|| {
+        ScanError::new(
+            "classification_installation_missing",
+            "Choose the local classification model and runtime directories",
+        )
+    })?;
     let worker = executable.with_file_name("cedarflake_ame_classification_worker.exe");
     let signals = ClassificationDispatchSignals::new(MonotonicDispatchClock::default());
     // The desktop supplies its current activity before allowing the first turn.

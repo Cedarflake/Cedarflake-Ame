@@ -1,6 +1,36 @@
 use super::*;
 
 #[test]
+fn moving_a_portable_build_uses_its_own_runtime_and_keeps_the_saved_model_selection() {
+    let directory = tempfile::tempdir().unwrap();
+    let settings = directory.path().join("settings.sqlite3");
+    let application_data = directory.path().join("arm64/data");
+    let bundled = directory.path().join("x64/data/classification-runtime");
+    let custom = directory.path().join("custom/classification-runtime");
+    for (saved, effective) in [
+        (bundled, application_data.join("classification-runtime")),
+        (custom.clone(), custom),
+    ] {
+        let selected = ClassificationInstallation {
+            models: directory.path().join("models"),
+            runtime: saved,
+        };
+        installation_repository()
+            .save(&settings, &selected)
+            .unwrap();
+        let loaded = production::installation_for_execution(&settings, &application_data)
+            .unwrap()
+            .unwrap();
+        assert_eq!(loaded.models, selected.models);
+        assert_eq!(loaded.runtime, effective);
+        assert_eq!(
+            installation_repository().load(&settings).unwrap(),
+            Some(selected)
+        );
+    }
+}
+
+#[test]
 fn prepared_publication_preserves_prior_selection_on_cancel_stale_or_active_runtime() {
     let directory = tempfile::tempdir().unwrap();
     let settings = directory.path().join("classification.sqlite3");

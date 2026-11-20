@@ -17,9 +17,9 @@ static INSTALLING: AtomicBool = AtomicBool::new(false);
 
 pub(crate) mod operation;
 pub(super) mod production;
-use production::{installation_repository, model_package, model_storage};
+use production::{application_data, installation_repository, model_package, model_storage};
 mod recovery;
-use recovery::{InstallationSource, PendingDownload, application_data};
+use recovery::{InstallationSource, PendingDownload};
 
 struct InstallationOwnership;
 

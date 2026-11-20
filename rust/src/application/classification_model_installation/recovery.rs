@@ -7,7 +7,7 @@ use crate::ports::classification_model_package::ClassificationModelPackage;
 
 use super::super::classification_desktop::installation_path;
 use super::path_error;
-use super::production::{installation_repository, model_package};
+use super::production::{application_data, installation_repository, model_package};
 
 #[derive(Clone)]
 pub(super) enum InstallationSource {
@@ -26,14 +26,6 @@ impl PendingDownload {
     pub fn cancel(&self) -> Result<(), ScanError> {
         installation_repository().cancel_download(&self.settings, &self.intent)
     }
-}
-
-pub(super) fn application_data() -> Result<PathBuf, ScanError> {
-    std::env::current_exe()
-        .map_err(path_error)?
-        .parent()
-        .map(|parent| parent.join("data"))
-        .ok_or_else(|| path_error("Missing application directory"))
 }
 
 pub(super) fn pending_source() -> Result<Option<InstallationSource>, ScanError> {
