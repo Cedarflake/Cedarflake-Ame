@@ -1,0 +1,95 @@
+name: Quality / Windows installer previews
+
+on:
+  push:
+    branches: [codex/windows-arm64]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-arm64-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Windows ${{ matrix.architecture }} preview
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: arm64
+            runner: windows-11-arm
+            rust: aarch64-pc-windows-msvc
+          - architecture: x64
+            runner: windows-2022
+            rust: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    env:
+      FLUTTER_HOST_ARCH: ${{ matrix.architecture }}
+      CI: "true"
+    steps:
+      - name: Check out Ame
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      # The Windows SDK archive ships x64 Dart. The framework checkout bootstraps native Dart.
+      - name: Check out Flutter 3.50.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: flutter/flutter
+          ref: 3.50.0
+          path: build/flutter-sdk
+          persist-credentials: false
+
+      - name: Select the native toolchain
+        shell: pwsh
+        run: |
+          if ((git -C build/flutter-sdk rev-parse HEAD) -cne 'ab2912035e160d9cad6306df307576da6128ebdb') {
+            throw 'Unexpected Flutter 3.50.0 revision'
+          }
+          (Resolve-Path build/flutter-sdk/bin).Path >> $env:GITHUB_PATH
+          rustup set default-host ${{ matrix.rust }}
+
+      - name: Build, launch and read the catalog through the Release bridge
+        shell: pwsh
+        run: ./tool/quality_windows_preview.ps1 -Architecture ${{ matrix.architecture }}
+
+      - name: Upload portable preview
+        if: matrix.architecture == 'arm64'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: Cedarflake-Ame-windows-arm64-preview
+          path: build/windows/arm64/runner/Release/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Package MSI with offline models
+        shell: pwsh
+        run: |
+          $arch = $env:FLUTTER_HOST_ARCH
+          $tag = 'v' + ((Select-String -LiteralPath pubspec.yaml -Pattern '^version: ([^+]+)\+' -Encoding utf8).Matches.Groups[1].Value)
+          $cache = Get-Content -LiteralPath "build/windows/$arch/CMakeCache.txt" -Encoding utf8
+          $env:CMAKE_GENERATOR = ($cache | Select-String '^CMAKE_GENERATOR:INTERNAL=(.+)$').Matches.Groups[1].Value
+          $cmake = ($cache | Select-String '^CMAKE_COMMAND:INTERNAL=(.+)$').Matches.Groups[1].Value
+          $wix = ./tool/release_prepare_installer_toolchain.ps1 -OutputDirectory build/installer-toolchain
+          ./tool/release_package_installer_windows.ps1 @wix -Tag $tag -Architecture $arch `
+            -BundlePath "build/windows/$arch/runner/Release" -UnsignedEvidencePath "build/windows/$arch/preview-evidence.json" `
+            -CMakePath $cmake -OutputDirectory build/preview-installer -AcceptWixBinaryEula -MsiOnly
+
+      - name: Install, repair and uninstall on Windows 11
+        if: matrix.architecture == 'arm64'
+        shell: pwsh
+        run: ./tool/acceptance_windows_msi_preview.ps1 -PackageDirectory build/preview-installer
+
+      - name: Upload verified installer
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: Cedarflake-Ame-windows-${{ matrix.architecture }}-msi
+          path: build/preview-installer/*.msi
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14

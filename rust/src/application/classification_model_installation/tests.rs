@@ -1,6 +1,74 @@
 use super::*;
 
 #[test]
+fn relocated_msi_uses_its_bundled_models_and_portable_keeps_the_saved_directory() {
+    let directory = tempfile::tempdir().unwrap();
+    let settings = directory.path().join("settings.sqlite3");
+    let old_data = directory.path().join("old-x64/data");
+    let new_data = directory.path().join("new-arm64/data");
+    let package = Path::new("classification-models").join(model_package().package_directory());
+    let saved = ClassificationInstallation {
+        models: old_data.join(&package),
+        runtime: old_data.join("classification-runtime"),
+    };
+    std::fs::create_dir_all(&saved.models).unwrap();
+    installation_repository().save(&settings, &saved).unwrap();
+
+    let resolve = || {
+        production::installation_for_execution(&settings, &new_data)
+            .unwrap()
+            .unwrap()
+    };
+    assert_eq!(resolve().models, saved.models);
+    std::fs::remove_dir(&saved.models).unwrap();
+    let installed_models = new_data.join(package);
+    std::fs::create_dir_all(&installed_models).unwrap();
+    let installed = resolve();
+    assert_eq!(installed.models, installed_models);
+    assert_eq!(installed.runtime, new_data.join("classification-runtime"));
+    assert_eq!(
+        installation_repository().load(&settings).unwrap(),
+        Some(saved)
+    );
+}
+
+#[test]
+fn moving_a_portable_build_uses_its_own_runtime_and_keeps_the_saved_model_selection() {
+    let directory = tempfile::tempdir().unwrap();
+    let settings = directory.path().join("settings.sqlite3");
+    let application_data = directory.path().join("arm64/data");
+    let bundled = directory.path().join("x64/data/classification-runtime");
+    let custom = directory.path().join("custom/classification-runtime");
+    std::fs::create_dir_all(
+        application_data
+            .join("classification-models")
+            .join(model_package().package_directory()),
+    )
+    .unwrap();
+    for (saved, effective) in [
+        (bundled, application_data.join("classification-runtime")),
+        (custom.clone(), custom),
+    ] {
+        let selected = ClassificationInstallation {
+            models: directory.path().join("models"),
+            runtime: saved,
+        };
+        installation_repository()
+            .save(&settings, &selected)
+            .unwrap();
+        let loaded = production::installation_for_execution(&settings, &application_data)
+            .unwrap()
+            .unwrap();
+        assert_eq!(loaded.models, selected.models);
+        assert_eq!(loaded.runtime, effective);
+        assert_eq!(
+            installation_repository().load(&settings).unwrap(),
+            Some(selected)
+        );
+    }
+}
+
+#[test]
 fn prepared_publication_preserves_prior_selection_on_cancel_stale_or_active_runtime() {
     let directory = tempfile::tempdir().unwrap();
     let settings = directory.path().join("classification.sqlite3");

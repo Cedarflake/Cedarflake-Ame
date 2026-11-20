@@ -33,6 +33,10 @@ foreach ($case in @(
     Assert-InstallerRejected { Get-AmeInstallerVersion -Tag $case[0] -ApplicationVersion $case[1] }
 }
 $firstProduct = Get-AmeInstallerGuid "product/0.1.0"
+if ((Get-AmeInstallerGuid 'product/0.1.4' x64) -cne 'B0E516FC-1AA8-591B-A29B-86ABA3FBBF5F' -or
+    (Get-AmeInstallerGuid 'product/0.1.4' arm64) -ceq (Get-AmeInstallerGuid 'product/0.1.4' x64)) {
+    throw 'Installer architectures must have distinct products and retain the existing x64 upgrade identity'
+}
 if ($firstProduct -cne (Get-AmeInstallerGuid "product/0.1.0") -or
     $firstProduct -ceq (Get-AmeInstallerGuid "product/0.1.1")) {
     throw "MSI product identity does not separate repair from upgrade"

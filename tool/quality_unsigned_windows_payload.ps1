@@ -2,6 +2,7 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
 . (Join-Path $PSScriptRoot "release_msvc_runtime.ps1")
+. (Join-Path $PSScriptRoot "quality_windows_pe_image.ps1")
 
 function Assert-AmeUnsignedBuildPath {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -15,42 +16,6 @@ function Assert-AmeUnsignedBuildPath {
             }
         }
         $current = [System.IO.Path]::GetDirectoryName($current)
-    }
-}
-
-function Assert-AmeUnsignedX64Image {
-    param([Parameter(Mandatory = $true)][string]$Path)
-
-    $stream = [System.IO.File]::OpenRead($Path)
-    try {
-        $reader = [System.IO.BinaryReader]::new($stream)
-        try {
-            if ($stream.Length -lt 90 -or $reader.ReadUInt16() -ne 0x5A4D) {
-                throw "Unsigned runtime payload is not a complete PE image"
-            }
-            $stream.Position = 0x3C
-            $offset = $reader.ReadUInt32()
-            if ($offset -lt 64 -or $offset -gt $stream.Length - 26) {
-                throw "Unsigned runtime payload has an invalid PE header offset"
-            }
-            $stream.Position = $offset
-            if ($reader.ReadUInt32() -ne 0x4550 -or $reader.ReadUInt16() -ne 0x8664) {
-                throw "Unsigned runtime payload must be a Windows x64 PE image"
-            }
-            $stream.Position = $offset + 20
-            $optionalHeaderSize = $reader.ReadUInt16()
-            if ($optionalHeaderSize -lt 2 -or $offset + 24 + $optionalHeaderSize -gt $stream.Length) {
-                throw "Unsigned runtime payload has an incomplete optional PE header"
-            }
-            $stream.Position = $offset + 24
-            if ($reader.ReadUInt16() -ne 0x20B) {
-                throw "Unsigned runtime payload must use the PE32+ image format"
-            }
-        } finally {
-            $reader.Dispose()
-        }
-    } finally {
-        $stream.Dispose()
     }
 }
 
@@ -106,7 +71,8 @@ function Get-AmeUnsignedWindowsPayloadFacts {
         [Parameter(Mandatory = $true)][string]$BuiltLibrary,
         [Parameter(Mandatory = $true)][string]$DependencyFile,
         [Parameter(Mandatory = $true)][string]$RequiredRustSource,
-        [Parameter(Mandatory = $true)][string]$BuiltBroker
+        [Parameter(Mandatory = $true)][string]$BuiltBroker,
+        [ValidateSet('x64', 'arm64')][string]$Architecture = 'x64'
     )
 
     foreach ($path in @($BundlePath, $BuiltLibrary, $BuiltBroker)) {
@@ -140,7 +106,7 @@ function Get-AmeUnsignedWindowsPayloadFacts {
                 throw "Unsigned Windows payload contains a duplicate path"
             }
             if ($item.Extension -in @('.exe', '.dll')) {
-                Assert-AmeUnsignedX64Image $item.FullName
+                Assert-AmeWindowsPeImage -Path $item.FullName -Architecture $Architecture
             }
             $files.Add([pscustomobject]@{
                 relativePath = $relativePath
@@ -154,7 +120,8 @@ function Get-AmeUnsignedWindowsPayloadFacts {
         'cedarflake_ame_classification_worker.exe',
         'rust_lib_cedarflake_ame.dll', 'flutter_windows.dll',
         'data/app.so', 'data/icudtl.dat'
-    ) + @(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeMsvcRuntimePayloadPaths)
+    ) + @(Get-AmeClassificationRuntimePayloadNames -Architecture $Architecture) +
+        @(Get-AmeMsvcRuntimePayloadPaths -Architecture $Architecture)
     foreach ($name in $requiredFiles) {
         $requiredFile = @($files | Where-Object { $_.relativePath -ceq $name })
         if ($requiredFile.Count -ne 1 -or $requiredFile[0].length -eq 0) {
@@ -178,7 +145,7 @@ function Get-AmeUnsignedWindowsPayloadFacts {
         -DependencyFile $DependencyFile -BuiltLibrary $BuiltLibrary -RequiredSource $RequiredRustSource
     return [pscustomobject]@{
         configuration = 'Release'
-        machine = 'windows-x64'
+        machine = "windows-$Architecture"
         fileCount = $files.Count
         totalBytes = $totalBytes
         rustDependencyCount = $dependencyCount

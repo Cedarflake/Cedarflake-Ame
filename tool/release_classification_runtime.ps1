@@ -2,15 +2,19 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 function Get-AmeClassificationRuntimeManifest {
-    param([switch]$Accelerator)
-    $name = if ($Accelerator) { "accelerator_distribution.json" } else { "distribution.json" }
-    $path = Join-Path (Split-Path -Parent $PSScriptRoot) "rust/src/adapters/classification_runtime/$name"
-    return [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8) | ConvertFrom-Json
+    param([switch]$Accelerator, [ValidateSet('x64', 'arm64')][string]$Architecture = 'x64')
+    $name = if ($Accelerator) { 'accelerator_distribution' } else { 'distribution' }
+    if ($Architecture -eq 'arm64') { $name += '.arm64' }
+    $path = Join-Path (Split-Path -Parent $PSScriptRoot) "rust/src/adapters/classification_runtime/$name.json"
+    $manifest = [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8) | ConvertFrom-Json
+    if ($manifest.platform -ne "windows-$Architecture") { throw "Unexpected runtime platform in $name.json" }
+    return $manifest
 }
 
 function Get-AmeClassificationRuntimePayloadNames {
+    param([ValidateSet('x64', 'arm64')][string]$Architecture = 'x64')
     foreach ($accelerator in @($false, $true)) {
-        $manifest = Get-AmeClassificationRuntimeManifest -Accelerator:$accelerator
+        $manifest = Get-AmeClassificationRuntimeManifest -Accelerator:$accelerator -Architecture $Architecture
         foreach ($file in $manifest.files) {
             "$($manifest.bundleDirectory)/$($file.name)"
         }
@@ -65,6 +69,29 @@ function Assert-AmeClassificationRuntimeDirectory {
     }
 }
 
+function Write-AmeRuntimeProvenance {
+    param($Entry, $File, [string]$Path)
+
+    if ($Entry.Length -le 0 -or $Entry.Length -gt 16KB) { throw 'Unexpected NuGet package metadata size' }
+    $stream = $Entry.Open()
+    try {
+        $reader = [Xml.XmlReader]::Create($stream)
+        try {
+            $document = [Xml.XmlDocument]::new()
+            $document.Load($reader)
+        } finally { $reader.Dispose() }
+    } finally { $stream.Dispose() }
+    # Retain the exact x64 provenance files shipped by the original upstream ZIP.
+    $metadata = $document.package.metadata
+    $value = switch -CaseSensitive ($File.nuspecField) {
+        'version' { "$($metadata.version)`r`n" }
+        'repositoryCommit' { "$($metadata.repository.commit) `r`n" }
+        default { throw 'Unknown runtime provenance field' }
+    }
+    [IO.File]::WriteAllText($Path, $value, [Text.UTF8Encoding]::new($false))
+    Assert-AmeClassificationRuntimeArtifact $Path $File
+}
+
 function Expand-AmeClassificationRuntimeArchive {
     param(
         [Parameter(Mandatory = $true)][string]$ArchivePath,
@@ -85,10 +112,15 @@ function Expand-AmeClassificationRuntimeArchive {
         foreach ($file in $Manifest.files) {
             $entryName = $Manifest.archive.prefix + $file.entry
             $entries = @($archive.Entries | Where-Object { $_.FullName -ceq $entryName })
-            if ($entries.Count -ne 1 -or $entries[0].Length -ne $file.length) {
+            $provenance = $null -ne $file.PSObject.Properties['nuspecField']
+            if ($entries.Count -ne 1 -or (-not $provenance -and $entries[0].Length -ne $file.length)) {
                 throw "Runtime archive has a missing, duplicate or wrong-sized entry: $entryName"
             }
             $path = Join-Path $Destination $file.name
+            if ($provenance) {
+                Write-AmeRuntimeProvenance $entries[0] $file $path
+                continue
+            }
             $inputStream = $null
             $outputStream = $null
             try {

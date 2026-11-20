@@ -872,9 +872,9 @@ storage is a separate rebuildable database beside the active catalog, outside th
 
 The Windows CMake dependency prepares the hash-pinned official runtime archive before the application
 target can complete. Its distribution manifest records archive and individual-file lengths and
-SHA-256 digests, with a regression binding both DLL entries to the worker's compiled artifact pins.
+SHA-256 digests. The worker reads its compiled-in target manifest for binary admission.
 Preparation streams at most the admitted archive length with a five-minute timeout, extracts only
-the seven admitted files, verifies them and publishes a complete new build directory by rename.
+the files named by that manifest, verifies them and publishes a complete new build directory by rename.
 Interrupted staging is disposable; an existing build directory must pass every artifact check before
 reuse. Corrupt existing output fails the build for explicit inspection rather than being silently
 trusted. The package cache lives under repository `build`; no runtime download occurs during app
@@ -885,6 +885,11 @@ An upgrade replaces the bundle through the existing application packaging lifecy
 or digest changes require renewed adapter admission and feature compatibility; there is no fallback
 to a system-installed runtime or a different DLL found on the search path. Reverting a bundle restores
 its matching runtime without changing model files, catalogs or human decisions.
+For installations recorded with Ame's `data/classification-runtime` layout, enablement and worker
+startup resolve that directory beside the running executable. When the saved model selection also
+belongs to the previous bundle and the current installation contains the same model package, use
+the current installation's copy. A portable build without bundled models uses the saved model
+directory. Custom model and runtime directories retain their stored paths.
 
 DLL dependency lookup is restricted to Windows system libraries and the pinned runtime directory;
 the current directory and arbitrary search-path entries are excluded inside the worker.

@@ -35,9 +35,11 @@ use windows_sys::Win32::System::Services::{
 use windows_sys::Win32::System::Threading::{
     CREATE_NO_WINDOW, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW,
 };
-use windows_sys::Win32::UI::Shell::{
-    FOLDERID_ProgramFilesX64, KF_FLAG_DEFAULT, SHGetKnownFolderPath,
-};
+#[cfg(target_arch = "aarch64")]
+use windows_sys::Win32::UI::Shell::FOLDERID_ProgramFiles as NATIVE_PROGRAM_FILES;
+#[cfg(not(target_arch = "aarch64"))]
+use windows_sys::Win32::UI::Shell::FOLDERID_ProgramFilesX64 as NATIVE_PROGRAM_FILES;
+use windows_sys::Win32::UI::Shell::{KF_FLAG_DEFAULT, SHGetKnownFolderPath};
 
 use super::process_token::ProcessToken;
 use super::service_host::SERVICE_NAME;
@@ -465,7 +467,7 @@ fn expected_broker_path() -> Result<PathBuf, WindowsTransportError> {
     // CoTaskMem allocation is copied and freed exactly once below.
     let result = unsafe {
         SHGetKnownFolderPath(
-            &FOLDERID_ProgramFilesX64,
+            &NATIVE_PROGRAM_FILES,
             KF_FLAG_DEFAULT as u32,
             null_mut(),
             &mut raw,

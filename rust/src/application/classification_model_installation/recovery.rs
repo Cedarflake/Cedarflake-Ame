@@ -7,7 +7,7 @@ use crate::ports::classification_model_package::ClassificationModelPackage;
 
 use super::super::classification_desktop::installation_path;
 use super::path_error;
-use super::production::{installation_repository, model_package};
+use super::production::{application_data, bundled_models, installation_repository, model_package};
 
 #[derive(Clone)]
 pub(super) enum InstallationSource {
@@ -28,14 +28,6 @@ impl PendingDownload {
     }
 }
 
-pub(super) fn application_data() -> Result<PathBuf, ScanError> {
-    std::env::current_exe()
-        .map_err(path_error)?
-        .parent()
-        .map(|parent| parent.join("data"))
-        .ok_or_else(|| path_error("Missing application directory"))
-}
-
 pub(super) fn pending_source() -> Result<Option<InstallationSource>, ScanError> {
     let settings = installation_path(&super::super::storage_paths()?);
     if let Some(intent) = installation_repository()
@@ -49,9 +41,7 @@ pub(super) fn pending_source() -> Result<Option<InstallationSource>, ScanError> 
     if installation_repository().load(&settings)?.is_some() {
         return Ok(None);
     }
-    let models = application_data()?
-        .join("classification-models")
-        .join(model_package().package_directory());
+    let models = bundled_models(&application_data()?);
     if models.try_exists().map_err(path_error)? {
         return Ok(Some(InstallationSource::Bundled(models)));
     }

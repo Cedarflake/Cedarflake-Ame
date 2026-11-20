@@ -87,6 +87,8 @@ try {
     $wrongMachine[68] = 0x64; $wrongMachine[69] = 0xAA
     [System.IO.File]::WriteAllBytes($library, $wrongMachine)
     Assert-AmeUnsignedFixtureRejected { Get-AmeUnsignedWindowsPayloadFacts @arguments } 'Windows x64 PE'
+    Assert-AmeWindowsPeImage -Path $library -Architecture arm64
+    Assert-AmeUnsignedFixtureRejected { Get-AmeUnsignedWindowsPayloadFacts @arguments -Architecture arm64 } 'Windows arm64 PE'
     $badOffset = [byte[]]$pe.Clone()
     $badOffset[0x3C] = 127
     [System.IO.File]::WriteAllBytes($library, $badOffset)

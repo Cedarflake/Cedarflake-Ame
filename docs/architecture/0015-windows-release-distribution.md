@@ -70,8 +70,13 @@ the executable's `FLUTTER_VERSION` resource. Startup diagnostics attach that ide
 Rust runtime or catalog cannot open. Reading it needs no platform request, catalog or startup wait.
 Package receipts use the matching manifest version, and release-note admission uses its tag.
 
-Only Windows 11 x64 is supported and published. ARM packages are not produced or implied. A hosted
-`windows-2025` Windows Server runner supplies reproducible build and release checks, but it does not
+Tagged releases target Windows 11 x64. The [native preview workflow](../../.github/workflows/quality_windows_arm64.yml)
+provides experimental x64 and ARM64 MSIs and the ARM64 portable application. Each native runner checks
+the Release window and reads the catalog through its packaged Rust bridge. Both installers include
+architecture-matched CPU and DirectML engines, the broker and offline models. The ARM64 MSI also
+passes through fresh installation, repair and removal on a disposable Windows 11 client before upload.
+
+A hosted `windows-2025` Windows Server runner supplies reproducible x64 build and release checks, but it does not
 replace the separately authorized Windows 11 client acceptance evidence.
 Installer packaging uses `windows-2022` to retain the Visual Studio 2022 generator required by
 the native installer policy module. This packaging host does not change the supported client OS.
@@ -90,9 +95,11 @@ missing ICU or application data, and missing Flutter assets.
 CMake's `InstallRequiredSystemLibraries` copies the selected MSVC toolchain's redistributable
 Release libraries beside the executable. Candidate and archive admission require `msvcp140.dll`, `msvcp140_1.dll`,
 `vcruntime140.dll` and `vcruntime140_1.dll`; Debug runtimes and system-directory copies are excluded.
-The same four libraries accompany each CPU/GPU model runtime in its own directory, preserving
+The same four libraries accompany each x64 CPU/GPU model runtime in its own directory, preserving
 the worker's restricted DLL search. Portable admission checks these copies against the application
 root's lengths and hashes while retaining the pinned engine manifest and exact directory contents.
+The native ARM64 engines import `msvcp140.dll`, `msvcp140_1.dll` and `vcruntime140.dll`.
+The ARM64 preview excludes the x64 `vcruntime140_1.dll` supplied for emulation.
 This follows Flutter's [Windows deployment guidance](https://docs.flutter.dev/platform-integration/windows/building)
 and Microsoft's [redistributable-file terms](https://learn.microsoft.com/en-us/cpp/windows/redistributing-visual-cpp-files).
 The Visual Studio build operator must hold the applicable distribution rights; the binaries retain

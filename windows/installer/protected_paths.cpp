@@ -79,7 +79,7 @@ std::wstring ComparablePath(const std::filesystem::path& path) {
 
 std::filesystem::path ProgramFiles() {
   wchar_t* raw = nullptr;
-  const HRESULT result = SHGetKnownFolderPath(FOLDERID_ProgramFilesX64, 0, nullptr, &raw);
+  const HRESULT result = SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, nullptr, &raw);
   if (FAILED(result) || !raw) {
     CoTaskMemFree(raw);
     throw std::runtime_error("Native Program Files is unavailable");

@@ -1,5 +1,9 @@
-if(NOT FLUTTER_TARGET_PLATFORM STREQUAL "windows-x64")
-  message(FATAL_ERROR "The admitted classification runtime requires Windows x64")
+if(FLUTTER_TARGET_PLATFORM STREQUAL "windows-arm64")
+  set(AME_RUNTIME_ARCH arm64)
+elseif(FLUTTER_TARGET_PLATFORM STREQUAL "windows-x64")
+  set(AME_RUNTIME_ARCH x64)
+else()
+  message(FATAL_ERROR "No classification runtime for ${FLUTTER_TARGET_PLATFORM}")
 endif()
 
 find_program(AME_POWERSHELL NAMES pwsh powershell)
@@ -11,10 +15,10 @@ set(AME_CLASSIFICATION_ACCELERATOR_DIR "${CMAKE_BINARY_DIR}/classification-accel
 add_custom_target(ame_classification_runtime
   COMMAND "${AME_POWERSHELL}" -NoProfile -NonInteractive -ExecutionPolicy Bypass
     -File "${CMAKE_CURRENT_LIST_DIR}/../../tool/release_prepare_classification_runtime.ps1"
-    -OutputDirectory "${AME_CLASSIFICATION_RUNTIME_DIR}"
+    -OutputDirectory "${AME_CLASSIFICATION_RUNTIME_DIR}" -Architecture "${AME_RUNTIME_ARCH}"
   COMMAND "${AME_POWERSHELL}" -NoProfile -NonInteractive -ExecutionPolicy Bypass
     -File "${CMAKE_CURRENT_LIST_DIR}/../../tool/release_prepare_classification_runtime.ps1"
-    -OutputDirectory "${AME_CLASSIFICATION_ACCELERATOR_DIR}" -Accelerator
+    -OutputDirectory "${AME_CLASSIFICATION_ACCELERATOR_DIR}" -Architecture "${AME_RUNTIME_ARCH}" -Accelerator
   VERBATIM
 )
 add_dependencies(${BINARY_NAME} ame_classification_runtime)

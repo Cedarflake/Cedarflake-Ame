@@ -2,14 +2,14 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Name="Cedarflake Ame" Manufacturer="Cedarflake" Language="2052"
            Version="$(var.ProductVersion)" ProductCode="$(var.ProductCode)"
-           UpgradeCode="C284E6B0-1484-4926-A94B-C3EC3840DBBD"
+           UpgradeCode="$(var.UpgradeCode)"
            Scope="perMachine" InstallerVersion="500" Codepage="65001">
-    <SummaryInformation Description="Cedarflake Ame Windows x64 installer" />
+    <SummaryInformation Description="Cedarflake Ame Windows $(var.Architecture) installer" />
     <MajorUpgrade Schedule="afterInstallExecute" AllowSameVersionUpgrades="no"
                   DowngradeErrorMessage="已安装更新版本的 Ame，请使用更新的安装包。" />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
     <Launch Condition="VersionNT64 AND MsiNTProductType = 1 AND AME_WINDOWS_BUILD &gt;= 22000"
-            Message="Ame 需要 Windows 11 x64。" />
+            Message="此安装包需要 Windows 11 $(var.Architecture)。" />
     <Launch Condition="NOT RollbackDisabled AND NOT DISABLEROLLBACK"
             Message="请启用 Windows Installer 回滚后再安装 Ame。" />
     <Property Id="AME_WINDOWS_BUILD">

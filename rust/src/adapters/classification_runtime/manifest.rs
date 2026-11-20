@@ -1,3 +1,4 @@
+use super::binaries::{self, RuntimeBinaries};
 use crate::domain::classification::{ClassificationRevision, ModelCompatibility};
 
 pub(super) const IMAGE_VALUES: usize = 3 * 224 * 224;
@@ -25,22 +26,19 @@ pub(super) const TOKENIZER: Artifact = Artifact {
     length: 34_363_039,
     digest: "cb9140fae3ac5122c972d37adf83e1248471a38147ad76f8215c8872c6fd8322",
 };
-pub(super) const RUNTIME: Artifact = Artifact {
-    name: "onnxruntime.dll",
-    length: 17_253_728,
-    digest: "cb2fa518b18356617f6f9f460c012501da2819ec7e5c1d80bd8f5de20492db0c",
-};
-pub(super) const PROVIDER: Artifact = Artifact {
-    name: "onnxruntime_providers_shared.dll",
-    length: 21_816,
-    digest: "8cea20be64259950cda8643af0ed42c2a424400fc3bb9bb29f9a35cee6b3419f",
-};
 
 pub(crate) fn compatibility() -> ModelCompatibility {
     compatibility_for(super::EncoderBackend::Cpu)
 }
 
 pub(crate) fn compatibility_for(backend: super::EncoderBackend) -> ModelCompatibility {
+    pipeline(binaries::native(), backend)
+}
+
+pub(super) fn pipeline(
+    binaries: &RuntimeBinaries,
+    backend: super::EncoderBackend,
+) -> ModelCompatibility {
     let space = ClassificationRevision::derive(
         "ame.classification.embedding-space.v1",
         [IMAGE.digest.as_bytes(), TEXT.digest.as_bytes()],
@@ -50,7 +48,7 @@ pub(crate) fn compatibility_for(backend: super::EncoderBackend) -> ModelCompatib
         "ame.classification.image-pipeline.v1",
         [
             IMAGE.digest.as_bytes(),
-            RUNTIME.digest.as_bytes(),
+            binaries.cpu.digest.as_bytes(),
             execution.as_slice(),
             b"image-0.25.10;first-frame;oriented-rgb8;triangle-whole-224;f32-nchw;mean-0.5;std-0.5;level-1;l2-f64",
         ],
@@ -61,8 +59,8 @@ pub(crate) fn compatibility_for(backend: super::EncoderBackend) -> ModelCompatib
             "ame.classification.directml-image-pipeline.v1",
             [
                 cpu_image.bytes().as_slice(),
-                super::backend::GPU_RUNTIME.digest.as_bytes(),
-                super::backend::DIRECTML.digest.as_bytes(),
+                binaries.gpu.digest.as_bytes(),
+                binaries.directml.digest.as_bytes(),
                 b"ort-2.0.0-rc.15;dml-1.24.4;fp32-from-fp16-v1;fixed-1x3x224x224;no-cpu-fallback",
             ],
         ),
@@ -72,7 +70,7 @@ pub(crate) fn compatibility_for(backend: super::EncoderBackend) -> ModelCompatib
         [
             TEXT.digest.as_bytes(),
             TOKENIZER.digest.as_bytes(),
-            RUNTIME.digest.as_bytes(),
+            binaries.cpu.digest.as_bytes(),
             execution.as_slice(),
             b"tokenizers-0.23.2;single-description;eos;pad-64;truncate-64;level-3;l2-f64",
         ],

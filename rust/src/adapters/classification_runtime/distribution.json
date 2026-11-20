@@ -4,21 +4,21 @@
   "platform": "windows-x64",
   "bundleDirectory": "data/classification-runtime",
   "archive": {
-    "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.31.1/onnxruntime-win-x64-1.31.1.zip",
-    "length": 82929944,
-    "sha256": "5869e26bb25314375f2d5ef1877e3ea06b1543d6c710e6e4a1ec2f7177ab4b2c",
-    "prefix": "onnxruntime-win-x64-1.31.1/"
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime/1.31.1/microsoft.ml.onnxruntime.1.31.1.nupkg",
+    "length": 159626394,
+    "sha256": "6871ccbc97f3d5bdb4095a1dcec33aa78d56f6ed8de5980ef5fa1d9f2e7c679a",
+    "prefix": ""
   },
   "files": [
     {
       "name": "onnxruntime.dll",
-      "entry": "lib/onnxruntime.dll",
+      "entry": "runtimes/win-x64/native/onnxruntime.dll",
       "length": 17253728,
       "sha256": "cb2fa518b18356617f6f9f460c012501da2819ec7e5c1d80bd8f5de20492db0c"
     },
     {
       "name": "onnxruntime_providers_shared.dll",
-      "entry": "lib/onnxruntime_providers_shared.dll",
+      "entry": "runtimes/win-x64/native/onnxruntime_providers_shared.dll",
       "length": 21816,
       "sha256": "8cea20be64259950cda8643af0ed42c2a424400fc3bb9bb29f9a35cee6b3419f"
     },
@@ -42,13 +42,15 @@
     },
     {
       "name": "VERSION_NUMBER",
-      "entry": "VERSION_NUMBER",
+      "entry": "Microsoft.ML.OnnxRuntime.nuspec",
+      "nuspecField": "version",
       "length": 8,
       "sha256": "5c84dfd3de98477eafa692040c2a501dbd3b056778282985daefea6eecf9e715"
     },
     {
       "name": "GIT_COMMIT_ID",
-      "entry": "GIT_COMMIT_ID",
+      "entry": "Microsoft.ML.OnnxRuntime.nuspec",
+      "nuspecField": "repositoryCommit",
       "length": 43,
       "sha256": "c0c2a3774d92c0afecc3f279b3ce3d36809e826cf19092c91fd07024cfdabf1e"
     }

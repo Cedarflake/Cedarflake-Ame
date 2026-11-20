@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-12
-- Last amended: 2026-11-16
+- Last amended: 2026-11-20
 
 ## Context and decision drivers
 
@@ -13,7 +13,7 @@ local builds, retain user data and restore the preceding installation if an upgr
 
 ## Decision
 
-Use an x64, per-machine MSI built with WiX Toolset 7.0.0. Windows Installer owns file components,
+Build one per-machine MSI per supported architecture using WiX Toolset 7.0.0. Windows Installer owns file components,
 product registration, service installation/configuration/control and transactional rollback.
 Distribute the MSI alongside the portable ZIP. A native WiX Burn executable using
 `WixInternalUIBootstrapperApplication` remains available for early elevation and cached maintenance.
@@ -25,7 +25,12 @@ of the desktop application. Native actions validate protected destinations and e
 then own bounded service startup, its paired rollback stop and restoration of the preceding
 service's restricted configuration. MSI retains the installation transaction.
 
-The upgrade identity is `C284E6B0-1484-4926-A94B-C3EC3840DBBD`. The release tag and application
+The x64 upgrade identity is `C284E6B0-1484-4926-A94B-C3EC3840DBBD`. The ARM64 preview uses
+`293D2430-983F-5117-BB52-64978D653436`. Each family owns its product codes. Both packages
+use the same fixed broker service name and check the other family's Windows Installer registration
+before mutation. A fresh install requires the native machine architecture. Switching from an
+emulated x64 installation requires uninstalling it first, which retains the user's catalog.
+Same-architecture upgrades and repairs use the existing transactional lifecycle. The release tag and application
 retain their full semantic version, including prerelease identifiers. MSI `ProductVersion` uses
 `major.minor.build`, with the positive numeric build suffix from Flutter's `pubspec.yaml` as its
 third component. For example, `0.1.0-alpha.1+1` produces MSI version `0.1.1`. Increment the build
@@ -61,7 +66,7 @@ product registration and shortcut. It never owns source directories, catalogs, p
 user decisions or operation history. Removal of unknown files or recursive deletion of the
 installation directory is not part of uninstall.
 
-Keep the broker beneath native `FOLDERID_ProgramFilesX64` in fixed `Cedarflake Ame/Journal Broker`
+Keep the broker beneath the native process's `FOLDERID_ProgramFiles` in fixed `Cedarflake Ame/Journal Broker`
 directories. The application defaults to the sibling `Application` directory and may use another
 local protected installation directory selected through a native MSI path field and folder browser.
 Reject volume roots, overlap with the protected broker, redirected/reparse destinations, untrusted parent

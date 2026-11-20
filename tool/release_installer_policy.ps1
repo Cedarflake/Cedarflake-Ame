@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'release_installer_layout.ps1')
+. (Join-Path $PSScriptRoot 'release_installer_identity.ps1')
 . (Join-Path $PSScriptRoot 'release_installer_ui.ps1')
 
 function Assert-AmeInstallerPolicy {
@@ -12,9 +13,14 @@ function Assert-AmeInstallerPolicy {
 
     $properties = @{}
     foreach ($row in $Model.Property) { $properties[$row.Property] = $row.Value }
-    Require ($Model.Template -ceq 'x64;2052') 'package must target Windows x64 with Chinese UI'
-    Require ($properties.ProductCode -ceq ('{' + $Receipt.productCode + '}') -and
-        $properties.UpgradeCode -ceq '{C284E6B0-1484-4926-A94B-C3EC3840DBBD}' -and
+    Require ($Receipt.payload.machine -cin @('windows-x64', 'windows-arm64')) 'unknown payload architecture'
+    $architecture = $Receipt.payload.machine.Substring(8)
+    $template = if ($architecture -eq 'arm64') { 'Arm64;2052' } else { 'x64;2052' }
+    Require ($Model.Template -ceq $template) 'package platform or language differs from the verified payload'
+    $family = $script:AmeInstallerFamilies.$architecture
+    Require ($Receipt.productCode -ceq (Get-AmeInstallerGuid "product/$($Receipt.productVersion)" $architecture) -and
+        $properties.ProductCode -ceq ('{' + $Receipt.productCode + '}') -and
+        $Receipt.upgradeCode -ceq $family -and $properties.UpgradeCode -ceq ('{' + $family + '}') -and
         $properties.ProductVersion -ceq $Receipt.productVersion -and $properties.ALLUSERS -ceq '1') 'product identity changed'
     Require ($properties.REBOOT -ceq 'ReallySuppress' -and
         $properties.MSIRESTARTMANAGERCONTROL -ceq 'Disable' -and
@@ -107,6 +113,6 @@ function Assert-AmeInstallerPolicy {
         $newer[0].Attributes -ceq '2') 'version upgrade policy changed'
     Require (@($Model.LaunchCondition | Where-Object { $_.Condition -ceq 'NOT WIX_DOWNGRADE_DETECTED' }).Count -eq 1) 'downgrade rejection missing'
 
-    Assert-AmeInstallerLayout $Model $Receipt
+    Assert-AmeInstallerLayout $Model $Receipt $architecture
     Assert-AmeInstallerUi $Model
 }

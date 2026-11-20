@@ -12,7 +12,7 @@ use windows_sys::Win32::Storage::FileSystem::{
 };
 
 use super::manifest::{self, Artifact};
-use super::{EncoderBackend, EncoderKind, RuntimeError, backend};
+use super::{EncoderBackend, EncoderKind, RuntimeError, binaries};
 
 pub(super) struct ArtifactSet {
     pub runtime: PathBuf,
@@ -33,21 +33,18 @@ impl ArtifactSet {
         backend: EncoderBackend,
     ) -> Result<Self, RuntimeError> {
         let mut guards = pin_directory(models)?;
+        let binaries = binaries::native();
         let (runtime, runtime_files) = match backend {
             EncoderBackend::Cpu => (
                 runtime.to_path_buf(),
-                vec![&manifest::RUNTIME, &manifest::PROVIDER],
+                vec![&binaries.cpu, &binaries.cpu_provider],
             ),
             EncoderBackend::DirectMl { device_id }
                 if kind == EncoderKind::Image && device_id >= 0 =>
             {
                 (
                     runtime.with_file_name("classification-accelerator"),
-                    vec![
-                        &backend::GPU_RUNTIME,
-                        &backend::GPU_PROVIDER,
-                        &backend::DIRECTML,
-                    ],
+                    vec![&binaries.gpu, &binaries.gpu_provider, &binaries.directml],
                 )
             }
             _ => return Err(RuntimeError::Configuration),
@@ -69,7 +66,7 @@ impl ArtifactSet {
             None
         };
         Ok(Self {
-            runtime: runtime.join(manifest::RUNTIME.name),
+            runtime: runtime.join(binaries.cpu.name),
             graph: models.join(graph.name),
             tokenizer,
             _guards: guards,

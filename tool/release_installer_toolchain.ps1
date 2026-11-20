@@ -59,7 +59,8 @@ function Get-AmeInstallerWixTool {
 
     Assert-AmeInstallerWixPackage -PackagePath $PackagePath -Directory $SdkDirectory `
         -ExpectedHash $script:AmeInstallerWixPackages.Sdk.Sha256
-    $executable = Join-Path $SdkDirectory "tools/net472/x64/wix.exe"
+    $hostArch = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant()
+    $executable = Join-Path $SdkDirectory "tools/net472/$hostArch/wix.exe"
     $version = @(& $executable --version)
     if ($LASTEXITCODE -ne 0 -or $version.Count -ne 1 -or $version[0] -cne "7.0.0+b8977d6") {
         throw "WiX compiler version does not match the pinned toolchain"
