@@ -25,6 +25,11 @@ pub(in crate::application) fn application_data() -> Result<PathBuf, ScanError> {
         .ok_or_else(|| path_error("Missing application directory"))
 }
 
+pub(super) fn bundled_models(data: &Path) -> PathBuf {
+    data.join("classification-models")
+        .join(model_package().package_directory())
+}
+
 pub(in crate::application) fn installation_for_execution(
     settings: &Path,
     application_data: &Path,
@@ -32,8 +37,15 @@ pub(in crate::application) fn installation_for_execution(
     let mut installation = installation_repository().load(settings)?;
     if let Some(selected) = &mut installation
         && selected.runtime.ends_with("data/classification-runtime")
+        && let Some(previous_data) = selected.runtime.parent()
+        && previous_data != application_data
     {
-        // Managed installations stored the absolute bundle path. The worker must load its own build's DLLs.
+        if selected.models == bundled_models(previous_data) {
+            let models = bundled_models(application_data);
+            if models.try_exists().map_err(path_error)? {
+                selected.models = models;
+            }
+        }
         selected.runtime = application_data.join("classification-runtime");
     }
     Ok(installation)

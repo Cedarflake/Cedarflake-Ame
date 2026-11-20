@@ -7,7 +7,7 @@ use crate::ports::classification_model_package::ClassificationModelPackage;
 
 use super::super::classification_desktop::installation_path;
 use super::path_error;
-use super::production::{application_data, installation_repository, model_package};
+use super::production::{application_data, bundled_models, installation_repository, model_package};
 
 #[derive(Clone)]
 pub(super) enum InstallationSource {
@@ -41,9 +41,7 @@ pub(super) fn pending_source() -> Result<Option<InstallationSource>, ScanError> 
     if installation_repository().load(&settings)?.is_some() {
         return Ok(None);
     }
-    let models = application_data()?
-        .join("classification-models")
-        .join(model_package().package_directory());
+    let models = bundled_models(&application_data()?);
     if models.try_exists().map_err(path_error)? {
         return Ok(Some(InstallationSource::Bundled(models)));
     }

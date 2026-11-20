@@ -886,9 +886,10 @@ or digest changes require renewed adapter admission and feature compatibility; t
 to a system-installed runtime or a different DLL found on the search path. Reverting a bundle restores
 its matching runtime without changing model files, catalogs or human decisions.
 For installations recorded with Ame's `data/classification-runtime` layout, enablement and worker
-startup resolve that directory beside the running executable. This allows a native portable build
-to reuse the selected model weights when unpacked beside an older build. Legacy custom runtime
-directories retain their stored paths.
+startup resolve that directory beside the running executable. When the saved model selection also
+belongs to the previous bundle and the current installation contains the same model package, use
+the current installation's copy. A portable build without bundled models uses the saved model
+directory. Custom model and runtime directories retain their stored paths.
 
 DLL dependency lookup is restricted to Windows system libraries and the pinned runtime directory;
 the current directory and arbitrary search-path entries are excluded inside the worker.
