@@ -10,13 +10,15 @@ import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("uses portal-free tooltip semantics on Windows", (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     final semanticsHandle = tester.ensureSemantics();
     try {
       await tester.pumpWidget(
-        const MaterialApp(
+        const LocalizedTestApp(
           home: AmeTooltip(
             message: "完整路径",
             child: SizedBox(key: Key("tooltip-child"), width: 24, height: 24),
@@ -41,7 +43,7 @@ void main() {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     try {
       await tester.pumpWidget(
-        const MaterialApp(
+        const LocalizedTestApp(
           home: Scaffold(
             body: Center(
               child: AmeTooltip(
@@ -95,7 +97,7 @@ void main() {
     final focusNode = FocusNode();
     try {
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: Center(
               child: AmeTooltip(
@@ -138,7 +140,7 @@ void main() {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     try {
       await tester.pumpWidget(
-        const MaterialApp(
+        const LocalizedTestApp(
           home: Scaffold(
             body: Center(
               child: AmeTooltip(
@@ -228,7 +230,7 @@ void main() {
 
   testWidgets("uses shared icon and label geometry", (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: buildAmeTheme(),
         home: const Scaffold(
           body: Center(
@@ -253,7 +255,7 @@ void main() {
     ) async {
       final theme = buildAmeTheme(brightness: brightness);
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           theme: theme,
           home: Scaffold(
             body: ListTile(
@@ -319,7 +321,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: buildAmeTheme(),
         home: const Scaffold(
           body: Column(
@@ -350,7 +352,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: buildAmeTheme(),
         home: Builder(
           builder: (context) {
@@ -408,7 +410,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: buildAmeTheme(),
         home: Builder(
           builder: (context) {
@@ -456,7 +458,7 @@ void main() {
   testWidgets("animates and activates anchored popup routes", (tester) async {
     var activationCount = 0;
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: buildAmeTheme(),
         home: Scaffold(
           body: AmePopupMenuButton<int>(
@@ -502,7 +504,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: buildAmeTheme(),
         home: Scaffold(
           body: Builder(
@@ -542,7 +544,7 @@ void main() {
     int? selected;
 
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: buildAmeTheme(),
         home: Scaffold(
           body: AmePopupMenuButton<int>(
@@ -599,7 +601,7 @@ void main() {
     final semanticsHandle = tester.ensureSemantics();
     try {
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           theme: buildAmeTheme(),
           home: Scaffold(
             body: ListView(
@@ -635,7 +637,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: buildAmeTheme(),
         home: Scaffold(
           body: AmePopupMenuButton<int>(
@@ -670,7 +672,7 @@ void main() {
     late double cappedWidth;
 
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: buildAmeTheme(),
         home: Builder(
           builder: (context) {

@@ -1,3 +1,4 @@
+import "../../../app/messages/ame_message.dart";
 import "library_organization_batch.dart";
 
 class LibrarySelectionAvailability {
@@ -9,9 +10,9 @@ class LibrarySelectionAvailability {
   bool get canUnfavorite => summary.favorites > 0;
   bool get canRemoveAlbum => summary.assigned > 0 && summary.conflicts == 0;
 
-  String get albumActionLabel {
-    if (summary.assigned == 0) return "加入相册";
-    if (summary.assigned == summary.groups) return "移至其他相册";
-    return "加入或移至相册";
+  AmeMessage get albumActionLabel {
+    if (summary.assigned == 0) return AmeLabel.addToAlbum;
+    if (summary.assigned == summary.groups) return AmeLabel.moveToAnotherAlbum;
+    return AmeLabel.addOrMoveToAlbum;
   }
 }

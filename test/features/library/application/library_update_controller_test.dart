@@ -556,7 +556,10 @@ void main() {
           .read(libraryUpdateControllerProvider)
           .tasksByRootId["root-a"];
       expect(failedTask?.phase, LibraryRootUpdatePhase.refreshFailed);
-      expect(failedTask?.errorMessage, contains("刷新显示失败"));
+      expect(
+        failedTask?.errorMessage,
+        startsWith("library_update_display_failed:"),
+      );
       expect(scanner.startedRootPaths, ["C:\\A"]);
 
       controller.retry("root-a");

@@ -2,6 +2,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_vie
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   for (final reducedMotion in [false, true]) {
     testWidgets(
@@ -9,7 +11,7 @@ void main() {
       (tester) async {
         final navigator = GlobalKey<NavigatorState>();
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             navigatorKey: navigator,
             builder: (context, child) => MediaQuery(
               data: MediaQuery.of(

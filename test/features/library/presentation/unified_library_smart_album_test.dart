@@ -16,6 +16,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 import "../support/library_organization_fixture.dart";
 import "support/library_screen_fixture.dart";
 
@@ -259,7 +260,7 @@ void main() {
             (ref) => pending.future.asStream(),
           ),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: SizedBox(
               width: 260,

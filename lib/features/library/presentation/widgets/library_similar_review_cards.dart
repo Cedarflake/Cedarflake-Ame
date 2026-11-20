@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_exact_duplicates.dart";
 import "../../domain/library_similar_review.dart";
@@ -30,11 +31,11 @@ class LibrarySimilarGroupCard extends StatelessWidget {
     selected: selected,
     onOpen: onOpen,
     details: Text(
-      "${LibraryDuplicateStrings.similarGroups} · ${LibraryDuplicateStrings.similarImages(group.memberCount)}",
+      "${context.l10n.similarGroups} · ${context.l10n.photoCount(group.memberCount)}",
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     ),
-    actionLabel: LibraryDuplicateStrings.viewSimilar,
+    actionLabel: context.l10n.viewSimilar,
   );
 }
 
@@ -70,7 +71,10 @@ class LibrarySimilarMemberCard extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        if (LibraryDuplicateStrings.availability(member.availability)
+        if (LibraryDuplicateStrings.availability(
+              context.l10n,
+              member.availability,
+            )
             case final label?)
           Text(label),
       ],
@@ -78,26 +82,26 @@ class LibrarySimilarMemberCard extends StatelessWidget {
     actions: [
       AmeTooltip(
         message: preferred
-            ? LibraryDuplicateStrings.deselectSimilarImage
-            : LibraryDuplicateStrings.selectSimilarImage,
+            ? context.l10n.deselectPhoto
+            : context.l10n.selectPhoto,
         child: IconButton(
           key: ValueKey("prefer-${member.asset.locationId}"),
           style: LibraryDuplicateReviewMetrics.iconActionStyle,
           onPressed: onPrefer,
           isSelected: preferred,
-          icon: const Icon(
+          icon: Icon(
             Symbols.bookmark_rounded,
-            semanticLabel: LibraryDuplicateStrings.selectSimilarImage,
+            semanticLabel: context.l10n.selectPhoto,
           ),
-          selectedIcon: const Icon(
+          selectedIcon: Icon(
             Symbols.bookmark_rounded,
             fill: 1,
-            semanticLabel: LibraryDuplicateStrings.deselectSimilarImage,
+            semanticLabel: context.l10n.deselectPhoto,
           ),
         ),
       ),
       AmeTooltip(
-        message: LibraryDuplicateStrings.locations(member.locationCount),
+        message: context.l10n.locationCount(member.locationCount),
         child: IconButton(
           key: ValueKey("similar-locations-${member.asset.locationId}"),
           style: LibraryDuplicateReviewMetrics.iconActionStyle,
@@ -112,7 +116,7 @@ class LibrarySimilarMemberCard extends StatelessWidget {
           availability: member.availability,
         ),
         builder: (context, reveal) => AmeTooltip(
-          message: LibraryDuplicateStrings.revealLocation,
+          message: context.l10n.openInExplorer,
           child: IconButton(
             style: LibraryDuplicateReviewMetrics.iconActionStyle,
             onPressed: reveal,

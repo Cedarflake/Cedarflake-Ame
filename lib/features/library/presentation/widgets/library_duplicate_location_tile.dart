@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_exact_duplicates.dart";
 import "../library_duplicate_strings.dart";
@@ -16,7 +17,7 @@ class LibraryDuplicateLocationTile extends StatelessWidget {
     this.onSelect,
     this.onPreference,
     this.preferred = false,
-    this.preferenceLabel = "设为首选",
+    this.preferenceLabel,
     this.wrapPath = false,
     super.key,
   });
@@ -26,7 +27,7 @@ class LibraryDuplicateLocationTile extends StatelessWidget {
   final VoidCallback? onSelect;
   final VoidCallback? onPreference;
   final bool preferred;
-  final String preferenceLabel;
+  final String? preferenceLabel;
   final bool wrapPath;
 
   @override
@@ -35,6 +36,7 @@ class LibraryDuplicateLocationTile extends StatelessWidget {
     final separator = path.lastIndexOf("\\");
     final folder = separator < 0 ? "" : path.substring(0, separator);
     final availability = LibraryDuplicateStrings.availability(
+      context.l10n,
       location.availability,
     );
     return LibraryDuplicateRevealAction(
@@ -83,14 +85,14 @@ class LibraryDuplicateLocationTile extends StatelessWidget {
             children: [
               if (onSelect != null)
                 IconButton(
-                  tooltip: preferenceLabel,
+                  tooltip: preferenceLabel ?? context.l10n.setPreferred,
                   onPressed: onPreference,
                   isSelected: preferred,
                   icon: const Icon(Symbols.bookmark_rounded),
                   selectedIcon: const Icon(Symbols.bookmark_rounded, fill: 1),
                 ),
               IconButton(
-                tooltip: LibraryDuplicateStrings.revealLocation,
+                tooltip: context.l10n.openInExplorer,
                 onPressed: reveal,
                 icon: const Icon(Symbols.folder_open_rounded),
               ),

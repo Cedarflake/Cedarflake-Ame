@@ -2,6 +2,8 @@ import "package:cedarflake_ame/features/library/domain/library_metadata_filter.d
 import "package:cedarflake_ame/features/library/presentation/coordination/library_metadata_filter_draft.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   test("editing preserves exact stored bytes and explicit date meaning", () {
     const filter = LibraryMetadataFilter(
@@ -19,7 +21,7 @@ void main() {
       cameraText: "α7 相机",
     );
     final draft = LibraryMetadataFilterDraft.fromFilter(filter);
-    expect(draft.parse().filter, filter);
+    expect(draft.parse(testChinese).filter, filter);
     expect(draft.sizeUnit, LibraryFilterSizeUnit.bytes);
   });
 
@@ -48,7 +50,7 @@ void main() {
           values: values,
           sizeUnit: LibraryFilterSizeUnit.bytes,
           dateField: LibraryDateField.capture,
-        ).parse();
+        ).parse(testChinese);
         expect(result.filter, isNull, reason: values.toString());
         expect(
           result.errors.keys,

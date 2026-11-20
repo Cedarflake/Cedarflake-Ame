@@ -1,6 +1,8 @@
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
+import "../../../../app/presentation/ame_message_text.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_feedback_card.dart";
@@ -40,17 +42,19 @@ Widget? buildLibraryModelInstallationFeedback(
       : null;
   return AmeFeedbackCard(
     key: const Key("classification-installation-progress"),
-    title: entry.title,
-    detail: entry.message.isEmpty ? null : entry.message,
+    title: entry.title.resolve(context.l10n),
+    detail: entry.message.resolve(context.l10n).isEmpty
+        ? null
+        : entry.message.resolve(context.l10n),
     severity: entry.severity,
     progress: AmeLinearProgress(value: fraction),
     actions: [
       AmeFeedbackAction(
-        label: "取消",
+        label: context.l10n.cancel,
         onPressed: installation.canCancel ? installation.cancel : null,
       ),
       AmeFeedbackAction(
-        label: "隐藏",
+        label: context.l10n.hide,
         onPressed: () => controller.dismiss(entry.id),
       ),
     ],

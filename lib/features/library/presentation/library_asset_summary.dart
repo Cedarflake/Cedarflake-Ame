@@ -1,8 +1,10 @@
-String libraryFileType(String path) {
+import "../../../app/presentation/ame_localizations.dart";
+
+String libraryFileType(AppLocalizations strings, String path) {
   final fileName = path.replaceAll("\\", "/").split("/").last;
   final separator = fileName.lastIndexOf(".");
   if (separator < 0 || separator == fileName.length - 1) {
-    return "未知";
+    return strings.unknown;
   }
   return fileName.substring(separator + 1).toUpperCase();
 }

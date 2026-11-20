@@ -6,6 +6,8 @@ import "package:cedarflake_ame/features/library/presentation/library_model_insta
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   test(
     "configuration failure does not claim a missing or partial download",
@@ -27,7 +29,7 @@ void main() {
           .read(ameNotificationControllerProvider)
           .history
           .single;
-      expect(notice.detail, "暂时无法读取模型配置，请重试。");
+      expect(notice.detail?.resolve(testChinese), "暂时无法读取模型配置，请重试。");
       expect(notice.technicalCode, "classification_installation_unavailable");
       expect(notice.actionId, "retry-model-installation");
       expect(notice.isActive, isTrue);

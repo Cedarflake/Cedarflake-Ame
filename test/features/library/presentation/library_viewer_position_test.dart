@@ -25,8 +25,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/library_query_snapshot_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -206,7 +206,7 @@ void main() {
 
       expect(catalog.loadCount, 1);
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
+        find.text(testChinese.galleryDisplayReloadPending),
         findsOneWidget,
       );
 
@@ -218,7 +218,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       expect(catalog.loadCount, 2);
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
+        find.text(testChinese.galleryDisplayReloadPending),
         findsOneWidget,
       );
     },
@@ -271,10 +271,7 @@ void main() {
         container.read(libraryControllerProvider).catalogRevision,
         BigInt.from(4),
       );
-      expect(
-        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
-        findsNothing,
-      );
+      expect(find.text(testChinese.galleryDisplayReloadPending), findsNothing);
 
       await tester.pump(const Duration(seconds: 3));
       expect(catalog.loadCount, 2);
@@ -314,7 +311,7 @@ void main() {
 
       expect(find.text("“Pictures”更新受阻"), findsOneWidget);
       expect(
-        find.text(LibraryStrings.synchronizationMonitoringAccessDenied),
+        find.text(testChinese.synchronizationMonitoringAccessDenied),
         findsOneWidget,
       );
       expect(find.textContaining("阶段："), findsNothing);
@@ -329,7 +326,7 @@ void main() {
 
       expect(find.text("“Pictures”更新受阻"), findsNothing);
       expect(
-        find.text(LibraryStrings.synchronizationMonitoringCapacityExceeded),
+        find.text(testChinese.synchronizationCapacityExceeded),
         findsNothing,
       );
       expect(
@@ -454,26 +451,26 @@ void main() {
       await tester.pump();
 
       expect(
-        find.text(LibraryStrings.firstImportRequiredTitle("Pictures")),
+        find.text(
+          LibraryStrings.firstImportRequiredTitle(
+            "Pictures",
+          ).resolve(testChinese),
+        ),
         findsNothing,
       );
       expect(
         find.byKey(const Key("library-first-import-state")),
         findsOneWidget,
       );
-      expect(
-        find.text(LibraryStrings.firstImportGalleryDetail),
-        findsOneWidget,
-      );
+      expect(find.text(testChinese.firstImportGalleryDetail), findsOneWidget);
       expect(find.text("“Pictures”更新受阻"), findsNothing);
       expect(
-        find.textContaining("阶段：${LibraryStrings.synchronizationPhaseBlocked}"),
+        find.textContaining(
+          "阶段：${testChinese.synchronizationUpdateIncomplete}",
+        ),
         findsNothing,
       );
-      expect(
-        find.text(LibraryStrings.synchronizationEvidenceGap),
-        findsNothing,
-      );
+      expect(find.text(testChinese.synchronizationEvidenceGap), findsNothing);
       expect(
         find.byKey(const Key("notification-primary-action")),
         findsNothing,
@@ -522,7 +519,7 @@ void main() {
     await tester.pump();
 
     expect(
-      find.text(LibraryStrings.synchronizationLegacyRecoveryAuthorityMissing),
+      find.text(testChinese.synchronizationLegacyRecoveryAuthorityMissing),
       findsOneWidget,
     );
     expect(
@@ -563,16 +560,16 @@ void main() {
       await tester.pump();
 
       expect(
-        find.text(LibraryStrings.synchronizationExplicitRecoveryRequired),
+        find.text(testChinese.synchronizationLegacyRecoveryAuthorityMissing),
         findsOneWidget,
       );
       final updateAction = find.byKey(const Key("notification-primary-action"));
       expect(updateAction, findsOneWidget);
-      expect(find.text(LibraryStrings.updateLibrary), findsOneWidget);
+      expect(find.text(testChinese.updateLibrary), findsOneWidget);
       expect(
         tester.getSemantics(updateAction),
         matchesSemantics(
-          label: LibraryStrings.updateLibrary,
+          label: testChinese.updateLibrary,
           isButton: true,
           hasEnabledState: true,
           hasTapAction: true,
@@ -641,7 +638,7 @@ void main() {
 
       expect(find.text("“Pictures”更新受阻"), findsOneWidget);
       expect(
-        find.text(LibraryStrings.synchronizationPersistenceFailed),
+        find.text(testChinese.synchronizationPersistenceFailed),
         findsOneWidget,
       );
       expect(
@@ -743,10 +740,13 @@ void main() {
           .read(ameNotificationControllerProvider)
           .history
           .single;
-      expect(firstNotification.title, LibraryStrings.continuityLiveOnlyNotice);
       expect(
-        firstNotification.message,
-        LibraryStrings.continuityLiveOnlyNoticeDetail,
+        firstNotification.title.resolve(testChinese),
+        testChinese.manualUpdateNotice,
+      );
+      expect(
+        firstNotification.message.resolve(testChinese),
+        testChinese.manualUpdateDetail,
       );
       expect(firstNotification.severity, AmeNotificationSeverity.info);
       expect(firstNotification.dedupeKey, "library.liveOnlyCapability");
@@ -757,10 +757,7 @@ void main() {
       expect(libraryState.status, LibraryStatus.completed);
       expect(find.byKey(const Key("library-task-surface")), findsNothing);
       expect(find.byKey(const Key("ame-notification-surface")), findsOneWidget);
-      expect(
-        find.text(LibraryStrings.continuityLiveOnlyNotice),
-        findsOneWidget,
-      );
+      expect(find.text(testChinese.manualUpdateNotice), findsOneWidget);
 
       for (var poll = 0; poll < 4; poll += 1) {
         synchronization.publish(_liveOnlySynchronizedRootSnapshot());
@@ -874,7 +871,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
+        find.text(testChinese.galleryDisplayReloadPending),
         findsOneWidget,
       );
 
@@ -913,10 +910,7 @@ void main() {
       expect(find.text("已检查 128 个文件 · 已找到 64 张图片"), findsOneWidget);
       expect(find.bySemanticsLabel("取消更新 Pictures"), findsOneWidget);
       expect(find.byKey(const Key("library-pause-button")), findsNothing);
-      expect(
-        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
-        findsNothing,
-      );
+      expect(find.text(testChinese.galleryDisplayReloadPending), findsNothing);
 
       scanner.add(
         LibraryScanCompleted(
@@ -944,7 +938,7 @@ void main() {
       await tester.pump();
 
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
+        find.text(testChinese.galleryDisplayReloadPending),
         findsOneWidget,
       );
       expect(
@@ -1013,7 +1007,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
+        find.text(testChinese.galleryDisplayReloadPending),
         findsOneWidget,
       );
 
@@ -1036,10 +1030,7 @@ void main() {
         find.byKey(const Key("library-task-dismiss-button")),
         findsOneWidget,
       );
-      expect(
-        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
-        findsNothing,
-      );
+      expect(find.text(testChinese.galleryDisplayReloadPending), findsNothing);
 
       await tester.tap(find.byKey(const Key("library-task-dismiss-button")));
       await tester.pump();
@@ -1052,7 +1043,7 @@ void main() {
       expect(acknowledgedState.errorMessage, isNull);
       expect(find.text("添加目录失败"), findsNothing);
       expect(
-        find.text(LibraryStrings.synchronizationRefreshFailureTitle),
+        find.text(testChinese.galleryDisplayReloadPending),
         findsOneWidget,
       );
 
@@ -1308,7 +1299,7 @@ void main() {
       synchronization.publish(_synchronizationSnapshot(BigInt.from(3)));
       await _pumpSynchronizationRefresh(tester);
 
-      expect(find.text(LibraryStrings.viewerSourceChanged), findsOneWidget);
+      expect(find.text(testChinese.viewerSourceChanged), findsOneWidget);
       expect(tester.getRect(find.byType(LibraryViewerImage)), imageViewport);
       expect(
         tester
@@ -1319,7 +1310,7 @@ void main() {
       );
       await tester.tap(find.byKey(const Key("viewer-source-action")));
       await tester.pump();
-      expect(find.text(LibraryStrings.viewerSourceChanged), findsNothing);
+      expect(find.text(testChinese.viewerSourceChanged), findsNothing);
       expect(
         tester
             .widget<LibraryImageViewer>(find.byType(LibraryImageViewer))
@@ -1351,7 +1342,7 @@ void main() {
       await _pumpSynchronizationRefresh(tester);
 
       expect(find.byKey(const Key("viewer-back-button")), findsOneWidget);
-      expect(find.text(LibraryStrings.viewerSourceMissing), findsOneWidget);
+      expect(find.text(testChinese.viewerSourceMissing), findsOneWidget);
       final removedViewer = tester.widget<LibraryImageViewer>(
         find.byType(LibraryImageViewer),
       );
@@ -1380,7 +1371,7 @@ Future<void> _revealCurrentViewerFile(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key("viewer-more-menu")));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 500));
-  await tester.tap(find.text(LibraryStrings.openInExplorer));
+  await tester.tap(find.text(testChinese.openInExplorer));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 500));
 }
@@ -1427,10 +1418,7 @@ Future<void> _verifyTerminalScanFeedbackAcknowledgement(
   );
   await tester.pump();
   await tester.pump(const Duration(seconds: 1));
-  expect(
-    find.text(LibraryStrings.synchronizationRefreshFailureTitle),
-    findsOneWidget,
-  );
+  expect(find.text(testChinese.galleryDisplayReloadPending), findsOneWidget);
 
   final container = ProviderScope.containerOf(
     tester.element(find.byType(AmeApp)),
@@ -1456,20 +1444,14 @@ Future<void> _verifyTerminalScanFeedbackAcknowledgement(
     find.byKey(const Key("library-update-dismiss-terminal")),
     findsOneWidget,
   );
-  expect(
-    find.text(LibraryStrings.synchronizationRefreshFailureTitle),
-    findsNothing,
-  );
+  expect(find.text(testChinese.galleryDisplayReloadPending), findsNothing);
   expect(scanner.scanCount, 1);
 
   await tester.tap(find.byKey(const Key("library-update-dismiss-terminal")));
   await tester.pump();
 
   expect(find.text(terminalTitle), findsNothing);
-  expect(
-    find.text(LibraryStrings.synchronizationRefreshFailureTitle),
-    findsOneWidget,
-  );
+  expect(find.text(testChinese.galleryDisplayReloadPending), findsOneWidget);
   expect(find.byKey(const Key("notification-primary-action")), findsOneWidget);
 
   await tester.tap(find.byKey(const Key("notification-primary-action")));
@@ -1477,10 +1459,7 @@ Future<void> _verifyTerminalScanFeedbackAcknowledgement(
 
   expect(catalog.loadCount, 2);
   expect(scanner.scanCount, 1);
-  expect(
-    find.text(LibraryStrings.synchronizationRefreshFailureTitle),
-    findsOneWidget,
-  );
+  expect(find.text(testChinese.galleryDisplayReloadPending), findsOneWidget);
 }
 
 LibraryState _libraryState({

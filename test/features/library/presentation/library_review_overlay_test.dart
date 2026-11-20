@@ -8,6 +8,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_rev
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/library_review_fixture.dart";
 
 void main() {
@@ -24,7 +25,7 @@ void main() {
       await mode.enter();
       var imageTaps = 0;
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: LibraryGalleryViewport(
               header: LibraryGalleryHeaderActions(
@@ -85,7 +86,7 @@ void main() {
     surface.publishing = () async => throw StateError("Query unavailable");
     await mode.selectQueue(LibraryOrganizationQueue.deferred);
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: ListenableBuilder(
             listenable: mode,
@@ -102,7 +103,7 @@ void main() {
       ),
     );
     final retry = find.byKey(const Key("library-review-retry"));
-    expect(find.text(mode.problem!), findsOneWidget);
+    expect(find.text(mode.problem!.resolve(testChinese)), findsOneWidget);
     expect(tester.getCenter(retry).dy, lessThan(160));
     surface.publishing = null;
     await tester.tap(retry);

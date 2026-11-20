@@ -1,3 +1,4 @@
+import "../../../app/messages/ame_message.dart";
 import "../../../app/notifications/ame_notification_controller.dart";
 import "../domain/library_semantic_search.dart";
 import "coordination/library_search.dart";
@@ -19,16 +20,18 @@ class LibrarySearchNotifications {
     }
     notifications.publish(
       AmeNotificationDraft(
-        title: error is LibrarySemanticIndexFailure ? "图片分析已暂停" : "搜索暂时不可用",
+        title: error is LibrarySemanticIndexFailure
+            ? AmeLabel.photoAnalysisPaused
+            : AmeLabel.searchUnavailable,
         message: LibrarySearchStrings.failure(error),
         severity: AmeNotificationSeverity.error,
-        detail: error.toString(),
+        detail: AmeRawMessage(error.toString()),
         dedupeKey: _key,
         actionId: retryAction,
         actionContext: "${++_generation}",
         actionLabel: error is LibrarySemanticIndexFailure
-            ? "重试分析"
-            : LibrarySearchStrings.retry,
+            ? AmeLabel.retryAnalysis
+            : AmeLabel.retrySearch,
         isPersistent: true,
       ),
     );

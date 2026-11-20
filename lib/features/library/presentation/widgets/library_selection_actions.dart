@@ -4,8 +4,11 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/messages/ame_message.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_message_text.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_album_proposal.dart";
 import "../../application/library_batch_requests.dart";
@@ -271,7 +274,7 @@ class _LibrarySelectionActionsState
         hasConflict: summary.conflicts > 0,
       );
       if (!_owns(session)) return;
-      String? initialError;
+      AmeMessage? initialError;
       if (!proposal.shouldAsk && proposal.destination != null) {
         final result = await _actions.submit(
           membership.request(proposal.destination),
@@ -298,17 +301,22 @@ class _LibrarySelectionActionsState
         progressControls: widget.query.organizationQueue == null
             ? null
             : LibraryProgressControls.forQueue(
+                context.l10n,
                 widget.query.organizationQueue!,
                 hasConflict: summary.conflicts > 0,
               ),
-        actionLabel: availability.albumActionLabel,
+        actionLabel: availability.albumActionLabel.resolve(context.l10n),
         actionIcon: summary.assigned == 0
             ? Symbols.bookmark_add_rounded
             : Symbols.drive_file_move_rounded,
         initialAlbum: proposal.destination,
         currentAlbum: summary.commonAlbum,
-        clearLabel: availability.canRemoveAlbum ? "移出相册" : null,
-        explanation: summary.conflicts > 0 ? "所选图片中有相册归属冲突，请选择一个相册。" : null,
+        clearLabel: availability.canRemoveAlbum
+            ? context.l10n.removeFromAlbum
+            : null,
+        explanation: summary.conflicts > 0
+            ? context.l10n.selectedAlbumConflict
+            : null,
         initialError: initialError,
       );
       if (choice != null) onCommitted();
@@ -332,7 +340,7 @@ class _LibrarySelectionActionsState
         .read(ameNotificationControllerProvider.notifier)
         .publish(
           AmeNotificationDraft(
-            title: "无法完成操作",
+            title: AmeLabel.actionFailed,
             message: libraryOrganizationErrorMessage(code),
             severity: AmeNotificationSeverity.error,
             dedupeKey: "library-selection-prepare",
@@ -359,6 +367,7 @@ class _LibrarySelectionActionsState
     final controls = queue == null
         ? null
         : LibraryProgressControls.forQueue(
+            context.l10n,
             queue,
             hasConflict: (summary?.conflicts ?? 0) > 0,
           );
@@ -367,25 +376,25 @@ class _LibrarySelectionActionsState
       mainAxisSize: MainAxisSize.min,
       children: [
         AmePopupMenuButton<bool>(
-          labels: const ["加入收藏夹", "取消收藏"],
+          labels: [context.l10n.addFavorite, context.l10n.removeFavorite],
           onSelected: _setFavorite,
           onOpenChanged: (open) {
             if (!open && !_working) _retire();
           },
           items: [
             if (availability?.canFavorite == true)
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: true,
                 child: AmeMenuItemContent(
-                  label: "加入收藏夹",
+                  label: context.l10n.addFavorite,
                   icon: Symbols.favorite_rounded,
                 ),
               ),
             if (availability?.canUnfavorite == true)
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: false,
                 child: AmeMenuItemContent(
-                  label: "取消收藏",
+                  label: context.l10n.removeFavorite,
                   icon: Symbols.heart_minus_rounded,
                 ),
               ),
@@ -407,7 +416,11 @@ class _LibrarySelectionActionsState
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(onlyFavorites ? "取消收藏" : "收藏"),
+                  Text(
+                    onlyFavorites
+                        ? context.l10n.removeFavorite
+                        : context.l10n.favorite,
+                  ),
                   if (mixedFavorites) ...[
                     const SizedBox(width: 4),
                     const Icon(Symbols.arrow_drop_down_rounded, size: 20),
@@ -421,7 +434,7 @@ class _LibrarySelectionActionsState
           key: const Key("library-selection-album"),
           onPressed: enabled ? _album : null,
           icon: const Icon(Symbols.photo_album_rounded),
-          label: const Text("相册"),
+          label: Text(context.l10n.albums),
         ),
         LibraryFileMenu(
           enabled: enabled,
@@ -439,7 +452,7 @@ class _LibrarySelectionActionsState
           key: const Key("library-cancel-selection"),
           onPressed: widget.onCancel,
           icon: const Icon(Symbols.close_rounded),
-          label: const Text("取消"),
+          label: Text(context.l10n.cancel),
         ),
         if (controls case final controls?)
           LibraryOrganizationMenu(

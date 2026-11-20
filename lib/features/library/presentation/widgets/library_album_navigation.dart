@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_disclosure.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../application/library_album_pages.dart";
 import "../../application/library_album_requests.dart";
@@ -73,9 +74,9 @@ class _LibraryAlbumNavigationState
         revision: page.revision,
         actions: ref.read(libraryOrganizationActionsProvider.notifier),
       ),
-      title: "删除 ${albums.length} 个相册？",
-      detail: "这些相册中的图片组将进入已忽略。图片文件和收藏状态会保留。",
-      actionLabel: "删除相册",
+      title: context.l10n.confirmDeleteAlbums(albums.length),
+      detail: context.l10n.deleteAlbumsImpact,
+      actionLabel: context.l10n.deleteAlbum,
       itemIcons: {
         for (final album in albums) album.id: libraryAlbumIcon(album.icon),
       },
@@ -104,23 +105,23 @@ class _LibraryAlbumNavigationState
     children: [
       widget.header,
       LibrarySidebarSectionHeader(
-        title: "相册",
+        title: context.l10n.albums,
         count: page?.total,
-        createLabel: "新建相册",
+        createLabel: context.l10n.createAlbum,
         createKey: const Key("library-sidebar-create-album"),
         onCreate: !widget.enabled || busy || page == null
             ? null
             : () => _edit(LibraryAlbumEditKind.create, page.revision),
         trailing: LibrarySidebarSectionToggle(
           key: const Key("library-sidebar-album-expand"),
-          label: "相册",
+          label: context.l10n.albums,
           expanded: _expanded,
           onPressed: () => setState(() => _expanded = !_expanded),
         ),
         selectedCount: _selection.count,
         selectAllLabel: page != null && page.total > page.albums.length
-            ? "全选本页相册"
-            : "全选相册",
+            ? context.l10n.selectPageAlbums
+            : context.l10n.selectAllAlbums,
         allSelected:
             page != null &&
             _selection.allSelected(page.albums.map((a) => a.id)),
@@ -129,19 +130,19 @@ class _LibraryAlbumNavigationState
             : () => setState(
                 () => _selection.toggleAll(page.albums.map((a) => a.id)),
               ),
-        removeLabel: "删除所选相册",
+        removeLabel: context.l10n.deleteSelectedAlbums,
         onRemove: busy || page == null ? null : () => _removeSelected(page),
       ),
       AmeDisclosure(
         child: _expanded && page?.total == 0
-            ? const ListTile(
+            ? ListTile(
                 key: Key("library-sidebar-album-empty"),
                 minTileHeight: LibraryWorkbenchMetrics.sidebarRowHeight,
                 contentPadding: EdgeInsets.only(left: 16, right: 6),
                 minLeadingWidth: 24,
                 horizontalTitleGap: 12,
                 leading: Icon(Symbols.photo_album_rounded, size: 24),
-                title: Text("还没有创建相册"),
+                title: Text(context.l10n.albumsEmpty),
               )
             : null,
       ),
@@ -221,7 +222,7 @@ class _LibraryAlbumNavigationState
                             : () => setState(
                                 () => _after = _previous.removeLast(),
                               ),
-                        child: const Text("上一页"),
+                        child: Text(context.l10n.previousPage),
                       ),
                       const Spacer(),
                       TextButton(
@@ -235,7 +236,7 @@ class _LibraryAlbumNavigationState
                                 _previous.add(_after);
                                 _after = value.nextAlbumId;
                               }),
-                        child: const Text("下一页"),
+                        child: Text(context.l10n.nextPage),
                       ),
                     ],
                   ),
@@ -269,11 +270,11 @@ class _LibraryAlbumNavigationState
             AmeDisclosure(
               child: _expanded
                   ? ListTile(
-                      title: const Text("相册暂时无法加载"),
+                      title: Text(context.l10n.albumsUnavailable),
                       trailing: TextButton(
                         onPressed: () =>
                             ref.invalidate(libraryAlbumPageProvider(_after)),
-                        child: const Text("重试"),
+                        child: Text(context.l10n.retry),
                       ),
                     )
                   : null,

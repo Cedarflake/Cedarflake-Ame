@@ -4,7 +4,9 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/messages/ame_message.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../library/application/library_archive_controller.dart";
 import "../../../library/application/library_archive_state.dart";
 import "../../application/organization_archive_picker.dart";
@@ -40,8 +42,8 @@ class _OrganizationArchiveSectionState
             .read(ameNotificationControllerProvider.notifier)
             .publish(
               const AmeNotificationDraft(
-                title: "无法打开文件选择窗口",
-                message: "请重试。",
+                title: AmeLabel.filePickerFailed,
+                message: AmeLabel.tryAgain,
                 severity: AmeNotificationSeverity.error,
                 dedupeKey: "organization-archive-picker",
               ),
@@ -65,22 +67,22 @@ class _OrganizationArchiveSectionState
     final state = ref.watch(libraryArchiveControllerProvider);
     final busy = _picking || state is LibraryArchiveWorking;
     return SettingsSection(
-      title: "整理记录",
+      title: context.l10n.organizationRecords,
       children: [
         SettingsRow(
           icon: Symbols.file_upload_rounded,
-          title: "导出整理记录",
-          subtitle: const Text("备份相册、收藏和整理进度，不包含原图片"),
+          title: context.l10n.exportOrganizationRecords,
+          subtitle: Text(context.l10n.exportArchiveHelp),
           trailing: FilledButton.tonal(
             key: const Key("settings-archive-export"),
             onPressed: busy ? null : () => unawaited(_choose(exporting: true)),
-            child: const Text("导出"),
+            child: Text(context.l10n.exportAction),
           ),
         ),
         SettingsRow(
           icon: Symbols.restore_page_rounded,
-          title: "恢复整理记录",
-          subtitle: const Text("从备份恢复，保留当前已作出的选择"),
+          title: context.l10n.restoreOrganizationRecords,
+          subtitle: Text(context.l10n.restoreArchiveHelp),
           trailing: FilledButton.tonal(
             key: const Key("settings-archive-inspect"),
             onPressed: busy
@@ -90,7 +92,11 @@ class _OrganizationArchiveSectionState
                         ? confirmOrganizationArchive(context)
                         : _choose(exporting: false),
                   ),
-            child: Text(state is LibraryArchiveReady ? "查看备份" : "选择文件"),
+            child: Text(
+              state is LibraryArchiveReady
+                  ? context.l10n.viewBackup
+                  : context.l10n.chooseFile,
+            ),
           ),
         ),
         const OrganizationCleanupRow(),

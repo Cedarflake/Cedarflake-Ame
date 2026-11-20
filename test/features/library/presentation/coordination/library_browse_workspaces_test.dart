@@ -23,6 +23,7 @@ void main() {
     navigation = LibraryBrowseWorkspaces(
       surface: surface,
       review: review,
+      readLocaleName: () => "zh",
       publish: (workspace) => visible = workspace,
     );
   });

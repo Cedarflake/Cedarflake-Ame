@@ -2,6 +2,8 @@ import "package:cedarflake_ame/app/presentation/ame_flip_transition.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../support/localized_test_app.dart";
+
 void main() {
   testWidgets(
     "flip keeps its target and content through reversal and reduced motion",
@@ -11,7 +13,7 @@ void main() {
       late StateSetter update;
       const frontKey = ValueKey("front");
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: StatefulBuilder(
               builder: (context, setState) {

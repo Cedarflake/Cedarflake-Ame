@@ -1,4 +1,5 @@
 import "package:cedarflake_ame/app/ame_app.dart";
+import "package:cedarflake_ame/app/messages/ame_message.dart";
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
@@ -20,7 +21,6 @@ import "../support/library_batch_fixture.dart";
 import "../support/library_organization_fixture.dart";
 import "../support/library_review_fixture.dart";
 import "support/library_screen_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -249,11 +249,11 @@ void main() {
           .read(ameNotificationControllerProvider.notifier)
           .publish(
             const AmeNotificationDraft(
-              title: "相册归属冲突",
-              message: "1 组图片需要选择相册，已放入稍后整理。",
+              title: AmeRawMessage("相册归属冲突"),
+              message: AmeRawMessage("1 组图片需要选择相册，已放入稍后整理。"),
               severity: AmeNotificationSeverity.warning,
               actionId: "library.open-conflicts",
-              actionLabel: "查看",
+              actionLabel: AmeRawMessage("查看"),
             ),
           );
       await tester.pumpAndSettle();

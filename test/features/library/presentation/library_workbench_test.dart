@@ -7,6 +7,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 
 void main() {
   testWidgets("switches workspaces without rebuilding gallery state", (
@@ -24,7 +25,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: LibraryWorkbench(
               globalBarBuilder: (_, _, toggle) => SizedBox(
@@ -204,7 +205,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: applicationTestOverrides(),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: LibraryWorkbench(
               globalBarBuilder: (_, _, toggle) => SizedBox(

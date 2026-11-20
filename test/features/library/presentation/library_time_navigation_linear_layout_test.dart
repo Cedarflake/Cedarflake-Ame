@@ -7,6 +7,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_tim
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   for (final shape in GalleryLayoutShape.values) {
     testWidgets("late date navigation keeps the heading visible in $shape", (
@@ -59,7 +61,7 @@ void main() {
             : const [50, 50, 50],
         isQueryWide: loaded,
       );
-      Widget page() => MaterialApp(
+      Widget page() => LocalizedTestApp(
         home: Scaffold(
           body: SizedBox(
             height: 300,
@@ -168,7 +170,7 @@ void main() {
           itemOffsets: const [50, 50, 50, 400, 800, 800],
           isQueryWide: true,
         );
-        Widget page() => MaterialApp(
+        Widget page() => LocalizedTestApp(
           home: Scaffold(
             body: SizedBox(
               height: 300,

@@ -3,6 +3,8 @@ import "package:cedarflake_ame/features/library/presentation/gallery_view_option
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   for (final shape in GalleryLayoutShape.values) {
     test("$shape keeps item ordinals across fractional rows and date gaps", () {
@@ -18,6 +20,7 @@ void main() {
           ),
       ];
       final entries = LibraryGalleryLayoutEntry.build(
+        testChinese,
         assets: assets,
         availableWidth: 916,
         layoutShape: shape,
@@ -61,6 +64,7 @@ void main() {
     ];
 
     final entries = LibraryGalleryLayoutEntry.build(
+      testChinese,
       assets: assets,
       availableWidth: 600,
       layoutShape: GalleryLayoutShape.equalHeight,
@@ -89,6 +93,7 @@ void main() {
     );
 
     final metrics = LibraryGalleryLayoutMetrics.fromEntries(
+      testChinese,
       entries,
       topPadding: 18,
       bottomPadding: 72,
@@ -110,6 +115,7 @@ void main() {
 
   test("file name layout omits chronological headers", () {
     final entries = LibraryGalleryLayoutEntry.build(
+      testChinese,
       assets: [_asset("one"), _asset("two")],
       availableWidth: 500,
       layoutShape: GalleryLayoutShape.square,
@@ -132,6 +138,7 @@ void main() {
     final secondDate = DateTime(2026, 8, 4).millisecondsSinceEpoch;
     final thirdDate = DateTime(2026, 8, 1).millisecondsSinceEpoch;
     final entries = LibraryGalleryLayoutEntry.build(
+      testChinese,
       assets: [
         for (var index = 0; index < 9; index++)
           _asset("first-$index", modifiedUnixMs: firstDate),

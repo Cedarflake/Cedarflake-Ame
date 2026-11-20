@@ -1,10 +1,11 @@
 import "dart:math" as math;
 import "dart:typed_data";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../domain/gallery_layout_manifest.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
-import "../library_strings.dart";
+import "../library_gallery_date.dart";
 import "justified_gallery_layout.dart";
 import "library_gallery_layout.dart";
 import "library_gallery_card_metrics.dart";
@@ -25,7 +26,8 @@ class LibraryGalleryLayoutSnapshot {
     required this.minimumCellWidth,
   });
 
-  factory LibraryGalleryLayoutSnapshot.build({
+  factory LibraryGalleryLayoutSnapshot.build(
+    AppLocalizations strings, {
     required LibraryGalleryLayoutManifest manifest,
     required double availableWidth,
     required GalleryThumbnailSize thumbnailSize,
@@ -82,7 +84,7 @@ class LibraryGalleryLayoutSnapshot {
     void appendGroup(int start, int end, String? dateKey) {
       final monthKey = _monthKey(dateKey);
       if (effectiveGrouping == LibraryGalleryGrouping.date) {
-        final label = _dateLabel(dateKey);
+        final label = galleryDateLabel(strings, dateKey);
         dateAnchors.add(
           LibraryGalleryDateAnchor(
             id: dateKey ?? "unknown",
@@ -395,18 +397,6 @@ class LibraryGalleryLayoutSnapshot {
   }
 
   static final RegExp _dateKeyPattern = RegExp(r"^\d{4}-\d{2}-\d{2}$");
-
-  static String _dateLabel(String? dateKey) {
-    if (dateKey == null) {
-      return LibraryStrings.unknownCaptureDate;
-    }
-    final parts = dateKey.split("-");
-    if (parts.length != 3) {
-      return dateKey;
-    }
-    return "${parts[0]}年${int.tryParse(parts[1]) ?? parts[1]}月"
-        "${int.tryParse(parts[2]) ?? parts[2]}日";
-  }
 }
 
 class LibraryGalleryLayoutSnapshotEntry {

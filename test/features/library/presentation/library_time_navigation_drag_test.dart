@@ -9,6 +9,8 @@ import "package:flutter/gestures.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_ui/material_ui.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   for (final shape in GalleryLayoutShape.values) {
     testWidgets("${shape.name} publishes pages while the rail stays held", (
@@ -18,7 +20,7 @@ void main() {
       addTearDown(controller.dispose);
       final requests = <({int offset, Completer<void> completion})>[];
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: _PagedGallery(
               controller: controller,

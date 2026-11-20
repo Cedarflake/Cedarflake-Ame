@@ -11,6 +11,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/application_test_bindings.dart";
 import "support/duplicate_review_fixtures.dart";
+import "support/localized_test_app.dart";
 
 void main() {
   testWidgets(
@@ -29,7 +30,7 @@ void main() {
               libraryControllerProvider.overrideWith(() => library),
               libraryDuplicateReviewProvider.overrideWithValue(service),
             ]),
-            child: const MaterialApp(
+            child: const LocalizedTestApp(
               home: Scaffold(body: LibraryDuplicatesPage()),
             ),
           ),

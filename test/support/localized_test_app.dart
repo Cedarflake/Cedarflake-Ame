@@ -3,6 +3,8 @@ import "package:cedarflake_ame/app/presentation/l10n/generated/app_localizations
     show lookupAppLocalizations;
 import "package:material_ui/material_ui.dart";
 
+export "package:cedarflake_ame/app/presentation/ame_message_text.dart";
+
 final testChinese = lookupAppLocalizations(ameChineseLocale);
 
 class LocalizedTestApp extends MaterialApp {

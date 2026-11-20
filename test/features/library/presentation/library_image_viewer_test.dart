@@ -2,6 +2,7 @@ import "dart:math" as math;
 import "dart:async";
 import "dart:ui" as ui;
 
+import "package:cedarflake_ame/app/messages/ame_message.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/app/window/ame_window_fullscreen.dart";
@@ -11,7 +12,6 @@ import "package:cedarflake_ame/features/library/application/library_image_clipbo
 import "package:cedarflake_ame/features/library/application/library_operation_notice.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_image_clipboard.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_asset_information_sheet.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_organization_mode.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_organization_controls.dart";
@@ -28,6 +28,7 @@ import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 import "../support/library_review_fixture.dart";
 
 late LibrarySourceReadScheduler _sourceScheduler;
@@ -58,7 +59,7 @@ void main() {
               (ref) => organizationNotice,
             ),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: LibraryImageViewer(
                 asset: asset,
@@ -138,8 +139,8 @@ void main() {
       expect(find.text("无法复制图片，请重试"), findsOneWidget);
       organizationNotice = AmeNotificationEntry(
         id: "later-favorite",
-        title: "已加入收藏夹",
-        message: "",
+        title: AmeRawMessage("已加入收藏夹"),
+        message: AmeRawMessage(""),
         severity: AmeNotificationSeverity.success,
         occurredAt: DateTime.now().add(const Duration(seconds: 1)),
         isUnread: false,
@@ -181,7 +182,7 @@ void main() {
           overrides: _viewerOverrides([
             ameWindowFullscreenProvider.overrideWithValue(fullscreen),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: LibraryImageViewer(
                 asset: asset,
@@ -313,7 +314,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: _viewerOverrides(),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: StatefulBuilder(
             builder: (context, setState) {
               final activeAsset = assets[activeIndex];
@@ -359,7 +360,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: _viewerOverrides(),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: Scaffold(
             body: LibraryImageViewer(
@@ -493,7 +494,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: _viewerOverrides(),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: LibraryImageViewer(
               asset: _asset(),
@@ -539,7 +540,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: _viewerOverrides(),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: StatefulBuilder(
             builder: (context, setState) => Scaffold(
               body: IndexedStack(
@@ -614,7 +615,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: _viewerOverrides(),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: LibraryImageViewer(
               asset: asset,
@@ -671,7 +672,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: _viewerOverrides(),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: LibraryImageViewer(
               asset: asset,
@@ -743,7 +744,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: _viewerOverrides(),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -807,7 +808,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: Center(
             child: LibraryViewerToolbar(
@@ -888,7 +889,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: _viewerOverrides(),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: LibraryImageViewer(
               asset: asset,
@@ -939,7 +940,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: _viewerOverrides(),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: LibraryImageViewer(
               asset: asset,
@@ -1006,7 +1007,7 @@ void main() {
         ).millisecondsSinceEpoch,
       );
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Builder(
             builder: (context) => FilledButton(
               onPressed: () => showLibraryAssetInformation(context, asset),
@@ -1025,10 +1026,10 @@ void main() {
       expect(find.text("PNG"), findsOneWidget);
       expect(find.text("制造商"), findsOneWidget);
       expect(find.text("Camera 2"), findsOneWidget);
-      expect(find.text("2025-07-08 09:10:11"), findsOneWidget);
+      expect(find.text("2025年7月8日 09:10:11"), findsOneWidget);
       expect(find.text("相机原始拍摄时间"), findsOneWidget);
-      expect(find.text("2025-07-09 10:11:12"), findsOneWidget);
-      expect(find.text("2025-07-10 11:12:13"), findsOneWidget);
+      expect(find.text("2025年7月9日 10:11:12"), findsOneWidget);
+      expect(find.text("2025年7月10日 11:12:13"), findsOneWidget);
     },
   );
 }
@@ -1037,7 +1038,7 @@ Future<void> _revealViewerFile(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key("viewer-more-menu")));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 500));
-  await tester.tap(find.text(LibraryStrings.openInExplorer));
+  await tester.tap(find.text(testChinese.openInExplorer));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 500));
 }

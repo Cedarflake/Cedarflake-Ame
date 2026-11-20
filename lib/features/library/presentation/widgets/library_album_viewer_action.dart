@@ -2,6 +2,9 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/messages/ame_message.dart";
+import "../../../../app/presentation/ame_localizations.dart";
+import "../../../../app/presentation/ame_message_text.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_album_proposal.dart";
@@ -40,7 +43,7 @@ class _LibraryAlbumViewerActionState
     extends ConsumerState<LibraryAlbumViewerAction> {
   Object? _opening;
   LibraryAlbumMembership? _membership;
-  String? _error;
+  AmeMessage? _error;
 
   @override
   void didUpdateWidget(LibraryAlbumViewerAction oldWidget) {
@@ -84,7 +87,7 @@ class _LibraryAlbumViewerActionState
             target,
           ], isMove: proposal.current != null);
       _membership = membership;
-      String? initialError;
+      AmeMessage? initialError;
       if (!proposal.shouldAsk && proposal.destination != null) {
         final result = await ref
             .read(libraryOrganizationActionsProvider.notifier)
@@ -101,19 +104,26 @@ class _LibraryAlbumViewerActionState
       if (!mounted || !owns()) return;
       final choice = await showLibraryAlbumPicker(
         context: context,
-        actionLabel: proposal.current == null ? "加入相册" : "移至其他相册",
+        actionLabel: proposal.current == null
+            ? context.l10n.addToAlbum
+            : context.l10n.moveToAnotherAlbum,
         actionIcon: proposal.current == null
             ? Symbols.bookmark_add_rounded
             : Symbols.drive_file_move_rounded,
         initialAlbum: proposal.destination,
         currentAlbum: proposal.current,
-        clearLabel: proposal.current == null ? null : "移出相册",
-        explanation: proposal.hasConflict ? "这组图片的相册归属有冲突，请选择一个相册。" : null,
+        clearLabel: proposal.current == null
+            ? null
+            : context.l10n.removeFromAlbum,
+        explanation: proposal.hasConflict
+            ? context.l10n.albumGroupConflict
+            : null,
         conflictTarget: proposal.hasConflict ? target : null,
         initialError: initialError,
         membership: membership,
         progressRequestFactory: widget.progressRequestFactory,
         progressControls: LibraryProgressControls.forDisposition(
+          context.l10n,
           preparation.decision.disposition,
           hasConflict: preparation.decision.hasConflict,
         ),
@@ -124,7 +134,7 @@ class _LibraryAlbumViewerActionState
         setState(
           () => _error = error is LibraryOrganizationFailure
               ? libraryOrganizationErrorMessage(error.code)
-              : "相册信息暂时无法读取，点击重试。",
+              : AmeLabel.albumDetailsUnavailable,
         );
       }
     } finally {
@@ -145,12 +155,13 @@ class _LibraryAlbumViewerActionState
         .singleOrNull;
     final hasConflict = decision?.hasConflict == true;
     final label =
-        _error ??
+        _error?.resolve(context.l10n) ??
         switch (decision) {
-          LibraryOrganizationDecision(hasConflict: true) => "相册归属冲突",
+          LibraryOrganizationDecision(hasConflict: true) =>
+            context.l10n.albumConflict,
           LibraryOrganizationDecision(album: LibraryOrganizationAlbum()) =>
-            "移至其他相册",
-          _ => "加入相册",
+            context.l10n.moveToAnotherAlbum,
+          _ => context.l10n.addToAlbum,
         };
     final onPressed = busy || _opening != null || !widget.enabled
         ? null

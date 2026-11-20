@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_duplicate_review.dart";
 import "../../domain/library_exact_duplicates.dart";
@@ -40,15 +41,15 @@ class LibraryDuplicateGroupCard extends StatelessWidget {
     details: Text(
       [
         ?kindLabel,
-        LibraryDuplicateStrings.locations(entry.group.locationCount),
+        context.l10n.locationCount(entry.group.locationCount),
         if (entry.group.physicalFileCount < entry.group.locationCount)
-          LibraryDuplicateStrings.physicalFiles(entry.group.physicalFileCount),
+          context.l10n.physicalFileCount(entry.group.physicalFileCount),
         libraryFileSize(entry.representative.fileSize),
       ].join(" · "),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     ),
-    actionLabel: LibraryDuplicateStrings.viewLocations,
+    actionLabel: context.l10n.viewDuplicates,
   );
 }
 
@@ -73,6 +74,7 @@ class LibraryDuplicateMemberCard extends StatelessWidget {
     final separator = path.lastIndexOf("\\");
     final folder = separator < 0 ? "" : path.substring(0, separator);
     final availability = LibraryDuplicateStrings.availability(
+      context.l10n,
       member.availability,
     );
     return LibraryDuplicateReviewCard(
@@ -95,35 +97,35 @@ class LibraryDuplicateMemberCard extends StatelessWidget {
       actions: [
         AmeTooltip(
           message: preferred
-              ? LibraryDuplicateStrings.clearPreferred
-              : LibraryDuplicateStrings.prefer,
+              ? context.l10n.clearPreferred
+              : context.l10n.setPreferred,
           child: IconButton(
             style: LibraryDuplicateReviewMetrics.iconActionStyle,
             key: ValueKey("prefer-${member.asset.locationId}"),
             onPressed: onPrefer,
             isSelected: preferred,
-            icon: const Icon(
+            icon: Icon(
               Symbols.star_rounded,
-              semanticLabel: LibraryDuplicateStrings.prefer,
+              semanticLabel: context.l10n.setPreferred,
             ),
-            selectedIcon: const Icon(
+            selectedIcon: Icon(
               Symbols.star_rounded,
               fill: 1,
-              semanticLabel: LibraryDuplicateStrings.clearPreferred,
+              semanticLabel: context.l10n.clearPreferred,
             ),
           ),
         ),
         LibraryDuplicateRevealAction(
           location: member.location,
           builder: (context, reveal) => AmeTooltip(
-            message: LibraryDuplicateStrings.revealLocation,
+            message: context.l10n.openInExplorer,
             child: IconButton(
               style: LibraryDuplicateReviewMetrics.iconActionStyle,
               key: ValueKey("reveal-${member.asset.locationId}"),
               onPressed: reveal,
-              icon: const Icon(
+              icon: Icon(
                 Symbols.folder_open_rounded,
-                semanticLabel: LibraryDuplicateStrings.revealLocation,
+                semanticLabel: context.l10n.openInExplorer,
               ),
             ),
           ),

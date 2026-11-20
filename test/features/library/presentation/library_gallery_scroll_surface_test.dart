@@ -3,6 +3,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_gal
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets(
     "position rail follows scroll metrics and retires old query gestures",
@@ -14,7 +16,7 @@ void main() {
       addTearDown(controller.dispose);
       addTearDown(query.dispose);
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: ValueListenableBuilder(
               valueListenable: query,
@@ -77,7 +79,7 @@ void main() {
     final controller = ScrollController();
     addTearDown(controller.dispose);
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: LibraryGalleryScrollSurface(
             controller: controller,

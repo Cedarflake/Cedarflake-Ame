@@ -1,8 +1,8 @@
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_models.dart";
-import "../library_strings.dart";
 import "library_source_navigation_tile.dart";
 
 Future<List<LibraryRoot>?> showLibraryUpdateDialog({
@@ -63,7 +63,7 @@ class _LibraryUpdateDialogState extends State<_LibraryUpdateDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       key: const Key("library-update-dialog"),
-      title: const Text(LibraryStrings.updateLibrary),
+      title: Text(context.l10n.updateLibrary),
       content: SizedBox(
         width: 440,
         child: ConstrainedBox(
@@ -87,10 +87,10 @@ class _LibraryUpdateDialogState extends State<_LibraryUpdateDialog> {
                   title: Text(librarySourceName(root.displayPath)),
                   subtitle: Text(
                     isActive
-                        ? LibraryStrings.updatingLibrary
+                        ? context.l10n.updatingLibrary
                         : isAvailable
                         ? root.displayPath
-                        : LibraryStrings.sourceUnavailable,
+                        : context.l10n.sourceUnavailable,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -114,7 +114,7 @@ class _LibraryUpdateDialogState extends State<_LibraryUpdateDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text(LibraryStrings.cancel),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           key: const Key("library-update-confirm"),
@@ -126,7 +126,7 @@ class _LibraryUpdateDialogState extends State<_LibraryUpdateDialog> {
                       if (_selectedRootIds.contains(root.id)) root,
                   ]);
                 },
-          child: const Text(LibraryStrings.updateLibrary),
+          child: Text(context.l10n.updateLibrary),
         ),
       ],
     );

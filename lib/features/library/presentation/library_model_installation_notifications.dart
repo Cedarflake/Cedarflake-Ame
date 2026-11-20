@@ -3,6 +3,7 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../app/messages/ame_message.dart";
 import "../../../app/notifications/ame_notification_controller.dart";
 import "../application/library_model_installation.dart";
 import "../domain/library_classification_review.dart";
@@ -28,7 +29,13 @@ class LibraryModelInstallationNotifications {
   LibraryModelInstallationNotifications(this._notifications);
 
   final AmeNotificationController _notifications;
-  String? _lastPublication;
+  (
+    int,
+    AmeLabel,
+    ({int percent, int receivedTenths, int totalTenths})?,
+    String?,
+  )?
+  _lastPublication;
   int? _sequence;
   DateTime? _startedAt;
 
@@ -38,23 +45,27 @@ class LibraryModelInstallationNotifications {
       return;
     }
     final title = switch (installation.stage) {
-      LibraryModelInstallationStage.downloading => "正在下载智能相册模型",
-      LibraryModelInstallationStage.verifying => "正在校验模型",
-      LibraryModelInstallationStage.stopping => "正在停止",
-      LibraryModelInstallationStage.enabling => "正在启用智能相册",
-      LibraryModelInstallationStage.enabled => "已启用智能相册",
-      LibraryModelInstallationStage.cancelled => "已取消启用智能相册",
-      LibraryModelInstallationStage.failed => "智能相册未能启用",
-      _ => "正在准备智能相册模型",
+      LibraryModelInstallationStage.downloading => AmeLabel.modelDownloading,
+      LibraryModelInstallationStage.verifying => AmeLabel.modelVerifying,
+      LibraryModelInstallationStage.stopping => AmeLabel.stopping,
+      LibraryModelInstallationStage.enabling => AmeLabel.modelEnabling,
+      LibraryModelInstallationStage.enabled => AmeLabel.modelEnabled,
+      LibraryModelInstallationStage.cancelled => AmeLabel.modelEnableCancelled,
+      LibraryModelInstallationStage.failed => AmeLabel.modelEnableFailed,
+      _ => AmeLabel.modelPreparing,
     };
     final progress = installation.progress;
     final downloading =
         installation.stage == LibraryModelInstallationStage.downloading;
-    final message = downloading && progress != null && progress.totalBytes > 0
-        ? "${(100 * progress.completedBytes / progress.totalBytes).clamp(0, 100).toStringAsFixed(0)}% · "
-              "${(progress.completedBytes / 1000000).toStringAsFixed(1)} / "
-              "${(progress.totalBytes / 1000000).toStringAsFixed(1)} MB"
-        : "";
+    final transfer = downloading && progress != null && progress.totalBytes > 0
+        ? (
+            percent: (100 * progress.completedBytes / progress.totalBytes)
+                .clamp(0, 100)
+                .round(),
+            receivedTenths: (progress.completedBytes / 100000).round(),
+            totalTenths: (progress.totalBytes / 100000).round(),
+          )
+        : null;
     final failed = installation.stage == LibraryModelInstallationStage.failed;
     final failure = switch (installation.error) {
       LibraryClassificationFailure error => error,
@@ -65,11 +76,11 @@ class LibraryModelInstallationNotifications {
       LibraryModelInstallationStage.verifying ||
       LibraryModelInstallationStage.downloading => (
         "cancel-model-installation",
-        "取消",
+        AmeLabel.cancel,
       ),
       LibraryModelInstallationStage.failed => (
         "retry-model-installation",
-        "重试",
+        AmeLabel.retry,
       ),
       _ => (null, null),
     };
@@ -78,7 +89,7 @@ class LibraryModelInstallationNotifications {
       LibraryModelInstallationStage.enabled => AmeNotificationSeverity.success,
       _ => AmeNotificationSeverity.info,
     };
-    final publication = "${installation.sequence}|$title|$message|$action";
+    final publication = (installation.sequence, title, transfer, action);
     if (publication == _lastPublication) return;
     _lastPublication = publication;
     if (_sequence != installation.sequence) {
@@ -95,7 +106,13 @@ class LibraryModelInstallationNotifications {
       AmeNotificationDraft(
         dedupeKey: key,
         title: title,
-        message: message,
+        message: transfer == null
+            ? const AmeRawMessage("")
+            : AmeDownloadProgressMessage(
+                transfer.percent,
+                transfer.receivedTenths / 10,
+                transfer.totalTenths / 10,
+              ),
         detail: failed ? _failureDetail(installation.error) : null,
         technicalCode: failed ? failure?.code : null,
         severity: severity,
@@ -112,15 +129,15 @@ class LibraryModelInstallationNotifications {
   }
 }
 
-String _failureDetail(Object? error) => switch (error) {
+AmeMessage _failureDetail(Object? error) => switch (error) {
   LibraryClassificationFailure(
     code: "classification_installation_unavailable",
   ) =>
-    "暂时无法读取模型配置，请重试。",
+    AmeLabel.modelConfigUnreadable,
   LibraryClassificationFailure(:final code)
       when code.startsWith("classification_download_") =>
-    "下载进度已保留，可以重试。",
-  _ => "请重试启用，已有的完整模型文件会复用。",
+    AmeLabel.modelDownloadRetained,
+  _ => AmeLabel.modelEnableRetry,
 };
 
 bool handleLibraryModelInstallationNotification(

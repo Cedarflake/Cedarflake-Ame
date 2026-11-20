@@ -12,8 +12,8 @@ import "package:cedarflake_ame/features/library/domain/library_organization_hist
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/library_organization_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -173,7 +173,7 @@ void main() {
       await actions.favorite(organizationTarget("one"), true);
       await settle();
       final refresh = notice("organization.refresh");
-      expect(refresh.title, "更改已保存");
+      expect(refresh.title.resolve(testChinese), "更改已保存");
       library.refreshSucceeds = true;
       actions.handleNotification(refresh);
       await settle();
@@ -212,7 +212,7 @@ void main() {
           .read(ameNotificationControllerProvider)
           .history
           .first;
-      expect(failure.title, "无法撤销");
+      expect(failure.title.resolve(testChinese), "无法撤销");
       expect(failure.actionId, isNull);
     },
   );
@@ -249,7 +249,13 @@ void main() {
     expect(notifications.history, isEmpty);
     expect(notifications.pendingIds, isEmpty);
     expect(notifications.hasUnread, isFalse);
-    expect(container.read(libraryOrganizationOutcomeProvider)?.title, "已撤销");
+    expect(
+      container
+          .read(libraryOrganizationOutcomeProvider)
+          ?.title
+          .resolve(testChinese),
+      "已撤销",
+    );
   });
 
   test(
@@ -269,7 +275,13 @@ void main() {
       actions.handleNotification(notice("organization.retry"));
       await settle();
       expect(service.historySteps.last, first);
-      expect(container.read(libraryOrganizationOutcomeProvider)?.title, "已重做");
+      expect(
+        container
+            .read(libraryOrganizationOutcomeProvider)
+            ?.title
+            .resolve(testChinese),
+        "已重做",
+      );
       expect(library.refreshes, 1);
     },
   );
@@ -300,7 +312,7 @@ void main() {
           .read(ameNotificationControllerProvider)
           .history
           .first;
-      expect(current.message, "操作记录已更新，请重新打开菜单。");
+      expect(current.message.resolve(testChinese), "操作记录已更新，请重新打开菜单。");
       expect(current.actionId, isNull);
       expect(library.refreshes, 0);
     },
@@ -324,7 +336,7 @@ void main() {
           .read(ameNotificationControllerProvider)
           .history
           .single;
-      expect(entry.title, "无法重做");
+      expect(entry.title.resolve(testChinese), "无法重做");
       expect(entry.actionId, isNull);
       expect(library.refreshes, 0);
     },

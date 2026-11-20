@@ -1,7 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
-import "../library_strings.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 import "../coordination/library_viewer_source_state.dart";
 import "library_viewer_notice.dart";
 
@@ -23,11 +23,11 @@ class LibraryViewerSourceNoticeBanner extends StatelessWidget {
     return LibraryViewerNotice(
       icon: Symbols.info_rounded,
       message: changed
-          ? LibraryStrings.viewerSourceChanged
-          : LibraryStrings.viewerSourceMissing,
+          ? context.l10n.viewerSourceChanged
+          : context.l10n.viewerSourceMissing,
       actionLabel: changed
-          ? LibraryStrings.reload
-          : LibraryStrings.backToLibrary,
+          ? context.l10n.retryLoading
+          : context.l10n.backToLibrary,
       onAction: changed ? onReload : onBack,
       actionKey: const Key("viewer-source-action"),
     );

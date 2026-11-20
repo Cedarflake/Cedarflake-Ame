@@ -52,7 +52,7 @@ void main() {
         final summary = tester.widget<Text>(
           find.byKey(const Key("library-summary")),
         );
-        expect(summary.data, merged ? "10000 张图片 · 去重后 72 张" : "10000 张图片");
+        expect(summary.data, merged ? "10,000 张图片 · 去重后 72 张" : "10,000 张图片");
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
       });

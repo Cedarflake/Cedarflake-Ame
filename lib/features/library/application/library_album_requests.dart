@@ -1,3 +1,4 @@
+import "../../../app/messages/ame_message.dart";
 import "../domain/library_organization.dart";
 import "ports/library_organization.dart";
 import "library_organization_publication.dart";
@@ -63,11 +64,11 @@ class LibraryAlbumEditRequest extends LibraryOrganizationRequest {
       LibraryOrganizationErrorSurface.form;
 
   @override
-  String get successMessage => switch (kind) {
-    LibraryAlbumEditKind.create => "已新建相册",
-    LibraryAlbumEditKind.rename => "已重命名相册",
-    LibraryAlbumEditKind.icon => "已更改相册图标",
-    LibraryAlbumEditKind.delete => "已删除相册",
+  AmeMessage get successMessage => switch (kind) {
+    LibraryAlbumEditKind.create => AmeLabel.albumCreated,
+    LibraryAlbumEditKind.rename => AmeLabel.albumRenamed,
+    LibraryAlbumEditKind.icon => AmeLabel.albumIconChanged,
+    LibraryAlbumEditKind.delete => AmeLabel.albumDeleted,
   };
 
   @override
@@ -170,10 +171,12 @@ class LibraryAlbumMembershipRequest extends LibraryOrganizationRequest {
       LibraryOrganizationErrorSurface.form;
 
   @override
-  String get successMessage {
+  AmeMessage get successMessage {
     final destination = album;
-    if (destination == null) return "已移出相册";
-    return isMove ? "已移至“${destination.name}”" : "已加入“${destination.name}”";
+    if (destination == null) return AmeLabel.removedFromAlbum;
+    return isMove
+        ? AmeMovedToAlbumMessage(destination.name)
+        : AmeAddedToAlbumMessage(destination.name);
   }
 
   @override

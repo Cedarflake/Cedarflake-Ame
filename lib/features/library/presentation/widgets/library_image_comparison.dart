@@ -6,6 +6,7 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_source_read_scheduler.dart";
@@ -13,7 +14,6 @@ import "../../application/library_source_reader.dart";
 import "../../domain/library_models.dart";
 import "../coordination/library_comparison_view.dart";
 import "../coordination/library_viewer_zoom.dart";
-import "../library_duplicate_strings.dart";
 import "../library_preview_images.dart";
 import "library_path_text.dart";
 import "library_viewer_frame.dart";
@@ -84,12 +84,12 @@ class _LibraryImageComparisonState extends ConsumerState<LibraryImageComparison>
       body: ListenableBuilder(
         listenable: _view,
         builder: (context, child) => LibraryViewerFrame(
-          title: const Text(
-            LibraryDuplicateStrings.compare,
+          title: Text(
+            context.l10n.comparePhotos,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          backLabel: LibraryDuplicateStrings.back,
+          backLabel: context.l10n.backToDuplicates,
           onBack: _back,
           builder: (context, isFullscreen, toggleFullscreen, _) =>
               LayoutBuilder(
@@ -196,14 +196,14 @@ class _LibraryImageComparisonState extends ConsumerState<LibraryImageComparison>
       const Spacer(),
       LibraryViewerToolbarButton(
         id: "comparison-link",
-        label: LibraryDuplicateStrings.syncComparison,
+        label: context.l10n.syncComparison,
         selected: _view.linked,
         onPressed: _view.toggleLinked,
         icon: _view.linked ? Symbols.link_rounded : Symbols.link_off_rounded,
       ),
       LibraryViewerToolbarButton(
         id: "comparison-reset",
-        label: LibraryDuplicateStrings.resetComparison,
+        label: context.l10n.resetComparison,
         onPressed: _view.fitBoth,
         icon: Symbols.fit_screen_rounded,
       ),

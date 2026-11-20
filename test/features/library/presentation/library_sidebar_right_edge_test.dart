@@ -7,6 +7,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_sid
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   for (final width in [800.0, 1000.0, 1280.0]) {
     for (final scale in [1.0, 2.0]) {
@@ -72,7 +74,7 @@ void main() {
   }
 }
 
-Widget _fixture(ValueNotifier<bool> expanded, double scale) => MaterialApp(
+Widget _fixture(ValueNotifier<bool> expanded, double scale) => LocalizedTestApp(
   builder: (context, child) => MediaQuery(
     data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
     child: child!,

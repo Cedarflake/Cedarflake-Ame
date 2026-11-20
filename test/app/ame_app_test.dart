@@ -4,6 +4,8 @@ import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/presentation/ame_localizations.dart";
 import "package:cedarflake_ame/app/presentation/ame_system_theme.dart";
 import "package:cedarflake_ame/features/library/presentation/pages/unified_library_screen.dart";
+import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -15,11 +17,18 @@ void main() {
   testWidgets("uses Simplified Chinese locale and dense text geometry", (
     tester,
   ) async {
-    tester.platformDispatcher.localesTestValue = const [Locale("zh", "CN")];
+    tester.platformDispatcher.localesTestValue = const [
+      Locale("fr", "FR"),
+      Locale("zh", "CN"),
+    ];
     addTearDown(tester.platformDispatcher.clearLocalesTestValue);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: applicationTestOverrides(),
+        overrides: applicationTestOverrides([
+          initialAmePreferencesProvider.overrideWithValue(
+            const AmePreferences(),
+          ),
+        ]),
         child: const AmeApp(),
       ),
     );

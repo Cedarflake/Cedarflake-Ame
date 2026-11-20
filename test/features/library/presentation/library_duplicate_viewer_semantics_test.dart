@@ -7,7 +7,6 @@ import "package:cedarflake_ame/features/library/application/library_gallery_dupl
 import "package:cedarflake_ame/features/library/application/ports/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/pages/library_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_asset_information_sheet.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
@@ -22,6 +21,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
 import "../../../support/duplicate_review_fixtures.dart";
+import "../../../support/localized_test_app.dart";
 import "../../../support/semantics/retained_semantics_update_harness.dart";
 
 void main() {
@@ -54,7 +54,7 @@ void main() {
                   ReviewFixtureService(),
                 ),
               ]),
-              child: MaterialApp(
+              child: LocalizedTestApp(
                 builder: (context, child) => MediaQuery(
                   data: MediaQuery.of(
                     context,
@@ -182,7 +182,7 @@ void main() {
               buttons: kSecondaryMouseButton,
             );
             await tester.pumpAndSettle();
-            await tester.tap(find.text(LibraryStrings.viewInformation));
+            await tester.tap(find.text(testChinese.viewInformation));
             await tester.pumpAndSettle();
             RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
               trace: "information-open-$cycle",

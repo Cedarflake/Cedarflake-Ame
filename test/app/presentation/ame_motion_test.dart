@@ -3,6 +3,8 @@ import "package:cedarflake_ame/app/presentation/ame_motion.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("changing a choice retains its closing arrow transition", (
     tester,
@@ -14,7 +16,7 @@ void main() {
         AmeChoiceEntry(value: 2, label: "Two"),
       ];
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: ValueListenableBuilder(
               valueListenable: selected,
@@ -92,7 +94,7 @@ void main() {
       late StateSetter update;
       late Animation<double> animation;
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: StatefulBuilder(
             builder: (context, setState) {
               update = setState;

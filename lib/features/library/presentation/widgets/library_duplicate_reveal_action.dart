@@ -1,10 +1,10 @@
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../application/library_platform_actions.dart";
 import "../../domain/library_exact_duplicates.dart";
-import "../library_duplicate_strings.dart";
 
 /// Shares availability, in-flight ownership and error feedback across reveal controls.
 class LibraryDuplicateRevealAction extends ConsumerStatefulWidget {
@@ -37,7 +37,7 @@ class _LibraryDuplicateRevealActionState
       if (mounted) {
         showAmeTransientFeedback(
           context,
-          message: LibraryDuplicateStrings.revealFailed,
+          message: context.l10n.openInExplorerFailed,
           severity: AmeNotificationSeverity.error,
         );
       }

@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../library/application/library_album_pages.dart";
 import "../../application/ame_preferences.dart";
 import "../../domain/album_preferences.dart";
@@ -31,7 +32,7 @@ class _AlbumSettingsSectionState extends ConsumerState<AlbumSettingsSection> {
           .read(amePreferencesControllerProvider.notifier)
           .update(preferences.copyWith(albums: albums));
     } on Object {
-      if (mounted) setState(() => _error = "设置未能保存，请重试。");
+      if (mounted) setState(() => _error = context.l10n.settingsSaveRetry);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -59,18 +60,18 @@ class _AlbumSettingsSectionState extends ConsumerState<AlbumSettingsSection> {
     final selected = id == null ? null : ref.watch(libraryAlbumProvider(id));
     final label =
         selected?.when(
-          data: (album) => album?.name ?? "未设置",
-          error: (error, stack) => "无法读取",
-          loading: () => "正在加载",
+          data: (album) => album?.name ?? context.l10n.notSet,
+          error: (error, stack) => context.l10n.unreadable,
+          loading: () => context.l10n.loading,
         ) ??
-        "未设置";
+        context.l10n.notSet;
     return SettingsSection(
-      title: "相册",
+      title: context.l10n.albums,
       children: [
         SettingsRow(
           icon: Symbols.photo_album_rounded,
-          title: "加入相册前询问",
-          subtitle: const Text("每次加入前选择目标相册"),
+          title: context.l10n.askBeforeAdding,
+          subtitle: Text(context.l10n.askBeforeAddingHelp),
           trailing: Switch(
             key: const Key("settings-album-ask"),
             value: albums.askBeforeAdding,
@@ -86,8 +87,8 @@ class _AlbumSettingsSectionState extends ConsumerState<AlbumSettingsSection> {
         ),
         SettingsRow(
           icon: Symbols.bookmark_rounded,
-          title: "默认加入的相册",
-          subtitle: const Text("未设置时，会在加入前询问"),
+          title: context.l10n.defaultAlbum,
+          subtitle: Text(context.l10n.defaultAlbumHelp),
           trailing: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 176),
             child: TextButton.icon(

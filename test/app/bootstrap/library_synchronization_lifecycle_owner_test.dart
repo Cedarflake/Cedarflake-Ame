@@ -1,7 +1,6 @@
 import "dart:async";
 
 import "package:cedarflake_ame/app/bootstrap/library_synchronization_lifecycle_owner.dart";
-
 import "package:cedarflake_ame/features/library/application/ports/library_synchronization.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
 import "package:cedarflake_ame/src/rust/domain/library_synchronization.dart"
@@ -9,6 +8,7 @@ import "package:cedarflake_ame/src/rust/domain/library_synchronization.dart"
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../support/localized_test_app.dart";
 import "../../support/synchronization_fixture.dart";
 
 void main() {
@@ -30,7 +30,9 @@ void main() {
       );
       final lifecycle = LibrarySynchronizationLifecycleOwner(synchronization);
 
-      await tester.pumpWidget(const MaterialApp(home: Text("cached library")));
+      await tester.pumpWidget(
+        const LocalizedTestApp(home: Text("cached library")),
+      );
       lifecycle.startInBackground();
       await tester.pump();
       await startEntered.future;

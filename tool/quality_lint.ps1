@@ -10,13 +10,14 @@ $toolLock = Enter-AmeRepositoryToolLock
 
 Push-Location $repositoryRoot
 try {
-    & (Join-Path $PSScriptRoot "quality_verify_localizations.ps1")
     Invoke-AmeChecked $toolchain.Flutter @("gen-l10n")
+    & (Join-Path $PSScriptRoot "quality_verify_localizations.ps1")
+    Invoke-AmeChecked $toolchain.Dart @("run", "tool/localization/check_source.dart")
     Invoke-AmeChecked $toolchain.Git @("diff", "--exit-code", "--", "lib/app/presentation/l10n/generated")
     if ($PresentationOnly) {
         Invoke-AmeChecked $toolchain.Dart @(
             "format", "--output=none", "--set-exit-if-changed",
-            "lib", "test", "integration_test", "tool/dependency-boundaries"
+            "lib", "test", "integration_test", "tool/dependency-boundaries", "tool/localization"
         )
         & (Join-Path $PSScriptRoot "quality_verify_dependencies.ps1")
         Invoke-AmeChecked $toolchain.Dart @("analyze", "--fatal-infos", "--fatal-warnings")

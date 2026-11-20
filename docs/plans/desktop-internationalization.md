@@ -30,3 +30,6 @@ dialog translation and an external translation service have separate owners.
   retain their exact spelling. Switching languages performs no catalog writes or model analysis.
 - Verify the bilingual desktop workflow with disposable data, inspect applicable exact-revision CI
   and record any outstanding evidence before accepting delivery.
+
+The [verification record](../acceptance/desktop-internationalization.md) records client coverage
+and the platforms exercised.

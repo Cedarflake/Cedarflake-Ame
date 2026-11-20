@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_organization_conflicts.dart";
@@ -36,15 +37,18 @@ class _LibraryConflictAlbumsViewState
       padding: const EdgeInsets.only(bottom: 16),
       child: page.when(
         skipLoadingOnRefresh: false,
-        loading: () =>
-            const Center(child: AmeLoadingProgress(semanticsLabel: "正在读取相册归属")),
+        loading: () => Center(
+          child: AmeLoadingProgress(
+            semanticsLabel: context.l10n.loadingAlbumAssignments,
+          ),
+        ),
         error: (_, _) => Row(
           children: [
-            const Expanded(child: Text("无法读取冲突涉及的相册。")),
+            Expanded(child: Text(context.l10n.conflictAlbumsUnavailable)),
             TextButton(
               onPressed: () =>
                   ref.invalidate(libraryConflictAlbumsProvider(request)),
-              child: const Text("重试"),
+              child: Text(context.l10n.retry),
             ),
           ],
         ),
@@ -52,7 +56,11 @@ class _LibraryConflictAlbumsViewState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(value.albums.isEmpty ? "相册归属已更新。" : "冲突涉及的相册"),
+            Text(
+              value.albums.isEmpty
+                  ? context.l10n.albumAssignmentsUpdated
+                  : context.l10n.conflictAlbums,
+            ),
             if (value.albums.isNotEmpty)
               ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 128),
@@ -66,7 +74,9 @@ class _LibraryConflictAlbumsViewState
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4),
                             child: Text(
-                              album.retired ? "${album.name}（已删除）" : album.name,
+                              album.retired
+                                  ? context.l10n.deletedAlbumName(album.name)
+                                  : album.name,
                             ),
                           ),
                       ],
@@ -81,7 +91,7 @@ class _LibraryConflictAlbumsViewState
                     onPressed: _previous.isEmpty
                         ? null
                         : () => setState(() => _after = _previous.removeLast()),
-                    child: const Text("上一页"),
+                    child: Text(context.l10n.previousPage),
                   ),
                   const Spacer(),
                   TextButton(
@@ -91,7 +101,7 @@ class _LibraryConflictAlbumsViewState
                             _previous.add(_after);
                             _after = value.nextAlbumId;
                           }),
-                    child: const Text("下一页"),
+                    child: Text(context.l10n.nextPage),
                   ),
                 ],
               ),

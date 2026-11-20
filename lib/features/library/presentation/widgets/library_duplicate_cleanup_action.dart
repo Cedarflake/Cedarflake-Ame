@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../application/library_file_operations.dart";
 import "../../domain/library_file_operations.dart";
 import "../coordination/library_duplicate_workspace.dart";
@@ -85,8 +86,10 @@ class _LibraryDuplicateCleanupActionState
     final similar = workspace.hasMembers
         ? workspace.isSimilar
         : workspace.view == LibraryDuplicateView.similar;
-    final kind = similar ? "相似" : "重复";
-    final label = "删除$kind图片";
+    final kind = similar
+        ? context.l10n.similarKind
+        : context.l10n.duplicateKind;
+    final label = context.l10n.deletePhotoKind(kind);
     return Wrap(
       alignment: WrapAlignment.end,
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -96,7 +99,7 @@ class _LibraryDuplicateCleanupActionState
           TextButton.icon(
             onPressed: _opening ? null : workspace.cleanupSelection.clear,
             icon: const Icon(Symbols.close_rounded),
-            label: const Text("取消选择"),
+            label: Text(context.l10n.deselectPhoto),
           ),
         TextButton.icon(
           key: const Key("duplicate-cleanup"),

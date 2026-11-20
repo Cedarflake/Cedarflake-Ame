@@ -21,6 +21,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 
 void main() {
   testWidgets(
@@ -35,7 +36,10 @@ void main() {
       await tester.pump();
       await recovered;
       await fixture.open(tester);
-      expect(fixture.notifications.history.single.title, "已启用智能相册");
+      expect(
+        fixture.notifications.history.single.title.resolve(testChinese),
+        "已启用智能相册",
+      );
       await fixture.close(tester);
     },
   );
@@ -51,7 +55,10 @@ void main() {
       fixture.installer.sessions.single.prepared.complete();
       await tester.pumpAndSettle();
       await recovering;
-      expect(fixture.notifications.history.single.title, "已启用智能相册");
+      expect(
+        fixture.notifications.history.single.title.resolve(testChinese),
+        "已启用智能相册",
+      );
       await fixture.close(tester);
     },
   );
@@ -174,7 +181,10 @@ void main() {
     session.prepared.completeError(StateError("Download cancelled"));
     await tester.pumpAndSettle();
     expect(fixture.notifications.history, hasLength(1));
-    expect(fixture.notifications.history.single.title, "已取消启用智能相册");
+    expect(
+      fixture.notifications.history.single.title.resolve(testChinese),
+      "已取消启用智能相册",
+    );
     expect(fixture.notifications.pendingIds, isEmpty);
     expect(fixture.backend.saved, isEmpty);
     await fixture.close(tester);
@@ -197,7 +207,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(fixture.backend.saved, hasLength(1));
     expect(find.text("已启用智能相册"), findsNothing);
-    expect(fixture.notifications.history.single.title, "已启用智能相册");
+    expect(
+      fixture.notifications.history.single.title.resolve(testChinese),
+      "已启用智能相册",
+    );
     expect(fixture.notifications.history.single.isActive, isFalse);
     expect(fixture.notifications.pendingIds, isEmpty);
     await fixture.close(tester);
@@ -280,7 +293,7 @@ class _Fixture {
           libraryModelInstallationProvider.overrideWith((ref) => installation),
         ]),
         child: _NotificationOwner(
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: Consumer(
                 builder: (context, ref, _) {

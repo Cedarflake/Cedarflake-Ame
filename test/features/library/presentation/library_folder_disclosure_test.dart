@@ -3,6 +3,8 @@ import "package:flutter_test/flutter_test.dart";
 import "package:flutter/rendering.dart";
 import "package:material_ui/material_ui.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("selection ink stays inside the opening and closing branch", (
     tester,
@@ -11,7 +13,7 @@ void main() {
     final boundaryKey = GlobalKey();
     addTearDown(expanded.dispose);
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: Align(
             alignment: Alignment.topLeft,
@@ -74,7 +76,7 @@ void main() {
     addTearDown(childFocus.dispose);
     var selected = 0;
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: ListenableBuilder(
             listenable: Listenable.merge([expanded, reduced]),

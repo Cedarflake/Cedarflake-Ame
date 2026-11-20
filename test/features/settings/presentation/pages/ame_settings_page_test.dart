@@ -573,7 +573,7 @@ void main() {
       int? selected;
       try {
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             theme: buildAmeTheme(),
             home: Scaffold(
               body: Column(
@@ -788,8 +788,11 @@ void main() {
     final notification = container
         .read(ameNotificationControllerProvider)
         .current;
-    expect(notification?.title, "无法保存设置");
-    expect(notification?.detail, contains("controlled settings failure"));
+    expect(notification?.title.resolve(testChinese), "无法保存设置");
+    expect(
+      notification?.detail?.resolve(testChinese),
+      contains("controlled settings failure"),
+    );
     expect(notification?.isPersistent, isTrue);
   });
 

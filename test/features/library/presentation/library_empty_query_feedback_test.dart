@@ -7,6 +7,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets(
     "entering, switching and leaving review retain published empty content",
@@ -14,7 +16,7 @@ void main() {
       var imports = 0;
       final state = LibraryState(catalogRevision: BigInt.one);
       Future<void> show(LibraryState value) => tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: LibraryGalleryViewport(
             header: const SizedBox(height: 80),
             isEmpty: true,
@@ -63,7 +65,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: EmptyLibraryGallery(
           state: const LibraryState(
             queryActivity: LibraryQueryLoading(LibraryGalleryQuery()),

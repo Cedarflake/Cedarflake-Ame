@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -268,18 +270,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get folderLibraryChanged => '图库已更新，请重新展开目录';
-
-  @override
-  String get folderScopeChanged => '目录范围已变化，请重新展开目录';
-
-  @override
-  String get folderPageChanged => '目录分页版本不一致，请重新展开目录';
-
-  @override
-  String get folderPageScopeChanged => '目录分页范围不一致，请重新展开目录';
-
-  @override
   String get changesSaveFailed => '未能保存更改';
 
   @override
@@ -317,10 +307,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get libraryRefreshPending => '图库尚未刷新，请重试。';
-
-  @override
-  String get scanUpdateInProgress =>
-      'library_update_in_progress: 其他图库更新正在运行，请等待更新结束或先取消更新，然后继续此任务。';
 
   @override
   String get locationRefreshFailed => '无法刷新图库位置信息，请重试。';
@@ -364,16 +350,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get folderRemovalFailed => '未能移除文件夹，请重试。';
 
   @override
-  String get updateRootChanged =>
-      'library_update_root_changed: 图库目录已移除、不可用或发生变化';
-
-  @override
-  String get scanEndedWithoutResult => 'scan_stream_ended: 图库更新未返回完成结果';
-
-  @override
-  String libraryUpdatedDisplayFailed(String reason) {
-    return '图库已更新，但刷新显示失败：$reason';
-  }
+  String get scanEndedWithoutResult => '图库更新未返回完成结果';
 
   @override
   String get updatePausedRestart => '图库更新已暂停，请重新开始更新。';
@@ -473,9 +450,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get viewAction => '查看';
 
   @override
-  String get duplicatePhotos => '重复图片';
-
-  @override
   String get duplicateWorkspace => '重复图片查找';
 
   @override
@@ -485,25 +459,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get openInExplorerFailed => '无法在文件资源管理器中打开';
 
   @override
-  String get duplicateStart => '查找重复图片';
-
-  @override
-  String get duplicateRefreshAnalysis => '更新结果';
-
-  @override
-  String get duplicateStop => '停止查找';
-
-  @override
   String get stopping => '正在停止';
 
   @override
   String get duplicateRunning => '正在查重';
-
-  @override
-  String get duplicateCompleted => '查找完成';
-
-  @override
-  String get duplicateStopped => '已停止查找';
 
   @override
   String get duplicateIncomplete => '未完成查重';
@@ -513,18 +472,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get paused => '已暂停';
-
-  @override
-  String get duplicatePause => '暂停查重';
-
-  @override
-  String get duplicateResume => '继续查重';
-
-  @override
-  String get duplicateSettingsSaveFailed => '无法保存查重设置';
-
-  @override
-  String get duplicateEmptyBefore => '查找由此查看相同图片保存在哪些文件夹。';
 
   @override
   String get duplicateEmptyAfter => '已检查的图片中没有发现重复项';
@@ -545,9 +492,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backToDuplicates => '返回重复图片';
 
   @override
-  String get refreshResults => '刷新结果';
-
-  @override
   String get duplicateGroups => '重复组';
 
   @override
@@ -555,9 +499,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get similarGroups => '相似组';
-
-  @override
-  String get groupView => '分组';
 
   @override
   String get similarityLevel => '相似程度';
@@ -658,24 +599,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get allPhotosFilter => '全部图片';
-
-  @override
-  String filesChecked(int count) {
-    final intl.NumberFormat countNumberFormat =
-        intl.NumberFormat.decimalPattern(localeName);
-    final String countString = countNumberFormat.format(count);
-
-    return '本次已检查 $countString 个文件';
-  }
-
-  @override
-  String filesNotChecked(int count) {
-    final intl.NumberFormat countNumberFormat =
-        intl.NumberFormat.decimalPattern(localeName);
-    final String countString = countNumberFormat.format(count);
-
-    return '$countString 个文件未能完成检查，可稍后重试。';
-  }
 
   @override
   String locationCount(int count) {
@@ -980,19 +903,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get endDate => '结束日期';
 
   @override
-  String get dateHint => '年-月-日';
-
-  @override
-  String get fileProperties => '文件属性';
-
-  @override
   String get fileFormat => '文件格式';
-
-  @override
-  String get anyValue => '不限';
-
-  @override
-  String get custom => '自定义';
 
   @override
   String get fileSize => '文件大小';
@@ -1008,12 +919,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get maximum => '最大值';
-
-  @override
-  String get minimumFileSize => '最小文件大小';
-
-  @override
-  String get maximumFileSize => '最大文件大小';
 
   @override
   String get unit => '单位';
@@ -1389,9 +1294,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exitViewerFullscreen => '退出全屏（Esc / F11）';
-
-  @override
-  String get searchHint => '在图库中搜索';
 
   @override
   String get clearSearch => '清除搜索';
@@ -1785,12 +1687,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get synchronizationWaitingFolder => '等待目录恢复';
-
-  @override
-  String get continuityCatchingUp => '正在同步';
-
-  @override
-  String get continuityRecoveryRequired => '需要核对';
 
   @override
   String get libraryUpdateBlocked => '图库更新受阻';
@@ -3321,4 +3217,100 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get catalogCleanupAlreadyFinished => '图库数据整理任务已经结束，无法再取消';
+
+  @override
+  String folderStatus(String name, String status) {
+    return '“$name”$status';
+  }
+
+  @override
+  String galleryDay(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString';
+  }
+
+  @override
+  String galleryMonth(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMM(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString';
+  }
+
+  @override
+  String eventDateTime(DateTime date, DateTime time) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+    final intl.DateFormat timeDateFormat = intl.DateFormat.jm(localeName);
+    final String timeString = timeDateFormat.format(time);
+
+    return '$dateString $timeString';
+  }
+
+  @override
+  String labelAndValue(String label, String value) {
+    return '$label：$value';
+  }
+
+  @override
+  String get inlineListSeparator => '、';
+
+  @override
+  String get clauseSeparator => '，';
+
+  @override
+  String get sentenceSeparator => '。';
+
+  @override
+  String listSentence(String items) {
+    return '$items。';
+  }
+
+  @override
+  String get categoryIllustration => '插画';
+
+  @override
+  String get categoryComic => '漫画';
+
+  @override
+  String get categoryMeme => '表情包';
+
+  @override
+  String get categoryScreenshot => '截图';
+
+  @override
+  String get categoryPhoto => '实拍';
+
+  @override
+  String get categoryOther => '其他';
+
+  @override
+  String modelDownloadProgress(int percent, double received, double total) {
+    final intl.NumberFormat receivedNumberFormat =
+        intl.NumberFormat.decimalPatternDigits(
+          locale: localeName,
+          decimalDigits: 1,
+        );
+    final String receivedString = receivedNumberFormat.format(received);
+    final intl.NumberFormat totalNumberFormat =
+        intl.NumberFormat.decimalPatternDigits(
+          locale: localeName,
+          decimalDigits: 1,
+        );
+    final String totalString = totalNumberFormat.format(total);
+
+    return '$percent% · $receivedString / $totalString MB';
+  }
+
+  @override
+  String photoTimestamp(DateTime date, DateTime time) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+    final intl.DateFormat timeDateFormat = intl.DateFormat.jms(localeName);
+    final String timeString = timeDateFormat.format(time);
+
+    return '$dateString $timeString';
+  }
 }

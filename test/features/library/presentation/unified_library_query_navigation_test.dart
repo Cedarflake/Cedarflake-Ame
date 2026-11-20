@@ -8,15 +8,14 @@ import "package:cedarflake_ame/features/library/domain/library_view_preferences.
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../support/localized_test_app.dart";
 import "support/library_screen_fixture.dart";
 import "support/library_screen_menu_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -169,31 +168,31 @@ void main() {
     await tester.pumpAndSettle();
     expectSelectedMenuChoice(
       tester,
-      label: LibraryStrings.captureDate,
+      label: testChinese.captureDate,
       icon: Symbols.calendar_month_rounded,
     );
     expectSelectedMenuChoice(
       tester,
-      label: LibraryStrings.descending,
+      label: testChinese.descending,
       icon: Symbols.arrow_downward_rounded,
     );
     _expectUnselectedMenuChoice(
       tester,
-      label: LibraryStrings.fileName,
+      label: testChinese.fileName,
       icon: Symbols.text_fields_rounded,
     );
     await tester.tapAt(tester.getCenter(sortMenuButton));
     await tester.pumpAndSettle();
-    expect(find.text(LibraryStrings.createdDate), findsNothing);
+    expect(find.text(testChinese.createdDate), findsNothing);
 
     await tester.tap(sortMenuButton);
     await tester.pumpAndSettle();
-    await tester.tap(find.text(LibraryStrings.fileName).last);
+    await tester.tap(find.text(testChinese.fileName).last);
     await tester.pumpAndSettle();
     expect(catalog.loadQueries.last.sortKey, LibraryGallerySortKey.fileName);
     expect(catalog.loadQueries.last.searchText, "one");
     expect(catalog.loadQueries.last.rootId, "root-1");
-    expect(find.text(LibraryStrings.unknownCaptureDate), findsNothing);
+    expect(find.text(testChinese.unknownCaptureDate), findsNothing);
   });
 
   testWidgets("keeps the sort menu hit-testable inside the desktop viewport", (
@@ -224,22 +223,22 @@ void main() {
     await tester.tap(button);
     await tester.pump();
     final route = ModalRoute.of(
-      tester.element(find.text(LibraryStrings.fileName).last),
+      tester.element(find.text(testChinese.fileName).last),
     );
     expect(route?.transitionDuration, AmeMenuTransition.duration);
     await tester.pumpAndSettle();
 
-    for (final label in const [
-      LibraryStrings.captureDate,
-      LibraryStrings.createdDate,
-      LibraryStrings.modifiedDate,
-      LibraryStrings.fileName,
-      LibraryStrings.ascending,
-      LibraryStrings.descending,
+    for (final label in [
+      testChinese.captureDate,
+      testChinese.createdDate,
+      testChinese.modifiedDate,
+      testChinese.fileName,
+      testChinese.ascending,
+      testChinese.descending,
     ]) {
       _expectMenuLabelFullyVisible(tester, label);
     }
-    final item = activeMenuItem(tester, LibraryStrings.fileName);
+    final item = activeMenuItem(tester, testChinese.fileName);
     final itemRect = tester.getRect(item);
     expect(itemRect.left, greaterThanOrEqualTo(AmeMenuMetrics.viewportPadding));
     expect(
@@ -253,7 +252,7 @@ void main() {
     );
     await tester.tapAt(itemRect.center);
     await tester.pumpAndSettle();
-    expect(find.text(LibraryStrings.fileName), findsNothing);
+    expect(find.text(testChinese.fileName), findsNothing);
   });
 
   testWidgets(
@@ -344,7 +343,7 @@ void main() {
       expect(visibleTopsBefore, isNotEmpty);
       final deepScrollPixels = scrollPosition.pixels;
 
-      final fileNameItem = await _openSortMenu(tester, LibraryStrings.fileName);
+      final fileNameItem = await _openSortMenu(tester, testChinese.fileName);
       await selectPopupMenuItem(tester, fileNameItem);
 
       expect(catalog.requestedLocationIds, hasLength(1));
@@ -376,7 +375,7 @@ void main() {
       catalog.shouldResolveAnchor = false;
       final createdDateItem = await _openSortMenu(
         tester,
-        LibraryStrings.createdDate,
+        testChinese.createdDate,
       );
       await selectPopupMenuItem(tester, createdDateItem);
 
@@ -489,7 +488,7 @@ void main() {
       }
     }
 
-    final fileNameItem = await _openSortMenu(tester, LibraryStrings.fileName);
+    final fileNameItem = await _openSortMenu(tester, testChinese.fileName);
     await selectPopupMenuItem(tester, fileNameItem);
     expect(catalog.requestedLocationIds, hasLength(1));
     final frozenLocationId = catalog.requestedLocationIds.single;
@@ -498,7 +497,7 @@ void main() {
 
     final captureDateItem = await _openSortMenu(
       tester,
-      LibraryStrings.captureDate,
+      testChinese.captureDate,
     );
     await selectPopupMenuItem(tester, captureDateItem);
     expect(container.read(libraryControllerProvider).queryId, snapshot.queryId);

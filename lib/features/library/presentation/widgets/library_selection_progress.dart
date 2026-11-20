@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_feedback_card.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
@@ -13,7 +14,9 @@ class LibrarySelectionProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = this.progress;
-    var label = progress?.phase == LibraryBatchPhase.saving ? "正在保存" : "正在准备";
+    var label = progress?.phase == LibraryBatchPhase.saving
+        ? context.l10n.saving
+        : context.l10n.preparing;
     if (progress != null && progress.total > 0) {
       label += "（${progress.completed}/${progress.total}）";
     }

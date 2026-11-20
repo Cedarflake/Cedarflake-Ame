@@ -7,9 +7,9 @@ import "package:cedarflake_ame/features/library/domain/library_organization_arch
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/library_archive_fixture.dart";
 import "../support/library_organization_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -103,7 +103,12 @@ void main() {
       await retry;
       expect(library.refreshes, 1);
       expect(
-        container.read(ameNotificationControllerProvider).history.single.title,
+        container
+            .read(ameNotificationControllerProvider)
+            .history
+            .single
+            .title
+            .resolve(testChinese),
         "整理记录已恢复",
       );
       expect(service.tasks.every((task) => task.disposals == 1), isTrue);

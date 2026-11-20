@@ -7,6 +7,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_sid
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/library_review_fixture.dart";
 
 void main() {
@@ -105,7 +106,7 @@ Widget _fixture({
   required VoidCallback onImport,
   double scale = 1,
   bool reducedMotion = false,
-}) => MaterialApp(
+}) => LocalizedTestApp(
   builder: (context, child) => MediaQuery(
     data: MediaQuery.of(context).copyWith(
       textScaler: TextScaler.linear(scale),

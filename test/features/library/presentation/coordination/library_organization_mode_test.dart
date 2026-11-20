@@ -6,6 +6,7 @@ import "package:cedarflake_ame/features/library/domain/library_review.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_organization_mode.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../../support/localized_test_app.dart";
 import "../../support/library_review_fixture.dart";
 import "../support/library_screen_fixture.dart";
 
@@ -491,15 +492,15 @@ void main() {
   test("mode failures describe the command that failed", () async {
     surface.publishing = () async => throw StateError("query failed");
     await mode.enter();
-    expect(mode.problem, "无法进入整理模式，请重试。");
+    expect(mode.problem?.resolve(testChinese), "无法进入整理模式，请重试。");
     surface.publishing = null;
     await mode.retry();
     expect(mode.isActive, isTrue);
     surface.publishing = () async => throw StateError("query failed");
     await mode.selectQueue(LibraryOrganizationQueue.deferred);
-    expect(mode.problem, "无法切换整理范围，请重试。");
+    expect(mode.problem?.resolve(testChinese), "无法切换整理范围，请重试。");
     await mode.exit();
-    expect(mode.problem, "无法返回图库，请重试。");
+    expect(mode.problem?.resolve(testChinese), "无法返回图库，请重试。");
     surface.publishing = null;
     await mode.retry();
     expect(mode.isActive, isFalse);

@@ -33,6 +33,9 @@ ModuleOwner moduleOwner(String path) {
   if (path.startsWith("lib/app/notifications/")) {
     return const ModuleOwner(ModuleLayer.application);
   }
+  if (path == "lib/app/messages/ame_message.dart") {
+    return const ModuleOwner(ModuleLayer.domain);
+  }
   if (path.startsWith("lib/app/window/")) {
     return const ModuleOwner(ModuleLayer.platform);
   }

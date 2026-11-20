@@ -2,6 +2,7 @@ import "dart:math" as math;
 
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../domain/library_exact_duplicates.dart";
 import "../library_duplicate_strings.dart";
 
@@ -49,8 +50,8 @@ class LibraryDuplicateReviewMetrics {
     bool selectable = false,
   }) {
     final text = Theme.of(context).textTheme;
-    final body = _measure(context, "图片", text.bodyMedium);
-    final title = _measure(context, "图片", text.titleMedium);
+    final body = _measure(context, context.l10n.photos, text.bodyMedium);
+    final title = _measure(context, context.l10n.photos, text.titleMedium);
     var detailHeight = body.height * 2;
     final inline = inlineMemberActions(
       context,
@@ -70,7 +71,7 @@ class LibraryDuplicateReviewMetrics {
       );
       var statusHeight = 0.0;
       for (final value in LibraryDuplicateAvailability.values) {
-        final label = LibraryDuplicateStrings.availability(value);
+        final label = LibraryDuplicateStrings.availability(context.l10n, value);
         if (label == null) continue;
         statusHeight = math.max(
           statusHeight,
@@ -96,7 +97,7 @@ class LibraryDuplicateReviewMetrics {
     final available = width - padding * 2 - groupPreviewExtent - 12;
     final label = _measure(
       context,
-      LibraryDuplicateStrings.viewLocations,
+      context.l10n.viewDuplicates,
       text.labelLarge,
       maxWidth: math.max(1, available - 24),
     );

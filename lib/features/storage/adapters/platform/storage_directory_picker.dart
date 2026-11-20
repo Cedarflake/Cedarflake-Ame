@@ -6,7 +6,11 @@ import "package:flutter/foundation.dart";
 import "../../application/ports/storage_directory_picker.dart";
 
 class PlatformStorageDirectoryPicker implements StorageDirectoryPicker {
-  const PlatformStorageDirectoryPicker() : _selectDirectory = _pickDirectory;
+  PlatformStorageDirectoryPicker(String Function() confirmLabel)
+    : _selectDirectory = ((initialDirectory) => getDirectoryPath(
+        initialDirectory: initialDirectory,
+        confirmButtonText: confirmLabel(),
+      ));
 
   @visibleForTesting
   const PlatformStorageDirectoryPicker.withSelector(this._selectDirectory);
@@ -16,11 +20,4 @@ class PlatformStorageDirectoryPicker implements StorageDirectoryPicker {
   @override
   Future<String?> pick({required String currentPath}) =>
       _selectDirectory(Directory(currentPath).parent.path);
-
-  static Future<String?> _pickDirectory(String initialDirectory) {
-    return getDirectoryPath(
-      initialDirectory: initialDirectory,
-      confirmButtonText: "选择此目录",
-    );
-  }
 }

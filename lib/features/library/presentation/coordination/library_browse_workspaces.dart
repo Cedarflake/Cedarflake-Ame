@@ -14,18 +14,27 @@ class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
     required this.surface,
     required this.review,
     required this.publish,
+    required this.readLocaleName,
   });
 
   final LibraryReviewSurface surface;
   final LibraryOrganizationMode review;
   final void Function(LibraryWorkspace) publish;
+  final String Function() readLocaleName;
   final Map<LibraryWorkspace, _WorkspaceBrowse> _saved = {};
   LibraryWorkspace _browsing = LibraryWorkspace.gallery;
   LibraryWorkspace _visible = LibraryWorkspace.gallery;
+  String? _settingsLocale;
   LibraryWorkspace? _requested;
   ({LibraryWorkspace destination, LibraryGalleryQuery query})? _failed;
   Future<void>? _switching;
   bool _disposed = false;
+
+  bool keepsBrowseForSettings(LibraryWorkspace destination) =>
+      destination == LibraryWorkspace.settings ||
+      (_visible == LibraryWorkspace.settings &&
+          destination == _browsing &&
+          _settingsLocale != readLocaleName());
 
   Future<void> select(LibraryWorkspace destination) {
     if (_disposed) return Future.value();
@@ -50,11 +59,16 @@ class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
   Future<void> _show(LibraryWorkspace destination) async {
     _failed = null;
     if (!destination.isBrowsing) {
+      if (destination == LibraryWorkspace.settings && _visible != destination) {
+        _settingsLocale = readLocaleName();
+      }
       _visible = destination;
       publish(destination);
       return;
     }
-    final retainsActiveGallery = destination == _browsing && review.isActive;
+    final retainsActiveGallery =
+        destination == _browsing &&
+        (review.isActive || keepsBrowseForSettings(destination));
     if (destination == _visible || retainsActiveGallery) {
       _visible = destination;
       publish(destination);

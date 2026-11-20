@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:flutter/foundation.dart";
 
+import "../../../app/messages/ame_message.dart";
 import "ports/storage_settings_gateway.dart";
 import "../domain/storage_models.dart";
 import "storage_configuration_projection.dart";
@@ -15,7 +16,7 @@ enum CatalogReclamationRetryTarget { status, storageSnapshot }
 class CatalogReclamationFailure {
   const CatalogReclamationFailure(this.message, this.retryTarget);
 
-  final String message;
+  final AmeMessage message;
   final CatalogReclamationRetryTarget retryTarget;
 }
 
@@ -33,7 +34,7 @@ class CatalogReclamationViewState {
   final CatalogReclamationAction action;
   final CatalogReclamationFailure? failure;
 
-  String? get errorMessage => failure?.message;
+  AmeMessage? get errorMessage => failure?.message;
 
   bool get isActionPending => action != CatalogReclamationAction.none;
 }
@@ -168,7 +169,7 @@ class CatalogReclamationController extends ChangeNotifier
       _lastAppliedSequence = request._sequence;
       _publish(
         failure: CatalogReclamationFailure(
-          _errorText(error),
+          AmeRawMessage(_errorText(error)),
           _unresolvedStorageFailure?.retryTarget ?? retryTarget,
         ),
       );
@@ -227,7 +228,7 @@ class CatalogReclamationController extends ChangeNotifier
         await _refreshStorageAfterTerminal(next);
       }
     } on Object catch (error) {
-      _finishAction(epoch, errorMessage: _errorText(error));
+      _finishAction(epoch, errorMessage: AmeRawMessage(_errorText(error)));
     }
   }
 
@@ -252,10 +253,10 @@ class CatalogReclamationController extends ChangeNotifier
       );
       _finishAction(
         epoch,
-        errorMessage: accepted ? null : "图库数据整理任务已经结束，无法再取消",
+        errorMessage: accepted ? null : AmeLabel.catalogCleanupAlreadyFinished,
       );
     } on Object catch (error) {
-      _finishAction(epoch, errorMessage: _errorText(error));
+      _finishAction(epoch, errorMessage: AmeRawMessage(_errorText(error)));
     }
   }
 
@@ -316,7 +317,7 @@ class CatalogReclamationController extends ChangeNotifier
   bool _finishAction(
     int epoch, {
     CatalogReclamationModel? reclamation,
-    String? errorMessage,
+    AmeMessage? errorMessage,
   }) {
     if (_isDisposed || epoch != _epoch) {
       return false;

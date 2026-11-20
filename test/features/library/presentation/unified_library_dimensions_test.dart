@@ -13,7 +13,6 @@ import "package:cedarflake_ame/features/library/application/library_view_prefere
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_header.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout_snapshot.dart";
@@ -24,9 +23,9 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "support/library_screen_fixture.dart";
 import "support/library_screen_menu_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -108,6 +107,7 @@ void main() {
       final galleryWall = find.byKey(const Key("library-photo-wall"));
       final scrollPosition = galleryScrollPosition(tester);
       final initialLayoutSnapshot = LibraryGalleryLayoutSnapshot.build(
+        testChinese,
         manifest: manifest,
         availableWidth: tester.getSize(galleryWall).width - 40,
         thumbnailSize: GalleryThumbnailSize.medium,
@@ -587,7 +587,7 @@ void main() {
       scrollPosition.jumpTo(scrollPosition.maxScrollExtent * 0.55);
       final wallTop = tester.getTopLeft(wall).dy;
 
-      final squareItem = await _openLayoutMenu(tester, LibraryStrings.square);
+      final squareItem = await _openLayoutMenu(tester, testChinese.square);
       final squareAnchor = _viewportCenterRowAnchor(tester, assets);
       await selectPopupMenuItem(tester, squareItem);
       await _pumpUntilGalleryGeometry(
@@ -616,7 +616,7 @@ void main() {
         closeTo(squareTop, 0.01),
       );
 
-      final largeItem = await _openLayoutMenu(tester, LibraryStrings.large);
+      final largeItem = await _openLayoutMenu(tester, testChinese.sizeLarge);
       final largeAnchor = _viewportCenterRowAnchor(tester, assets);
       await selectPopupMenuItem(tester, largeItem);
       await _pumpUntilGalleryGeometry(

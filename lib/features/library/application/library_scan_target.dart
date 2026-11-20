@@ -55,7 +55,7 @@ class LibraryRootRelocation extends LibraryScanTarget {
     }
     throw const LibraryScanFailure(
       code: "library_root_relocation_unavailable",
-      message: "当前扫描服务不支持重新定位图库。",
+      message: "The scan service does not support relocating this library.",
     );
   }
 }

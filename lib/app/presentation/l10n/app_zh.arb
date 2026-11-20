@@ -136,10 +136,6 @@
       }
     }
   },
-  "folderLibraryChanged": "图库已更新，请重新展开目录",
-  "folderScopeChanged": "目录范围已变化，请重新展开目录",
-  "folderPageChanged": "目录分页版本不一致，请重新展开目录",
-  "folderPageScopeChanged": "目录分页范围不一致，请重新展开目录",
   "changesSaveFailed": "未能保存更改",
   "organizationRecordChanged": "图片或整理记录已更改，当前记录已保留。",
   "organizationHistoryChanged": "操作记录已更新，请重新打开菜单。",
@@ -153,7 +149,6 @@
   "undo": "撤销",
   "changesSaved": "更改已保存",
   "libraryRefreshPending": "图库尚未刷新，请重试。",
-  "scanUpdateInProgress": "library_update_in_progress: 其他图库更新正在运行，请等待更新结束或先取消更新，然后继续此任务。",
   "locationRefreshFailed": "无法刷新图库位置信息，请重试。",
   "displayRefreshSuperseded": "图库已保存，但当前显示刷新已被其他操作替换，请重试刷新显示。",
   "deferredOrganization": "已移至稍后整理",
@@ -174,16 +169,7 @@
   "folderStillUpdating": "文件夹状态已更改或仍在更新，请稍后重试。",
   "folderRemovedRefreshPending": "文件夹已移除，图库尚未刷新。请关闭此窗口后重试图库刷新。",
   "folderRemovalFailed": "未能移除文件夹，请重试。",
-  "updateRootChanged": "library_update_root_changed: 图库目录已移除、不可用或发生变化",
-  "scanEndedWithoutResult": "scan_stream_ended: 图库更新未返回完成结果",
-  "libraryUpdatedDisplayFailed": "图库已更新，但刷新显示失败：{reason}",
-  "@libraryUpdatedDisplayFailed": {
-    "placeholders": {
-      "reason": {
-        "type": "String"
-      }
-    }
-  },
+  "scanEndedWithoutResult": "图库更新未返回完成结果",
   "updatePausedRestart": "图库更新已暂停，请重新开始更新。",
   "sourceChangedDuringUpdate": "更新期间源文件发生变化，请重试。",
   "updateSourceChanged": "待更新的来源已发生变化，请重新选择来源。",
@@ -257,35 +243,23 @@
     }
   },
   "viewAction": "查看",
-  "duplicatePhotos": "重复图片",
   "duplicateWorkspace": "重复图片查找",
   "openInExplorer": "在文件资源管理器中打开",
   "openInExplorerFailed": "无法在文件资源管理器中打开",
-  "duplicateStart": "查找重复图片",
-  "duplicateRefreshAnalysis": "更新结果",
-  "duplicateStop": "停止查找",
   "stopping": "正在停止",
   "duplicateRunning": "正在查重",
-  "duplicateCompleted": "查找完成",
-  "duplicateStopped": "已停止查找",
   "duplicateIncomplete": "未完成查重",
   "waitingForBackground": "等待后台",
   "paused": "已暂停",
-  "duplicatePause": "暂停查重",
-  "duplicateResume": "继续查重",
-  "duplicateSettingsSaveFailed": "无法保存查重设置",
-  "duplicateEmptyBefore": "查找由此查看相同图片保存在哪些文件夹。",
   "duplicateEmptyAfter": "已检查的图片中没有发现重复项",
   "duplicateWaitResults": "找到的重复图片会显示在这里。",
   "duplicateLocationsChanged": "该组某些图片的位置已发生变化",
   "resultsUnavailable": "暂时无法读取结果",
   "viewDuplicates": "查看重复图片",
   "backToDuplicates": "返回重复图片",
-  "refreshResults": "刷新结果",
   "duplicateGroups": "重复组",
   "ignoredGroupsEmpty": "没有已忽略的组",
   "similarGroups": "相似组",
-  "groupView": "分组",
   "similarityLevel": "相似程度",
   "similarityStrict": "严格",
   "similarityStandard": "标准",
@@ -344,24 +318,6 @@
   "showSubfolders": "显示子目录",
   "hideSubfolders": "隐藏子目录",
   "allPhotosFilter": "全部图片",
-  "filesChecked": "本次已检查 {count} 个文件",
-  "@filesChecked": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
-  "filesNotChecked": "{count} 个文件未能完成检查，可稍后重试。",
-  "@filesNotChecked": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "format": "decimalPattern"
-      }
-    }
-  },
   "locationCount": "{count} 个位置",
   "@locationCount": {
     "placeholders": {
@@ -560,18 +516,12 @@
   "dateField": "日期类型",
   "startDate": "开始日期",
   "endDate": "结束日期",
-  "dateHint": "年-月-日",
-  "fileProperties": "文件属性",
   "fileFormat": "文件格式",
-  "anyValue": "不限",
-  "custom": "自定义",
   "fileSize": "文件大小",
   "width": "宽度",
   "height": "高度",
   "minimum": "最小值",
   "maximum": "最大值",
-  "minimumFileSize": "最小文件大小",
-  "maximumFileSize": "最大文件大小",
   "unit": "单位",
   "dimensions": "图片尺寸",
   "minimumWidth": "最小宽度",
@@ -761,7 +711,6 @@
   "showImageActualSize": "实际大小（1 / Ctrl+1）",
   "enterViewerFullscreen": "全屏（F11）",
   "exitViewerFullscreen": "退出全屏（Esc / F11）",
-  "searchHint": "在图库中搜索",
   "clearSearch": "清除搜索",
   "library": "图库",
   "allImages": "所有图片",
@@ -924,8 +873,6 @@
   "synchronizationUpdateIncomplete": "更新未完成",
   "synchronizationComplete": "同步完成",
   "synchronizationWaitingFolder": "等待目录恢复",
-  "continuityCatchingUp": "正在同步",
-  "continuityRecoveryRequired": "需要核对",
   "libraryUpdateBlocked": "图库更新受阻",
   "pendingChanges": "{count} 项等待处理",
   "@pendingChanges": {
@@ -2000,5 +1947,130 @@
     }
   },
   "chooseThisFolder": "选择此目录",
-  "catalogCleanupAlreadyFinished": "图库数据整理任务已经结束，无法再取消"
+  "catalogCleanupAlreadyFinished": "图库数据整理任务已经结束，无法再取消",
+  "folderStatus": "“{name}”{status}",
+  "@folderStatus": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "galleryDay": "{date}",
+  "@galleryDay": {
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMd"
+      }
+    }
+  },
+  "galleryMonth": "{date}",
+  "@galleryMonth": {
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMM"
+      }
+    }
+  },
+  "eventDateTime": "{date} {time}",
+  "@eventDateTime": {
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMd"
+      },
+      "time": {
+        "type": "DateTime",
+        "format": "jm"
+      }
+    }
+  },
+  "labelAndValue": "{label}：{value}",
+  "@labelAndValue": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "inlineListSeparator": "、",
+  "clauseSeparator": "，",
+  "sentenceSeparator": "。",
+  "listSentence": "{items}。",
+  "@listSentence": {
+    "placeholders": {
+      "items": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryIllustration": "插画",
+  "@categoryIllustration": {
+    "description": "Display name for the factory smart album."
+  },
+  "categoryComic": "漫画",
+  "@categoryComic": {
+    "description": "Display name for the factory smart album."
+  },
+  "categoryMeme": "表情包",
+  "@categoryMeme": {
+    "description": "Display name for the factory smart album."
+  },
+  "categoryScreenshot": "截图",
+  "@categoryScreenshot": {
+    "description": "Display name for the factory smart album."
+  },
+  "categoryPhoto": "实拍",
+  "@categoryPhoto": {
+    "description": "Display name for the factory smart album."
+  },
+  "categoryOther": "其他",
+  "@categoryOther": {
+    "description": "Display name for the factory smart album."
+  },
+  "modelDownloadProgress": "{percent}% · {received} / {total} MB",
+  "@modelDownloadProgress": {
+    "description": "Download progress, decimal megabytes received and total.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "received": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      },
+      "total": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      }
+    }
+  },
+  "photoTimestamp": "{date} {time}",
+  "@photoTimestamp": {
+    "description": "Capture or filesystem timestamp in the photo information sheet, including seconds.",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMd"
+      },
+      "time": {
+        "type": "DateTime",
+        "format": "jms"
+      }
+    }
+  }
 }

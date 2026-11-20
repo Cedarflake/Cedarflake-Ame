@@ -20,7 +20,6 @@ import "package:cedarflake_ame/features/library/domain/library_folder_models.dar
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/gallery_selection.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout_snapshot.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
@@ -34,8 +33,8 @@ import "package:flutter_test/flutter_test.dart";
 import "package:integration_test/integration_test.dart";
 
 import "../test/features/library/support/library_query_snapshot_fixture.dart";
-
 import "../test/support/application_test_bindings.dart";
+import "../test/support/localized_test_app.dart";
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -70,6 +69,7 @@ void main() {
       assets: state.assets,
     );
     final layoutSnapshot = LibraryGalleryLayoutSnapshot.build(
+      testChinese,
       manifest: manifest,
       availableWidth: wallSize.width - 80 - 40,
       thumbnailSize: GalleryThumbnailSize.medium,
@@ -96,7 +96,7 @@ void main() {
               _StaticPreviewer(state.assets),
             ),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: Align(
                 alignment: Alignment.topLeft,
@@ -168,11 +168,11 @@ void main() {
         tester.element(find.byType(LibraryGalleryWall)),
         rootNavigator: true,
       );
-      const photoMenuLabels = [
-        LibraryStrings.open,
-        LibraryStrings.viewInformation,
-        LibraryStrings.copyPath,
-        LibraryStrings.openInExplorer,
+      final photoMenuLabels = [
+        testChinese.open,
+        testChinese.viewInformation,
+        testChinese.copyPath,
+        testChinese.openInExplorer,
       ];
       expect(navigator.canPop(), isFalse);
 
@@ -299,7 +299,7 @@ void main() {
       for (final name in const ["Pictures", "Documents", "Archive"]) {
         expect(
           find.bySemanticsLabel(
-            "$name\n${LibraryStrings.synchronizationUnconfirmed}",
+            "$name\n${testChinese.synchronizationUnconfirmed}",
           ),
           findsOneWidget,
         );
@@ -346,27 +346,27 @@ void main() {
       expect(secondSourceMenu.hitTestable(), findsOneWidget);
       await tester.tap(firstSourceMenu);
       await tester.pumpAndSettle();
-      expect(find.text(LibraryStrings.updateLibrary), findsOneWidget);
+      expect(find.text(testChinese.updateLibrary), findsOneWidget);
       await nativeUiaProbe.checkpoint(tester, "source-menu-open");
       await mouse.moveTo(tester.getCenter(secondSourceMenu));
       await tester.pump(const Duration(milliseconds: 600));
       await tester.tapAt(const Offset(1272, 792));
       await _pumpUntil(
         tester,
-        () => find.text(LibraryStrings.updateLibrary).evaluate().isEmpty,
+        () => find.text(testChinese.updateLibrary).evaluate().isEmpty,
       );
-      expect(find.text(LibraryStrings.updateLibrary), findsNothing);
+      expect(find.text(testChinese.updateLibrary), findsNothing);
       await nativeUiaProbe.checkpoint(tester, "source-menu-closed");
       expect(secondSourceMenu.hitTestable(), findsOneWidget);
       await tester.tap(secondSourceMenu);
       await tester.pumpAndSettle();
-      expect(find.text(LibraryStrings.updateLibrary), findsOneWidget);
+      expect(find.text(testChinese.updateLibrary), findsOneWidget);
       await tester.tapAt(const Offset(1272, 792));
       await _pumpUntil(
         tester,
-        () => find.text(LibraryStrings.updateLibrary).evaluate().isEmpty,
+        () => find.text(testChinese.updateLibrary).evaluate().isEmpty,
       );
-      expect(find.text(LibraryStrings.updateLibrary), findsNothing);
+      expect(find.text(testChinese.updateLibrary), findsNothing);
 
       final wall = tester.widget<LibraryGalleryWall>(
         find.byType(LibraryGalleryWall),
@@ -494,7 +494,7 @@ void main() {
         expect(find.byKey(const Key("viewer-back-button")), findsOneWidget);
         if (cycle == 0) {
           expect(
-            find.bySemanticsLabel(LibraryStrings.fitImageToWindow),
+            find.bySemanticsLabel(testChinese.fitImageToWindow),
             findsOneWidget,
           );
           final filmstripToggle = find.byKey(
@@ -521,8 +521,8 @@ void main() {
               expect(
                 find.text(
                   direction == "right"
-                      ? LibraryStrings.scrollFilmstripRight
-                      : LibraryStrings.scrollFilmstripLeft,
+                      ? testChinese.scrollFilmstripRight
+                      : testChinese.scrollFilmstripLeft,
                 ),
                 findsOneWidget,
               );
@@ -533,7 +533,7 @@ void main() {
               EnginePhase.sendSemanticsUpdate,
               const Duration(seconds: 5),
             );
-            expect(find.text(LibraryStrings.scrollFilmstripLeft), findsNothing);
+            expect(find.text(testChinese.scrollFilmstripLeft), findsNothing);
           }
           await nativeUiaProbe.checkpoint(tester, "viewer-open");
         }
@@ -561,7 +561,7 @@ void main() {
           isNot(closeTo(viewerValueBefore, 0.001)),
         );
         expect(
-          find.bySemanticsLabel(LibraryStrings.showImageActualSize),
+          find.bySemanticsLabel(testChinese.showImageActualSize),
           findsOneWidget,
         );
 
@@ -572,7 +572,7 @@ void main() {
         await tester.tap(viewerMore);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 250));
-        expect(find.text(LibraryStrings.copyPath), findsOneWidget);
+        expect(find.text(testChinese.copyPath), findsOneWidget);
         if (cycle == 0) {
           await nativeUiaProbe.checkpoint(tester, "viewer-menu-open");
         }
@@ -582,7 +582,7 @@ void main() {
         await tester.tapAt(viewerMoreCenter);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 250));
-        expect(find.text(LibraryStrings.copyPath), findsNothing);
+        expect(find.text(testChinese.copyPath), findsNothing);
         expect(viewerBack, findsOneWidget);
         expect(viewerBack.hitTestable(), findsOneWidget);
         if (cycle == 0) {

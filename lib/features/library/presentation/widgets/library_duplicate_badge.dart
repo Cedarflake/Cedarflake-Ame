@@ -2,12 +2,12 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_gallery_duplicates.dart";
 import "../../application/library_controller.dart";
 import "../../domain/library_gallery_group.dart";
 import "../../domain/library_models.dart";
-import "../library_duplicate_strings.dart";
 import "library_duplicate_locations_sheet.dart";
 import "library_duplicate_update_status.dart";
 import "library_gallery_card_metrics.dart";
@@ -53,7 +53,7 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
     if (group == null && galleryGroup == null) {
       return const SizedBox.shrink();
     }
-    final count = LibraryDuplicateStrings.locations(
+    final count = context.l10n.locationCount(
       galleryGroup?.memberCount ?? group!.locationCount,
     );
     final similar = galleryGroup?.key is LibrarySimilarGalleryGroupKey;
@@ -62,7 +62,7 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
         hasPending: (group?.pendingLocationCount ?? 0) > 0,
         builder: (context, label) => AmeTooltip(
           message:
-              "${similar ? LibraryDuplicateStrings.viewSimilar : LibraryDuplicateStrings.viewLocations} · $count${label == null ? '' : ' · $label'}",
+              "${similar ? context.l10n.viewSimilar : context.l10n.viewDuplicates} · $count${label == null ? '' : ' · $label'}",
           child: IconButton(
             key: ValueKey("duplicate-badge-${widget.locationId}"),
             focusNode: _focus,

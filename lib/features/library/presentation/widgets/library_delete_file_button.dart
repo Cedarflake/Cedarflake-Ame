@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_file_operations.dart";
 import "../../domain/library_file_operations.dart";
@@ -24,7 +25,7 @@ class LibraryDeleteFileButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => AmeTooltip(
-    message: "删除",
+    message: context.l10n.deleteAction,
     child: IconButton(
       key: buttonKey,
       style: style,
@@ -36,7 +37,10 @@ class LibraryDeleteFileButton extends ConsumerWidget {
               selection: LibraryFilesAtLocations([target]),
               action: LibraryFileAction.recycle,
             ),
-      icon: const Icon(Symbols.delete_rounded, semanticLabel: "删除"),
+      icon: Icon(
+        Symbols.delete_rounded,
+        semanticLabel: context.l10n.deleteAction,
+      ),
     ),
   );
 }

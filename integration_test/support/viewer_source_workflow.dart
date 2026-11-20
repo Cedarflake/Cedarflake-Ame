@@ -1,7 +1,6 @@
 import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/application/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_loading_indicator.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
@@ -9,6 +8,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_vie
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+
+import "../../test/support/localized_test_app.dart";
 
 Future<void> verifyViewerSourceWorkflow(WidgetTester tester) async {
   final openingTile = find.byType(LibraryPhotoTile).hitTestable().first;
@@ -26,7 +27,7 @@ Future<void> verifyViewerSourceWorkflow(WidgetTester tester) async {
     // An unchecked FileImage would decode despite both native slots being occupied.
     final deadline = DateTime.now().add(const Duration(seconds: 10));
     while (find
-            .text(LibraryStrings.originalImagePreviewFallback)
+            .text(testChinese.originalImagePreviewFallback)
             .evaluate()
             .isEmpty &&
         find.text("无法打开原图").evaluate().isEmpty) {
@@ -114,7 +115,7 @@ Future<void> waitForViewerOriginal(
     }
     await tester.pump(const Duration(milliseconds: 25));
   }
-  expect(find.text(LibraryStrings.originalImagePreviewFallback), findsNothing);
+  expect(find.text(testChinese.originalImagePreviewFallback), findsNothing);
   expect(find.text("无法打开原图"), findsNothing);
 }
 
@@ -144,9 +145,6 @@ bool _hasDecodedOriginal(WidgetTester tester, String? differentFrom) {
           )
           .evaluate()
           .isEmpty &&
-      find
-          .text(LibraryStrings.originalImagePreviewFallback)
-          .evaluate()
-          .isEmpty &&
+      find.text(testChinese.originalImagePreviewFallback).evaluate().isEmpty &&
       find.text("无法打开原图").evaluate().isEmpty;
 }

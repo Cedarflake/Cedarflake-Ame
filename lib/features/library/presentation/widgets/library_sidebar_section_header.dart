@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../../../app/presentation/ame_selection_checkbox.dart";
@@ -42,7 +43,9 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
       color: Theme.of(context).colorScheme.onSurfaceVariant,
     );
     final heading = Semantics(
-      label: selectedCount > 0 ? "已选择 $selectedCount" : null,
+      label: selectedCount > 0
+          ? context.l10n.selectedCount(selectedCount)
+          : null,
       excludeSemantics: selectedCount > 0,
       child: Row(
         children: [
@@ -51,14 +54,19 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
                 ? LayoutBuilder(
                     builder: (context, constraints) {
                       final measure = TextPainter(
-                        text: TextSpan(text: "已选择", style: labelStyle),
+                        text: TextSpan(
+                          text: context.l10n.selectedLong,
+                          style: labelStyle,
+                        ),
                         textDirection: Directionality.of(context),
                         textScaler: MediaQuery.textScalerOf(context),
                       )..layout();
                       final compact = measure.width > constraints.maxWidth;
                       measure.dispose();
                       return Text(
-                        compact ? "已选" : "已选择",
+                        compact
+                            ? context.l10n.selectedShort
+                            : context.l10n.selectedLong,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: labelStyle,
@@ -90,7 +98,9 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
       children: [
         if (selectedCount > 0)
           AmeTooltip(
-            message: allSelected ? "取消全选" : selectAllLabel ?? "全选$title",
+            message: allSelected
+                ? context.l10n.deselectAll
+                : selectAllLabel ?? context.l10n.selectAllNamed(title),
             child: AmeSelectionCheckbox(
               key: const Key("library-sidebar-select-all"),
               markExtent: 18,
@@ -98,13 +108,14 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
               value: allSelected ? true : null,
               tristate: true,
               isOutlined: true,
-              semanticLabel: selectAllLabel ?? "全选$title",
+              semanticLabel:
+                  selectAllLabel ?? context.l10n.selectAllNamed(title),
               onChanged: onSelectAll == null ? null : (_) => onSelectAll!(),
             ),
           ),
         if (selectedCount > 0)
           AmeTooltip(
-            message: removeLabel ?? "删除",
+            message: removeLabel ?? context.l10n.deleteAction,
             child: IconButton(
               key: const Key("library-sidebar-remove-selected"),
               onPressed: onRemove,

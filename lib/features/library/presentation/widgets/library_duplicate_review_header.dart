@@ -1,9 +1,9 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
-import "../library_duplicate_strings.dart";
 import "library_path_text.dart";
 
 class LibraryDuplicateReviewHeader extends StatelessWidget {
@@ -46,7 +46,7 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
           maintainAnimation: true,
           maintainState: true,
           child: Text(
-            LibraryDuplicateStrings.groups(totalGroups ?? 0),
+            context.l10n.groupCount(totalGroups ?? 0),
             key: const Key("duplicate-review-count"),
           ),
         ),
@@ -83,7 +83,7 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
         SizedBox(
           width: 40,
           child: AmeTooltip(
-            message: LibraryDuplicateStrings.back,
+            message: context.l10n.backToDuplicates,
             child: IconButton(
               key: const Key("duplicate-review-back"),
               onPressed: onBack,

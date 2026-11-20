@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_motion.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
@@ -32,15 +33,18 @@ class LibraryUpdateTaskSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final tasks = state.tasks;
     final hasTerminalTasks = tasks.any((task) => !task.isActive);
-    const title = "图库更新";
+    final title = context.l10n.libraryUpdates;
     final announcementScope = tasks
         .map((task) => "${task.root.id}:${task.phase.name}")
         .join("|");
     final announcement = [
       title,
       for (final task in tasks)
-        "${librarySourceName(task.root.displayPath)}，${LibraryUpdateFeedback(task).progressSemanticsValue}",
-    ].join("。 ");
+        [
+          librarySourceName(task.root.displayPath),
+          LibraryUpdateFeedback(task).progressSemanticsValue(context.l10n),
+        ].join(context.l10n.clauseSeparator),
+    ].join(context.l10n.sentenceSeparator);
     final surface = AmeFeedbackCard.tasks(
       key: const Key("library-update-task-surface"),
       title: title,
@@ -50,7 +54,7 @@ class LibraryUpdateTaskSurface extends StatelessWidget {
           AmeFeedbackAction(
             key: const Key("library-update-dismiss-terminal"),
             onPressed: onDismissTerminalTasks,
-            label: "清除已结束任务",
+            label: context.l10n.clearFinishedTasks,
           ),
       ],
       items: AmeScrollMotion(
@@ -111,7 +115,7 @@ class _LibraryRootUpdateRow extends StatelessWidget {
               ),
             ),
             Text(
-              feedback.phaseLabel,
+              feedback.phaseLabel(context.l10n),
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -120,28 +124,31 @@ class _LibraryRootUpdateRow extends StatelessWidget {
             if (task.canCancel)
               Semantics(
                 container: true,
-                label: "取消更新 $rootName",
+                label: context.l10n.cancelRootUpdate(rootName),
                 button: true,
                 onTap: onCancel,
                 excludeSemantics: true,
-                child: TextButton(onPressed: onCancel, child: const Text("取消")),
+                child: TextButton(
+                  onPressed: onCancel,
+                  child: Text(context.l10n.cancel),
+                ),
               )
             else if (task.canRetry)
               Semantics(
                 container: true,
-                label: feedback.retrySemanticsLabel(rootName),
+                label: feedback.retrySemanticsLabel(context.l10n, rootName),
                 button: true,
                 onTap: onRetry,
                 excludeSemantics: true,
                 child: TextButton(
                   onPressed: onRetry,
-                  child: Text(feedback.retryLabel),
+                  child: Text(feedback.retryLabel(context.l10n)),
                 ),
               )
             else if (!task.isActive)
               Semantics(
                 container: true,
-                label: "关闭 $rootName 更新任务",
+                label: context.l10n.closeRootUpdate(rootName),
                 button: true,
                 onTap: onDismiss,
                 excludeSemantics: true,
@@ -152,7 +159,7 @@ class _LibraryRootUpdateRow extends StatelessWidget {
               ),
           ],
         ),
-        if (feedback.detail case final detail?)
+        if (feedback.detail(context.l10n) case final detail?)
           Text(
             detail,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -172,8 +179,8 @@ class _LibraryRootUpdateRow extends StatelessWidget {
             child: task.isActive
                 ? Semantics(
                     container: true,
-                    label: "$rootName 更新进度",
-                    value: feedback.progressSemanticsValue,
+                    label: context.l10n.rootUpdateProgress(rootName),
+                    value: feedback.progressSemanticsValue(context.l10n),
                     child: ExcludeSemantics(
                       child: AmeLinearProgress(
                         value:

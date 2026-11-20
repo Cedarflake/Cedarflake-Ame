@@ -9,6 +9,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../support/localized_test_app.dart";
+
 void main() {
   test("only the shared transient transport constructs snackbars", () {
     final offenders = <String>[];
@@ -37,7 +39,7 @@ void main() {
       "single-line feedback aligns content and actions in $brightness",
       (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             theme: buildAmeTheme(brightness: brightness),
             home: Scaffold(
               body: Center(
@@ -73,7 +75,7 @@ void main() {
       addTearDown(working.dispose);
       final theme = buildAmeTheme(brightness: brightness);
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           theme: theme,
           home: Scaffold(
             body: Center(
@@ -147,7 +149,7 @@ void main() {
       "transient feedback shares bottom card, inset and acknowledgement in $brightness",
       (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             theme: buildAmeTheme(brightness: brightness),
             home: Scaffold(
               body: Builder(
@@ -182,7 +184,7 @@ void main() {
       (tester) async {
         var retried = false;
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             theme: buildAmeTheme(brightness: brightness),
             home: Scaffold(
               body: MediaQuery(

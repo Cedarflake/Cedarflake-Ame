@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_disclosure.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
@@ -13,7 +14,6 @@ import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_synchronization_models.dart";
 import "../library_pending_source.dart";
-import "../library_strings.dart";
 import "../coordination/library_sidebar_selection.dart";
 import "library_folder_navigation_tile.dart";
 import "library_folder_reorder_item.dart";
@@ -226,7 +226,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                     children: [
                       if (widget.isCompact) ...[
                         AmeTooltip(
-                          message: LibraryStrings.allImages,
+                          message: context.l10n.allImages,
                           child: IconButton(
                             key: const Key("library-sidebar-library"),
                             focusNode: _libraryFocusNode,
@@ -242,7 +242,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                         AmeTooltip(
                           message:
                               widget.addingSourceDisabledReason ??
-                              LibraryStrings.addFolder,
+                              context.l10n.addFolder,
                           child: IconButton(
                             key: const Key("library-sidebar-import"),
                             onPressed:
@@ -279,7 +279,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                             child: Icon(Symbols.photo_library_rounded),
                           ),
                           title: Text(
-                            LibraryStrings.allImages,
+                            context.l10n.allImages,
                             style: _navigationTitleStyle(
                               context,
                               widget.selectedRootId == null &&
@@ -292,11 +292,11 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                         ),
                       if (!widget.isCompact)
                         LibrarySidebarSectionHeader(
-                          title: "文件夹",
+                          title: context.l10n.folders,
                           count: widget.roots.length,
                           createLabel:
                               widget.addingSourceDisabledReason ??
-                              LibraryStrings.addFolder,
+                              context.l10n.addFolder,
                           createKey: const Key("library-sidebar-import"),
                           onCreate:
                               saving ||
@@ -315,7 +315,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                                     widget.roots.map((root) => root.id),
                                   ),
                                 ),
-                          removeLabel: "从 Ame 中移除所选文件夹",
+                          removeLabel: context.l10n.removeSelectedFolders,
                           onRemove: widget.isBusy || _removing
                               ? null
                               : _removeSelected,
@@ -323,22 +323,22 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       if (widget.roots.isEmpty &&
                           widget.transientSource == null)
                         if (widget.isCompact)
-                          const AmeTooltip(
-                            message: LibraryStrings.noFolder,
+                          AmeTooltip(
+                            message: context.l10n.noFolder,
                             child: IconButton(
                               onPressed: null,
                               icon: Icon(Symbols.folder_off_rounded),
                             ),
                           )
                         else
-                          const ListTile(
+                          ListTile(
                             minTileHeight:
                                 LibraryWorkbenchMetrics.sidebarRowHeight,
                             contentPadding: EdgeInsets.only(left: 16, right: 6),
                             minLeadingWidth: 24,
                             horizontalTitleGap: 12,
                             leading: Icon(Symbols.folder_off_rounded, size: 24),
-                            title: Text(LibraryStrings.noFolder),
+                            title: Text(context.l10n.noFolder),
                           ),
                     ],
                   ),

@@ -1,3 +1,4 @@
+import "../../../app/messages/ame_message.dart";
 import "../../../app/notifications/ame_notification_controller.dart";
 import "../domain/library_organization_conflicts.dart";
 
@@ -20,12 +21,12 @@ class LibraryConflictNotifications {
     }
     notifications.publish(
       AmeNotificationDraft(
-        title: "相册归属冲突",
-        message: "${status.groups} 组图片需要选择相册，已放入稍后整理。",
+        title: AmeLabel.albumConflict,
+        message: AmeConflictsDeferredMessage(status.groups),
         severity: AmeNotificationSeverity.warning,
         dedupeKey: _key,
         actionId: actionId,
-        actionLabel: "查看",
+        actionLabel: AmeLabel.viewAction,
       ),
     );
   }

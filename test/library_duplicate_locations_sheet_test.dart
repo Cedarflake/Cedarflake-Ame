@@ -17,8 +17,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
 import "support/gallery_group_fixtures.dart";
-
 import "support/application_test_bindings.dart";
+import "support/localized_test_app.dart";
 
 void main() {
   testWidgets("verification refreshes coalesce while retaining current rows", (
@@ -185,7 +185,7 @@ Widget _host(
     if (scheduler != null)
       libraryExactAnalysisSchedulerProvider.overrideWithValue(scheduler),
   ]),
-  child: MaterialApp(
+  child: LocalizedTestApp(
     home: Scaffold(
       body: LibraryDuplicateLocationsSheet(
         group: group,

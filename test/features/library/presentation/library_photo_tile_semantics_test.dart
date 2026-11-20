@@ -10,8 +10,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/duplicate_review_fixtures.dart";
+import "../../../support/localized_test_app.dart";
 import "../../../support/semantics/retained_semantics_update_harness.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -58,7 +58,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp(
+            child: LocalizedTestApp(
               home: Scaffold(
                 body: Center(
                   child: LibraryPhotoTile(

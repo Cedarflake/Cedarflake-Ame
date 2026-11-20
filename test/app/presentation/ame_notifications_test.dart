@@ -1,3 +1,4 @@
+import "package:cedarflake_ame/app/messages/ame_message.dart";
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_notifications.dart";
@@ -7,6 +8,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../support/application_test_bindings.dart";
+import "../../support/localized_test_app.dart";
 
 void main() {
   testWidgets("resolved history retains its message without recovery actions", (
@@ -21,7 +23,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: applicationTestOverrides(),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: Builder(
             builder: (context) => TextButton(
@@ -40,7 +42,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining("已持续"), findsNothing);
     expect(find.text("更新图库"), findsNothing);
-    expect(find.text(resolved.message), findsOneWidget);
+    expect(find.text(resolved.message.resolve(testChinese)), findsOneWidget);
   });
   testWidgets(
     "history button switches to the unread-dot icon without a count",
@@ -50,7 +52,7 @@ void main() {
       final notification = _notification(isUnread: true);
 
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           theme: buildAmeTheme(),
           home: Scaffold(
             body: Align(
@@ -94,7 +96,7 @@ void main() {
     "history button uses the ordinary icon after notifications are read",
     (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           theme: buildAmeTheme(),
           home: Scaffold(
             body: AmeNotificationHistoryButton(
@@ -129,7 +131,7 @@ void main() {
       ];
 
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           theme: buildAmeTheme(),
           home: Scaffold(
             body: Align(
@@ -193,7 +195,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           theme: buildAmeTheme(),
           home: Scaffold(
             body: AmeNotificationSurface(
@@ -205,9 +207,18 @@ void main() {
         ),
       );
 
-      expect(find.text(notification.title), findsOneWidget);
-      expect(find.text(notification.message), findsOneWidget);
-      expect(find.text(notification.detail!), findsOneWidget);
+      expect(
+        find.text(notification.title.resolve(testChinese)),
+        findsOneWidget,
+      );
+      expect(
+        find.text(notification.message.resolve(testChinese)),
+        findsOneWidget,
+      );
+      expect(
+        find.text(notification.detail!.resolve(testChinese)),
+        findsOneWidget,
+      );
 
       await tester.tap(find.byKey(const Key("notification-primary-action")));
       expect(action, notification);
@@ -223,7 +234,7 @@ void main() {
     final notification = _notification(isUnread: true);
 
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: buildAmeTheme(),
         home: Scaffold(
           body: AmeNotificationSurface(
@@ -250,8 +261,8 @@ void main() {
         .read(ameNotificationControllerProvider.notifier)
         .publish(
           AmeNotificationDraft(
-            title: "更新受阻",
-            message: "无法访问目录",
+            title: AmeRawMessage("更新受阻"),
+            message: AmeRawMessage("无法访问目录"),
             severity: AmeNotificationSeverity.warning,
             elapsedStartedAt: DateTime.now().subtract(
               const Duration(minutes: 2, seconds: 3),
@@ -266,7 +277,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: Builder(
             builder: (context) => TextButton(
@@ -301,14 +312,14 @@ AmeNotificationEntry _notification({
 }) {
   return AmeNotificationEntry(
     id: id,
-    title: title,
-    message: message,
-    detail: "3 项等待重试",
+    title: AmeRawMessage(title),
+    message: AmeRawMessage(message),
+    detail: AmeRawMessage("3 项等待重试"),
     elapsedStartedAt: elapsedStartedAt,
     sourcePath: r"C:\Users\Example\Documents",
     technicalCode: "watcher_failed",
     actionId: actionLabel == null ? null : "library.reconcileRoot",
-    actionLabel: actionLabel,
+    actionLabel: actionLabel == null ? null : AmeRawMessage(actionLabel),
     actionContext: actionLabel == null ? null : r"C:\Users\Example\Documents",
     severity: AmeNotificationSeverity.warning,
     occurredAt: DateTime.utc(2026, 8, 20, 10),

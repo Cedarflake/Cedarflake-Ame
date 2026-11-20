@@ -1,6 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
-import "../library_strings.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 
 class LibraryQueryFailureBanner extends StatelessWidget {
   const LibraryQueryFailureBanner({required this.onRetry, super.key});
@@ -10,12 +10,12 @@ class LibraryQueryFailureBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialBanner(
     key: const Key("library-query-failure"),
-    content: const Text("图片列表加载失败"),
+    content: Text(context.l10n.photoListFailed),
     actions: [
       TextButton(
         key: const Key("library-query-retry"),
         onPressed: onRetry,
-        child: const Text(LibraryStrings.retryLoading),
+        child: Text(context.l10n.retryLoading),
       ),
     ],
   );

@@ -7,7 +7,6 @@ import "package:cedarflake_ame/features/library/adapters/platform/library_previe
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_viewer_source_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_reveal.dart";
@@ -18,6 +17,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_vie
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_notice.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../../support/localized_test_app.dart";
 
 void main() {
   for (final route in [false, true]) {
@@ -44,7 +45,7 @@ void main() {
           sourceBufferLoader: (_) => ui.ImmutableBuffer.fromUint8List(bytes),
         );
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, update) => LibraryViewerTransition(
@@ -142,7 +143,7 @@ void main() {
         ),
       );
       expect(find.text("已收藏"), findsNothing);
-      expect(find.text(LibraryStrings.viewerSourceChanged), findsOneWidget);
+      expect(find.text(testChinese.viewerSourceChanged), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
@@ -383,7 +384,7 @@ void main() {
       await _waitForFrame(
         tester,
         () => find
-            .text(LibraryStrings.originalImagePreviewFallback)
+            .text(testChinese.originalImagePreviewFallback)
             .evaluate()
             .isNotEmpty,
       );
@@ -398,12 +399,9 @@ void main() {
           ),
         ),
       );
-      expect(find.text(LibraryStrings.viewerSourceMissing), findsOneWidget);
+      expect(find.text(testChinese.viewerSourceMissing), findsOneWidget);
       expect(find.byKey(const Key("viewer-original-retry")), findsNothing);
-      expect(
-        find.text(LibraryStrings.originalImagePreviewFallback),
-        findsNothing,
-      );
+      expect(find.text(testChinese.originalImagePreviewFallback), findsNothing);
       expect(tester.getRect(find.byType(RawImage)), imageRect);
       expect(await _visiblePixel(tester), [33, 150, 243, 255]);
       await tester.tap(find.byKey(const Key("viewer-source-action")));
@@ -442,7 +440,7 @@ void main() {
           () => find.text("无法打开原图").evaluate().isNotEmpty,
         );
         expect(
-          find.text(LibraryStrings.originalImagePreviewFallback),
+          find.text(testChinese.originalImagePreviewFallback),
           findsNothing,
         );
         expect(find.text("重新打开"), findsOneWidget);
@@ -480,7 +478,7 @@ Widget _viewer(
   Widget? notice,
   Widget? operationNotice,
   Animation<double> flight = const AlwaysStoppedAnimation(1),
-}) => MaterialApp(
+}) => LocalizedTestApp(
   home: Scaffold(
     body: LibraryViewerFlightScope(
       origin: null,

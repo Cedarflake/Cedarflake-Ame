@@ -8,6 +8,8 @@ import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("expanded folder drag stays anchored inside the sidebar", (
     tester,
@@ -18,7 +20,7 @@ void main() {
     var menuClicks = 0;
     addTearDown(expanded.dispose);
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: AmeScrollMotionTheme(
           child: Scaffold(
             body: Stack(
@@ -188,7 +190,7 @@ void main() {
 Widget _list(
   List<String> items,
   Future<void> Function(LibrarySidebarMove) save,
-) => MaterialApp(
+) => LocalizedTestApp(
   home: Scaffold(
     body: SizedBox(
       width: 260,

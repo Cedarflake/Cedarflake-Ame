@@ -31,6 +31,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../support/application_test_bindings.dart";
 import "../../../../support/duplicate_review_fixtures.dart";
+import "../../../../support/localized_test_app.dart";
 import "../../../../support/similar_review_fixtures.dart";
 
 void main() {
@@ -67,7 +68,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp(
+          child: LocalizedTestApp(
             builder: (context, child) => LibraryViewerSourceScope(
               scheduler: container.read(librarySourceReadSchedulerProvider),
               bufferLoader: source.loadBuffer,

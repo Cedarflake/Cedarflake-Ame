@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_organization_actions.dart";
 import "../../application/library_organization_history.dart";
@@ -75,8 +76,8 @@ class _LibraryOrganizationMenuState
         if (!open) _opened = null;
       },
       labels: [
-        "撤销操作",
-        "重做操作",
+        context.l10n.undoAction,
+        context.l10n.redoAction,
         if (widget.defer case final defer?) defer.label,
         if (widget.progress case final progress?) progress.label,
       ],
@@ -84,16 +85,16 @@ class _LibraryOrganizationMenuState
         PopupMenuItem(
           value: _OrganizationMenuAction.undo,
           enabled: canAct && history?.undoOperationId != null,
-          child: const AmeMenuItemContent(
-            label: "撤销操作",
+          child: AmeMenuItemContent(
+            label: context.l10n.undoAction,
             icon: Symbols.undo_rounded,
           ),
         ),
         PopupMenuItem(
           value: _OrganizationMenuAction.redo,
           enabled: canAct && history?.redoOperationId != null,
-          child: const AmeMenuItemContent(
-            label: "重做操作",
+          child: AmeMenuItemContent(
+            label: context.l10n.redoAction,
             icon: Symbols.redo_rounded,
           ),
         ),
@@ -142,7 +143,9 @@ class _LibraryOrganizationMenuState
       },
       builder: (context, openMenu) => IconButton(
         key: const Key("library-review-actions-menu"),
-        tooltip: result.hasError ? "操作记录未能加载，点击重试" : "整理选项",
+        tooltip: result.hasError
+            ? context.l10n.historyLoadRetry
+            : context.l10n.organizationOptions,
         onPressed: !canAct
             ? null
             : () {

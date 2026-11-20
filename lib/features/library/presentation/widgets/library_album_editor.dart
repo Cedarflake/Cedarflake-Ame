@@ -3,6 +3,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/presentation/ame_dialog.dart";
 import "../../../../app/presentation/ame_disclosure.dart";
+import "../../../../app/presentation/ame_localizations.dart";
+import "../../../../app/presentation/ame_message_text.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_album_requests.dart";
 import "../../application/library_organization_actions.dart";
@@ -100,13 +102,15 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
       libraryOrganizationActionsProvider.select((state) => state.saving),
     );
     final title = switch (widget.kind) {
-      LibraryAlbumEditKind.create => "新建相册",
-      LibraryAlbumEditKind.rename => "重命名相册",
-      LibraryAlbumEditKind.icon => "更改 ${widget.album!.name} 的图标",
-      LibraryAlbumEditKind.delete => "删除相册？",
+      LibraryAlbumEditKind.create => context.l10n.createAlbum,
+      LibraryAlbumEditKind.rename => context.l10n.renameAlbum,
+      LibraryAlbumEditKind.icon => context.l10n.changeAlbumIcon(
+        widget.album!.name,
+      ),
+      LibraryAlbumEditKind.delete => context.l10n.confirmDeleteAlbum,
     };
-    var actionLabel = deleting ? "删除" : "保存";
-    if (_saving) actionLabel = "正在保存";
+    var actionLabel = deleting ? context.l10n.deleteAction : context.l10n.save;
+    if (_saving) actionLabel = context.l10n.saving;
     return PopScope(
       canPop: !_saving,
       child: AmeDialog(
@@ -126,7 +130,7 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
                 icon: libraryAlbumIcon(widget.album!.icon),
                 title: widget.album!.name,
               ),
-              const Text("其中的图片组将进入已忽略。图片文件和收藏状态会保留。"),
+              Text(context.l10n.deleteAlbumImpact),
             ] else if (!changingIcon)
               Column(
                 mainAxisSize: MainAxisSize.min,
@@ -138,15 +142,17 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
                     autofocus: true,
                     enabled: !_saving,
                     decoration: InputDecoration(
-                      labelText: "相册名称",
+                      labelText: context.l10n.albumName,
                       errorText: nameError
-                          ? libraryOrganizationErrorMessage(_errorCode!)
+                          ? libraryOrganizationErrorMessage(
+                              _errorCode!,
+                            ).resolve(context.l10n)
                           : null,
                       icon: widget.kind == LibraryAlbumEditKind.create
                           ? SizedBox.square(
                               dimension: 48,
                               child: AmeTooltip(
-                                message: "选择相册图标",
+                                message: context.l10n.chooseAlbumIcon,
                                 child: IconButton.filledTonal(
                                   key: const Key("library-album-choose-icon"),
                                   isSelected: _choosingIcon,
@@ -186,13 +192,15 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
                 ],
               ),
             if (_errorCode case final code? when !nameError)
-              AmeDialogError(libraryOrganizationErrorMessage(code)),
+              AmeDialogError(
+                libraryOrganizationErrorMessage(code).resolve(context.l10n),
+              ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: _saving ? null : () => Navigator.of(context).pop(),
-            child: const Text("取消"),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             key: const Key("library-album-save"),

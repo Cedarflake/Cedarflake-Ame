@@ -1,6 +1,6 @@
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../application/library_exact_analysis_controller.dart";
 import "../../application/library_exact_analysis_scheduler.dart";
-import "../library_duplicate_strings.dart";
 
 enum LibraryResultsProgress {
   ready,
@@ -24,11 +24,11 @@ enum LibraryResultsProgress {
     return ready;
   }
 
-  String? get label => switch (this) {
+  String? label(AppLocalizations strings) => switch (this) {
     ready => null,
-    analyzing => LibraryDuplicateStrings.running,
-    waiting => LibraryDuplicateStrings.automaticWaiting,
-    paused => LibraryDuplicateStrings.paused,
-    analysisFailed => LibraryDuplicateStrings.failed,
+    analyzing => strings.duplicateRunning,
+    waiting => strings.waitingForBackground,
+    paused => strings.paused,
+    analysisFailed => strings.duplicateIncomplete,
   };
 }

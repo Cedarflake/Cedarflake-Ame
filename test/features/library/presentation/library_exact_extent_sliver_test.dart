@@ -4,6 +4,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_exa
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   const tolerance = 0.000001;
 
@@ -26,7 +28,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1000, viewportHeight));
 
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: ValueListenableBuilder<int>(
             valueListenable: generation,
             builder: (context, value, child) {
@@ -124,7 +126,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1000, 640));
 
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: ListenableBuilder(
           listenable: Listenable.merge([previewGeneration, correction]),
           builder: (context, child) {
@@ -201,7 +203,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1000, 640));
 
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: ValueListenableBuilder(
           valueListenable: correction,
           builder: (context, value, child) => CustomScrollView(

@@ -4,6 +4,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_upd
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("task feedback follows queue admission and active cancellation", (
     tester,
@@ -127,7 +129,7 @@ Future<void> _pumpTask(
   ValueChanged<String>? onCancel,
   ValueChanged<String>? onRetry,
 }) => tester.pumpWidget(
-  MaterialApp(
+  LocalizedTestApp(
     home: Scaffold(
       body: Center(
         child: ValueListenableBuilder<LibraryRootUpdateTask>(

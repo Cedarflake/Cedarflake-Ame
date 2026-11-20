@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_motion.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_models.dart";
@@ -24,6 +25,7 @@ class LibraryDuplicateGroupThumbnail extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final label = LibraryDuplicateStrings.selectGroup(
+      context.l10n,
       asset.relativePath,
       selected: selected,
     );

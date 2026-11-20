@@ -1,5 +1,5 @@
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../domain/library_metadata_filter.dart";
-import "../library_filter_strings.dart";
 
 enum LibraryFilterField {
   extension,
@@ -73,7 +73,7 @@ class LibraryMetadataFilterDraft {
   final LibraryDateField dateField;
 
   ({LibraryMetadataFilter? filter, Map<LibraryFilterField, String> errors})
-  parse() {
+  parse(AppLocalizations strings) {
     final errors = <LibraryFilterField, String>{};
     String text(LibraryFilterField field) => (values[field] ?? "").trim();
     int? number(LibraryFilterField field, {bool bytes = false}) {
@@ -81,9 +81,7 @@ class LibraryMetadataFilterDraft {
       if (value.isEmpty) return null;
       final pattern = bytes ? r"^\d+(?:\.\d+)?$" : r"^\d+$";
       if (value.length > 40 || !RegExp(pattern).hasMatch(value)) {
-        errors[field] = bytes
-            ? LibraryFilterStrings.invalidNumber
-            : LibraryFilterStrings.invalidInteger;
+        errors[field] = bytes ? strings.invalidNumber : strings.invalidInteger;
         return null;
       }
       final parts = value.split(".");
@@ -94,12 +92,12 @@ class LibraryMetadataFilterDraft {
           BigInt.parse(parts.join()) *
           BigInt.from(bytes ? sizeUnit.multiplier : 1);
       if (amount % scale != BigInt.zero) {
-        errors[field] = LibraryFilterStrings.fractionalBytes;
+        errors[field] = strings.fractionalBytes;
         return null;
       }
       final result = amount ~/ scale;
       if (result > BigInt.from(0x7fffffffffffffff)) {
-        errors[field] = LibraryFilterStrings.numberTooLarge;
+        errors[field] = strings.numberTooLarge;
         return null;
       }
       return result.toInt();
@@ -113,7 +111,7 @@ class LibraryMetadataFilterDraft {
       final lower = number(minimum, bytes: bytes);
       final upper = number(maximum, bytes: bytes);
       if (lower != null && upper != null && lower > upper) {
-        errors[maximum] = LibraryFilterStrings.reversedRange;
+        errors[maximum] = strings.reversedRange;
       }
       return LibraryNumberRange(minimum: lower, maximum: upper);
     }
@@ -122,7 +120,7 @@ class LibraryMetadataFilterDraft {
       final value = text(field);
       if (value.isEmpty) return null;
       if (parseLibraryFilterDate(value) == null) {
-        errors[field] = LibraryFilterStrings.invalidDate;
+        errors[field] = strings.invalidDate;
       }
       return value;
     }
@@ -141,13 +139,12 @@ class LibraryMetadataFilterDraft {
         extensions.any(
           (value) => !RegExp(r"^[a-z0-9]{1,16}$").hasMatch(value),
         )) {
-      errors[LibraryFilterField.extension] =
-          LibraryFilterStrings.invalidExtension;
+      errors[LibraryFilterField.extension] = strings.invalidExtension;
     }
     final camera = text(LibraryFilterField.camera);
     if (camera.runes.length > 128 ||
         camera.runes.any((rune) => rune < 32 || (rune >= 127 && rune <= 159))) {
-      errors[LibraryFilterField.camera] = LibraryFilterStrings.invalidCamera;
+      errors[LibraryFilterField.camera] = strings.invalidCamera;
     }
     final start = date(LibraryFilterField.dateStart);
     final end = date(LibraryFilterField.dateEnd);
@@ -156,7 +153,7 @@ class LibraryMetadataFilterDraft {
         start != null &&
         end != null &&
         start.compareTo(end) > 0) {
-      errors[LibraryFilterField.dateEnd] = LibraryFilterStrings.reversedDates;
+      errors[LibraryFilterField.dateEnd] = strings.reversedDates;
     }
     final filter = LibraryMetadataFilter(
       extensions: extensions,

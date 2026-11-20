@@ -4,14 +4,13 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/messages/ame_message.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
-
 import "../../../settings/domain/ame_preferences.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_workbench_controller.dart";
-import "../library_strings.dart";
-import "../library_workbench_strings.dart";
 import "library_navigation_resize_handle.dart";
 import "library_sidebar_content.dart";
 import "library_sidebar_transition.dart";
@@ -40,7 +39,7 @@ class LibraryWorkbench extends ConsumerStatefulWidget {
   final WidgetBuilder duplicatesBuilder;
   final WidgetBuilder settingsBuilder;
   final ValueChanged<bool> onSidebarResizeChanged;
-  final void Function(String title, Object error) onPreferenceError;
+  final void Function(AmeMessage title, Object error) onPreferenceError;
   final ValueChanged<LibraryWorkspace>? onWorkspaceSelected;
   final Widget? albumLanding;
   final Widget Function(
@@ -78,10 +77,7 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
     } on Object catch (error) {
       if (mounted) {
         setState(() => _sidebarWidth = preferences.sidebarWidth);
-        widget.onPreferenceError(
-          LibraryWorkbenchStrings.saveSidebarFailed,
-          error,
-        );
+        widget.onPreferenceError(AmeLabel.saveSidebarFailed, error);
       }
     }
   }
@@ -109,8 +105,8 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
             .toDouble();
         final toggle = AmeTooltip(
           message: expanded
-              ? LibraryWorkbenchStrings.collapseSidebar
-              : LibraryWorkbenchStrings.expandSidebar,
+              ? context.l10n.collapseSidebar
+              : context.l10n.expandSidebar,
           child: IconButton(
             key: const Key("library-sidebar-toggle"),
             onPressed:
@@ -278,7 +274,7 @@ class _FunctionRail extends ConsumerWidget {
             LibraryWorkspace.duplicates,
           ][index],
         ),
-        destinations: const [
+        destinations: [
           NavigationRailDestination(
             icon: Icon(
               Symbols.photo_library_rounded,
@@ -291,7 +287,7 @@ class _FunctionRail extends ConsumerWidget {
               fill: 1,
               key: Key("workbench-gallery"),
             ),
-            label: Text(LibraryStrings.library),
+            label: Text(context.l10n.library),
           ),
           NavigationRailDestination(
             icon: Icon(
@@ -305,7 +301,7 @@ class _FunctionRail extends ConsumerWidget {
               fill: 1,
               key: Key("workbench-albums"),
             ),
-            label: Text("相册"),
+            label: Text(context.l10n.albums),
           ),
           NavigationRailDestination(
             icon: Icon(
@@ -319,7 +315,7 @@ class _FunctionRail extends ConsumerWidget {
               fill: 1,
               key: Key("workbench-duplicates"),
             ),
-            label: Text(LibraryWorkbenchStrings.duplicates),
+            label: Text(context.l10n.duplicates),
           ),
         ],
         trailingAtBottom: true,
@@ -329,7 +325,7 @@ class _FunctionRail extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               AmeTooltip(
-                message: LibraryStrings.settings,
+                message: context.l10n.settingsTitle,
                 child: IconButton(
                   key: const Key("library-sidebar-settings"),
                   isSelected: workspace == LibraryWorkspace.settings,

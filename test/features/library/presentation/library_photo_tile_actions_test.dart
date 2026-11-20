@@ -11,8 +11,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/duplicate_review_fixtures.dart";
-
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 
 void main() {
   const count = 9223372036854775807;
@@ -37,7 +37,7 @@ void main() {
                   return groups.future;
                 }),
               ]),
-              child: MaterialApp(
+              child: LocalizedTestApp(
                 theme: ThemeData(useMaterial3: true),
                 builder: (context, child) => MediaQuery(
                   data: MediaQuery.of(

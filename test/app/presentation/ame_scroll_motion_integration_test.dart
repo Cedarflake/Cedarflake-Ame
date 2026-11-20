@@ -6,12 +6,14 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("implicit desktop controllers stay independent across panes", (
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: ThemeData(platform: TargetPlatform.windows),
         home: Scaffold(
           body: Row(
@@ -42,7 +44,7 @@ void main() {
       "horizontal wheel routing preserves direction, reverse=$reverse",
       (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             home: Scaffold(
               body: _list("strip", axis: Axis.horizontal, reverse: reverse),
             ),
@@ -73,7 +75,7 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: AmeScrollMotion(
               child: ListView(
@@ -110,7 +112,7 @@ void main() {
     (tester) async {
       var selected = -1;
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           theme: ThemeData(platform: TargetPlatform.windows),
           home: AmeScrollMotionTheme(
             child: Scaffold(

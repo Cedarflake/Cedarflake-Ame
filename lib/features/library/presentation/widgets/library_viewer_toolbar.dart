@@ -1,12 +1,12 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../domain/library_models.dart";
 import "../library_asset_summary.dart";
-import "../library_strings.dart";
 
 class LibraryViewerToolbar extends StatelessWidget {
   const LibraryViewerToolbar({
@@ -58,7 +58,7 @@ class LibraryViewerToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final summary = [
-      libraryFileType(asset.displayPath),
+      libraryFileType(context.l10n, asset.displayPath),
       if (asset.width > 0 && asset.height > 0)
         "${asset.width} × ${asset.height}",
       libraryFileSize(asset.fileSize),
@@ -77,48 +77,48 @@ class LibraryViewerToolbar extends StatelessWidget {
                   LibraryViewerToolbarButton(
                     id: "viewer-filmstrip-toggle",
                     label: isFilmstripVisible
-                        ? LibraryStrings.hideFilmstrip
-                        : LibraryStrings.showFilmstrip,
+                        ? context.l10n.hideFilmstrip
+                        : context.l10n.showFilmstrip,
                     icon: Symbols.view_carousel_rounded,
                     selected: isFilmstripVisible,
                     onPressed: onToggleFilmstrip,
                   ),
                   LibraryViewerToolbarButton(
                     id: "viewer-information",
-                    label: LibraryStrings.viewInformation,
+                    label: context.l10n.viewInformation,
                     icon: Symbols.info_rounded,
                     onPressed: onInformation,
                   ),
                   AmePopupMenuButton<_ViewerMenuAction>(
                     openAboveAnchor: true,
                     labels: [
-                      if (onCopyImage != null) "复制图片",
-                      LibraryStrings.copyPath,
-                      LibraryStrings.openInExplorer,
+                      if (onCopyImage != null) context.l10n.copyPhoto,
+                      context.l10n.copyPath,
+                      context.l10n.openInExplorer,
                     ],
                     shortcuts: [if (onCopyImage != null) "Ctrl+C"],
                     items: [
                       if (onCopyImage != null)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: _ViewerMenuAction.copyImage,
                           child: AmeMenuItemContent(
                             icon: Symbols.content_copy_rounded,
-                            label: "复制图片",
+                            label: context.l10n.copyPhoto,
                             shortcut: "Ctrl+C",
                           ),
                         ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: _ViewerMenuAction.copyPath,
                         child: AmeMenuItemContent(
                           icon: Symbols.content_copy_rounded,
-                          label: LibraryStrings.copyPath,
+                          label: context.l10n.copyPath,
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: _ViewerMenuAction.openInExplorer,
                         child: AmeMenuItemContent(
                           icon: Symbols.folder_open_rounded,
-                          label: LibraryStrings.openInExplorer,
+                          label: context.l10n.openInExplorer,
                         ),
                       ),
                     ],
@@ -134,7 +134,7 @@ class LibraryViewerToolbar extends StatelessWidget {
                     },
                     builder: (context, openMenu) => LibraryViewerToolbarButton(
                       id: "viewer-more-menu",
-                      label: LibraryStrings.more,
+                      label: context.l10n.more,
                       icon: Symbols.more_horiz_rounded,
                       onPressed: openMenu,
                     ),
@@ -173,15 +173,15 @@ class LibraryViewerToolbar extends StatelessWidget {
               if (onRotate != null)
                 LibraryViewerToolbarButton(
                   id: "viewer-rotate-clockwise",
-                  label: "顺时针旋转 90°",
+                  label: context.l10n.rotateClockwise,
                   icon: Symbols.rotate_90_degrees_cw_rounded,
                   onPressed: onRotate,
                 ),
               LibraryViewerToolbarButton(
                 id: "viewer-zoom-mode",
                 label: isActualSize
-                    ? LibraryStrings.fitImageToWindow
-                    : LibraryStrings.showImageActualSize,
+                    ? context.l10n.fitImageToWindow
+                    : context.l10n.showImageActualSize,
                 icon: isActualSize
                     ? Symbols.fit_screen_rounded
                     : Symbols.aspect_ratio_rounded,
@@ -198,7 +198,7 @@ class LibraryViewerToolbar extends StatelessWidget {
               ),
               LibraryViewerToolbarButton(
                 id: "viewer-zoom-out",
-                label: "缩小（- / Ctrl+-）",
+                label: context.l10n.zoomOutShortcut,
                 icon: Symbols.remove_rounded,
                 onPressed: onZoomOut,
               ),
@@ -220,7 +220,7 @@ class LibraryViewerToolbar extends StatelessWidget {
               ),
               LibraryViewerToolbarButton(
                 id: "viewer-zoom-in",
-                label: "放大（+ / Ctrl++）",
+                label: context.l10n.zoomInShortcut,
                 icon: Symbols.add_rounded,
                 onPressed: onZoomIn,
               ),
@@ -228,8 +228,8 @@ class LibraryViewerToolbar extends StatelessWidget {
               LibraryViewerToolbarButton(
                 id: "viewer-fullscreen",
                 label: isFullscreen
-                    ? LibraryStrings.exitViewerFullscreen
-                    : LibraryStrings.enterViewerFullscreen,
+                    ? context.l10n.exitViewerFullscreen
+                    : context.l10n.enterViewerFullscreen,
                 icon: isFullscreen
                     ? Symbols.fullscreen_exit_rounded
                     : Symbols.fullscreen_rounded,

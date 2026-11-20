@@ -19,8 +19,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/library_organization_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 LibraryConflictStatus status(int revision, int groups) =>
@@ -55,7 +55,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp(
+            child: LocalizedTestApp(
               builder: (context, child) => MediaQuery(
                 data: MediaQuery.of(
                   context,
@@ -128,7 +128,10 @@ void main() {
       expect(state.history, hasLength(1));
       expect(state.pendingIds, isEmpty);
       expect(state.history.single.isActive, isTrue);
-      expect(state.history.single.message, startsWith("2 组图片"));
+      expect(
+        state.history.single.message.resolve(testChinese),
+        startsWith("2 组图片"),
+      );
       conflicts.accept(status(1, 0));
       expect(
         container
@@ -212,7 +215,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(
+        child: const LocalizedTestApp(
           home: Scaffold(
             body: SizedBox(
               width: 180,
@@ -275,7 +278,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: LibraryAlbumViewerAction(target: organizationTarget("one")),
             ),

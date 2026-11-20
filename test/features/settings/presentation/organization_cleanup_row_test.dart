@@ -11,9 +11,9 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../../library/support/library_cleanup_fixture.dart";
 import "../../library/support/library_organization_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -32,7 +32,7 @@ void main() {
   Future<void> host(WidgetTester tester) => tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
+      child: LocalizedTestApp(
         theme: buildAmeTheme(),
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(
@@ -127,7 +127,11 @@ void main() {
       expect(find.text("已清理 4 项记录"), findsNothing);
       expect(tester.getSize(find.byType(OrganizationCleanupRow)), idleSize);
       expect(
-        container.read(ameNotificationControllerProvider).current?.message,
+        container
+            .read(ameNotificationControllerProvider)
+            .current
+            ?.message
+            .resolve(testChinese),
         "已清理 4 项记录。原图片和相册均已保留。",
       );
       await tester.tap(find.byKey(const Key("settings-cleanup-inspect")));
@@ -189,7 +193,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text("已清理 6 项记录"), findsNothing);
     expect(
-      container.read(ameNotificationControllerProvider).current?.message,
+      container
+          .read(ameNotificationControllerProvider)
+          .current
+          ?.message
+          .resolve(testChinese),
       "已清理 6 项记录。原图片和相册均已保留。",
     );
   });

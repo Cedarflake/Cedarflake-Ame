@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -578,30 +579,6 @@ abstract class AppLocalizations {
   /// **'已清理 {count} 项记录。原图片和相册均已保留。'**
   String recordsCleared(int count);
 
-  /// No description provided for @folderLibraryChanged.
-  ///
-  /// In zh, this message translates to:
-  /// **'图库已更新，请重新展开目录'**
-  String get folderLibraryChanged;
-
-  /// No description provided for @folderScopeChanged.
-  ///
-  /// In zh, this message translates to:
-  /// **'目录范围已变化，请重新展开目录'**
-  String get folderScopeChanged;
-
-  /// No description provided for @folderPageChanged.
-  ///
-  /// In zh, this message translates to:
-  /// **'目录分页版本不一致，请重新展开目录'**
-  String get folderPageChanged;
-
-  /// No description provided for @folderPageScopeChanged.
-  ///
-  /// In zh, this message translates to:
-  /// **'目录分页范围不一致，请重新展开目录'**
-  String get folderPageScopeChanged;
-
   /// No description provided for @changesSaveFailed.
   ///
   /// In zh, this message translates to:
@@ -679,12 +656,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'图库尚未刷新，请重试。'**
   String get libraryRefreshPending;
-
-  /// No description provided for @scanUpdateInProgress.
-  ///
-  /// In zh, this message translates to:
-  /// **'library_update_in_progress: 其他图库更新正在运行，请等待更新结束或先取消更新，然后继续此任务。'**
-  String get scanUpdateInProgress;
 
   /// No description provided for @locationRefreshFailed.
   ///
@@ -764,23 +735,11 @@ abstract class AppLocalizations {
   /// **'未能移除文件夹，请重试。'**
   String get folderRemovalFailed;
 
-  /// No description provided for @updateRootChanged.
-  ///
-  /// In zh, this message translates to:
-  /// **'library_update_root_changed: 图库目录已移除、不可用或发生变化'**
-  String get updateRootChanged;
-
   /// No description provided for @scanEndedWithoutResult.
   ///
   /// In zh, this message translates to:
-  /// **'scan_stream_ended: 图库更新未返回完成结果'**
+  /// **'图库更新未返回完成结果'**
   String get scanEndedWithoutResult;
-
-  /// No description provided for @libraryUpdatedDisplayFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'图库已更新，但刷新显示失败：{reason}'**
-  String libraryUpdatedDisplayFailed(String reason);
 
   /// No description provided for @updatePausedRestart.
   ///
@@ -944,12 +903,6 @@ abstract class AppLocalizations {
   /// **'查看'**
   String get viewAction;
 
-  /// No description provided for @duplicatePhotos.
-  ///
-  /// In zh, this message translates to:
-  /// **'重复图片'**
-  String get duplicatePhotos;
-
   /// No description provided for @duplicateWorkspace.
   ///
   /// In zh, this message translates to:
@@ -968,24 +921,6 @@ abstract class AppLocalizations {
   /// **'无法在文件资源管理器中打开'**
   String get openInExplorerFailed;
 
-  /// No description provided for @duplicateStart.
-  ///
-  /// In zh, this message translates to:
-  /// **'查找重复图片'**
-  String get duplicateStart;
-
-  /// No description provided for @duplicateRefreshAnalysis.
-  ///
-  /// In zh, this message translates to:
-  /// **'更新结果'**
-  String get duplicateRefreshAnalysis;
-
-  /// No description provided for @duplicateStop.
-  ///
-  /// In zh, this message translates to:
-  /// **'停止查找'**
-  String get duplicateStop;
-
   /// No description provided for @stopping.
   ///
   /// In zh, this message translates to:
@@ -997,18 +932,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'正在查重'**
   String get duplicateRunning;
-
-  /// No description provided for @duplicateCompleted.
-  ///
-  /// In zh, this message translates to:
-  /// **'查找完成'**
-  String get duplicateCompleted;
-
-  /// No description provided for @duplicateStopped.
-  ///
-  /// In zh, this message translates to:
-  /// **'已停止查找'**
-  String get duplicateStopped;
 
   /// No description provided for @duplicateIncomplete.
   ///
@@ -1027,30 +950,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已暂停'**
   String get paused;
-
-  /// No description provided for @duplicatePause.
-  ///
-  /// In zh, this message translates to:
-  /// **'暂停查重'**
-  String get duplicatePause;
-
-  /// No description provided for @duplicateResume.
-  ///
-  /// In zh, this message translates to:
-  /// **'继续查重'**
-  String get duplicateResume;
-
-  /// No description provided for @duplicateSettingsSaveFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'无法保存查重设置'**
-  String get duplicateSettingsSaveFailed;
-
-  /// No description provided for @duplicateEmptyBefore.
-  ///
-  /// In zh, this message translates to:
-  /// **'查找由此查看相同图片保存在哪些文件夹。'**
-  String get duplicateEmptyBefore;
 
   /// No description provided for @duplicateEmptyAfter.
   ///
@@ -1088,12 +987,6 @@ abstract class AppLocalizations {
   /// **'返回重复图片'**
   String get backToDuplicates;
 
-  /// No description provided for @refreshResults.
-  ///
-  /// In zh, this message translates to:
-  /// **'刷新结果'**
-  String get refreshResults;
-
   /// No description provided for @duplicateGroups.
   ///
   /// In zh, this message translates to:
@@ -1111,12 +1004,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'相似组'**
   String get similarGroups;
-
-  /// No description provided for @groupView.
-  ///
-  /// In zh, this message translates to:
-  /// **'分组'**
-  String get groupView;
 
   /// No description provided for @similarityLevel.
   ///
@@ -1285,18 +1172,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'全部图片'**
   String get allPhotosFilter;
-
-  /// No description provided for @filesChecked.
-  ///
-  /// In zh, this message translates to:
-  /// **'本次已检查 {count} 个文件'**
-  String filesChecked(int count);
-
-  /// No description provided for @filesNotChecked.
-  ///
-  /// In zh, this message translates to:
-  /// **'{count} 个文件未能完成检查，可稍后重试。'**
-  String filesNotChecked(int count);
 
   /// No description provided for @locationCount.
   ///
@@ -1748,35 +1623,11 @@ abstract class AppLocalizations {
   /// **'结束日期'**
   String get endDate;
 
-  /// No description provided for @dateHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'年-月-日'**
-  String get dateHint;
-
-  /// No description provided for @fileProperties.
-  ///
-  /// In zh, this message translates to:
-  /// **'文件属性'**
-  String get fileProperties;
-
   /// No description provided for @fileFormat.
   ///
   /// In zh, this message translates to:
   /// **'文件格式'**
   String get fileFormat;
-
-  /// No description provided for @anyValue.
-  ///
-  /// In zh, this message translates to:
-  /// **'不限'**
-  String get anyValue;
-
-  /// No description provided for @custom.
-  ///
-  /// In zh, this message translates to:
-  /// **'自定义'**
-  String get custom;
 
   /// No description provided for @fileSize.
   ///
@@ -1807,18 +1658,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'最大值'**
   String get maximum;
-
-  /// No description provided for @minimumFileSize.
-  ///
-  /// In zh, this message translates to:
-  /// **'最小文件大小'**
-  String get minimumFileSize;
-
-  /// No description provided for @maximumFileSize.
-  ///
-  /// In zh, this message translates to:
-  /// **'最大文件大小'**
-  String get maximumFileSize;
 
   /// No description provided for @unit.
   ///
@@ -2473,12 +2312,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'退出全屏（Esc / F11）'**
   String get exitViewerFullscreen;
-
-  /// No description provided for @searchHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'在图库中搜索'**
-  String get searchHint;
 
   /// No description provided for @clearSearch.
   ///
@@ -3241,18 +3074,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'等待目录恢复'**
   String get synchronizationWaitingFolder;
-
-  /// No description provided for @continuityCatchingUp.
-  ///
-  /// In zh, this message translates to:
-  /// **'正在同步'**
-  String get continuityCatchingUp;
-
-  /// No description provided for @continuityRecoveryRequired.
-  ///
-  /// In zh, this message translates to:
-  /// **'需要核对'**
-  String get continuityRecoveryRequired;
 
   /// No description provided for @libraryUpdateBlocked.
   ///
@@ -5653,6 +5474,108 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'图库数据整理任务已经结束，无法再取消'**
   String get catalogCleanupAlreadyFinished;
+
+  /// No description provided for @folderStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'“{name}”{status}'**
+  String folderStatus(String name, String status);
+
+  /// No description provided for @galleryDay.
+  ///
+  /// In zh, this message translates to:
+  /// **'{date}'**
+  String galleryDay(DateTime date);
+
+  /// No description provided for @galleryMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'{date}'**
+  String galleryMonth(DateTime date);
+
+  /// No description provided for @eventDateTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'{date} {time}'**
+  String eventDateTime(DateTime date, DateTime time);
+
+  /// No description provided for @labelAndValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'{label}：{value}'**
+  String labelAndValue(String label, String value);
+
+  /// No description provided for @inlineListSeparator.
+  ///
+  /// In zh, this message translates to:
+  /// **'、'**
+  String get inlineListSeparator;
+
+  /// No description provided for @clauseSeparator.
+  ///
+  /// In zh, this message translates to:
+  /// **'，'**
+  String get clauseSeparator;
+
+  /// No description provided for @sentenceSeparator.
+  ///
+  /// In zh, this message translates to:
+  /// **'。'**
+  String get sentenceSeparator;
+
+  /// No description provided for @listSentence.
+  ///
+  /// In zh, this message translates to:
+  /// **'{items}。'**
+  String listSentence(String items);
+
+  /// Display name for the factory smart album.
+  ///
+  /// In zh, this message translates to:
+  /// **'插画'**
+  String get categoryIllustration;
+
+  /// Display name for the factory smart album.
+  ///
+  /// In zh, this message translates to:
+  /// **'漫画'**
+  String get categoryComic;
+
+  /// Display name for the factory smart album.
+  ///
+  /// In zh, this message translates to:
+  /// **'表情包'**
+  String get categoryMeme;
+
+  /// Display name for the factory smart album.
+  ///
+  /// In zh, this message translates to:
+  /// **'截图'**
+  String get categoryScreenshot;
+
+  /// Display name for the factory smart album.
+  ///
+  /// In zh, this message translates to:
+  /// **'实拍'**
+  String get categoryPhoto;
+
+  /// Display name for the factory smart album.
+  ///
+  /// In zh, this message translates to:
+  /// **'其他'**
+  String get categoryOther;
+
+  /// Download progress, decimal megabytes received and total.
+  ///
+  /// In zh, this message translates to:
+  /// **'{percent}% · {received} / {total} MB'**
+  String modelDownloadProgress(int percent, double received, double total);
+
+  /// Capture or filesystem timestamp in the photo information sheet, including seconds.
+  ///
+  /// In zh, this message translates to:
+  /// **'{date} {time}'**
+  String photoTimestamp(DateTime date, DateTime time);
 }
 
 class _AppLocalizationsDelegate

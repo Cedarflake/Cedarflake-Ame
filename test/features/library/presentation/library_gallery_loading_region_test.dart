@@ -5,6 +5,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_tim
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("content waiting owns feedback before either quiet interval", (
     tester,
@@ -12,7 +14,7 @@ void main() {
     final semantics = tester.ensureSemantics();
     final controller = ScrollController();
     Future<void> show(bool contentWaiting) => tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: LibraryGalleryLoadingRegion(
           isLoading: contentWaiting,
           showContentIndicator: contentWaiting,
@@ -67,7 +69,7 @@ void main() {
     "short refreshes stay quiet and delayed feedback retires with its owner",
     (tester) async {
       Future<void> show(bool loading, {Duration? delay}) => tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: LibraryGalleryLoadingRegion(
             isLoading: loading,
             delay: delay ?? const Duration(milliseconds: 250),
@@ -116,7 +118,7 @@ void main() {
     final semantics = tester.ensureSemantics();
     var taps = 0;
     Future<void> show(bool isLoading) => tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Center(
           child: SizedBox(
             width: 300,
@@ -164,7 +166,7 @@ void main() {
     tester,
   ) async {
     Future<void> show(bool loading) => tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: MediaQuery(
           data: const MediaQueryData(disableAnimations: true),
           child: LibraryGalleryLoadingRegion(

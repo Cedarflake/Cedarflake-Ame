@@ -69,8 +69,9 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 ### Desktop internationalization
 
 Deliver Simplified Chinese and English in the Windows application under the
-[desktop internationalization plan](plans/desktop-internationalization.md). This is the active
-desktop work ahead of R10-04. R10 keeps its existing release criteria.
+[desktop internationalization plan](plans/desktop-internationalization.md). The branch implements
+both languages and has [Windows client evidence](acceptance/desktop-internationalization.md).
+Integration is the active desktop work ahead of R10-04. R10 keeps its existing release criteria.
 
 ### Flutter 3.50 compatibility
 

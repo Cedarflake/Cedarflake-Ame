@@ -2,7 +2,6 @@ import "dart:async";
 
 import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_group_thumbnail.dart";
-
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
@@ -22,6 +21,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/application_test_bindings.dart";
 import "support/duplicate_review_fixtures.dart";
+import "support/localized_test_app.dart";
 import "support/similar_review_fixtures.dart";
 
 void main() {
@@ -54,7 +54,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp(
+            child: LocalizedTestApp(
               builder: (context, child) => MediaQuery(
                 data: MediaQuery.of(
                   context,
@@ -308,7 +308,7 @@ void main() {
           overrides: applicationTestOverrides([
             libraryControllerProvider.overrideWith(() => library),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: Center(
                 child: SizedBox(

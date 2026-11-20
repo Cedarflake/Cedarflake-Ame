@@ -1,8 +1,10 @@
+import "package:cedarflake_ame/app/messages/ame_message.dart";
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../support/application_test_bindings.dart";
+import "../../support/localized_test_app.dart";
 
 void main() {
   test(
@@ -17,13 +19,13 @@ void main() {
       );
       controller.publish(
         AmeNotificationDraft(
-          title: "更新受阻",
-          message: "无法接续旧更新记录。",
+          title: AmeRawMessage("更新受阻"),
+          message: AmeRawMessage("无法接续旧更新记录。"),
           severity: AmeNotificationSeverity.warning,
           dedupeKey: "root-a:1",
           elapsedStartedAt: DateTime.utc(2026, 10, 14),
           actionId: "update-root",
-          actionLabel: "更新图库",
+          actionLabel: AmeRawMessage("更新图库"),
           actionContext: "root-a",
           sourcePath: r"C:\Generated",
           isPersistent: true,
@@ -57,12 +59,12 @@ void main() {
     );
     controller.publish(
       const AmeNotificationDraft(
-        title: "需要更新",
-        message: "",
+        title: AmeRawMessage("需要更新"),
+        message: AmeRawMessage(""),
         severity: AmeNotificationSeverity.warning,
         dedupeKey: "root-a:1",
         actionId: "update-root",
-        actionLabel: "更新图库",
+        actionLabel: AmeRawMessage("更新图库"),
         sourcePath: r"C:\Old",
       ),
     );
@@ -72,12 +74,12 @@ void main() {
         .single;
     controller.publish(
       const AmeNotificationDraft(
-        title: "需要更新",
-        message: "",
+        title: AmeRawMessage("需要更新"),
+        message: AmeRawMessage(""),
         severity: AmeNotificationSeverity.warning,
         dedupeKey: "root-a:1",
         actionId: "update-root",
-        actionLabel: "更新图库",
+        actionLabel: AmeRawMessage("更新图库"),
         sourcePath: r"C:\New",
       ),
     );
@@ -99,8 +101,8 @@ void main() {
       ameNotificationControllerProvider.notifier,
     );
     const draft = AmeNotificationDraft(
-      title: "更新受阻",
-      message: "检测到无法确认的文件变化。",
+      title: AmeRawMessage("更新受阻"),
+      message: AmeRawMessage("检测到无法确认的文件变化。"),
       severity: AmeNotificationSeverity.warning,
       dedupeKey: "root-a:evidence-gap",
       isPersistent: true,
@@ -114,9 +116,9 @@ void main() {
     controller.dismiss(id);
     controller.publish(
       const AmeNotificationDraft(
-        title: "更新受阻",
-        message: "检测到无法确认的文件变化。",
-        detail: "3 项等待重试",
+        title: AmeRawMessage("更新受阻"),
+        message: AmeRawMessage("检测到无法确认的文件变化。"),
+        detail: AmeRawMessage("3 项等待重试"),
         elapsedStartedAt: null,
         severity: AmeNotificationSeverity.warning,
         dedupeKey: "root-a:evidence-gap",
@@ -127,7 +129,7 @@ void main() {
 
     final deduplicated = container.read(ameNotificationControllerProvider);
     expect(deduplicated.history, hasLength(1));
-    expect(deduplicated.history.single.detail, "3 项等待重试");
+    expect(deduplicated.history.single.detail?.resolve(testChinese), "3 项等待重试");
     expect(deduplicated.pendingIds, isEmpty);
     expect(deduplicated.hasUnread, isFalse);
 
@@ -149,21 +151,25 @@ void main() {
 
     final firstId = controller.publish(
       const AmeNotificationDraft(
-        title: "第一条",
-        message: "",
+        title: AmeRawMessage("第一条"),
+        message: AmeRawMessage(""),
         severity: AmeNotificationSeverity.info,
       ),
     );
     controller.publish(
       const AmeNotificationDraft(
-        title: "第二条",
-        message: "",
+        title: AmeRawMessage("第二条"),
+        message: AmeRawMessage(""),
         severity: AmeNotificationSeverity.success,
       ),
     );
 
     expect(
-      container.read(ameNotificationControllerProvider).current?.title,
+      container
+          .read(ameNotificationControllerProvider)
+          .current
+          ?.title
+          .resolve(testChinese),
       "第一条",
     );
     controller.markAllRead();
@@ -174,8 +180,11 @@ void main() {
     controller.dismiss(firstId);
 
     final state = container.read(ameNotificationControllerProvider);
-    expect(state.current?.title, "第二条");
-    expect(state.history.map((entry) => entry.title), ["第二条", "第一条"]);
+    expect(state.current?.title.resolve(testChinese), "第二条");
+    expect(state.history.map((entry) => entry.title.resolve(testChinese)), [
+      "第二条",
+      "第一条",
+    ]);
   });
 
   test("notification history and pending presentation stay bounded", () {
@@ -188,8 +197,8 @@ void main() {
     for (var index = 0; index < ameNotificationHistoryLimit + 5; index += 1) {
       controller.publish(
         AmeNotificationDraft(
-          title: "通知 $index",
-          message: "",
+          title: AmeRawMessage("通知 $index"),
+          message: AmeRawMessage(""),
           severity: AmeNotificationSeverity.info,
         ),
       );
@@ -198,9 +207,9 @@ void main() {
     final state = container.read(ameNotificationControllerProvider);
     expect(state.history, hasLength(ameNotificationHistoryLimit));
     expect(state.pendingIds, hasLength(ameNotificationHistoryLimit));
-    expect(state.history.first.title, "通知 104");
-    expect(state.history.last.title, "通知 5");
-    expect(state.current?.title, "通知 5");
+    expect(state.history.first.title.resolve(testChinese), "通知 104");
+    expect(state.history.last.title.resolve(testChinese), "通知 5");
+    expect(state.current?.title.resolve(testChinese), "通知 5");
   });
 
   test("an evicted active condition can publish a fresh notification", () {
@@ -210,8 +219,8 @@ void main() {
       ameNotificationControllerProvider.notifier,
     );
     const activeDraft = AmeNotificationDraft(
-      title: "更新受阻",
-      message: "目录状态尚未确认。",
+      title: AmeRawMessage("更新受阻"),
+      message: AmeRawMessage("目录状态尚未确认。"),
       severity: AmeNotificationSeverity.warning,
       dedupeKey: "root-a:unknown",
       isPersistent: true,
@@ -221,8 +230,8 @@ void main() {
     for (var index = 0; index < ameNotificationHistoryLimit; index += 1) {
       controller.publish(
         AmeNotificationDraft(
-          title: "通知 $index",
-          message: "",
+          title: AmeRawMessage("通知 $index"),
+          message: AmeRawMessage(""),
           severity: AmeNotificationSeverity.info,
         ),
       );
@@ -230,7 +239,7 @@ void main() {
     controller.publish(activeDraft);
 
     final state = container.read(ameNotificationControllerProvider);
-    expect(state.history.first.title, "更新受阻");
+    expect(state.history.first.title.resolve(testChinese), "更新受阻");
     expect(
       state.history.where((entry) => entry.dedupeKey == "root-a:unknown"),
       hasLength(1),

@@ -2,10 +2,11 @@ import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../notifications/ame_notification_controller.dart";
-import "../notifications/ame_notification_strings.dart";
+import "ame_localizations.dart";
 import "ame_menu.dart";
 import "ame_feedback_card.dart";
 import "ame_feedback_style.dart";
+import "ame_message_text.dart";
 import "ame_notification_lifetime.dart";
 import "ame_overlay_semantics.dart";
 import "ame_notification_time.dart";
@@ -37,7 +38,7 @@ class AmeNotificationHistoryButton extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Text(
-            AmeNotificationStrings.notifications,
+            context.l10n.notifications,
             style: TextStyle(color: onSurface, fontWeight: FontWeight.w600),
           ),
         ),
@@ -50,7 +51,7 @@ class AmeNotificationHistoryButton extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Text(
-              AmeNotificationStrings.noNotifications,
+              context.l10n.notificationsEmpty,
               style: TextStyle(color: onSurface),
             ),
           ),
@@ -64,7 +65,7 @@ class AmeNotificationHistoryButton extends StatelessWidget {
           ),
     ];
     return AmePopupMenuButton<AmeNotificationEntry>(
-      labels: const [AmeNotificationStrings.notifications],
+      labels: [context.l10n.notifications],
       items: menuItems,
       menuWidth: _notificationMenuWidth,
       maximumHeight: _notificationMenuMaximumHeight,
@@ -72,12 +73,14 @@ class AmeNotificationHistoryButton extends StatelessWidget {
       onOpened: onOpened,
       onSelected: onSelected,
       builder: (context, openMenu) {
-        final semanticLabel = state.hasUnread ? "通知，有未读消息" : "通知，无未读消息";
+        final semanticLabel = state.hasUnread
+            ? context.l10n.notificationsUnread
+            : context.l10n.notificationsRead;
         return Semantics(
           label: semanticLabel,
           button: true,
           child: AmeTooltip(
-            message: AmeNotificationStrings.notifications,
+            message: context.l10n.notifications,
             child: IconButton(
               key: const Key("notification-history-button"),
               onPressed: openMenu,
@@ -118,21 +121,21 @@ class AmeNotificationSurface extends StatelessWidget {
       onDismiss: onDismiss,
       child: AmeFeedbackCard(
         key: const Key("ame-notification-surface"),
-        title: notification.title,
-        message: notification.message,
-        detail: notification.detail,
+        title: notification.title.resolve(context.l10n),
+        message: notification.message.resolve(context.l10n),
+        detail: notification.detail?.resolve(context.l10n),
         severity: notification.severity,
         actions: [
           if (notification.actionLabel case final actionLabel?)
             AmeFeedbackAction(
               key: const Key("notification-primary-action"),
               onPressed: () => onAction(notification),
-              label: actionLabel,
+              label: actionLabel.resolve(context.l10n),
             ),
           AmeFeedbackAction(
             key: const Key("notification-dismiss-button"),
             onPressed: () => onDismiss(notification.id),
-            label: AmeNotificationStrings.acknowledge,
+            label: context.l10n.acknowledge,
           ),
         ],
       ),
@@ -164,14 +167,14 @@ class _NotificationHistoryItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  notification.title,
+                  notification.title.resolve(context.l10n),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (notification.message.isNotEmpty) ...[
+                if (notification.message.resolve(context.l10n).isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
-                    notification.message,
+                    notification.message.resolve(context.l10n),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall,
@@ -180,8 +183,9 @@ class _NotificationHistoryItem extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   notification.isResolvedCondition
-                      ? "${AmeNotificationStrings.historicalNotification} · ${formatAmeNotificationOccurredAt(notification.occurredAt)}"
+                      ? "${context.l10n.notificationHistory} · ${formatAmeNotificationOccurredAt(context.l10n, notification.occurredAt)}"
                       : formatAmeNotificationOccurredAt(
+                          context.l10n,
                           notification.occurredAt,
                         ),
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(

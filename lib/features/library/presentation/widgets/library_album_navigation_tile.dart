@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
@@ -68,24 +69,31 @@ class _LibraryAlbumNavigationTileState
       final action = await showAmePopupMenu<LibraryAlbumEditKind>(
         context: context,
         position: position,
-        labels: const ["重命名", "更改图标", "删除相册"],
-        items: const [
+        labels: [
+          context.l10n.rename,
+          context.l10n.changeIcon,
+          context.l10n.deleteAlbum,
+        ],
+        items: [
           PopupMenuItem(
             value: LibraryAlbumEditKind.rename,
-            child: AmeMenuItemContent(icon: Symbols.edit_rounded, label: "重命名"),
+            child: AmeMenuItemContent(
+              icon: Symbols.edit_rounded,
+              label: context.l10n.rename,
+            ),
           ),
           PopupMenuItem(
             value: LibraryAlbumEditKind.icon,
             child: AmeMenuItemContent(
               icon: Symbols.photo_album_rounded,
-              label: "更改图标",
+              label: context.l10n.changeIcon,
             ),
           ),
           PopupMenuItem(
             value: LibraryAlbumEditKind.delete,
             child: AmeMenuItemContent(
               icon: Symbols.delete_rounded,
-              label: "删除相册",
+              label: context.l10n.deleteAlbum,
             ),
           ),
         ],
@@ -152,7 +160,7 @@ class _LibraryAlbumNavigationTileState
         trailing: SizedBox(
           key: _menuAnchor,
           child: AmeTooltip(
-            message: "更多",
+            message: context.l10n.more,
             child: IconButton(
               key: ValueKey("library-sidebar-album-menu-${widget.album.id}"),
               onPressed: widget.onEdit == null

@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
@@ -283,22 +285,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get folderLibraryChanged =>
-      'The library changed. Expand the folder again.';
-
-  @override
-  String get folderScopeChanged =>
-      'The folder contents changed. Expand the folder again.';
-
-  @override
-  String get folderPageChanged =>
-      'The folder listing was updated. Expand the folder again.';
-
-  @override
-  String get folderPageScopeChanged =>
-      'The folder listing changed. Expand the folder again.';
-
-  @override
   String get changesSaveFailed => 'Couldn\'t save changes';
 
   @override
@@ -342,10 +328,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get libraryRefreshPending =>
       'The library hasn\'t refreshed yet. Try again.';
-
-  @override
-  String get scanUpdateInProgress =>
-      'Another library update is running. Wait for it to finish or cancel it before continuing.';
 
   @override
   String get locationRefreshFailed =>
@@ -396,17 +378,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get folderRemovalFailed => 'Couldn\'t remove the folder. Try again.';
 
   @override
-  String get updateRootChanged =>
-      'The library folder was removed, changed, or became unavailable.';
-
-  @override
   String get scanEndedWithoutResult =>
       'The library update ended without a result.';
-
-  @override
-  String libraryUpdatedDisplayFailed(String reason) {
-    return 'The library was updated, but the view couldn\'t refresh. $reason';
-  }
 
   @override
   String get updatePausedRestart =>
@@ -525,9 +498,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewAction => 'View';
 
   @override
-  String get duplicatePhotos => 'Duplicate photos';
-
-  @override
   String get duplicateWorkspace => 'Find duplicate photos';
 
   @override
@@ -537,25 +507,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openInExplorerFailed => 'Couldn\'t open File Explorer';
 
   @override
-  String get duplicateStart => 'Find duplicate photos';
-
-  @override
-  String get duplicateRefreshAnalysis => 'Update results';
-
-  @override
-  String get duplicateStop => 'Stop search';
-
-  @override
   String get stopping => 'Stopping';
 
   @override
   String get duplicateRunning => 'Looking for duplicates';
-
-  @override
-  String get duplicateCompleted => 'Search complete';
-
-  @override
-  String get duplicateStopped => 'Search stopped';
 
   @override
   String get duplicateIncomplete => 'Duplicate search didn\'t finish';
@@ -565,20 +520,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paused => 'Paused';
-
-  @override
-  String get duplicatePause => 'Pause search';
-
-  @override
-  String get duplicateResume => 'Resume search';
-
-  @override
-  String get duplicateSettingsSaveFailed =>
-      'Couldn\'t save duplicate search settings';
-
-  @override
-  String get duplicateEmptyBefore =>
-      'Search to see which folders contain copies of the same photo.';
 
   @override
   String get duplicateEmptyAfter => 'No duplicates found in the photos checked';
@@ -600,9 +541,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backToDuplicates => 'Back to duplicate photos';
 
   @override
-  String get refreshResults => 'Refresh results';
-
-  @override
   String get duplicateGroups => 'Duplicate groups';
 
   @override
@@ -610,9 +548,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get similarGroups => 'Similar groups';
-
-  @override
-  String get groupView => 'Groups';
 
   @override
   String get similarityLevel => 'Similarity';
@@ -725,36 +660,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get allPhotosFilter => 'All photos';
-
-  @override
-  String filesChecked(int count) {
-    final intl.NumberFormat countNumberFormat =
-        intl.NumberFormat.decimalPattern(localeName);
-    final String countString = countNumberFormat.format(count);
-
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Checked $countString files',
-      one: 'Checked $countString file',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String filesNotChecked(int count) {
-    final intl.NumberFormat countNumberFormat =
-        intl.NumberFormat.decimalPattern(localeName);
-    final String countString = countNumberFormat.format(count);
-
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$countString files couldn\'t be checked.',
-      one: '$countString file couldn\'t be checked.',
-    );
-    return '$_temp0 Try again later.';
-  }
 
   @override
   String locationCount(int count) {
@@ -1134,19 +1039,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get endDate => 'End date';
 
   @override
-  String get dateHint => 'YYYY-MM-DD';
-
-  @override
-  String get fileProperties => 'File properties';
-
-  @override
   String get fileFormat => 'File format';
-
-  @override
-  String get anyValue => 'Any';
-
-  @override
-  String get custom => 'Custom';
 
   @override
   String get fileSize => 'File size';
@@ -1162,12 +1055,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get maximum => 'Maximum';
-
-  @override
-  String get minimumFileSize => 'Minimum file size';
-
-  @override
-  String get maximumFileSize => 'Maximum file size';
 
   @override
   String get unit => 'Unit';
@@ -1581,9 +1468,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exitViewerFullscreen => 'Exit full screen (Esc / F11)';
-
-  @override
-  String get searchHint => 'Search the library';
 
   @override
   String get clearSearch => 'Clear search';
@@ -2012,12 +1896,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get synchronizationWaitingFolder => 'Waiting for folder';
-
-  @override
-  String get continuityCatchingUp => 'Syncing';
-
-  @override
-  String get continuityRecoveryRequired => 'Check needed';
 
   @override
   String get libraryUpdateBlocked => 'Library update blocked';
@@ -3739,4 +3617,100 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get catalogCleanupAlreadyFinished =>
       'Library optimization has already finished.';
+
+  @override
+  String folderStatus(String name, String status) {
+    return '“$name”: $status';
+  }
+
+  @override
+  String galleryDay(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString';
+  }
+
+  @override
+  String galleryMonth(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMM(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString';
+  }
+
+  @override
+  String eventDateTime(DateTime date, DateTime time) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+    final intl.DateFormat timeDateFormat = intl.DateFormat.jm(localeName);
+    final String timeString = timeDateFormat.format(time);
+
+    return '$dateString $timeString';
+  }
+
+  @override
+  String labelAndValue(String label, String value) {
+    return '$label: $value';
+  }
+
+  @override
+  String get inlineListSeparator => ', ';
+
+  @override
+  String get clauseSeparator => ', ';
+
+  @override
+  String get sentenceSeparator => '. ';
+
+  @override
+  String listSentence(String items) {
+    return '$items.';
+  }
+
+  @override
+  String get categoryIllustration => 'Illustration';
+
+  @override
+  String get categoryComic => 'Comics';
+
+  @override
+  String get categoryMeme => 'Memes';
+
+  @override
+  String get categoryScreenshot => 'Screenshots';
+
+  @override
+  String get categoryPhoto => 'Photography';
+
+  @override
+  String get categoryOther => 'Other';
+
+  @override
+  String modelDownloadProgress(int percent, double received, double total) {
+    final intl.NumberFormat receivedNumberFormat =
+        intl.NumberFormat.decimalPatternDigits(
+          locale: localeName,
+          decimalDigits: 1,
+        );
+    final String receivedString = receivedNumberFormat.format(received);
+    final intl.NumberFormat totalNumberFormat =
+        intl.NumberFormat.decimalPatternDigits(
+          locale: localeName,
+          decimalDigits: 1,
+        );
+    final String totalString = totalNumberFormat.format(total);
+
+    return '$percent% · $receivedString / $totalString MB';
+  }
+
+  @override
+  String photoTimestamp(DateTime date, DateTime time) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+    final intl.DateFormat timeDateFormat = intl.DateFormat.jms(localeName);
+    final String timeString = timeDateFormat.format(time);
+
+    return '$dateString $timeString';
+  }
 }

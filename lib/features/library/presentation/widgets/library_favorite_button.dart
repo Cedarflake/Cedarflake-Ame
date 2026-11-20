@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_organization_actions.dart";
 import "../../domain/library_organization.dart";
@@ -25,6 +26,7 @@ class LibraryFavoriteButton extends ConsumerWidget {
     );
     final favorite = status.value?.decisions.singleOrNull?.favorite;
     final label = _label(
+      context.l10n,
       favorite: favorite,
       saving: saving,
       error: status.error,
@@ -64,24 +66,25 @@ class LibraryFavoriteButton extends ConsumerWidget {
     );
   }
 
-  String _label({
+  String _label(
+    AppLocalizations strings, {
     required bool? favorite,
     required bool saving,
     required Object? error,
   }) {
     if (error is LibraryOrganizationFailure &&
         error.code == "organization_evidence_pending") {
-      return "正在确认图片内容";
+      return strings.checkingPhotoContent;
     }
     if (error != null) {
-      return "暂时无法读取收藏状态";
+      return strings.favoritesUnavailable;
     }
     if (saving) {
-      return "正在保存更改";
+      return strings.savingChanges;
     }
     if (favorite == null) {
-      return "正在读取收藏状态";
+      return strings.loadingFavoriteStatus;
     }
-    return favorite ? "取消收藏" : "加入收藏夹";
+    return favorite ? strings.removeFavorite : strings.addFavorite;
   }
 }

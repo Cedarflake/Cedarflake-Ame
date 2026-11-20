@@ -4,10 +4,10 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/messages/ame_message.dart";
 import "../../../../app/presentation/ame_choice.dart";
-import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
-import "../../../../app/notifications/ame_notification_strings.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
@@ -303,9 +303,9 @@ class AmeSettingsPage extends ConsumerWidget {
           .read(ameNotificationControllerProvider.notifier)
           .publish(
             AmeNotificationDraft(
-              title: "无法保存设置",
-              message: AmeNotificationStrings.operationFailed,
-              detail: error.toString(),
+              title: AmeLabel.settingsSaveFailed,
+              message: AmeLabel.operationFailedDetails,
+              detail: AmeRawMessage(error.toString()),
               severity: AmeNotificationSeverity.error,
               isPersistent: true,
             ),

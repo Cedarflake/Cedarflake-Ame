@@ -4,6 +4,8 @@ import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("a retained inactive surface removes its visible tooltip", (
     tester,
@@ -13,7 +15,7 @@ void main() {
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     try {
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: ValueListenableBuilder<bool>(
               valueListenable: active,
@@ -64,7 +66,7 @@ void main() {
       const message = "查看重复位置";
       try {
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             home: Scaffold(
               body: Center(
                 child: AmeTooltip(
@@ -131,7 +133,7 @@ void main() {
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     try {
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: Center(
               child: ValueListenableBuilder<bool>(
