@@ -312,3 +312,17 @@ The gate sections above own environment requirements, complete procedures, and a
 
 Do not replace these entrypoints with remembered command fragments in normal work. A focused test
 may be run directly for fast feedback, but it does not replace the applicable repository gate.
+
+## Build on Windows ARM64
+
+On a Windows 11 Arm PC, use ARM64 Rust and Visual Studio's ARM64 C++ tools. Add the `bin` directory
+of a fresh Flutter 3.50.0 source checkout to `PATH`. From the Ame repository, set the host
+architecture before Flutter's first run so it downloads the ARM64 Dart SDK.
+
+```powershell
+$env:FLUTTER_HOST_ARCH = "arm64"
+flutter pub get --enforce-lockfile
+flutter build windows --release --no-pub
+```
+
+The application is in `build/windows/arm64/runner/Release`.
