@@ -14,6 +14,11 @@ action selected the original folder, including its Chinese path. The client retu
 and the test compared the fixture files byte for byte. The widget test also checks that switching
 languages issues no additional gallery query.
 
+Both [native accessibility cases](../../integration_test/windows_accessibility_bridge_test.dart)
+passed on the same x64 client. Windows UI Automation confirmed ten checkpoints, including opening
+and closing folder, viewer and settings menus. The gallery fixture builds its dated timeline after
+the application's localization delegates have loaded.
+
 The x64 test used a process-local `CARGO_PROFILE_DEV_DEBUG=0` for the Rust Debug dependencies after
 MSVC failed to write their debug records. The Flutter client ran in Debug mode. ARM64 native
 execution and translated MSI dialogs are outside this client run.

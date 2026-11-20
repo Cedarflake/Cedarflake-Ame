@@ -4,6 +4,7 @@ import "dart:typed_data";
 import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/ame_app.dart";
+import "package:cedarflake_ame/app/presentation/ame_localizations.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
@@ -68,14 +69,6 @@ void main() {
       roots: state.roots,
       assets: state.assets,
     );
-    final layoutSnapshot = LibraryGalleryLayoutSnapshot.build(
-      testChinese,
-      manifest: manifest,
-      availableWidth: wallSize.width - 80 - 40,
-      thumbnailSize: GalleryThumbnailSize.medium,
-      layoutShape: GalleryLayoutShape.square,
-      sortKey: LibraryGallerySortKey.captureTime,
-    );
     final scrollController = ScrollController();
     addTearDown(scrollController.dispose);
     tester.view.physicalSize = const Size(1280, 800);
@@ -106,6 +99,14 @@ void main() {
                     builder: (context, ref, child) {
                       final controller = ref.read(
                         libraryControllerProvider.notifier,
+                      );
+                      final layoutSnapshot = LibraryGalleryLayoutSnapshot.build(
+                        context.l10n,
+                        manifest: manifest,
+                        availableWidth: wallSize.width - 80 - 40,
+                        thumbnailSize: GalleryThumbnailSize.medium,
+                        layoutShape: GalleryLayoutShape.square,
+                        sortKey: LibraryGallerySortKey.captureTime,
                       );
                       return Row(
                         children: [
