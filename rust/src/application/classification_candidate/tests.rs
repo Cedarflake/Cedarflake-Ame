@@ -128,9 +128,14 @@ fn custom_categories_are_usable_without_borrowed_calibration() {
 
 #[cfg(all(windows, feature = "classification-worker"))]
 #[test]
-fn frozen_native_pipeline_matches_the_measured_candidate() {
-    assert_eq!(
-        model(),
-        crate::adapters::classification_runtime::selected_model_compatibility()
-    );
+fn only_the_measured_x64_cpu_pipeline_uses_the_frozen_screening_profile() {
+    let native = crate::adapters::classification_runtime::selected_model_compatibility();
+    let setup = prepare(id(), initial_categories().unwrap(), native).unwrap();
+    if cfg!(target_arch = "aarch64") {
+        assert_ne!(native, model());
+        assert!(setup.refinement().is_none());
+    } else {
+        assert_eq!(native, model());
+        assert!(setup.refinement().is_some());
+    }
 }

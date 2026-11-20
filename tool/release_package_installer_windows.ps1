@@ -104,7 +104,7 @@ try {
     & (Join-Path $nativeBuild "Release/ame_installer_policy_test.exe")
     if ($LASTEXITCODE -ne 0) { throw "Installer native policy tests failed" }
     $admission = Join-Path $nativeBuild "Release/ame_installer_admission.dll"
-    Assert-AmeUnsignedX64Image $admission
+    Assert-AmeWindowsPeImage -Path $admission -Architecture x64
     $leases.Add([IO.FileStream]::new($admission, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read))
     $generated = Join-Path $output "application_files.wxs"
     New-AmeInstallerApplicationSource -Files $installerFiles -BundlePath $bundle -OutputPath $generated `

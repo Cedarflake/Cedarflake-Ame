@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "version": "1.31.1",
+  "platform": "windows-arm64",
+  "bundleDirectory": "data/classification-runtime",
+  "archive": {
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime/1.31.1/microsoft.ml.onnxruntime.1.31.1.nupkg",
+    "length": 159626394,
+    "sha256": "6871ccbc97f3d5bdb4095a1dcec33aa78d56f6ed8de5980ef5fa1d9f2e7c679a",
+    "prefix": ""
+  },
+  "files": [
+    {
+      "name": "onnxruntime.dll",
+      "entry": "runtimes/win-arm64/native/onnxruntime.dll",
+      "length": 17507640,
+      "sha256": "3ec71b45c71ed057096f4914fddb379a38b9ec813794052b96fec7de81e2ea20"
+    },
+    {
+      "name": "onnxruntime_providers_shared.dll",
+      "entry": "runtimes/win-arm64/native/onnxruntime_providers_shared.dll",
+      "length": 21344,
+      "sha256": "cf61a896b768c72cff1b3e603f46cf294151a274f2c72fd40fea8e648a08f0e4"
+    },
+    {
+      "name": "LICENSE",
+      "entry": "LICENSE",
+      "length": 1094,
+      "sha256": "c250d6278f0b47a6439fb7592b08b58a55eb9f535aa49a1db63211c3f982b674"
+    },
+    {
+      "name": "Privacy.md",
+      "entry": "Privacy.md",
+      "length": 6635,
+      "sha256": "8c26e1fc8581d9553e475250fe014e3d1e5ea4ae9f1cb084a068ff8601703dc9"
+    },
+    {
+      "name": "ThirdPartyNotices.txt",
+      "entry": "ThirdPartyNotices.txt",
+      "length": 344457,
+      "sha256": "c53a76501ef60db6f865f20599f220761201ac4057683acefdab37d861b86622"
+    },
+    {
+      "name": "Microsoft.ML.OnnxRuntime.nuspec",
+      "entry": "Microsoft.ML.OnnxRuntime.nuspec",
+      "length": 2233,
+      "sha256": "16161e452a09fae01ad6a9ad4b32cc15f81eafb6ffe2097d6634478c0cea5637"
+    }
+  ]
+}

@@ -2,15 +2,19 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 function Get-AmeClassificationRuntimeManifest {
-    param([switch]$Accelerator)
-    $name = if ($Accelerator) { "accelerator_distribution.json" } else { "distribution.json" }
-    $path = Join-Path (Split-Path -Parent $PSScriptRoot) "rust/src/adapters/classification_runtime/$name"
-    return [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8) | ConvertFrom-Json
+    param([switch]$Accelerator, [ValidateSet('x64', 'arm64')][string]$Architecture = 'x64')
+    $name = if ($Accelerator) { 'accelerator_distribution' } else { 'distribution' }
+    if ($Architecture -eq 'arm64') { $name += '.arm64' }
+    $path = Join-Path (Split-Path -Parent $PSScriptRoot) "rust/src/adapters/classification_runtime/$name.json"
+    $manifest = [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8) | ConvertFrom-Json
+    if ($manifest.platform -ne "windows-$Architecture") { throw "Unexpected runtime platform in $name.json" }
+    return $manifest
 }
 
 function Get-AmeClassificationRuntimePayloadNames {
+    param([ValidateSet('x64', 'arm64')][string]$Architecture = 'x64')
     foreach ($accelerator in @($false, $true)) {
-        $manifest = Get-AmeClassificationRuntimeManifest -Accelerator:$accelerator
+        $manifest = Get-AmeClassificationRuntimeManifest -Accelerator:$accelerator -Architecture $Architecture
         foreach ($file in $manifest.files) {
             "$($manifest.bundleDirectory)/$($file.name)"
         }

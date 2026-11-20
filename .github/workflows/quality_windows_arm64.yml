@@ -1,0 +1,56 @@
+name: Quality / Windows ARM64 preview
+
+on:
+  push:
+    branches: [codex/windows-arm64]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-arm64-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portable:
+    runs-on: windows-11-arm
+    timeout-minutes: 90
+    env:
+      FLUTTER_HOST_ARCH: arm64
+      CI: "true"
+    steps:
+      - name: Check out Ame
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      # The Windows SDK archive ships x64 Dart. The framework checkout bootstraps native Dart.
+      - name: Check out Flutter 3.50.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: flutter/flutter
+          ref: 3.50.0
+          path: build/flutter-sdk
+          persist-credentials: false
+
+      - name: Select the native toolchain
+        shell: pwsh
+        run: |
+          if ((git -C build/flutter-sdk rev-parse HEAD) -cne 'ab2912035e160d9cad6306df307576da6128ebdb') {
+            throw 'Unexpected Flutter 3.50.0 revision'
+          }
+          (Resolve-Path build/flutter-sdk/bin).Path >> $env:GITHUB_PATH
+          rustup set default-host aarch64-pc-windows-msvc
+
+      - name: Build and launch the ARM64 application
+        shell: pwsh
+        run: ./tool/quality_windows_arm64_preview.ps1
+
+      - name: Upload portable preview
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: Cedarflake-Ame-windows-arm64-preview
+          path: build/windows/arm64/runner/Release/
+          if-no-files-found: error
+          retention-days: 14

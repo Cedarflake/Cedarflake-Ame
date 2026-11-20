@@ -15,6 +15,7 @@ use crate::domain::classification::installation::{
 
 use super::RuntimeError;
 use super::artifacts::{pin_directory, verify_file_cancellable};
+use super::binaries;
 use super::factory::runtime_error;
 use super::manifest::{self, Artifact};
 use download::{HttpsModelDownload, ModelDownload};
@@ -54,7 +55,7 @@ pub(crate) fn prepare(
         &model_storage.join(PACKAGE_DIRECTORY),
         runtime,
         &MODEL_FILES,
-        &[&manifest::RUNTIME, &manifest::PROVIDER],
+        &[&binaries::native().cpu, &binaries::native().cpu_provider],
         &mut HttpsModelDownload::new(),
         cancelled,
         progress,
@@ -161,7 +162,7 @@ pub(crate) fn prepare_bundled(
         models,
         runtime,
         &MODEL_FILES,
-        &[&manifest::RUNTIME, &manifest::PROVIDER],
+        &[&binaries::native().cpu, &binaries::native().cpu_provider],
         cancelled,
         progress,
     )

@@ -13,7 +13,8 @@ use crate::ports::classification_encoder::{
 };
 
 use super::{
-    EncoderBackend, EncoderKind, RuntimeError, WorkerConfiguration, WorkerSession, manifest,
+    EncoderBackend, EncoderKind, RuntimeError, WorkerConfiguration, WorkerSession, binaries,
+    manifest,
 };
 
 #[derive(Clone, Default)]
@@ -28,8 +29,13 @@ pub struct LocalClassificationEncoderFactory {
 
 impl LocalClassificationEncoderFactory {
     pub fn recognizes_model(&self, model: ModelCompatibility) -> bool {
-        model == manifest::compatibility()
-            || model == manifest::compatibility_for(EncoderBackend::DirectMl { device_id: 0 })
+        [&*binaries::X64, &*binaries::ARM64]
+            .into_iter()
+            .any(|runtime| {
+                model == manifest::pipeline(runtime, EncoderBackend::Cpu)
+                    || model
+                        == manifest::pipeline(runtime, EncoderBackend::DirectMl { device_id: 0 })
+            })
     }
 
     pub fn with_gpu_preference(mut self, enabled: bool) -> Self {
@@ -39,8 +45,8 @@ impl LocalClassificationEncoderFactory {
             .runtime_directory
             .with_file_name("classification-accelerator");
         if enabled
-            && runtime.join(super::backend::GPU_RUNTIME.name).is_file()
-            && runtime.join(super::backend::DIRECTML.name).is_file()
+            && runtime.join(binaries::native().gpu.name).is_file()
+            && runtime.join(binaries::native().directml.name).is_file()
             && let Some(device) = super::device::preferred_gpu()
         {
             self.backend = EncoderBackend::DirectMl {

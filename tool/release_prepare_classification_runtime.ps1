@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory = $true)][string]$OutputDirectory,
     [string]$ArchivePath,
     [switch]$Accelerator,
-    [string]$DirectMLArchivePath
+    [string]$DirectMLArchivePath,
+    [ValidateSet('x64', 'arm64')][string]$Architecture = 'x64'
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,7 +16,7 @@ trap {
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
 . (Join-Path $PSScriptRoot "release_download_classification_runtime.ps1")
 
-$manifest = Get-AmeClassificationRuntimeManifest -Accelerator:$Accelerator
+$manifest = Get-AmeClassificationRuntimeManifest -Accelerator:$Accelerator -Architecture $Architecture
 $output = [IO.Path]::GetFullPath($OutputDirectory).TrimEnd('\', '/')
 $build = [IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $PSScriptRoot) "build"))
 if (-not $output.StartsWith("$build\", [StringComparison]::OrdinalIgnoreCase)) {

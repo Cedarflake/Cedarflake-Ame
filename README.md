@@ -65,6 +65,18 @@ flutter pub get
 flutter run -d windows
 ```
 
+### Windows 11 ARM64 preview
+
+The [ARM64 preview workflow](.github/workflows/quality_windows_arm64.yml) builds an unsigned
+portable app on Windows 11 ARM64. Download the `Cedarflake-Ame-windows-arm64-preview` artifact
+from a successful run, extract the whole ZIP, then open `cedarflake_ame.exe`. Like the x64 portable
+build, it downloads the optional models on request. The MSI and installed journal service are x64-only.
+
+For a native build, use Visual Studio's ARM64 C++ tools and ARM64 Rust. Set
+`$env:FLUTTER_HOST_ARCH = "arm64"` before first running Flutter from a fresh checkout of the
+`3.50.0` Flutter tag. This bootstraps the ARM64 Dart SDK. Run the commands above using that SDK,
+or use `flutter build windows --release` for the bundle in `build/windows/arm64/runner/Release`.
+
 The interface is built with Flutter and Material 3. Rust handles the catalog, file tracking,
 previews, image analysis, and file operations, with SQLite storing the library.
 

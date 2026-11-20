@@ -1,63 +1,81 @@
-use super::manifest::{PROVIDER, RUNTIME};
+use std::collections::BTreeSet;
+
+use super::{EncoderBackend, binaries, manifest};
 
 #[test]
-fn bundled_runtime_matches_the_worker_artifact_contract() {
-    let distribution: serde_json::Value =
-        serde_json::from_str(include_str!("distribution.json")).unwrap();
-    assert_eq!(distribution["schema"], 1);
-    assert_eq!(distribution["platform"], "windows-x64");
-    assert_eq!(
-        distribution["bundleDirectory"],
-        "data/classification-runtime"
-    );
-    let files = distribution["files"].as_array().unwrap();
-    assert_eq!(files.len(), 7);
-    for artifact in [RUNTIME, PROVIDER] {
-        let matching: Vec<_> = files
-            .iter()
-            .filter(|file| file["name"] == artifact.name)
-            .collect();
-        assert_eq!(matching.len(), 1);
-        assert_eq!(matching[0]["length"], artifact.length);
-        assert_eq!(matching[0]["sha256"], artifact.digest);
-    }
-    for notice in [
-        "LICENSE",
-        "Privacy.md",
-        "ThirdPartyNotices.txt",
-        "VERSION_NUMBER",
-        "GIT_COMMIT_ID",
+fn runtime_distributions_include_platform_binaries_and_redistribution_notices() {
+    for (platform, cpu, gpu, provenance) in [
+        (
+            "windows-x64",
+            include_str!("distribution.json"),
+            include_str!("accelerator_distribution.json"),
+            &["VERSION_NUMBER", "GIT_COMMIT_ID"][..],
+        ),
+        (
+            "windows-arm64",
+            include_str!("distribution.arm64.json"),
+            include_str!("accelerator_distribution.arm64.json"),
+            &["Microsoft.ML.OnnxRuntime.nuspec"][..],
+        ),
     ] {
-        assert_eq!(
-            files.iter().filter(|file| file["name"] == notice).count(),
-            1
-        );
+        let cpu_files = [
+            "onnxruntime.dll",
+            "onnxruntime_providers_shared.dll",
+            "LICENSE",
+            "Privacy.md",
+            "ThirdPartyNotices.txt",
+        ];
+        let gpu_files = [
+            "onnxruntime.dll",
+            "onnxruntime_providers_shared.dll",
+            "DirectML.dll",
+            "LICENSE-ONNXRuntime.txt",
+            "Privacy.md",
+            "ThirdPartyNotices-ONNXRuntime.txt",
+            "LICENSE-DirectML.txt",
+            "LICENSE-CODE-DirectML.txt",
+            "ThirdPartyNotices-DirectML.txt",
+        ];
+        for (json, directory, expected) in [
+            (
+                cpu,
+                "data/classification-runtime",
+                [cpu_files.as_slice(), provenance].concat(),
+            ),
+            (gpu, "data/classification-accelerator", gpu_files.to_vec()),
+        ] {
+            let distribution: serde_json::Value = serde_json::from_str(json).unwrap();
+            assert_eq!(distribution["schema"], 1);
+            assert_eq!(distribution["platform"], platform);
+            assert_eq!(distribution["bundleDirectory"], directory);
+            let files = distribution["files"].as_array().unwrap();
+            let names: BTreeSet<_> = files.iter().map(|f| f["name"].as_str().unwrap()).collect();
+            assert_eq!(files.len(), names.len());
+            assert_eq!(names, expected.into_iter().collect());
+        }
     }
 }
 
+#[cfg(windows)]
 #[test]
-fn accelerator_bundle_contains_pinned_binaries_and_distribution_notices() {
-    use super::backend::{DIRECTML, GPU_PROVIDER, GPU_RUNTIME};
-    let distribution: serde_json::Value =
-        serde_json::from_str(include_str!("accelerator_distribution.json")).unwrap();
-    let files = distribution["files"].as_array().unwrap();
-    assert_eq!(files.len(), 9);
-    for artifact in [GPU_RUNTIME, GPU_PROVIDER, DIRECTML] {
-        let file = files
-            .iter()
-            .find(|file| file["name"] == artifact.name)
-            .unwrap();
-        assert_eq!(file["length"], artifact.length);
-        assert_eq!(file["sha256"], artifact.digest);
-    }
-    for name in [
-        "LICENSE-ONNXRuntime.txt",
-        "Privacy.md",
-        "ThirdPartyNotices-ONNXRuntime.txt",
-        "LICENSE-DirectML.txt",
-        "LICENSE-CODE-DirectML.txt",
-        "ThirdPartyNotices-DirectML.txt",
+fn switching_architectures_recognizes_prior_runs_and_separates_native_features() {
+    let factory = super::LocalClassificationEncoderFactory::default();
+    for backend in [
+        EncoderBackend::Cpu,
+        EncoderBackend::DirectMl { device_id: 0 },
     ] {
-        assert_eq!(files.iter().filter(|file| file["name"] == name).count(), 1);
+        let x64 = manifest::pipeline(&binaries::X64, backend);
+        let arm64 = manifest::pipeline(&binaries::ARM64, backend);
+        assert!(factory.recognizes_model(x64));
+        assert!(factory.recognizes_model(arm64));
+        assert_eq!(
+            x64.image_identity().embedding_space,
+            arm64.image_identity().embedding_space
+        );
+        assert_ne!(
+            x64.image_identity().pipeline,
+            arm64.image_identity().pipeline
+        );
+        assert_ne!(x64.text_identity().pipeline, arm64.text_identity().pipeline);
     }
 }

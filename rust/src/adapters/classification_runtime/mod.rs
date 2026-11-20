@@ -2,6 +2,7 @@
 mod artifacts;
 mod backend;
 pub use backend::EncoderBackend;
+mod binaries;
 #[cfg(windows)]
 mod device;
 #[cfg(test)]

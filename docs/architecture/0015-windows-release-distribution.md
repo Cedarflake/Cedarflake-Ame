@@ -70,7 +70,13 @@ the executable's `FLUTTER_VERSION` resource. Startup diagnostics attach that ide
 Rust runtime or catalog cannot open. Reading it needs no platform request, catalog or startup wait.
 Package receipts use the matching manifest version, and release-note admission uses its tag.
 
-Only Windows 11 x64 is supported and published. ARM packages are not produced or implied. A hosted
+Tagged releases target Windows 11 x64. Windows 11 ARM64 has an experimental unsigned portable
+build from the [native preview workflow](../../.github/workflows/quality_windows_arm64.yml).
+It builds Flutter, the Rust bridge, worker and broker for ARM64 and bundles architecture-matched
+CPU and DirectML engines. Its Actions artifact is available after a native startup and shutdown
+check. MSI, broker installation, signing and release publication remain x64-only.
+
+A hosted
 `windows-2025` Windows Server runner supplies reproducible build and release checks, but it does not
 replace the separately authorized Windows 11 client acceptance evidence.
 Installer packaging uses `windows-2022` to retain the Visual Studio 2022 generator required by
