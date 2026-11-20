@@ -68,8 +68,10 @@ It does not install a system runtime. Microsoft.AI.DirectML's binary uses Micros
 license, not MIT; retain its supplied Windows ML distribution terms and notices. ONNX Runtime is
 MIT, ONNX schema and prost are Apache-2.0, and half is MIT/Apache-2.0 (used under Apache-2.0).
 
-The Windows ARM64 preview uses the same engine versions. Its CPU DLLs and upstream revision
-metadata come from the official Microsoft.ML.OnnxRuntime NuGet package. The GPU DLLs come
+Both architectures obtain their CPU DLLs and upstream revision metadata from the official
+Microsoft.ML.OnnxRuntime NuGet package. Its x64 DLLs match the original release ZIP byte for byte.
+The packager preserves the x64 version and commit files using the NuGet metadata and verifies their
+existing hashes. The Windows ARM64 preview uses the same engine versions. Its GPU DLLs come
 from the ARM64 entries in the same two DirectML packages as x64. Each architecture's manifests
 bind the worker pins and package contents. Switching architectures recognizes the previous run
 and selects a new pipeline through the existing configuration transaction. The x64 screening

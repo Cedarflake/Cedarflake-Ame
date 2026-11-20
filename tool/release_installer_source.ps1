@@ -7,6 +7,7 @@ function Get-AmeInstallerSource {
     param(
         [Parameter(Mandatory = $true, ParameterSetName = 'Quality')][string]$BundlePath,
         [Parameter(Mandatory = $true, ParameterSetName = 'Quality')][string]$UnsignedEvidencePath,
+        [Parameter(ParameterSetName = 'Quality')][ValidateSet('x64', 'arm64')][string]$Architecture = 'x64',
         [Parameter(Mandatory = $true, ParameterSetName = 'Candidate')][string]$CandidateRoot,
         [Parameter(Mandatory = $true, ParameterSetName = 'Candidate')][string]$Tag,
         [Parameter(Mandatory = $true, ParameterSetName = 'Candidate')][string]$SourceCommit,
@@ -33,9 +34,12 @@ function Get-AmeInstallerSource {
     Assert-AmeUnsignedBuildPath $BundlePath
     Assert-AmeUnsignedBuildPath $UnsignedEvidencePath
     $evidence = Get-Content -LiteralPath $UnsignedEvidencePath -Raw -Encoding utf8 | ConvertFrom-Json
-    if ($evidence.format -cne 'cedarflake-ame-unsigned-quality-v1' -or $evidence.status -cne 'passed' -or
-        $evidence.payload.machine -cne 'windows-x64' -or $evidence.payload.configuration -cne 'Release' -or
-        $evidence.bridgeSmoke -cne 'passed_without_catalog_access' -or
+    $quality = $Architecture -eq 'x64' -and $evidence.format -ceq 'cedarflake-ame-unsigned-quality-v1' -and
+        $evidence.bridgeSmoke -ceq 'passed_without_catalog_access'
+    $preview = $evidence.format -ceq 'cedarflake-ame-windows-preview-v1' -and
+        $evidence.bridgeSmoke -ceq 'passed_catalog_read' -and $evidence.windowClosed -eq $true
+    if (-not ($quality -or $preview) -or $evidence.status -cne 'passed' -or
+        $evidence.payload.machine -cne "windows-$Architecture" -or $evidence.payload.configuration -cne 'Release' -or
         @($evidence.payload.files).Count -ne $evidence.payload.fileCount) {
         throw 'Installer requires complete unsigned Release payload verification'
     }

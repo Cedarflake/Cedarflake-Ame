@@ -110,6 +110,14 @@ RegisteredProduct CachedProduct(const wchar_t* product) {
 }  // namespace
 
 std::optional<RegisteredProduct> ReadRegisteredProduct() {
+  wchar_t other_product[39]{};
+  const UINT other = MsiEnumRelatedProductsW(AME_OTHER_UPGRADE_CODE, 0, 0, other_product);
+  if (other == ERROR_SUCCESS) {
+    throw std::runtime_error("Uninstall the other architecture of Cedarflake Ame before switching. Your library is retained.");
+  }
+  if (other != ERROR_NO_MORE_ITEMS) {
+    throw std::runtime_error("Cannot check the other architecture's product registration");
+  }
   std::optional<RegisteredProduct> registered;
   for (DWORD index = 0; index < 32; ++index) {
     wchar_t product[39]{};

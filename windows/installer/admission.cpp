@@ -59,6 +59,18 @@ extern "C" __declspec(dllexport) UINT __stdcall AmeValidateInstallation(MSIHANDL
     }
     ValidateProtectedTree(product);
     const auto registered = ReadRegisteredProduct();
+    if (!registered) {
+      USHORT process_machine = 0, native_machine = 0;
+#if defined(_M_ARM64)
+      constexpr auto expected_machine = IMAGE_FILE_MACHINE_ARM64;
+#else
+      constexpr auto expected_machine = IMAGE_FILE_MACHINE_AMD64;
+#endif
+      if (!IsWow64Process2(GetCurrentProcess(), &process_machine, &native_machine) ||
+          native_machine != expected_machine) {
+        throw std::runtime_error("Choose the Cedarflake Ame installer for this PC's native architecture.");
+      }
+    }
     ValidateApplicationDestination(TargetPath(session, L"AMEAPPDIR"), registered);
     const auto service = ReadBrokerServiceRegistration();
     if (!registered && (service ||

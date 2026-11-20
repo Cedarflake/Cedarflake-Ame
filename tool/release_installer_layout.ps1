@@ -3,7 +3,8 @@ Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'release_msvc_runtime.ps1')
 
 function Assert-AmeInstallerLayout {
-    param([Parameter(Mandatory = $true)]$Model, [Parameter(Mandatory = $true)]$Receipt)
+    param([Parameter(Mandatory = $true)]$Model, [Parameter(Mandatory = $true)]$Receipt,
+        [ValidateSet('x64', 'arm64')][string]$Architecture = 'x64')
 
     function Require([bool]$Condition, [string]$Reason) {
         if (-not $Condition) { throw "Installer policy: $Reason" }
@@ -20,7 +21,7 @@ function Assert-AmeInstallerLayout {
     foreach ($row in $Model.Component) {
         $attributes = '256'
         if ($row.Component -cin @('AmeInstallationSettings', 'AmeStartMenu', 'AmeDesktop')) { $attributes = '260' }
-        Require ($row.Attributes -ceq $attributes -and $row.Condition -ceq '') 'conditional or non-x64 component'
+        Require ($row.Attributes -ceq $attributes -and $row.Condition -ceq '') 'conditional or non-64-bit component'
         $directory = $row.Directory_
         $depth = 0
         while ($directory -cne 'AmeProductFolder') {
@@ -49,7 +50,7 @@ function Assert-AmeInstallerLayout {
     }
     $payload = @{}
     foreach ($file in $Receipt.payload.files) { $payload[$file.relativePath] = $file }
-    $brokerRuntime = @(Get-AmeMsvcRuntimePayloadNames)
+    $brokerRuntime = @(Get-AmeMsvcRuntimePayloadNames -Architecture $Architecture)
     Require ($Model.File.Count -eq $payload.Count + $brokerRuntime.Count) 'package file count differs from verified payload'
     $installed = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach ($file in $Model.File) {

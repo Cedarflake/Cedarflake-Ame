@@ -3,13 +3,14 @@ Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'release_classification_runtime.ps1')
 
 function Get-AmeMsvcRuntimePayloadNames {
+    param([ValidateSet('x64', 'arm64')][string]$Architecture = 'x64')
+    if ($Architecture -eq 'arm64') { return @('msvcp140.dll', 'vcruntime140.dll') }
     return @('msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')
 }
 
 function Get-AmeModelMsvcRuntimePayloadNames {
     param([ValidateSet('x64', 'arm64')][string]$Architecture = 'x64')
-    if ($Architecture -eq 'arm64') { return @('msvcp140.dll', 'msvcp140_1.dll', 'vcruntime140.dll') }
-    return @(Get-AmeMsvcRuntimePayloadNames) + @('msvcp140_1.dll')
+    return @(Get-AmeMsvcRuntimePayloadNames -Architecture $Architecture) + @('msvcp140_1.dll')
 }
 
 function Get-AmeMsvcRuntimePayloadPaths {

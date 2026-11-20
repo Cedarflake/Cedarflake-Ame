@@ -12,7 +12,7 @@
 
 namespace ame::installer {
 
-inline constexpr wchar_t kUpgradeCode[] = L"{C284E6B0-1484-4926-A94B-C3EC3840DBBD}";
+inline constexpr wchar_t kUpgradeCode[] = AME_UPGRADE_CODE;
 inline constexpr wchar_t kServiceName[] = L"CedarflakeAmeJournalBroker";
 inline constexpr wchar_t kBrokerName[] = L"cedarflake_ame_journal_broker.exe";
 inline constexpr wchar_t kBrokerIdentityPrefix[] = L"AMEJBID3|protocol=5|max_frame=1048576|sha256=";

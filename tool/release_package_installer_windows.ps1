@@ -3,6 +3,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Tag,
     [Parameter(Mandatory = $true, ParameterSetName = 'Quality')][string]$BundlePath,
     [Parameter(Mandatory = $true, ParameterSetName = 'Quality')][string]$UnsignedEvidencePath,
+    [Parameter(ParameterSetName = 'Quality')][ValidateSet('x64', 'arm64')][string]$Architecture = 'x64',
     [Parameter(Mandatory = $true, ParameterSetName = 'Candidate')][string]$CandidateRoot,
     [Parameter(Mandatory = $true, ParameterSetName = 'Candidate')][string]$SourceCommit,
     [Parameter(ParameterSetName = 'Candidate')][ValidateSet('unsigned', 'signed')][string]$SigningMode = 'unsigned',
@@ -16,6 +17,7 @@ param(
     [Parameter(Mandatory = $true)][string]$CMakePath,
     [Parameter(Mandatory = $true)][string]$OutputDirectory,
     [switch]$AcceptWixBinaryEula,
+    [switch]$MsiOnly,
     [string]$ModelSourceDirectory,
     [string]$PubspecPath,
     [string]$CargoManifestPath,
@@ -36,7 +38,10 @@ $ErrorActionPreference = "Stop"
 if (-not $AcceptWixBinaryEula) {
     throw "Read WiX 7 OSMFEULA.txt and explicitly pass -AcceptWixBinaryEula before using its binary toolchain"
 }
-if (-not [Environment]::Is64BitProcess) { throw "MSI packaging requires a native x64 process" }
+if ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString() -ine $Architecture -or
+    [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString() -ine $Architecture) {
+    throw "MSI packaging and native policy tests require a native Windows $Architecture process"
+}
 $repository = Get-AmeRepositoryRoot
 if ([string]::IsNullOrWhiteSpace($PubspecPath)) { $PubspecPath = Join-Path $repository 'pubspec.yaml' }
 & (Join-Path $PSScriptRoot "release_validate_version.ps1") -Tag $Tag `
@@ -52,7 +57,7 @@ $sourceArguments = if ($PSCmdlet.ParameterSetName -ceq 'Candidate') {
         SigningMode = $SigningMode; ExpectedBrokerPublisher = $ExpectedBrokerPublisher
     }
 } else {
-    @{ BundlePath = $BundlePath; UnsignedEvidencePath = $UnsignedEvidencePath }
+    @{ BundlePath = $BundlePath; UnsignedEvidencePath = $UnsignedEvidencePath; Architecture = $Architecture }
 }
 $installerSource = Get-AmeInstallerSource @sourceArguments
 $bundle = $installerSource.Root
@@ -64,17 +69,15 @@ if (-not $output.StartsWith($buildRoot + '\', [StringComparison]::OrdinalIgnoreC
 foreach ($path in @($bundle, $output, $CMakePath)) {
     Assert-AmeUnsignedBuildPath $path
 }
-$msi = Join-Path $output "Cedarflake-Ame-$Tag-windows-x64.msi"
+$msi = Join-Path $output "Cedarflake-Ame-$Tag-windows-$Architecture.msi"
 if (Test-Path -LiteralPath $msi) { throw "Installer output already exists; preserve the previous package" }
-Assert-AmeInstallerPayloadNames $installerSource.Files -RequireModels $false
+Assert-AmeInstallerPayloadNames $installerSource.Files -RequireModels $false -Architecture $Architecture
 $toolLock = Enter-AmeRepositoryToolLock
 $leases = [Collections.Generic.List[IDisposable]]::new()
 try {
     [void][IO.Directory]::CreateDirectory($output)
     $wix = Get-AmeInstallerWixTool -PackagePath $WixSdkPackagePath -SdkDirectory $WixSdkDirectory
     $wixUi = Get-AmeInstallerWixUi -PackagePath $WixUiPackagePath -Directory $WixUiDirectory
-    $wixBootstrapper = Get-AmeInstallerWixBootstrapper -PackagePath $WixBootstrapperPackagePath `
-        -Directory $WixBootstrapperDirectory
     foreach ($entry in $installerSource.Files) {
         $path = Join-Path $bundle $entry.relativePath
         Assert-AmeUnsignedBuildPath $path
@@ -83,6 +86,9 @@ try {
         if ($stream.Length -ne $entry.length -or
             (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ine $entry.sha256) {
             throw "Installer payload differs from its verified Release manifest"
+        }
+        if ([IO.Path]::GetExtension($path) -in @('.exe', '.dll')) {
+            Assert-AmeWindowsPeImage -Path $path -Architecture $Architecture
         }
     }
     $modelManifest = Get-AmeClassificationModelsManifest -MetadataDirectory $ModelMetadataDirectory
@@ -96,22 +102,24 @@ try {
         Assert-AmeClassificationRuntimeArtifact $path $entry
     }
     $installerFiles = @($installerSource.Files) + $modelFiles
-    Assert-AmeInstallerPayloadNames $installerFiles -ModelManifest $modelManifest
+    Assert-AmeInstallerPayloadNames $installerFiles -ModelManifest $modelManifest -Architecture $Architecture
+    $platform = if ($Architecture -eq 'arm64') { 'ARM64' } else { 'x64' }
     $nativeBuild = Join-Path $output "native"
     Invoke-AmeChecked $CMakePath @("-S", (Join-Path $repository "windows/installer"), "-B", $nativeBuild,
-        "-G", "Visual Studio 17 2022", "-A", "x64")
+        "-G", "Visual Studio 17 2022", "-A", $platform)
     Invoke-AmeChecked $CMakePath @("--build", $nativeBuild, "--config", "Release", "--parallel", "1")
     & (Join-Path $nativeBuild "Release/ame_installer_policy_test.exe")
     if ($LASTEXITCODE -ne 0) { throw "Installer native policy tests failed" }
     $admission = Join-Path $nativeBuild "Release/ame_installer_admission.dll"
-    Assert-AmeWindowsPeImage -Path $admission -Architecture x64
+    Assert-AmeWindowsPeImage -Path $admission -Architecture $Architecture
     $leases.Add([IO.FileStream]::new($admission, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read))
     $generated = Join-Path $output "application_files.wxs"
     New-AmeInstallerApplicationSource -Files $installerFiles -BundlePath $bundle -OutputPath $generated `
-        -ModelDirectory $modelDirectory -ModelManifest $modelManifest
+        -ModelDirectory $modelDirectory -ModelManifest $modelManifest -Architecture $Architecture
     $broker = @($installerSource.Files | Where-Object { $_.relativePath -ceq "cedarflake_ame_journal_broker.exe" })[0]
     $identity = "AMEJBID3|protocol=5|max_frame=1048576|sha256=" + ([string]$broker.sha256).ToUpperInvariant()
-    $productCode = Get-AmeInstallerGuid "product/$version"
+    $productCode = Get-AmeInstallerGuid "product/$version" $Architecture
+    $upgradeCode = $script:AmeInstallerFamilies.$Architecture
     $sources = @((Join-Path $repository "windows/installer/package.wxs"),
         (Join-Path $repository "windows/installer/ui.wxs"),
         (Join-Path $repository "windows/installer/options.wxs"), $generated)
@@ -120,9 +128,10 @@ try {
     }
     # WIX1149 also warns on SID/privilege configuration; its suggested Util replacement only
     # supports failure actions. ADR 0027 limits native rows to types 5/6 and requires SCM readback.
-    $arguments = @("-acceptEula", "wix7", "build", "-arch", "x64", "-wx", "-sw1149", "-ct", "1",
+    $arguments = @("-acceptEula", "wix7", "build", "-arch", $Architecture, "-wx", "-sw1149", "-ct", "1",
         "-ext", $wixUi, "-culture", "zh-CN",
         "-d", "ProductVersion=$version", "-d", "ProductCode=$productCode",
+        "-d", "UpgradeCode=$upgradeCode", "-d", "Architecture=$platform",
         "-d", "BrokerPath=$(Join-Path $bundle 'cedarflake_ame_journal_broker.exe')",
         "-d", "BrokerIdentity=$identity", "-d", "AdmissionDll=$admission",
         "-d", "ApplicationIcon=$(Join-Path $repository 'windows/runner/resources/app_icon.ico')",
@@ -138,11 +147,11 @@ try {
         applicationVersion = $applicationVersion
         productVersion = $version
         productCode = $productCode
-        upgradeCode = $script:AmeInstallerUpgradeCode
+        upgradeCode = $upgradeCode
         packageSha256 = (Get-FileHash -LiteralPath $msi -Algorithm SHA256).Hash
         admissionSha256 = (Get-FileHash -LiteralPath $admission -Algorithm SHA256).Hash
         brokerIdentity = $identity
-        payload = [ordered]@{ machine = 'windows-x64'; configuration = 'Release'; fileCount = $installerFiles.Count; files = $installerFiles }
+        payload = [ordered]@{ machine = "windows-$Architecture"; configuration = 'Release'; fileCount = $installerFiles.Count; files = $installerFiles }
         createdUtc = [DateTime]::UtcNow.ToString("o")
     }
     $model = Read-AmeInstallerDatabase -PackagePath $msi `
@@ -152,10 +161,14 @@ try {
     & (Join-Path $PSScriptRoot 'release_test_installer_ui.ps1') -PackagePath $msi `
         -DtfAssemblyPath (Join-Path $WixSdkDirectory 'tools/net472/WixToolset.Dtf.WindowsInstaller.dll')
     $receipt.databasePolicy = "passed"
-    $setup = New-AmeInstallerBundle -Wix $wix -BootstrapperExtension $wixBootstrapper -PackagePath $msi `
-        -Version $version -Tag $Tag -OutputDirectory $output -Repository $repository
-    $receipt.setupFile = [IO.Path]::GetFileName($setup)
-    $receipt.setupSha256 = (Get-FileHash -LiteralPath $setup -Algorithm SHA256).Hash
+    if (-not $MsiOnly -and $Architecture -eq 'x64') {
+        $wixBootstrapper = Get-AmeInstallerWixBootstrapper -PackagePath $WixBootstrapperPackagePath `
+            -Directory $WixBootstrapperDirectory
+        $setup = New-AmeInstallerBundle -Wix $wix -BootstrapperExtension $wixBootstrapper -PackagePath $msi `
+            -Version $version -Tag $Tag -OutputDirectory $output -Repository $repository
+        $receipt.setupFile = [IO.Path]::GetFileName($setup)
+        $receipt.setupSha256 = (Get-FileHash -LiteralPath $setup -Algorithm SHA256).Hash
+    }
     [IO.File]::WriteAllText((Join-Path $output "package.json"), ($receipt | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
     Write-Host "Windows Installer package built: $msi"
 } finally {

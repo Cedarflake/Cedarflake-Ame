@@ -32,12 +32,19 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 try {
     $archive = [IO.Compression.ZipFile]::Open($zipPath, [IO.Compression.ZipArchiveMode]::Create)
     try {
+        $metadataEntry = $archive.CreateEntry('Microsoft.ML.OnnxRuntime.nuspec')
+        $writer = [IO.StreamWriter]::new($metadataEntry.Open(), $utf8)
+        try { $writer.Write('<package><metadata><version>1.2.3</version><repository commit="abc123"/></metadata></package>') }
+        finally { $writer.Dispose() }
         foreach ($file in $fixture.files) {
             $bytes = $utf8.GetBytes("fixed runtime fixture: $($file.name)")
+            if ($file.name -ceq 'VERSION_NUMBER') { $bytes = $utf8.GetBytes("1.2.3`r`n") }
+            if ($file.name -ceq 'GIT_COMMIT_ID') { $bytes = $utf8.GetBytes("abc123 `r`n") }
             $file.length = $bytes.Length
             $hash = [Security.Cryptography.SHA256]::Create()
             try { $file.sha256 = ([BitConverter]::ToString($hash.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant() }
             finally { $hash.Dispose() }
+            if ($null -ne $file.PSObject.Properties['nuspecField']) { continue }
             $entry = $archive.CreateEntry($fixture.archive.prefix + $file.entry)
             $stream = $entry.Open()
             try { $stream.Write($bytes, 0, $bytes.Length) } finally { $stream.Dispose() }

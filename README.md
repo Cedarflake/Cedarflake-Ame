@@ -65,12 +65,17 @@ flutter pub get
 flutter run -d windows
 ```
 
-### Windows 11 ARM64 preview
+### Windows 11 installer previews
 
-The [ARM64 preview workflow](.github/workflows/quality_windows_arm64.yml) builds an unsigned
-portable app on Windows 11 ARM64. Download the `Cedarflake-Ame-windows-arm64-preview` artifact
-from a successful run, extract the whole ZIP, then open `cedarflake_ame.exe`. Like the x64 portable
-build, it downloads the optional models on request. The MSI and installed journal service are x64-only.
+The [preview workflow](.github/workflows/quality_windows_arm64.yml) builds unsigned **x64 and ARM64
+MSI installers**. Download `Cedarflake-Ame-windows-x64-msi` for Intel or AMD PCs, or
+`Cedarflake-Ame-windows-arm64-msi` for Windows on Arm. Extract the MSI from the Actions artifact
+and run it. Both include the offline models and the native journal service. If you previously
+installed the x64 edition on an Arm PC, uninstall it before installing the ARM64 edition.
+Your catalog, preferences and source files are retained.
+
+The `Cedarflake-Ame-windows-arm64-preview` artifact contains the ARM64 portable app. Extract
+the whole ZIP and open `cedarflake_ame.exe`. The portable app downloads optional models on request.
 
 For a native build, use Visual Studio's ARM64 C++ tools and ARM64 Rust. Set
 `$env:FLUTTER_HOST_ARCH = "arm64"` before first running Flutter from a fresh checkout of the

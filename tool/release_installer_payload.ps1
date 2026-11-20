@@ -3,33 +3,17 @@ Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
 . (Join-Path $PSScriptRoot "release_classification_models.ps1")
 . (Join-Path $PSScriptRoot "release_installer_version.ps1")
+. (Join-Path $PSScriptRoot "release_installer_identity.ps1")
 . (Join-Path $PSScriptRoot "release_installer_broker_runtime.ps1")
 
-$script:AmeInstallerUpgradeCode = "C284E6B0-1484-4926-A94B-C3EC3840DBBD"
 $script:AmeInstallerNamespace = "http://wixtoolset.org/schemas/v4/wxs"
 $script:AmeInstallerDirectorySddl = "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200A9;;;BU)"
 $script:AmeInstallerFileSddl = "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;0x1200A9;;;BU)"
 
-function Get-AmeInstallerGuid {
-    param([Parameter(Mandatory = $true)][string]$Name)
-
-    $namespaceBytes = ([guid]$script:AmeInstallerUpgradeCode).ToByteArray()
-    [Array]::Reverse($namespaceBytes, 0, 4)
-    [Array]::Reverse($namespaceBytes, 4, 2)
-    [Array]::Reverse($namespaceBytes, 6, 2)
-    $nameBytes = [Text.Encoding]::UTF8.GetBytes($Name)
-    $sha1 = [Security.Cryptography.SHA1]::Create()
-    try { $digest = $sha1.ComputeHash($namespaceBytes + $nameBytes) } finally { $sha1.Dispose() }
-    $digest[6] = ($digest[6] -band 0x0F) -bor 0x50
-    $digest[8] = ($digest[8] -band 0x3F) -bor 0x80
-    $hex = -join @($digest[0..15] | ForEach-Object { $_.ToString("X2") })
-    return "{0}-{1}-{2}-{3}-{4}" -f $hex.Substring(0, 8), $hex.Substring(8, 4),
-        $hex.Substring(12, 4), $hex.Substring(16, 4), $hex.Substring(20, 12)
-}
-
 function Assert-AmeInstallerPayloadNames {
     param([Parameter(Mandatory = $true)][object[]]$Files, [bool]$RequireModels = $true,
-        [object]$ModelManifest = (Get-AmeClassificationModelsManifest))
+        [object]$ModelManifest = (Get-AmeClassificationModelsManifest),
+        [ValidateSet('x64', 'arm64')][string]$Architecture = 'x64')
 
     if ($Files.Count -eq 0 -or $Files.Count -gt 4096) {
         throw "Installer payload must contain between 1 and 4096 files"
@@ -54,7 +38,8 @@ function Assert-AmeInstallerPayloadNames {
         "cedarflake_ame.exe", "cedarflake_ame_journal_broker.exe",
         "cedarflake_ame_classification_worker.exe",
         "rust_lib_cedarflake_ame.dll", "flutter_windows.dll", "data/app.so", "data/icudtl.dat"
-    ) + @(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeMsvcRuntimePayloadPaths)
+    ) + @(Get-AmeClassificationRuntimePayloadNames -Architecture $Architecture) +
+        @(Get-AmeMsvcRuntimePayloadPaths -Architecture $Architecture)
     if ($RequireModels) { $requiredFiles += @(Get-AmeClassificationModelsPayloadNames $ModelManifest) }
     foreach ($required in $requiredFiles) {
         if (-not $names.Contains($required)) { throw "Installer payload is missing $required" }
@@ -85,15 +70,16 @@ function New-AmeInstallerApplicationSource {
         [Parameter(Mandatory = $true)][string]$BundlePath,
         [Parameter(Mandatory = $true)][string]$OutputPath,
         [string]$ModelDirectory,
-        [object]$ModelManifest = (Get-AmeClassificationModelsManifest)
+        [object]$ModelManifest = (Get-AmeClassificationModelsManifest),
+        [ValidateSet('x64', 'arm64')][string]$Architecture = 'x64'
     )
 
-    Assert-AmeInstallerPayloadNames -Files $Files -ModelManifest $ModelManifest
+    Assert-AmeInstallerPayloadNames -Files $Files -ModelManifest $ModelManifest -Architecture $Architecture
     $document = [Xml.XmlDocument]::new()
     $root = $document.CreateElement("Wix", $script:AmeInstallerNamespace)
     [void]$document.AppendChild($root)
     $fragment = Add-AmeInstallerXmlElement $root "Fragment"
-    Add-AmeInstallerBrokerRuntime -Fragment $fragment -BundlePath $BundlePath
+    Add-AmeInstallerBrokerRuntime -Fragment $fragment -BundlePath $BundlePath -Architecture $Architecture
     $directory = Add-AmeInstallerXmlElement $fragment "DirectoryRef" @{ Id = "AMEAPPDIR" }
     $group = Add-AmeInstallerXmlElement $fragment "ComponentGroup" @{ Id = "AmeApplicationFiles" }
     $directories = @{ "" = $directory }
@@ -130,7 +116,7 @@ function New-AmeInstallerApplicationSource {
         if ($separator -ge 0) { $parent = $relative.Substring(0, $separator) }
         $id = "file_" + (Get-AmeInstallerGuid "file/$relative").Replace("-", "")
         $component = Add-AmeInstallerXmlElement $directories[$parent] "Component" @{
-            Id = "component_$id"; Guid = Get-AmeInstallerGuid "component/$relative"; Bitness = "always64"
+            Id = "component_$id"; Guid = Get-AmeInstallerGuid "component/$relative" $Architecture; Bitness = "always64"
         }
         $fileId = $id
         if ($relative -ceq "cedarflake_ame.exe") { $fileId = "AmeApplicationExecutable" }

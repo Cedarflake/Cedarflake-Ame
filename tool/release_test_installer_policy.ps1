@@ -7,6 +7,11 @@ function Test-AmeInstallerPolicyRegressions {
     Assert-AmeInstallerPolicy $Model $Receipt
     $encoded = $Model | ConvertTo-Json -Depth 12
     $rejections = [ordered]@{
+        wrong_architecture = {
+            param($value)
+            $value.Template = if ($value.Template -ceq 'x64;2052') { 'Arm64;2052' } else { 'x64;2052' }
+        }
+        foreign_upgrade_family = { param($value) ($value.Property | Where-Object Property -CEQ 'UpgradeCode').Value = [guid]::Empty.ToString('B') }
         foreign_service = { param($value) $value.ServiceInstall[0].Name = 'OtherService' }
         broad_privileges = { param($value) ($value.MsiServiceConfig | Where-Object ConfigType -CEQ '6').Argument = 'SeManageVolumePrivilege[~]SeImpersonatePrivilege[~]SeDebugPrivilege' }
         missing_caller_impersonation = { param($value) ($value.MsiServiceConfig | Where-Object ConfigType -CEQ '6').Argument = 'SeManageVolumePrivilege' }
