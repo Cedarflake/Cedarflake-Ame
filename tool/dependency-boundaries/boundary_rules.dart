@@ -99,6 +99,7 @@ const _presentationPackages = {
   "flutter",
   "flutter_localizations",
   "flutter_riverpod",
+  "intl",
   "material_symbols_icons",
 };
 
@@ -247,6 +248,17 @@ List<BoundaryViolation> checkDartBoundaries(
     }
   }
   for (final component in dependencyCycles(modules)) {
+    // gen-l10n imports each implementation into the base that they extend.
+    const catalog = "lib/app/presentation/l10n/generated/app_localizations";
+    const generatedCycle = {
+      "$catalog.dart",
+      "${catalog}_en.dart",
+      "${catalog}_zh.dart",
+    };
+    if (component.length == generatedCycle.length &&
+        component.every(generatedCycle.contains)) {
+      continue;
+    }
     final violation = BoundaryViolation(
       "cycle",
       component.first,

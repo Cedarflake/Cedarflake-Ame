@@ -15,6 +15,8 @@ void main() {
   testWidgets("uses Simplified Chinese locale and dense text geometry", (
     tester,
   ) async {
+    tester.platformDispatcher.localesTestValue = const [Locale("zh", "CN")];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
     await tester.pumpWidget(
       ProviderScope(
         overrides: applicationTestOverrides(),
@@ -23,7 +25,7 @@ void main() {
     );
 
     final context = tester.element(find.byType(UnifiedLibraryScreen));
-    expect(Localizations.localeOf(context), ameLocale);
+    expect(Localizations.localeOf(context), ameChineseLocale);
     expect(
       MaterialLocalizations.of(context).scriptCategory,
       ScriptCategory.dense,

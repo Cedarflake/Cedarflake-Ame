@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_choice.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/notifications/ame_notification_strings.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
@@ -32,6 +33,7 @@ class AmeSettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final preferences = ref.watch(amePreferencesControllerProvider);
+    final strings = context.l10n;
     final buildIdentity = ref.watch(ameBuildIdentityProvider);
     return ColoredBox(
       color: AmeWorkbenchSurfaces.of(context).content,
@@ -53,7 +55,7 @@ class AmeSettingsPage extends ConsumerWidget {
                             const Icon(Symbols.settings_rounded, size: 30),
                             const SizedBox(width: 12),
                             Text(
-                              "设置",
+                              strings.settingsTitle,
                               style: Theme.of(context).textTheme.headlineMedium
                                   ?.copyWith(fontWeight: ameFontWeightRegular),
                             ),
@@ -61,27 +63,60 @@ class AmeSettingsPage extends ConsumerWidget {
                         ),
                         const SizedBox(height: 36),
                         SettingsSection(
-                          title: "个性化",
+                          title: strings.settingsPersonalization,
                           children: [
                             SettingsRow(
+                              icon: Symbols.language_rounded,
+                              title: strings.settingsLanguage,
+                              subtitle: Text(strings.settingsLanguageHelp),
+                              trailing: AmeChoice<AmeLanguagePreference>.menu(
+                                key: const Key("ame-language-choice"),
+                                value: preferences.language,
+                                entries: [
+                                  AmeChoiceEntry(
+                                    value: AmeLanguagePreference.system,
+                                    label: strings.languageSystem,
+                                  ),
+                                  AmeChoiceEntry(
+                                    value: AmeLanguagePreference.zhHans,
+                                    label: strings.languageChinese,
+                                  ),
+                                  AmeChoiceEntry(
+                                    value: AmeLanguagePreference.en,
+                                    label: strings.languageEnglish,
+                                  ),
+                                ],
+                                onSelected: (value) {
+                                  if (value != null) {
+                                    unawaited(
+                                      _savePreferences(
+                                        ref,
+                                        preferences.copyWith(language: value),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                            SettingsRow(
                               icon: Symbols.palette_rounded,
-                              title: "应用主题",
-                              subtitle: const Text("选择明暗外观，主题色跟随 Windows"),
+                              title: strings.settingsTheme,
+                              subtitle: Text(strings.settingsThemeHelp),
                               trailing: AmeChoice<AmeThemePreference>.menu(
                                 key: const Key("ame-theme-choice"),
                                 value: preferences.theme,
-                                entries: const [
+                                entries: [
                                   AmeChoiceEntry(
                                     value: AmeThemePreference.system,
-                                    label: "跟随系统",
+                                    label: strings.languageSystem,
                                   ),
                                   AmeChoiceEntry(
                                     value: AmeThemePreference.light,
-                                    label: "浅色",
+                                    label: strings.themeLight,
                                   ),
                                   AmeChoiceEntry(
                                     value: AmeThemePreference.dark,
-                                    label: "深色",
+                                    label: strings.themeDark,
                                   ),
                                 ],
                                 onSelected: (value) {
@@ -100,24 +135,24 @@ class AmeSettingsPage extends ConsumerWidget {
                         ),
                         const SizedBox(height: 28),
                         SettingsSection(
-                          title: "浏览",
+                          title: strings.settingsBrowsing,
                           children: [
                             SettingsRow(
                               icon: Symbols.mouse_rounded,
-                              title: "鼠标滚轮",
-                              subtitle: const Text("查看单张图片时滚动滚轮的行为"),
+                              title: strings.settingsWheel,
+                              subtitle: Text(strings.settingsWheelHelp),
                               trailing:
                                   AmeChoice<ImageViewerWheelBehavior>.menu(
                                     value: preferences.viewerWheelBehavior,
-                                    entries: const [
+                                    entries: [
                                       AmeChoiceEntry(
                                         value: ImageViewerWheelBehavior.zoom,
-                                        label: "放大或缩小",
+                                        label: strings.settingsWheelZoom,
                                       ),
                                       AmeChoiceEntry(
                                         value: ImageViewerWheelBehavior
                                             .previousOrNext,
-                                        label: "上一张或下一张",
+                                        label: strings.settingsWheelNavigate,
                                       ),
                                     ],
                                     onSelected: (value) {
@@ -136,22 +171,22 @@ class AmeSettingsPage extends ConsumerWidget {
                             ),
                             SettingsRow(
                               icon: Symbols.image_rounded,
-                              title: "打开图片",
-                              subtitle: const Text("自动模式缩小大图，小图保持实际大小"),
+                              title: strings.settingsOpenPhoto,
+                              subtitle: Text(strings.settingsOpenPhotoHelp),
                               trailing: AmeChoice<ImageViewerOpenBehavior>.menu(
                                 value: preferences.viewerOpenBehavior,
-                                entries: const [
+                                entries: [
                                   AmeChoiceEntry(
                                     value: ImageViewerOpenBehavior.automatic,
-                                    label: "自动",
+                                    label: strings.viewerAutomatic,
                                   ),
                                   AmeChoiceEntry(
                                     value: ImageViewerOpenBehavior.fitWindow,
-                                    label: "适应窗口",
+                                    label: strings.viewerFitWindow,
                                   ),
                                   AmeChoiceEntry(
                                     value: ImageViewerOpenBehavior.actualSize,
-                                    label: "实际大小",
+                                    label: strings.viewerActualSize,
                                   ),
                                 ],
                                 onSelected: (value) {
@@ -171,22 +206,24 @@ class AmeSettingsPage extends ConsumerWidget {
                             SettingsRow(
                               key: const Key("preview-loading-speed-setting"),
                               icon: Symbols.speed_rounded,
-                              title: "缩略图加载速度",
-                              subtitle: const Text("档位越大，同时加载越多，占用资源也越高"),
+                              title: strings.settingsThumbnailSpeed,
+                              subtitle: Text(
+                                strings.settingsThumbnailSpeedHelp,
+                              ),
                               trailing: AmeChoice<PreviewLoadingSpeed>.menu(
                                 value: preferences.previewLoadingSpeed,
-                                entries: const [
+                                entries: [
                                   AmeChoiceEntry(
                                     value: PreviewLoadingSpeed.small,
-                                    label: "小",
+                                    label: strings.sizeSmall,
                                   ),
                                   AmeChoiceEntry(
                                     value: PreviewLoadingSpeed.medium,
-                                    label: "中",
+                                    label: strings.sizeMedium,
                                   ),
                                   AmeChoiceEntry(
                                     value: PreviewLoadingSpeed.large,
-                                    label: "大",
+                                    label: strings.sizeLarge,
                                   ),
                                 ],
                                 onSelected: (value) {
@@ -218,18 +255,18 @@ class AmeSettingsPage extends ConsumerWidget {
                         ),
                         const SizedBox(height: 28),
                         SettingsSection(
-                          title: "关于",
+                          title: strings.settingsAbout,
                           children: [
                             SettingsRow(
                               icon: Symbols.info_rounded,
-                              title: "版本",
+                              title: strings.settingsVersion,
                               subtitle: Text(buildIdentity.applicationLabel),
                             ),
                             SettingsRow(
                               key: const Key("open-source-notices-setting"),
                               icon: Symbols.code_rounded,
-                              title: "开源软件声明",
-                              subtitle: const Text("查看 Ame 使用的开源软件与许可"),
+                              title: strings.settingsLicenses,
+                              subtitle: Text(strings.settingsLicensesHelp),
                               trailing: const Icon(
                                 Symbols.chevron_right_rounded,
                               ),

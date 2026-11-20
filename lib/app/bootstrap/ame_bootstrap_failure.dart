@@ -4,6 +4,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../features/library/application/ports/library_catalog.dart";
 import "../../features/settings/domain/ame_preferences.dart";
+import "../../features/settings/presentation/ame_language_preference.dart";
 import "../../features/settings/presentation/ame_theme_preference.dart";
 import "../presentation/ame_localizations.dart";
 import "../presentation/ame_system_theme.dart";
@@ -27,7 +28,8 @@ class AmeBootstrapFailure extends StatelessWidget {
     return AmeSystemThemeBuilder(
       builder: (context, seedColor) => MaterialApp(
         debugShowCheckedModeBanner: false,
-        locale: ameLocale,
+        locale: amePreferredLocale(preferences.language),
+        localeListResolutionCallback: resolveAmeLocales,
         supportedLocales: ameSupportedLocales,
         localizationsDelegates: ameLocalizationsDelegates,
         theme: buildAmeTheme(seedColor: seedColor),
@@ -50,20 +52,20 @@ class AmeBootstrapFailure extends StatelessWidget {
                         const Icon(Symbols.error_rounded, size: 48),
                         const SizedBox(height: 20),
                         Text(
-                          "Cedarflake Ame 无法启动",
+                          context.l10n.startupFailureTitle,
                           style: Theme.of(context).textTheme.headlineSmall,
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          bootstrapFailureMessage(error),
+                          bootstrapFailureMessage(context.l10n, error),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 20),
                         OutlinedButton.icon(
                           onPressed: () => _copyDiagnostics(context),
                           icon: const Icon(Symbols.content_copy_rounded),
-                          label: const Text("复制诊断信息"),
+                          label: Text(context.l10n.copyDiagnostics),
                         ),
                       ],
                     ),
@@ -88,19 +90,19 @@ class AmeBootstrapFailure extends StatelessWidget {
     }
     showAmeTransientFeedback(
       context,
-      message: "诊断信息已复制",
+      message: context.l10n.diagnosticsCopied,
       severity: AmeNotificationSeverity.success,
     );
   }
 }
 
-String bootstrapFailureMessage(Object error) {
+String bootstrapFailureMessage(AppLocalizations strings, Object error) {
   if (error case LibraryCatalogFailure(:final code)) {
     return switch (code) {
-      "catalog_schema_unsupported" => "图库数据来自不受支持的版本，无法安全打开。请复制诊断信息以便排查。",
-      "catalog_database_error" => "图库数据暂时无法读取。请确认磁盘可用后重新启动；如果仍然失败，请复制诊断信息以便排查。",
-      _ => "图库加载失败。请重新启动 Ame；如果仍然失败，请复制诊断信息以便排查。",
+      "catalog_schema_unsupported" => strings.startupUnsupportedCatalog,
+      "catalog_database_error" => strings.startupDatabaseError,
+      _ => strings.startupCatalogError,
     };
   }
-  return "应用组件加载失败。请重新启动 Ame；如果仍然失败，请复制诊断信息以便排查。";
+  return strings.startupComponentError;
 }

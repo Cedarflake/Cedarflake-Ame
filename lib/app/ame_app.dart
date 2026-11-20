@@ -5,6 +5,7 @@ import "../features/library/presentation/library_model_installation_notification
 import "../features/library/presentation/pages/unified_library_screen.dart";
 import "../features/library/presentation/widgets/library_analysis_activity.dart";
 import "../features/settings/application/ame_preferences.dart";
+import "../features/settings/presentation/ame_language_preference.dart";
 import "../features/settings/presentation/ame_theme_preference.dart";
 import "presentation/ame_localizations.dart";
 import "presentation/ame_scroll_motion_theme.dart";
@@ -22,7 +23,8 @@ class AmeApp extends ConsumerWidget {
       builder: (context, seedColor) => MaterialApp(
         debugShowCheckedModeBanner: false,
         title: "Cedarflake Ame",
-        locale: ameLocale,
+        locale: amePreferredLocale(preferences.language),
+        localeListResolutionCallback: resolveAmeLocales,
         supportedLocales: ameSupportedLocales,
         localizationsDelegates: ameLocalizationsDelegates,
         theme: buildAmeTheme(seedColor: seedColor),

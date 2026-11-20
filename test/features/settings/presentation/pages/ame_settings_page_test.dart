@@ -21,6 +21,7 @@ import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../support/application_test_bindings.dart";
+import "../../../../support/localized_test_app.dart";
 
 void main() {
   testWidgets("About and licenses use the same executable version", (
@@ -36,7 +37,7 @@ void main() {
             const AmeBuildIdentity(name: "0.1.0-beta.1", number: "4"),
           ),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
         ),
@@ -66,7 +67,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
@@ -104,6 +105,7 @@ void main() {
     expect(find.byKey(const Key("ame-settings-page")), findsOneWidget);
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.text("个性化"), findsOneWidget);
+    expect(find.text("应用语言"), findsOneWidget);
     expect(find.text("浏览"), findsOneWidget);
     expect(find.text("智能相册"), findsOneWidget);
     expect(find.text("GPU 加速"), findsOneWidget);
@@ -126,11 +128,11 @@ void main() {
     expect(find.textContaining(r"\\?\C:\AmeData"), findsNothing);
     expect(
       find.byWidgetPredicate((widget) => widget is AmeChoice<Object?>),
-      findsNWidgets(5),
+      findsNWidgets(6),
     );
     expect(
       find.byWidgetPredicate((widget) => widget is AmePopupMenuButton<Object?>),
-      findsNWidgets(5),
+      findsNWidgets(6),
     );
     expect(find.byType(MenuAnchor), findsNothing);
     expect(
@@ -142,7 +144,7 @@ void main() {
         of: find.byWidgetPredicate((widget) => widget is AmeChoice<Object?>),
         matching: find.byIcon(Symbols.arrow_drop_down_rounded),
       ),
-      findsNWidgets(5),
+      findsNWidgets(6),
     );
     expect(
       find.descendant(
@@ -179,7 +181,7 @@ void main() {
           overrides: applicationTestOverrides([
             storageSettingsGatewayProvider.overrideWithValue(gateway),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             theme: buildAmeTheme(),
             home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
           ),
@@ -242,7 +244,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
         ),
@@ -282,7 +284,7 @@ void main() {
           overrides: applicationTestOverrides([
             storageSettingsGatewayProvider.overrideWithValue(gateway),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             theme: buildAmeTheme(),
             home: Scaffold(
               body: AmeSettingsPage(
@@ -340,7 +342,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
         ),
@@ -382,7 +384,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
         ),
@@ -439,7 +441,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: SingleChildScrollView(
               child: StatefulBuilder(
@@ -508,7 +510,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: SingleChildScrollView(
               child: StatefulBuilder(
@@ -692,7 +694,7 @@ void main() {
           amePreferenceStoreProvider.overrideWithValue(preferenceStore),
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
@@ -768,7 +770,7 @@ void main() {
           ),
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
@@ -802,7 +804,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
         ),
@@ -849,7 +851,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
@@ -940,7 +942,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
@@ -1003,7 +1005,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
