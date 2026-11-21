@@ -94,6 +94,7 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
       curve: Curves.easeOutCubic,
       reverseCurve: Curves.easeInCubic,
     );
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_handlePointerEvent);
   }
 
   @override
@@ -126,6 +127,14 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
   void _handleEnter(PointerEnterEvent event) {
     _isPointerInside = true;
     _scheduleShow();
+  }
+
+  void _handlePointerEvent(PointerEvent event) {
+    if (event is PointerDownEvent) {
+      _isPointerInside = false;
+      _isLongPressActive = false;
+      _removeImmediately();
+    }
   }
 
   void _handleExit(PointerExitEvent event) {
@@ -294,6 +303,9 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
 
   @override
   void dispose() {
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(
+      _handlePointerEvent,
+    );
     _removeImmediately();
     _opacityAnimation.dispose();
     _animationController.dispose();

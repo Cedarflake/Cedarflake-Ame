@@ -129,3 +129,13 @@ The three language cases passed at 800 × 560 with 150% text, checking separatio
 and the unchanged source path. The original layout failed the separation check with a zero-pixel
 gap. A rebuilt x64 Debug client also displayed the English camera fields and timestamps in aligned,
 separated columns. The owner contains 157 production lines and its focused suite contains 61 lines.
+
+## Action tooltip dismissal, 2026-11-21
+
+The Windows tooltip now retires its pending timer and visible entry on pointer press. The original
+favorite regression left its old hover text visible after pressing the button. Thirteen focused
+cases now pass for favorite save/refresh, re-entry, pending hover, touch long-press, retained
+surfaces, semantic labels and dialog focus. The rebuilt x64 client showed the hover disappear on
+favorite activation and stay absent after the committed state refreshed. Accessible action labels
+remain available. The overlay owner has 398 production lines and no inline tests; its lifecycle and
+favorite suites contain 238 and 126 lines.

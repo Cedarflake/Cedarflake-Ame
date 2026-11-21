@@ -401,6 +401,9 @@ framework `AnimationController`, and is removed after exit or target disposal. I
 an idle route nor replaces focus, keyboard, activation, or screen-reader ownership. Automatic focus,
 keyboard focus and focus restoration do not show or retain the visual tooltip; the stable semantic
 tooltip remains available to assistive technology. Touch long-press remains an explicit visual trigger.
+Pointer presses cancel both pending hover timers and visible entries, matching the pinned Material
+tooltip's default tap-to-dismiss behavior. Async action labels cannot reopen a dismissed hover;
+re-entering the target starts a fresh wait and shows its current action.
 Other platforms
 retain the first-party tooltip. Updating a visible tooltip from a target rebuild schedules its
 overlay invalidation after that frame: the root entry is a sibling, not a build descendant. The
