@@ -89,10 +89,7 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
         workspace: LibraryWorkspace.duplicates,
         expanded:
             preferences.sidebarExpanded ??
-            constraints.maxWidth +
-                    LibraryWorkbenchMetrics.railWidth +
-                    LibraryWorkbenchMetrics.contentInset >=
-                940,
+            MediaQuery.sizeOf(context).width >= 940,
         sidebarWidth: preferences.sidebarWidth.clamp(
           ameMinimumSidebarWidth,
           ameMaximumSidebarWidth,

@@ -99,3 +99,24 @@ Sidebar section toggles use complete localized messages with a typed section-nam
 The three locale cases in the 46-line sidebar toggle suite passed locally, checking both tooltip
 and accessibility tooltip text before and after collapse and expansion. English retains the
 space before the section name, and Japanese places the section before the action.
+
+## Localized rail geometry, 2026-11-21
+
+The language workflow reproduced the background discontinuity at `98329662`: English expanded the
+rail to 141 logical pixels in the widget fixture while the chrome still started at 72. The frame
+now lays out the rail and hamburger in one column beside the chrome. The installed Material rail
+keeps its label sizing, selection and accessibility behavior; no duplicate text measurement is used.
+
+Nineteen focused cases passed across the language workflow, workbench retention, accessibility,
+duplicate navigation and shell layout. The language cases check the adjoining backgrounds,
+hamburger centerline and gallery search alignment in all three languages at 100% and 150% text
+size. One combined run stopped with a Dart allocation failure; the interrupted five-case shell
+suite passed when run separately. The dependency gate passed all 632 modules without exceptions.
+The rebuilt x64 Debug client showed continuous backgrounds after English, Japanese and Chinese
+switches in Settings and after collapsing and expanding the English gallery sidebar. The preview
+was left open in its original English setting. ARM64 client execution remains outside this local check.
+
+The layout owners contain 74 production lines in `library_workbench_frame.dart` and 179 in
+`library_global_bar.dart`, with no inline tests. The 356-line workbench and 2,034-line screen only
+change header composition and its callback. Dedicated workbench and screen suites contain 231 and
+373 lines; the shared language workflow and its widget entry contain 181 and 50 lines.

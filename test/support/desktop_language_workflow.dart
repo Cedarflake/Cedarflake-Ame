@@ -1,6 +1,7 @@
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/app/presentation/ame_localizations.dart";
 import "package:cedarflake_ame/app/presentation/ame_selection_checkbox.dart";
+import "package:cedarflake_ame/app/presentation/ame_workbench_surfaces.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
@@ -72,6 +73,19 @@ Future<void> verifyDesktopLanguageWorkflow(WidgetTester tester) async {
     await tester.tap(find.byKey(ValueKey("ame-choice-option-$language")));
     await tester.pumpAndSettle();
     expect(container.read(amePreferencesControllerProvider).language, language);
+    final rail = tester.getRect(find.byKey(const Key("library-function-rail")));
+    final surfaces = AmeWorkbenchSurfaces.of(tester.element(screen));
+    final chrome = find.byWidgetPredicate(
+      (widget) =>
+          widget is DecoratedBox &&
+          widget.decoration is BoxDecoration &&
+          (widget.decoration as BoxDecoration).color == surfaces.chrome,
+    );
+    expect(tester.getTopLeft(chrome).dx, rail.right);
+    expect(
+      tester.getCenter(find.byKey(const Key("library-sidebar-toggle"))).dx,
+      rail.center.dx,
+    );
     expect(
       (await container.read(amePreferenceStoreProvider).loadAmePreferences())
           .language,
@@ -115,6 +129,10 @@ Future<void> verifyDesktopLanguageWorkflow(WidgetTester tester) async {
     );
     await tester.pumpAndSettle();
     expect(tester.widget<AmeSelectionCheckbox>(checkbox).value, isTrue);
+    expect(
+      tester.getTopLeft(find.byKey(const Key("library-search"))).dx,
+      tester.getTopLeft(find.byKey(const Key("library-main-surface"))).dx,
+    );
     expect(
       container.read(libraryControllerProvider).assets.first.displayPath,
       asset.displayPath,

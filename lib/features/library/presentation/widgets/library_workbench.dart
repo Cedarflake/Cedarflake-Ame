@@ -42,11 +42,7 @@ class LibraryWorkbench extends ConsumerStatefulWidget {
   final void Function(AmeMessage title, Object error) onPreferenceError;
   final ValueChanged<LibraryWorkspace>? onWorkspaceSelected;
   final Widget? albumLanding;
-  final Widget Function(
-    double sidebarWidth,
-    double sidebarExpansion,
-    Widget sidebarToggle,
-  )
+  final Widget Function(double sidebarWidth, double sidebarExpansion)
   globalBarBuilder;
 
   @override
@@ -203,11 +199,11 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
             frameBuilder: (context, extent, panels) {
               return LibraryWorkbenchFrame(
                 navigation: rail,
+                sidebarToggle: toggle,
                 globalBar: widget.globalBarBuilder(
                   sidebarWidth,
                   (extent - LibraryWorkbenchMetrics.contentInset) /
                       (sidebarWidth - LibraryWorkbenchMetrics.contentInset),
-                  toggle,
                 ),
                 content: Stack(
                   fit: StackFit.expand,
