@@ -17,6 +17,7 @@ import "../coordination/library_filmstrip_position.dart";
 import "library_photo_tile.dart" show libraryPreviewDecodeWidth;
 import "library_viewer_filmstrip_scrollbar.dart";
 import "library_viewer_filmstrip_thumbnail.dart";
+import "library_viewer_launch.dart";
 import "library_viewer_transition.dart";
 
 /// Browses the retained catalog window without instantiating offscreen thumbnails.
@@ -186,13 +187,21 @@ class _LibraryViewerFilmstripState
                       return _buildPagingCard(context);
                     }
                     final asset = state.assets[assetIndex];
-                    return LibraryViewerFilmstripThumbnail(
+                    return LibraryViewerThumbnail(
                       key: ValueKey(asset.galleryEntryId),
-                      asset: asset,
-                      isSelected:
-                          asset.galleryEntryId ==
-                          widget.selection.galleryEntryId,
-                      onPressed: () => widget.onSelected(asset),
+                      locationId: asset.locationId,
+                      entryId: asset.galleryEntryId,
+                      fit: BoxFit.contain,
+                      radius: 6,
+                      builder: (context, imageKey, _) =>
+                          LibraryViewerFilmstripThumbnail(
+                            imageAnchorKey: imageKey,
+                            asset: asset,
+                            isSelected:
+                                asset.galleryEntryId ==
+                                widget.selection.galleryEntryId,
+                            onPressed: () => widget.onSelected(asset),
+                          ),
                     );
                   },
                 ),

@@ -148,3 +148,16 @@ three languages removes the visible notice while retaining its active historical
 undo results expire after five seconds, and failed saves retain their connected retry action.
 The checks publish through the classification lifecycle and render the actual viewer notice
 selector; acknowledgement does not mark the underlying analysis as recovered.
+
+## First filmstrip selection, 2026-11-22
+
+The new cold-selection regression failed before the repair: the viewer's first frame contained none
+of the selected strip card's decoded pixels. Adjacent navigation now reuses the mounted card's image
+provider and sampling quality until the guarded original arrives. Thirty-seven focused cases passed
+for first-frame reuse, source replacement, retry, preview repair, strip paging and viewer return
+transitions. The first-frame case also rejects an incompatible provider and verifies that strip
+registration cannot replace the gallery return target and is removed on disposal.
+
+The launch/thumbnail owner contains 306 production lines, the viewer image 296 and the filmstrip 384,
+with no inline tests. The viewer image suite contains 688 lines; the existing transition and strip
+suites retain their prior behavioral assertions.

@@ -100,7 +100,8 @@ bottom toolbar use the same icon size and text style.
 Clockwise rotation, zoom mode, percentage, zoom slider and full-screen
 action are on the right; full screen is the last action. The strip starts hidden and remembers its
 visibility. It uses bounded catalog paging and lazily creates visible thumbnails; selecting one opens
-that image in the current query order. Its ordinary mouse wheel moves horizontally through the native
+that image in the current query order. Its already-decoded thumbnail supplies the first viewer frame
+while the guarded original loads, including the first selection of an uncached original. Its ordinary mouse wheel moves horizontally through the native
 scroll position, alongside native horizontal-wheel, touchpad and scrollbar input.
 The viewer canvas keeps straight edges and a neutral surface distinct from its contextual chrome.
 The strip overlays the bottom of the image viewport above the fixed toolbar. Its Material surface

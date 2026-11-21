@@ -249,10 +249,15 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   }
 
   Widget _buildPreview() {
-    final origin = LibraryViewerFlightScope.of(context)?.origin;
-    final thumbnail = origin?.locationId == widget.asset.locationId
-        ? origin?.previewImage
-        : null;
+    var origin = LibraryViewerFlightScope.of(context)?.origin;
+    if (origin?.locationId != widget.asset.locationId ||
+        origin?.previewImage == null) {
+      origin = LibraryViewerOriginScope.of(context)?.origins.findPreview(
+        widget.asset.galleryEntryId,
+        widget.previewImages(widget.asset.previewPath),
+      );
+    }
+    final thumbnail = origin?.previewImage;
     return Image(
       image: thumbnail ?? widget.previewImages(widget.asset.previewPath),
       fit: BoxFit.contain,

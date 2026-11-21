@@ -18,6 +18,10 @@ factory neither replaces that path nor grants source-read authority.
 with its geometry. `LibraryImageReveal` publishes that key only after a frame is available and
 retires its registration on disposal. Both embedded and routed viewers reuse it for entry before
 blending in the guarded original; they do not start an unresized preview decode during the flight.
+The same mounted-thumbnail owner registers filmstrip pixels for adjacent navigation. Reuse requires
+the current entry and preview-provider identity. Filmstrip registrations cannot become gallery return
+targets, and disposal removes their suppliers. This uses Flutter's existing decoded cache, with no
+additional pixel store or source read.
 
 ## Query and image lifetimes
 

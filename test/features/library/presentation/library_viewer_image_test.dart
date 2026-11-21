@@ -4,23 +4,127 @@ import "dart:typed_data";
 import "dart:ui" as ui;
 
 import "package:cedarflake_ame/features/library/adapters/platform/library_preview_image.dart";
+import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/presentation/library_preview_images.dart";
 import "package:cedarflake_ame/features/library/presentation/coordination/library_viewer_source_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_reveal.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_fade.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_filmstrip.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_launch.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_transition.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_notice.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../support/application_test_bindings.dart";
 import "../../../support/localized_test_app.dart";
 
 void main() {
+  testWidgets("filmstrip navigation starts with its visible decoded thumbnail", (
+    tester,
+  ) async {
+    final bytes = await tester.runAsync(() => _png(Colors.red));
+    final image = MemoryImage(bytes!);
+    final selected = ValueNotifier<LibraryAsset?>(null);
+    final scheduler = LibrarySourceReadScheduler(reader: const _SourceReader());
+    final source = Completer<ui.ImmutableBuffer>();
+    final origins = LibraryViewerOrigins();
+    final asset = _asset("pending-source.png").withPreview(
+      previewPath: "uncached-preview.png",
+      width: 2,
+      height: 2,
+      previewStatus: LibraryPreviewStatus.ready,
+    );
+    addTearDown(selected.dispose);
+    addTearDown(scheduler.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: applicationTestOverrides([
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState(assets: [asset]),
+          ),
+          libraryPreviewImagesProvider.overrideWithValue((_) => image),
+        ]),
+        child: LocalizedTestApp(
+          home: Scaffold(
+            body: LibraryViewerOriginScope(
+              origins: origins,
+              prepare: (_) =>
+                  fail("Navigation changed the gallery return target"),
+              take: () => null,
+              child: ValueListenableBuilder(
+                valueListenable: selected,
+                builder: (context, current, _) => Column(
+                  children: [
+                    Expanded(
+                      child: current == null
+                          ? const SizedBox.expand()
+                          : LibraryViewerImage(
+                              asset: current,
+                              previewImages: (_) => image,
+                              sourceReadScheduler: scheduler,
+                              sourceBufferLoader: (_) => source.future,
+                            ),
+                    ),
+                    SizedBox(
+                      height: 104,
+                      child: LibraryViewerFilmstrip(
+                        selection: asset,
+                        onSelected: (asset) => selected.value = asset,
+                        loadPrevious: () async {},
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await _waitForFrame(
+      tester,
+      () => tester.widget<RawImage>(find.byType(RawImage)).image != null,
+    );
+    final thumbnailPixels = tester
+        .widget<RawImage>(find.byType(RawImage))
+        .image!;
+    expect(origins.find(asset.galleryEntryId), isNull);
+    expect(
+      origins.findPreview(asset.galleryEntryId, MemoryImage(Uint8List(1))),
+      isNull,
+    );
+    await tester.tap(find.byKey(ValueKey(asset.galleryEntryId)));
+    await tester.pump();
+    final viewerPixels = tester.widgetList<RawImage>(
+      find.descendant(
+        of: find.byType(LibraryViewerImage),
+        matching: find.byType(RawImage),
+      ),
+    );
+    expect(
+      viewerPixels.any((raw) => raw.image?.isCloneOf(thumbnailPixels) ?? false),
+      isTrue,
+      reason:
+          "The first navigation frame must retain the selected thumbnail pixels",
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(origins.findPreview(asset.galleryEntryId, image), isNull);
+    source.complete(
+      await tester.runAsync(() => ui.ImmutableBuffer.fromUint8List(bytes)),
+    );
+    await tester.pump();
+    await image.evict();
+    expect(tester.takeException(), isNull);
+  });
+
   for (final route in [false, true]) {
     testWidgets(
       "${route ? 'review route' : 'gallery'} starts with the card's decoded thumbnail",
