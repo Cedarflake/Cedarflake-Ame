@@ -1,7 +1,5 @@
 ![Cedarflake Ame](docs/images/ame.png)
 
-English | [简体中文](README.zh-CN.md)
-
 Ame is a local-first Windows app for browsing, searching, and organizing large image collections.
 Add the folders you already use, find duplicates and similar images, and organize your collection
 with favorites, albums, or file operations.
