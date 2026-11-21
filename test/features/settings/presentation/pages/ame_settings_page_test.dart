@@ -3,6 +3,7 @@ import "dart:ui" show CheckedState;
 
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
+import "package:cedarflake_ame/app/presentation/ame_localizations.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:cedarflake_ame/app/window/ame_build_identity.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
@@ -17,6 +18,7 @@ import "package:cedarflake_ame/features/storage/application/storage_settings.dar
 import "package:cedarflake_ame/features/storage/domain/storage_models.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
+import "package:flutter/rendering.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
@@ -25,6 +27,68 @@ import "../../../../support/application_test_bindings.dart";
 import "../../../../support/localized_test_app.dart";
 
 void main() {
+  for (final locale in ameSupportedLocales) {
+    testWidgets("settings choices remain readable with enlarged $locale", (
+      tester,
+    ) async {
+      final gateway = _FakeStorageSettingsGateway(_status());
+      addTearDown(gateway.dispose);
+      await tester.binding.setSurfaceSize(const Size(1100, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: applicationTestOverrides([
+            storageSettingsGatewayProvider.overrideWithValue(gateway),
+          ]),
+          child: LocalizedTestApp(
+            locale: locale,
+            theme: buildAmeTheme(),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.5)),
+              child: child!,
+            ),
+            home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      for (final choice
+          in find
+              .byWidgetPredicate((widget) => widget is AmeChoice)
+              .evaluate()
+              .toList()) {
+        final target = find.byElementPredicate((element) => element == choice);
+        await tester.ensureVisible(target);
+        await tester.pumpAndSettle();
+        for (final text
+            in find
+                .descendant(of: target, matching: find.byType(RichText))
+                .evaluate()) {
+          final paragraph = text.renderObject! as RenderParagraph;
+          expect(
+            paragraph.didExceedMaxLines,
+            isFalse,
+            reason: paragraph.text.toPlainText(),
+          );
+        }
+      }
+      final language = find.byKey(const Key("ame-language-choice"));
+      await tester.ensureVisible(language);
+      await tester.pumpAndSettle();
+      await tester.tap(language);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("English"));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: language, matching: find.text("English")),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets("About and licenses use the same executable version", (
     tester,
   ) async {

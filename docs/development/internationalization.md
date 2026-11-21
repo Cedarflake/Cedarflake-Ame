@@ -57,5 +57,12 @@ The [presentation lint gate](../acceptance/quality/commands.md#repository-comman
 also catches stale generated files and hardcoded text in common UI controls. Exercise the affected
 screen in each supported language. Check that longer labels fit in a narrow window and with
 enlarged text, and that icon-only actions have localized accessible names.
+Treat fixed text columns and readout widths as potential clipping points: let labels and values
+share content-aware columns with an explicit gap, keep numeric readouts on one line, and reflow
+forms when their fields cannot show complete values. Validation messages must wrap in the actual
+input decoration. Keep fixed icon/target sizes and ordinary spacing tokens when they remain usable.
+For affected controls, check all supported languages at the 1100 × 700 desktop minimum and 150%
+text, including open menus, validation failures and the connected action. A layout that only fits
+its default language or empty values is insufficient.
 For changes to language switching, follow the [desktop language workflow](../acceptance/quality/ui-verification.md#ui-workflow-verification)
 to verify selection, saved preferences and actions on earlier notifications.

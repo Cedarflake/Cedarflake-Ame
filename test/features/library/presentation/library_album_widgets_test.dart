@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
+import "package:cedarflake_ame/app/presentation/ame_localizations.dart";
 import "package:cedarflake_ame/features/library/application/library_album_requests.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
@@ -9,6 +10,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_alb
 import "package:cedarflake_ame/features/library/presentation/widgets/library_album_picker.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter/gestures.dart";
+import "package:flutter/rendering.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -34,12 +36,21 @@ void main() {
 
   Future<void> host(
     WidgetTester tester,
-    VoidCallback Function(BuildContext) open,
-  ) async {
+    VoidCallback Function(BuildContext) open, {
+    Locale locale = ameChineseLocale,
+    double textScale = 1,
+  }) async {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
         child: LocalizedTestApp(
+          locale: locale,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(textScale)),
+            child: child!,
+          ),
           home: Scaffold(
             body: Builder(
               builder: (context) => TextButton(
@@ -53,6 +64,61 @@ void main() {
     );
     await tester.tap(find.text("Open"));
     await tester.pumpAndSettle();
+  }
+
+  for (final locale in ameSupportedLocales) {
+    testWidgets("album form and actions fit enlarged $locale", (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1100, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await host(
+        tester,
+        (context) =>
+            () => unawaited(
+              showLibraryAlbumEditor(
+                context: context,
+                kind: LibraryAlbumEditKind.create,
+                revision: BigInt.one,
+              ),
+            ),
+        locale: locale,
+        textScale: 1.5,
+      );
+      final save = find.byKey(const Key("library-album-save"));
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(service.albumWrites, isEmpty);
+      for (final text
+          in find
+              .descendant(
+                of: find.byType(AlertDialog),
+                matching: find.byType(RichText),
+              )
+              .evaluate()) {
+        final paragraph = text.renderObject! as RenderParagraph;
+        expect(
+          paragraph.didExceedMaxLines,
+          isFalse,
+          reason: paragraph.text.toPlainText(),
+        );
+      }
+      final input = find.byKey(const Key("library-album-name"));
+      final icon = find.byKey(const Key("library-album-choose-icon"));
+      final editable = tester
+          .state<EditableTextState>(
+            find.descendant(of: input, matching: find.byType(EditableText)),
+          )
+          .renderEditable;
+      expect(
+        tester.getRect(icon).right,
+        lessThan(editable.localToGlobal(Offset.zero).dx),
+      );
+      await tester.enterText(input, "Landscape 日常 照片");
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(service.albumWrites, hasLength(1));
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
   }
 
   testWidgets(

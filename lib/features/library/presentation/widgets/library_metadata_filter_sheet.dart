@@ -228,6 +228,7 @@ class _LibraryMetadataFilterSheetState
                               ),
                               validator: (_) =>
                                   _errors[LibraryFilterField.camera],
+                              errorBuilder: (context, error) => Text(error),
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -289,30 +290,30 @@ class _LibraryMetadataFilterSheetState
     unit: unit,
   );
 
-  Widget _dates() => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      AmeChoice<LibraryDateField>(
-        width: 168,
-        value: _dateField,
-        entries: [
-          for (final field in LibraryDateField.values)
-            AmeChoiceEntry(
-              value: field,
-              label: LibraryFilterStrings.dateFieldName(context.l10n, field),
-            ),
-        ],
-        onSelected: (value) {
-          if (value != null) setState(() => _dateField = value);
-        },
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: _date(LibraryFilterField.dateStart, context.l10n.startDate),
-      ),
-      const SizedBox(width: 12),
-      Expanded(child: _date(LibraryFilterField.dateEnd, context.l10n.endDate)),
-    ],
+  Widget _dates() => LayoutBuilder(
+    builder: (context, constraints) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AmeChoice<LibraryDateField>(
+          width: constraints.maxWidth,
+          value: _dateField,
+          entries: [
+            for (final field in LibraryDateField.values)
+              AmeChoiceEntry(
+                value: field,
+                label: LibraryFilterStrings.dateFieldName(context.l10n, field),
+              ),
+          ],
+          onSelected: (value) {
+            if (value != null) setState(() => _dateField = value);
+          },
+        ),
+        const SizedBox(height: 12),
+        _date(LibraryFilterField.dateStart, context.l10n.startDate),
+        const SizedBox(height: 12),
+        _date(LibraryFilterField.dateEnd, context.l10n.endDate),
+      ],
+    ),
   );
   Widget _date(LibraryFilterField field, String label) {
     final controller = _fields[field]!;
@@ -322,6 +323,7 @@ class _LibraryMetadataFilterSheetState
       readOnly: true,
       onTap: () => _pickDate(field, label),
       validator: (_) => _errors[field],
+      errorBuilder: (context, error) => Text(error),
       decoration: InputDecoration(
         hintText: label,
         border: const OutlineInputBorder(),

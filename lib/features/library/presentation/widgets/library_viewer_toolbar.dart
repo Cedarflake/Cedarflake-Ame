@@ -187,12 +187,14 @@ class LibraryViewerToolbar extends StatelessWidget {
                     : Symbols.aspect_ratio_rounded,
                 onPressed: onToggleZoomMode,
               ),
-              SizedBox(
-                width: 62,
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 62),
                 child: Text(
                   "$zoomPercent%",
                   key: const Key("viewer-zoom-percentage"),
                   textAlign: TextAlign.center,
+                  maxLines: 1,
+                  softWrap: false,
                   style: textStyle,
                 ),
               ),

@@ -157,7 +157,34 @@ provider and sampling quality until the guarded original arrives. Thirty-seven f
 for first-frame reuse, source replacement, retry, preview repair, strip paging and viewer return
 transitions. The first-frame case also rejects an incompatible provider and verifies that strip
 registration cannot replace the gallery return target and is removed on disposal.
+The rebuilt x64 client displayed the selected strip thumbnail immediately, then replaced it with
+the decoded original while keeping the strip and image bounds stable.
 
 The launch/thumbnail owner contains 306 production lines, the viewer image 296 and the filmstrip 384,
 with no inline tests. The viewer image suite contains 688 lines; the existing transition and strip
 suites retain their prior behavioral assertions.
+
+## Localized dimensions and spacing, 2026-11-22
+
+The fixed-dimension review covered workbench navigation, Settings, filter controls, metadata rows,
+viewer chrome/readouts, notices and shared dialog/form controls. Icon targets, scroll placeholders,
+bounded thumbnails and spacing tokens retain their existing sizes. The normal window minimum is
+1100 × 700; earlier 800 × 560 tray checks are additional narrow-window evidence.
+
+At 150% text the review reproduced a truncated English date-type choice, a multi-line 1600% zoom
+readout and clipped album-name validation messages. The date selector and its two date fields now
+use separate full-width rows. Zoom text has a minimum width and remains on one line. Album and
+filter validation messages wrap through the framework error widget instead of a one-line string.
+
+The three-language layout cases check selected dates, date-type and unit menu actions, invalid
+numeric input, zoom/count separation, search text height and notice acknowledgement. Settings
+checks scroll through the real choices and select a language; album checks display validation and
+save an entered name through the existing fixture. The focused suites passed 9 layout cases,
+20 Settings cases and 9 album cases. The four existing filter workflows also passed after the date
+layout changed. These are bounded widget checks, not exhaustive visual coverage of every string.
+The rebuilt x64 client showed the English date selector, complete date fields and footer actions
+inside the existing tray. The three new/extended layout suites passed focused static analysis;
+the dependency gate passed all 632 modules with zero migration exceptions.
+
+The filter, toolbar and album editor contain 347, 295 and 216 production lines, with no inline
+tests. The layout, Settings and album suites contain 246, 1458 and 464 lines respectively.

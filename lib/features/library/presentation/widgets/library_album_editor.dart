@@ -143,10 +143,12 @@ class _LibraryAlbumEditorState extends ConsumerState<LibraryAlbumEditor> {
                     enabled: !_saving,
                     decoration: InputDecoration(
                       labelText: context.l10n.albumName,
-                      errorText: nameError
-                          ? libraryOrganizationErrorMessage(
-                              _errorCode!,
-                            ).resolve(context.l10n)
+                      error: nameError
+                          ? Text(
+                              libraryOrganizationErrorMessage(
+                                _errorCode!,
+                              ).resolve(context.l10n),
+                            )
                           : null,
                       icon: widget.kind == LibraryAlbumEditKind.create
                           ? SizedBox.square(

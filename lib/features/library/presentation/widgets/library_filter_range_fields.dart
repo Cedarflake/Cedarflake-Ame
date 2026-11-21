@@ -45,6 +45,7 @@ class LibraryFilterRangeFields extends StatelessWidget {
       border: const OutlineInputBorder(),
     ),
     validator: (_) => errors[field],
+    errorBuilder: (context, error) => Text(error),
     onChanged: (_) => onChanged(),
   );
 }
