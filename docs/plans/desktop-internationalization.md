@@ -24,6 +24,12 @@ dialog translation and an external translation service have separate owners.
    and an existing notification. Identify Simplified Chinese by script (`zh-Hans`) throughout the
    application and README links. Link the English, Simplified Chinese and Japanese READMEs
    from the centered language selector on each page.
+6. Qualify translated layouts across the workbench, Settings, filters, metadata, dialogs and viewer.
+   Inspect fixed text widths/heights and adjacent spacing, then reproduce suspect cases at the
+   supported minimum window size and enlarged text in all three languages. Repair demonstrated
+   overlap, clipping and alignment failures while retaining useful icon, target and spacing tokens.
+   Check preview feedback alongside these surfaces: persistent conditions remain until handled or
+   acknowledged, and ordinary outcomes use the shared transient lifetime.
 
 ## Exit checks
 
@@ -31,6 +37,9 @@ dialog translation and an external translation service have separate owners.
   Changing it on a populated workbench preserves the selected image and open route.
 - Existing notifications change language in place, and their actions still address the original task.
   Check singular and plural counts, localized dates, menus, accessibility and narrow English layouts.
+- Translated labels and values have visible separation, common columns remain aligned, and actions
+  stay reachable at 150% text. A preview notification without a recovery action can be acknowledged;
+  transient outcomes disappear through their existing five-second owner.
 - Default category names follow the language. A saved custom name, a file path and a user album name
   retain their exact spelling. Switching languages performs no catalog writes or model analysis.
 - Verify the desktop language workflow in all three languages with disposable data, inspect

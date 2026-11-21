@@ -139,3 +139,12 @@ surfaces, semantic labels and dialog focus. The rebuilt x64 client showed the ho
 favorite activation and stay absent after the committed state refreshed. Accessible action labels
 remain available. The overlay owner has 398 production lines and no inline tests; its lifecycle and
 favorite suites contain 238 and 126 lines.
+
+## Viewer notification acknowledgement, 2026-11-22
+
+Persistent analysis failures without a recovery action now expose the shared acknowledgement
+button in the viewer's existing action slot. Five focused cases passed: acknowledgement in all
+three languages removes the visible notice while retaining its active historical condition,
+undo results expire after five seconds, and failed saves retain their connected retry action.
+The checks publish through the classification lifecycle and render the actual viewer notice
+selector; acknowledgement does not mark the underlying analysis as recovered.
