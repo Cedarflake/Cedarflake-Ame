@@ -120,3 +120,12 @@ The layout owners contain 74 production lines in `library_workbench_frame.dart` 
 `library_global_bar.dart`, with no inline tests. The 356-line workbench and 2,034-line screen only
 change header composition and its callback. Dedicated workbench and screen suites contain 231 and
 373 lines; the shared language workflow and its widget entry contain 181 and 50 lines.
+
+## Information tray columns, 2026-11-21
+
+The information tray uses the installed Flutter `Table` with one intrinsic label column and one
+flexible, selectable value column. Eleven bounded metadata fields share a 16-pixel column gap.
+The three language cases passed at 800 × 560 with 150% text, checking separation, aligned values
+and the unchanged source path. The original layout failed the separation check with a zero-pixel
+gap. A rebuilt x64 Debug client also displayed the English camera fields and timestamps in aligned,
+separated columns. The owner contains 157 production lines and its focused suite contains 61 lines.

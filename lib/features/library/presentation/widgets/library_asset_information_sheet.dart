@@ -27,52 +27,74 @@ Future<void> showLibraryAssetInformation(
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
-              _InformationRow(
-                label: context.l10n.file,
-                value: displayLibraryFileName(asset.displayPath),
-              ),
-              _InformationRow(
-                label: context.l10n.path,
-                value: asset.displayPath,
-              ),
-              _InformationRow(
-                label: context.l10n.fileType,
-                value: libraryFileType(context.l10n, asset.displayPath),
-              ),
-              _InformationRow(
-                label: context.l10n.imageDimensions,
-                value: asset.width > 0 && asset.height > 0
-                    ? "${asset.width} × ${asset.height}"
-                    : context.l10n.unknown,
-              ),
-              _InformationRow(
-                label: context.l10n.size,
-                value: libraryFileSize(asset.fileSize),
-              ),
-              _InformationRow(
-                label: context.l10n.cameraMake,
-                value: asset.camera.make ?? context.l10n.unknown,
-              ),
-              _InformationRow(
-                label: context.l10n.cameraModel,
-                value: asset.camera.model ?? context.l10n.unknown,
-              ),
-              _InformationRow(
-                label: context.l10n.timeTaken,
-                value: _formatCaptureTime(context.l10n, asset.captureTime),
-              ),
-              if (asset.captureTime case final captureTime?)
-                _InformationRow(
-                  label: context.l10n.timeSource,
-                  value: _captureSourceLabel(context.l10n, captureTime.source),
-                ),
-              _InformationRow(
-                label: context.l10n.timeCreated,
-                value: _formatUnixTime(context.l10n, asset.createdUnixMs),
-              ),
-              _InformationRow(
-                label: context.l10n.timeModified,
-                value: _formatUnixTime(context.l10n, asset.modifiedUnixMs),
+              Table(
+                columnWidths: const {
+                  0: IntrinsicColumnWidth(),
+                  1: FlexColumnWidth(),
+                },
+                children: [
+                  _informationRow(
+                    context,
+                    label: context.l10n.file,
+                    value: displayLibraryFileName(asset.displayPath),
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.path,
+                    value: asset.displayPath,
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.fileType,
+                    value: libraryFileType(context.l10n, asset.displayPath),
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.imageDimensions,
+                    value: asset.width > 0 && asset.height > 0
+                        ? "${asset.width} × ${asset.height}"
+                        : context.l10n.unknown,
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.size,
+                    value: libraryFileSize(asset.fileSize),
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.cameraMake,
+                    value: asset.camera.make ?? context.l10n.unknown,
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.cameraModel,
+                    value: asset.camera.model ?? context.l10n.unknown,
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.timeTaken,
+                    value: _formatCaptureTime(context.l10n, asset.captureTime),
+                  ),
+                  if (asset.captureTime case final captureTime?)
+                    _informationRow(
+                      context,
+                      label: context.l10n.timeSource,
+                      value: _captureSourceLabel(
+                        context.l10n,
+                        captureTime.source,
+                      ),
+                    ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.timeCreated,
+                    value: _formatUnixTime(context.l10n, asset.createdUnixMs),
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.timeModified,
+                    value: _formatUnixTime(context.l10n, asset.modifiedUnixMs),
+                  ),
+                ],
               ),
             ],
           ),
@@ -82,34 +104,25 @@ Future<void> showLibraryAssetInformation(
   );
 }
 
-class _InformationRow extends StatelessWidget {
-  const _InformationRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 88,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          Expanded(child: SelectableText(value)),
-        ],
+TableRow _informationRow(
+  BuildContext context, {
+  required String label,
+  required String value,
+}) => TableRow(
+  children: [
+    Padding(
+      padding: const EdgeInsets.fromLTRB(0, 8, 16, 8),
+      child: Text(
+        label,
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
-    );
-  }
-}
+    ),
+    Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: SelectableText(value),
+    ),
+  ],
+);
 
 String _formatCaptureTime(
   AppLocalizations strings,
