@@ -12,6 +12,7 @@ import "package:cedarflake_ame/features/settings/presentation/pages/ame_settings
 import "package:cedarflake_ame/app/presentation/ame_choice.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/storage_settings_section.dart";
 import "package:cedarflake_ame/features/storage/application/ports/storage_settings_gateway.dart";
+import "package:cedarflake_ame/features/storage/application/ports/storage_directory_picker.dart";
 import "package:cedarflake_ame/features/storage/application/storage_settings.dart";
 import "package:cedarflake_ame/features/storage/domain/storage_models.dart";
 import "package:material_ui/material_ui.dart";
@@ -796,6 +797,98 @@ void main() {
     expect(notification?.isPersistent, isTrue);
   });
 
+  testWidgets("storage rejection follows language changes and allows retry", (
+    tester,
+  ) async {
+    const failure = StorageSettingsFailure(
+      code: "storage_path_overlaps_source",
+      message: r"Configured storage overlaps the source root C:\Photos",
+    );
+    final gateway = _FakeStorageSettingsGateway(_status())
+      ..updateError = failure;
+    final picker = _StorageDirectoryPicker(r"C:\Photos\Previews");
+    addTearDown(gateway.dispose);
+
+    Future<void> showSettings(Locale locale) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: applicationTestOverrides([
+            storageSettingsGatewayProvider.overrideWithValue(gateway),
+            storageDirectoryPickerProvider.overrideWithValue(picker),
+          ]),
+          child: LocalizedTestApp(
+            locale: locale,
+            theme: buildAmeTheme(),
+            home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    final changeLocation = find.descendant(
+      of: find.byKey(const Key("preview-location-setting")),
+      matching: find.byType(FilledButton),
+    );
+    final errorRow = find.byKey(const Key("storage-settings-error"));
+    await showSettings(const Locale("ja"));
+    await tester.ensureVisible(changeLocation);
+    await tester.pumpAndSettle();
+    await tester.tap(changeLocation);
+    await tester.pumpAndSettle();
+    expect(gateway.lastPreviewCacheDirectory, picker.directory);
+    expect(gateway.status.requiresRestart, isFalse);
+    expect(find.text(failure.toString()), findsNothing);
+
+    for (final (locale, message) in [
+      (const Locale("ja"), "保存先が追加済みの写真フォルダーと重なっています。保存用に別のフォルダーを選んでください。"),
+      (
+        const Locale("en"),
+        "This storage location overlaps an added photo folder. Choose a separate folder for storage.",
+      ),
+      (
+        const Locale.fromSubtags(languageCode: "zh", scriptCode: "Hans"),
+        "存储位置与已添加的图片文件夹重叠。请选择单独的文件夹。",
+      ),
+    ]) {
+      await showSettings(locale);
+      await tester.ensureVisible(errorRow);
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: errorRow, matching: find.text(message)),
+        findsOneWidget,
+      );
+    }
+    expect(gateway.updateCount, 1);
+    expect(gateway.loadCount, 1);
+    final details = find.descendant(
+      of: errorRow,
+      matching: find.byType(TextButton),
+    );
+    await tester.ensureVisible(details);
+    await tester.pumpAndSettle();
+    await tester.tap(details);
+    await tester.pumpAndSettle();
+    expect(find.text(failure.toString()), findsOneWidget);
+    await tester.tap(details);
+    await tester.pumpAndSettle();
+    expect(find.text(failure.toString()), findsNothing);
+
+    gateway.updateError = null;
+    picker.directory = r"C:\AmePreviews";
+    await tester.ensureVisible(changeLocation);
+    await tester.pumpAndSettle();
+    await tester.tap(changeLocation);
+    await tester.pumpAndSettle();
+    expect(gateway.lastPreviewCacheDirectory, picker.directory);
+    expect(gateway.updateCount, 2);
+    expect(errorRow, findsNothing);
+    expect(
+      find.byKey(const Key("storage-settings-restart-notice")),
+      findsOneWidget,
+    );
+  });
+
   testWidgets("saves the preview budget without a dialog save action", (
     tester,
   ) async {
@@ -1156,6 +1249,9 @@ class _FakeStorageSettingsGateway implements StorageSettingsGateway {
   Future<CatalogReclamationModel>? pendingCatalogReclamation;
   Future<StorageStatusModel>? pendingStorageLoad;
   Object? loadError;
+  Object? updateError;
+  String? lastPreviewCacheDirectory;
+  int updateCount = 0;
   Object? catalogReclamationLoadError;
   int loadCount = 0;
   final cleanupController = StreamController<PreviewCleanupUpdate>.broadcast();
@@ -1233,6 +1329,11 @@ class _FakeStorageSettingsGateway implements StorageSettingsGateway {
     required BigInt previewBudgetBytes,
   }) async {
     lastPreviewBudgetBytes = previewBudgetBytes;
+    lastPreviewCacheDirectory = previewCacheDirectory;
+    updateCount += 1;
+    if (updateError case final error?) {
+      throw error;
+    }
     status = StorageStatusModel(
       settingsPath: status.settingsPath,
       activeCatalogPath: status.activeCatalogPath,
@@ -1252,6 +1353,15 @@ class _FakeStorageSettingsGateway implements StorageSettingsGateway {
     );
     return status;
   }
+}
+
+class _StorageDirectoryPicker implements StorageDirectoryPicker {
+  _StorageDirectoryPicker(this.directory);
+
+  String directory;
+
+  @override
+  Future<String?> pick({required String currentPath}) async => directory;
 }
 
 class _RecordingAmePreferenceStore implements AmePreferenceStore {

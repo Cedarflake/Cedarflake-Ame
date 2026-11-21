@@ -61,11 +61,12 @@ This client evidence covers Windows x64.
 The message types and their presentation resolver contain 252 and 226 production lines respectively.
 The gallery screen has 2,040 lines and delegates settings-return selection to its 170-line workspace
 coordinator. These owners contain no inline tests. The coordinator's dedicated suite has 354 lines.
-The widget language test and its shared workflow have 46 and 129 lines and exercise the integrated
+The widget language test and its shared workflow have 46 and 163 lines and exercise the integrated
 path through the 588-line native scan suite.
 
-The shared language workflow has 163 lines. The Settings page has
-319 production lines and a 1,281-line widget suite. The preference adapter has 251 production
+The Settings page has 319 production lines and a 1,391-line widget suite. Its storage section has
+775 production lines and delegates error presentation to a 52-line widget. Neither has inline tests.
+The preference adapter has 251 production
 lines and a 218-line dedicated suite. Both production owners have no inline tests.
 
 ## Language round trip, 2026-11-21
@@ -76,3 +77,13 @@ through the visit in the 14-line `LibrarySettingsVisit` owner. Its state is rese
 The shared widget/native workflow exercises this round trip before its existing notification
 actions. The application widget case and all 17 workspace coordinator cases passed locally on
 Windows x64, including ordinary Settings return, failed navigation and disposal.
+
+## Storage configuration feedback, 2026-11-21
+
+The storage section retains structured configuration failures until presentation. The
+`storage_path_overlaps_source` rejection has Chinese, English and Japanese guidance, with the
+original code and diagnostic available through an expandable details button. The settings widget
+workflow rejects a location inside a photo folder, switches all three languages without another
+save, opens and closes the diagnostic, then selects another location and completes the save.
+All 17 settings cases passed locally on Windows x64. The catalog gate checked 916 messages per
+language. Native path validation and storage persistence are unchanged.

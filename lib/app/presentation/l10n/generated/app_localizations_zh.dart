@@ -3076,6 +3076,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get storageSaveFailed => '未能保存存储设置';
 
   @override
+  String get storageOverlapsSource => '存储位置与已添加的图片文件夹重叠。请选择单独的文件夹。';
+
+  @override
+  String get storageErrorDetails => '查看错误详情';
+
+  @override
   String get catalogMaintenanceStatusError => '图库数据整理状态异常';
 
   @override

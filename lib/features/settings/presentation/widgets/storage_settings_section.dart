@@ -15,6 +15,7 @@ import "../../../storage/domain/storage_models.dart";
 import "../../../storage/application/catalog_reclamation_controller.dart";
 import "settings_section.dart";
 import "storage_preview_cleanup_confirmation.dart";
+import "storage_settings_error.dart";
 
 enum _StorageErrorTarget { settings, catalogReclamation, previewCleanup }
 
@@ -41,7 +42,7 @@ class _StorageSettingsSectionState
   StreamSubscription<PreviewCleanupUpdate>? _cleanupSubscription;
   String? _cleanupTargetPreviewRoot;
   String? _cleanupTargetDisplayPath;
-  String? _settingsErrorMessage;
+  Object? _settingsError;
   String? _previewCleanupErrorMessage;
   bool _isSaving = false;
   bool _isCancellingCleanup = false;
@@ -105,7 +106,7 @@ class _StorageSettingsSectionState
         if (effectiveTarget == _StorageErrorTarget.catalogReclamation) {
           _reclamationController.failStorageSnapshot(reclamationRequest, error);
         } else {
-          setState(() => _setError(effectiveTarget, _errorText(error)));
+          setState(() => _setError(effectiveTarget, error));
         }
       }
       return false;
@@ -174,7 +175,7 @@ class _StorageSettingsSectionState
     }
     setState(() {
       _isSaving = true;
-      _settingsErrorMessage = null;
+      _settingsError = null;
     });
     final configurationRequest = _reclamationController
         .beginConfigurationSave();
@@ -199,7 +200,7 @@ class _StorageSettingsSectionState
       if (mounted) {
         setState(() {
           _isSaving = false;
-          _settingsErrorMessage = _errorText(error);
+          _settingsError = error;
         });
       }
     }
@@ -327,15 +328,15 @@ class _StorageSettingsSectionState
     return error.toString();
   }
 
-  void _setError(_StorageErrorTarget target, String? message) {
+  void _setError(_StorageErrorTarget target, Object? error) {
     switch (target) {
       case _StorageErrorTarget.settings:
-        _settingsErrorMessage = message;
+        _settingsError = error;
         break;
       case _StorageErrorTarget.catalogReclamation:
         break;
       case _StorageErrorTarget.previewCleanup:
-        _previewCleanupErrorMessage = message;
+        _previewCleanupErrorMessage = error == null ? null : _errorText(error);
         break;
     }
   }
@@ -347,7 +348,7 @@ class _StorageSettingsSectionState
       return SettingsSection(
         title: context.l10n.storage,
         children: [
-          if (_settingsErrorMessage == null)
+          if (_settingsError == null)
             SettingsRow(
               key: Key("storage-settings-loading"),
               icon: Symbols.storage_rounded,
@@ -363,7 +364,7 @@ class _StorageSettingsSectionState
               key: const Key("storage-settings-load-error"),
               icon: Symbols.error_rounded,
               title: context.l10n.storageSettingsUnavailable,
-              subtitle: Text(_settingsErrorMessage!),
+              subtitle: StorageSettingsError(error: _settingsError!),
               trailing: FilledButton.tonal(
                 onPressed: () => unawaited(_load()),
                 child: Text(context.l10n.retry),
@@ -555,15 +556,12 @@ class _StorageSettingsSectionState
                   child: Text(context.l10n.cleanUp),
                 ),
         ),
-        if (_settingsErrorMessage != null)
+        if (_settingsError case final error?)
           SettingsRow(
             key: const Key("storage-settings-error"),
             icon: Symbols.error_rounded,
             title: context.l10n.storageSaveFailed,
-            subtitle: Text(
-              _settingsErrorMessage!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+            subtitle: StorageSettingsError(error: error),
           ),
         if (_reclamation.errorMessage != null)
           SettingsRow(

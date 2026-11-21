@@ -5244,6 +5244,18 @@ abstract class AppLocalizations {
   /// **'未能保存存储设置'**
   String get storageSaveFailed;
 
+  /// No description provided for @storageOverlapsSource.
+  ///
+  /// In zh, this message translates to:
+  /// **'存储位置与已添加的图片文件夹重叠。请选择单独的文件夹。'**
+  String get storageOverlapsSource;
+
+  /// No description provided for @storageErrorDetails.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看错误详情'**
+  String get storageErrorDetails;
+
   /// No description provided for @catalogMaintenanceStatusError.
   ///
   /// In zh, this message translates to:

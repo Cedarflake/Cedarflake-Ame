@@ -3463,6 +3463,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storageSaveFailed => 'Couldn\'t save storage settings';
 
   @override
+  String get storageOverlapsSource =>
+      'This storage location overlaps an added photo folder. Choose a separate folder for storage.';
+
+  @override
+  String get storageErrorDetails => 'View error details';
+
+  @override
   String get catalogMaintenanceStatusError =>
       'Couldn\'t read library maintenance status';
 

@@ -3128,6 +3128,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get storageSaveFailed => 'ストレージ設定を保存できませんでした';
 
   @override
+  String get storageOverlapsSource =>
+      '保存先が追加済みの写真フォルダーと重なっています。保存用に別のフォルダーを選んでください。';
+
+  @override
+  String get storageErrorDetails => 'エラーの詳細を表示';
+
+  @override
   String get catalogMaintenanceStatusError => 'ライブラリのメンテナンス状況を読み込めませんでした';
 
   @override
