@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 
 import "ame_menu.dart";
+import "ame_localizations.dart";
 import "ame_feedback_style.dart";
 import "ame_system_theme.dart";
 import "ame_typography.dart";
@@ -12,6 +13,7 @@ export "ame_feedback_style.dart"
 ThemeData buildAmeTheme({
   Brightness brightness = Brightness.light,
   Color seedColor = ameFallbackSeedColor,
+  Locale? locale,
 }) {
   final colorScheme = ColorScheme.fromSeed(
     seedColor: seedColor,
@@ -24,7 +26,9 @@ ThemeData buildAmeTheme({
     useMaterial3: true,
     visualDensity: VisualDensity.standard,
     fontFamily: ameFontFamily,
-    fontFamilyFallback: ameFontFamilyFallback,
+    fontFamilyFallback: locale == ameJapaneseLocale
+        ? ameJapaneseFontFallback
+        : ameFontFamilyFallback,
     menuTheme: buildAmeMenuTheme(colorScheme),
     menuButtonTheme: buildAmeMenuButtonTheme(),
     popupMenuTheme: buildAmePopupMenuTheme(colorScheme),

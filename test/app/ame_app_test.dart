@@ -14,7 +14,7 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/application_test_bindings.dart";
 
 void main() {
-  testWidgets("uses Simplified Chinese locale and dense text geometry", (
+  testWidgets("follows the system language and uses its Windows fonts", (
     tester,
   ) async {
     tester.platformDispatcher.localesTestValue = const [
@@ -39,6 +39,14 @@ void main() {
       MaterialLocalizations.of(context).scriptCategory,
       ScriptCategory.dense,
     );
+    tester.platformDispatcher.localesTestValue = const [Locale("ja", "JP")];
+    await tester.pumpAndSettle();
+    expect(Localizations.localeOf(context), ameJapaneseLocale);
+    expect(
+      Theme.of(context).textTheme.bodyMedium?.fontFamilyFallback?.first,
+      "Yu Gothic UI",
+    );
+    expect(MaterialLocalizations.of(context).cancelButtonLabel, "キャンセル");
   });
 
   testWidgets("derives the Material theme from the system accent color", (

@@ -20,17 +20,19 @@ class AmeApp extends ConsumerWidget {
     ref.watch(libraryModelInstallationNotificationsProvider);
     final preferences = ref.watch(amePreferencesControllerProvider);
     return AmeSystemThemeBuilder(
-      builder: (context, seedColor) => MaterialApp(
+      preferredLocale: amePreferredLocale(preferences.language),
+      builder: (context, seedColor, locale) => MaterialApp(
         debugShowCheckedModeBanner: false,
         title: "Cedarflake Ame",
-        locale: amePreferredLocale(preferences.language),
+        locale: locale,
         localeListResolutionCallback: resolveAmeLocales,
         supportedLocales: ameSupportedLocales,
         localizationsDelegates: ameLocalizationsDelegates,
-        theme: buildAmeTheme(seedColor: seedColor),
+        theme: buildAmeTheme(seedColor: seedColor, locale: locale),
         darkTheme: buildAmeTheme(
           brightness: Brightness.dark,
           seedColor: seedColor,
+          locale: locale,
         ),
         themeMode: ameThemeMode(preferences.theme),
         home: const LibraryAnalysisActivity(

@@ -117,8 +117,9 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   all targets and features with warnings denied, and runs the pinned Dart analyzer with warnings and
   informational lints treated as failures.
   Both modes regenerate the desktop language files with `flutter gen-l10n`. They check generated
-  file drift, matching Chinese and English keys, nonempty messages and placeholder declarations.
-  The Dart source check flags hardcoded Chinese copy and English literals passed directly to common
+  file drift, matching keys, nonempty messages and placeholder declarations across the supported
+  catalogs, including script inheritance. The Dart source check flags hardcoded Han and kana text
+  and English literals passed directly to common
   visible and accessibility controls. `-PresentationOnly` also runs Dart formatting, dependency
   checks and analysis for the quick hosted path.
 - `./tool/quality_verify_dependencies.ps1` parses handwritten Dart imports, exports, conditional

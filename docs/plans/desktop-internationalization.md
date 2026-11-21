@@ -1,7 +1,7 @@
 # Desktop internationalization
 
 The [roadmap](../roadmap.md#desktop-internationalization) owns priority. The November 21 delivery
-covers the Windows application in both Simplified Chinese and English on x64 and ARM64. Installer
+covers the Windows application in Simplified Chinese, English and Japanese on x64 and ARM64. Installer
 dialog translation and an external translation service have separate owners.
 
 ## Delivery order
@@ -16,9 +16,14 @@ dialog translation and an external translation service have separate owners.
    source and user-entered names. Render recorded events and their actions in the selected language.
 3. Translate built-in category display names while retaining user renames and discovered names.
    Preserve classification identities, model inputs, semantic revisions and existing results.
-4. Generate and check both catalogs in the existing static gate. Verify matching keys and arguments,
+4. Generate and check all shipped catalogs in the existing static gate. Verify matching keys and arguments,
    complete supported languages and the absence of stray fixed copy in migrated application surfaces.
    Exercise English and Chinese through the real application entry points and normal Windows CI.
+5. Add the Japanese catalog and the 日本語 option in Settings. Recognize Japanese Windows language
+   preferences, keep English as the final fallback, and exercise switching with a populated library
+   and an existing notification. Identify Simplified Chinese by script (`zh-Hans`) throughout the
+   application and README links, and preserve older saved choices. Link the English, Simplified
+   Chinese and Japanese READMEs from the centered language selector on each page.
 
 ## Exit checks
 
@@ -28,8 +33,8 @@ dialog translation and an external translation service have separate owners.
   Check singular and plural counts, localized dates, menus, accessibility and narrow English layouts.
 - Default category names follow the language. A saved custom name, a file path and a user album name
   retain their exact spelling. Switching languages performs no catalog writes or model analysis.
-- Verify the bilingual desktop workflow with disposable data, inspect applicable exact-revision CI
-  and record any outstanding evidence before accepting delivery.
+- Verify the desktop language workflow in all three languages with disposable data, inspect
+  applicable exact-revision CI and record any outstanding evidence before accepting delivery.
 
 The [verification record](../acceptance/desktop-internationalization.md) records client coverage
 and the platforms exercised.

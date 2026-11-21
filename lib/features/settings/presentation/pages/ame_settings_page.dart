@@ -85,6 +85,10 @@ class AmeSettingsPage extends ConsumerWidget {
                                     value: AmeLanguagePreference.en,
                                     label: strings.languageEnglish,
                                   ),
+                                  AmeChoiceEntry(
+                                    value: AmeLanguagePreference.ja,
+                                    label: strings.languageJapanese,
+                                  ),
                                 ],
                                 onSelected: (value) {
                                   if (value != null) {

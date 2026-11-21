@@ -35,13 +35,16 @@ information-architecture choices:
 - the gallery filter changes duplicate display; the Duplicates workspace owns group review;
 - temporary action-specific import progress rather than permanent task navigation;
 - a plain-language settings canvas rather than a dialog or engineering dashboard;
-- Simplified Chinese and English in the Windows application.
+- Simplified Chinese, English and Japanese in the Windows application.
 
 ADR 0003 remains historical evidence only. Its standalone duplicate action, task activity, provider
 grouping, and other superseded surfaces are not current alternatives.
 
 The desktop application follows the Windows preferred languages in order. It supports Simplified
-Chinese and English, with English as the final fallback. Settings allows an explicit choice that
+Chinese (`zh-Hans`), English (`en`) and Japanese (`ja`), with English as the final fallback.
+An explicit Chinese script takes precedence over the region. Traditional Chinese (`zh-Hant`)
+continues to the next preferred language. When Windows supplies only a region, `zh-TW`, `zh-HK`
+and `zh-MO` also continue to the next preference. Settings allows an explicit choice that
 applies immediately and survives restart. Menus, accessibility labels, task feedback, counts and
 dates follow the active language, including entries already in the notification history.
 File names, paths, user album and category names, metadata and diagnostic details retain their

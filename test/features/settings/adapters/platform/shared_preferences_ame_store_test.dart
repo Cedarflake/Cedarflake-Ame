@@ -11,6 +11,38 @@ import "package:shared_preferences_platform_interface/shared_preferences_async_p
 
 void main() {
   test(
+    "reopens Japanese and upgrades the legacy Simplified Chinese preference",
+    () async {
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty();
+      final preferences = SharedPreferencesAsync();
+      await preferences.setString(
+        "ame.presentation.v1",
+        '{"version":1,"language":"zhHans","theme":"dark"}',
+      );
+      final store = SharedPreferencesAmeStore(preferences: preferences);
+      final legacy = await store.loadAmePreferences();
+      expect(legacy.language, AmeLanguagePreference.zhHans);
+      await store.saveAmePreferences(legacy);
+      expect(
+        await preferences.getString("ame.presentation.v1"),
+        contains('"language":"zh-Hans"'),
+      );
+      final reopened = SharedPreferencesAmeStore(preferences: preferences);
+      expect(
+        (await reopened.loadAmePreferences()).language,
+        AmeLanguagePreference.zhHans,
+      );
+      await store.saveAmePreferences(
+        legacy.copyWith(language: AmeLanguagePreference.ja),
+      );
+      final restored = await reopened.loadAmePreferences();
+      expect(restored.language, AmeLanguagePreference.ja);
+      expect(restored.theme, AmeThemePreference.dark);
+    },
+  );
+
+  test(
     "album settings preserve defaults, persist across store recreation and clear selection",
     () async {
       SharedPreferencesAsyncPlatform.instance =

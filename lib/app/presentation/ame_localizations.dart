@@ -7,11 +7,15 @@ export "l10n/generated/app_localizations.dart" show AppLocalizations;
 const ameChineseLocale = Locale.fromSubtags(
   languageCode: "zh",
   scriptCode: "Hans",
-  countryCode: "CN",
 );
 const ameEnglishLocale = Locale("en");
+const ameJapaneseLocale = Locale("ja");
 
-const ameSupportedLocales = <Locale>[ameEnglishLocale, ameChineseLocale];
+const ameSupportedLocales = <Locale>[
+  ameEnglishLocale,
+  ameChineseLocale,
+  ameJapaneseLocale,
+];
 
 const ameLocalizationsDelegates = <LocalizationsDelegate<dynamic>>[
   AppLocalizations.delegate,
@@ -21,6 +25,7 @@ const ameLocalizationsDelegates = <LocalizationsDelegate<dynamic>>[
 Locale resolveAmeLocales(List<Locale>? preferred, Iterable<Locale> supported) {
   for (final locale in preferred ?? const <Locale>[]) {
     if (locale.languageCode == "en") return ameEnglishLocale;
+    if (locale.languageCode == "ja") return ameJapaneseLocale;
     if (locale.languageCode != "zh") continue;
     if (locale.scriptCode == "Hans") return ameChineseLocale;
     if (locale.scriptCode == null &&

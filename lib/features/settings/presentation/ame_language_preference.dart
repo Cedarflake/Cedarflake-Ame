@@ -8,4 +8,5 @@ Locale? amePreferredLocale(AmeLanguagePreference preference) =>
       AmeLanguagePreference.system => null,
       AmeLanguagePreference.zhHans => ameChineseLocale,
       AmeLanguagePreference.en => ameEnglishLocale,
+      AmeLanguagePreference.ja => ameJapaneseLocale,
     };

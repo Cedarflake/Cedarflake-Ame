@@ -317,9 +317,10 @@ Use one unified gallery with these presentation rules.
 - Simplified Chinese is the initial user-facing language. Paths and source metadata preserve their
   original text.
 - Simplified Chinese text resolves through Windows `Segoe UI`, `Microsoft YaHei UI`, and
-  `Microsoft YaHei` in that order. Body copy remains regular, controls and compact labels use
-  medium weight, and page or content headings use semibold so hierarchy is semantic rather than
-  assigned independently by each widget.
+  `Microsoft YaHei` in that order. For Japanese, the fallback order after `Segoe UI` starts
+  with `Yu Gothic UI` and `Meiryo` so shared kanji use Japanese glyphs. Body copy remains regular,
+  controls and compact labels use medium weight, and page or content headings use semibold
+  so hierarchy is semantic rather than assigned independently by each widget.
 - The theme preference controls brightness. `system` follows Windows brightness, while explicit
   light and dark choices lock brightness. All three modes derive their Material color scheme from
   the current Windows accent color and update when that accent changes; the accepted Ame blue is

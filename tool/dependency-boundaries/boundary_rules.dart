@@ -256,6 +256,7 @@ List<BoundaryViolation> checkDartBoundaries(
     const generatedCycle = {
       "$catalog.dart",
       "${catalog}_en.dart",
+      "${catalog}_ja.dart",
       "${catalog}_zh.dart",
     };
     if (component.length == generatedCycle.length &&

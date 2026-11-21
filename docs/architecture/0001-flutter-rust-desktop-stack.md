@@ -142,8 +142,10 @@ may use the official compatibility bridge at that subtree; the bridge cannot con
 Material types in a dependency's public API. The currently used Riverpod consumers and window-manager
 gesture/platform APIs do not require that bridge.
 
-Flutter's `gen-l10n` generates the typed application messages from the Simplified Chinese template
-and English ARB catalogs in `lib/app/presentation/l10n`. The application registers its own delegate
+Flutter's `gen-l10n` generates typed application messages for Simplified Chinese (`zh-Hans`),
+English (`en`) and Japanese (`ja`) from ARB catalogs in `lib/app/presentation/l10n`.
+Flutter requires a base catalog for a script variant. The `zh_Hans` catalog inherits the
+complete Simplified Chinese template in `app_zh.arb`. The application registers its own delegate
 alongside the standalone Material delegates. Dart `intl` and Flutter SDK localizations are direct
 presentation dependencies. The existing presentation preference store owns the language override.
 The catalog, model inputs and native error identities are independent of the display language.

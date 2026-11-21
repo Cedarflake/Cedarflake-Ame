@@ -31,12 +31,30 @@ category labels and stored names. The [preference adapter tests](../../test/feat
 exercise older stores, malformed values and explicit choices. The native workflow reloads the
 preference store after changing the language in either direction.
 
-Both catalogs contain 913 messages. The presentation gate regenerated them, checked formatting for
-959 Dart files, validated 629 module boundaries and passed analysis. Negative fixtures rejected
+The original English and Simplified Chinese catalogs contained 913 messages. The presentation gate
+regenerated them, checked formatting for 959 Dart files, validated 629 module boundaries and passed analysis. Negative fixtures rejected
 missing translations, empty values, dropped or undeclared parameters, hardcoded Chinese and an
 English widget label. A focused 86-test run covered viewer timestamps down to the second, settings,
 update feedback and retained notifications. The filter interaction also passed using the
 Chinese date picker's input format and confirmation button.
+
+## Japanese and script-specific Chinese, 2026-11-21
+
+The three languages each resolve 914 messages. The catalog gate rejected Japanese fixtures with
+a missing key, empty text, a missing argument or an unknown key. The source checker rejected a
+hardcoded katakana label. The three centered README selectors linked to the other two languages.
+
+The four Windows x64 scan integration cases passed. In the populated workbench, the selected
+photo survived the switch from Simplified Chinese to English and then Japanese. The same earlier
+notification opened the original folder in both languages. The workflow returned to Simplified
+Chinese and compared the original fixture bytes. The focused widget and adapter suites also
+checked Japanese dates and counts, system changes from `zh-CN` to `ja-JP`, explicit scripts with
+conflicting regions, and reading the old `zhHans` preference.
+
+Two separate Flutter test processes used the production Windows preference adapter with an
+isolated on-disk directory. The first saved `ja`. The second loaded that choice with an English
+system locale and displayed the workbench's language setting and startup recovery in Japanese.
+This client evidence covers Windows x64.
 
 ## Affected implementation owners
 
@@ -45,3 +63,7 @@ The gallery screen has 2,034 lines and delegates settings-return selection to it
 coordinator. These owners contain no inline tests. The coordinator's dedicated suite has 322 lines.
 The widget language test and its shared workflow have 46 and 129 lines and exercise the integrated
 path through the 588-line native scan suite.
+
+The Japanese extension brings the shared language workflow to 153 lines. The Settings page has
+319 production lines and a 1,281-line widget suite. The preference adapter has 251 production
+lines and a 228-line dedicated suite. Both production owners have no inline tests.

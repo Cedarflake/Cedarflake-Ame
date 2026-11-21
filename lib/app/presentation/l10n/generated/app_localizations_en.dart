@@ -32,6 +32,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
+  String get languageJapanese => '日本語';
+
+  @override
   String get settingsTheme => 'App theme';
 
   @override

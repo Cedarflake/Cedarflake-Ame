@@ -1,6 +1,6 @@
 ![Cedarflake Ame](docs/images/ame.png)
 
-<p align="center"><a href="./README.md">English</a> | 简体中文</p>
+<p align="center"><a href="./README.md">English</a> | 简体中文 | <a href="./README.ja.md">日本語</a></p>
 
 Ame 是一款在本地浏览、搜索和整理大量图片的 Windows 应用。把平时存放图片的文件夹添加到图库，就可以查找重复或相似的图片，用收藏和相册整理它们，也可以直接管理文件。
 

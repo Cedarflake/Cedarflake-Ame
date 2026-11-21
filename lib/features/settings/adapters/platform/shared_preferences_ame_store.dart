@@ -84,11 +84,7 @@ class SharedPreferencesAmeStore
       return const AmePreferences();
     }
     return AmePreferences(
-      language: _enumByName(
-        AmeLanguagePreference.values,
-        value["language"],
-        AmeLanguagePreference.system,
-      ),
+      language: AmeLanguagePreference.fromStoredValue(value["language"]),
       theme: _enumByName(
         AmeThemePreference.values,
         value["theme"],
@@ -178,7 +174,7 @@ class SharedPreferencesAmeStore
       jsonEncode({
         "version": 1,
         "theme": preferences.theme.name,
-        "language": preferences.language.name,
+        "language": preferences.language.storageValue,
         "viewerWheelBehavior": preferences.viewerWheelBehavior.name,
         "viewerOpenBehavior": preferences.viewerOpenBehavior.name,
         "viewerFilmstripVisible": preferences.viewerFilmstripVisible,

@@ -11,6 +11,7 @@ import "package:flutter_test/flutter_test.dart";
 void main() {
   final english = lookupAppLocalizations(ameEnglishLocale);
   final chinese = lookupAppLocalizations(ameChineseLocale);
+  final japanese = lookupAppLocalizations(ameJapaneseLocale);
 
   test("resolves supported system languages in preference order", () {
     Locale resolve(List<Locale> locales) =>
@@ -24,6 +25,27 @@ void main() {
       ameEnglishLocale,
     );
     expect(resolve(const [Locale("zh", "TW"), Locale("en")]), ameEnglishLocale);
+    expect(ameChineseLocale.toLanguageTag(), "zh-Hans");
+    expect(chinese.localeName, "zh_Hans");
+    expect(
+      resolve(const [Locale("ja", "JP"), Locale("en")]),
+      ameJapaneseLocale,
+    );
+    expect(
+      resolve(const [
+        Locale.fromSubtags(
+          languageCode: "zh",
+          scriptCode: "Hant",
+          countryCode: "CN",
+        ),
+        Locale("ja"),
+      ]),
+      ameJapaneseLocale,
+    );
+    expect(
+      resolve(const [Locale("zh", "TW"), Locale("ja")]),
+      ameJapaneseLocale,
+    );
     expect(
       resolve(const [
         Locale.fromSubtags(
@@ -43,6 +65,9 @@ void main() {
     () {
       expect(english.photoCount(1), "1 photo");
       expect(english.photoCount(1200), "1,200 photos");
+      expect(japanese.photoCount(1200), "1,200 枚の写真");
+      expect(galleryDateLabel(japanese, "2026-02-03"), "2026年2月3日");
+      expect(galleryDateLabel(japanese, "2026-02", monthOnly: true), "2026年2月");
       expect(galleryDateLabel(english, "2026-02-03"), "Feb 3, 2026");
       expect(galleryDateLabel(chinese, "2026-02-03"), "2026年2月3日");
       expect(galleryDateLabel(english, "2026-02-30"), "2026-02-30");
@@ -64,6 +89,11 @@ void main() {
     final original = category("illustration", "插画");
     expect(libraryCategoryLabel(english, original), "Illustration");
     expect(libraryCategoryLabel(chinese, original), "插画");
+    expect(libraryCategoryLabel(japanese, original), "イラスト");
+    expect(
+      libraryCategoryLabel(japanese, category("illustration", "うちの猫")),
+      "うちの猫",
+    );
     expect(
       libraryCategoryLabel(english, category("illustration", "我的插画")),
       "我的插画",
@@ -81,6 +111,10 @@ void main() {
     expect(
       LibraryStrings.scanFailureDetail(chinese, diagnostic),
       "另一个目录正在更新，结束后再继续。",
+    );
+    expect(
+      LibraryStrings.scanFailureDetail(japanese, diagnostic),
+      "別のフォルダーを更新中です。完了してから続けてください。",
     );
   });
 }

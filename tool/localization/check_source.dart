@@ -6,7 +6,9 @@ import "package:analyzer/dart/ast/ast.dart";
 import "package:analyzer/dart/ast/visitor.dart";
 
 const catalogDirectory = "lib/app/presentation/l10n";
-final han = RegExp(r"[\u3400-\u9fff]");
+final hanOrKana = RegExp(
+  r"[\u3400-\u9fff\u3041-\u3096\u30a1-\u30fa\uff66-\uff9d]",
+);
 final englishWord = RegExp(r"[A-Za-z]{2,}");
 
 void main() {
@@ -100,7 +102,7 @@ class _ApplicationCopy extends RecursiveAstVisitor<void> {
         constructorName.type.toSource(),
       _ => null,
     };
-    if (han.hasMatch(text)) {
+    if (hanOrKana.hasMatch(text)) {
       if (callee == "RegExp") return;
       if (path ==
               "lib/features/library/presentation/library_category_label.dart" &&

@@ -32,6 +32,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
+  String get languageJapanese => '日本語';
+
+  @override
   String get settingsTheme => '应用主题';
 
   @override
@@ -3313,4 +3316,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
     return '$dateString $timeString';
   }
+}
+
+/// The translations for Chinese, using the Han script (`zh_Hans`).
+class AppLocalizationsZhHans extends AppLocalizationsZh {
+  AppLocalizationsZhHans() : super('zh_Hans');
 }

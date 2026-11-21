@@ -79,44 +79,68 @@ Future<void> verifyDesktopLanguageWorkflow(WidgetTester tester) async {
     );
   }
 
-  await chooseLanguage(AmeLanguagePreference.en);
-  expect(find.text("App language"), findsOneWidget);
-  expect(Localizations.localeOf(tester.element(screen)), ameEnglishLocale);
-  await tester.tap(
-    find.byKey(const Key("workbench-gallery")).hitTestable().first,
-  );
-  await tester.pumpAndSettle();
-  expect(tester.widget<AmeSelectionCheckbox>(checkbox).value, isTrue);
-  expect(
-    container.read(libraryControllerProvider).assets.first.displayPath,
-    asset.displayPath,
-  );
-  await tester.tap(find.byKey(const Key("notification-history-button")));
-  await tester.pumpAndSettle();
-  final row = find.byKey(Key("notification-history-item-${observed.id}"));
-  expect(
-    find.descendant(of: row, matching: find.textContaining("blocked")),
-    findsOneWidget,
-  );
-  await tester.tap(row);
-  await tester.pumpAndSettle();
-  final detail = find.byType(AlertDialog);
-  expect(
-    find.descendant(of: detail, matching: find.text(root.displayPath)),
-    findsOneWidget,
-  );
-  await tester.tap(
-    find.descendant(of: detail, matching: find.text("Update library")),
-  );
-  await tester.pumpAndSettle();
-  final update = find.byKey(const Key("library-update-dialog"));
-  final selectedFolder = find.descendant(
-    of: update,
-    matching: find.byKey(ValueKey("library-update-root-${root.id}")),
-  );
-  expect(tester.widget<CheckboxListTile>(selectedFolder).value, isTrue);
-  await tester.tap(find.descendant(of: update, matching: find.text("Cancel")));
-  await tester.pumpAndSettle();
+  for (final language in const [
+    (
+      preference: AmeLanguagePreference.en,
+      locale: ameEnglishLocale,
+      settingsLabel: "App language",
+      issueText: "blocked",
+      updateAction: "Update library",
+      cancelAction: "Cancel",
+    ),
+    (
+      preference: AmeLanguagePreference.ja,
+      locale: ameJapaneseLocale,
+      settingsLabel: "アプリの言語",
+      issueText: "更新できません",
+      updateAction: "ライブラリを更新",
+      cancelAction: "キャンセル",
+    ),
+  ]) {
+    await chooseLanguage(language.preference);
+    expect(find.text(language.settingsLabel), findsOneWidget);
+    expect(Localizations.localeOf(tester.element(screen)), language.locale);
+    await tester.tap(
+      find.byKey(const Key("workbench-gallery")).hitTestable().first,
+    );
+    await tester.pumpAndSettle();
+    expect(tester.widget<AmeSelectionCheckbox>(checkbox).value, isTrue);
+    expect(
+      container.read(libraryControllerProvider).assets.first.displayPath,
+      asset.displayPath,
+    );
+    await tester.tap(find.byKey(const Key("notification-history-button")));
+    await tester.pumpAndSettle();
+    final row = find.byKey(Key("notification-history-item-${observed.id}"));
+    expect(
+      find.descendant(
+        of: row,
+        matching: find.textContaining(language.issueText),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    final detail = find.byType(AlertDialog);
+    expect(
+      find.descendant(of: detail, matching: find.text(root.displayPath)),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.descendant(of: detail, matching: find.text(language.updateAction)),
+    );
+    await tester.pumpAndSettle();
+    final update = find.byKey(const Key("library-update-dialog"));
+    final selectedFolder = find.descendant(
+      of: update,
+      matching: find.byKey(ValueKey("library-update-root-${root.id}")),
+    );
+    expect(tester.widget<CheckboxListTile>(selectedFolder).value, isTrue);
+    await tester.tap(
+      find.descendant(of: update, matching: find.text(language.cancelAction)),
+    );
+    await tester.pumpAndSettle();
+  }
   await tester.tap(find.byKey(const Key("library-cancel-selection")));
   await tester.pumpAndSettle();
   await chooseLanguage(AmeLanguagePreference.zhHans);

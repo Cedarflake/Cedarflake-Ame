@@ -2,7 +2,24 @@ import "album_preferences.dart";
 
 enum AmeThemePreference { system, light, dark }
 
-enum AmeLanguagePreference { system, zhHans, en }
+enum AmeLanguagePreference {
+  system("system"),
+  zhHans("zh-Hans"),
+  en("en"),
+  ja("ja");
+
+  const AmeLanguagePreference(this.storageValue);
+  final String storageValue;
+
+  static AmeLanguagePreference fromStoredValue(Object? value) {
+    // Earlier v1 stores used the enum name.
+    if (value == "zhHans") return zhHans;
+    return values.firstWhere(
+      (language) => language.storageValue == value,
+      orElse: () => system,
+    );
+  }
+}
 
 enum ImageViewerWheelBehavior { zoom, previousOrNext }
 
