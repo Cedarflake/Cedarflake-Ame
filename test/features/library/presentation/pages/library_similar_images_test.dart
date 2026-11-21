@@ -38,8 +38,10 @@ void main() {
   testWidgets(
     "running results join ignored groups and preserve comparison until navigation",
     (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1100, 850));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+      tester.view.physicalSize = const Size(1100, 850);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       final exact = ReviewFixtureService()
         ..decision = const LibraryDuplicateDecision(ignored: true);
       final similar = SimilarReviewFixture()
@@ -79,6 +81,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+
+      expect(
+        MediaQuery.sizeOf(tester.element(find.byType(LibraryDuplicatesPage))),
+        const Size(1100, 850),
+      );
 
       Future<void> chooseView(String label) async {
         final view = switch (label) {

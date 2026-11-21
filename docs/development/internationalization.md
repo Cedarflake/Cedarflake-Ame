@@ -64,5 +64,7 @@ input decoration. Keep fixed icon/target sizes and ordinary spacing tokens when 
 For affected controls, check all supported languages at the 1100 × 700 desktop minimum and 150%
 text, including open menus, validation failures and the connected action. A layout that only fits
 its default language or empty values is insufficient.
+Widget window fixtures set the test view's physical size and pixel ratio together so layout
+constraints and `MediaQuery` describe the same logical window.
 For changes to language switching, follow the [desktop language workflow](../acceptance/quality/ui-verification.md#ui-workflow-verification)
 to verify selection, saved preferences and actions on earlier notifications.

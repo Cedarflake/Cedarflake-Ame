@@ -216,8 +216,10 @@ void main() {
 }
 
 Future<void> _mount(WidgetTester tester, Locale locale, Widget child) async {
-  await tester.binding.setSurfaceSize(const Size(1100, 700));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  tester.view.physicalSize = const Size(1100, 700);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(
     LocalizedTestApp(
       locale: locale,
@@ -232,6 +234,10 @@ Future<void> _mount(WidgetTester tester, Locale locale, Widget child) async {
     ),
   );
   await tester.pumpAndSettle();
+  expect(
+    MediaQuery.sizeOf(tester.element(find.byType(Scaffold))),
+    const Size(1100, 700),
+  );
 }
 
 void _expectComplete(WidgetTester tester, Finder text) {

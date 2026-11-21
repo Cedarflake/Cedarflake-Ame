@@ -187,4 +187,13 @@ inside the existing tray. The three new/extended layout suites passed focused st
 the dependency gate passed all 632 modules with zero migration exceptions.
 
 The filter, toolbar and album editor contain 347, 295 and 216 production lines, with no inline
-tests. The layout, Settings and album suites contain 246, 1458 and 464 lines respectively.
+tests. The layout, Settings and album suites contain 252, 1460 and 466 lines respectively.
+
+## Hosted comparison fixture, 2026-11-22
+
+The Flutter job at `d9d0f0f5` failed to find the ignored-group navigation in the comparison workflow.
+The local reproduction measured an 1100 × 850 layout surface but an 800 × 600 `MediaQuery`, which
+kept its sidebar collapsed. The fixture now sets the test view's physical size and pixel ratio
+together and checks the resulting logical size. The new localized layout cases use the same view
+setup. All 39 cases in the four affected suites passed, including the complete comparison workflow;
+the widget assertions and product navigation behavior remain in place.

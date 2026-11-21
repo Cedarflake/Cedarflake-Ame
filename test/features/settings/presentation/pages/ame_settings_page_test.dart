@@ -33,8 +33,10 @@ void main() {
     ) async {
       final gateway = _FakeStorageSettingsGateway(_status());
       addTearDown(gateway.dispose);
-      await tester.binding.setSurfaceSize(const Size(1100, 700));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+      tester.view.physicalSize = const Size(1100, 700);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(
         ProviderScope(
           overrides: applicationTestOverrides([

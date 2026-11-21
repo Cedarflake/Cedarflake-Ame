@@ -68,8 +68,10 @@ void main() {
 
   for (final locale in ameSupportedLocales) {
     testWidgets("album form and actions fit enlarged $locale", (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1100, 700));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+      tester.view.physicalSize = const Size(1100, 700);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       await host(
         tester,
         (context) =>
