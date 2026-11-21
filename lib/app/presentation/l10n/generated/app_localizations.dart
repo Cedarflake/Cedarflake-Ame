@@ -4356,17 +4356,17 @@ abstract class AppLocalizations {
   /// **'全选{label}'**
   String selectAllNamed(String label);
 
-  /// No description provided for @collapse.
+  /// Tooltip and accessible name for collapsing a sidebar section.
   ///
   /// In zh, this message translates to:
-  /// **'收起'**
-  String get collapse;
+  /// **'收起{section}'**
+  String collapseSection(String section);
 
-  /// No description provided for @expand.
+  /// Tooltip and accessible name for expanding a sidebar section.
   ///
   /// In zh, this message translates to:
-  /// **'展开'**
-  String get expand;
+  /// **'展开{section}'**
+  String expandSection(String section);
 
   /// No description provided for @deselectNamed.
   ///

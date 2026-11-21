@@ -87,3 +87,10 @@ workflow rejects a location inside a photo folder, switches all three languages 
 save, opens and closes the diagnostic, then selects another location and completes the save.
 All 17 settings cases passed locally on Windows x64. The catalog gate checked 916 messages per
 language. Native path validation and storage persistence are unchanged.
+
+## Sidebar action sentences, 2026-11-21
+
+Sidebar section toggles use complete localized messages with a typed section-name argument.
+The three locale cases in the 46-line sidebar toggle suite passed locally, checking both tooltip
+and accessibility tooltip text before and after collapse and expansion. English retains the
+space before the section name, and Japanese places the section before the action.

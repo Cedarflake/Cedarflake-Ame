@@ -1403,8 +1403,24 @@
       }
     }
   },
-  "collapse": "收起",
-  "expand": "展开",
+  "collapseSection": "收起{section}",
+  "@collapseSection": {
+    "description": "Tooltip and accessible name for collapsing a sidebar section.",
+    "placeholders": {
+      "section": {
+        "type": "String"
+      }
+    }
+  },
+  "expandSection": "展开{section}",
+  "@expandSection": {
+    "description": "Tooltip and accessible name for expanding a sidebar section.",
+    "placeholders": {
+      "section": {
+        "type": "String"
+      }
+    }
+  },
   "deselectNamed": "取消选择{name}",
   "@deselectNamed": {
     "placeholders": {

@@ -2547,10 +2547,14 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get collapse => '折りたたむ';
+  String collapseSection(String section) {
+    return '$sectionを折りたたむ';
+  }
 
   @override
-  String get expand => '展開';
+  String expandSection(String section) {
+    return '$sectionを展開';
+  }
 
   @override
   String deselectNamed(String name) {

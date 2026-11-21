@@ -2504,10 +2504,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get collapse => '收起';
+  String collapseSection(String section) {
+    return '收起$section';
+  }
 
   @override
-  String get expand => '展开';
+  String expandSection(String section) {
+    return '展开$section';
+  }
 
   @override
   String deselectNamed(String name) {

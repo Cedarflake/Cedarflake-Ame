@@ -2795,10 +2795,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get collapse => 'Collapse';
+  String collapseSection(String section) {
+    return 'Collapse $section';
+  }
 
   @override
-  String get expand => 'Expand';
+  String expandSection(String section) {
+    return 'Expand $section';
+  }
 
   @override
   String deselectNamed(String name) {

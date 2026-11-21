@@ -20,8 +20,9 @@ class LibrarySidebarSectionToggle extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
     expanded: expanded,
     child: IconButton(
-      tooltip:
-          "${expanded ? context.l10n.collapse : context.l10n.expand}$label",
+      tooltip: expanded
+          ? context.l10n.collapseSection(label)
+          : context.l10n.expandSection(label),
       onPressed: onPressed,
       style: IconButton.styleFrom(
         fixedSize: const Size.square(36),
