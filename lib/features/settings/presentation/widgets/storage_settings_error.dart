@@ -2,7 +2,8 @@ import "package:material_ui/material_ui.dart";
 
 import "../../../../app/presentation/ame_disclosure.dart";
 import "../../../../app/presentation/ame_localizations.dart";
-import "../../../storage/domain/storage_models.dart";
+import "../../../storage/domain/storage_models.dart"
+    show StorageSettingsFailure;
 
 class StorageSettingsError extends StatefulWidget {
   const StorageSettingsError({required this.error, super.key});

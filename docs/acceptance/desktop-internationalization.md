@@ -65,7 +65,7 @@ The widget language test and its shared workflow have 46 and 163 lines and exerc
 path through the 588-line native scan suite.
 
 The Settings page has 319 production lines and a 1,394-line widget suite. Its storage section has
-775 production lines and delegates error presentation to a 56-line widget. Neither has inline tests.
+775 production lines and delegates error presentation to a 57-line widget. Neither has inline tests.
 The preference adapter has 251 production
 lines and a 218-line dedicated suite. Both production owners have no inline tests.
 
@@ -87,6 +87,11 @@ workflow rejects a location inside a photo folder, switches all three languages 
 save, opens and closes the diagnostic, then selects another location and completes the save.
 All 17 settings cases passed locally on Windows x64. The catalog gate checked 917 messages per
 language. Native path validation and storage persistence are unchanged.
+
+At `0ff1f3da`, hosted Static rejected the new storage-error widget's undeclared domain dependency.
+Its exact `StorageSettingsFailure` consumer is now registered under ADR 0037, with the Dart import
+limited to that type. The local dependency gate passed all 632 modules with zero migration
+exceptions; all 19 boundary-rule cases and 17 settings cases passed.
 
 ## Sidebar action sentences, 2026-11-21
 
