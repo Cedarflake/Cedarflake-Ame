@@ -14,7 +14,6 @@ import "package:cedarflake_ame/features/library/application/library_scanner.dart
 import "package:cedarflake_ame/features/library/application/ports/library_scanner.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
@@ -22,9 +21,9 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/library_query_snapshot_fixture.dart";
 import "../support/library_organization_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -60,7 +59,7 @@ void main() {
                 libraryScannerProvider.overrideWithValue(const _FakeScanner()),
                 libraryPreviewerProvider.overrideWithValue(previewer),
               ]),
-              child: MaterialApp(
+              child: LocalizedTestApp(
                 builder: (context, child) => MediaQuery(
                   data: MediaQuery.of(
                     context,
@@ -88,9 +87,9 @@ void main() {
           expect(tester.takeException(), isNull);
           final retry = find.byKey(const Key("preview-retry-location-failed"));
           expect(tester.getSize(retry).shortestSide, greaterThanOrEqualTo(48));
-          expect(find.text(LibraryStrings.retryPreview), findsNothing);
+          expect(find.text(testChinese.retryPreview), findsNothing);
           expect(
-            find.bySemanticsLabel(RegExp(LibraryStrings.retryPreview)),
+            find.bySemanticsLabel(RegExp(testChinese.retryPreview)),
             findsWidgets,
           );
           await tester.tap(retry);
@@ -98,9 +97,9 @@ void main() {
           await tester.pump();
           expect(previewer.requests, [asset.locationId]);
           expect(opens, 0);
-          expect(find.text(LibraryStrings.retryingPreview), findsNothing);
+          expect(find.text(testChinese.retryingPreview), findsNothing);
           expect(
-            find.bySemanticsLabel(LibraryStrings.retryingPreview),
+            find.bySemanticsLabel(testChinese.retryingPreview),
             findsOneWidget,
           );
           expect(tester.takeException(), isNull);
@@ -154,7 +153,7 @@ void main() {
             _RecordingPreviewer(asset),
           ),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: LibraryPhotoTile(
               asset: asset,
@@ -182,9 +181,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(LibraryStrings.copyPath), findsOneWidget);
+    expect(find.text(testChinese.copyPath), findsOneWidget);
 
-    await tester.tap(find.text(LibraryStrings.copyPath));
+    await tester.tap(find.text(testChinese.copyPath));
     await tester.pumpAndSettle();
 
     expect(copiedAsset, same(asset));
@@ -195,7 +194,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
     await tester.pumpAndSettle();
 
-    expect(find.text(LibraryStrings.copyPath), findsOneWidget);
+    expect(find.text(testChinese.copyPath), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
   });
@@ -223,7 +222,7 @@ void main() {
           libraryScannerProvider.overrideWithValue(const _FakeScanner()),
           libraryPreviewerProvider.overrideWithValue(previewer),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: LibraryPhotoTile(
               asset: asset,
@@ -254,7 +253,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text(LibraryStrings.retryingPreview), findsOneWidget);
+    expect(find.text(testChinese.retryingPreview), findsOneWidget);
     expect(retryButton, findsNothing);
 
     previewer.complete(
@@ -271,7 +270,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.text(LibraryStrings.retryingPreview), findsNothing);
+    expect(find.text(testChinese.retryingPreview), findsNothing);
     expect(retryButton, findsOneWidget);
   });
 
@@ -299,7 +298,7 @@ void main() {
             const _UnprovenRootPreviewer(),
           ),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: LibraryPhotoTile(
               asset: asset,
@@ -323,7 +322,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text(LibraryStrings.previewUpdateRequired), findsOneWidget);
+    expect(find.text(testChinese.previewUpdateRequired), findsOneWidget);
     expect(
       find.byKey(const Key("preview-retry-location-failed")),
       findsOneWidget,
@@ -362,7 +361,7 @@ void main() {
               const _UnprovenRootPreviewer(),
             ),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: LibraryPhotoTile(
                 asset: asset,
@@ -383,7 +382,7 @@ void main() {
       for (
         var attempt = 0;
         attempt < 20 &&
-            find.text(LibraryStrings.previewUpdateRequired).evaluate().isEmpty;
+            find.text(testChinese.previewUpdateRequired).evaluate().isEmpty;
         attempt++
       ) {
         await tester.runAsync(() async {
@@ -392,10 +391,10 @@ void main() {
         await tester.pump();
       }
 
-      expect(find.text(LibraryStrings.previewUpdateRequired), findsOneWidget);
+      expect(find.text(testChinese.previewUpdateRequired), findsOneWidget);
       expect(find.byType(Image), findsNothing);
       expect(
-        find.bySemanticsLabel(LibraryStrings.previewUpdateRequired),
+        find.bySemanticsLabel(testChinese.previewUpdateRequired),
         findsOneWidget,
       );
       expect(
@@ -405,7 +404,7 @@ void main() {
       await tester.tap(find.byKey(const Key("preview-retry-location-ready")));
       await tester.pump();
       await tester.pump();
-      expect(find.text(LibraryStrings.previewUpdateRequired), findsOneWidget);
+      expect(find.text(testChinese.previewUpdateRequired), findsOneWidget);
       expect(find.byType(Image), findsNothing);
     },
     timeout: const Timeout(Duration(seconds: 30)),
@@ -450,7 +449,7 @@ void main() {
             libraryScannerProvider.overrideWithValue(const _FakeScanner()),
             libraryPreviewerProvider.overrideWithValue(previewer),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: LibraryPhotoTile(
                 asset: displayed,
@@ -506,7 +505,7 @@ void main() {
       expect(previewer.requests, [
         if (replacementKind == "preview artifact") "location-ready",
       ]);
-      expect(find.text(LibraryStrings.retryingPreview), findsNothing);
+      expect(find.text(testChinese.retryingPreview), findsNothing);
       if (replacementPath != null) {
         final provider = tester.widget<Image>(find.byType(Image)).image;
         final fileImage = (provider as ResizeImage).imageProvider as FileImage;
@@ -561,7 +560,7 @@ void main() {
           libraryScannerProvider.overrideWithValue(const _FakeScanner()),
           libraryPreviewerProvider.overrideWithValue(previewer),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: LibraryPhotoTile(
               asset: asset,
@@ -596,7 +595,7 @@ void main() {
     expect(image.image, isNotNull);
     expect(image.image!.width, greaterThan(0));
     expect(find.byKey(const Key("preview-retry-location-ready")), findsNothing);
-    expect(find.text(LibraryStrings.retryingPreview), findsNothing);
+    expect(find.text(testChinese.retryingPreview), findsNothing);
     expect(tester.getSize(find.byType(LibraryPhotoTile)), const Size(160, 120));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
@@ -634,7 +633,7 @@ void main() {
             libraryScannerProvider.overrideWithValue(const _FakeScanner()),
             libraryPreviewerProvider.overrideWithValue(previewer),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: LibraryPhotoTile(
                 asset: asset,
@@ -702,7 +701,7 @@ void main() {
         expect(previewer.requests, hasLength(expectedRequests));
         expect(previewer.forceRequests, everyElement(isTrue));
         expect(retry, findsOneWidget);
-        expect(find.text(LibraryStrings.retryingPreview), findsNothing);
+        expect(find.text(testChinese.retryingPreview), findsNothing);
         expect(opens, 0);
         expect(tester.takeException(), isNull);
         if (expectedRequests < 3) {
@@ -747,7 +746,7 @@ void main() {
           libraryScannerProvider.overrideWithValue(const _FakeScanner()),
           libraryPreviewerProvider.overrideWithValue(previewer),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: LibraryPhotoTile(
               asset: asset,
@@ -801,7 +800,7 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key("preview-retry-location-ready")), findsOne);
     expect(previewer.requests, ["location-ready"]);
-    expect(find.text(LibraryStrings.retryingPreview), findsNothing);
+    expect(find.text(testChinese.retryingPreview), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   }, timeout: const Timeout(Duration(seconds: 30)));

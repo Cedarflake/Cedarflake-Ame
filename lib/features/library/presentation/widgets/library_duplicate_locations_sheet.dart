@@ -5,6 +5,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/messages/ame_message.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_controller.dart";
@@ -19,7 +21,6 @@ import "../../domain/library_organization_batch.dart";
 import "../../domain/library_file_operations.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../domain/library_exact_duplicates.dart";
-import "../library_duplicate_strings.dart";
 import "library_duplicate_location_tile.dart";
 import "library_duplicate_review_viewer.dart";
 import "library_duplicate_update_status.dart";
@@ -150,8 +151,8 @@ class _LibraryDuplicateLocationsSheetState
             .read(ameNotificationControllerProvider.notifier)
             .publish(
               const AmeNotificationDraft(
-                title: "未能保存选择",
-                message: "请重试。",
+                title: AmeLabel.saveSelectionFailed,
+                message: AmeLabel.tryAgain,
                 severity: AmeNotificationSeverity.error,
                 isPersistent: true,
               ),
@@ -257,8 +258,8 @@ class _LibraryDuplicateLocationsSheetState
                       children: [
                         Text(
                           _key is LibrarySimilarGalleryGroupKey
-                              ? "${_locations.total} 张相似图片"
-                              : LibraryDuplicateStrings.duplicateImages(
+                              ? context.l10n.similarPhotoCount(_locations.total)
+                              : context.l10n.duplicatePhotoCount(
                                   _locations.total,
                                 ),
                           style: Theme.of(context).textTheme.titleLarge,
@@ -269,7 +270,7 @@ class _LibraryDuplicateLocationsSheetState
                               _locations.loading &&
                               _locations.cachedItemCount > 0,
                           size: 24,
-                          semanticsLabel: "正在更新文件位置",
+                          semanticsLabel: context.l10n.updatingFileLocations,
                         ),
                       ],
                     ),
@@ -292,8 +293,8 @@ class _LibraryDuplicateLocationsSheetState
                           icon: const Icon(Symbols.delete_rounded),
                           label: Text(
                             _key is LibrarySimilarGalleryGroupKey
-                                ? "删除相似图片"
-                                : "删除重复图片",
+                                ? context.l10n.deleteSimilarPhotos
+                                : context.l10n.deleteDuplicatePhotos,
                           ),
                         ),
                         TextButton.icon(
@@ -304,7 +305,7 @@ class _LibraryDuplicateLocationsSheetState
                               ? null
                               : _deleteSelected,
                           icon: const Icon(Symbols.delete_rounded),
-                          label: const Text("删除所选"),
+                          label: Text(context.l10n.deleteSelected),
                         ),
                       ],
                     ),
@@ -317,12 +318,10 @@ class _LibraryDuplicateLocationsSheetState
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Row(
                   children: [
-                    const Expanded(
-                      child: Text(LibraryDuplicateStrings.loadFailed),
-                    ),
+                    Expanded(child: Text(context.l10n.resultsUnavailable)),
                     TextButton(
                       onPressed: _locations.revalidate,
-                      child: const Text(LibraryDuplicateStrings.retry),
+                      child: Text(context.l10n.retry),
                     ),
                   ],
                 ),
@@ -331,7 +330,7 @@ class _LibraryDuplicateLocationsSheetState
               child: AmeLoadingContent(
                 isLoading:
                     _locations.loading && _locations.cachedItemCount == 0,
-                semanticsLabel: "正在读取文件位置",
+                semanticsLabel: context.l10n.loadingFileLocations,
                 child: _buildLocations(),
               ),
             ),
@@ -343,7 +342,7 @@ class _LibraryDuplicateLocationsSheetState
 
   Widget _buildLocations() {
     if (_locations.total == 0 && !_locations.loading && !_locations.failed) {
-      return const Center(child: Text(LibraryDuplicateStrings.emptyLocations));
+      return Center(child: Text(context.l10n.duplicateLocationsChanged));
     }
     return AmeScrollMotion(
       child: ListView.builder(
@@ -377,9 +376,11 @@ class _LibraryDuplicateLocationsSheetState
             onPreference: _saving ? null : () => _prefer(location),
             preferenceLabel: _key is LibrarySimilarGalleryGroupKey
                 ? (location.preferred
-                      ? LibraryDuplicateStrings.deselectSimilarImage
-                      : LibraryDuplicateStrings.selectSimilarImage)
-                : (location.preferred ? "取消首选" : "设为首选"),
+                      ? context.l10n.deselectPhoto
+                      : context.l10n.selectPhoto)
+                : (location.preferred
+                      ? context.l10n.clearPreferred
+                      : context.l10n.setPreferred),
             wrapPath: true,
           );
         },

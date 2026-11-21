@@ -4,6 +4,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_vir
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets(
     "prepend preserves later input when the trailing window is trimmed",
@@ -120,7 +122,7 @@ LibraryGalleryPrependCompensation _capture(ScrollPosition position) =>
 
 Future<ScrollPosition> _position(WidgetTester tester) async {
   await tester.pumpWidget(
-    const MaterialApp(
+    const LocalizedTestApp(
       home: SingleChildScrollView(child: SizedBox(height: 5000)),
     ),
   );

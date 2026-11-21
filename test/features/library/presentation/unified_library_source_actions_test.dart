@@ -9,7 +9,6 @@ import "package:cedarflake_ame/features/library/application/library_scanner.dart
 import "package:cedarflake_ame/features/library/application/ports/library_scanner.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_header.dart";
 import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
@@ -17,9 +16,9 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/library_query_snapshot_fixture.dart";
 import "support/library_screen_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -50,7 +49,7 @@ void main() {
     expect(find.text("更新图库"), findsOneWidget);
     expect(find.text("在文件资源管理器中打开"), findsOneWidget);
     expect(find.text("从 Ame 中移除"), findsOneWidget);
-    expect(find.text(LibraryStrings.relocateLibrary), findsOneWidget);
+    expect(find.text(testChinese.relocateLibrary), findsOneWidget);
     expect(find.byType(AmeMenuItemContent), findsNWidgets(4));
     final updateMenuItem = find.ancestor(
       of: find.text("更新图库"),
@@ -109,11 +108,11 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(LibraryStrings.removeFromAme));
+    await tester.tap(find.text(testChinese.removeFromAme));
     await tester.pumpAndSettle();
     expect(find.text("从 Ame 中移除目录？"), findsOneWidget);
 
-    await tester.tap(find.text(LibraryStrings.removeFromAme));
+    await tester.tap(find.text(testChinese.removeFromAme));
     expect(catalog.unregisteredRootIds, isEmpty);
     await tester.pump();
 
@@ -155,9 +154,9 @@ void main() {
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(LibraryStrings.removeFromAme));
+      await tester.tap(find.text(testChinese.removeFromAme));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(LibraryStrings.removeFromAme));
+      await tester.tap(find.text(testChinese.removeFromAme));
       expect(catalog.unregisteredRootIds, isEmpty);
 
       await tester.pumpWidget(const SizedBox.shrink());
@@ -226,9 +225,9 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(LibraryStrings.removeFromAme));
+      await tester.tap(find.text(testChinese.removeFromAme));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(LibraryStrings.removeFromAme));
+      await tester.tap(find.text(testChinese.removeFromAme));
       await tester.pumpAndSettle();
 
       final header = tester.widget<LibraryGalleryHeader>(
@@ -283,9 +282,9 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(LibraryStrings.removeFromAme));
+    await tester.tap(find.text(testChinese.removeFromAme));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(LibraryStrings.removeFromAme));
+    await tester.tap(find.text(testChinese.removeFromAme));
     await tester.pumpAndSettle();
 
     expect(catalog.unregisteredRootIds, ["root-1"]);
@@ -366,7 +365,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(LibraryStrings.updateLibrary));
+    await tester.tap(find.text(testChinese.updateLibrary));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey("library-update-root-root-2")));
     await tester.pump();

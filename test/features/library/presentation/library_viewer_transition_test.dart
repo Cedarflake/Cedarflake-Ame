@@ -15,6 +15,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:flutter/rendering.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../../../support/semantics/retained_semantics_update_harness.dart";
 
 void main() {
@@ -26,7 +27,7 @@ void main() {
   ) async {
     const bounds = Rect.fromLTWH(100, 80, 120, 120);
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: RepaintBoundary(
           key: const Key("rounded-flight"),
           child: ColoredBox(
@@ -424,7 +425,7 @@ void main() {
 }
 
 Widget _host(Widget gallery, Widget? viewer, {bool reducedMotion = false}) =>
-    MaterialApp(
+    LocalizedTestApp(
       home: MediaQuery(
         data: MediaQueryData(disableAnimations: reducedMotion),
         child: RepaintBoundary(

@@ -12,6 +12,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 
 void main() {
   for (final previous in [false, true]) {
@@ -46,7 +47,7 @@ void main() {
                 ),
               ),
             ]),
-            child: MaterialApp(
+            child: LocalizedTestApp(
               theme: ThemeData(platform: TargetPlatform.windows),
               home: Scaffold(
                 body: Center(
@@ -180,7 +181,7 @@ void main() {
               LibraryState(assets: assets, windowStartItemOffset: 100),
             ),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             theme: ThemeData(platform: TargetPlatform.windows),
             home: Scaffold(
               body: Center(
@@ -255,7 +256,7 @@ void main() {
                 LibraryState(assets: initial, windowStartItemOffset: 100),
               ),
             ]),
-            child: MaterialApp(
+            child: LocalizedTestApp(
               home: Scaffold(
                 body: Center(
                   child: SizedBox(
@@ -326,7 +327,7 @@ void main() {
             LibraryState(assets: assets),
           ),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: Center(
               child: SizedBox(
@@ -459,7 +460,7 @@ void main() {
               LibraryState(assets: assets),
             ),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: Center(
                 child: SizedBox(
@@ -514,7 +515,7 @@ void main() {
                 LibraryState(assets: assets),
               ),
             ]),
-            child: MaterialApp(
+            child: LocalizedTestApp(
               home: MediaQuery(
                 data: MediaQueryData(disableAnimations: reducedMotion),
                 child: Scaffold(
@@ -588,7 +589,7 @@ void main() {
             ),
           ),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: Center(
               child: SizedBox(

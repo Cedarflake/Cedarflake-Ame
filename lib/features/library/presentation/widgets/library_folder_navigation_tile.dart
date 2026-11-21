@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
@@ -13,7 +14,6 @@ import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../../../app/presentation/ame_transition_icon.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
-import "../library_strings.dart";
 import "library_path_text.dart";
 import "library_workbench_metrics.dart";
 
@@ -123,8 +123,8 @@ class _LibraryFolderNavigationTileState
                 ? null
                 : AmeTooltip(
                     message: widget.isExpanded
-                        ? LibraryStrings.collapseFolder
-                        : LibraryStrings.expandFolder,
+                        ? context.l10n.collapseFolder
+                        : context.l10n.expandFolder,
                     child: IconButton(
                       key: ValueKey("folder-expand-$keySuffix"),
                       onPressed: widget.onToggleExpansion,
@@ -161,13 +161,13 @@ class _LibraryFolderNavigationTileState
     final action = await showAmePopupMenu<_LibraryFolderMenuAction>(
       context: context,
       position: position,
-      labels: const [LibraryStrings.openInExplorer],
-      items: const [
+      labels: [context.l10n.openInExplorer],
+      items: [
         PopupMenuItem(
           value: _LibraryFolderMenuAction.open,
           child: AmeMenuItemContent(
             icon: Symbols.folder_open_rounded,
-            label: LibraryStrings.openInExplorer,
+            label: context.l10n.openInExplorer,
           ),
         ),
       ],
@@ -218,7 +218,7 @@ class LibraryFolderErrorTile extends StatelessWidget {
         key: const Key("folder-tree-retry"),
         onPressed: onRetry,
         icon: const Icon(Symbols.refresh_rounded),
-        label: const Text(LibraryStrings.retryFolders),
+        label: Text(context.l10n.retryFolders),
       ),
     );
   }
@@ -245,8 +245,8 @@ class LoadMoreLibraryFoldersTile extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         child: Text(
           isLoading
-              ? LibraryStrings.loadingFolders
-              : LibraryStrings.showMoreFolders,
+              ? context.l10n.loadingFolders
+              : context.l10n.showMoreFolders,
         ),
       ),
     );

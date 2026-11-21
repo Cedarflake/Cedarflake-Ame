@@ -3,6 +3,7 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../application/library_classification_configuration.dart";
 import "../../application/library_model_installation.dart";
 import "../../application/library_model_activation.dart";
@@ -18,19 +19,19 @@ Future<void> showLibraryModelSetup(BuildContext context, WidgetRef ref) async {
     context: context,
     builder: (context) => AlertDialog(
       key: const Key("classification-model-download"),
-      title: const Text("下载智能相册模型"),
-      content: const SizedBox(
+      title: Text(context.l10n.downloadSmartModel),
+      content: SizedBox(
         width: 480,
-        child: Text("需要下载约 504 MB 的模型，之后在本机分析图片。已有的完整模型文件会复用。"),
+        child: Text(context.l10n.smartModelDownloadDetail),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text("取消"),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(true),
-          child: const Text("下载并启用"),
+          child: Text(context.l10n.downloadAndEnable),
         ),
       ],
     ),

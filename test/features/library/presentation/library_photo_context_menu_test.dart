@@ -9,8 +9,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/library_organization_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -43,7 +43,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: Consumer(
               builder: (context, ref, _) => TextButton(
@@ -169,7 +169,12 @@ void main() {
       await open(tester);
       expect(find.text("加入收藏夹"), findsNothing);
       expect(
-        container.read(ameNotificationControllerProvider).history.single.title,
+        container
+            .read(ameNotificationControllerProvider)
+            .history
+            .single
+            .title
+            .resolve(testChinese),
         "暂时无法读取相册和收藏",
       );
       await tester.tap(find.text("复制路径"));

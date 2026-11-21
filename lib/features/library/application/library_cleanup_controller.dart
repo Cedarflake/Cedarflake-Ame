@@ -1,6 +1,7 @@
 import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../app/messages/ame_message.dart";
 import "../../../app/notifications/ame_notification_controller.dart";
 import "../domain/library_organization_cleanup.dart";
 import "library_cleanup_state.dart";
@@ -142,8 +143,8 @@ class LibraryCleanupController extends Notifier<LibraryCleanupState> {
             .read(ameNotificationControllerProvider.notifier)
             .publish(
               AmeNotificationDraft(
-                title: "已清理未关联记录",
-                message: "已清理 $removedRecords 项记录。原图片和相册均已保留。",
+                title: AmeLabel.unlinkedRecordsCleared,
+                message: AmeRecordsClearedMessage(removedRecords),
                 severity: AmeNotificationSeverity.success,
                 dedupeKey: "organization-cleanup-result",
               ),

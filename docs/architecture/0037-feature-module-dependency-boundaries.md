@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-02
-- Last amended: 2026-11-16
+- Last amended: 2026-11-21
 
 ## Context
 
@@ -74,6 +74,11 @@ or cross-feature widget imports.
 The Settings preview-cleanup confirmation consumes `libraryPlatformActionsProvider` only to open
 the displayed retired preview directory. Cleanup authority remains with the storage application;
 the shared dialog location component receives a callback and has no feature or filesystem dependency.
+
+The Settings storage-error widget consumes the public `StorageSettingsFailure` domain contract to
+select localized feedback from its stable error code and disclose its diagnostic message. Storage
+retains path validation and configuration updates. The exact consumer-to-contract registration lives
+in the boundary policy alongside the existing storage settings entrypoints.
 
 The Settings analysis row consumes `libraryClassificationConfigurationProvider` and
 `LibraryClassificationAcceleration`. The library application owns retirement, preference saving and

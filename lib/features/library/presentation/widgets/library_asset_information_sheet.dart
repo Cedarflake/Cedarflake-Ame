@@ -1,8 +1,8 @@
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_models.dart";
-import "../library_strings.dart";
 import "../library_asset_summary.dart";
 import "library_path_text.dart";
 
@@ -23,47 +23,78 @@ Future<void> showLibraryAssetInformation(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                LibraryStrings.viewInformation,
+                context.l10n.viewInformation,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
-              _InformationRow(
-                label: "文件",
-                value: displayLibraryFileName(asset.displayPath),
-              ),
-              _InformationRow(label: "路径", value: asset.displayPath),
-              _InformationRow(
-                label: "类型",
-                value: libraryFileType(asset.displayPath),
-              ),
-              _InformationRow(
-                label: "尺寸",
-                value: asset.width > 0 && asset.height > 0
-                    ? "${asset.width} × ${asset.height}"
-                    : "未知",
-              ),
-              _InformationRow(
-                label: "大小",
-                value: libraryFileSize(asset.fileSize),
-              ),
-              _InformationRow(label: "相机品牌", value: asset.camera.make ?? "未知"),
-              _InformationRow(label: "相机型号", value: asset.camera.model ?? "未知"),
-              _InformationRow(
-                label: "拍摄时间",
-                value: _formatCaptureTime(asset.captureTime),
-              ),
-              if (asset.captureTime case final captureTime?)
-                _InformationRow(
-                  label: "时间来源",
-                  value: _captureSourceLabel(captureTime.source),
-                ),
-              _InformationRow(
-                label: "创建时间",
-                value: _formatUnixTime(asset.createdUnixMs),
-              ),
-              _InformationRow(
-                label: "修改时间",
-                value: _formatUnixTime(asset.modifiedUnixMs),
+              Table(
+                columnWidths: const {
+                  0: IntrinsicColumnWidth(),
+                  1: FlexColumnWidth(),
+                },
+                children: [
+                  _informationRow(
+                    context,
+                    label: context.l10n.file,
+                    value: displayLibraryFileName(asset.displayPath),
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.path,
+                    value: asset.displayPath,
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.fileType,
+                    value: libraryFileType(context.l10n, asset.displayPath),
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.imageDimensions,
+                    value: asset.width > 0 && asset.height > 0
+                        ? "${asset.width} × ${asset.height}"
+                        : context.l10n.unknown,
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.size,
+                    value: libraryFileSize(asset.fileSize),
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.cameraMake,
+                    value: asset.camera.make ?? context.l10n.unknown,
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.cameraModel,
+                    value: asset.camera.model ?? context.l10n.unknown,
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.timeTaken,
+                    value: _formatCaptureTime(context.l10n, asset.captureTime),
+                  ),
+                  if (asset.captureTime case final captureTime?)
+                    _informationRow(
+                      context,
+                      label: context.l10n.timeSource,
+                      value: _captureSourceLabel(
+                        context.l10n,
+                        captureTime.source,
+                      ),
+                    ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.timeCreated,
+                    value: _formatUnixTime(context.l10n, asset.createdUnixMs),
+                  ),
+                  _informationRow(
+                    context,
+                    label: context.l10n.timeModified,
+                    value: _formatUnixTime(context.l10n, asset.modifiedUnixMs),
+                  ),
+                ],
               ),
             ],
           ),
@@ -73,60 +104,54 @@ Future<void> showLibraryAssetInformation(
   );
 }
 
-class _InformationRow extends StatelessWidget {
-  const _InformationRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 88,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          Expanded(child: SelectableText(value)),
-        ],
+TableRow _informationRow(
+  BuildContext context, {
+  required String label,
+  required String value,
+}) => TableRow(
+  children: [
+    Padding(
+      padding: const EdgeInsets.fromLTRB(0, 8, 16, 8),
+      child: Text(
+        label,
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
-    );
-  }
-}
+    ),
+    Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: SelectableText(value),
+    ),
+  ],
+);
 
-String _formatCaptureTime(LibraryCaptureTimeEvidence? captureTime) {
+String _formatCaptureTime(
+  AppLocalizations strings,
+  LibraryCaptureTimeEvidence? captureTime,
+) {
   if (captureTime == null) {
-    return "未知";
+    return strings.unknown;
   }
   final parsed = DateTime.tryParse(captureTime.localTime);
-  return parsed == null ? captureTime.localTime : _formatDateTime(parsed);
+  return parsed == null
+      ? captureTime.localTime
+      : strings.photoTimestamp(parsed, parsed);
 }
 
-String _captureSourceLabel(LibraryCaptureTimeSource source) {
+String _captureSourceLabel(
+  AppLocalizations strings,
+  LibraryCaptureTimeSource source,
+) {
   return switch (source) {
-    LibraryCaptureTimeSource.exifDateTimeOriginal => "相机原始拍摄时间",
-    LibraryCaptureTimeSource.exifDateTimeDigitized => "数字化时间",
-    LibraryCaptureTimeSource.exifDateTime => "图片记录时间",
+    LibraryCaptureTimeSource.exifDateTimeOriginal => strings.cameraOriginalTime,
+    LibraryCaptureTimeSource.exifDateTimeDigitized => strings.digitizedTime,
+    LibraryCaptureTimeSource.exifDateTime => strings.photoRecordedTime,
   };
 }
 
-String _formatUnixTime(int? unixMs) {
+String _formatUnixTime(AppLocalizations strings, int? unixMs) {
   if (unixMs == null) {
-    return "未知";
+    return strings.unknown;
   }
-  return _formatDateTime(DateTime.fromMillisecondsSinceEpoch(unixMs).toLocal());
-}
-
-String _formatDateTime(DateTime value) {
-  String twoDigits(int part) => part.toString().padLeft(2, "0");
-  return "${value.year}-${twoDigits(value.month)}-${twoDigits(value.day)} "
-      "${twoDigits(value.hour)}:${twoDigits(value.minute)}:${twoDigits(value.second)}";
+  final local = DateTime.fromMillisecondsSinceEpoch(unixMs);
+  return strings.photoTimestamp(local, local);
 }

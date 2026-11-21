@@ -229,7 +229,9 @@ class LibraryViewerSession extends ChangeNotifier {
           _onNavigationError(
             LibraryCatalogFailure(
               code: "viewer_page_load_failed",
-              message: message ?? "图库窗口已变化，请重试切换图片。",
+              message:
+                  message ??
+                  "The current view changed before the next page loaded.",
             ),
           );
         }

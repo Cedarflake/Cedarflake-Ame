@@ -1,0 +1,8 @@
+arb-dir: lib/app/presentation/l10n
+template-arb-file: app_zh.arb
+output-dir: lib/app/presentation/l10n/generated
+output-localization-file: app_localizations.dart
+nullable-getter: false
+format: true
+# Flutter 3.50 generates compatibility delegates. Ame registers the standalone Material delegates.
+header: "// ignore_for_file: deprecated_member_use"

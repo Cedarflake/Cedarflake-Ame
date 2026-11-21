@@ -4,8 +4,11 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/messages/ame_message.dart";
+import "../../../../app/presentation/ame_localizations.dart";
+import "../../../../app/presentation/ame_message_text.dart";
+import "../../application/ports/library_catalog.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
-import "../../../../app/notifications/ame_notification_strings.dart";
 import "../../../../app/presentation/ame_notifications.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../settings/application/ame_preferences.dart";
@@ -54,7 +57,6 @@ import "../library_search_availability.dart";
 import "../coordination/library_search.dart";
 import "../library_search_notifications.dart";
 import "../library_search_strings.dart";
-import "../library_strings.dart";
 import "../library_synchronization_notifications.dart";
 import "../coordination/library_synchronization_refresh.dart";
 import "../coordination/library_viewer_session.dart";
@@ -166,6 +168,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     _browseWorkspaces = LibraryBrowseWorkspaces(
       surface: this,
       review: _review,
+      readLocaleName: () => context.l10n.localeName,
       publish: ref.read(libraryWorkbenchControllerProvider.notifier).select,
     );
     _organizationPublication = ref.read(libraryOrganizationPublicationProvider);
@@ -179,7 +182,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
       catalog: ref.read(libraryCatalogProvider),
       onPreviewDemand: _libraryController.updateViewerPreviewDemand,
       onNavigationError: (error) =>
-          _publishFailureNotification("无法切换图片", error),
+          _publishFailureNotification(AmeLabel.changePhotoFailed, error),
     )..addListener(_handleViewerChanged);
     _notificationController = ref.read(
       ameNotificationControllerProvider.notifier,
@@ -264,6 +267,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     _synchronizationRefresh.queueRevision(
       _synchronizationSnapshot.catalogRevision,
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _browseWorkspaces.observeLocale(context.l10n.localeName);
   }
 
   @override
@@ -535,25 +544,23 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                     controller,
                     updateState,
                     layoutManifest,
-                    globalBarBuilder:
-                        (sidebarWidth, sidebarExpansion, sidebarToggle) =>
-                            LibraryGlobalBar(
-                              sidebarWidth: sidebarWidth,
-                              sidebarExpansion: sidebarExpansion,
-                              sidebarToggle: sidebarToggle,
-                              isSearchEnabled:
-                                  workspace.isBrowsing &&
-                                  (workspace != LibraryWorkspace.albums ||
-                                      state.query.collection
-                                          is! LibraryAllCollection) &&
-                                  canEditLibrarySearch(state),
-                              searchController: _searchController,
-                              discovery: _search,
-                              notifications: notifications,
-                              onNotificationsOpened:
-                                  _notificationController.markAllRead,
-                              onNotificationSelected: _showNotificationDetails,
-                            ),
+                    globalBarBuilder: (sidebarWidth, sidebarExpansion) =>
+                        LibraryGlobalBar(
+                          sidebarWidth: sidebarWidth,
+                          sidebarExpansion: sidebarExpansion,
+                          isSearchEnabled:
+                              workspace.isBrowsing &&
+                              (workspace != LibraryWorkspace.albums ||
+                                  state.query.collection
+                                      is! LibraryAllCollection) &&
+                              canEditLibrarySearch(state),
+                          searchController: _searchController,
+                          discovery: _search,
+                          notifications: notifications,
+                          onNotificationsOpened:
+                              _notificationController.markAllRead,
+                          onNotificationSelected: _showNotificationDetails,
+                        ),
                   ),
                 ),
                 viewer: viewerCatalogAsset == null
@@ -698,11 +705,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     LibraryController controller,
     LibraryUpdateState updateState,
     LibraryGalleryLayoutManifest? layoutManifest, {
-    required Widget Function(
-      double sidebarWidth,
-      double sidebarExpansion,
-      Widget sidebarToggle,
-    )
+    required Widget Function(double sidebarWidth, double sidebarExpansion)
     globalBarBuilder,
   }) {
     final folderTree = ref.watch(libraryFolderControllerProvider);
@@ -734,6 +737,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         : null;
     final categoryName = collection is LibrarySmartAlbumCollection
         ? _smartAlbumHeading.resolve(
+            context.l10n,
             collection.categoryId,
             ref.watch(libraryClassificationCategoriesProvider),
           )
@@ -809,6 +813,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             state.primaryScanSnapshot.hasUnresolvedPublication,
         addingSourceDisabledReason:
             LibraryPendingSource.addFolderDisabledReason(
+              context.l10n,
               state.primaryScanSnapshot,
             ),
         retainedScanRootId: state.retainedScanRootId,
@@ -843,7 +848,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             readState: () => ref.read(libraryControllerProvider),
           );
           if (mounted && removed.isNotEmpty) {
-            _publishSuccessNotification("已从 Ame 中移除 ${removed.length} 个文件夹");
+            _publishSuccessNotification(
+              AmeRemovedFoldersMessage(removed.length),
+            );
           }
           return removed;
         },
@@ -851,7 +858,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             .read(librarySidebarOrderProvider)
             .move(LibrarySidebarKind.sourceFolders, move),
       ),
-      galleryBuilder: (_) => LibraryGalleryActivity(
+      galleryBuilder: (context) => LibraryGalleryActivity(
         controller: controller,
         child: LibraryGalleryViewport(
           header: LibraryGalleryHeader(
@@ -898,16 +905,22 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
               onChanged: _changeGalleryFilter,
             ),
             galleryTitle: libraryGalleryTitle(
+              context.l10n,
               state,
               albumName: albumName,
               categoryName: categoryName,
             ),
             semanticSummary: state.query.semanticResults == null
                 ? null
-                : LibrarySearchStrings.coverage(state.query.semanticResults!),
+                : LibrarySearchStrings.coverage(
+                    context.l10n,
+                    state.query.semanticResults!,
+                  ),
             semanticNotice: state.query.semanticResults == null
                 ? null
-                : LibrarySearchStrings.notice(state.query.semanticResults!),
+                : LibrarySearchStrings.notice(
+                    state.query.semanticResults!,
+                  )?.resolve(context.l10n),
             totalItems:
                 collection is LibrarySmartAlbumCollection ||
                     state.query.semanticResults != null
@@ -1173,6 +1186,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   }
 
   Future<void> _selectWorkspace(LibraryWorkspace workspace) async {
+    if (_browseWorkspaces.keepsBrowseForSettings(workspace)) {
+      await _browseWorkspaces.select(workspace);
+      return;
+    }
     if (workspace != _destination &&
         (_search.related ||
             (_search.active && _search.mode == LibrarySearchMode.content))) {
@@ -1513,7 +1530,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           );
     } on Object catch (error) {
       if (mounted) {
-        _publishFailureNotification("无法保存图库显示设置", error);
+        _publishFailureNotification(AmeLabel.saveGallerySettingsFailed, error);
       }
     }
   }
@@ -1538,11 +1555,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           .read(libraryPlatformActionsProvider)
           .copyText(asset.displayPath);
       if (mounted) {
-        _publishSuccessNotification("已复制文件路径");
+        _publishSuccessNotification(AmeLabel.filePathCopied);
       }
     } on Object catch (error) {
       if (mounted) {
-        _publishFailureNotification("无法复制路径", error);
+        _publishFailureNotification(AmeLabel.copyPathFailed, error);
       }
     }
   }
@@ -1554,7 +1571,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           .revealFile(asset.sourcePath);
     } on Object catch (error) {
       if (mounted) {
-        _publishFailureNotification("无法在文件资源管理器中打开", error);
+        _publishFailureNotification(AmeLabel.openInExplorerFailed, error);
       }
     }
   }
@@ -1564,7 +1581,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
       await ref.read(libraryPlatformActionsProvider).revealDirectory(root.path);
     } on Object catch (error) {
       if (mounted) {
-        _publishFailureNotification("无法在文件资源管理器中打开", error);
+        _publishFailureNotification(AmeLabel.openInExplorerFailed, error);
       }
     }
   }
@@ -1576,7 +1593,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           .revealLibraryFolder(root.path, folder.relativePath);
     } on Object catch (error) {
       if (mounted) {
-        _publishFailureNotification("无法在文件资源管理器中打开", error);
+        _publishFailureNotification(AmeLabel.openInExplorerFailed, error);
       }
     }
   }
@@ -1604,19 +1621,20 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     final shouldRemove = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("从 Ame 中移除目录？"),
+        title: Text(context.l10n.confirmRemoveFolder),
         content: Text(
-          "“${librarySourceName(root.displayPath)}”中的图片将不再显示在 Ame 中。"
-          "原目录和图片都会保留。",
+          context.l10n.confirmRemoveFolderDetail(
+            librarySourceName(root.displayPath),
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(LibraryStrings.cancel),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(LibraryStrings.removeFromAme),
+            child: Text(context.l10n.removeFromAme),
           ),
         ],
       ),
@@ -1641,7 +1659,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     final didRemove = await controller.executeRootRemoval(prepared);
     if (mounted && didRemove) {
       _publishSuccessNotification(
-        "已从 Ame 中移除“${librarySourceName(root.displayPath)}”",
+        AmeRemovedFolderMessage(librarySourceName(root.displayPath)),
       );
     }
   }
@@ -1781,7 +1799,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           .read(libraryControllerProvider)
           .timeNavigationErrorMessage;
       if (error != null) {
-        _publishFailureNotification("无法跳转到所选日期", error);
+        _publishFailureNotification(AmeLabel.seekDateFailed, error);
       }
     }
     return didSeek;
@@ -1914,23 +1932,29 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     );
   }
 
-  void _publishSuccessNotification(String message) {
+  void _publishSuccessNotification(AmeMessage message) {
     _notificationController.publish(
       AmeNotificationDraft(
         title: message,
-        message: "",
+        message: const AmeRawMessage(""),
         severity: AmeNotificationSeverity.success,
       ),
     );
   }
 
-  void _publishFailureNotification(String title, Object error) {
+  void _publishFailureNotification(AmeMessage title, Object error) {
     _notificationController.publish(
       AmeNotificationDraft(
         title: title,
-        message: AmeNotificationStrings.operationFailed,
+        message: switch (error) {
+          LibraryCatalogFailure(code: "viewer_query_snapshot_stale") =>
+            AmeLabel.organizationLibraryUpdating,
+          LibraryCatalogFailure(code: "viewer_page_load_failed") =>
+            AmeLabel.organizationViewChanged,
+          _ => AmeLabel.operationFailedDetails,
+        },
         severity: AmeNotificationSeverity.error,
-        detail: error.toString(),
+        detail: AmeRawMessage(error.toString()),
         isPersistent: true,
       ),
     );

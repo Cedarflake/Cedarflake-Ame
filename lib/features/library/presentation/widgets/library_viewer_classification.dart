@@ -2,10 +2,12 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_classification_review.dart";
 import "../../application/library_classification_settings.dart";
 import "../../domain/library_organization.dart";
+import "../library_category_label.dart";
 
 class LibraryViewerClassification extends ConsumerWidget {
   const LibraryViewerClassification({required this.target, super.key});
@@ -26,7 +28,9 @@ class LibraryViewerClassification extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsetsDirectional.only(end: 8),
       child: AmeTooltip(
-        message: "分类：${category.label}",
+        message: context.l10n.categoryLabel(
+          libraryCategoryLabel(context.l10n, category),
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -34,7 +38,7 @@ class LibraryViewerClassification extends ConsumerWidget {
               dimension: 40,
               child: Icon(Symbols.label_rounded, size: 20),
             ),
-            Text(category.label),
+            Text(libraryCategoryLabel(context.l10n, category)),
           ],
         ),
       ),

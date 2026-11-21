@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter/scheduler.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_models.dart";
 import "../coordination/library_time_seek_scheduler.dart";
@@ -663,6 +664,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
         : null;
     final hasScrollRange = position != null && position.hasContentDimensions;
     return _projectionCache.resolve(
+      context.l10n,
       timeline: widget.timeline,
       metrics: widget.layoutMetrics ?? _stableLayoutMetrics,
       maximumScrollOffset: hasScrollRange ? position.maxScrollExtent : null,

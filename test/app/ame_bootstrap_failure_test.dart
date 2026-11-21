@@ -31,7 +31,10 @@ void main() {
         ]),
         child: const AmeBootstrapFailure(
           error: error,
-          preferences: AmePreferences(theme: AmeThemePreference.dark),
+          preferences: AmePreferences(
+            theme: AmeThemePreference.dark,
+            language: AmeLanguagePreference.zhHans,
+          ),
         ),
       ),
     );
@@ -78,14 +81,14 @@ void main() {
         ]),
         child: const AmeBootstrapFailure(
           error: FormatException(diagnostics),
-          preferences: AmePreferences(),
+          preferences: AmePreferences(language: AmeLanguagePreference.en),
         ),
       ),
     );
     await tester.pumpAndSettle();
     expect(clipboardText, isNull);
 
-    await tester.tap(find.text("复制诊断信息"));
+    await tester.tap(find.text("Copy diagnostics"));
     await tester.pumpAndSettle();
 
     expect(clipboardText, contains(diagnostics));
@@ -93,7 +96,7 @@ void main() {
       clipboardText,
       startsWith("${const AmeBuildIdentity.current().applicationLabel}\n"),
     );
-    expect(find.text("诊断信息已复制"), findsOneWidget);
+    expect(find.text("Diagnostics copied"), findsOneWidget);
   });
 }
 

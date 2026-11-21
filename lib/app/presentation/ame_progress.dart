@@ -161,14 +161,14 @@ class AmeLoadingProgress extends StatelessWidget {
   const AmeLoadingProgress({
     this.active = true,
     this.size = 48,
-    this.semanticsLabel = "正在加载",
+    this.semanticsLabel,
     this.delay = ameProgressDelay,
     super.key,
   });
 
   final bool active;
   final double size;
-  final String semanticsLabel;
+  final String? semanticsLabel;
   final Duration delay;
 
   @override
@@ -184,13 +184,13 @@ class AmeLoadingContent extends StatelessWidget {
   const AmeLoadingContent({
     required this.isLoading,
     required this.child,
-    this.semanticsLabel = "正在加载",
+    this.semanticsLabel,
     super.key,
   });
 
   final bool isLoading;
   final Widget child;
-  final String semanticsLabel;
+  final String? semanticsLabel;
 
   @override
   Widget build(BuildContext context) => Stack(

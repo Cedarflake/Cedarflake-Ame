@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_feedback_card.dart";
@@ -25,7 +26,7 @@ class LibraryFileFeedback extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final progress = activity.progress!;
     final commands = ref.read(libraryFileActionsProvider.notifier);
-    final title = LibraryFileStrings.activity(activity);
+    final title = LibraryFileStrings.activity(context.l10n, activity);
     final canStop =
         !activity.stopping && progress.phase != LibraryFileTaskPhase.refreshing;
     if (viewer) {
@@ -33,12 +34,17 @@ class LibraryFileFeedback extends ConsumerWidget {
       var message = title;
       if (progress.failure != null) {
         message = LibraryFileStrings.failure(
+          context.l10n,
           progress.failure,
           action: activity.action,
         );
       } else if (progress.isFinished &&
           activity.purpose != LibraryFileActivityPurpose.report) {
-        message = LibraryFileStrings.result(progress, activity.action);
+        message = LibraryFileStrings.result(
+          context.l10n,
+          progress,
+          activity.action,
+        );
       } else if (activity.purpose != LibraryFileActivityPurpose.report &&
           progress.phase != LibraryFileTaskPhase.refreshing &&
           progress.processed + progress.skipped < progress.total) {
@@ -48,11 +54,13 @@ class LibraryFileFeedback extends ConsumerWidget {
       return LibraryViewerNotice(
         icon: Symbols.folder_rounded,
         message: message,
-        actionLabel: activity.busy ? "停止" : "知道了",
+        actionLabel: activity.busy
+            ? context.l10n.stop
+            : context.l10n.acknowledge,
         onAction: activity.busy && !canStop ? null : action,
       );
     }
-    final message = _message(progress);
+    final message = _message(context.l10n, progress);
     return AmeFeedbackCard(
       title: title,
       severity:
@@ -77,48 +85,56 @@ class LibraryFileFeedback extends ConsumerWidget {
           : null,
       actions: [
         AmeFeedbackAction(
-          label: "查看记录",
+          label: context.l10n.viewHistory,
           onPressed: () => showLibraryFileHistory(context),
         ),
         if (activity.busy)
           AmeFeedbackAction(
-            label: "停止",
+            label: context.l10n.stop,
             onPressed: canStop ? commands.cancel : null,
           )
         else
-          AmeFeedbackAction(label: "知道了", onPressed: commands.dismiss),
+          AmeFeedbackAction(
+            label: context.l10n.acknowledge,
+            onPressed: commands.dismiss,
+          ),
       ],
     );
   }
 
-  String? _message(LibraryFileProgress progress) {
+  String? _message(AppLocalizations strings, LibraryFileProgress progress) {
     if (activity.purpose == LibraryFileActivityPurpose.report) {
       if (progress.failure != null) {
-        return LibraryFileStrings.failure(progress.failure);
+        return LibraryFileStrings.failure(strings, progress.failure);
       }
       if (progress.export?.reportState == LibraryFileReportState.notNeeded) {
-        return "没有特殊结果，无需生成清单。";
+        return strings.noExceptionsReport;
       }
       final path = progress.export?.reportPath;
-      return path == null ? "正在读取操作记录" : displayLibraryPath(path);
+      return path == null
+          ? strings.loadingOperationHistory
+          : displayLibraryPath(path);
     }
     if (progress.failure != null) {
       return LibraryFileStrings.failure(
+        strings,
         progress.failure,
         action: activity.action,
       );
     }
     if (progress.phase == LibraryFileTaskPhase.preparing) {
-      return "已核对 ${progress.processed} / ${progress.total} 个文件";
+      return strings.verifiedFiles(progress.processed, progress.total);
     }
     if (progress.isFinished) {
-      return progress.export?.reportPath != null ? "结果清单已保存到目标文件夹。" : null;
+      return progress.export?.reportPath != null
+          ? strings.reportSavedDestination
+          : null;
     }
     if (progress.phase == LibraryFileTaskPhase.refreshing ||
         progress.total > 0 &&
             progress.processed + progress.skipped >= progress.total) {
       return null;
     }
-    return "已处理 ${progress.processed} / ${progress.total} 个文件";
+    return strings.processedFiles(progress.processed, progress.total);
   }
 }

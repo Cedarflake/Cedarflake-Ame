@@ -1,11 +1,12 @@
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_preview_feedback.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../../support/localized_test_app.dart";
 
 void main() {
   testWidgets(
@@ -23,11 +24,8 @@ void main() {
           ),
         ),
       );
-      expect(
-        find.text(LibraryStrings.previewFormatUnrecognized),
-        findsOneWidget,
-      );
-      expect(find.text(LibraryStrings.previewUpdateRequired), findsNothing);
+      expect(find.text(testChinese.previewFormatUnrecognized), findsOneWidget);
+      expect(find.text(testChinese.previewUpdateRequired), findsNothing);
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(retries, 0);
       await tester.tap(
@@ -60,7 +58,7 @@ void main() {
           ),
         );
         final label =
-            "${LibraryStrings.previewFormatUnrecognized}\n${LibraryStrings.retryPreview}";
+            "${testChinese.previewFormatUnrecognized}\n${testChinese.retryPreview}";
         expect(find.bySemanticsLabel(label), findsOneWidget);
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pumpAndSettle();
@@ -104,9 +102,9 @@ void main() {
             ),
           ),
         );
-        expect(find.text(LibraryStrings.previewUpdateRequired), findsNothing);
+        expect(find.text(testChinese.previewUpdateRequired), findsNothing);
         final label =
-            "${LibraryStrings.previewUpdateRequired}\n${LibraryStrings.retryPreview}";
+            "${testChinese.previewUpdateRequired}\n${testChinese.retryPreview}";
         expect(find.bySemanticsLabel(label), findsOneWidget);
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pumpAndSettle();
@@ -155,11 +153,11 @@ void main() {
             ),
           );
           expect(
-            find.text(LibraryStrings.retryingPreview),
+            find.text(testChinese.retryingPreview),
             sample.showText ? findsOneWidget : findsNothing,
           );
           expect(
-            find.bySemanticsLabel(LibraryStrings.retryingPreview),
+            find.bySemanticsLabel(testChinese.retryingPreview),
             findsOneWidget,
           );
           expect(
@@ -211,7 +209,7 @@ void main() {
 }
 
 Widget _host({required Size size, required Widget child, double scale = 1}) =>
-    MaterialApp(
+    LocalizedTestApp(
       theme: buildAmeTheme(),
       builder: (context, body) => MediaQuery(
         data: MediaQuery.of(

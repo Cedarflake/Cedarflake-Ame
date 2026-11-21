@@ -5,6 +5,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../../settings/application/ame_preferences.dart";
@@ -318,7 +319,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
       if (mounted) {
         showAmeTransientFeedback(
           context,
-          message: "无法保存缩略图设置，请重试",
+          message: context.l10n.filmstripSettingFailed,
           severity: AmeNotificationSeverity.error,
         );
       }
@@ -331,6 +332,6 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
     if (position == null || totalItems == null || totalItems <= 0) {
       return null;
     }
-    return "$position / $totalItems 张";
+    return context.l10n.photoPosition(position, totalItems);
   }
 }

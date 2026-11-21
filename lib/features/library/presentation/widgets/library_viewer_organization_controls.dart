@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_classification_review.dart";
 import "../../application/library_classification_settings.dart";
@@ -47,7 +48,9 @@ class LibraryViewerOrganizationControls extends ConsumerWidget {
     final retrying =
         (organization.hasError && organization.isLoading) ||
         (classification?.hasError == true && classification?.isLoading == true);
-    final retryLabel = retrying ? "正在读取图片状态" : "重新读取图片状态";
+    final retryLabel = retrying
+        ? context.l10n.readingPhotoStatus
+        : context.l10n.rereadPhotoStatus;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

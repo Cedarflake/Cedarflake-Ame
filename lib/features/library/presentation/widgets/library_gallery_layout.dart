@@ -1,8 +1,9 @@
 import "dart:math" as math;
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
-import "../library_strings.dart";
+import "../library_gallery_date.dart";
 import "justified_gallery_layout.dart";
 import "library_gallery_card_metrics.dart";
 import "library_gallery_grouping.dart";
@@ -54,7 +55,8 @@ class LibraryGalleryLayoutEntry {
     return itemIndex < entry.startItemIndex + entry.cells.length ? entry : null;
   }
 
-  static List<LibraryGalleryLayoutEntry> build({
+  static List<LibraryGalleryLayoutEntry> build(
+    AppLocalizations strings, {
     required List<LibraryAsset> assets,
     required double availableWidth,
     required GalleryLayoutShape layoutShape,
@@ -111,7 +113,7 @@ class LibraryGalleryLayoutEntry {
             monthKey: monthKey,
             startItemIndex: groupStartItemIndex,
             dateKey: group.dateKey,
-            headerLabel: _dateLabel(group.dateKey),
+            headerLabel: galleryDateLabel(strings, group.dateKey),
             firstLocationId: group.assets.first.locationId,
           ),
         );
@@ -217,14 +219,6 @@ class LibraryGalleryLayoutEntry {
         "${date.month.toString().padLeft(2, '0')}-"
         "${date.day.toString().padLeft(2, '0')}";
   }
-
-  static String _dateLabel(String? dateKey) {
-    if (dateKey == null) {
-      return LibraryStrings.unknownCaptureDate;
-    }
-    final parts = dateKey.split("-").map(int.parse).toList(growable: false);
-    return "${parts[0]}年${parts[1]}月${parts[2]}日";
-  }
 }
 
 class LibraryGalleryLayoutMetrics {
@@ -239,6 +233,7 @@ class LibraryGalleryLayoutMetrics {
   });
 
   factory LibraryGalleryLayoutMetrics.fromEntries(
+    AppLocalizations strings,
     List<LibraryGalleryLayoutEntry> entries, {
     required double topPadding,
     required double bottomPadding,
@@ -257,7 +252,7 @@ class LibraryGalleryLayoutMetrics {
         anchors.add(
           LibraryGalleryDateAnchor(
             id: dateKey ?? "unknown",
-            label: headerLabel ?? LibraryStrings.unknownCaptureDate,
+            label: headerLabel ?? strings.unknownCaptureDate,
             scrollOffset: runningOffset,
             year: dateKey == null
                 ? null

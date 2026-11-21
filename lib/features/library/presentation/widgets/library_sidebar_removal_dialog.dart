@@ -2,6 +2,8 @@ import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_dialog.dart";
+import "../../../../app/presentation/ame_localizations.dart";
+import "../../../../app/presentation/ame_message_text.dart";
 import "../../application/library_sidebar_removal.dart";
 
 Future<Set<String>> showLibrarySidebarRemovalDialog({
@@ -64,10 +66,12 @@ class _SidebarRemovalDialogState extends State<_SidebarRemovalDialog> {
 
   String get _actionLabel {
     if (removal.isRunning) {
-      final status = removal.isStopping ? "正在停止" : "正在处理";
+      final status = removal.isStopping
+          ? context.l10n.stopping
+          : context.l10n.processing;
       return "$status ${removal.completed.length} / ${removal.entries.length}";
     }
-    if (removal.error != null) return "重试";
+    if (removal.error != null) return context.l10n.retry;
     return widget.actionLabel;
   }
 
@@ -113,16 +117,21 @@ class _SidebarRemovalDialogState extends State<_SidebarRemovalDialog> {
             if (removal.error case final error?) ...[
               if (removal.completed.isNotEmpty)
                 Text(
-                  "已完成 ${removal.completed.length} / ${removal.entries.length} 项。",
+                  context.l10n.itemsCompleted(
+                    removal.completed.length,
+                    removal.entries.length,
+                  ),
                 ),
-              AmeDialogError(error),
+              AmeDialogError(error.resolve(context.l10n)),
             ],
           ],
         ),
         actions: [
           TextButton(
             onPressed: _cancelAction(context),
-            child: Text(removal.isRunning ? "停止" : "取消"),
+            child: Text(
+              removal.isRunning ? context.l10n.stop : context.l10n.cancel,
+            ),
           ),
           FilledButton(
             onPressed: removal.isRunning || removal.isComplete

@@ -8,8 +8,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../../library/support/library_organization_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -32,7 +32,9 @@ void main() {
   Future<void> host(WidgetTester tester) => tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: const MaterialApp(home: Scaffold(body: AlbumSettingsSection())),
+      child: const LocalizedTestApp(
+        home: Scaffold(body: AlbumSettingsSection()),
+      ),
     ),
   );
 

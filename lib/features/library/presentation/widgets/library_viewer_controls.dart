@@ -1,10 +1,10 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../../../app/window/ame_window_chrome.dart";
-import "../library_strings.dart";
 import "library_viewer_chrome.dart";
 
 class LibraryViewerTopBar extends StatelessWidget {
@@ -32,7 +32,7 @@ class LibraryViewerTopBar extends StatelessWidget {
           children: [
             const SizedBox(width: 8),
             AmeTooltip(
-              message: "${backLabel ?? LibraryStrings.backToLibrary}（Esc）",
+              message: "${backLabel ?? context.l10n.backToLibrary}（Esc）",
               child: IconButton(
                 key: const Key("viewer-back-button"),
                 onPressed: onBack,
@@ -89,7 +89,9 @@ class LibraryViewerNavigationButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final button = Center(
       child: AmeTooltip(
-        message: isPrevious ? "上一张（←）" : "下一张（→）",
+        message: isPrevious
+            ? context.l10n.previousPhotoShortcut
+            : context.l10n.nextPhotoShortcut,
         child: IconButton.filledTonal(
           key: Key(isPrevious ? "viewer-previous" : "viewer-next"),
           onPressed: onPressed,

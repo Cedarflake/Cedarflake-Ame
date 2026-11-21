@@ -15,14 +15,15 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "support/gallery_wall_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
   test("square manifest produces query-wide fixed-cell geometry", () {
     final manifest = galleryManifest(1200);
     final snapshot = LibraryGalleryLayoutSnapshot.build(
+      testChinese,
       manifest: manifest,
       availableWidth: 860,
       thumbnailSize: GalleryThumbnailSize.medium,
@@ -100,7 +101,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: applicationTestOverrides(),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: ListenableBuilder(
             listenable: Listenable.merge([wallSize, libraryState]),
             builder: (context, child) =>
@@ -111,6 +112,7 @@ void main() {
     );
 
     final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+      testChinese,
       minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
       manifest: manifest,
       availableWidth: initialSize.width - 40,
@@ -196,6 +198,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 180));
 
     final finalSnapshot = LibraryGalleryLayoutSnapshot.build(
+      testChinese,
       minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
       manifest: manifest,
       availableWidth: finalSize.width - 40,
@@ -331,7 +334,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: applicationTestOverrides(),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: ValueListenableBuilder(
               valueListenable: manifest,
               builder: (context, currentManifest, child) => Align(
@@ -475,7 +478,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: applicationTestOverrides(),
-            child: MaterialApp(
+            child: LocalizedTestApp(
               home: ValueListenableBuilder(
                 valueListenable: configuration,
                 builder: (context, current, child) => Align(
@@ -516,6 +519,7 @@ void main() {
           ),
         );
         final targetSnapshot = LibraryGalleryLayoutSnapshot.build(
+          testChinese,
           minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           manifest: manifest,
           availableWidth: 860,
@@ -590,6 +594,7 @@ void main() {
     final state = galleryState(itemCount);
     final manifest = galleryManifest(itemCount);
     final snapshot = LibraryGalleryLayoutSnapshot.build(
+      testChinese,
       manifest: manifest,
       availableWidth: 860,
       thumbnailSize: GalleryThumbnailSize.medium,
@@ -606,7 +611,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: applicationTestOverrides(),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Align(
             alignment: Alignment.topLeft,
             child: SizedBox(
@@ -667,7 +672,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: applicationTestOverrides(),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: ValueListenableBuilder<Size>(
             valueListenable: wallSize,
             builder: (context, size, child) => Align(
@@ -702,6 +707,7 @@ void main() {
     );
 
     final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+      testChinese,
       minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
       manifest: manifest,
       availableWidth: initialSize.width - 40,
@@ -801,7 +807,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: applicationTestOverrides(),
-            child: MaterialApp(
+            child: LocalizedTestApp(
               home: ValueListenableBuilder(
                 valueListenable: manifest,
                 builder: (context, currentManifest, child) => Align(
@@ -841,6 +847,7 @@ void main() {
         );
 
         final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+          testChinese,
           minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           manifest: initialManifest,
           availableWidth: wallSize.width - 40,
@@ -896,6 +903,7 @@ void main() {
             ),
         ]);
         final recoveredSnapshot = LibraryGalleryLayoutSnapshot.build(
+          testChinese,
           minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           manifest: recovered,
           availableWidth: wallSize.width - 40,
@@ -979,6 +987,7 @@ void main() {
       const wallSize = Size(1000, 360);
       final manifest = galleryManifest(itemCount);
       final snapshot = LibraryGalleryLayoutSnapshot.build(
+        testChinese,
         manifest: manifest,
         availableWidth: wallSize.width - 40,
         thumbnailSize: GalleryThumbnailSize.medium,
@@ -998,7 +1007,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: applicationTestOverrides(),
-            child: MaterialApp(
+            child: LocalizedTestApp(
               home: SizedBox(
                 width: wallSize.width,
                 height: wallSize.height,
@@ -1137,7 +1146,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: applicationTestOverrides(),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: ValueListenableBuilder(
               valueListenable: configuration,
               builder: (context, current, child) => Align(
@@ -1187,6 +1196,7 @@ void main() {
       );
 
       final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+        testChinese,
         minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
         manifest: manifest,
         availableWidth: wallSize.width - 40,
@@ -1323,7 +1333,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: applicationTestOverrides(),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: ValueListenableBuilder<int>(
             valueListenable: rebuild,
             builder: (context, _, child) => SizedBox(

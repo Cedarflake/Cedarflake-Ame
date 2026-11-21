@@ -1,3 +1,5 @@
+import "ame_localizations.dart";
+
 // Copyright 2013 The Flutter Authors
 // BSD-3-Clause license: assets/licenses/material_loading_indicator.txt.
 // Adapted from flutter/packages PR 13429, commit 9eaa17df4e0ba4b067a7203e857953e3d4bc04bd.
@@ -14,14 +16,10 @@ import "package:material_ui/material_ui.dart";
 
 /// The temporary renderer behind Ame's loading feedback; it owns no request state.
 class AmeLoadingIndicator extends StatefulWidget {
-  const AmeLoadingIndicator({
-    this.size = 48,
-    this.semanticsLabel = "正在加载",
-    super.key,
-  });
+  const AmeLoadingIndicator({this.size = 48, this.semanticsLabel, super.key});
 
   final double size;
-  final String semanticsLabel;
+  final String? semanticsLabel;
 
   @override
   State<AmeLoadingIndicator> createState() => _AmeLoadingIndicatorState();
@@ -51,7 +49,7 @@ class _AmeLoadingIndicatorState extends State<AmeLoadingIndicator>
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: widget.semanticsLabel,
+    label: widget.semanticsLabel ?? context.l10n.loading,
     role: SemanticsRole.loadingSpinner,
     child: SizedBox.square(
       dimension: widget.size,

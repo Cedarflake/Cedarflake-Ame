@@ -3,6 +3,8 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 
+import "ame_localizations.dart";
+
 const ameFallbackSeedColor = Color(0xFF0B57D0);
 
 const _systemThemeChannel = MethodChannel("cedarflake_ame/system_theme");
@@ -10,7 +12,7 @@ const _getAccentColorMethod = "getAccentColor";
 const _accentColorChangedMethod = "accentColorChanged";
 
 typedef AmeSystemThemeWidgetBuilder =
-    Widget Function(BuildContext context, Color seedColor);
+    Widget Function(BuildContext context, Color seedColor, Locale locale);
 
 Future<Color> loadAmeSystemSeedColor() async {
   try {
@@ -24,33 +26,57 @@ Future<Color> loadAmeSystemSeedColor() async {
 }
 
 class AmeSystemThemeBuilder extends StatefulWidget {
-  const AmeSystemThemeBuilder({required this.builder, super.key});
+  const AmeSystemThemeBuilder({
+    this.preferredLocale,
+    required this.builder,
+    super.key,
+  });
 
+  final Locale? preferredLocale;
   final AmeSystemThemeWidgetBuilder builder;
 
   @override
   State<AmeSystemThemeBuilder> createState() => _AmeSystemThemeBuilderState();
 }
 
-class _AmeSystemThemeBuilderState extends State<AmeSystemThemeBuilder> {
+class _AmeSystemThemeBuilderState extends State<AmeSystemThemeBuilder>
+    with WidgetsBindingObserver {
+  late Locale _systemLocale;
   Color _seedColor = ameFallbackSeedColor;
   int _accentRevision = 0;
 
   @override
   void initState() {
     super.initState();
+    final binding = WidgetsBinding.instance;
+    _systemLocale = resolveAmeLocales(
+      binding.platformDispatcher.locales,
+      ameSupportedLocales,
+    );
+    binding.addObserver(this);
     _systemThemeChannel.setMethodCallHandler(_handleMethodCall);
     unawaited(_loadSeedColor());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _systemThemeChannel.setMethodCallHandler(null);
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => widget.builder(context, _seedColor);
+  Widget build(BuildContext context) => widget.builder(
+    context,
+    _seedColor,
+    widget.preferredLocale ?? _systemLocale,
+  );
+
+  @override
+  void didChangeLocales(List<Locale>? locales) {
+    final locale = resolveAmeLocales(locales, ameSupportedLocales);
+    if (locale != _systemLocale) setState(() => _systemLocale = locale);
+  }
 
   Future<void> _loadSeedColor() async {
     final requestedRevision = _accentRevision;

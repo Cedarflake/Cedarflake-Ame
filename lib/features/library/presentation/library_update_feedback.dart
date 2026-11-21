@@ -1,3 +1,4 @@
+import "../../../app/presentation/ame_localizations.dart";
 import "../application/library_update_task.dart";
 import "library_strings.dart";
 
@@ -9,69 +10,85 @@ class LibraryUpdateFeedback {
   final LibraryRootUpdateTask task;
 
   // 目录名称右侧｜等待、进行、停止、完成和失败的状态文字。
-  String get phaseLabel => switch (task.phase) {
-    LibraryRootUpdatePhase.queued => "等待更新",
-    LibraryRootUpdatePhase.discovering => "正在更新",
-    LibraryRootUpdatePhase.finalizing => "正在检查图片",
-    LibraryRootUpdatePhase.refreshing => "正在加载图片",
-    LibraryRootUpdatePhase.cancelling => "正在停止",
-    LibraryRootUpdatePhase.completed => "更新完成",
-    LibraryRootUpdatePhase.cancelled => "已取消",
-    LibraryRootUpdatePhase.stale => "文件已变化",
-    LibraryRootUpdatePhase.refreshFailed => "图片加载失败",
-    LibraryRootUpdatePhase.failed => "更新失败",
+  String phaseLabel(AppLocalizations strings) => switch (task.phase) {
+    LibraryRootUpdatePhase.queued => strings.waitingForUpdate,
+    LibraryRootUpdatePhase.discovering => strings.synchronizing,
+    LibraryRootUpdatePhase.finalizing => strings.checkingPhotos,
+    LibraryRootUpdatePhase.refreshing => strings.loadingPhotosShort,
+    LibraryRootUpdatePhase.cancelling => strings.stopping,
+    LibraryRootUpdatePhase.completed => strings.updateComplete,
+    LibraryRootUpdatePhase.cancelled => strings.cancelled,
+    LibraryRootUpdatePhase.stale => strings.filesChanged,
+    LibraryRootUpdatePhase.refreshFailed => strings.galleryDisplayReloadPending,
+    LibraryRootUpdatePhase.failed => strings.updateFailed,
   };
 
   // 目录任务行下方｜检查数量、完成数量或失败说明。
-  String? get detail {
+  String? detail(AppLocalizations strings) {
     return switch (task.phase) {
       LibraryRootUpdatePhase.queued ||
       LibraryRootUpdatePhase.cancelling ||
       LibraryRootUpdatePhase.cancelled ||
       LibraryRootUpdatePhase.stale => null,
-      LibraryRootUpdatePhase.finalizing =>
-        "已检查 ${task.validatedItems} / ${task.validationItemCount} 张图片 · "
-            "已检查 ${task.visitedEntries} 个文件",
+      LibraryRootUpdatePhase.finalizing => strings.photosValidated(
+        task.validatedItems,
+        task.validationItemCount,
+        task.visitedEntries,
+      ),
       LibraryRootUpdatePhase.refreshing => null,
-      LibraryRootUpdatePhase.completed => "共 ${task.acceptedItems} 张图片",
+      LibraryRootUpdatePhase.completed => strings.totalPhotos(
+        task.acceptedItems,
+      ),
       LibraryRootUpdatePhase.refreshFailed =>
-        LibraryStrings.scanFailureDetail(task.errorMessage) ?? "扫描已完成。",
+        LibraryStrings.scanFailureDetail(strings, task.errorMessage) ??
+            strings.scanCompleted,
       LibraryRootUpdatePhase.failed => LibraryStrings.scanFailureDetail(
+        strings,
         task.errorMessage,
       ),
-      LibraryRootUpdatePhase.discovering =>
-        "已检查 ${task.visitedEntries} 个文件 · 已找到 ${task.acceptedItems} 张图片",
+      LibraryRootUpdatePhase.discovering => strings.filesCheckedPhotosFound(
+        task.visitedEntries,
+        task.acceptedItems,
+      ),
     };
   }
 
   // 目录任务行右侧｜失败后可点击的恢复按钮。
-  String get retryLabel => switch (task.phase) {
-    LibraryRootUpdatePhase.refreshFailed => LibraryStrings.reload,
-    LibraryRootUpdatePhase.stale => LibraryStrings.updateLibrary,
-    _ => "重试",
+  String retryLabel(AppLocalizations strings) => switch (task.phase) {
+    LibraryRootUpdatePhase.refreshFailed => strings.retryLoading,
+    LibraryRootUpdatePhase.stale => strings.updateLibrary,
+    _ => strings.retry,
   };
 
   // 屏幕阅读器｜恢复按钮的朗读标签，包含目录名称；不作为可见按钮文字。
-  String retrySemanticsLabel(String rootName) => switch (task.phase) {
-    LibraryRootUpdatePhase.refreshFailed => "重新加载 $rootName",
-    LibraryRootUpdatePhase.stale => "更新图库 $rootName",
-    _ => "重试更新 $rootName",
-  };
+  String retrySemanticsLabel(AppLocalizations strings, String rootName) =>
+      switch (task.phase) {
+        LibraryRootUpdatePhase.refreshFailed => strings.reloadRoot(rootName),
+        LibraryRootUpdatePhase.stale => strings.updateRoot(rootName),
+        _ => strings.retryRoot(rootName),
+      };
 
   // 屏幕阅读器｜进度条和任务状态播报使用的完整进度说明。
-  String get progressSemanticsValue {
+  String progressSemanticsValue(AppLocalizations strings) {
     if (task.phase == LibraryRootUpdatePhase.finalizing &&
         task.validationItemCount > 0) {
       final percent = ((task.validatedItems / task.validationItemCount) * 100)
           .round()
           .clamp(0, 100);
-      return "$phaseLabel，${task.validatedItems} / "
-          "${task.validationItemCount} 张图片，$percent%";
+      return strings.progressPhotos(
+        phaseLabel(strings),
+        task.validatedItems,
+        task.validationItemCount,
+        percent,
+      );
     }
     if (task.phase == LibraryRootUpdatePhase.discovering) {
-      return "$phaseLabel，已检查 ${task.visitedEntries} 个文件，"
-          "已找到 ${task.acceptedItems} 张图片";
+      return strings.progressFiles(
+        phaseLabel(strings),
+        task.visitedEntries,
+        task.acceptedItems,
+      );
     }
-    return phaseLabel;
+    return phaseLabel(strings);
   }
 }

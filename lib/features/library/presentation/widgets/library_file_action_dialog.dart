@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../application/directory_picker.dart";
 import "../../../../app/presentation/ame_choice.dart";
 import "../../../../app/presentation/ame_dialog.dart";
@@ -143,17 +144,21 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
         !_picking &&
         (!destination || _directory != null) &&
         (!rename || (_summary?.files == 1 && _name.text.trim().isNotEmpty));
-    final label = LibraryFileStrings.action(widget.action);
+    final label = LibraryFileStrings.action(context.l10n, widget.action);
     final preparationFailed = _summary == null && _failure != null;
     return AmeDialog(
       isLoading: _summary == null && _failure == null,
-      loadingLabel: "正在读取图片",
+      loadingLabel: context.l10n.readingPhotos,
       title: deletion && _summary != null
-          ? LibraryFileStrings.deletionTitle(_summary!)
-          : "$label图片",
+          ? LibraryFileStrings.deletionTitle(context.l10n, _summary!)
+          : context.l10n.photoOperation(label),
       content: preparationFailed
           ? AmeDialogError(
-              LibraryFileStrings.failure(_failure, action: widget.action),
+              LibraryFileStrings.failure(
+                context.l10n,
+                _failure,
+                action: widget.action,
+              ),
             )
           : Column(
               mainAxisSize: MainAxisSize.min,
@@ -161,32 +166,32 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
               children: [
                 if (_summary case final summary?
                     when destination && summary.files > 1) ...[
-                  Text("${summary.files} 个文件"),
+                  Text(context.l10n.fileCount(summary.files)),
                   const SizedBox(height: 16),
                 ],
                 if (destination) ...[
                   AmeDialogField(
-                    label: "目标文件夹",
+                    label: context.l10n.destinationFolder,
                     child: _directory == null
                         ? Align(
                             alignment: Alignment.centerLeft,
                             child: TextButton.icon(
                               onPressed: _picking ? null : _pick,
                               icon: const Icon(Symbols.folder_open_rounded),
-                              label: const Text("选择文件夹"),
+                              label: Text(context.l10n.chooseFolder),
                             ),
                           )
                         : AmeDialogPath(
                             path: displayLibraryPath(_directory!),
                             trailing: TextButton(
                               onPressed: _picking ? null : _pick,
-                              child: const Text("更改"),
+                              child: Text(context.l10n.change),
                             ),
                           ),
                   ),
                   const SizedBox(height: 16),
                   AmeDialogField(
-                    label: "文件夹结构",
+                    label: context.l10n.folderStructure,
                     child: Align(
                       alignment: AlignmentDirectional.centerStart,
                       child: AmeChoice<LibraryFileOrganizationRule>.menu(
@@ -195,7 +200,10 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
                           for (final rule in LibraryFileOrganizationRule.values)
                             AmeChoiceEntry(
                               value: rule,
-                              label: LibraryFileStrings.rule(rule),
+                              label: LibraryFileStrings.rule(
+                                context.l10n,
+                                rule,
+                              ),
                             ),
                         ],
                         onSelected: (value) {
@@ -212,7 +220,10 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
                             child: Padding(
                               padding: const EdgeInsets.only(top: 8),
                               child: Text(
-                                LibraryFileStrings.ruleDescription(_rule),
+                                LibraryFileStrings.ruleDescription(
+                                  context.l10n,
+                                  _rule,
+                                ),
                               ),
                             ),
                           ),
@@ -222,14 +233,18 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
                   TextField(
                     controller: _name,
                     autofocus: true,
-                    decoration: const InputDecoration(labelText: "文件名"),
+                    decoration: InputDecoration(
+                      labelText: context.l10n.fileNameLabel,
+                    ),
                     onChanged: (_) => setState(() {}),
                   ),
                 ],
                 if (deletion) ...[
                   if (_summary == null || _summary!.files > 0) ...[
                     Text(
-                      _permanent ? "文件将被永久删除，无法从回收站恢复。" : "文件将移入 Windows 回收站。",
+                      _permanent
+                          ? context.l10n.permanentDeleteWarning
+                          : context.l10n.recycleWarning,
                     ),
                     const SizedBox(height: 8),
                     MergeSemantics(
@@ -246,7 +261,9 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
                                   setState(() => _permanent = value ?? false),
                             ),
                             const SizedBox(width: 4),
-                            const Flexible(child: Text("永久删除")),
+                            Flexible(
+                              child: Text(context.l10n.deletePermanently),
+                            ),
                           ],
                         ),
                       ),
@@ -256,7 +273,11 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
                 if (_failure case final failure?) ...[
                   const SizedBox(height: 16),
                   AmeDialogError(
-                    LibraryFileStrings.failure(failure, action: widget.action),
+                    LibraryFileStrings.failure(
+                      context.l10n,
+                      failure,
+                      action: widget.action,
+                    ),
                   ),
                 ],
               ],
@@ -264,7 +285,9 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text(preparationFailed ? "返回" : "取消"),
+          child: Text(
+            preparationFailed ? context.l10n.back : context.l10n.cancel,
+          ),
         ),
         if (!preparationFailed)
           FilledButton(
@@ -281,7 +304,7 @@ class _FileActionDialogState extends ConsumerState<_FileActionDialog> {
                     ),
                   )
                 : null,
-            child: Text(_permanent ? "永久删除" : label),
+            child: Text(_permanent ? context.l10n.deletePermanently : label),
           ),
       ],
     );

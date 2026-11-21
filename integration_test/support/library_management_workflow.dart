@@ -1,10 +1,11 @@
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_update_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../test/support/localized_test_app.dart";
 
 Future<void> verifyLibraryManagementWorkflow(
   WidgetTester tester,
@@ -20,7 +21,7 @@ Future<void> verifyLibraryManagementWorkflow(
     for (final root in before.roots) root.id: root.activeScanId,
   };
   await _openSourceMenu(tester, first);
-  await tester.tap(find.text(LibraryStrings.updateLibrary));
+  await tester.tap(find.text(testChinese.updateLibrary));
   await tester.pumpAndSettle();
   expect(find.byKey(const Key("library-update-dialog")), findsOneWidget);
   expect(
@@ -62,7 +63,7 @@ Future<void> verifyLibraryManagementWorkflow(
   await tester.pumpAndSettle();
 
   await _openSourceMenu(tester, first);
-  await tester.tap(find.text(LibraryStrings.removeFromAme));
+  await tester.tap(find.text(testChinese.removeFromAme));
   await tester.pumpAndSettle();
   final confirmation = find.byType(AlertDialog);
   expect(confirmation, findsOneWidget);

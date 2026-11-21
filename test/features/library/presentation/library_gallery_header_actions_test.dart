@@ -2,6 +2,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_gal
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   for (final reducedMotion in [false, true]) {
     testWidgets(
@@ -11,7 +13,7 @@ void main() {
         addTearDown(reviewing.dispose);
         var presses = 0;
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             home: Scaffold(
               body: MediaQuery(
                 data: MediaQueryData(disableAnimations: reducedMotion),

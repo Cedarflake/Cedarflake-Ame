@@ -1,6 +1,7 @@
 import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../app/messages/ame_message.dart";
 import "../../../app/notifications/ame_notification_controller.dart";
 import "../domain/library_organization_archive.dart";
 import "library_album_pages.dart";
@@ -140,19 +141,19 @@ class LibraryArchiveController extends Notifier<LibraryArchiveState> {
         state = LibraryArchiveFinished(request, cancelled: true);
       case LibraryArchiveExported():
         state = LibraryArchiveFinished(request);
-        _notify("整理记录已导出", "备份已保存到所选位置。");
+        _notify(AmeLabel.archiveExported, AmeLabel.backupSaved);
       case LibraryArchiveRestored():
         state = LibraryArchiveFinished(request);
         ref.invalidate(libraryAlbumPageProvider);
         ref.invalidate(libraryAlbumProvider);
-        _notify("整理记录已恢复", "暂未关联的记录已保留。");
+        _notify(AmeLabel.archiveRestored, AmeLabel.unlinkedRecordsKept);
         await ref.read(libraryOrganizationPublicationProvider).refresh();
       case LibraryArchiveProgress() || null:
         throw StateError("Archive completion requires a terminal result");
     }
   }
 
-  void _notify(String title, String message) {
+  void _notify(AmeMessage title, AmeMessage message) {
     ref
         .read(ameNotificationControllerProvider.notifier)
         .publish(

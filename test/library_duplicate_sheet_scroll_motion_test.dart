@@ -11,8 +11,8 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
 import "support/gallery_group_fixtures.dart";
-
 import "support/application_test_bindings.dart";
+import "support/localized_test_app.dart";
 
 void main() {
   for (final reducedMotion in [false, true]) {
@@ -30,7 +30,7 @@ void main() {
               ),
             ),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: MediaQuery(
               data: MediaQueryData(
                 size: const Size(800, 600),

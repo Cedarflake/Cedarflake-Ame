@@ -3,6 +3,7 @@ import "dart:async";
 import "package:flutter/foundation.dart";
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../domain/library_sidebar_order.dart";
@@ -72,7 +73,7 @@ class _LibrarySidebarReorderListState<T extends Object>
       if (!mounted) return;
       showAmeTransientFeedback(
         context,
-        message: "排列顺序未能保存，请重新拖动。",
+        message: context.l10n.sortOrderSaveFailed,
         severity: AmeNotificationSeverity.error,
       );
     }

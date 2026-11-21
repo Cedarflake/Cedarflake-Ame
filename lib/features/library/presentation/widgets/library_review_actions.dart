@@ -3,6 +3,7 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../application/library_organization_actions.dart";
 import "../../application/library_review_requests.dart";
 import "../../application/library_review_session.dart";
@@ -95,6 +96,7 @@ class _LibraryReviewActionsState extends ConsumerState<LibraryReviewActions> {
     final controls = decision == null
         ? null
         : LibraryProgressControls.forDisposition(
+            context.l10n,
             decision.disposition,
             hasConflict: decision.hasConflict,
           );

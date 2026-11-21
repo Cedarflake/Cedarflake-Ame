@@ -5,6 +5,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_gal
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   for (final scale in [1.0, 2.0]) {
     testWidgets(
@@ -106,7 +108,7 @@ void main() {
 Widget _app(
   ValueNotifier<bool> reviewing, {
   required double scale,
-}) => MaterialApp(
+}) => LocalizedTestApp(
   theme: buildAmeTheme(),
   home: Scaffold(
     body: MediaQuery(

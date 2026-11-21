@@ -7,6 +7,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets(
     "only top-level icons select; all and removal omit child folders",
@@ -24,7 +26,7 @@ void main() {
             issueCount: 0,
           ),
       ];
-      Widget view(bool active) => MaterialApp(
+      Widget view(bool active) => LocalizedTestApp(
         home: Scaffold(
           body: LibraryNavigation(
             isActive: active,

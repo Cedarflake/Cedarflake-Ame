@@ -7,6 +7,8 @@ import "package:flutter/foundation.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("a first-frame failure after closing the viewer is retired", (
     tester,
@@ -130,7 +132,7 @@ void main() {
   );
 }
 
-Widget _viewer(_SourceImage source, {List<Object>? errors}) => MaterialApp(
+Widget _viewer(_SourceImage source, {List<Object>? errors}) => LocalizedTestApp(
   home: Scaffold(
     body: Image(
       image: source,

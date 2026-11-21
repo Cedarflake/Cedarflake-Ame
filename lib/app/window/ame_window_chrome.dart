@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 import "package:window_manager/window_manager.dart";
 
+import "../presentation/ame_localizations.dart";
 import "../presentation/ame_overlay_semantics.dart";
 import "ame_window_actions.dart";
 
@@ -31,7 +32,7 @@ class AmeWindowCaptionControls extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         AmeTooltip(
-          message: "最小化",
+          message: context.l10n.windowMinimize,
           child: IconButton(
             key: const Key("window-minimize"),
             onPressed: () => unawaited(actions.minimize()),
@@ -45,7 +46,9 @@ class AmeWindowCaptionControls extends ConsumerWidget {
         ValueListenableBuilder<bool>(
           valueListenable: actions.isMaximized,
           builder: (context, isMaximized, child) => AmeTooltip(
-            message: isMaximized ? "还原" : "最大化",
+            message: isMaximized
+                ? context.l10n.windowRestore
+                : context.l10n.windowMaximize,
             child: IconButton(
               key: const Key("window-maximize"),
               onPressed: () => unawaited(actions.toggleMaximize()),
@@ -62,7 +65,7 @@ class AmeWindowCaptionControls extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(right: 8),
           child: AmeTooltip(
-            message: "关闭",
+            message: context.l10n.close,
             child: IconButton(
               key: const Key("window-close"),
               onPressed: () => unawaited(actions.close()),

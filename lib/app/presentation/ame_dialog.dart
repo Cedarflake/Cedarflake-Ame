@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "ame_localizations.dart";
 import "ame_progress.dart";
 
 class AmeDialog extends StatelessWidget {
@@ -143,7 +144,7 @@ class AmeDialogReadFailure extends StatelessWidget {
                 child: FilledButton.tonalIcon(
                   onPressed: onRetry,
                   icon: const Icon(Symbols.refresh_rounded),
-                  label: const Text("重试"),
+                  label: Text(context.l10n.retry),
                 ),
               ),
             ],

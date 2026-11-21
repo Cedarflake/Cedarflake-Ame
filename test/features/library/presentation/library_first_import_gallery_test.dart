@@ -5,7 +5,6 @@ import "package:cedarflake_ame/features/library/application/library_scanner.dart
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_pending_source.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_states.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_navigation_tile.dart";
@@ -13,8 +12,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/retained_scan_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -27,25 +26,25 @@ void main() {
       40,
     );
     expect(find.byKey(const Key("library-first-import-state")), findsOneWidget);
-    expect(find.text(LibraryStrings.noSourceResults), findsNothing);
+    expect(find.text(testChinese.noSourceResults), findsNothing);
     expect(find.byKey(const Key("library-empty-state")), findsNothing);
     expect(find.byKey(const Key("library-resume-button")), findsOneWidget);
     expect(fixture.scanner.startedRoots, isEmpty);
-    expect(find.text(LibraryStrings.firstImportPaused), findsOneWidget);
-    expect(find.text(LibraryStrings.firstImportPausedDetail), findsOneWidget);
-    expect(find.text(LibraryStrings.firstImportInProgress), findsNothing);
+    expect(find.text(testChinese.firstImportPaused), findsOneWidget);
+    expect(find.text(testChinese.firstImportPausedDetail), findsOneWidget);
+    expect(find.text(testChinese.firstImportInProgress), findsNothing);
 
     await tester.enterText(find.byType(SearchBar), "missing.jpg");
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump();
     expect(find.byKey(const Key("library-first-import-state")), findsOneWidget);
-    expect(find.text(LibraryStrings.noSearchResults), findsNothing);
+    expect(find.text(testChinese.noSearchResults), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey("source-title-other")));
     await tester.pump();
     await tester.pump();
     expect(find.byKey(const Key("library-first-import-state")), findsNothing);
-    expect(find.text(LibraryStrings.noSearchResults), findsOneWidget);
+    expect(find.text(testChinese.noSearchResults), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey("source-title-retained")));
     await tester.pump();
@@ -63,10 +62,10 @@ void main() {
     await tester.pump();
     expect(fixture.scanner.cancelRetainedIds, [retainedScanCheckpoint.scanId]);
     expect(find.byKey(const Key("library-first-import-state")), findsOneWidget);
-    expect(find.text(LibraryStrings.noSourceResults), findsNothing);
+    expect(find.text(testChinese.noSourceResults), findsNothing);
     expect(find.byKey(const Key("library-resume-button")), findsNothing);
-    expect(find.text(LibraryStrings.firstImportGalleryDetail), findsOneWidget);
-    expect(find.text(LibraryStrings.firstImportPausedDetail), findsNothing);
+    expect(find.text(testChinese.firstImportGalleryDetail), findsOneWidget);
+    expect(find.text(testChinese.firstImportPausedDetail), findsNothing);
   });
 
   testWidgets("Continue keeps incomplete feedback until catalog publication", (
@@ -77,13 +76,10 @@ void main() {
     await tester.pump();
     expect(fixture.scanner.resumedIds, [retainedScanCheckpoint.scanId]);
     expect(find.byKey(const Key("library-first-import-state")), findsOneWidget);
-    expect(find.text(LibraryStrings.noSourceResults), findsNothing);
-    expect(find.text(LibraryStrings.firstImportInProgress), findsOneWidget);
-    expect(
-      find.text(LibraryStrings.firstImportInProgressDetail),
-      findsOneWidget,
-    );
-    expect(find.text(LibraryStrings.firstImportPausedDetail), findsNothing);
+    expect(find.text(testChinese.noSourceResults), findsNothing);
+    expect(find.text(testChinese.firstImportInProgress), findsOneWidget);
+    expect(find.text(testChinese.firstImportInProgressDetail), findsOneWidget);
+    expect(find.text(testChinese.firstImportPausedDetail), findsNothing);
 
     fixture.catalog.didPublish = true;
     fixture.scanner.completeScan(retainedScanCheckpoint.scanId);
@@ -91,7 +87,7 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key("library-first-import-state")), findsNothing);
     expect(find.byType(LibraryGalleryWall), findsOneWidget);
-    expect(find.text(LibraryStrings.firstImportInProgressDetail), findsNothing);
+    expect(find.text(testChinese.firstImportInProgressDetail), findsNothing);
     expect(
       fixture.container.read(libraryControllerProvider).assets,
       everyElement(
@@ -137,7 +133,7 @@ void main() {
           find.byKey(const Key("library-first-import-state")),
           findsNothing,
         );
-        expect(find.text(LibraryStrings.firstImportIncomplete), findsNothing);
+        expect(find.text(testChinese.firstImportIncomplete), findsNothing);
         expect(find.byKey(const Key("pending-source-progress")), findsNothing);
 
         fixture.catalog.loadFailure = null;
@@ -164,7 +160,7 @@ void main() {
     expect(
       find.descendant(
         of: pendingTile,
-        matching: find.text(LibraryStrings.firstImportIncomplete),
+        matching: find.text(testChinese.firstImportIncomplete),
       ),
       findsOneWidget,
     );
@@ -173,7 +169,7 @@ void main() {
     await tester.tap(find.byKey(const Key("library-resume-button")));
     await tester.pump();
     expect(find.byKey(const Key("pending-source-progress")), findsOneWidget);
-    expect(find.text(LibraryStrings.addingSource), findsOneWidget);
+    expect(find.text(testChinese.addingSource), findsOneWidget);
 
     fixture.catalog.didPublish = true;
     fixture.scanner.completeScan(retainedScanCheckpoint.scanId);
@@ -188,7 +184,7 @@ void main() {
   ) async {
     for (final status in [LibraryStatus.scanning, LibraryStatus.paused]) {
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: EmptyLibraryGallery(
             state: LibraryState(
               primaryScan: LibraryPrimaryScanSnapshot(
@@ -214,16 +210,16 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: EmptyLibraryGallery(
           state: const LibraryState(roots: [otherPublishedRoot]),
           onImport: () {},
         ),
       ),
     );
-    expect(find.text(LibraryStrings.noSourceResults), findsOneWidget);
+    expect(find.text(testChinese.noSourceResults), findsOneWidget);
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: EmptyLibraryGallery(state: const LibraryState(), onImport: () {}),
       ),
     );
@@ -246,7 +242,7 @@ void main() {
       ),
     );
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Row(
           children: [
             PendingLibrarySourceTile(
@@ -286,7 +282,7 @@ void main() {
         ),
       );
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: EmptyLibraryGallery(state: state, onImport: () {}),
         ),
       );
@@ -299,7 +295,7 @@ void main() {
         findsNothing,
       );
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: EmptyLibraryGallery(
             state: state.copyWith(
               query: const LibraryGalleryQuery(rootId: "other"),

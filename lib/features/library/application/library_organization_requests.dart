@@ -1,5 +1,6 @@
 import "dart:math";
 
+import "../../../app/messages/ame_message.dart";
 import "../domain/library_organization.dart";
 import "ports/library_organization.dart";
 import "library_organization_publication.dart";
@@ -20,8 +21,8 @@ abstract class LibraryOrganizationRequest {
   String id = newOrganizationOperationId();
   bool _cancelled = false;
   bool get isCancelled => _cancelled;
-  String get successMessage;
-  String get failureTitle => "未能保存更改";
+  AmeMessage get successMessage;
+  AmeMessage get failureTitle => AmeLabel.changesSaveFailed;
   LibraryOrganizationChange get change =>
       const LibraryOrganizationChange.records();
   bool canUndo(LibraryOrganizationReceipt receipt) => receipt.changedGroups > 0;
@@ -45,7 +46,8 @@ class LibraryFavoriteRequest extends LibraryOrganizationRequest {
   LibraryOrganizationPrepared? _prepared;
 
   @override
-  String get successMessage => favorite ? "已加入收藏夹" : "已取消收藏";
+  AmeMessage get successMessage =>
+      favorite ? AmeLabel.favoriteAdded : AmeLabel.favoriteRemoved;
 
   @override
   Future<LibraryOrganizationReceipt> execute(
@@ -78,9 +80,9 @@ class LibraryOrganizationUndoRequest extends LibraryOrganizationRequest {
   }
 
   @override
-  String get successMessage => "已撤销";
+  AmeMessage get successMessage => AmeLabel.undoCompleted;
   @override
-  String get failureTitle => "无法撤销";
+  AmeMessage get failureTitle => AmeLabel.undoFailed;
   @override
   bool canUndo(LibraryOrganizationReceipt receipt) => false;
 

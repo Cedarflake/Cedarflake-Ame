@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_transition_icon.dart";
 
 class LibrarySidebarSectionToggle extends StatelessWidget {
@@ -19,7 +20,9 @@ class LibrarySidebarSectionToggle extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
     expanded: expanded,
     child: IconButton(
-      tooltip: "${expanded ? '收起' : '展开'}$label",
+      tooltip: expanded
+          ? context.l10n.collapseSection(label)
+          : context.l10n.expandSection(label),
       onPressed: onPressed,
       style: IconButton.styleFrom(
         fixedSize: const Size.square(36),

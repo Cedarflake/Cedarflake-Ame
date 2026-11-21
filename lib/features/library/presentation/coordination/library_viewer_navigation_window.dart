@@ -117,7 +117,7 @@ class LibraryViewerNavigationWindow {
         (minimumRevision != null && page.revision < minimumRevision)) {
       throw const LibraryCatalogFailure(
         code: "viewer_query_snapshot_stale",
-        message: "图库正在更新，请重试切换图片。",
+        message: "The gallery snapshot changed during navigation.",
       );
     }
     return result;

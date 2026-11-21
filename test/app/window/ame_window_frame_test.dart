@@ -9,6 +9,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "package:window_manager/window_manager.dart";
 
 import "../../support/application_test_bindings.dart";
+import "../../support/localized_test_app.dart";
 
 void main() {
   testWidgets("draws Ame chrome with Material caption actions", (tester) async {
@@ -19,7 +20,7 @@ void main() {
         overrides: applicationTestOverrides([
           ameWindowActionsProvider.overrideWithValue(actions),
         ]),
-        child: const MaterialApp(home: AmeWindowFrame(child: Text("内容"))),
+        child: const LocalizedTestApp(home: AmeWindowFrame(child: Text("内容"))),
       ),
     );
 

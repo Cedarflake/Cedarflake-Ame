@@ -9,6 +9,7 @@ import "../../features/library/presentation/widgets/library_album_picker.dart";
 import "../../features/settings/presentation/default_album_picker.dart";
 import "../../features/settings/presentation/pages/ame_settings_page.dart";
 import "../../features/settings/presentation/widgets/organization_record_feedback.dart";
+import "../presentation/ame_localizations.dart";
 
 List<Override> workbenchPresentationBindings() => [
   librarySettingsDestinationProvider.overrideWithValue(
@@ -34,9 +35,9 @@ Future<DefaultAlbumSelection?> _pickDefaultAlbum(
       : container.read(libraryAlbumProvider(initialAlbumId)).value;
   final result = await showLibraryAlbumPicker(
     context: context,
-    actionLabel: "选择",
+    actionLabel: context.l10n.choose,
     actionIcon: Symbols.check_rounded,
-    clearLabel: "未设置",
+    clearLabel: context.l10n.notSet,
     clearIcon: Symbols.close_rounded,
     initialAlbum: current,
   );

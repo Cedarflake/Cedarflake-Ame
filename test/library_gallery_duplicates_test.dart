@@ -13,6 +13,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "support/application_test_bindings.dart";
+import "support/localized_test_app.dart";
 
 void main() {
   test(
@@ -38,7 +39,7 @@ void main() {
       sortKey: LibraryGallerySortKey.fileName,
     );
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: StatefulBuilder(
             builder: (context, setState) => LibraryGalleryFilter(

@@ -2,12 +2,14 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_loa
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("loading indicator remains square in a narrow tile", (
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(
+      const LocalizedTestApp(
         home: Center(
           child: SizedBox(
             width: 36,

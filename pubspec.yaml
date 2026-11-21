@@ -12,9 +12,12 @@ dependencies:
   file_selector: ^1.1.0
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   flutter_riverpod: ^3.5.0
   flutter_rust_bridge: 2.13.0
   freezed_annotation: ^3.1.0
+  intl: ^0.20.3
   material_symbols_icons: 4.2960.0
   material_ui: 1.11.1
   rust_lib_cedarflake_ame:
@@ -35,6 +38,7 @@ dev_dependencies:
   shared_preferences_platform_interface: ^2.4.2
 
 flutter:
+  generate: true
   uses-material-design: true
   assets:
     - assets/licenses/similarity.txt

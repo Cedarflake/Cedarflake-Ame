@@ -1,7 +1,8 @@
+import "../../../app/messages/ame_message.dart";
 import "../../../app/notifications/ame_notification_controller.dart";
 
-const libraryClassificationFailureTitle = "智能相册分析已中断";
-const libraryClassificationFailureMessage = "已有分类结果仍可浏览。";
+const libraryClassificationFailureTitle = AmeLabel.smartAnalysisInterrupted;
+const libraryClassificationFailureMessage = AmeLabel.smartResultsAvailable;
 
 class LibraryClassificationNotifications {
   LibraryClassificationNotifications(this._notifications);

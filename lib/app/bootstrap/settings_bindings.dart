@@ -9,6 +9,7 @@ import "../../features/settings/application/ports/ame_preference_store.dart";
 import "../../features/settings/application/ports/organization_archive_picker.dart";
 import "../../features/settings/domain/ame_preferences.dart";
 import "../window/ame_window_placement.dart";
+import "platform_dialog_language.dart";
 
 class AmePreferenceStores {
   const AmePreferenceStores({
@@ -34,12 +35,22 @@ class AmePreferenceStores {
 List<Override> settingsBindings({
   required AmePreferenceStore preferenceStore,
   required AmePreferences initialPreferences,
-  OrganizationArchivePicker archivePicker =
-      const PlatformOrganizationArchivePicker(),
+  OrganizationArchivePicker? archivePicker,
 }) => [
   amePreferenceStoreProvider.overrideWithValue(preferenceStore),
   initialAmePreferencesProvider.overrideWithValue(initialPreferences),
-  organizationArchivePickerProvider.overrideWithValue(archivePicker),
+  organizationArchivePickerProvider.overrideWith(
+    (ref) =>
+        archivePicker ??
+        PlatformOrganizationArchivePicker(() {
+          final strings = platformDialogLanguage(ref);
+          return (
+            type: strings.archiveFileType,
+            export: strings.exportAction,
+            choose: strings.chooseBackup,
+          );
+        }),
+  ),
 ];
 
 final settingsRequirements = <ProviderListenable<Object?>>[

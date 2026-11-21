@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/scheduler.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../application/library_controller.dart";
 import "../../domain/gallery_layout_manifest.dart";
 import "../../domain/library_models.dart";
@@ -9,7 +10,6 @@ import "../../domain/library_state.dart";
 import "../coordination/gallery_selection.dart";
 import "../coordination/library_gallery_motion_publication.dart";
 import "../gallery_view_options.dart";
-import "../library_strings.dart";
 import "library_cover_preview_size.dart";
 import "library_exact_extent_sliver.dart";
 import "library_gallery_interaction.dart";
@@ -165,6 +165,7 @@ class LibraryGalleryWall extends StatelessWidget {
           return const SizedBox.shrink();
         }
         final entries = LibraryGalleryLayoutEntry.build(
+          context.l10n,
           minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           assets: state.assets,
           availableWidth: availableWidth,
@@ -174,6 +175,7 @@ class LibraryGalleryWall extends StatelessWidget {
           grouping: LibraryGalleryGrouping.forQuery(state.query),
         );
         final layoutMetrics = LibraryGalleryLayoutMetrics.fromEntries(
+          context.l10n,
           entries,
           topPadding: 18,
           bottomPadding: 72,
@@ -435,7 +437,7 @@ class LibraryGalleryWall extends StatelessWidget {
                         SliverToBoxAdapter(
                           child: SizedBox(
                             height: 72,
-                            child: _buildNextPageStatus(),
+                            child: _buildNextPageStatus(context.l10n),
                           ),
                         ),
                     ],
@@ -461,7 +463,7 @@ class LibraryGalleryWall extends StatelessWidget {
                           key: const Key("library-load-previous-button"),
                           onPressed: onLoadPrevious,
                           icon: const Icon(Symbols.refresh_rounded),
-                          label: const Text(LibraryStrings.retryLoading),
+                          label: Text(context.l10n.retryLoading),
                         ),
                       ),
                     ),
@@ -483,7 +485,7 @@ class LibraryGalleryWall extends StatelessWidget {
                           horizontal: 14,
                           vertical: 8,
                         ),
-                        child: _buildNextPageStatus(),
+                        child: _buildNextPageStatus(context.l10n),
                       ),
                     ),
                   ),
@@ -513,13 +515,13 @@ class LibraryGalleryWall extends StatelessWidget {
     );
   }
 
-  Widget _buildNextPageStatus() {
+  Widget _buildNextPageStatus(AppLocalizations strings) {
     return Center(
       child: OutlinedButton.icon(
         key: const Key("library-load-more-button"),
         onPressed: controller.loadNextPage,
         icon: const Icon(Symbols.refresh_rounded),
-        label: const Text(LibraryStrings.retryLoading),
+        label: Text(strings.retryLoading),
       ),
     );
   }
@@ -807,6 +809,7 @@ class _ManifestLibraryGalleryWall extends StatefulWidget {
 class _ManifestLibraryGalleryWallState
     extends State<_ManifestLibraryGalleryWall> {
   LibraryGalleryLayoutSnapshot? _snapshot;
+  String? _layoutLocale;
   LibraryExactExtentLayoutCorrection? _layoutCorrection;
   var _layoutCorrectionGeneration = 0;
   var _isResizeFrameScheduled = false;
@@ -1026,7 +1029,7 @@ class _ManifestLibraryGalleryWallState
                           key: const Key("library-load-previous-button"),
                           onPressed: widget.onLoadPrevious,
                           icon: const Icon(Symbols.refresh_rounded),
-                          label: const Text(LibraryStrings.retryLoading),
+                          label: Text(context.l10n.retryLoading),
                         ),
                       ),
                     ),
@@ -1051,7 +1054,7 @@ class _ManifestLibraryGalleryWallState
                           key: const Key("library-load-more-button"),
                           onPressed: widget.controller.loadNextPage,
                           icon: const Icon(Symbols.refresh_rounded),
-                          label: const Text(LibraryStrings.retryLoading),
+                          label: Text(context.l10n.retryLoading),
                         ),
                       ),
                     ),
@@ -1090,6 +1093,11 @@ class _ManifestLibraryGalleryWallState
     double availableWidth,
     double viewportExtent,
   ) {
+    final locale = context.l10n.localeName;
+    if (_layoutLocale != locale) {
+      _snapshot = null;
+      _layoutLocale = locale;
+    }
     final current = _snapshot;
     if (current != null &&
         current.matches(
@@ -1137,6 +1145,7 @@ class _ManifestLibraryGalleryWallState
     _layoutCorrection = null;
     _publishedViewportExtent = viewportExtent;
     return _snapshot = LibraryGalleryLayoutSnapshot.build(
+      context.l10n,
       minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
       manifest: widget.manifest,
       availableWidth: availableWidth,
@@ -1395,6 +1404,7 @@ class _ManifestLibraryGalleryWallState
           )
           ? current
           : LibraryGalleryLayoutSnapshot.build(
+              context.l10n,
               minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
               manifest: widget.manifest,
               availableWidth: pendingWidth,

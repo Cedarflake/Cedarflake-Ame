@@ -9,6 +9,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_vir
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets(
     "returning to a loaded endpoint cancels a scheduled drag target",
@@ -17,7 +19,7 @@ void main() {
       addTearDown(scrollController.dispose);
       final requests = _ControlledSeekRequests();
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: _LatestSeekHarness(
               scrollController: scrollController,
@@ -99,7 +101,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: Row(
             children: [
@@ -208,7 +210,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: Row(
             children: [
@@ -317,7 +319,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: Row(
             children: [
@@ -368,7 +370,7 @@ void main() {
       addTearDown(scrollController.dispose);
 
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: _PublishingSeekHarness(scrollController: scrollController),
           ),
@@ -436,7 +438,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: Row(
             children: [
@@ -512,7 +514,7 @@ void main() {
       final selectedOffsets = <int>[];
 
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: _PublishingWheelHarness(
               scrollController: scrollController,
@@ -543,7 +545,7 @@ void main() {
       final requests = _ControlledSeekRequests();
 
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: _LatestSeekHarness(
               scrollController: scrollController,
@@ -596,7 +598,7 @@ void main() {
     final requests = _ControlledSeekRequests();
 
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: _LatestSeekHarness(
             scrollController: scrollController,
@@ -647,7 +649,7 @@ void main() {
     final requests = _ControlledSeekRequests();
 
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: _LatestSeekHarness(
             scrollController: scrollController,
@@ -705,7 +707,7 @@ void main() {
       final targetValue = projection.valueForGlobalItemOffset(8);
 
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: _RowAlignedSeekHarness(
               scrollController: scrollController,

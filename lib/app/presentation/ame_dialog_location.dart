@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "ame_dialog.dart";
+import "ame_localizations.dart";
 import "ame_overlay_semantics.dart";
 
 class AmeDialogLocation extends StatefulWidget {
@@ -51,13 +52,15 @@ class _AmeDialogLocationState extends State<AmeDialogLocation> {
             path: widget.path,
             trailing: TextButton(
               onPressed: _opening ? null : _open,
-              child: Text(_failed ? "重试" : "打开位置"),
+              child: Text(
+                _failed ? context.l10n.retry : context.l10n.openLocation,
+              ),
             ),
           ),
           if (_failed)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 8),
-              child: AmeDialogError("无法打开这个位置，请重试。"),
+              child: AmeDialogError(context.l10n.openLocationFailed),
             ),
         ],
       ),

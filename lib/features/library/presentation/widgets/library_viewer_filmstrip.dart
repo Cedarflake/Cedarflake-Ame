@@ -4,6 +4,7 @@ import "dart:math" as math;
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
@@ -218,7 +219,7 @@ class _LibraryViewerFilmstripState
               if (page != null) unawaited(_loadPage(page, retry: true));
             },
             style: FilledButton.styleFrom(padding: const EdgeInsets.all(8)),
-            child: const Text("重新加载缩略图"),
+            child: Text(context.l10n.reloadThumbnails),
           )
         : const SizedBox.square(
             dimension: 20,

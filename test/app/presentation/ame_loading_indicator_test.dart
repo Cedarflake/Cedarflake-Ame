@@ -3,6 +3,8 @@ import "package:cedarflake_ame/app/presentation/ame_progress.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_ui/material_ui.dart";
 
+import "../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("quiet, reduced-motion and hidden feedback stop animation work", (
     tester,
@@ -12,7 +14,7 @@ void main() {
       bool reduced = false,
       bool active = true,
     }) => tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: MediaQuery(
           data: MediaQueryData(disableAnimations: reduced),
           child: TickerMode(

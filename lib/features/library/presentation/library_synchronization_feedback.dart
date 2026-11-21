@@ -1,10 +1,10 @@
+import "../../../app/messages/ame_message.dart";
 import "../../../app/notifications/ame_notification_controller.dart";
 import "../domain/library_synchronization_models.dart";
 import "library_strings.dart";
 import "library_synchronization_feedback_state.dart";
 
 /// 自动同步反馈：sourceLabel 用于侧栏；titleForRoot、message 和 detail 用于通知。
-/// 具体文案见 LibraryStrings 的侧栏状态、同步通知分组。
 /// 是否发布通知由 shouldNotify 决定；当前仅受阻和中断状态产生目录通知。
 class LibrarySynchronizationFeedback {
   factory LibrarySynchronizationFeedback.fromStatus(
@@ -33,20 +33,21 @@ class LibrarySynchronizationFeedback {
   });
 
   final LibrarySynchronizationFeedbackState state;
-  final String sourceLabel;
-  final String message;
-  final String? detail;
+  final AmeMessage sourceLabel;
+  final AmeMessage message;
+  final AmeMessage? detail;
   final AmeNotificationSeverity severity;
   final bool requiresManualLibraryUpdate;
 
   bool get shouldNotify => state.shouldNotify;
 
   // 底部通知和通知详情｜带目录名称的标题；目录名称不可用时使用图库范围的标题。
-  String titleForRoot(String? rootName) {
+  AmeMessage titleForRoot(String? rootName) {
     if (rootName == null) {
       return switch (state) {
         LibrarySynchronizationFeedbackState.blocked ||
-        LibrarySynchronizationFeedbackState.interrupted => "图库更新受阻",
+        LibrarySynchronizationFeedbackState.interrupted =>
+          AmeLabel.libraryUpdateBlocked,
         _ => sourceLabel,
       };
     }
@@ -59,8 +60,10 @@ class LibrarySynchronizationFeedback {
       LibrarySynchronizationFeedbackState.backgroundVerification ||
       LibrarySynchronizationFeedbackState.awaitingRetry ||
       LibrarySynchronizationFeedbackState.synchronized ||
-      LibrarySynchronizationFeedbackState.unavailable =>
-        "“$rootName”$sourceLabel",
+      LibrarySynchronizationFeedbackState.unavailable => AmeRootStatusMessage(
+        rootName,
+        sourceLabel,
+      ),
       LibrarySynchronizationFeedbackState.blocked ||
       LibrarySynchronizationFeedbackState.interrupted =>
         LibraryStrings.synchronizationReconciliationTitle(rootName),
@@ -73,40 +76,40 @@ bool _requiresManualLibraryUpdate(LibraryRootSynchronizationStatus status) {
       status.lastIssueCode == "live_gap_v30_explicit_recovery_required";
 }
 
-String _synchronizationNotificationMessage(
+AmeMessage _synchronizationNotificationMessage(
   LibraryRootSynchronizationStatus status,
   LibrarySynchronizationFeedbackState state,
 ) {
   if (status.isAwaitingFirstImport) {
-    return LibraryStrings.firstImportIncomplete;
+    return AmeLabel.firstImportIncomplete;
   }
   if (state == LibrarySynchronizationFeedbackState.unavailable) {
-    return LibraryStrings.synchronizationSourceUnavailable;
+    return AmeLabel.synchronizationSourceUnavailable;
   }
   if (state == LibrarySynchronizationFeedbackState.blocked) {
     if (status.lastIssueCode == "legacy_recovery_authority_missing") {
-      return LibraryStrings.synchronizationLegacyRecoveryAuthorityMissing;
+      return AmeLabel.synchronizationLegacyRecoveryAuthorityMissing;
     }
     if (status.lastIssueCode == "live_gap_v30_explicit_recovery_required") {
-      return LibraryStrings.synchronizationExplicitRecoveryRequired;
+      return AmeLabel.synchronizationLegacyRecoveryAuthorityMissing;
     }
-    return LibraryStrings.synchronizationRecoveryBlocked;
+    return AmeLabel.synchronizationRecoveryBlocked;
   }
   if (state == LibrarySynchronizationFeedbackState.awaitingRetry) {
-    return LibraryStrings.synchronizationAutomaticRetry;
+    return AmeLabel.synchronizationAutomaticRetry;
   }
   if (state == LibrarySynchronizationFeedbackState.updating) {
     return _synchronizationPhaseLabel(status.phase);
   }
   if (state == LibrarySynchronizationFeedbackState.backgroundVerification) {
-    return "";
+    return const AmeRawMessage("");
   }
   if (state == LibrarySynchronizationFeedbackState.synchronized) {
     if (status.continuity == LibraryContinuityState.liveOnly &&
         !status.usesAutomaticMetadataFallback) {
-      return LibraryStrings.continuityLiveOnlyDetail;
+      return AmeLabel.manualUpdateDetail;
     }
-    return LibraryStrings.synchronizationCompleted;
+    return AmeLabel.synchronizationCompleted;
   }
   final issueMessage = _synchronizationIssueMessage(status.lastIssueCode);
   if (issueMessage != null) {
@@ -115,37 +118,37 @@ String _synchronizationNotificationMessage(
   return switch (status.freshnessCause) {
     LibraryCatalogFreshnessCause.changeSourceUnhealthy =>
       status.sourceStatus == LibraryChangeSourceStatus.starting
-          ? LibraryStrings.synchronizationSourceStarting
-          : LibraryStrings.synchronizationSourceUnhealthy,
+          ? AmeLabel.synchronizationSourceStarting
+          : AmeLabel.synchronizationSourceUnhealthy,
     LibraryCatalogFreshnessCause.evidenceGap =>
-      LibraryStrings.synchronizationEvidenceGap,
+      AmeLabel.synchronizationEvidenceGap,
     LibraryCatalogFreshnessCause.boundedCapacityExceeded =>
-      LibraryStrings.synchronizationCapacityExceeded,
+      AmeLabel.synchronizationCapacityExceeded,
     LibraryCatalogFreshnessCause.noPendingChanges ||
     LibraryCatalogFreshnessCause.pendingChanges ||
     LibraryCatalogFreshnessCause.rootUnavailable =>
-      LibraryStrings.synchronizationNeedsReconciliation,
+      AmeLabel.synchronizationNeedsReconciliation,
   };
 }
 
-String? _synchronizationIssueMessage(String? issueCode) {
+AmeMessage? _synchronizationIssueMessage(String? issueCode) {
   final message = switch (issueCode) {
     "change_source_callback_access_denied" ||
     "change_source_start_access_denied" ||
     "change_source_watch_access_denied" =>
-      LibraryStrings.synchronizationMonitoringAccessDenied,
+      AmeLabel.synchronizationMonitoringAccessDenied,
     "change_source_callback_path_unavailable" ||
     "change_source_root_removed" ||
     "change_source_root_unavailable" =>
-      LibraryStrings.synchronizationMonitoringPathUnavailable,
+      AmeLabel.synchronizationSourceUnavailable,
     "change_source_callback_capacity_exceeded" ||
     "change_source_ingress_overflow" ||
     "change_source_rescan_required" ||
     "change_source_start_capacity_exceeded" ||
     "change_source_watch_capacity_exceeded" =>
-      LibraryStrings.synchronizationMonitoringCapacityExceeded,
+      AmeLabel.synchronizationCapacityExceeded,
     "change_source_event_incomplete" || "change_source_rename_incomplete" =>
-      LibraryStrings.synchronizationMonitoringEventIncomplete,
+      AmeLabel.synchronizationMonitoringEventIncomplete,
     "change_source_callback_failed" ||
     "change_source_callback_invalid_configuration" ||
     "change_source_callback_io_failed" ||
@@ -155,8 +158,7 @@ String? _synchronizationIssueMessage(String? issueCode) {
     "change_source_start_failed" ||
     "change_source_start_invalid_configuration" ||
     "change_source_watch_invalid_configuration" ||
-    "change_source_watch_failed" =>
-      LibraryStrings.synchronizationMonitoringFailed,
+    "change_source_watch_failed" => AmeLabel.synchronizationSourceUnhealthy,
     _ => null,
   };
   if (message != null || issueCode == null) {
@@ -164,66 +166,69 @@ String? _synchronizationIssueMessage(String? issueCode) {
   }
   if (issueCode.startsWith("authoritative_") ||
       issueCode.startsWith("library_reconciliation_")) {
-    return LibraryStrings.synchronizationRecoveryFailed;
+    return AmeLabel.synchronizationRecoveryFailed;
   }
   if (issueCode.startsWith("catalog_") ||
       issueCode.startsWith("change_queue_") ||
       issueCode.startsWith("database_")) {
-    return LibraryStrings.synchronizationPersistenceFailed;
+    return AmeLabel.synchronizationPersistenceFailed;
   }
   return null;
 }
 
 // 通知补充说明｜等待处理、等待重试或尚未完成的项目数量。
-String? _synchronizationNotificationDetail(
+AmeMessage? _synchronizationNotificationDetail(
   LibraryRootSynchronizationStatus status,
   LibrarySynchronizationFeedbackState state,
 ) {
   if (status.isAwaitingFirstImport) {
     return null;
   }
-  final details = <String>[];
+  final details = <AmeMessage>[];
   if (status.pendingChangeCount > BigInt.zero) {
-    details.add("${status.pendingChangeCount} 项等待处理");
+    details.add(AmePendingChangesMessage(status.pendingChangeCount.toString()));
   }
   if (status.retryWaitCount > BigInt.zero) {
     // The total includes exhausted work; it does not establish a future retry.
     if (state == LibrarySynchronizationFeedbackState.awaitingRetry) {
-      details.add("${status.retryWaitCount} 项等待重试");
+      details.add(AmeRetryingChangesMessage(status.retryWaitCount.toString()));
     } else {
-      details.add("${status.retryWaitCount} 项更新尚未完成");
+      details.add(
+        AmeIncompleteChangesMessage(status.retryWaitCount.toString()),
+      );
     }
   }
   if (status.freshnessUnknownCount > BigInt.zero &&
       state == LibrarySynchronizationFeedbackState.unconfirmed) {
-    details.add("还有文件变化待检查");
+    details.add(AmeLabel.changesToCheck);
   }
-  return details.isEmpty ? null : details.join(" · ");
+  return details.isEmpty ? null : AmeMessageList(details);
 }
 
-String _synchronizationPhaseLabel(LibrarySynchronizationPhase phase) {
+AmeMessage _synchronizationPhaseLabel(LibrarySynchronizationPhase phase) {
   return switch (phase) {
     LibrarySynchronizationPhase.watcherStartup =>
-      LibraryStrings.synchronizationPhaseWatcherStartup,
+      AmeLabel.synchronizationPreparing,
     LibrarySynchronizationPhase.inventoryEnumeration =>
-      LibraryStrings.synchronizationPhaseInventoryEnumeration,
+      AmeLabel.synchronizationCheckingFolder,
     LibrarySynchronizationPhase.inventoryComparison =>
-      LibraryStrings.synchronizationPhaseInventoryComparison,
+      AmeLabel.synchronizationCheckingChanges,
     LibrarySynchronizationPhase.queuePublication =>
-      LibraryStrings.synchronizationPhaseQueuePublication,
-    LibrarySynchronizationPhase.retryWait =>
-      LibraryStrings.synchronizationPhaseRetryWait,
+      AmeLabel.synchronizationUpdatingLibrary,
+    LibrarySynchronizationPhase.retryWait => AmeLabel.synchronizationRetryLater,
     LibrarySynchronizationPhase.reconciliation =>
-      LibraryStrings.synchronizationPhaseReconciliation,
+      AmeLabel.synchronizationCheckingChanges,
     LibrarySynchronizationPhase.fullScan =>
-      LibraryStrings.synchronizationPhaseFullScan,
+      AmeLabel.synchronizationScanningFolder,
     LibrarySynchronizationPhase.blocked =>
-      LibraryStrings.synchronizationPhaseBlocked,
+      AmeLabel.synchronizationUpdateIncomplete,
     LibrarySynchronizationPhase.synchronized =>
-      LibraryStrings.synchronizationPhaseSynchronized,
+      AmeLabel.synchronizationComplete,
     LibrarySynchronizationPhase.unavailable =>
-      LibraryStrings.synchronizationPhaseUnavailable,
-    LibrarySynchronizationPhase.backgroundVerification => "",
+      AmeLabel.synchronizationWaitingFolder,
+    LibrarySynchronizationPhase.backgroundVerification => const AmeRawMessage(
+      "",
+    ),
   };
 }
 
@@ -249,27 +254,26 @@ AmeNotificationSeverity _synchronizationNotificationSeverity(
   return AmeNotificationSeverity.warning;
 }
 
-String _synchronizationSourceLabel(
+AmeMessage _synchronizationSourceLabel(
   LibraryRootSynchronizationStatus status,
   LibrarySynchronizationFeedbackState state,
 ) => switch (state) {
   LibrarySynchronizationFeedbackState.awaitingFirstImport =>
-    LibraryStrings.firstImportIncomplete,
-  LibrarySynchronizationFeedbackState.unavailable =>
-    LibraryStrings.sourceUnavailable,
+    AmeLabel.firstImportIncomplete,
+  LibrarySynchronizationFeedbackState.unavailable => AmeLabel.sourceUnavailable,
   LibrarySynchronizationFeedbackState.blocked ||
   LibrarySynchronizationFeedbackState.interrupted =>
-    LibraryStrings.needsReconciliation,
+    AmeLabel.needsReconciliation,
   LibrarySynchronizationFeedbackState.awaitingRetry =>
-    LibraryStrings.synchronizationRetryPending,
-  LibrarySynchronizationFeedbackState.updating => LibraryStrings.synchronizing,
+    AmeLabel.synchronizationRetryPending,
+  LibrarySynchronizationFeedbackState.updating => AmeLabel.synchronizing,
   LibrarySynchronizationFeedbackState.backgroundVerification =>
-    LibraryStrings.backgroundVerification,
+    AmeLabel.backgroundVerification,
   LibrarySynchronizationFeedbackState.unconfirmed =>
-    LibraryStrings.synchronizationUnconfirmed,
+    AmeLabel.synchronizationUnconfirmed,
   LibrarySynchronizationFeedbackState.synchronized =>
     status.continuity == LibraryContinuityState.liveOnly &&
             !status.usesAutomaticMetadataFallback
-        ? LibraryStrings.continuityLiveOnly
-        : LibraryStrings.synchronized,
+        ? AmeLabel.continuityLiveOnly
+        : AmeLabel.synchronized,
 };

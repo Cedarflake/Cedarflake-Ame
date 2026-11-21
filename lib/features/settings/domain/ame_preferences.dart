@@ -2,6 +2,23 @@ import "album_preferences.dart";
 
 enum AmeThemePreference { system, light, dark }
 
+enum AmeLanguagePreference {
+  system("system"),
+  zhHans("zh-Hans"),
+  en("en"),
+  ja("ja");
+
+  const AmeLanguagePreference(this.storageValue);
+  final String storageValue;
+
+  static AmeLanguagePreference fromStoredValue(Object? value) {
+    return values.firstWhere(
+      (language) => language.storageValue == value,
+      orElse: () => system,
+    );
+  }
+}
+
 enum ImageViewerWheelBehavior { zoom, previousOrNext }
 
 enum ImageViewerOpenBehavior { automatic, fitWindow, actualSize }
@@ -15,6 +32,7 @@ const ameMaximumSidebarWidth = 420.0;
 class AmePreferences {
   const AmePreferences({
     this.theme = AmeThemePreference.system,
+    this.language = AmeLanguagePreference.system,
     this.viewerWheelBehavior = ImageViewerWheelBehavior.zoom,
     this.viewerOpenBehavior = ImageViewerOpenBehavior.automatic,
     this.viewerFilmstripVisible = false,
@@ -26,6 +44,7 @@ class AmePreferences {
   });
 
   final AmeThemePreference theme;
+  final AmeLanguagePreference language;
   final ImageViewerWheelBehavior viewerWheelBehavior;
   final ImageViewerOpenBehavior viewerOpenBehavior;
   final bool viewerFilmstripVisible;
@@ -37,6 +56,7 @@ class AmePreferences {
 
   AmePreferences copyWith({
     AmeThemePreference? theme,
+    AmeLanguagePreference? language,
     ImageViewerWheelBehavior? viewerWheelBehavior,
     ImageViewerOpenBehavior? viewerOpenBehavior,
     bool? viewerFilmstripVisible,
@@ -48,6 +68,7 @@ class AmePreferences {
   }) {
     return AmePreferences(
       theme: theme ?? this.theme,
+      language: language ?? this.language,
       viewerWheelBehavior: viewerWheelBehavior ?? this.viewerWheelBehavior,
       viewerOpenBehavior: viewerOpenBehavior ?? this.viewerOpenBehavior,
       viewerFilmstripVisible:

@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_dialog.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
@@ -48,7 +49,7 @@ class _ExportHistoryState extends ConsumerState<LibraryFileExportHistory> {
       }
     } on Object {
       if (mounted) {
-        setState(() => _error = "暂时无法读取结果清单记录，请重试。");
+        setState(() => _error = context.l10n.reportHistoryUnavailable);
       }
     } finally {
       if (mounted) {
@@ -75,27 +76,35 @@ class _ExportHistoryState extends ConsumerState<LibraryFileExportHistory> {
         Expanded(
           child: AmeLoadingContent(
             isLoading: _loading && _items.isEmpty,
-            semanticsLabel: "正在读取结果清单",
+            semanticsLabel: context.l10n.loadingReport,
             child: switch ((_items.isEmpty, _error, _loading)) {
               (true, final String error, _) => AmeDialogReadFailure(
                 message: error,
                 onRetry: () => _load(_before),
               ),
-              (true, null, false) => const Center(child: Text("暂无导出记录")),
+              (true, null, false) => Center(
+                child: Text(context.l10n.noExportHistory),
+              ),
               _ => AmeScrollMotion(
                 child: ListView.builder(
                   itemCount: _items.length,
                   itemBuilder: (context, index) {
                     final item = _items[index];
                     final status = switch (item.reportState) {
-                      LibraryFileReportState.pending => "清单尚未生成",
-                      LibraryFileReportState.notNeeded => "没有特殊结果，无需清单",
-                      LibraryFileReportState.written => "结果清单已保存",
-                      LibraryFileReportState.failed => "清单写入失败，文件操作结果已保留",
+                      LibraryFileReportState.pending =>
+                        context.l10n.reportPending,
+                      LibraryFileReportState.notNeeded =>
+                        context.l10n.noReportNeeded,
+                      LibraryFileReportState.written =>
+                        context.l10n.reportSaved,
+                      LibraryFileReportState.failed =>
+                        context.l10n.reportWriteFailedStatus,
                     };
                     final counts = [
-                      if (item.selected > 0) "${item.selected} 个文件",
-                      if (item.skipped > 0) "已跳过 ${item.skipped} 个",
+                      if (item.selected > 0)
+                        context.l10n.fileCount(item.selected),
+                      if (item.skipped > 0)
+                        context.l10n.filesSkipped(item.skipped),
                     ];
                     return ListTile(
                       contentPadding: const EdgeInsets.symmetric(vertical: 6),
@@ -124,8 +133,8 @@ class _ExportHistoryState extends ConsumerState<LibraryFileExportHistory> {
                               child: Text(
                                 item.reportState ==
                                         LibraryFileReportState.pending
-                                    ? "生成清单"
-                                    : "重新生成",
+                                    ? context.l10n.createReport
+                                    : context.l10n.regenerate,
                               ),
                             ),
                     );
@@ -143,18 +152,18 @@ class _ExportHistoryState extends ConsumerState<LibraryFileExportHistory> {
             AmeLoadingProgress(
               active: _loading && _items.isNotEmpty,
               size: 24,
-              semanticsLabel: "正在更新结果清单",
+              semanticsLabel: context.l10n.updatingReport,
             ),
             const Spacer(),
             TextButton(
               onPressed: _loading || _before == null ? null : () => _load(),
-              child: const Text("最新记录"),
+              child: Text(context.l10n.latestRecords),
             ),
             TextButton(
               onPressed: _loading || _items.length < 40
                   ? null
                   : () => _load(_items.last.id),
-              child: const Text("更早记录"),
+              child: Text(context.l10n.earlierRecords),
             ),
           ],
         ),

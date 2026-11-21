@@ -4,6 +4,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
+import "../../../../app/presentation/ame_message_text.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
@@ -14,7 +16,6 @@ import "../../../../app/presentation/ame_transition_icon.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_synchronization_models.dart";
 import "../library_pending_source.dart";
-import "../library_strings.dart";
 import "../library_synchronization_feedback.dart";
 import "library_path_text.dart";
 import "library_sidebar_selection_icon.dart";
@@ -124,6 +125,7 @@ class _LibrarySourceNavigationTileState
       _ => Icon(icon),
     };
     final statusLabel = _statusLabel(
+      context.l10n,
       widget.root,
       widget.synchronizationStatus,
       widget.hasSynchronizationFailure,
@@ -170,8 +172,8 @@ class _LibrarySourceNavigationTileState
                 if (widget.onToggleExpansion != null)
                   AmeTooltip(
                     message: widget.isExpanded
-                        ? LibraryStrings.collapseFolder
-                        : LibraryStrings.expandFolder,
+                        ? context.l10n.collapseFolder
+                        : context.l10n.expandFolder,
                     child: IconButton(
                       key: ValueKey("source-expand-${widget.root.id}"),
                       onPressed: widget.onToggleExpansion,
@@ -182,7 +184,7 @@ class _LibrarySourceNavigationTileState
                     ),
                   ),
                 AmeTooltip(
-                  message: LibraryStrings.more,
+                  message: context.l10n.more,
                   child: SizedBox(
                     key: _moreButtonAnchorKey,
                     child: IconButton(
@@ -249,11 +251,11 @@ class _LibrarySourceNavigationTileState
   }
 
   Future<void> _showMenu(RelativeRect position) async {
-    const labels = [
-      LibraryStrings.updateLibrary,
-      LibraryStrings.relocateLibrary,
-      LibraryStrings.openInExplorer,
-      LibraryStrings.removeFromAme,
+    final labels = [
+      context.l10n.updateLibrary,
+      context.l10n.relocateLibrary,
+      context.l10n.openInExplorer,
+      context.l10n.removeFromAme,
     ];
     final action = await showAmePopupMenu<_LibrarySourceMenuAction>(
       context: context,
@@ -266,16 +268,16 @@ class _LibrarySourceNavigationTileState
               !widget.isBrowseDisabled &&
               !widget.isUpdating &&
               !widget.isUpdateDisabled,
-          child: const AmeMenuItemContent(
+          child: AmeMenuItemContent(
             icon: Symbols.refresh_rounded,
-            label: LibraryStrings.updateLibrary,
+            label: context.l10n.updateLibrary,
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: _LibrarySourceMenuAction.open,
           child: AmeMenuItemContent(
             icon: Symbols.folder_open_rounded,
-            label: LibraryStrings.openInExplorer,
+            label: context.l10n.openInExplorer,
           ),
         ),
         PopupMenuItem(
@@ -284,18 +286,18 @@ class _LibrarySourceNavigationTileState
               !widget.isBrowseDisabled &&
               !widget.isUpdating &&
               widget.onRelocate != null,
-          child: const AmeMenuItemContent(
+          child: AmeMenuItemContent(
             icon: Symbols.folder_open_rounded,
-            label: LibraryStrings.relocateLibrary,
+            label: context.l10n.relocateLibrary,
           ),
         ),
         const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
         PopupMenuItem(
           value: _LibrarySourceMenuAction.remove,
           enabled: !widget.isBrowseDisabled && !widget.isUpdating,
-          child: const AmeMenuItemContent(
+          child: AmeMenuItemContent(
             icon: Symbols.remove_circle_rounded,
-            label: LibraryStrings.removeFromAme,
+            label: context.l10n.removeFromAme,
           ),
         ),
       ],
@@ -316,55 +318,54 @@ class _LibrarySourceNavigationTileState
   }
 
   static String _statusLabel(
+    AppLocalizations strings,
     LibraryRoot root,
     LibraryRootSynchronizationStatus? synchronizationStatus,
     bool hasSynchronizationFailure,
     bool isUpdating,
   ) {
     if (synchronizationStatus?.isAwaitingFirstImport == true) {
-      return LibraryStrings.firstImportIncomplete;
+      return strings.firstImportIncomplete;
     }
     if (root.availability != LibraryRootAvailability.available) {
       return switch (root.availability) {
-        LibraryRootAvailability.available => LibraryStrings.sourceAvailable,
-        LibraryRootAvailability.missing => LibraryStrings.sourceMissing,
-        LibraryRootAvailability.inaccessible =>
-          LibraryStrings.sourceInaccessible,
-        LibraryRootAvailability.offline => LibraryStrings.sourceOffline,
-        LibraryRootAvailability.unknown => LibraryStrings.sourceUnknown,
+        LibraryRootAvailability.available => strings.sourceAvailable,
+        LibraryRootAvailability.missing => strings.sourceMissing,
+        LibraryRootAvailability.inaccessible => strings.sourceUnavailable,
+        LibraryRootAvailability.offline => strings.sourceOffline,
+        LibraryRootAvailability.unknown => strings.sourceUnknown,
       };
     }
     if (synchronizationStatus case final status?
         when status.availability != LibraryRootAvailability.available) {
       return switch (status.availability) {
-        LibraryRootAvailability.available => LibraryStrings.sourceAvailable,
-        LibraryRootAvailability.missing => LibraryStrings.sourceMissing,
-        LibraryRootAvailability.inaccessible =>
-          LibraryStrings.sourceInaccessible,
-        LibraryRootAvailability.offline => LibraryStrings.sourceOffline,
-        LibraryRootAvailability.unknown => LibraryStrings.sourceUnknown,
+        LibraryRootAvailability.available => strings.sourceAvailable,
+        LibraryRootAvailability.missing => strings.sourceMissing,
+        LibraryRootAvailability.inaccessible => strings.sourceUnavailable,
+        LibraryRootAvailability.offline => strings.sourceOffline,
+        LibraryRootAvailability.unknown => strings.sourceUnknown,
       };
     }
     if (synchronizationStatus?.freshness ==
         LibraryCatalogFreshness.unavailable) {
-      return LibraryStrings.sourceUnavailable;
+      return strings.sourceUnavailable;
     }
     if (synchronizationStatus?.continuity ==
         LibraryContinuityState.unavailable) {
-      return LibraryStrings.continuityUnavailable;
+      return strings.continuityUnavailable;
     }
     if (isUpdating) {
-      return LibraryStrings.synchronizing;
+      return strings.synchronizing;
     }
     if (hasSynchronizationFailure) {
-      return LibraryStrings.needsReconciliation;
+      return strings.needsReconciliation;
     }
     if (synchronizationStatus == null) {
-      return LibraryStrings.synchronizationUnconfirmed;
+      return strings.synchronizationUnconfirmed;
     }
     return LibrarySynchronizationFeedback.fromStatus(
       synchronizationStatus,
-    ).sourceLabel;
+    ).sourceLabel.resolve(strings);
   }
 
   static bool _isHealthyLiveOnlySynchronization(
@@ -409,7 +410,7 @@ class PendingLibrarySourceTile extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isCompact) {
       return AmeTooltip(
-        message: "${source.path}\n${source.statusLabel}",
+        message: "${source.path}\n${source.statusLabel(context.l10n)}",
         child: IconButton(
           onPressed: null,
           icon: Stack(
@@ -437,7 +438,7 @@ class PendingLibrarySourceTile extends StatelessWidget {
       title: librarySourceName(source.path),
       path: source.path,
       titleKey: const Key("pending-source-title"),
-      subtitle: source.statusLabel,
+      subtitle: source.statusLabel(context.l10n),
       trailing: SizedBox(
         width: 40,
         child: source.isProcessing

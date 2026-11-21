@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:flutter/foundation.dart";
 
+import "../../../../app/messages/ame_message.dart";
 import "../../application/ports/library_review.dart";
 import "../../application/library_review_session.dart";
 import "../../application/library_review_continuation_reader.dart";
@@ -58,14 +59,14 @@ class LibraryOrganizationMode extends ChangeNotifier
   bool _disposed = false;
   late final LibraryReviewContinuationReader _continuationReader;
   int _viewerIntent = 0;
-  ({String message, Future<void> Function()? retry})? _problem;
+  ({AmeMessage message, Future<void> Function()? retry})? _problem;
 
   bool get isActive => _ordinary != null;
   bool get canEnter => surface.library.query.collection is LibraryAllCollection;
   LibraryGalleryQuery? get ordinaryQuery => _ordinary?.query;
   LibraryReviewBrowseState? get ordinaryBrowse => _ordinary;
   bool get busy => _transition.busy;
-  String? get problem => _problem?.message;
+  AmeMessage? get problem => _problem?.message;
   LibraryReviewSession? get session => _session;
   LibraryReviewEntry? get current => _session?.current;
   LibraryReviewContinuation? get continuation =>
@@ -118,10 +119,13 @@ class LibraryOrganizationMode extends ChangeNotifier
     _ordinary = saved;
     _session = LibraryReviewSession(service, query);
     _acceptContinuation();
-  }, failureMessage: "无法进入整理模式，请重试。");
+  }, failureMessage: AmeLabel.organizationEnterFailed);
 
-  Future<void> exit() =>
-      _run(_exit, failureMessage: "无法返回图库，请重试。", supersede: true);
+  Future<void> exit() => _run(
+    _exit,
+    failureMessage: AmeLabel.galleryReturnFailed,
+    supersede: true,
+  );
 
   Future<void> _exit(int intent) async {
     final saved = _ordinary;
@@ -152,7 +156,7 @@ class LibraryOrganizationMode extends ChangeNotifier
 
   Future<void> leaveWorkspace() {
     assert(_transition.isNavigating && !_transition.isRunning);
-    return _guard(_exit, "无法返回图库，请重试。");
+    return _guard(_exit, AmeLabel.galleryReturnFailed);
   }
 
   bool restoreWorkspace(LibraryReviewBrowseState ordinary) {
@@ -198,7 +202,7 @@ class LibraryOrganizationMode extends ChangeNotifier
       applied = true;
       _replaceSession(query);
       _acceptContinuation();
-    }, failureMessage: "无法切换整理范围，请重试。");
+    }, failureMessage: AmeLabel.organizationScopeFailed);
     return applied;
   }
 
@@ -222,7 +226,7 @@ class LibraryOrganizationMode extends ChangeNotifier
     _ordinary = saved;
     _replaceSession(query);
     _acceptContinuation();
-  }, failureMessage: "无法打开归属冲突的图片，请重试。");
+  }, failureMessage: AmeLabel.conflictOpenFailed);
 
   void open(LibraryAsset asset) {
     final session = _session;
@@ -259,7 +263,7 @@ class LibraryOrganizationMode extends ChangeNotifier
       if (!_disposed && session.owns(entry)) await refreshContinuation();
     } on Object {
       if (!_disposed && session.owns(entry)) {
-        _problem = (message: "整理位置尚未保存，请重试。", retry: null);
+        _problem = (message: AmeLabel.organizationPositionUnsaved, retry: null);
         notifyListeners();
       }
     }
@@ -276,7 +280,10 @@ class LibraryOrganizationMode extends ChangeNotifier
       return;
     }
     if (snapshot!.failed) {
-      _problem = (message: "无法读取整理位置，请重试。", retry: refreshContinuation);
+      _problem = (
+        message: AmeLabel.organizationPositionUnreadable,
+        retry: refreshContinuation,
+      );
     } else {
       _continuation = snapshot.value;
     }
@@ -290,7 +297,7 @@ class LibraryOrganizationMode extends ChangeNotifier
     final result = saved.forScope(surface.library.query);
     _continuation = result;
     if (result.canResume) await _showContinuation(result, intent);
-  }, failureMessage: "无法恢复整理位置，请重试。");
+  }, failureMessage: AmeLabel.organizationResumeFailed);
 
   Future<void> afterSave(LibraryReviewEntry entry) => _run((intent) async {
     final session = _session;
@@ -305,7 +312,7 @@ class LibraryOrganizationMode extends ChangeNotifier
       closeCurrent();
       surface.closeReviewImage();
     }
-  }, failureMessage: "更改已保存，无法打开下一张图片，请重试。");
+  }, failureMessage: AmeLabel.organizationNextFailed);
 
   Future<void> _showContinuation(
     LibraryReviewContinuation result,
@@ -361,7 +368,7 @@ class LibraryOrganizationMode extends ChangeNotifier
 
   void reportSaveFailure(
     LibraryReviewEntry entry,
-    String message,
+    AmeMessage message,
     Future<void> Function() retry,
   ) {
     if (_disposed || _session?.owns(entry) != true) return;
@@ -385,7 +392,7 @@ class LibraryOrganizationMode extends ChangeNotifier
 
   Future<void> _run(
     Future<void> Function(int) operation, {
-    required String failureMessage,
+    required AmeMessage failureMessage,
     bool supersede = false,
   }) async {
     if (_disposed) return;
@@ -398,7 +405,7 @@ class LibraryOrganizationMode extends ChangeNotifier
 
   Future<void> _guard(
     Future<void> Function(int) operation,
-    String failureMessage,
+    AmeMessage failureMessage,
   ) async {
     final intent = _transition.generation;
     _problem = null;

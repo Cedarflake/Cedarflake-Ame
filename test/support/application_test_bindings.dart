@@ -37,7 +37,9 @@ List<Override> applicationTestOverrides([List<Override> overrides = const []]) {
     ),
     ...settingsBindings(
       preferenceStore: preferences,
-      initialPreferences: const AmePreferences(),
+      initialPreferences: const AmePreferences(
+        language: AmeLanguagePreference.zhHans,
+      ),
     ),
     ...storageBindings(),
     ...workbenchPresentationBindings(),

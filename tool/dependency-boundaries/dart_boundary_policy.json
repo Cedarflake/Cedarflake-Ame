@@ -162,6 +162,11 @@
       "contract": "storageSettingsGatewayProvider and storageDirectoryPickerProvider"
     },
     {
+      "source": "lib/features/settings/presentation/widgets/storage_settings_error.dart",
+      "target": "lib/features/storage/domain/storage_models.dart",
+      "contract": "StorageSettingsFailure code and diagnostic message for localized storage settings feedback"
+    },
+    {
       "source": "lib/features/settings/presentation/widgets/storage_settings_section.dart",
       "target": "lib/features/storage/domain/storage_models.dart",
       "contract": "StorageStatusModel, cleanup and reclamation results"

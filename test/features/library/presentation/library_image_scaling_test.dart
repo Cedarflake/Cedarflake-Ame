@@ -19,6 +19,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 import "support/gallery_wall_fixture.dart";
 
 void main() {
@@ -68,7 +69,7 @@ void main() {
     );
     final boundary = GlobalKey();
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Center(
           child: RepaintBoundary(
             key: boundary,
@@ -145,7 +146,7 @@ void main() {
           await tester.pumpWidget(
             ProviderScope(
               overrides: applicationTestOverrides(),
-              child: MaterialApp(
+              child: LocalizedTestApp(
                 home: RepaintBoundary(
                   key: boundary,
                   child: LibraryGalleryWall(

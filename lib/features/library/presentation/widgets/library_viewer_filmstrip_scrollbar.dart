@@ -3,8 +3,8 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
-import "../library_strings.dart";
 
 /// Keeps end buttons outside the native thumb and track hit regions.
 class LibraryViewerFilmstripScrollbar extends StatefulWidget {
@@ -94,7 +94,7 @@ class _LibraryViewerFilmstripScrollbarState
                 return Row(
                   children: [
                     AmeTooltip(
-                      message: LibraryStrings.scrollFilmstripLeft,
+                      message: context.l10n.scrollFilmstripLeft,
                       child: IconButton(
                         key: const Key("viewer-filmstrip-scroll-left"),
                         style: style,
@@ -106,7 +106,7 @@ class _LibraryViewerFilmstripScrollbarState
                     ),
                     const Spacer(),
                     AmeTooltip(
-                      message: LibraryStrings.scrollFilmstripRight,
+                      message: context.l10n.scrollFilmstripRight,
                       child: IconButton(
                         key: const Key("viewer-filmstrip-scroll-right"),
                         style: style,

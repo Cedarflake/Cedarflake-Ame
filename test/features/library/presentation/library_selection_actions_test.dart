@@ -21,9 +21,9 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/library_batch_fixture.dart";
 import "../support/library_organization_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -73,7 +73,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: Stack(
               children: [
@@ -392,7 +392,7 @@ void main() {
       expect(notifications.history, isEmpty);
       expect(notifications.hasUnread, isFalse);
       final notice = container.read(libraryOrganizationOutcomeProvider)!;
-      expect(notice.title, "已取消收藏");
+      expect(notice.title.resolve(testChinese), "已取消收藏");
       container
           .read(libraryOrganizationActionsProvider.notifier)
           .handleNotification(notice);
@@ -522,7 +522,7 @@ void main() {
       await tester.pumpAndSettle();
       final notice = container.read(ameNotificationControllerProvider).current;
       expect(notice?.severity, AmeNotificationSeverity.error);
-      expect(find.text(notice!.message), findsNothing);
+      expect(find.text(notice!.message.resolve(testChinese)), findsNothing);
       expect(container.read(librarySelectionActivityProvider), isNull);
       expect(batch.closes, 1);
       selection = selection.toggle("another");

@@ -14,12 +14,12 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:cedarflake_ame/features/library/application/library_similar_review_controller.dart";
 
 import "support/application_test_bindings.dart";
 import "support/duplicate_review_fixtures.dart";
+import "support/localized_test_app.dart";
 import "support/similar_review_fixtures.dart";
-
-import "package:cedarflake_ame/features/library/application/library_similar_review_controller.dart";
 
 void main() {
   test(
@@ -217,7 +217,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(
+          child: const LocalizedTestApp(
             home: Scaffold(body: LibraryDuplicatesPage()),
           ),
         ),

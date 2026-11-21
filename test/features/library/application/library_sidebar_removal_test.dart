@@ -1,7 +1,10 @@
 import "dart:async";
 
+import "package:cedarflake_ame/app/messages/ame_message.dart";
 import "package:cedarflake_ame/features/library/application/library_sidebar_removal.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../../support/localized_test_app.dart";
 
 const entries = [
   LibrarySidebarRemovalEntry("one", "First"),
@@ -21,7 +24,7 @@ void main() {
         if (id == "two" && fail) {
           return const LibrarySidebarRemovalOutcome(
             committed: false,
-            error: "retry",
+            error: AmeRawMessage("retry"),
           );
         }
         return saved;
@@ -30,7 +33,7 @@ void main() {
     addTearDown(removal.dispose);
     await removal.run();
     expect(removal.completed, {"one"});
-    expect(removal.error, "retry");
+    expect(removal.error?.resolve(testChinese), "retry");
     fail = false;
     await removal.run();
     expect(calls, ["one", "two", "two", "three"]);
@@ -92,7 +95,7 @@ void main() {
         calls.add(id);
         return LibrarySidebarRemovalOutcome(
           committed: true,
-          error: id == "one" ? "refresh" : null,
+          error: id == "one" ? const AmeRawMessage("refresh") : null,
         );
       },
     );

@@ -11,21 +11,18 @@ import "package:cedarflake_ame/features/library/application/library_previewer.da
 import "package:cedarflake_ame/features/library/application/ports/library_previewer.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
-
-import "../../../support/inert_library_synchronization.dart";
-
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/inert_library_synchronization.dart";
+import "../../../support/localized_test_app.dart";
 import "../support/library_query_snapshot_fixture.dart";
 import "../support/retained_scan_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -46,19 +43,16 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(
-        find.text(LibraryStrings.previewFormatUnrecognized),
-        findsOneWidget,
-      );
-      expect(find.text(LibraryStrings.retryPreview), findsOneWidget);
+      expect(find.text(testChinese.previewFormatUnrecognized), findsOneWidget);
+      expect(find.text(testChinese.retryPreview), findsOneWidget);
       expect(fixture.previewer.calls, hasLength(1));
-      await tester.tap(find.text(LibraryStrings.retryPreview));
+      await tester.tap(find.text(testChinese.retryPreview));
       await _pumpUntil(tester, () => fixture.previewer.calls.length == 2);
       expect(fixture.previewer.calls.last.force, isTrue);
       fixture.previewer.calls.last.completion.complete(fixture.ready(original));
       await _pumpUntil(tester, () => _decodedImage(tester) != null);
-      expect(find.text(LibraryStrings.previewFormatUnrecognized), findsNothing);
-      expect(find.text(LibraryStrings.retryPreview), findsNothing);
+      expect(find.text(testChinese.previewFormatUnrecognized), findsNothing);
+      expect(find.text(testChinese.retryPreview), findsNothing);
       expect(fixture.scrollPosition(tester).pixels, offset);
       await tester.pumpWidget(const SizedBox.shrink());
       expect(tester.takeException(), isNull);
@@ -78,7 +72,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text(LibraryStrings.retryPreview), findsOneWidget);
+    expect(find.text(testChinese.retryPreview), findsOneWidget);
     expect(fixture.previewer.calls, hasLength(1));
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 5100)),
@@ -97,7 +91,7 @@ void main() {
     }
     expect(fixture.previewer.calls, hasLength(2));
     await tester.pump();
-    expect(find.text(LibraryStrings.retryPreview), findsNothing);
+    expect(find.text(testChinese.retryPreview), findsNothing);
     expect(fixture.previewer.calls.last.force, isTrue);
     fixture.previewer.calls.last.completion.complete(fixture.ready(initial));
     await _pumpUntil(tester, () => _decodedImage(tester) != null);
@@ -105,7 +99,7 @@ void main() {
       () => _decodedImage(tester)!.toByteData(),
     );
     expect(pixels!.buffer.asUint8List().take(4), [18, 104, 212, 255]);
-    expect(find.text(LibraryStrings.retryPreview), findsNothing);
+    expect(find.text(testChinese.retryPreview), findsNothing);
     expect(fixture.scrollPosition(tester).pixels, originalOffset);
     expect(fixture.catalog.queryReads, 0);
     await tester.pumpWidget(const SizedBox.shrink());
@@ -464,7 +458,7 @@ ui.Image? _decodedImage(WidgetTester tester) {
 Future<void> _pumpFrames(WidgetTester tester, int count) async {
   for (var frame = 0; frame < count; frame++) {
     await tester.pump(const Duration(milliseconds: 16));
-    expect(find.text(LibraryStrings.retryPreview), findsNothing);
+    expect(find.text(testChinese.retryPreview), findsNothing);
     expect(tester.takeException(), isNull);
   }
 }

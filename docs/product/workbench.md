@@ -179,8 +179,8 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 - Do not add video media filters until video indexing is accepted and connected end to end.
 - Do not expose internal storage, task, database, adapter, or analysis vocabulary in ordinary
   settings.
-- Do not mix English placeholder text into the initial Simplified Chinese UI or introduce a language
-  selector before formal i18n scope is accepted.
+- Present fixed interface text in the selected [desktop language](gallery-ui.md).
+  Preserve names supplied by users and the spelling of file paths.
 - Do not turn classification, similarity, or search into separate competing gallery applications.
 - Do not expose classification, category filters, smart albums, or model placeholders before their
   R5 use cases are connected. Approved sketches are not evidence of implementation availability.

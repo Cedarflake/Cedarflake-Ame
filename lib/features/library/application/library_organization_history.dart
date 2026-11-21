@@ -1,5 +1,6 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../app/messages/ame_message.dart";
 import "../domain/library_organization.dart";
 import "../domain/library_organization_history.dart";
 import "library_controller.dart";
@@ -32,15 +33,15 @@ class LibraryOrganizationHistoryRequest extends LibraryOrganizationRequest {
   String? _retiredAlbumId;
 
   @override
-  String get successMessage => switch (direction) {
-    LibraryOrganizationHistoryDirection.undo => "已撤销",
-    LibraryOrganizationHistoryDirection.redo => "已重做",
+  AmeMessage get successMessage => switch (direction) {
+    LibraryOrganizationHistoryDirection.undo => AmeLabel.undoCompleted,
+    LibraryOrganizationHistoryDirection.redo => AmeLabel.redoCompleted,
   };
 
   @override
-  String get failureTitle => switch (direction) {
-    LibraryOrganizationHistoryDirection.undo => "无法撤销",
-    LibraryOrganizationHistoryDirection.redo => "无法重做",
+  AmeMessage get failureTitle => switch (direction) {
+    LibraryOrganizationHistoryDirection.undo => AmeLabel.undoFailed,
+    LibraryOrganizationHistoryDirection.redo => AmeLabel.redoFailed,
   };
 
   @override

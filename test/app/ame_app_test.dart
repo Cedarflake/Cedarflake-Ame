@@ -4,6 +4,8 @@ import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/presentation/ame_localizations.dart";
 import "package:cedarflake_ame/app/presentation/ame_system_theme.dart";
 import "package:cedarflake_ame/features/library/presentation/pages/unified_library_screen.dart";
+import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -12,22 +14,39 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/application_test_bindings.dart";
 
 void main() {
-  testWidgets("uses Simplified Chinese locale and dense text geometry", (
+  testWidgets("follows the system language and uses its Windows fonts", (
     tester,
   ) async {
+    tester.platformDispatcher.localesTestValue = const [
+      Locale("fr", "FR"),
+      Locale("zh", "CN"),
+    ];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: applicationTestOverrides(),
+        overrides: applicationTestOverrides([
+          initialAmePreferencesProvider.overrideWithValue(
+            const AmePreferences(),
+          ),
+        ]),
         child: const AmeApp(),
       ),
     );
 
     final context = tester.element(find.byType(UnifiedLibraryScreen));
-    expect(Localizations.localeOf(context), ameLocale);
+    expect(Localizations.localeOf(context), ameChineseLocale);
     expect(
       MaterialLocalizations.of(context).scriptCategory,
       ScriptCategory.dense,
     );
+    tester.platformDispatcher.localesTestValue = const [Locale("ja", "JP")];
+    await tester.pumpAndSettle();
+    expect(Localizations.localeOf(context), ameJapaneseLocale);
+    expect(
+      Theme.of(context).textTheme.bodyMedium?.fontFamilyFallback?.first,
+      "Yu Gothic UI",
+    );
+    expect(MaterialLocalizations.of(context).cancelButtonLabel, "キャンセル");
   });
 
   testWidgets("derives the Material theme from the system accent color", (

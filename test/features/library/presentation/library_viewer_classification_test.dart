@@ -15,6 +15,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 import "../support/library_classification_review_fixture.dart";
 import "../support/library_organization_fixture.dart";
 
@@ -55,7 +56,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: Stack(
               fit: StackFit.expand,

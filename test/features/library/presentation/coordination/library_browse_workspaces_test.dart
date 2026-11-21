@@ -14,15 +14,18 @@ void main() {
   late LibraryBrowseWorkspaces navigation;
   late LibraryWorkspace visible;
   late _EntryService service;
+  late String localeName;
 
   setUp(() {
     surface = ReviewSurfaceFixture();
     service = _EntryService();
     review = LibraryOrganizationMode(service, surface);
     visible = LibraryWorkspace.gallery;
+    localeName = "zh_Hans";
     navigation = LibraryBrowseWorkspaces(
       surface: surface,
       review: review,
+      readLocaleName: () => localeName,
       publish: (workspace) => visible = workspace,
     );
   });
@@ -161,6 +164,36 @@ void main() {
       expect(surface.queries.length, reads + 1);
     },
   );
+
+  for (final locales in [
+    ["en"],
+    ["en", "ja", "zh_Hans"],
+  ]) {
+    test("Settings retains browsing across ${locales.join(' → ')}", () async {
+      final before = surface.captureBrowse();
+      await navigation.select(LibraryWorkspace.settings);
+      for (final locale in locales) {
+        localeName = locale;
+        navigation.observeLocale(locale);
+      }
+      await navigation.select(LibraryWorkspace.gallery);
+      expect(visible, LibraryWorkspace.gallery);
+      expect(surface.restored, isNull);
+      expect(surface.queries, isEmpty);
+      final after = surface.captureBrowse();
+      expect(
+        after.selection.includedAssetIds,
+        before.selection.includedAssetIds,
+      );
+      expect(after.isSelecting, before.isSelecting);
+      expect(after.position!.globalItemIndex, before.position!.globalItemIndex);
+      expect(after.position!.itemFraction, before.position!.itemFraction);
+
+      await navigation.select(LibraryWorkspace.settings);
+      await navigation.select(LibraryWorkspace.gallery);
+      expect(surface.restored!.selection.isEmpty, isTrue);
+    });
+  }
 
   test(
     "returning to Library restores organization mode scope position and selection",

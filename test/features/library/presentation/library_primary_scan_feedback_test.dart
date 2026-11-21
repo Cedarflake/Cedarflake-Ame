@@ -4,11 +4,11 @@ import "package:cedarflake_ame/features/library/application/library_scan_control
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_pending_source.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_task_surface.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/primary_scan_control_fixture.dart";
 import "../support/retained_scan_fixture.dart";
 
@@ -38,7 +38,7 @@ void main() {
         );
         addTearDown(taskState.dispose);
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             home: Scaffold(
               body: ValueListenableBuilder<LibraryState>(
                 valueListenable: taskState,
@@ -77,6 +77,7 @@ void main() {
         expect(find.byType(LinearProgressIndicator), findsNothing);
         expect(
           LibraryPendingSource.addFolderDisabledReason(
+            testChinese,
             taskState.value.primaryScanSnapshot,
           ),
           publication == LibraryScanPublication.confirmationPending
@@ -92,10 +93,12 @@ void main() {
           findsOneWidget,
         );
         expect(
-          LibraryPendingSource.fromState(taskState.value)?.statusLabel,
+          LibraryPendingSource.fromState(
+            taskState.value,
+          )?.statusLabel(testChinese),
           publication == LibraryScanPublication.confirmationPending
               ? "读取结果失败"
-              : LibraryStrings.sourceDisplayReloadPending,
+              : testChinese.sourceDisplayReloadPending,
         );
         await tester.tap(find.byKey(const Key("library-retry-button")));
         await tester.pump();
@@ -114,17 +117,20 @@ void main() {
         expect(find.byType(LinearProgressIndicator), findsOneWidget);
         expect(
           LibraryPendingSource.addFolderDisabledReason(
+            testChinese,
             taskState.value.primaryScanSnapshot,
           ),
           publication == LibraryScanPublication.confirmationPending
-              ? LibraryStrings.readingScanResult
+              ? testChinese.readingScanResult
               : "正在加载图库…",
         );
         expect(
-          LibraryPendingSource.fromState(taskState.value)?.statusLabel,
+          LibraryPendingSource.fromState(
+            taskState.value,
+          )?.statusLabel(testChinese),
           publication == LibraryScanPublication.confirmationPending
               ? "正在读取结果"
-              : LibraryStrings.refreshingSourceDisplay,
+              : testChinese.refreshingSourceDisplay,
         );
         taskState.value = taskState.value.copyWith(
           primaryScan: taskState.value.primaryScanSnapshot.copyWith(
@@ -136,14 +142,17 @@ void main() {
         expect(find.text("添加完成"), findsOneWidget);
         expect(
           LibraryPendingSource.addFolderDisabledReason(
+            testChinese,
             taskState.value.primaryScanSnapshot,
           ),
           isNull,
         );
         expect(find.byType(LinearProgressIndicator), findsNothing);
         expect(
-          LibraryPendingSource.fromState(taskState.value)?.statusLabel,
-          LibraryStrings.sourceAdded,
+          LibraryPendingSource.fromState(
+            taskState.value,
+          )?.statusLabel(testChinese),
+          testChinese.sourceAdded,
         );
         expect(retries, 1);
         expect(tester.takeException(), isNull);
@@ -165,7 +174,7 @@ void main() {
       final taskState = ValueNotifier(fixture.state);
       addTearDown(taskState.dispose);
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: ValueListenableBuilder<LibraryState>(
               valueListenable: taskState,
@@ -227,7 +236,7 @@ void main() {
     final taskState = ValueNotifier(fixture.state);
     addTearDown(taskState.dispose);
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: ValueListenableBuilder<LibraryState>(
             valueListenable: taskState,

@@ -1,6 +1,7 @@
 import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "annotated_time_rail.dart";
 import "library_sort_rail_projection.dart";
 
@@ -115,7 +116,7 @@ class _LibraryGalleryScrollSurfaceState
         interactionKey: ValueKey((identity, widget.controller)),
         value: value.clamp(0.0, 1.0),
         maximumScrollOffset: extent,
-        buckets: widget.sortProjection.buckets(extent),
+        buckets: widget.sortProjection.buckets(context.l10n, extent),
         onChangeStart: extent > 0 ? (_) => _startSeek(identity) : null,
         onChanged: extent > 0 ? (value) => _seek(value, identity) : null,
         onChangeEnd: extent > 0

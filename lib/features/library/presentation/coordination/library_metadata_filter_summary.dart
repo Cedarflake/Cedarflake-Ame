@@ -1,3 +1,4 @@
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../domain/library_metadata_filter.dart";
 import "../library_filter_strings.dart";
 import "library_metadata_filter_draft.dart";
@@ -12,59 +13,79 @@ class LibraryMetadataFilterSummary {
 
   final LibraryMetadataFilter filter;
 
-  List<LibraryMetadataFilterCondition> get conditions => [
+  List<LibraryMetadataFilterCondition> conditions(AppLocalizations strings) => [
     for (final extension in filter.extensions)
       (
-        label: "格式：${extension.toUpperCase()}",
+        label: strings.filterFormat(extension.toUpperCase()),
         remaining: filter.copyWith(
           extensions: filter.extensions
               .where((value) => value != extension)
               .toList(),
         ),
       ),
-    ..._otherConditions,
+    ..._otherConditions(strings),
   ];
 
-  List<LibraryMetadataFilterCondition> get _otherConditions => [
+  String? _dateLabel(AppLocalizations strings, String? key) {
+    if (key == null) return null;
+    final date = parseLibraryFilterDate(key);
+    return date == null ? key : strings.galleryDay(date);
+  }
+
+  List<LibraryMetadataFilterCondition> _otherConditions(
+    AppLocalizations strings,
+  ) => [
     if (filter.date.start != null || filter.date.end != null)
       (
-        label:
-            "${LibraryFilterStrings.dateFieldName(filter.date.field)}：${_range(filter.date.start, filter.date.end)}",
+        label: strings.labelAndValue(
+          LibraryFilterStrings.dateFieldName(strings, filter.date.field),
+          _range(
+            _dateLabel(strings, filter.date.start),
+            _dateLabel(strings, filter.date.end),
+          ),
+        ),
         remaining: filter.copyWith(date: const LibraryDateRange()),
       ),
     if (_hasBounds(filter.bytes))
       (
-        label: _bytesLabel(),
+        label: _bytesLabel(strings),
         remaining: filter.copyWith(bytes: const LibraryNumberRange()),
       ),
     if (_hasBounds(filter.width))
       (
-        label: "宽度：${_numberRange(filter.width)} px",
+        label: strings.filterWidth(_numberRange(filter.width)),
         remaining: filter.copyWith(width: const LibraryNumberRange()),
       ),
     if (_hasBounds(filter.height))
       (
-        label: "高度：${_numberRange(filter.height)} px",
+        label: strings.filterHeight(_numberRange(filter.height)),
         remaining: filter.copyWith(height: const LibraryNumberRange()),
       ),
     if (filter.cameraText.isNotEmpty)
       (
-        label: "相机：${filter.cameraText}",
+        label: strings.filterCamera(filter.cameraText),
         remaining: filter.copyWith(cameraText: ""),
       ),
   ];
 
-  String get description => [
+  String description(AppLocalizations strings) => [
     if (filter.extensions.isNotEmpty)
-      "格式：${filter.extensions.map((value) => value.toUpperCase()).join("、")}",
-    for (final condition in _otherConditions) condition.label,
+      strings.filterFormat(
+        filter.extensions
+            .map((value) => value.toUpperCase())
+            .join(strings.inlineListSeparator),
+      ),
+    for (final condition in _otherConditions(strings)) condition.label,
   ].join("\n");
 
-  String _bytesLabel() {
+  String _bytesLabel(AppLocalizations strings) {
     final unit = LibraryFilterSizeUnit.forRange(filter.bytes);
     String? value(int? bytes) =>
         bytes == null ? null : (bytes ~/ unit.multiplier).toString();
-    return "文件大小：${_range(value(filter.bytes.minimum), value(filter.bytes.maximum))} ${unit.label}";
+    return strings.filterFileSize(
+      _range(value(filter.bytes.minimum), value(filter.bytes.maximum)),
+      unit.label,
+    );
   }
 
   static bool _hasBounds(LibraryNumberRange range) =>

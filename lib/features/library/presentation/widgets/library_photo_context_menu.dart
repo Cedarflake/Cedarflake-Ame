@@ -2,7 +2,9 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/messages/ame_message.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_album_requests.dart";
 import "../../application/library_controller.dart";
@@ -14,8 +16,6 @@ import "../../application/library_organization_actions.dart";
 import "../../domain/library_organization.dart";
 import "../../domain/library_organization_batch.dart";
 import "../../domain/library_gallery_group.dart";
-import "../library_strings.dart";
-import "../library_search_strings.dart";
 import "library_album_picker.dart";
 import "library_file_action_dialog.dart";
 
@@ -66,8 +66,8 @@ class LibraryPhotoContextMenu {
             .read(ameNotificationControllerProvider.notifier)
             .publish(
               const AmeNotificationDraft(
-                title: "暂时无法读取相册和收藏",
-                message: "请重新打开菜单重试。",
+                title: AmeLabel.albumsAndFavoritesUnavailable,
+                message: AmeLabel.reopenMenuRetry,
                 severity: AmeNotificationSeverity.error,
                 dedupeKey: "photo-menu-inspection",
               ),
@@ -82,7 +82,7 @@ class LibraryPhotoContextMenu {
       final busy = ref.read(libraryOrganizationActionsProvider).saving;
       final filesBusy =
           ref.read(libraryFileActionsProvider).busy || catalogRevision == null;
-      final entries = _entries(decision, onFindRelated != null);
+      final entries = _entries(context.l10n, decision, onFindRelated != null);
       final action = await showAmePopupMenu<_PhotoAction>(
         context: context,
         position: position,
@@ -164,14 +164,18 @@ class LibraryPhotoContextMenu {
           _membership = membership;
           await showLibraryAlbumPicker(
             context: context,
-            actionLabel: current == null ? "加入相册" : "移至其他相册",
+            actionLabel: current == null
+                ? context.l10n.addToAlbum
+                : context.l10n.moveToAnotherAlbum,
             actionIcon: current == null
                 ? Symbols.bookmark_add_rounded
                 : Symbols.drive_file_move_rounded,
             initialAlbum: current,
             currentAlbum: current,
-            clearLabel: current == null ? null : "移出相册",
-            explanation: decision.hasConflict ? "这组图片的相册归属有冲突，请选择一个相册。" : null,
+            clearLabel: current == null ? null : context.l10n.removeFromAlbum,
+            explanation: decision.hasConflict
+                ? context.l10n.albumGroupConflict
+                : null,
             conflictTarget: decision.hasConflict ? target : null,
             membership: membership,
           );
@@ -184,75 +188,79 @@ class LibraryPhotoContextMenu {
   }
 
   List<_PhotoEntry> _entries(
+    AppLocalizations strings,
     LibraryOrganizationDecision? decision,
     bool canFindRelated,
   ) => [
-    const _PhotoEntry(
-      _PhotoAction.open,
-      LibraryStrings.open,
-      Symbols.open_in_full_rounded,
-    ),
+    _PhotoEntry(_PhotoAction.open, strings.open, Symbols.open_in_full_rounded),
     if (canFindRelated)
-      const _PhotoEntry(
+      _PhotoEntry(
         _PhotoAction.related,
-        LibrarySearchStrings.related,
+        strings.findRelatedPhotos,
         Symbols.image_search_rounded,
       ),
     if (decision != null) ...[
       _PhotoEntry(
         _PhotoAction.favorite,
-        decision.favorite ? "取消收藏" : "加入收藏夹",
+        decision.favorite ? strings.removeFavorite : strings.addFavorite,
         decision.favorite
             ? Symbols.heart_minus_rounded
             : Symbols.favorite_rounded,
       ),
       _PhotoEntry(
         _PhotoAction.album,
-        _albumLabel(decision),
+        _albumLabel(strings, decision),
         decision.album == null
             ? Symbols.bookmark_add_rounded
             : Symbols.drive_file_move_rounded,
       ),
       if (decision.album != null)
-        const _PhotoEntry(
+        _PhotoEntry(
           _PhotoAction.removeAlbum,
-          "移出相册",
+          strings.removeFromAlbum,
           Symbols.bookmark_remove_rounded,
         ),
     ],
-    const _PhotoEntry(
+    _PhotoEntry(
       _PhotoAction.information,
-      LibraryStrings.viewInformation,
+      strings.viewInformation,
       Symbols.info_rounded,
     ),
-    const _PhotoEntry(
+    _PhotoEntry(
       _PhotoAction.copyFile,
-      "复制到文件夹",
+      strings.copyToFolder,
       Symbols.content_copy_rounded,
     ),
-    const _PhotoEntry(
+    _PhotoEntry(
       _PhotoAction.moveFile,
-      "移动到文件夹",
+      strings.moveToFolder,
       Symbols.drive_file_move_rounded,
     ),
-    const _PhotoEntry(_PhotoAction.renameFile, "重命名", Symbols.edit_rounded),
-    const _PhotoEntry(_PhotoAction.deleteFile, "删除", Symbols.delete_rounded),
-    const _PhotoEntry(
+    _PhotoEntry(_PhotoAction.renameFile, strings.rename, Symbols.edit_rounded),
+    _PhotoEntry(
+      _PhotoAction.deleteFile,
+      strings.deleteAction,
+      Symbols.delete_rounded,
+    ),
+    _PhotoEntry(
       _PhotoAction.copyPath,
-      LibraryStrings.copyPath,
+      strings.copyPath,
       Symbols.content_copy_rounded,
     ),
-    const _PhotoEntry(
+    _PhotoEntry(
       _PhotoAction.reveal,
-      LibraryStrings.openInExplorer,
+      strings.openInExplorer,
       Symbols.folder_open_rounded,
     ),
   ];
 
-  String _albumLabel(LibraryOrganizationDecision decision) {
-    if (decision.hasConflict) return "选择相册";
-    if (decision.album != null) return "移至其他相册";
-    return "加入相册";
+  String _albumLabel(
+    AppLocalizations strings,
+    LibraryOrganizationDecision decision,
+  ) {
+    if (decision.hasConflict) return strings.chooseAlbum;
+    if (decision.album != null) return strings.moveToAnotherAlbum;
+    return strings.addToAlbum;
   }
 }
 

@@ -5,6 +5,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
+import "../../../../app/presentation/ame_message_text.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_choice.dart";
 import "../../../storage/application/ports/storage_settings_gateway.dart";
@@ -13,6 +15,7 @@ import "../../../storage/domain/storage_models.dart";
 import "../../../storage/application/catalog_reclamation_controller.dart";
 import "settings_section.dart";
 import "storage_preview_cleanup_confirmation.dart";
+import "storage_settings_error.dart";
 
 enum _StorageErrorTarget { settings, catalogReclamation, previewCleanup }
 
@@ -39,7 +42,7 @@ class _StorageSettingsSectionState
   StreamSubscription<PreviewCleanupUpdate>? _cleanupSubscription;
   String? _cleanupTargetPreviewRoot;
   String? _cleanupTargetDisplayPath;
-  String? _settingsErrorMessage;
+  Object? _settingsError;
   String? _previewCleanupErrorMessage;
   bool _isSaving = false;
   bool _isCancellingCleanup = false;
@@ -103,7 +106,7 @@ class _StorageSettingsSectionState
         if (effectiveTarget == _StorageErrorTarget.catalogReclamation) {
           _reclamationController.failStorageSnapshot(reclamationRequest, error);
         } else {
-          setState(() => _setError(effectiveTarget, _errorText(error)));
+          setState(() => _setError(effectiveTarget, error));
         }
       }
       return false;
@@ -172,7 +175,7 @@ class _StorageSettingsSectionState
     }
     setState(() {
       _isSaving = true;
-      _settingsErrorMessage = null;
+      _settingsError = null;
     });
     final configurationRequest = _reclamationController
         .beginConfigurationSave();
@@ -197,7 +200,7 @@ class _StorageSettingsSectionState
       if (mounted) {
         setState(() {
           _isSaving = false;
-          _settingsErrorMessage = _errorText(error);
+          _settingsError = error;
         });
       }
     }
@@ -305,7 +308,7 @@ class _StorageSettingsSectionState
       if (mounted && !accepted) {
         setState(() {
           _isCancellingCleanup = false;
-          _previewCleanupErrorMessage = "清理任务已经结束，无法再取消";
+          _previewCleanupErrorMessage = context.l10n.cleanupAlreadyFinished;
         });
       }
     } on Object catch (error) {
@@ -325,15 +328,15 @@ class _StorageSettingsSectionState
     return error.toString();
   }
 
-  void _setError(_StorageErrorTarget target, String? message) {
+  void _setError(_StorageErrorTarget target, Object? error) {
     switch (target) {
       case _StorageErrorTarget.settings:
-        _settingsErrorMessage = message;
+        _settingsError = error;
         break;
       case _StorageErrorTarget.catalogReclamation:
         break;
       case _StorageErrorTarget.previewCleanup:
-        _previewCleanupErrorMessage = message;
+        _previewCleanupErrorMessage = error == null ? null : _errorText(error);
         break;
     }
   }
@@ -343,14 +346,14 @@ class _StorageSettingsSectionState
     final status = _status;
     if (status == null) {
       return SettingsSection(
-        title: "存储",
+        title: context.l10n.storage,
         children: [
-          if (_settingsErrorMessage == null)
-            const SettingsRow(
+          if (_settingsError == null)
+            SettingsRow(
               key: Key("storage-settings-loading"),
               icon: Symbols.storage_rounded,
-              title: "正在读取存储设置",
-              subtitle: Text("正在检查图库数据与缩略图的保存位置"),
+              title: context.l10n.loadingStorageSettings,
+              subtitle: Text(context.l10n.checkingStoragePaths),
               trailing: SizedBox.square(
                 dimension: 24,
                 child: AmeCircularProgress(strokeWidth: 2),
@@ -360,11 +363,11 @@ class _StorageSettingsSectionState
             SettingsRow(
               key: const Key("storage-settings-load-error"),
               icon: Symbols.error_rounded,
-              title: "无法读取存储设置",
-              subtitle: Text(_settingsErrorMessage!),
+              title: context.l10n.storageSettingsUnavailable,
+              subtitle: StorageSettingsError(error: _settingsError!),
               trailing: FilledButton.tonal(
                 onPressed: () => unawaited(_load()),
-                child: const Text("重试"),
+                child: Text(context.l10n.retry),
               ),
             ),
         ],
@@ -375,49 +378,67 @@ class _StorageSettingsSectionState
         _reclamation.reclamation ?? status.catalogReclamation;
 
     return SettingsSection(
-      title: "存储",
+      title: context.l10n.storage,
       children: [
         if (status.requiresRestart)
-          const SettingsRow(
+          SettingsRow(
             key: Key("storage-settings-restart-notice"),
             icon: Symbols.restart_alt_rounded,
-            title: "重启 Ame 后应用新的存储设置",
-            subtitle: Text("现有文件不会被移动或删除"),
+            title: context.l10n.storageRestartRequired,
+            subtitle: Text(context.l10n.existingFilesKept),
           ),
         SettingsRow(
           key: const Key("catalog-location-setting"),
           icon: Symbols.storage_rounded,
-          title: "图库数据位置",
+          title: context.l10n.catalogStorageLocation,
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("保存图库索引和扫描结果\n${status.configuredCatalogDisplayPath}"),
               Text(
-                "当前占用 ${_formatBytes(status.catalogUsedBytes)}"
-                "${status.catalogReclaimableBytes > BigInt.zero ? "，有效数据约 ${_formatBytes(status.catalogLiveBytes)}，可回收 ${_formatBytes(status.catalogReclaimableBytes)}" : ""}",
+                context.l10n.catalogStorageHelp(
+                  status.configuredCatalogDisplayPath,
+                ),
+              ),
+              Text(
+                context.l10n.storageUsageWithDetail(
+                  _formatBytes(status.catalogUsedBytes),
+                  status.catalogReclaimableBytes > BigInt.zero
+                      ? context.l10n.storageUsageDetail(
+                          _formatBytes(status.catalogLiveBytes),
+                          _formatBytes(status.catalogReclaimableBytes),
+                        )
+                      : "",
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
           trailing: widget.hasLibraryRoots
-              ? const Text("已有图库时不可更改")
+              ? Text(context.l10n.catalogLocationLocked)
               : FilledButton.tonal(
                   onPressed: _isSaving ? null : _chooseCatalogDirectory,
-                  child: const Text("更改"),
+                  child: Text(context.l10n.change),
                 ),
         ),
         SettingsRow(
           key: const Key("catalog-reclamation-setting"),
           icon: Symbols.database_rounded,
-          title: _catalogReclamationTitle(catalogReclamation),
-          subtitle: _catalogReclamationSubtitle(catalogReclamation),
+          title: _catalogReclamationTitle(context.l10n, catalogReclamation),
+          subtitle: _catalogReclamationSubtitle(
+            context.l10n,
+            catalogReclamation,
+          ),
           trailing: catalogReclamation.isActive
               ? FilledButton.tonal(
                   onPressed: _reclamation.isActionPending
                       ? null
                       : _reclamationController.cancel,
-                  child: Text(_reclamation.isActionPending ? "正在取消" : "取消"),
+                  child: Text(
+                    _reclamation.isActionPending
+                        ? context.l10n.cancellingSource
+                        : context.l10n.cancel,
+                  ),
                 )
               : catalogReclamation.canRetry
               ? FilledButton.tonal(
@@ -426,56 +447,56 @@ class _StorageSettingsSectionState
                       : _reclamationController.start,
                   child: Text(
                     _reclamation.isActionPending
-                        ? "正在启动"
+                        ? context.l10n.starting
                         : catalogReclamation.phase ==
                               CatalogReclamationPhase.idle
-                        ? "清理"
-                        : "重试",
+                        ? context.l10n.cleanUp
+                        : context.l10n.retry,
                   ),
                 )
-              : const Text("无需清理"),
+              : Text(context.l10n.cleanupNotNeeded),
         ),
         SettingsRow(
           key: const Key("preview-location-setting"),
           icon: Symbols.photo_library_rounded,
-          title: "缩略图位置",
+          title: context.l10n.thumbnailLocation,
           subtitle: Text(
-            "保存可随时重新生成的图片预览\n"
-            "${status.configuredPreviewDisplayPath}",
+            context.l10n.thumbnailStorageHelp(
+              status.configuredPreviewDisplayPath,
+            ),
           ),
           trailing: FilledButton.tonal(
             onPressed: _isSaving ? null : _choosePreviewDirectory,
-            child: const Text("更改"),
+            child: Text(context.l10n.change),
           ),
         ),
         for (final retiredRoot in status.retiredPreviewRoots)
           SettingsRow(
             key: ValueKey("retired-preview-root-${retiredRoot.previewRoot}"),
             icon: Symbols.folder_delete_rounded,
-            title: "旧缩略图目录",
+            title: context.l10n.retiredThumbnailDirectory,
             subtitle: Text(
-              "新目录已启用；旧目录只会在确认后清理 Ame 管理的缩略图\n"
-              "${retiredRoot.displayPath}",
+              context.l10n.retiredThumbnailsHelp(retiredRoot.displayPath),
             ),
             trailing:
                 (_cleanupUpdate?.isActive ?? false) &&
                     _cleanupTargetPreviewRoot == retiredRoot.previewRoot
-                ? const Text("正在清理")
+                ? Text(context.l10n.cleaning)
                 : FilledButton.tonal(
                     onPressed: _isSaving || (_cleanupUpdate?.isActive ?? false)
                         ? null
                         : () => _confirmPreviewCleanup(retiredRoot),
-                    child: const Text("清理旧目录"),
+                    child: Text(context.l10n.cleanOldFolder),
                   ),
           ),
         SettingsRow(
           key: const Key("preview-budget-setting"),
           icon: Symbols.data_usage_rounded,
-          title: "缩略图最大占用空间",
+          title: context.l10n.thumbnailBudget,
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("达到上限时自动回收当前不需要的缩略图，不会修改原图片"),
+              Text(context.l10n.thumbnailBudgetHelp),
               const SizedBox(height: 8),
               LinearProgressIndicator(
                 value: _usageRatio(
@@ -484,7 +505,11 @@ class _StorageSettingsSectionState
                 ),
               ),
               const SizedBox(height: 6),
-              Text("当前占用 ${_formatBytes(status.previewUsedBytes)}"),
+              Text(
+                context.l10n.storageUsage(
+                  _formatBytes(status.previewUsedBytes),
+                ),
+              ),
             ],
           ),
           trailing: AmeChoice<BigInt>.menu(
@@ -506,10 +531,12 @@ class _StorageSettingsSectionState
           key: const Key("preview-cleanup-setting"),
           icon: Symbols.cleaning_services_rounded,
           title: _cleanupTitle(
+            context.l10n,
             _cleanupUpdate,
             isRetiredRoot: _cleanupTargetPreviewRoot != null,
           ),
           subtitle: _cleanupSubtitle(
+            context.l10n,
             _cleanupUpdate,
             targetDisplayPath: _cleanupTargetDisplayPath,
           ),
@@ -518,53 +545,54 @@ class _StorageSettingsSectionState
                   onPressed: _isCancellingCleanup
                       ? null
                       : _cancelPreviewCleanup,
-                  child: Text(_isCancellingCleanup ? "正在取消" : "取消"),
+                  child: Text(
+                    _isCancellingCleanup
+                        ? context.l10n.cancellingSource
+                        : context.l10n.cancel,
+                  ),
                 )
               : FilledButton.tonal(
                   onPressed: _isSaving ? null : () => _confirmPreviewCleanup(),
-                  child: const Text("清理"),
+                  child: Text(context.l10n.cleanUp),
                 ),
         ),
-        if (_settingsErrorMessage != null)
+        if (_settingsError case final error?)
           SettingsRow(
             key: const Key("storage-settings-error"),
             icon: Symbols.error_rounded,
-            title: "未能保存存储设置",
-            subtitle: Text(
-              _settingsErrorMessage!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+            title: context.l10n.storageSaveFailed,
+            subtitle: StorageSettingsError(error: error),
           ),
         if (_reclamation.errorMessage != null)
           SettingsRow(
             key: const Key("catalog-reclamation-error"),
             icon: Symbols.error_rounded,
-            title: "图库数据整理状态异常",
+            title: context.l10n.catalogMaintenanceStatusError,
             subtitle: Text(
-              _reclamation.errorMessage!,
+              _reclamation.errorMessage!.resolve(context.l10n),
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
             trailing: FilledButton.tonal(
               onPressed: _reclamationController.retry,
-              child: const Text("重试"),
+              child: Text(context.l10n.retry),
             ),
           ),
         if (_previewCleanupErrorMessage != null)
           SettingsRow(
             key: const Key("preview-cleanup-error"),
             icon: Symbols.error_rounded,
-            title: "缩略图清理状态异常",
+            title: context.l10n.thumbnailCleanupStatusError,
             subtitle: Text(
               _previewCleanupErrorMessage!,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
         if (_isSaving)
-          const SettingsRow(
+          SettingsRow(
             key: Key("storage-settings-saving"),
             icon: Symbols.sync_rounded,
-            title: "正在保存",
-            subtitle: Text("完成前不会改变当前正在使用的存储位置"),
+            title: context.l10n.saving,
+            subtitle: Text(context.l10n.storageLocationPending),
             trailing: SizedBox.square(
               dimension: 24,
               child: AmeCircularProgress(strokeWidth: 2),
@@ -575,22 +603,28 @@ class _StorageSettingsSectionState
   }
 }
 
-String _catalogReclamationTitle(CatalogReclamationModel reclamation) {
+String _catalogReclamationTitle(
+  AppLocalizations strings,
+  CatalogReclamationModel reclamation,
+) {
   return switch (reclamation.phase) {
-    CatalogReclamationPhase.idle => "整理图库数据",
-    CatalogReclamationPhase.queued => "图库数据等待整理",
-    CatalogReclamationPhase.inspecting => "正在检查图库数据",
-    CatalogReclamationPhase.waitingForIdle => "等待空闲后整理图库数据",
-    CatalogReclamationPhase.checkingCapacity => "正在检查整理空间",
-    CatalogReclamationPhase.converting => "正在优化图库数据库",
-    CatalogReclamationPhase.reclaiming => "正在释放图库数据空间",
-    CatalogReclamationPhase.completed => "图库数据整理完成",
-    CatalogReclamationPhase.cancelled => "图库数据整理已取消",
-    CatalogReclamationPhase.failed => "图库数据整理失败",
+    CatalogReclamationPhase.idle => strings.optimizeCatalog,
+    CatalogReclamationPhase.queued => strings.catalogWaiting,
+    CatalogReclamationPhase.inspecting => strings.catalogInspecting,
+    CatalogReclamationPhase.waitingForIdle => strings.catalogWaitingIdle,
+    CatalogReclamationPhase.checkingCapacity => strings.catalogCheckingSpace,
+    CatalogReclamationPhase.converting => strings.catalogOptimizing,
+    CatalogReclamationPhase.reclaiming => strings.catalogReclaiming,
+    CatalogReclamationPhase.completed => strings.catalogOptimized,
+    CatalogReclamationPhase.cancelled => strings.catalogOptimizationCancelled,
+    CatalogReclamationPhase.failed => strings.catalogOptimizationFailed,
   };
 }
 
-Widget _catalogReclamationSubtitle(CatalogReclamationModel reclamation) {
+Widget _catalogReclamationSubtitle(
+  AppLocalizations strings,
+  CatalogReclamationModel reclamation,
+) {
   final total = reclamation.reclaimedBytes + reclamation.reclaimableBytes;
   final progress =
       reclamation.phase == CatalogReclamationPhase.reclaiming &&
@@ -602,21 +636,26 @@ Widget _catalogReclamationSubtitle(CatalogReclamationModel reclamation) {
   final status = switch (reclamation.phase) {
     CatalogReclamationPhase.idle =>
       reclamation.reclaimableBytes > BigInt.zero
-          ? "约 ${_formatBytes(reclamation.reclaimableBytes)} 空间可以安全回收"
-          : "删除图库后会在后台回收数据库空闲页，不会删除原图片",
-    CatalogReclamationPhase.queued => "移除结果已经生效，后台整理即将开始",
-    CatalogReclamationPhase.inspecting => "正在计算有效数据与可回收空间",
-    CatalogReclamationPhase.waitingForIdle => "有更重要的图库操作正在进行，稍后自动继续",
-    CatalogReclamationPhase.checkingCapacity => "正在确认数据库重建所需的临时磁盘空间",
-    CatalogReclamationPhase.converting =>
-      "正在执行一次性数据库转换，可回收约 ${_formatBytes(reclamation.reclaimableBytes)}；此阶段无法可靠估算百分比",
-    CatalogReclamationPhase.reclaiming =>
-      "已释放 ${_formatBytes(reclamation.reclaimedBytes)}，剩余约 ${_formatBytes(reclamation.reclaimableBytes)}",
-    CatalogReclamationPhase.completed =>
-      "已释放 ${_formatBytes(reclamation.reclaimedBytes)}；有效图库数据保持不变",
-    CatalogReclamationPhase.cancelled => "已停止整理；图库移除结果与有效数据不受影响，可稍后重试",
+          ? strings.reclaimableSpace(_formatBytes(reclamation.reclaimableBytes))
+          : strings.catalogAutoReclaim,
+    CatalogReclamationPhase.queued => strings.catalogRemovalApplied,
+    CatalogReclamationPhase.inspecting => strings.catalogEstimating,
+    CatalogReclamationPhase.waitingForIdle => strings.catalogBusyWait,
+    CatalogReclamationPhase.checkingCapacity =>
+      strings.catalogCheckingTempSpace,
+    CatalogReclamationPhase.converting => strings.catalogConverting(
+      _formatBytes(reclamation.reclaimableBytes),
+    ),
+    CatalogReclamationPhase.reclaiming => strings.catalogReleasedRemaining(
+      _formatBytes(reclamation.reclaimedBytes),
+      _formatBytes(reclamation.reclaimableBytes),
+    ),
+    CatalogReclamationPhase.completed => strings.catalogReleased(
+      _formatBytes(reclamation.reclaimedBytes),
+    ),
+    CatalogReclamationPhase.cancelled => strings.catalogStopped,
     CatalogReclamationPhase.failed =>
-      reclamation.errorMessage ?? "未能完成图库数据整理，可稍后重试",
+      reclamation.errorMessage ?? strings.catalogRetryLater,
   };
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -627,8 +666,10 @@ Widget _catalogReclamationSubtitle(CatalogReclamationModel reclamation) {
           reclamation.availableTemporaryBytes != null) ...[
         const SizedBox(height: 4),
         Text(
-          "需要 ${_formatBytes(reclamation.requiredTemporaryBytes!)}，"
-          "当前可用 ${_formatBytes(reclamation.availableTemporaryBytes!)}",
+          strings.spaceRequired(
+            _formatBytes(reclamation.requiredTemporaryBytes!),
+            _formatBytes(reclamation.availableTemporaryBytes!),
+          ),
         ),
       ],
       const SizedBox(height: 8),
@@ -638,26 +679,30 @@ Widget _catalogReclamationSubtitle(CatalogReclamationModel reclamation) {
 }
 
 String _cleanupTitle(
+  AppLocalizations strings,
   PreviewCleanupUpdate? update, {
   required bool isRetiredRoot,
 }) {
-  final subject = isRetiredRoot ? "旧缩略图目录" : "缩略图";
+  final subject = isRetiredRoot
+      ? strings.retiredThumbnailDirectory
+      : strings.thumbnails;
   return switch (update?.phase) {
     PreviewCleanupPhase.started ||
-    PreviewCleanupPhase.running => "正在清理$subject",
-    PreviewCleanupPhase.completed => "$subject清理完成",
-    PreviewCleanupPhase.cancelled => "$subject清理已取消",
-    PreviewCleanupPhase.failed => "$subject清理失败",
-    null => "清理缩略图",
+    PreviewCleanupPhase.running => strings.cleaningSubject(subject),
+    PreviewCleanupPhase.completed => strings.cleanupSubjectComplete(subject),
+    PreviewCleanupPhase.cancelled => strings.cleanupSubjectCancelled(subject),
+    PreviewCleanupPhase.failed => strings.cleanupSubjectFailed(subject),
+    null => strings.clearThumbnails,
   };
 }
 
 Widget _cleanupSubtitle(
+  AppLocalizations strings,
   PreviewCleanupUpdate? update, {
   required String? targetDisplayPath,
 }) {
   if (update == null) {
-    return const Text("缩略图会在需要时重新生成，不会删除原图片");
+    return Text(strings.thumbnailCleanupHelp);
   }
   final progress = update.totalFiles == BigInt.zero
       ? null
@@ -665,14 +710,21 @@ Widget _cleanupSubtitle(
             .clamp(0, 1)
             .toDouble();
   final status = switch (update.phase) {
-    PreviewCleanupPhase.started => "正在统计可清理的缩略图",
-    PreviewCleanupPhase.running =>
-      "已处理 ${update.processedFiles} / ${update.totalFiles} 个文件，"
-          "释放 ${_formatBytes(update.removedBytes)}",
-    PreviewCleanupPhase.completed =>
-      "已移除 ${update.removedFiles} 个文件，释放 ${_formatBytes(update.removedBytes)}",
-    PreviewCleanupPhase.cancelled => "停止前已移除 ${update.removedFiles} 个文件，已保留原图片",
-    PreviewCleanupPhase.failed => update.errorMessage ?? "未能完成缩略图清理",
+    PreviewCleanupPhase.started => strings.countingThumbnails,
+    PreviewCleanupPhase.running => strings.cleanupFileProgress(
+      update.processedFiles.toString(),
+      update.totalFiles.toString(),
+      _formatBytes(update.removedBytes),
+    ),
+    PreviewCleanupPhase.completed => strings.cleanupFilesRemoved(
+      update.removedFiles.toString(),
+      _formatBytes(update.removedBytes),
+    ),
+    PreviewCleanupPhase.cancelled => strings.cleanupBeforeStop(
+      update.removedFiles.toString(),
+    ),
+    PreviewCleanupPhase.failed =>
+      update.errorMessage ?? strings.thumbnailCleanupFailed,
   };
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -686,7 +738,7 @@ Widget _cleanupSubtitle(
       AmeLinearProgress(active: update.isActive, value: progress),
       if (update.issueCount > BigInt.zero) ...[
         const SizedBox(height: 6),
-        Text("${update.issueCount} 个文件未能清理"),
+        Text(strings.cleanupFailedFiles(update.issueCount.toString())),
       ],
       if (update.issueMessage != null) ...[
         const SizedBox(height: 4),

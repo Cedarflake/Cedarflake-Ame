@@ -4,10 +4,10 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_dialog.dart";
 import "../../../../app/presentation/ame_dialog_diagnostic.dart";
-
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_choice.dart";
 import "../../../../app/presentation/ame_transient_feedback.dart";
@@ -62,7 +62,7 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
         });
       }
     } on Object {
-      if (mounted) setState(() => _error = "暂时无法读取文件操作记录，请重试。");
+      if (mounted) setState(() => _error = context.l10n.fileHistoryUnavailable);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -76,7 +76,7 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
       final accepted = await showDialog<bool>(
         context: context,
         builder: (context) => AmeDialog(
-          title: "继续移动这个文件？",
+          title: context.l10n.confirmContinueMove,
           content: AmeDialogItem(
             icon: Symbols.drive_file_move_rounded,
             title: item.source.split(RegExp(r"[\\/]")).last,
@@ -84,11 +84,11 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text("取消"),
+              child: Text(context.l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text("继续移动"),
+              child: Text(context.l10n.continueMove),
             ),
           ],
         ),
@@ -134,7 +134,7 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                     children: [
                       Flexible(
                         child: Text(
-                          "文件操作记录",
+                          context.l10n.fileOperationHistory,
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                       ),
@@ -142,16 +142,22 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                       AmeLoadingProgress(
                         active: _loading && !_showExports && _items.isNotEmpty,
                         size: 24,
-                        semanticsLabel: "正在更新文件记录",
+                        semanticsLabel: context.l10n.updatingFileRecords,
                       ),
                     ],
                   ),
                 ),
                 AmeChoice<bool>.menu(
                   value: _showExports,
-                  entries: const [
-                    AmeChoiceEntry(value: false, label: "文件记录"),
-                    AmeChoiceEntry(value: true, label: "结果清单"),
+                  entries: [
+                    AmeChoiceEntry(
+                      value: false,
+                      label: context.l10n.fileRecords,
+                    ),
+                    AmeChoiceEntry(
+                      value: true,
+                      label: context.l10n.operationReport,
+                    ),
                   ],
                   onSelected: (value) {
                     if (value != null) setState(() => _showExports = value);
@@ -163,22 +169,25 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
             Expanded(
               child: AmeLoadingContent(
                 isLoading: _loading && !_showExports && _items.isEmpty,
-                semanticsLabel: "正在读取文件记录",
+                semanticsLabel: context.l10n.loadingFileRecords,
                 child: switch ((_showExports, _items.isEmpty && !_loading)) {
                   (true, _) => const LibraryFileExportHistory(),
                   (false, true) when _error != null => AmeDialogReadFailure(
                     message: _error!,
                     onRetry: () => _load(_before),
                   ),
-                  (false, true) => const Center(child: Text("暂无文件操作记录")),
+                  (false, true) => Center(
+                    child: Text(context.l10n.noFileOperations),
+                  ),
                   (false, false) => AmeScrollMotion(
                     child: ListView.builder(
                       itemCount: _items.length,
                       itemBuilder: (context, index) {
                         final item = _items[index];
                         final status = item.failure == null
-                            ? LibraryFileStrings.phase(item.phase)
+                            ? LibraryFileStrings.phase(context.l10n, item.phase)
                             : LibraryFileStrings.failure(
+                                context.l10n,
                                 item.failure,
                                 action: item.action,
                               );
@@ -188,14 +197,14 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                               : () => showDialog<void>(
                                   context: context,
                                   builder: (context) => AmeDialog(
-                                    title: "文件操作详情",
+                                    title: context.l10n.fileOperationDetails,
                                     content: AmeDialogDiagnostic(
                                       detail: item.detail!,
                                     ),
                                     actions: [
                                       TextButton(
                                         onPressed: () => Navigator.pop(context),
-                                        child: const Text("知道了"),
+                                        child: Text(context.l10n.acknowledge),
                                       ),
                                     ],
                                   ),
@@ -205,7 +214,7 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                           ),
                           leading: const Icon(Symbols.draft_rounded),
                           title: Text(
-                            "${LibraryFileStrings.action(item.action)} · ${item.source.split(RegExp(r"[\\/]")).last}",
+                            "${LibraryFileStrings.action(context.l10n, item.action)} · ${item.source.split(RegExp(r"[\\/]")).last}",
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -228,7 +237,7 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                               if (item.canRetry)
                                 TextButton(
                                   onPressed: busy ? null : () => _retry(item),
-                                  child: const Text("重试"),
+                                  child: Text(context.l10n.retry),
                                 ),
                               if (item.canContinueMove)
                                 TextButton(
@@ -236,7 +245,7 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                                       ? null
                                       : () =>
                                             _recover(item, continueMove: true),
-                                  child: const Text("继续移动"),
+                                  child: Text(context.l10n.continueMove),
                                 )
                               else if ({
                                 LibraryFileRecordPhase.prepared,
@@ -248,7 +257,7 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                               }.contains(item.phase))
                                 TextButton(
                                   onPressed: busy ? null : () => _recover(item),
-                                  child: const Text("核对结果"),
+                                  child: Text(context.l10n.checkResults),
                                 ),
                             ],
                           ),
@@ -279,27 +288,27 @@ class _FileHistoryState extends ConsumerState<_FileHistory> {
                         if (context.mounted) {
                           showAmeTransientFeedback(
                             context,
-                            message: "无法打开回收站，请从 Windows 桌面打开。",
+                            message: context.l10n.recycleBinOpenFailed,
                             severity: AmeNotificationSeverity.error,
                           );
                         }
                       }
                     },
                     icon: const Icon(Symbols.recycling_rounded),
-                    label: const Text("打开回收站"),
+                    label: Text(context.l10n.openRecycleBin),
                   ),
                   const Spacer(),
                   TextButton(
                     onPressed: _loading || _before == null
                         ? null
                         : () => _load(),
-                    child: const Text("最新记录"),
+                    child: Text(context.l10n.latestRecords),
                   ),
                   TextButton(
                     onPressed: _loading || _items.length < 40
                         ? null
                         : () => _load(_items.last.id),
-                    child: const Text("更早记录"),
+                    child: Text(context.l10n.earlierRecords),
                   ),
                 ],
               ),

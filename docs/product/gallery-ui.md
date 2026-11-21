@@ -35,21 +35,20 @@ information-architecture choices:
 - the gallery filter changes duplicate display; the Duplicates workspace owns group review;
 - temporary action-specific import progress rather than permanent task navigation;
 - a plain-language settings canvas rather than a dialog or engineering dashboard;
-- Simplified Chinese as the initial application language.
+- Simplified Chinese, English and Japanese in the Windows application.
 
 ADR 0003 remains historical evidence only. Its standalone duplicate action, task activity, provider
 grouping, and other superseded surfaces are not current alternatives.
 
-Simplified Chinese (`zh-CN`) is the only initial application language. All user-visible titles,
-actions, menus, tooltips, accessible labels, progress text, empty states, confirmations, and error
-explanations use concise Simplified Chinese. File names, paths, metadata values, and quoted operating-
-system details retain their original content. Internal code identifiers and stable error codes remain
-English and must be translated into understandable Chinese at the presentation boundary rather than
-leaking raw implementation messages.
-
-R2 does not add a language selector or a complete localization runtime. User-facing copy is kept in
-a presentation-owned string catalog instead of being scattered through widgets, so formal i18n can
-be introduced later without rewriting the UI structure.
+The desktop application follows the Windows preferred languages in order. It supports Simplified
+Chinese (`zh-Hans`), English (`en`) and Japanese (`ja`), with English as the final fallback.
+An explicit Chinese script takes precedence over the region. Traditional Chinese (`zh-Hant`)
+continues to the next preferred language. When Windows supplies only a region, `zh-TW`, `zh-HK`
+and `zh-MO` also continue to the next preference. Settings allows an explicit choice that
+applies immediately and survives restart. Menus, accessibility labels, task feedback, counts and
+dates follow the active language, including entries already in the notification history.
+File names, paths, user album and category names, metadata and diagnostic details retain their
+original spelling. Presentation maps stable error codes to guidance in the active language.
 
 The completed R2a prototype remains acceptance evidence, not a second application entry point.
 Unavailable controls must not ship as dead production actions, and a fixture or screenshot is not

@@ -2,6 +2,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_file_operations.dart";
 import "../../application/library_file_selection_scope.dart";
@@ -33,9 +34,9 @@ class LibraryFileMenu extends ConsumerWidget {
     ];
     String label(_FileMenuAction action) => action == _FileMenuAction.cleanup
         ? (selection.query.groupFilter == LibraryGalleryGroupFilter.similar
-              ? "删除相似图片"
-              : "删除重复图片")
-        : LibraryFileStrings.action(action.fileAction);
+              ? context.l10n.deleteSimilarPhotos
+              : context.l10n.deleteDuplicatePhotos)
+        : LibraryFileStrings.action(context.l10n, action.fileAction);
     return AmePopupMenuButton<_FileMenuAction>(
       labels: [for (final action in actions) label(action)],
       items: [
@@ -74,10 +75,10 @@ class LibraryFileMenu extends ConsumerWidget {
       builder: (context, openMenu) => TextButton.icon(
         onPressed: enabled && !busy ? openMenu : null,
         icon: const Icon(Symbols.folder_rounded),
-        label: const Row(
+        label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text("文件"),
+            Text(context.l10n.file),
             SizedBox(width: 4),
             Icon(Symbols.arrow_drop_down_rounded, size: 20),
           ],

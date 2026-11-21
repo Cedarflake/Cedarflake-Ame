@@ -1,7 +1,6 @@
 import "dart:async";
 
 import "package:material_symbols_icons/symbols.dart";
-
 import "package:cedarflake_ame/features/library/adapters/platform/windows_library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
@@ -33,6 +32,7 @@ import "package:flutter_test/flutter_test.dart";
 import "../../../../support/application_test_bindings.dart";
 import "../../../../support/duplicate_review_fixtures.dart";
 import "../../../../support/gallery_group_fixtures.dart";
+import "../../../../support/localized_test_app.dart";
 import "../../../../support/semantics/retained_semantics_update_harness.dart";
 
 const _group = LibraryDuplicateGroup(
@@ -145,7 +145,7 @@ void main() {
                 ),
               ),
             ]),
-            child: const MaterialApp(
+            child: const LocalizedTestApp(
               home: Scaffold(body: LibraryDuplicateBadge(locationId: "one")),
             ),
           ),
@@ -254,7 +254,7 @@ void main() {
                 ReviewFixtureService(showResults: () => service.hasResults),
               ),
             ]),
-            child: MaterialApp(
+            child: LocalizedTestApp(
               builder: (context, child) => MediaQuery(
                 data: MediaQuery.of(context).copyWith(
                   textScaler: TextScaler.linear(size.width < 500 ? 2 : 1),
@@ -358,7 +358,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(
+          child: const LocalizedTestApp(
             home: LibraryAnalysisActivity(
               child: Scaffold(body: LibraryDuplicatesPage()),
             ),
@@ -429,13 +429,10 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: LibraryWorkbench(
-                globalBarBuilder: (_, _, toggle) => SizedBox(
-                  height: 64,
-                  child: Align(alignment: Alignment.centerLeft, child: toggle),
-                ),
+                globalBarBuilder: (_, _) => const SizedBox(height: 64),
                 albumsNavigationBuilder: (_) => const Text("Album list"),
                 navigationBuilder: (width) => SizedBox(width: width),
                 galleryBuilder: (_) => const Text("Gallery"),

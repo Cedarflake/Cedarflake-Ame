@@ -5,6 +5,7 @@ import "../features/library/presentation/library_model_installation_notification
 import "../features/library/presentation/pages/unified_library_screen.dart";
 import "../features/library/presentation/widgets/library_analysis_activity.dart";
 import "../features/settings/application/ame_preferences.dart";
+import "../features/settings/presentation/ame_language_preference.dart";
 import "../features/settings/presentation/ame_theme_preference.dart";
 import "presentation/ame_localizations.dart";
 import "presentation/ame_scroll_motion_theme.dart";
@@ -19,16 +20,19 @@ class AmeApp extends ConsumerWidget {
     ref.watch(libraryModelInstallationNotificationsProvider);
     final preferences = ref.watch(amePreferencesControllerProvider);
     return AmeSystemThemeBuilder(
-      builder: (context, seedColor) => MaterialApp(
+      preferredLocale: amePreferredLocale(preferences.language),
+      builder: (context, seedColor, locale) => MaterialApp(
         debugShowCheckedModeBanner: false,
         title: "Cedarflake Ame",
-        locale: ameLocale,
+        locale: locale,
+        localeListResolutionCallback: resolveAmeLocales,
         supportedLocales: ameSupportedLocales,
         localizationsDelegates: ameLocalizationsDelegates,
-        theme: buildAmeTheme(seedColor: seedColor),
+        theme: buildAmeTheme(seedColor: seedColor, locale: locale),
         darkTheme: buildAmeTheme(
           brightness: Brightness.dark,
           seedColor: seedColor,
+          locale: locale,
         ),
         themeMode: ameThemeMode(preferences.theme),
         home: const LibraryAnalysisActivity(

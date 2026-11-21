@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../application/library_organization_conflicts.dart";
 import "library_photo_status_label.dart";
 
@@ -17,7 +18,7 @@ class LibraryConflictLabel extends ConsumerWidget {
     if (conflicts?.contains(locationId) != true) return const SizedBox.shrink();
     return IgnorePointer(
       child: LibraryPhotoStatusLabel(
-        label: "相册归属冲突",
+        label: context.l10n.albumConflict,
         textKey: ValueKey("album-conflict-$locationId"),
       ),
     );

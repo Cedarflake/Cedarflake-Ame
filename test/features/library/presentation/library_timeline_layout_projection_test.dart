@@ -4,6 +4,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_tim
 import "package:cedarflake_ame/features/library/presentation/widgets/library_timeline_projection_cache.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   final timeline = LibraryTimeline(
     revision: BigInt.one,
@@ -18,6 +20,7 @@ void main() {
 
   test("uses date headers and rows instead of aspect-ratio aggregates", () {
     final projection = LibraryTimelineProjection.fromLayout(
+      testChinese,
       timeline: timeline,
       metrics: metrics,
       maximumScrollOffset: 900,
@@ -36,6 +39,7 @@ void main() {
 
   test("reads row targets independently of loaded detail windows", () {
     final projection = LibraryTimelineProjection.fromLayout(
+      testChinese,
       timeline: timeline,
       metrics: metrics,
       maximumScrollOffset: 900,
@@ -57,6 +61,7 @@ void main() {
     final cache = LibraryTimelineProjectionCache();
     LibraryTimelineProjection? resolve(double maximum, double viewport) =>
         cache.resolve(
+          testChinese,
           timeline: timeline,
           metrics: metrics,
           maximumScrollOffset: maximum,
@@ -75,6 +80,7 @@ void main() {
     final cache = LibraryTimelineProjectionCache();
     for (final layout in [metrics, _metrics(isQueryWide: false)]) {
       final projection = cache.resolve(
+        testChinese,
         timeline: timeline,
         metrics: layout,
         maximumScrollOffset: null,
@@ -85,6 +91,7 @@ void main() {
       expect(projection.maximumOffset, 100);
     }
     final mismatched = cache.resolve(
+      testChinese,
       timeline: timeline,
       metrics: metrics,
       maximumScrollOffset: 1200,
@@ -96,11 +103,13 @@ void main() {
 
   test("keeps the within-row position across timeline publications", () {
     final previous = LibraryTimelineProjection.fromLayout(
+      testChinese,
       timeline: timeline,
       metrics: metrics,
       maximumScrollOffset: 900,
     );
     final current = LibraryTimelineProjection.fromLayout(
+      testChinese,
       timeline: LibraryTimeline(
         revision: timeline.revision + BigInt.one,
         queryId: timeline.queryId,

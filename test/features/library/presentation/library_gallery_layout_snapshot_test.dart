@@ -10,12 +10,15 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_gal
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_reflow.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   test(
     "catalog-only revisions retain rows and invalidate changed geometry",
     () {
       const locationIds = ["location-a", "b", "c", "d", "e", "last-location"];
       final snapshot = LibraryGalleryLayoutSnapshot.build(
+        testChinese,
         manifest: _manifest(locationIds: locationIds),
         availableWidth: 900,
         thumbnailSize: GalleryThumbnailSize.small,
@@ -62,6 +65,7 @@ void main() {
             dateKeys: [null, "2026-10-24", "2025-01-01"],
           );
           final snapshot = LibraryGalleryLayoutSnapshot.build(
+            testChinese,
             manifest: manifest,
             availableWidth: 900,
             thumbnailSize: GalleryThumbnailSize.small,
@@ -113,6 +117,7 @@ void main() {
               ),
           ];
           final loaded = LibraryGalleryLayoutEntry.build(
+            testChinese,
             assets: assets,
             availableWidth: 900,
             layoutShape: shape,
@@ -151,6 +156,7 @@ void main() {
     );
     for (final size in GalleryThumbnailSize.values) {
       final snapshot = LibraryGalleryLayoutSnapshot.build(
+        testChinese,
         manifest: manifest,
         availableWidth: 816,
         thumbnailSize: size,
@@ -179,6 +185,7 @@ void main() {
     test("$shape reserves scaled card width before detail loading", () {
       final manifest = _manifest(aspectRatios: List.filled(6, 0.01));
       final snapshot = LibraryGalleryLayoutSnapshot.build(
+        testChinese,
         manifest: manifest,
         availableWidth: 600,
         minimumCellWidth: 256,
@@ -218,6 +225,7 @@ void main() {
     final manifest = _manifest();
 
     final snapshot = LibraryGalleryLayoutSnapshot.build(
+      testChinese,
       manifest: manifest,
       availableWidth: 300,
       thumbnailSize: GalleryThumbnailSize.small,
@@ -244,6 +252,7 @@ void main() {
 
   test("keeps exact wall geometry while the loaded detail window changes", () {
     final snapshot = LibraryGalleryLayoutSnapshot.build(
+      testChinese,
       manifest: _manifest(),
       availableWidth: 300,
       thumbnailSize: GalleryThumbnailSize.small,
@@ -279,6 +288,7 @@ void main() {
     );
 
     final snapshot = LibraryGalleryLayoutSnapshot.build(
+      testChinese,
       manifest: manifest,
       availableWidth: 600,
       thumbnailSize: GalleryThumbnailSize.medium,
@@ -300,6 +310,7 @@ void main() {
       "manifest anchor round-trips a ${pointInHeading ? 'date heading' : 'row gap'} without displacement",
       () {
         final snapshot = LibraryGalleryLayoutSnapshot.build(
+          testChinese,
           manifest: _manifest(
             locationIds: List.generate(18, (index) => "location-$index"),
             aspectRatios: List.filled(18, 1),

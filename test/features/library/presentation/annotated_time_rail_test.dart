@@ -3,6 +3,8 @@ import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   test("positions date anchors by actual linear scroll offsets", () {
     const buckets = [
@@ -47,7 +49,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: Align(
             alignment: Alignment.centerRight,
@@ -111,7 +113,7 @@ void main() {
   ) async {
     var value = 0.0;
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: Align(
             alignment: Alignment.centerRight,
@@ -218,7 +220,7 @@ void main() {
     for (final height in [300.0, 500.0]) {
       double? selectedValue;
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: Align(
               alignment: Alignment.centerRight,
@@ -274,7 +276,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: Align(
             alignment: Alignment.centerRight,
@@ -338,7 +340,7 @@ void main() {
   testWidgets("does not snap Slider release to a date anchor", (tester) async {
     double? completedValue;
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: Align(
             alignment: Alignment.centerRight,
@@ -426,7 +428,7 @@ void main() {
         ),
       ];
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: Align(
               alignment: Alignment.centerRight,
@@ -470,7 +472,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: Align(
             alignment: Alignment.centerRight,
@@ -520,7 +522,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: Align(
             alignment: Alignment.centerRight,

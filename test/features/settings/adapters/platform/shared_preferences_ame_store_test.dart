@@ -1,3 +1,5 @@
+import "dart:convert";
+
 import "package:cedarflake_ame/features/settings/adapters/platform/shared_preferences_ame_store.dart";
 import "package:cedarflake_ame/app/window/ame_window_placement.dart";
 import "package:cedarflake_ame/features/library/domain/library_view_preferences.dart";
@@ -10,6 +12,26 @@ import "package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import "package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart";
 
 void main() {
+  test("saves and reopens each language choice by its stored value", () async {
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+    final preferences = SharedPreferencesAsync();
+    final store = SharedPreferencesAmeStore(preferences: preferences);
+    for (final (language, storedValue) in const [
+      (AmeLanguagePreference.system, "system"),
+      (AmeLanguagePreference.zhHans, "zh-Hans"),
+      (AmeLanguagePreference.en, "en"),
+      (AmeLanguagePreference.ja, "ja"),
+    ]) {
+      await store.saveAmePreferences(AmePreferences(language: language));
+      final encoded = await preferences.getString("ame.presentation.v1");
+      final saved = jsonDecode(encoded!) as Map<String, Object?>;
+      expect(saved["language"], storedValue);
+      final reopened = SharedPreferencesAmeStore(preferences: preferences);
+      expect((await reopened.loadAmePreferences()).language, language);
+    }
+  });
+
   test(
     "album settings preserve defaults, persist across store recreation and clear selection",
     () async {
@@ -83,6 +105,7 @@ void main() {
     );
     const presentation = AmePreferences(
       viewerFilmstripVisible: true,
+      language: AmeLanguagePreference.en,
       theme: AmeThemePreference.dark,
       viewerWheelBehavior: ImageViewerWheelBehavior.previousOrNext,
       viewerOpenBehavior: ImageViewerOpenBehavior.actualSize,
@@ -99,6 +122,7 @@ void main() {
     final restoredPlacement = await store.loadWindowPlacement();
     final restoredGallery = await store.loadLibraryViewPreferences();
     final restoredPresentation = await store.loadAmePreferences();
+    expect(restoredPresentation.language, AmeLanguagePreference.en);
     expect(restoredPlacement?.left, placement.left);
     expect(restoredPlacement?.top, placement.top);
     expect(restoredPlacement?.width, placement.width);
@@ -181,6 +205,7 @@ void main() {
       final store = SharedPreferencesAmeStore(preferences: preferences);
       final restored = await store.loadAmePreferences();
       expect(restored.viewerFilmstripVisible, isFalse);
+      expect(restored.language, AmeLanguagePreference.system);
       expect(restored.exactAnalysisPaused, isFalse);
       await store.saveAmePreferences(
         restored.copyWith(viewerFilmstripVisible: true),

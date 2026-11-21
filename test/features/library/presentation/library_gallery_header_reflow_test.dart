@@ -7,8 +7,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "support/gallery_wall_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -39,7 +39,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: applicationTestOverrides(),
-            child: MaterialApp(
+            child: LocalizedTestApp(
               home: Scaffold(
                 body: MediaQuery(
                   data: MediaQueryData(disableAnimations: reducedMotion),

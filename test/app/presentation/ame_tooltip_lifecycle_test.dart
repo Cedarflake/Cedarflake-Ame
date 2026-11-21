@@ -4,7 +4,53 @@ import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../support/localized_test_app.dart";
+
 void main() {
+  testWidgets("pointer presses retire pending hover but preserve long press", (
+    tester,
+  ) async {
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    try {
+      await tester.pumpWidget(
+        const LocalizedTestApp(
+          home: Scaffold(
+            body: Center(
+              child: AmeTooltip(
+                message: "Photo action",
+                child: SizedBox(
+                  key: Key("press-target"),
+                  width: 48,
+                  height: 48,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      final target = tester.getCenter(find.byKey(const Key("press-target")));
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(target);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text("Photo action"), findsNothing);
+
+      await mouse.moveTo(Offset.zero);
+      final touch = await tester.startGesture(target);
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(find.text("Photo action"), findsOneWidget);
+      await touch.up();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
+      expect(find.text("Photo action"), findsNothing);
+    } finally {
+      await mouse.removePointer();
+      await tester.pumpWidget(const SizedBox.shrink());
+    }
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
   testWidgets("a retained inactive surface removes its visible tooltip", (
     tester,
   ) async {
@@ -13,7 +59,7 @@ void main() {
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     try {
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: ValueListenableBuilder<bool>(
               valueListenable: active,
@@ -64,7 +110,7 @@ void main() {
       const message = "查看重复位置";
       try {
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             home: Scaffold(
               body: Center(
                 child: AmeTooltip(
@@ -131,7 +177,7 @@ void main() {
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     try {
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: Center(
               child: ValueListenableBuilder<bool>(
@@ -158,7 +204,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 150));
       expect(find.text("展开目录"), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key("folder-toggle")));
+      expanded.value = true;
       await tester.pump();
       expect(tester.takeException(), isNull);
       await tester.pump();
@@ -169,10 +215,14 @@ void main() {
         await tester.tap(find.byKey(const Key("folder-toggle")));
         await tester.pump();
         await tester.pump();
+        expect(find.text(expanded.value ? "收起目录" : "展开目录"), findsNothing);
         await mouse.moveTo(Offset.zero);
         await mouse.moveTo(
           tester.getCenter(find.byKey(const Key("folder-toggle"))),
         );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 150));
+        expect(find.text(expanded.value ? "收起目录" : "展开目录"), findsOneWidget);
         expect(tester.takeException(), isNull);
       }
       await tester.pumpWidget(const SizedBox.shrink());

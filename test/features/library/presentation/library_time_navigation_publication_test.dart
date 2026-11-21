@@ -7,6 +7,8 @@ import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("single pointer clicks reach both rail endpoints", (
     tester,
@@ -506,7 +508,7 @@ class _PublicationFixture {
           ),
         ];
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: Row(
             children: [

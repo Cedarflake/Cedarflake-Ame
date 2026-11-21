@@ -152,13 +152,13 @@ class LibraryRootUpdateTask {
           visitedEntries: visitedEntries,
           acceptedItems: acceptedItems,
           issueCount: issueCount,
-          errorMessage: "图库更新已暂停，请重新开始更新。",
+          errorMessage: "library_update_paused",
         ),
       LibraryScanStale(:final acceptedItems, :final issueCount) => copyWith(
         phase: LibraryRootUpdatePhase.stale,
         acceptedItems: acceptedItems,
         issueCount: issueCount,
-        errorMessage: "更新期间源文件发生变化，请重试。",
+        errorMessage: "library_update_source_changed",
       ),
       LibraryScanFailed(:final code, :final message) => copyWith(
         phase: LibraryRootUpdatePhase.failed,
@@ -166,7 +166,7 @@ class LibraryRootUpdateTask {
       ),
       LibraryScanAlreadyCovered() => copyWith(
         phase: LibraryRootUpdatePhase.failed,
-        errorMessage: "待更新的来源已发生变化，请重新选择来源。",
+        errorMessage: "library_update_source_replaced",
       ),
       LibraryAssetDiscovered() => null,
       LibraryIssueDiscovered() => copyWith(issueCount: issueCount + 1),

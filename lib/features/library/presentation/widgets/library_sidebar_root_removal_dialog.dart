@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_sidebar_root_removal.dart";
 import "../../domain/library_models.dart";
@@ -18,8 +19,7 @@ Future<Set<String>> showLibrarySidebarRootRemovalDialog({
     controller: controller,
     readState: readState,
   ),
-  title: "从 Ame 中移除 ${roots.length} 个文件夹？",
-  detail:
-      "这些文件夹中的图片将不再显示在 Ame 中，仅属于这些文件夹的相册归属、收藏和整理记录也会移除。其他来源仍有的重复图片会保留记录。原目录和图片文件都会保留。",
-  actionLabel: "从 Ame 中移除",
+  title: context.l10n.confirmRemoveFolders(roots.length),
+  detail: context.l10n.removeFoldersImpact,
+  actionLabel: context.l10n.removeFromAme,
 );

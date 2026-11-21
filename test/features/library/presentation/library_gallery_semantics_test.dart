@@ -17,8 +17,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../../../support/semantics/retained_semantics_update_harness.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -34,6 +34,7 @@ void main() {
     final state = _galleryState(itemCount);
     final manifest = _manifest(itemCount);
     final snapshot = LibraryGalleryLayoutSnapshot.build(
+      testChinese,
       manifest: manifest,
       availableWidth: wallSize.width - 80 - 40,
       thumbnailSize: GalleryThumbnailSize.medium,
@@ -52,7 +53,7 @@ void main() {
           overrides: applicationTestOverrides([
             initialLibraryStateProvider.overrideWithValue(state),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: Align(
                 alignment: Alignment.topLeft,

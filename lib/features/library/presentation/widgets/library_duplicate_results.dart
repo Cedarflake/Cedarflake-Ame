@@ -3,11 +3,11 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../domain/library_exact_duplicates.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_similar_review.dart";
 import "../coordination/library_duplicate_workspace.dart";
-import "../library_duplicate_strings.dart";
 import "library_duplicate_review_cards.dart";
 import "library_duplicate_group_thumbnail.dart";
 import "library_duplicate_review_grid.dart";
@@ -34,18 +34,17 @@ class LibraryDuplicateResults extends StatelessWidget {
     if (workspace.itemCount == 0) {
       if (workspace.loading) return const SizedBox.shrink();
       final message = workspace.hasMembers
-          ? LibraryDuplicateStrings.emptyLocations
+          ? context.l10n.duplicateLocationsChanged
           : switch (workspace.view) {
-              LibraryDuplicateView.ignored =>
-                LibraryDuplicateStrings.noIgnoredGroups,
+              LibraryDuplicateView.ignored => context.l10n.ignoredGroupsEmpty,
               LibraryDuplicateView.exact =>
                 analyzing
-                    ? LibraryDuplicateStrings.waitingForResults
-                    : LibraryDuplicateStrings.emptyAfterAnalysis,
+                    ? context.l10n.duplicateWaitResults
+                    : context.l10n.duplicateEmptyAfter,
               LibraryDuplicateView.similar =>
                 analyzing
-                    ? LibraryDuplicateStrings.waitingForSimilar
-                    : LibraryDuplicateStrings.emptySimilar,
+                    ? context.l10n.similarWaitResults
+                    : context.l10n.similarEmpty,
             };
       return LibraryGalleryMessage(
         icon: Symbols.photo_library_rounded,
@@ -69,7 +68,7 @@ class LibraryDuplicateResults extends StatelessWidget {
               thumbnail: _groupThumbnail(entry),
               selected: workspace.cleanupSelection.contains(entry.cleanupKey),
               kindLabel: workspace.view == LibraryDuplicateView.ignored
-                  ? LibraryDuplicateStrings.pendingGroups
+                  ? context.l10n.duplicateGroups
                   : null,
               onOpen: () => unawaited(workspace.openGroup(entry)),
             ),
@@ -91,7 +90,7 @@ class LibraryDuplicateResults extends StatelessWidget {
           return LibrarySimilarMemberCard(
             member: member,
             preferred: preferred,
-            selection: _selection(member.asset),
+            selection: _selection(context.l10n, member.asset),
             onOpen: () => onOpen(member.asset, index),
             onPrefer:
                 canWrite &&
@@ -111,7 +110,7 @@ class LibraryDuplicateResults extends StatelessWidget {
         return LibraryDuplicateMemberCard(
           member: member,
           preferred: preferred,
-          selection: _selection(member.asset),
+          selection: _selection(context.l10n, member.asset),
           onOpen: () => onOpen(member.asset, index),
           onPrefer:
               !workspace.saving &&
@@ -125,10 +124,12 @@ class LibraryDuplicateResults extends StatelessWidget {
     );
   }
 
-  Widget _selection(LibraryAsset asset) => Checkbox(
+  Widget _selection(AppLocalizations strings, LibraryAsset asset) => Checkbox(
     key: ValueKey("compare-select-${asset.locationId}"),
-    semanticLabel:
-        "${LibraryDuplicateStrings.selectComparison}：${asset.relativePath}",
+    semanticLabel: strings.labelAndValue(
+      strings.chooseComparison,
+      asset.relativePath,
+    ),
     value: workspace.isCompared(asset),
     onChanged: workspace.canCompare(asset)
         ? (_) => workspace.toggleComparison(asset)

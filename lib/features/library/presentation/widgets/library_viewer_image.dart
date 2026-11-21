@@ -3,10 +3,10 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../application/library_source_read_scheduler.dart";
 import "../../domain/library_models.dart";
 import "../library_preview_images.dart";
-import "../library_strings.dart";
 import "../coordination/library_viewer_clipboard.dart";
 import "library_image_reveal.dart";
 import "library_loading_indicator.dart";
@@ -217,8 +217,8 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
         _buildImage(context, image),
         LibraryViewerNotice(
           icon: Symbols.broken_image_rounded,
-          message: LibraryStrings.originalImagePreviewFallback,
-          actionLabel: LibraryStrings.retryOriginalImage,
+          message: context.l10n.originalImagePreviewFallback,
+          actionLabel: context.l10n.retryOriginalImage,
           onAction: _retry,
           actionKey: const Key("viewer-original-retry"),
         ),
@@ -233,14 +233,14 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
         children: [
           const Icon(Symbols.broken_image_rounded, size: 64),
           const SizedBox(height: 12),
-          const Text(LibraryStrings.originalImageUnavailable),
+          Text(context.l10n.originalImageUnavailable),
           if (widget.notice == null) ...[
             const SizedBox(height: 8),
             OutlinedButton.icon(
               key: const Key("viewer-original-retry"),
               onPressed: _retry,
               icon: const Icon(Symbols.refresh_rounded),
-              label: const Text(LibraryStrings.retryOriginalImage),
+              label: Text(context.l10n.retryOriginalImage),
             ),
           ],
         ],
