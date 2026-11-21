@@ -12,8 +12,6 @@ enum AmeLanguagePreference {
   final String storageValue;
 
   static AmeLanguagePreference fromStoredValue(Object? value) {
-    // Earlier v1 stores used the enum name.
-    if (value == "zhHans") return zhHans;
     return values.firstWhere(
       (language) => language.storageValue == value,
       orElse: () => system,

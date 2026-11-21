@@ -22,13 +22,13 @@ dialog translation and an external translation service have separate owners.
 5. Add the Japanese catalog and the 日本語 option in Settings. Recognize Japanese Windows language
    preferences, keep English as the final fallback, and exercise switching with a populated library
    and an existing notification. Identify Simplified Chinese by script (`zh-Hans`) throughout the
-   application and README links, and preserve older saved choices. Link the English, Simplified
-   Chinese and Japanese READMEs from the centered language selector on each page.
+   application and README links. Link the English, Simplified Chinese and Japanese READMEs
+   from the centered language selector on each page.
 
 ## Exit checks
 
-- An old preferences store starts in System mode. A manual choice survives restart, and changing it
-  on a populated workbench preserves the selected image and open route.
+- With no saved language, the app follows the system preference. A manual choice survives restart.
+  Changing it on a populated workbench preserves the selected image and open route.
 - Existing notifications change language in place, and their actions still address the original task.
   Check singular and plural counts, localized dates, menus, accessibility and narrow English layouts.
 - Default category names follow the language. A saved custom name, a file path and a user album name

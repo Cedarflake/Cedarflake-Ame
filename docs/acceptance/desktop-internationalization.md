@@ -28,7 +28,7 @@ execution and translated MSI dialogs are outside this client run.
 The [locale tests](../../test/app/ame_localizations_test.dart) cover ordered system preferences,
 English fallback, singular and plural counts, date formats and the distinction between shipped
 category labels and stored names. The [preference adapter tests](../../test/features/settings/adapters/platform/shared_preferences_ame_store_test.dart)
-exercise older stores, malformed values and explicit choices. The native workflow reloads the
+cover the system default, malformed values and explicit choices. The native workflow reloads the
 preference store after changing the language in either direction.
 
 The original English and Simplified Chinese catalogs contained 913 messages. The presentation gate
@@ -49,7 +49,7 @@ photo survived the switch from Simplified Chinese to English and then Japanese. 
 notification opened the original folder in both languages. The workflow returned to Simplified
 Chinese and compared the original fixture bytes. The focused widget and adapter suites also
 checked Japanese dates and counts, system changes from `zh-CN` to `ja-JP`, explicit scripts with
-conflicting regions, and reading the old `zhHans` preference.
+conflicting regions, and saving and reopening the four language choices.
 
 Two separate Flutter test processes used the production Windows preference adapter with an
 isolated on-disk directory. The first saved `ja`. The second loaded that choice with an English
@@ -66,4 +66,4 @@ path through the 588-line native scan suite.
 
 The Japanese extension brings the shared language workflow to 153 lines. The Settings page has
 319 production lines and a 1,281-line widget suite. The preference adapter has 251 production
-lines and a 228-line dedicated suite. Both production owners have no inline tests.
+lines and a 218-line dedicated suite. Both production owners have no inline tests.
