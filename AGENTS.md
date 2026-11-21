@@ -215,6 +215,8 @@ replacement, redesign or extra features. Follow the existing design system and a
 Follow the [component implementation requirements](docs/product/gallery-ui.md#component-implementation)
 for admission, pinned-SDK proof, framework ownership, bounded rendering and accessibility, and the
 [content/action rules](docs/product/gallery-ui.md#content-and-action-wording) for affected text.
+Follow the [internationalization standard](docs/development/internationalization.md) when changing
+user-facing text, language preferences, translations or localized READMEs.
 
 Bottom feedback and image-preview top notices follow the
 [feedback templates](docs/product/gallery/feedback.md#feedback-templates), including their shared component

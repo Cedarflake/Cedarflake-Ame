@@ -20,6 +20,7 @@ only the contracts, execution details, and evidence that own the task.
 | How will R9 move album files by year, and where does ExifTool fit? | [R9 execution plan](plans/r9-album-files-by-year.md) and [roadmap disposition](roadmap.md#r9--album-files-by-year) |
 | What remains before the first Beta? | [R10 execution plan](plans/r10-beta-readiness.md) and [roadmap disposition](roadmap.md#r10--beta-readiness) |
 | How is desktop language support delivered? | [Internationalization plan](plans/desktop-internationalization.md) and [application language behavior](product/gallery-ui.md#scope-and-authority) |
+| How do I change user-facing text or add a language? | [Internationalization standard](development/internationalization.md) |
 | Where will official Material spring motion be adopted? | [Material motion plan](plans/material-motion.md) and [roadmap disposition](roadmap.md#material-motion-adoption) |
 | How is the Material wide-screen workbench implemented? | [Workbench layout plan](plans/material-workbench.md) and [roadmap disposition](roadmap.md#material-desktop-workbench) |
 | How will transition costs be reduced without changing accepted effects? | [Motion performance plan](plans/motion-performance.md) and [roadmap disposition](roadmap.md#transition-performance) |

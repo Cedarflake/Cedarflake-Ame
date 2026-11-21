@@ -76,11 +76,8 @@ lib/
 | `lib/app/presentation` | Shared visual primitives with no feature-policy owner |
 | `lib/app/presentation/l10n` | Simplified Chinese, English and Japanese ARB catalogs and Flutter-generated Dart accessors |
 
-For new interface text, add a semantic key to `app_zh.arb`, `app_en.arb` and `app_ja.arb` and
-use the generated getter or method in the widget. The `zh_Hans` script catalog inherits the
-Chinese base. Describe parameter types in the Chinese template. Use a complete message
-for a count or date so each language can choose its word order, plural form and format.
-Run `flutter gen-l10n` with the pinned SDK and commit the regenerated accessors.
+For catalog edits and generated accessors, follow the
+[internationalization standard](internationalization.md#changing-interface-text).
 
 Create only directories with real content. A small capability may keep its files directly in its
 owning layer; introduce capability subdirectories when several collaborators need a clear home.
