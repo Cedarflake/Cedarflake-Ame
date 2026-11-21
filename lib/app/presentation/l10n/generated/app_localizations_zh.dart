@@ -3086,6 +3086,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get storageErrorDetails => '查看错误详情';
 
   @override
+  String get storageHideErrorDetails => '收起错误详情';
+
+  @override
   String get catalogMaintenanceStatusError => '图库数据整理状态异常';
 
   @override

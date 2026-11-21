@@ -38,7 +38,11 @@ class _StorageSettingsErrorState extends State<StorageSettingsError> {
           expanded: _detailsVisible,
           child: TextButton(
             onPressed: () => setState(() => _detailsVisible = !_detailsVisible),
-            child: Text(context.l10n.storageErrorDetails),
+            child: Text(
+              _detailsVisible
+                  ? context.l10n.storageHideErrorDetails
+                  : context.l10n.storageErrorDetails,
+            ),
           ),
         ),
         AmeDisclosure(

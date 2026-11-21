@@ -64,8 +64,8 @@ coordinator. These owners contain no inline tests. The coordinator's dedicated s
 The widget language test and its shared workflow have 46 and 163 lines and exercise the integrated
 path through the 588-line native scan suite.
 
-The Settings page has 319 production lines and a 1,391-line widget suite. Its storage section has
-775 production lines and delegates error presentation to a 52-line widget. Neither has inline tests.
+The Settings page has 319 production lines and a 1,394-line widget suite. Its storage section has
+775 production lines and delegates error presentation to a 56-line widget. Neither has inline tests.
 The preference adapter has 251 production
 lines and a 218-line dedicated suite. Both production owners have no inline tests.
 
@@ -85,7 +85,7 @@ The storage section retains structured configuration failures until presentation
 original code and diagnostic available through an expandable details button. The settings widget
 workflow rejects a location inside a photo folder, switches all three languages without another
 save, opens and closes the diagnostic, then selects another location and completes the save.
-All 17 settings cases passed locally on Windows x64. The catalog gate checked 916 messages per
+All 17 settings cases passed locally on Windows x64. The catalog gate checked 917 messages per
 language. Native path validation and storage persistence are unchanged.
 
 ## Sidebar action sentences, 2026-11-21

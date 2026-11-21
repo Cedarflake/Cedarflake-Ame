@@ -1821,6 +1821,7 @@
   "storageSaveFailed": "未能保存存储设置",
   "storageOverlapsSource": "存储位置与已添加的图片文件夹重叠。请选择单独的文件夹。",
   "storageErrorDetails": "查看错误详情",
+  "storageHideErrorDetails": "收起错误详情",
   "catalogMaintenanceStatusError": "图库数据整理状态异常",
   "thumbnailCleanupStatusError": "缩略图清理状态异常",
   "storageLocationPending": "完成前不会改变当前正在使用的存储位置",

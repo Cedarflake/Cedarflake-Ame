@@ -865,14 +865,17 @@ void main() {
       of: errorRow,
       matching: find.byType(TextButton),
     );
+    expect(find.text("查看错误详情"), findsOneWidget);
     await tester.ensureVisible(details);
     await tester.pumpAndSettle();
     await tester.tap(details);
     await tester.pumpAndSettle();
     expect(find.text(failure.toString()), findsOneWidget);
+    expect(find.text("收起错误详情"), findsOneWidget);
     await tester.tap(details);
     await tester.pumpAndSettle();
     expect(find.text(failure.toString()), findsNothing);
+    expect(find.text("查看错误详情"), findsOneWidget);
 
     gateway.updateError = null;
     picker.directory = r"C:\AmePreviews";

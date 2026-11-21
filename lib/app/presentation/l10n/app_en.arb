@@ -859,6 +859,7 @@
   "storageSaveFailed": "Couldn't save storage settings",
   "storageOverlapsSource": "This storage location overlaps an added photo folder. Choose a separate folder for storage.",
   "storageErrorDetails": "View error details",
+  "storageHideErrorDetails": "Hide error details",
   "catalogMaintenanceStatusError": "Couldn't read library maintenance status",
   "thumbnailCleanupStatusError": "Couldn't read thumbnail cleanup status",
   "storageLocationPending": "The current storage location stays in use until this finishes",

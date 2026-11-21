@@ -3139,6 +3139,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get storageErrorDetails => 'エラーの詳細を表示';
 
   @override
+  String get storageHideErrorDetails => 'エラーの詳細を閉じる';
+
+  @override
   String get catalogMaintenanceStatusError => 'ライブラリのメンテナンス状況を読み込めませんでした';
 
   @override

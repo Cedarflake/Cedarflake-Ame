@@ -3474,6 +3474,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storageErrorDetails => 'View error details';
 
   @override
+  String get storageHideErrorDetails => 'Hide error details';
+
+  @override
   String get catalogMaintenanceStatusError =>
       'Couldn\'t read library maintenance status';
 

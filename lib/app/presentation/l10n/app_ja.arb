@@ -859,6 +859,7 @@
   "storageSaveFailed": "ストレージ設定を保存できませんでした",
   "storageOverlapsSource": "保存先が追加済みの写真フォルダーと重なっています。保存用に別のフォルダーを選んでください。",
   "storageErrorDetails": "エラーの詳細を表示",
+  "storageHideErrorDetails": "エラーの詳細を閉じる",
   "catalogMaintenanceStatusError": "ライブラリのメンテナンス状況を読み込めませんでした",
   "thumbnailCleanupStatusError": "サムネイルの消去状況を読み込めませんでした",
   "storageLocationPending": "完了するまでは現在の保存場所を使用します",

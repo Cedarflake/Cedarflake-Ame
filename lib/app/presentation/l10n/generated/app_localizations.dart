@@ -5256,6 +5256,12 @@ abstract class AppLocalizations {
   /// **'查看错误详情'**
   String get storageErrorDetails;
 
+  /// No description provided for @storageHideErrorDetails.
+  ///
+  /// In zh, this message translates to:
+  /// **'收起错误详情'**
+  String get storageHideErrorDetails;
+
   /// No description provided for @catalogMaintenanceStatusError.
   ///
   /// In zh, this message translates to:
