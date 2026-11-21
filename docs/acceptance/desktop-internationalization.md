@@ -59,11 +59,20 @@ This client evidence covers Windows x64.
 ## Affected implementation owners
 
 The message types and their presentation resolver contain 252 and 226 production lines respectively.
-The gallery screen has 2,034 lines and delegates settings-return selection to its 163-line workspace
-coordinator. These owners contain no inline tests. The coordinator's dedicated suite has 322 lines.
+The gallery screen has 2,040 lines and delegates settings-return selection to its 170-line workspace
+coordinator. These owners contain no inline tests. The coordinator's dedicated suite has 354 lines.
 The widget language test and its shared workflow have 46 and 129 lines and exercise the integrated
 path through the 588-line native scan suite.
 
-The Japanese extension brings the shared language workflow to 153 lines. The Settings page has
+The shared language workflow has 163 lines. The Settings page has
 319 production lines and a 1,281-line widget suite. The preference adapter has 251 production
 lines and a 218-line dedicated suite. Both production owners have no inline tests.
+
+## Language round trip, 2026-11-21
+
+At `5a93706b`, selecting a photo and changing Chinese to English and back to Chinese during
+one Settings visit cleared the selection on return. The workspace now tracks language changes
+through the visit in the 14-line `LibrarySettingsVisit` owner. Its state is reset on the next visit.
+The shared widget/native workflow exercises this round trip before its existing notification
+actions. The application widget case and all 17 workspace coordinator cases passed locally on
+Windows x64, including ordinary Settings return, failed navigation and disposal.

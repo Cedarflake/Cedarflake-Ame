@@ -79,6 +79,16 @@ Future<void> verifyDesktopLanguageWorkflow(WidgetTester tester) async {
     );
   }
 
+  await chooseLanguage(AmeLanguagePreference.en);
+  expect(find.text("App language"), findsOneWidget);
+  await chooseLanguage(AmeLanguagePreference.zhHans);
+  expect(find.text("应用语言"), findsOneWidget);
+  await tester.tap(
+    find.byKey(const Key("workbench-gallery")).hitTestable().first,
+  );
+  await tester.pumpAndSettle();
+  expect(tester.widget<AmeSelectionCheckbox>(checkbox).value, isTrue);
+
   for (final language in const [
     (
       preference: AmeLanguagePreference.en,

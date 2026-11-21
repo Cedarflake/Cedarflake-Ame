@@ -2,6 +2,7 @@ import "../../application/library_organization_publication.dart";
 import "../../application/library_workbench_controller.dart";
 import "../../domain/library_models.dart";
 import "library_organization_mode.dart";
+import "library_settings_visit.dart";
 
 typedef _WorkspaceBrowse = ({
   LibraryReviewBrowseState browse,
@@ -24,7 +25,7 @@ class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
   final Map<LibraryWorkspace, _WorkspaceBrowse> _saved = {};
   LibraryWorkspace _browsing = LibraryWorkspace.gallery;
   LibraryWorkspace _visible = LibraryWorkspace.gallery;
-  String? _settingsLocale;
+  LibrarySettingsVisit? _settingsVisit;
   LibraryWorkspace? _requested;
   ({LibraryWorkspace destination, LibraryGalleryQuery query})? _failed;
   Future<void>? _switching;
@@ -34,7 +35,13 @@ class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
       destination == LibraryWorkspace.settings ||
       (_visible == LibraryWorkspace.settings &&
           destination == _browsing &&
-          _settingsLocale != readLocaleName());
+          _settingsVisit?.languageChanged == true);
+
+  void observeLocale(String localeName) {
+    if (_visible == LibraryWorkspace.settings) {
+      _settingsVisit?.observeLocale(localeName);
+    }
+  }
 
   Future<void> select(LibraryWorkspace destination) {
     if (_disposed) return Future.value();
@@ -60,7 +67,7 @@ class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
     _failed = null;
     if (!destination.isBrowsing) {
       if (destination == LibraryWorkspace.settings && _visible != destination) {
-        _settingsLocale = readLocaleName();
+        _settingsVisit = LibrarySettingsVisit(readLocaleName());
       }
       _visible = destination;
       publish(destination);

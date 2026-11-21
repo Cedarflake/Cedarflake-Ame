@@ -270,6 +270,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _browseWorkspaces.observeLocale(context.l10n.localeName);
+  }
+
+  @override
   void dispose() {
     _isDisposing = true;
     _organizationPublication.detach(_organizationProjection);
