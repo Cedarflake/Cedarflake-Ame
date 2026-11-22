@@ -30,8 +30,10 @@ void main() {
       testWidgets("review cards and actions fit at $width and ${scale}x text", (
         tester,
       ) async {
-        await tester.binding.setSurfaceSize(Size(width, 900));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
+        tester.view.physicalSize = Size(width, 900);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
         final service = _PagedReview();
         final analysis = LibraryExactAnalysisController(_NoAnalysis());
         final scheduler = LibraryExactAnalysisScheduler(analysis);
@@ -66,6 +68,10 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+        expect(
+          MediaQuery.sizeOf(tester.element(find.byType(LibraryDuplicatesPage))),
+          Size(width, 900),
+        );
         expect(find.text("重复图片查找"), findsOneWidget);
         expect(find.text("72 个组"), findsOneWidget);
         expect(find.textContaining("范围："), findsNothing);

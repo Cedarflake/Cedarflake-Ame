@@ -197,3 +197,12 @@ kept its sidebar collapsed. The fixture now sets the test view's physical size a
 together and checks the resulting logical size. The new localized layout cases use the same view
 setup. All 39 cases in the four affected suites passed, including the complete comparison workflow;
 the widget assertions and product navigation behavior remain in place.
+
+The complete Flutter job at `951b5342` exposed the same stale view dimensions in two remaining
+duplicate-review fixtures: four wide-window layout cases and the preferred-copy/ignored-group
+workflow. All five failures reproduced locally. Both fixtures now set and restore the test view's
+size and pixel ratio, and assert the logical size before exercising the page. All 17 cases in these
+two suites passed with their original layout, persistence, navigation and cleanup assertions.
+The suites contain 416 and 326 lines; product code and CI selection are unchanged. The second failed
+job in [run 44944759629](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/44944759629)
+was the aggregate Windows gate reporting the Flutter failure.

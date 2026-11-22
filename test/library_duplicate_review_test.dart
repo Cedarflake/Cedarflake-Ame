@@ -197,8 +197,10 @@ void main() {
   testWidgets(
     "review saves a preferred copy and moves ignored groups between the two lists",
     (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1100, 850));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+      tester.view.physicalSize = const Size(1100, 850);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       final service = ReviewFixtureService();
       final analysis = LibraryExactAnalysisController(_NoAnalysis());
       final library = ReviewFixtureLibrary();
@@ -223,6 +225,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(
+        MediaQuery.sizeOf(tester.element(find.byType(LibraryDuplicatesPage))),
+        const Size(1100, 850),
+      );
       await tester.tap(find.text("查看重复图片"));
       await tester.pumpAndSettle();
       expect(find.text("one.png"), findsNWidgets(2));
