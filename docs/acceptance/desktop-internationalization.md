@@ -206,3 +206,14 @@ two suites passed with their original layout, persistence, navigation and cleanu
 The suites contain 416 and 326 lines; product code and CI selection are unchanged. The second failed
 job in [run 44944759629](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/44944759629)
 was the aggregate Windows gate reporting the Flutter failure.
+
+## Integration, 2026-11-22
+
+[PR 73](https://github.com/Cedarflake/Cedarflake-Ame/pull/73) integrated head `af6f0a66` into `main`
+as `22816d57`. The merged file tree matches that head. Its
+[complete CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/44973054453) passed the
+selected static, Flutter, Rust, native scan/accessibility and Windows build checks before merge.
+
+The [Flutter GIF playback regression](material-ui-migration.md#windows-gif-playback-regression-2026-11-22)
+remains a separate runtime follow-up on `codex/track-flutter-gif-crash`; integration does not claim
+that crash is repaired. Existing local client coverage and its ARM64 execution limit remain above.

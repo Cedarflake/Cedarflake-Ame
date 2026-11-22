@@ -1,5 +1,38 @@
 # Standalone Material migration
 
+## Windows GIF playback regression, 2026-11-22
+
+At `af6f0a66`, local-primary's NVIDIA adapter reproduced a native access violation while playing
+a local GIF, both on direct gallery entry and while selecting another GIF in the viewer filmstrip.
+A minimal Flutter `Image.file` target reproduced the same driver exception without Ame's viewer,
+catalog bootstrap or image-stream adapter. The sample has 33 frames at 540 × 551, with 40 ms frame
+durations. Original media was read only; temporary decoded frames remained in owned scratch storage.
+
+Disabling NVIDIA's overlay did not prevent the production crash. The overlay was restored to its
+original enabled state after the comparison. A fresh overlay-disabled process still loaded its
+capture DLL, so this comparison does not isolate DLL injection. Impeller and the default UI-thread
+policy also reproduced native crashes. Playing the same frames as independently decoded PNGs
+produced repeated EGL context-loss errors; changing the GIF decoder alone does not repair that path.
+
+[Flutter issue 196846](https://github.com/flutter/flutter/issues/196846) reports the same GIF-triggered
+NVIDIA crash on 3.50.0 and 3.50.1. The owning
+[engine fix](https://github.com/flutter/flutter/pull/196897) identifies concurrent raster/IO access
+to ANGLE's D3D11 immediate context after its locking change. It enables D3D11 multithread protection
+as a mitigation while ANGLE's shared-state repair remains upstream.
+
+The official fix commit is `6ace1aedf035979d42137b3c93093ecd31e3df5d`; its Windows x64 and ARM64
+engine build checks passed upstream. The [stable backport](https://github.com/flutter/flutter/pull/196991)
+is still open. The follow-up retains Flutter 3.50.0 pending a stable release containing the repair.
+No alternative SDK was downloaded or installed, and no engine binary or driver was patched.
+The normal application target was rebuilt after the temporary diagnostics.
+
+When qualifying that release, build the complete matching runtime and repeat sustained playback of
+the reproducing GIF, consecutive filmstrip selections among GIFs and static images, viewer close and
+reopen, and normal process shutdown. Retain the production renderer/thread policy and enabled overlay.
+Inspect native exceptions and EGL context-loss output as well as visible animation. Preserve
+source bytes and the existing native lifecycle/image-I/O checks. Local x64 playback and ARM64 build
+coverage must be reported separately; the upstream engine checks do not establish Ame acceptance.
+
 ## Flutter 3.50 compatibility, 2026-11-17
 
 The upgrade uses Flutter 3.50.0 / Dart 3.14.0, Material 1.11.1, Cupertino 1.1.7,

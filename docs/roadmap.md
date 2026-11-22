@@ -68,10 +68,21 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ### Desktop internationalization
 
-Deliver Simplified Chinese, English and Japanese in the Windows application under the
-[desktop internationalization plan](plans/desktop-internationalization.md). The branch includes
-all three languages, their READMEs and [Windows x64 client evidence](acceptance/desktop-internationalization.md).
-Integration precedes R10-04. R10 keeps its existing release criteria.
+Simplified Chinese, English and Japanese application support and localized READMEs were integrated
+through [PR 73](https://github.com/Cedarflake/Cedarflake-Ame/pull/73) on 2026-11-22. The
+[execution plan](plans/desktop-internationalization.md) retains the scope, and the
+[integration record](acceptance/desktop-internationalization.md#integration-2026-11-22) owns the
+merged revision, CI and client coverage. R10 keeps its existing release criteria.
+
+### Windows GIF playback
+
+Track the [Flutter stable backport](https://github.com/flutter/flutter/pull/196991) on
+`codex/track-flutter-gif-crash`. Retain the admitted stable SDK while the fix is unpublished;
+the known GIF crash remains open independently of internationalization. When a stable release
+contains the repair, update the matched SDK, workflow pins and dependency lock, then verify GIF
+playback, viewer filmstrip selection and native lifecycle on the affected clients. The
+[runtime evidence](acceptance/material-ui-migration.md#windows-gif-playback-regression-2026-11-22)
+owns the reproduction, upstream cause and verification conditions. R10's existing order is unchanged.
 
 ### Flutter 3.50 compatibility
 
