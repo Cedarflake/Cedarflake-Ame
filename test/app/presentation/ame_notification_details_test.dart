@@ -1,3 +1,4 @@
+import "package:cedarflake_ame/app/messages/ame_message.dart";
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/app/presentation/ame_notification_details.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
@@ -6,6 +7,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../support/application_test_bindings.dart";
+import "../../support/localized_test_app.dart";
 
 void main() {
   testWidgets(
@@ -90,8 +92,8 @@ void main() {
     for (var index = 0; index < ameNotificationHistoryLimit; index++) {
       controller.publish(
         AmeNotificationDraft(
-          title: "信息 $index",
-          message: "已完成",
+          title: AmeRawMessage("信息 $index"),
+          message: AmeRawMessage("已完成"),
           severity: AmeNotificationSeverity.info,
         ),
       );
@@ -132,14 +134,14 @@ void main() {
 
 AmeNotificationDraft _draft(String message, {String? detail}) =>
     AmeNotificationDraft(
-      title: "更新受阻",
-      message: message,
+      title: AmeRawMessage("更新受阻"),
+      message: AmeRawMessage(message),
       severity: AmeNotificationSeverity.warning,
       dedupeKey: "root-a:1",
-      detail: detail,
+      detail: detail == null ? null : AmeRawMessage(detail),
       elapsedStartedAt: DateTime.now().subtract(const Duration(minutes: 3)),
       actionId: "library.update",
-      actionLabel: "更新图库",
+      actionLabel: AmeRawMessage("更新图库"),
       actionContext: "root-a",
       isPersistent: true,
     );
@@ -153,7 +155,7 @@ Future<void> _open(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
+      child: LocalizedTestApp(
         theme: buildAmeTheme(),
         home: Builder(
           builder: (context) => TextButton(

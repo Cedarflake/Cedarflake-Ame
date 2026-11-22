@@ -1,5 +1,6 @@
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../domain/library_models.dart";
-import "../library_strings.dart";
+import "../library_gallery_date.dart";
 import "library_gallery_layout.dart";
 import "library_timeline_layout_projection.dart";
 import "timeline_linear_projection.dart";
@@ -21,15 +22,21 @@ class LibraryTimelineProjection {
   LibraryTimelineProjection({
     required LibraryTimeline timeline,
     required bool useAspectRatioWeight,
+    String Function(String?)? monthLabel,
   }) : _timeline = timeline,
        _layout = null,
-       railBuckets = _buildRailBuckets(timeline, useAspectRatioWeight) {
+       railBuckets = _buildRailBuckets(
+         timeline,
+         useAspectRatioWeight,
+         monthLabel,
+       ) {
     projection = TimelineLinearProjection(
       maximumOffset: inferredTimelineMaximumOffset(railBuckets),
     );
   }
 
-  factory LibraryTimelineProjection.fromLayout({
+  factory LibraryTimelineProjection.fromLayout(
+    AppLocalizations strings, {
     required LibraryTimeline timeline,
     required LibraryGalleryLayoutMetrics metrics,
     required double maximumScrollOffset,
@@ -38,7 +45,11 @@ class LibraryTimelineProjection {
       timeline: timeline,
       metrics: metrics,
       maximumScrollOffset: maximumScrollOffset,
-      buckets: _buildRailBuckets(timeline, false),
+      buckets: _buildRailBuckets(
+        timeline,
+        false,
+        (key) => galleryDateLabel(strings, key, monthOnly: true),
+      ),
     );
     return LibraryTimelineProjection._fromLayout(timeline, layout);
   }
@@ -222,12 +233,13 @@ class LibraryTimelineProjection {
   static List<TimelineRailBucket> _buildRailBuckets(
     LibraryTimeline timeline,
     bool useAspectRatioWeight,
+    String Function(String?)? monthLabel,
   ) {
     return List.unmodifiable([
       for (final bucket in timeline.buckets)
         TimelineRailBucket(
           id: bucket.monthKey ?? "unknown",
-          label: _monthLabel(bucket.monthKey),
+          label: monthLabel?.call(bucket.monthKey) ?? bucket.monthKey ?? "",
           contentExtent: useAspectRatioWeight && bucket.aspectRatioSum > 0
               ? bucket.aspectRatioSum
               : bucket.itemCount.toDouble(),
@@ -237,17 +249,5 @@ class LibraryTimelineProjection {
           isUnknown: bucket.isUnknown,
         ),
     ]);
-  }
-
-  static String _monthLabel(String? monthKey) {
-    if (monthKey == null) {
-      return LibraryStrings.unknownCaptureDate;
-    }
-    final parts = monthKey.split("-");
-    if (parts.length != 2) {
-      return monthKey;
-    }
-    final month = int.tryParse(parts[1]);
-    return month == null ? monthKey : "${parts[0]}年$month月";
   }
 }

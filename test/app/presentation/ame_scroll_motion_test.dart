@@ -3,6 +3,8 @@ import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../support/localized_test_app.dart";
+
 void main() {
   testWidgets(
     "wheel input moves immediately and settles at its exact distance",
@@ -194,7 +196,7 @@ Future<ScrollController> _mount(
   final controller = scrollController ?? AmeScrollController();
   addTearDown(controller.dispose);
   await tester.pumpWidget(
-    MaterialApp(
+    LocalizedTestApp(
       home: MediaQuery(
         data: MediaQueryData(disableAnimations: reducedMotion),
         child: Scaffold(

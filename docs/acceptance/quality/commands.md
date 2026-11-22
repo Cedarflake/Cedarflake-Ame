@@ -116,7 +116,12 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   generator guardrail and non-mutating generation check before the formatting gate, runs Clippy for
   all targets and features with warnings denied, and runs the pinned Dart analyzer with warnings and
   informational lints treated as failures.
-  `-PresentationOnly` runs Dart formatting, dependency checks and analysis for the quick hosted path.
+  Both modes regenerate the desktop language files with `flutter gen-l10n`. They check generated
+  file drift, matching keys, nonempty messages and placeholder declarations across the supported
+  catalogs, including script inheritance. The Dart source check flags hardcoded Han and kana text
+  and English literals passed directly to common
+  visible and accessibility controls. `-PresentationOnly` also runs Dart formatting, dependency
+  checks and analysis for the quick hosted path.
 - `./tool/quality_verify_dependencies.ps1` parses handwritten Dart imports, exports, conditional
   branches and parts, checks resolved layer/cross-feature edges and cycles, and rejects changed,
   unknown or stale legacy exceptions. Its exact bridge roster excludes reviewed generated

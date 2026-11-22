@@ -3,14 +3,13 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_gallery_group.dart";
 import "../../domain/library_models.dart";
 import "../coordination/library_metadata_filter_summary.dart";
-import "../library_duplicate_strings.dart";
-import "../library_filter_strings.dart";
 import "library_metadata_filter_sheet.dart";
 
 sealed class _FilterAction {
@@ -66,18 +65,18 @@ class _LibraryGalleryFilterState extends State<LibraryGalleryFilter> {
   @override
   Widget build(BuildContext context) {
     final summary = LibraryMetadataFilterSummary(query.metadataFilter);
-    final conditions = summary.conditions;
+    final conditions = summary.conditions(context.l10n);
     final active = query.metadataFilter.isActive;
     return AmePopupMenuButton<_FilterAction>(
       labels: [
-        LibraryDuplicateStrings.showDescendants,
-        LibraryDuplicateStrings.hideDescendants,
-        LibraryDuplicateStrings.allImages,
-        "仅显示重复",
-        "仅显示相似",
-        "合并重复",
-        LibraryFilterStrings.more,
-        if (active) LibraryFilterStrings.clear,
+        context.l10n.showSubfolders,
+        context.l10n.hideSubfolders,
+        context.l10n.allPhotosFilter,
+        context.l10n.duplicatesOnly,
+        context.l10n.similarOnly,
+        context.l10n.mergeDuplicates,
+        context.l10n.moreFilters,
+        if (active) context.l10n.clearFilters,
         for (final condition in conditions) condition.label,
       ],
       hasContentIcon: active,
@@ -85,59 +84,59 @@ class _LibraryGalleryFilterState extends State<LibraryGalleryFilter> {
       items: [
         _choice(
           _FilterChoice.descendants,
-          LibraryDuplicateStrings.showDescendants,
+          context.l10n.showSubfolders,
           query.includeDescendants,
           enabled: query.folderRelativePath != null,
         ),
         _choice(
           _FilterChoice.folderOnly,
-          LibraryDuplicateStrings.hideDescendants,
+          context.l10n.hideSubfolders,
           !query.includeDescendants,
           enabled: query.folderRelativePath != null,
         ),
         const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
         _choice(
           _FilterChoice.unrestrictedGroups,
-          LibraryDuplicateStrings.allImages,
+          context.l10n.allPhotosFilter,
           !query.hasGroupFilter,
         ),
         _choice(
           _FilterChoice.exactGroups,
-          "仅显示重复",
+          context.l10n.duplicatesOnly,
           query.groupFilter == LibraryGalleryGroupFilter.exact,
         ),
         _choice(
           _FilterChoice.similarGroups,
-          "仅显示相似",
+          context.l10n.similarOnly,
           query.groupFilter == LibraryGalleryGroupFilter.similar,
         ),
         const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
         ameMenuChoice(
           value: _FilterChoice.merged,
-          label: "合并重复",
+          label: context.l10n.mergeDuplicates,
           isSelected: !query.hasGroupFilter && query.foldsDuplicates,
           enabled: !query.requiresMergedDuplicates,
           isToggle: true,
           indicatorWidth: AmeMenuMetrics.iconSize,
         ),
         const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: _FilterChoice.metadata,
           child: Padding(
             padding: EdgeInsets.only(
               left: AmeMenuMetrics.iconSize + AmeMenuMetrics.iconLabelGap,
             ),
-            child: Text(LibraryFilterStrings.more),
+            child: Text(context.l10n.moreFilters),
           ),
         ),
         if (active) ...[
           PopupMenuItem(
             value: _UpdateMetadata(query, const LibraryMetadataFilter()),
-            child: const Padding(
+            child: Padding(
               padding: EdgeInsets.only(
                 left: AmeMenuMetrics.iconSize + AmeMenuMetrics.iconLabelGap,
               ),
-              child: Text(LibraryFilterStrings.clear),
+              child: Text(context.l10n.clearFilters),
             ),
           ),
           const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
@@ -145,9 +144,9 @@ class _LibraryGalleryFilterState extends State<LibraryGalleryFilter> {
             PopupMenuItem(
               value: _UpdateMetadata(query, condition.remaining.normalized),
               child: AmeTooltip(
-                message: "移除${condition.label}",
+                message: context.l10n.removeFilter(condition.label),
                 child: Semantics(
-                  label: "移除${condition.label}",
+                  label: context.l10n.removeFilter(condition.label),
                   excludeSemantics: true,
                   child: Row(
                     children: [
@@ -170,8 +169,8 @@ class _LibraryGalleryFilterState extends State<LibraryGalleryFilter> {
       onSelected: (action) => _select(context, action),
       builder: (context, openMenu) => AmeTooltip(
         message: active
-            ? "${LibraryDuplicateStrings.filter}\n${summary.description}"
-            : LibraryDuplicateStrings.filter,
+            ? "${context.l10n.filter}\n${summary.description(context.l10n)}"
+            : context.l10n.filter,
         child: IconButton(
           key: const Key("library-filter-menu"),
           onPressed: openMenu,

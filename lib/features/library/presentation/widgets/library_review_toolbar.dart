@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
@@ -23,7 +24,9 @@ class LibraryReviewToolbar extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       AmePopupMenuButton<LibraryOrganizationQueue>(
-        labels: LibraryOrganizationQueue.values.map(_name),
+        labels: LibraryOrganizationQueue.values.map(
+          (value) => _name(context.l10n, value),
+        ),
         leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
         items: [
           for (final queue in LibraryOrganizationQueue.values)
@@ -32,12 +35,12 @@ class LibraryReviewToolbar extends StatelessWidget {
               value: queue,
               isSelected: queue == mode.queue,
               icon: _icon(queue),
-              label: _name(queue),
+              label: _name(context.l10n, queue),
             ),
         ],
         onSelected: mode.selectQueue,
         builder: (context, openMenu) => AmeTooltip(
-          message: _label(mode.queue),
+          message: _label(context.l10n, mode.queue),
           child: TextButton.icon(
             key: const Key("library-review-queues"),
             style: _actionStyle,
@@ -46,7 +49,10 @@ class LibraryReviewToolbar extends StatelessWidget {
             label: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_name(mode.queue), semanticsLabel: _label(mode.queue)),
+                Text(
+                  _name(context.l10n, mode.queue),
+                  semanticsLabel: _label(context.l10n, mode.queue),
+                ),
                 const SizedBox(width: 4),
                 const Icon(Symbols.arrow_drop_down_rounded, size: 18),
               ],
@@ -60,7 +66,7 @@ class LibraryReviewToolbar extends StatelessWidget {
         style: _actionStyle,
         onPressed: mode.exit,
         icon: const Icon(Symbols.close_rounded, size: 20),
-        label: const Text("退出整理"),
+        label: Text(context.l10n.exitOrganization),
       ),
       if (mode.continuation?.canResume == true) ...[
         const SizedBox(width: 4),
@@ -69,16 +75,19 @@ class LibraryReviewToolbar extends StatelessWidget {
           style: _actionStyle,
           onPressed: mode.busy ? null : mode.resume,
           icon: const Icon(Symbols.arrow_forward_rounded, size: 20),
-          label: const Text("继续整理"),
+          label: Text(context.l10n.continueOrganizing),
         ),
       ],
     ],
   );
 
-  static String _name(LibraryOrganizationQueue queue) => switch (queue) {
-    LibraryOrganizationQueue.pending => "待整理",
-    LibraryOrganizationQueue.deferred => "稍后整理",
-    LibraryOrganizationQueue.ignored => "已忽略",
+  static String _name(
+    AppLocalizations strings,
+    LibraryOrganizationQueue queue,
+  ) => switch (queue) {
+    LibraryOrganizationQueue.pending => strings.toOrganize,
+    LibraryOrganizationQueue.deferred => strings.organizeLater,
+    LibraryOrganizationQueue.ignored => strings.ignored,
   };
 
   static IconData _icon(LibraryOrganizationQueue queue) => switch (queue) {
@@ -87,8 +96,8 @@ class LibraryReviewToolbar extends StatelessWidget {
     LibraryOrganizationQueue.ignored => Symbols.hide_image_rounded,
   };
 
-  String _label(LibraryOrganizationQueue queue) {
-    final label = _name(queue);
+  String _label(AppLocalizations strings, LibraryOrganizationQueue queue) {
+    final label = _name(strings, queue);
     return counts == null ? label : "$label ${counts!.countFor(queue)}";
   }
 }

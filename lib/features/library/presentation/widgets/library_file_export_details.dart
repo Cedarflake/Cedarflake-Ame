@@ -5,6 +5,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/presentation/ame_dialog.dart";
 import "../../../../app/presentation/ame_dialog_diagnostic.dart";
 import "../../../../app/presentation/ame_dialog_location.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_notification_time.dart";
 import "../../application/library_platform_actions.dart";
 import "../../domain/library_file_operations.dart";
@@ -22,27 +23,30 @@ class LibraryFileExportDetails extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => AmeDialog(
-    title: "结果清单",
+    title: context.l10n.operationReport,
     content: AmeDialogBody(
       children: [
         AmeDialogItem(icon: Symbols.description_rounded, title: status),
         AmeDialogField(
-          label: "创建时间",
-          child: Text(formatAmeNotificationOccurredAt(item.createdAt)),
+          label: context.l10n.timeCreated,
+          child: Text(
+            formatAmeNotificationOccurredAt(context.l10n, item.createdAt),
+          ),
         ),
         if (item.selected > 0 || item.skipped > 0) ...[
           AmeDialogField(
-            label: "涉及文件",
+            label: context.l10n.affectedFiles,
             child: Text(
               [
-                if (item.selected > 0) "已选择 ${item.selected} 个",
-                if (item.skipped > 0) "已跳过 ${item.skipped} 个",
+                if (item.selected > 0)
+                  context.l10n.selectedCountShort(item.selected),
+                if (item.skipped > 0) context.l10n.filesSkipped(item.skipped),
               ].join(" · "),
             ),
           ),
         ],
         AmeDialogLocation(
-          label: "目标文件夹",
+          label: context.l10n.destinationFolder,
           path: displayLibraryPath(item.directory),
           onOpen: () {
             final platform = ref.read(libraryPlatformActionsProvider);
@@ -53,7 +57,7 @@ class LibraryFileExportDetails extends ConsumerWidget {
         ),
         if (item.reportPath case final path?) ...[
           AmeDialogField(
-            label: "清单文件",
+            label: context.l10n.reportFile,
             child: Text(path.split(RegExp(r"[\\/]")).last),
           ),
         ],
@@ -65,7 +69,7 @@ class LibraryFileExportDetails extends ConsumerWidget {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: const Text("知道了"),
+        child: Text(context.l10n.acknowledge),
       ),
     ],
   );

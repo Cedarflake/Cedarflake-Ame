@@ -1,9 +1,9 @@
 import "package:material_ui/material_ui.dart";
 
 import "../notifications/ame_notification_controller.dart";
-import "../notifications/ame_notification_strings.dart";
 import "ame_feedback_card.dart";
 import "ame_feedback_style.dart";
+import "ame_localizations.dart";
 
 export "../notifications/ame_notification_controller.dart"
     show AmeNotificationSeverity;
@@ -35,7 +35,7 @@ void showAmeTransientFeedback(
               },
             ),
           AmeFeedbackAction(
-            label: AmeNotificationStrings.acknowledge,
+            label: context.l10n.acknowledge,
             onPressed: () => controller.close(),
           ),
         ],

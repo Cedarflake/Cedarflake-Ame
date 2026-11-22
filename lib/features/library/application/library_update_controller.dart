@@ -230,7 +230,8 @@ class LibraryUpdateController extends Notifier<LibraryUpdateState> {
           !_tryAcquireRootUpdate(rootId)) {
         state = state.withTask(
           task.copyWith(
-            errorMessage: "library_update_root_changed: 图库目录已移除、不可用或发生变化",
+            errorMessage:
+                "library_update_root_changed: The source folder changed or is unavailable.",
           ),
         );
         return;
@@ -284,7 +285,8 @@ class LibraryUpdateController extends Notifier<LibraryUpdateState> {
       state = state.withTask(
         task.copyWith(
           phase: LibraryRootUpdatePhase.failed,
-          errorMessage: "library_update_root_changed: 图库目录已移除、不可用或发生变化",
+          errorMessage:
+              "library_update_root_changed: The source folder changed or is unavailable.",
         ),
       );
       _releaseRootUpdate(root.id);
@@ -427,7 +429,8 @@ class LibraryUpdateController extends Notifier<LibraryUpdateState> {
             : LibraryRootUpdatePhase.failed,
         errorMessage: _isClosing
             ? null
-            : run.streamError?.toString() ?? "scan_stream_ended: 图库更新未返回完成结果",
+            : run.streamError?.toString() ??
+                  "scan_stream_ended: The update ended without a terminal result.",
       ),
     );
   }
@@ -515,7 +518,7 @@ class LibraryUpdateController extends Notifier<LibraryUpdateState> {
           state = state.withTask(
             task.copyWith(
               phase: LibraryRootUpdatePhase.refreshFailed,
-              errorMessage: "图库已更新，但刷新显示失败：$error",
+              errorMessage: "library_update_display_failed: $error",
             ),
           );
         }

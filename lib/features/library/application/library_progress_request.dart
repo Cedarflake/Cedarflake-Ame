@@ -1,3 +1,4 @@
+import "../../../app/messages/ame_message.dart";
 import "../domain/library_organization.dart";
 import "../domain/library_review.dart";
 import "ports/library_organization.dart";
@@ -18,7 +19,7 @@ class LibraryProgressRequest extends LibraryOrganizationRequest {
   LibraryOrganizationPrepared? _prepared;
 
   @override
-  String get successMessage => libraryProgressMessage(action);
+  AmeMessage get successMessage => libraryProgressMessage(action);
 
   @override
   Future<LibraryOrganizationReceipt> execute(

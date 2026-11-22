@@ -5,6 +5,8 @@ import "package:flutter/foundation.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   late ui.Image pixels;
 
@@ -193,7 +195,7 @@ Widget _host(
       placeholder: placeholder,
     ),
   );
-  return MaterialApp(
+  return LocalizedTestApp(
     home: MediaQuery(
       data: MediaQueryData(disableAnimations: disableAnimations),
       child: TickerMode(

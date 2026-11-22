@@ -7,6 +7,8 @@ import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets(
     "pointer selection clears row focus while keyboard and Esc work",
@@ -17,7 +19,7 @@ void main() {
       var selected = false;
       try {
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) => LibrarySidebarSelectionRegion(

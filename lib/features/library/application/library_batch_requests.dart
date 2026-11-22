@@ -1,3 +1,4 @@
+import "../../../app/messages/ame_message.dart";
 import "../domain/library_organization.dart";
 import "../domain/library_organization_batch.dart";
 import "../domain/library_review.dart";
@@ -36,7 +37,8 @@ class LibraryBatchFavoriteRequest extends _BatchRequest {
     : super(session, LibraryBatchFavorite(favorite));
   final bool favorite;
   @override
-  String get successMessage => favorite ? "已加入收藏夹" : "已取消收藏";
+  AmeMessage get successMessage =>
+      favorite ? AmeLabel.favoriteAdded : AmeLabel.favoriteRemoved;
 
   @override
   void cancel() {
@@ -50,7 +52,7 @@ class LibraryBatchProgressRequest extends _BatchRequest {
     : super(session, LibraryBatchProgressChange(progress));
   final LibraryProgressAction progress;
   @override
-  String get successMessage => libraryProgressMessage(progress);
+  AmeMessage get successMessage => libraryProgressMessage(progress);
   @override
   void cancel() {
     super.cancel();
@@ -106,7 +108,7 @@ class LibraryBatchPickerProgressRequest extends _BatchRequest {
   LibraryOrganizationErrorSurface get errorSurface =>
       LibraryOrganizationErrorSurface.form;
   @override
-  String get successMessage => libraryProgressMessage(progress);
+  AmeMessage get successMessage => libraryProgressMessage(progress);
 }
 
 class _BatchAlbumRequest extends _BatchRequest {
@@ -117,10 +119,10 @@ class _BatchAlbumRequest extends _BatchRequest {
   LibraryOrganizationErrorSurface get errorSurface =>
       LibraryOrganizationErrorSurface.form;
   @override
-  String get successMessage {
-    if (album == null) return "已移出相册";
+  AmeMessage get successMessage {
+    if (album == null) return AmeLabel.removedFromAlbum;
     return session.summary?.assigned == 0
-        ? "已加入“${album!.name}”"
-        : "已移至“${album!.name}”";
+        ? AmeAddedToAlbumMessage(album!.name)
+        : AmeMovedToAlbumMessage(album!.name);
   }
 }

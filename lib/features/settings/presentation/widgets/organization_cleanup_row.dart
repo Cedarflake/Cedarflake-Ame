@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../library/application/library_cleanup_controller.dart";
 import "../../../library/application/library_cleanup_state.dart";
 import "../organization_record_actions.dart";
@@ -18,14 +19,14 @@ class OrganizationCleanupRow extends ConsumerWidget {
     final busy = state is LibraryCleanupWorking;
     return SettingsRow(
       icon: Symbols.cleaning_services_rounded,
-      title: "清理未关联记录",
-      subtitle: const Text("检查无法关联图片的相册、收藏和整理记录"),
+      title: context.l10n.clearUnlinkedRecords,
+      subtitle: Text(context.l10n.cleanupRecordsHelp),
       trailing: FilledButton.tonal(
         key: const Key("settings-cleanup-inspect"),
         onPressed: busy
             ? null
             : () => unawaited(inspectOrganizationCleanup(context)),
-        child: const Text("清理"),
+        child: Text(context.l10n.cleanUp),
       ),
     );
   }

@@ -6,15 +6,14 @@ import "package:cedarflake_ame/features/library/domain/library_view_preferences.
 import "package:cedarflake_ame/features/library/application/ports/library_view_preference_store.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../support/localized_test_app.dart";
 import "support/library_screen_fixture.dart";
 import "support/library_screen_menu_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -62,29 +61,29 @@ void main() {
     expect(find.byType(AmeMenuItemContent), findsNWidgets(5));
     expectSelectedMenuChoice(
       tester,
-      label: LibraryStrings.square,
+      label: testChinese.square,
       icon: Symbols.grid_view_rounded,
     );
     expectSelectedMenuChoice(
       tester,
-      label: LibraryStrings.large,
+      label: testChinese.sizeLarge,
       icon: Symbols.crop_square_rounded,
     );
     await tester.tapAt(tester.getCenter(layoutMenuButton));
     await tester.pumpAndSettle();
-    expect(find.text(LibraryStrings.equalHeight), findsNothing);
+    expect(find.text(testChinese.equalHeight), findsNothing);
 
     await tester.tap(layoutMenuButton);
     await tester.pumpAndSettle();
-    await tester.tap(find.text(LibraryStrings.equalHeight));
+    await tester.tap(find.text(testChinese.equalHeight));
     await tester.pumpAndSettle();
     await tester.tap(layoutMenuButton);
     await tester.pumpAndSettle();
-    await tester.tap(find.text(LibraryStrings.small));
+    await tester.tap(find.text(testChinese.sizeSmall));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key("library-sort-menu")));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(LibraryStrings.fileName).last);
+    await tester.tap(find.text(testChinese.fileName).last);
     await tester.pumpAndSettle();
 
     expect(preferenceStore.saved, isNotEmpty);

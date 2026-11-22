@@ -2,7 +2,6 @@ import "package:cedarflake_ame/features/library/adapters/rust/rust_library_organ
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
@@ -10,6 +9,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../test/support/localized_test_app.dart";
 import "source_read_block.dart";
 import "viewer_source_workflow.dart";
 
@@ -94,7 +94,7 @@ LibraryAsset _current(WidgetTester tester) =>
 Future<void> _waitForFallback(WidgetTester tester) async {
   final deadline = DateTime.now().add(const Duration(seconds: 15));
   while (find
-      .text(LibraryStrings.originalImagePreviewFallback)
+      .text(testChinese.originalImagePreviewFallback)
       .evaluate()
       .isEmpty) {
     if (DateTime.now().isAfter(deadline)) {

@@ -3,6 +3,8 @@ import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   test("extracts a file name from an adapter-provided display path", () {
     expect(
@@ -16,7 +18,7 @@ void main() {
   ) async {
     const readablePath = r"C:\Users\Example\Documents";
     await tester.pumpWidget(
-      const MaterialApp(
+      const LocalizedTestApp(
         home: Scaffold(
           body: Align(
             alignment: Alignment.topLeft,
@@ -48,7 +50,7 @@ void main() {
   ) async {
     const displayPath = r"C:\Pictures\sample.png";
     await tester.pumpWidget(
-      const MaterialApp(
+      const LocalizedTestApp(
         home: Scaffold(
           body: LibraryPathText(
             text: "sample.png",

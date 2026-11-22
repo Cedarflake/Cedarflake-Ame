@@ -1,12 +1,13 @@
+import "package:cedarflake_ame/app/messages/ame_message.dart";
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/library_synchronization_notifications.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 
 void main() {
   late ProviderContainer container;
@@ -49,13 +50,16 @@ void main() {
     () {
       accept([_blockedStatus()]);
       final observed = state().history.single;
-      expect(observed.title, "“测试图库”更新受阻");
+      expect(observed.title.resolve(testChinese), "“测试图库”更新受阻");
       expect(
-        observed.message,
-        LibraryStrings.synchronizationExplicitRecoveryRequired,
+        observed.message.resolve(testChinese),
+        testChinese.synchronizationLegacyRecoveryAuthorityMissing,
       );
       expect(observed.sourcePath, roots.single.displayPath);
-      expect(observed.actionLabel, LibraryStrings.updateLibrary);
+      expect(
+        observed.actionLabel?.resolve(testChinese),
+        testChinese.updateLibrary,
+      );
       expect(observed.isPersistent, isTrue);
       expect(observed.elapsedStartedAt, DateTime.utc(2026, 10, 18));
       notifications.dismiss(observed.id);
@@ -64,7 +68,7 @@ void main() {
       accept([_blockedStatus(pendingCount: 3)]);
       final updated = state().history.single;
       expect(updated.id, observed.id);
-      expect(updated.detail, "3 项等待处理");
+      expect(updated.detail?.resolve(testChinese), "3 项等待处理");
       expect(state().pendingIds, isEmpty);
       expect(state().hasUnread, isFalse);
       expect(
@@ -199,8 +203,14 @@ void main() {
     () {
       synchronizationNotifications.setRefreshFailure(true);
       final observed = state().history.single;
-      expect(observed.title, LibraryStrings.synchronizationRefreshFailureTitle);
-      expect(observed.actionLabel, LibraryStrings.reload);
+      expect(
+        observed.title.resolve(testChinese),
+        testChinese.galleryDisplayReloadPending,
+      );
+      expect(
+        observed.actionLabel?.resolve(testChinese),
+        testChinese.retryLoading,
+      );
       expect(observed.severity, AmeNotificationSeverity.error);
       expect(observed.isPersistent, isTrue);
       notifications.dismiss(observed.id);
@@ -221,11 +231,11 @@ void main() {
   test("unrecognized actions stay with their existing owner", () {
     notifications.publish(
       const AmeNotificationDraft(
-        title: "Other action",
-        message: "",
+        title: AmeRawMessage("Other action"),
+        message: AmeRawMessage(""),
         severity: AmeNotificationSeverity.info,
         actionId: "other.action",
-        actionLabel: "Open",
+        actionLabel: AmeRawMessage("Open"),
       ),
     );
     final unrelatedState = state();
@@ -250,7 +260,7 @@ void main() {
     accept([_healthyStatus()]);
     final firstState = state();
     final observed = firstState.history.single;
-    expect(observed.title, LibraryStrings.continuityLiveOnlyNotice);
+    expect(observed.title.resolve(testChinese), testChinese.manualUpdateNotice);
     expect(observed.isPersistent, isFalse);
     expect(observed.actionId, isNull);
     accept([_healthyStatus(), _blockedStatus(rootId: "other")]);
@@ -285,7 +295,7 @@ void main() {
       roots = [];
       accept([_blockedStatus()]);
       final observed = state().history.single;
-      expect(observed.title, "图库更新受阻");
+      expect(observed.title.resolve(testChinese), "图库更新受阻");
       expect(observed.sourcePath, isNull);
       final readsBeforeAction = rootReads;
       expect(synchronizationNotifications.admitAction(observed), isNull);

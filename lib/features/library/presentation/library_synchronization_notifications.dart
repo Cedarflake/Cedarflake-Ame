@@ -1,7 +1,7 @@
+import "../../../app/messages/ame_message.dart";
 import "../../../app/notifications/ame_notification_controller.dart";
 import "../domain/library_models.dart";
 import "../domain/library_synchronization_models.dart";
-import "library_strings.dart";
 import "library_synchronization_feedback.dart";
 
 sealed class LibrarySynchronizationNotificationAction {
@@ -44,12 +44,12 @@ class LibrarySynchronizationNotifications {
     if (hasFailure) {
       _notifications.publish(
         const AmeNotificationDraft(
-          title: LibraryStrings.synchronizationRefreshFailureTitle,
-          message: LibraryStrings.synchronizationRefreshFailureMessage,
+          title: AmeLabel.galleryDisplayReloadPending,
+          message: AmeLabel.synchronizationRefreshFailureMessage,
           severity: AmeNotificationSeverity.error,
           dedupeKey: _synchronizationRefreshNotificationKey,
           actionId: _retrySynchronizationNotificationAction,
-          actionLabel: LibraryStrings.reload,
+          actionLabel: AmeLabel.retryLoading,
           isPersistent: true,
         ),
       );
@@ -95,7 +95,7 @@ class LibrarySynchronizationNotifications {
                 ? _refreshBlockedRootNotificationAction
                 : null,
             actionLabel: feedback.requiresManualLibraryUpdate
-                ? LibraryStrings.updateLibrary
+                ? AmeLabel.updateLibrary
                 : null,
             isPersistent: true,
           ),
@@ -134,8 +134,8 @@ class LibrarySynchronizationNotifications {
     if (hasHealthyLiveOnlyRoot) {
       _notifications.publish(
         const AmeNotificationDraft(
-          title: LibraryStrings.continuityLiveOnlyNotice,
-          message: LibraryStrings.continuityLiveOnlyNoticeDetail,
+          title: AmeLabel.manualUpdateNotice,
+          message: AmeLabel.manualUpdateDetail,
           severity: AmeNotificationSeverity.info,
           dedupeKey: _liveOnlyCapabilityNotificationKey,
         ),

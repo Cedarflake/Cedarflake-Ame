@@ -4,12 +4,12 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_platform_actions.dart";
 import "../../application/library_controller.dart";
 import "../../domain/library_models.dart";
-import "../library_duplicate_strings.dart";
 import "library_asset_information_sheet.dart";
 import "library_image_viewer.dart";
 import "library_viewer_transition.dart";
@@ -63,7 +63,7 @@ class _LibraryDuplicateReviewViewerState
     if (asset == null) {
       showAmeTransientFeedback(
         context,
-        message: LibraryDuplicateStrings.loadFailed,
+        message: context.l10n.resultsUnavailable,
         severity: AmeNotificationSeverity.error,
       );
     }
@@ -99,7 +99,7 @@ class _LibraryDuplicateReviewViewerState
       if (mounted) {
         showAmeTransientFeedback(
           context,
-          message: LibraryDuplicateStrings.revealFailed,
+          message: context.l10n.openInExplorerFailed,
           severity: AmeNotificationSeverity.error,
         );
       }

@@ -2,6 +2,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/annotated_t
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   for (final change in ["anchors", "range", "height"]) {
     for (final reduced in [false, true]) {
@@ -95,7 +97,7 @@ Widget _host({
   double maximum = 1000,
   double middle = 300,
   double value = 0.3,
-}) => MaterialApp(
+}) => LocalizedTestApp(
   home: MediaQuery(
     data: MediaQueryData(disableAnimations: reduced),
     child: Scaffold(

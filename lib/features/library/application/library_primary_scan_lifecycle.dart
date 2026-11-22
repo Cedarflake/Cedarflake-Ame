@@ -226,7 +226,7 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
     );
     if (!_admission.tryAcquirePrimary(this)) {
       const message =
-          "library_update_in_progress: 其他图库更新正在运行，请等待更新结束或先取消更新，然后继续此任务。";
+          "library_update_in_progress: Another update owns the active scan.";
       _publish(
         isResuming
             ? _state.copyWith(errorMessage: message)
@@ -490,7 +490,7 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
       if (!applied) {
         throw const LibraryCatalogFailure(
           code: "catalog_source_view_superseded",
-          message: "无法刷新图库位置信息，请重试。",
+          message: "A newer view replaced the location refresh.",
         );
       }
       if (run.sourceAdmission.hasAdmittedExistingRoot(
@@ -644,7 +644,7 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
       if (!applied) {
         throw const LibraryCatalogFailure(
           code: "catalog_publication_view_superseded",
-          message: "图库已保存，但当前显示刷新已被其他操作替换，请重试刷新显示。",
+          message: "A newer view superseded the published scan refresh.",
         );
       }
       if (!_isDisposed &&

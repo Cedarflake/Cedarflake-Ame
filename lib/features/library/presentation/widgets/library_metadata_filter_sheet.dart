@@ -5,6 +5,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_choice.dart";
 import "../../../../app/presentation/ame_date_picker_calendar.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_metadata_filter.dart";
 import "../coordination/library_metadata_filter_draft.dart";
@@ -65,7 +66,7 @@ class _LibraryMetadataFilterSheetState
       },
       sizeUnit: _sizeUnit,
       dateField: _dateField,
-    ).parse();
+    ).parse(context.l10n);
     if (result.filter case final filter?) {
       Navigator.of(context).pop(filter);
       return;
@@ -114,7 +115,7 @@ class _LibraryMetadataFilterSheetState
               children: [
                 Expanded(
                   child: Text(
-                    LibraryFilterStrings.title,
+                    context.l10n.filterPhotos,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
@@ -140,7 +141,7 @@ class _LibraryMetadataFilterSheetState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _section(
-                            LibraryFilterStrings.fileFormat,
+                            context.l10n.fileFormat,
                             LibraryFilterFormatChoices(
                               selected: _formats,
                               onToggled: (value) => setState(() {
@@ -152,31 +153,31 @@ class _LibraryMetadataFilterSheetState
                             ),
                           ),
                           const SizedBox(height: 20),
-                          _section(LibraryFilterStrings.date, _dates()),
+                          _section(context.l10n.date, _dates()),
                           const SizedBox(height: 20),
                           _section(
-                            LibraryFilterStrings.dimensions,
+                            context.l10n.dimensions,
                             Column(
                               children: [
                                 _range(
                                   LibraryFilterField.minimumWidth,
                                   LibraryFilterField.maximumWidth,
-                                  LibraryFilterStrings.minimumWidth,
-                                  LibraryFilterStrings.maximumWidth,
+                                  context.l10n.minimumWidth,
+                                  context.l10n.maximumWidth,
                                 ),
                                 const SizedBox(height: 16),
                                 _range(
                                   LibraryFilterField.minimumHeight,
                                   LibraryFilterField.maximumHeight,
-                                  LibraryFilterStrings.minimumHeight,
-                                  LibraryFilterStrings.maximumHeight,
+                                  context.l10n.minimumHeight,
+                                  context.l10n.maximumHeight,
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(height: 20),
                           _section(
-                            LibraryFilterStrings.fileSize,
+                            context.l10n.fileSize,
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -184,15 +185,15 @@ class _LibraryMetadataFilterSheetState
                                   child: _range(
                                     LibraryFilterField.minimumBytes,
                                     LibraryFilterField.maximumBytes,
-                                    LibraryFilterStrings.minimum,
-                                    LibraryFilterStrings.maximum,
+                                    context.l10n.minimum,
+                                    context.l10n.maximum,
                                     unit: _sizeUnit.label,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 AmeChoice<LibraryFilterSizeUnit>(
                                   width: 112,
-                                  label: LibraryFilterStrings.unit,
+                                  label: context.l10n.unit,
                                   value: _sizeUnit,
                                   entries: [
                                     for (final unit
@@ -216,17 +217,18 @@ class _LibraryMetadataFilterSheetState
                           ),
                           const SizedBox(height: 20),
                           _section(
-                            LibraryFilterStrings.camera,
+                            context.l10n.cameraInformation,
                             TextFormField(
                               key: const ValueKey("library-filter-camera"),
                               controller: _fields[LibraryFilterField.camera],
                               textInputAction: TextInputAction.done,
-                              decoration: const InputDecoration(
-                                hintText: LibraryFilterStrings.cameraHint,
+                              decoration: InputDecoration(
+                                hintText: context.l10n.cameraHint,
                                 border: OutlineInputBorder(),
                               ),
                               validator: (_) =>
                                   _errors[LibraryFilterField.camera],
+                              errorBuilder: (context, error) => Text(error),
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -243,17 +245,17 @@ class _LibraryMetadataFilterSheetState
                 TextButton(
                   onPressed: () =>
                       Navigator.of(context).pop(const LibraryMetadataFilter()),
-                  child: const Text(LibraryFilterStrings.clear),
+                  child: Text(context.l10n.clearFilters),
                 ),
                 const Spacer(),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text(LibraryFilterStrings.cancel),
+                  child: Text(context.l10n.cancel),
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
                   onPressed: _apply,
-                  child: const Text(LibraryFilterStrings.apply),
+                  child: Text(context.l10n.apply),
                 ),
               ],
             ),
@@ -288,35 +290,30 @@ class _LibraryMetadataFilterSheetState
     unit: unit,
   );
 
-  Widget _dates() => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      AmeChoice<LibraryDateField>(
-        width: 168,
-        value: _dateField,
-        entries: [
-          for (final field in LibraryDateField.values)
-            AmeChoiceEntry(
-              value: field,
-              label: LibraryFilterStrings.dateFieldName(field),
-            ),
-        ],
-        onSelected: (value) {
-          if (value != null) setState(() => _dateField = value);
-        },
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: _date(
-          LibraryFilterField.dateStart,
-          LibraryFilterStrings.dateStart,
+  Widget _dates() => LayoutBuilder(
+    builder: (context, constraints) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AmeChoice<LibraryDateField>(
+          width: constraints.maxWidth,
+          value: _dateField,
+          entries: [
+            for (final field in LibraryDateField.values)
+              AmeChoiceEntry(
+                value: field,
+                label: LibraryFilterStrings.dateFieldName(context.l10n, field),
+              ),
+          ],
+          onSelected: (value) {
+            if (value != null) setState(() => _dateField = value);
+          },
         ),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: _date(LibraryFilterField.dateEnd, LibraryFilterStrings.dateEnd),
-      ),
-    ],
+        const SizedBox(height: 12),
+        _date(LibraryFilterField.dateStart, context.l10n.startDate),
+        const SizedBox(height: 12),
+        _date(LibraryFilterField.dateEnd, context.l10n.endDate),
+      ],
+    ),
   );
   Widget _date(LibraryFilterField field, String label) {
     final controller = _fields[field]!;
@@ -326,6 +323,7 @@ class _LibraryMetadataFilterSheetState
       readOnly: true,
       onTap: () => _pickDate(field, label),
       validator: (_) => _errors[field],
+      errorBuilder: (context, error) => Text(error),
       decoration: InputDecoration(
         hintText: label,
         border: const OutlineInputBorder(),
@@ -336,7 +334,7 @@ class _LibraryMetadataFilterSheetState
                 onPressed: () => _pickDate(field, label),
               )
             : IconButton(
-                tooltip: "清除$label",
+                tooltip: context.l10n.clearFilter(label),
                 icon: const Icon(Symbols.close_rounded),
                 onPressed: () => setState(() {
                   controller.clear();

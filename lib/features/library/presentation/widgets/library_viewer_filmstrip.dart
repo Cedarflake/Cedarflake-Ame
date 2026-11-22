@@ -4,6 +4,7 @@ import "dart:math" as math;
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
@@ -16,6 +17,7 @@ import "../coordination/library_filmstrip_position.dart";
 import "library_photo_tile.dart" show libraryPreviewDecodeWidth;
 import "library_viewer_filmstrip_scrollbar.dart";
 import "library_viewer_filmstrip_thumbnail.dart";
+import "library_viewer_launch.dart";
 import "library_viewer_transition.dart";
 
 /// Browses the retained catalog window without instantiating offscreen thumbnails.
@@ -185,13 +187,21 @@ class _LibraryViewerFilmstripState
                       return _buildPagingCard(context);
                     }
                     final asset = state.assets[assetIndex];
-                    return LibraryViewerFilmstripThumbnail(
+                    return LibraryViewerThumbnail(
                       key: ValueKey(asset.galleryEntryId),
-                      asset: asset,
-                      isSelected:
-                          asset.galleryEntryId ==
-                          widget.selection.galleryEntryId,
-                      onPressed: () => widget.onSelected(asset),
+                      locationId: asset.locationId,
+                      entryId: asset.galleryEntryId,
+                      fit: BoxFit.contain,
+                      radius: 6,
+                      builder: (context, imageKey, _) =>
+                          LibraryViewerFilmstripThumbnail(
+                            imageAnchorKey: imageKey,
+                            asset: asset,
+                            isSelected:
+                                asset.galleryEntryId ==
+                                widget.selection.galleryEntryId,
+                            onPressed: () => widget.onSelected(asset),
+                          ),
                     );
                   },
                 ),
@@ -218,7 +228,7 @@ class _LibraryViewerFilmstripState
               if (page != null) unawaited(_loadPage(page, retry: true));
             },
             style: FilledButton.styleFrom(padding: const EdgeInsets.all(8)),
-            child: const Text("重新加载缩略图"),
+            child: Text(context.l10n.reloadThumbnails),
           )
         : const SizedBox.square(
             dimension: 20,

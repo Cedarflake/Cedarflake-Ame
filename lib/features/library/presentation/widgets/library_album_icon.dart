@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_organization.dart";
 
@@ -19,20 +20,21 @@ IconData libraryAlbumIcon(LibraryAlbumIcon icon) => switch (icon) {
   LibraryAlbumIcon.memories => Symbols.celebration_rounded,
 };
 
-String libraryAlbumIconLabel(LibraryAlbumIcon icon) => switch (icon) {
-  LibraryAlbumIcon.album => "相册",
-  LibraryAlbumIcon.travel => "旅行",
-  LibraryAlbumIcon.nature => "自然",
-  LibraryAlbumIcon.pets => "宠物",
-  LibraryAlbumIcon.people => "人物",
-  LibraryAlbumIcon.food => "美食",
-  LibraryAlbumIcon.art => "艺术",
-  LibraryAlbumIcon.work => "工作",
-  LibraryAlbumIcon.study => "学习",
-  LibraryAlbumIcon.games => "游戏",
-  LibraryAlbumIcon.music => "音乐",
-  LibraryAlbumIcon.memories => "纪念",
-};
+String libraryAlbumIconLabel(AppLocalizations strings, LibraryAlbumIcon icon) =>
+    switch (icon) {
+      LibraryAlbumIcon.album => strings.albums,
+      LibraryAlbumIcon.travel => strings.albumIconTravel,
+      LibraryAlbumIcon.nature => strings.albumIconNature,
+      LibraryAlbumIcon.pets => strings.albumIconPets,
+      LibraryAlbumIcon.people => strings.albumIconPeople,
+      LibraryAlbumIcon.food => strings.albumIconFood,
+      LibraryAlbumIcon.art => strings.albumIconArt,
+      LibraryAlbumIcon.work => strings.albumIconWork,
+      LibraryAlbumIcon.study => strings.albumIconStudy,
+      LibraryAlbumIcon.games => strings.albumIconGames,
+      LibraryAlbumIcon.music => strings.albumIconMusic,
+      LibraryAlbumIcon.memories => strings.albumIconMemories,
+    };
 
 class LibraryAlbumIconPicker extends StatelessWidget {
   const LibraryAlbumIconPicker({
@@ -55,7 +57,7 @@ class LibraryAlbumIconPicker extends StatelessWidget {
           SizedBox.square(
             dimension: 48,
             child: AmeTooltip(
-              message: libraryAlbumIconLabel(icon),
+              message: libraryAlbumIconLabel(context.l10n, icon),
               child: IconButton.filledTonal(
                 key: ValueKey("album-icon-${icon.name}"),
                 isSelected: value == icon,

@@ -25,7 +25,8 @@ album list belongs to that destination's secondary sidebar. Physical sources sta
 Favorites is accessible only from Albums as an independent collection; Library lists source folders.
 Both destinations reuse the existing gallery and viewer, retaining their own scope when switching.
 Primary-sidebar switches to Albums, Duplicates or Settings clear ordinary selection and return the
-photo wall to the top. An organizing Library retains its mode, queue, position and selection across
+photo wall to the top. Returning from Settings after changing the display language preserves the
+current browsing context. An organizing Library retains its mode, queue, position and selection across
 those visits and restores them on return.
 
 In this document, an album means a manual, user-owned album. It contains logical image groups and

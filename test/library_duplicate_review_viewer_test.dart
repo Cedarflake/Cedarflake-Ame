@@ -16,6 +16,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/application_test_bindings.dart";
 import "support/duplicate_review_fixtures.dart";
+import "support/localized_test_app.dart";
 
 void main() {
   testWidgets("member publication waits until the open viewer closes", (
@@ -29,7 +30,9 @@ void main() {
           libraryControllerProvider.overrideWith(() => library),
           libraryDuplicateReviewProvider.overrideWithValue(service),
         ]),
-        child: const MaterialApp(home: Scaffold(body: LibraryDuplicatesPage())),
+        child: const LocalizedTestApp(
+          home: Scaffold(body: LibraryDuplicatesPage()),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -99,7 +102,7 @@ void main() {
           overrides: applicationTestOverrides([
             libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: LibraryDuplicateReviewViewer(
                 initialAsset: window.itemAt(63)!,
@@ -151,7 +154,7 @@ void main() {
         overrides: applicationTestOverrides([
           libraryControllerProvider.overrideWith(() => library),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: LibraryDuplicateReviewViewer(
               initialAsset: reviewAsset("one"),

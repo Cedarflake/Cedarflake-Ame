@@ -7,6 +7,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/timeline_ra
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   LibrarySortRailProjection projection(
     List<LibraryScrollSection> sections, {
@@ -37,7 +39,7 @@ void main() {
         startOrdinal: 0,
         itemCount: 4,
       ),
-    ]).buckets(800);
+    ]).buckets(testChinese, 800);
     expect(buckets, isEmpty);
   });
 
@@ -63,10 +65,10 @@ void main() {
           startOrdinal: 3,
           itemCount: 1,
         ),
-      ]).buckets(800);
+      ]).buckets(testChinese, 800);
       expect(buckets.map((b) => b.scrollOffset), [0, 200, 700]);
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: AnnotatedTimeRail(
               value: .3,
@@ -102,12 +104,12 @@ void main() {
         startOrdinal: 3,
         itemCount: 1,
       ),
-    ]).buckets(800);
+    ]).buckets(testChinese, 800);
     expect(buckets[0].contentExtent, 700);
     expect(buckets[0].highlighted, isTrue);
     expect(buckets[1].highlighted, isFalse);
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: AnnotatedTimeRail(
             value: 0,
@@ -151,7 +153,7 @@ void main() {
           ),
         ],
         itemOffsets: const [0, 0, 200, 700],
-      ).buckets(maximumOffset);
+      ).buckets(testChinese, maximumOffset);
       expect(buckets.map((bucket) => bucket.scrollOffset), [0, 0]);
       expect(buckets.first.contentExtent, 200);
       final anchors = buildTimelineRailAnchors(
@@ -161,7 +163,7 @@ void main() {
       expect(timelineRailBucketAtValue(anchors, 0).bucket.id, "sort-new");
       expect(timelineRailBucketAtValue(anchors, .5).bucket.id, "sort-earlier");
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: AnnotatedTimeRail(
               value: 0,

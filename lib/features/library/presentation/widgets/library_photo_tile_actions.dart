@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_selection_checkbox.dart";
 import "../../domain/library_gallery_group.dart";
 import "library_duplicate_badge.dart";
@@ -49,7 +50,7 @@ class LibraryPhotoTileActions extends StatelessWidget {
                     value: isSelected,
                     markExtent: LibraryGalleryCardMetrics.controlExtent,
                     tapTargetSize: LibraryGalleryCardMetrics.selectionExtent,
-                    semanticLabel: "选择图片",
+                    semanticLabel: context.l10n.selectPhoto,
                     onChanged: (_) => onToggleSelection(),
                   )
                 : null,

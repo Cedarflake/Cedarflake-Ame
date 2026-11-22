@@ -3,6 +3,7 @@ import "dart:async";
 import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../app/messages/ame_message.dart";
 import "../../../app/notifications/ame_notification_controller.dart";
 import "../domain/library_organization.dart";
 import "library_controller.dart";
@@ -148,7 +149,7 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
           severity: AmeNotificationSeverity.error,
           dedupeKey: key,
           actionId: feedback.canRetry ? "organization.retry" : null,
-          actionLabel: feedback.canRetry ? "重试" : null,
+          actionLabel: feedback.canRetry ? AmeLabel.retry : null,
           actionContext: feedback.canRetry ? retryId : null,
           isPersistent: true,
         ),

@@ -5,13 +5,13 @@ import "package:cedarflake_ame/features/library/application/library_update_contr
 import "package:cedarflake_ame/features/library/application/library_workbench_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_task_surface.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/retained_scan_fixture.dart";
 
 void main() {
@@ -324,7 +324,7 @@ Future<void> _startOtherUpdate(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey("source-more-other")));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 300));
-  await tester.tap(find.text(LibraryStrings.updateLibrary));
+  await tester.tap(find.text(testChinese.updateLibrary));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 300));
   await tester.tap(find.byKey(const Key("library-update-confirm")));

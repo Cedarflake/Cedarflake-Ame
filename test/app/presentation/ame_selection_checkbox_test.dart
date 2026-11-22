@@ -6,6 +6,8 @@ import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("the compact symbol retains pointer and keyboard selection", (
     tester,
@@ -15,7 +17,7 @@ void main() {
       var selected = false;
       var changes = 0;
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: Center(
               child: StatefulBuilder(
@@ -69,7 +71,7 @@ void main() {
       final semantics = tester.ensureSemantics();
       try {
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             home: Scaffold(
               body: AmeSelectionCheckbox(
                 value: null,

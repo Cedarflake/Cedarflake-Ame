@@ -18,7 +18,6 @@ class LibraryGlobalBar extends StatelessWidget {
     required this.searchController,
     required this.sidebarWidth,
     required this.sidebarExpansion,
-    required this.sidebarToggle,
     this.onSearchChanged,
     this.discovery,
     required this.notifications,
@@ -31,7 +30,6 @@ class LibraryGlobalBar extends StatelessWidget {
   final TextEditingController searchController;
   final double sidebarWidth;
   final double sidebarExpansion;
-  final Widget sidebarToggle;
   final ValueChanged<String>? onSearchChanged;
   final LibrarySearch? discovery;
   final AmeNotificationState notifications;
@@ -45,21 +43,17 @@ class LibraryGlobalBar extends StatelessWidget {
       type: MaterialType.transparency,
       child: SizedBox(
         key: const Key("library-global-bar"),
-        height: 64,
+        height: LibraryWorkbenchMetrics.globalBarHeight,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            const collapsedLeading =
-                LibraryWorkbenchMetrics.railWidth +
-                LibraryWorkbenchMetrics.contentInset;
+            const collapsedLeading = LibraryWorkbenchMetrics.contentInset;
             final contentLeading =
                 collapsedLeading +
                 (sidebarWidth - LibraryWorkbenchMetrics.contentInset) *
                     sidebarExpansion;
-            final leadingWidth = (contentLeading - 16).clamp(
-              LibraryWorkbenchMetrics.railWidth,
-              244.0,
-            );
-            final isCompact = leadingWidth < 244;
+            const brandWidth = 172.0;
+            final leadingWidth = (contentLeading - 16).clamp(0.0, brandWidth);
+            final isCompact = leadingWidth < brandWidth;
             const captionWidth = 48.0 * 3 + 8;
             const notificationWidth = 48.0;
             const notificationGap = 8.0;
@@ -98,19 +92,12 @@ class LibraryGlobalBar extends StatelessWidget {
                 const Positioned.fill(
                   child: AmeWindowDragRegion(child: SizedBox.expand()),
                 ),
-                Positioned(
-                  left: 0,
-                  top: 8,
-                  bottom: 8,
-                  width: LibraryWorkbenchMetrics.railWidth,
-                  child: Center(child: sidebarToggle),
-                ),
                 if (!isCompact)
                   Positioned(
-                    left: LibraryWorkbenchMetrics.railWidth,
+                    left: 0,
                     top: 0,
                     bottom: 0,
-                    width: leadingWidth - LibraryWorkbenchMetrics.railWidth,
+                    width: leadingWidth,
                     child: AmeWindowDragRegion(
                       child: Align(
                         alignment: Alignment.centerLeft,
@@ -178,7 +165,9 @@ class LibraryGlobalBar extends StatelessWidget {
                 ),
                 const Align(
                   alignment: Alignment.centerRight,
-                  child: AmeWindowCaptionControls(height: 64),
+                  child: AmeWindowCaptionControls(
+                    height: LibraryWorkbenchMetrics.globalBarHeight,
+                  ),
                 ),
               ],
             );

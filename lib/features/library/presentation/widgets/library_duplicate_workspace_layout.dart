@@ -2,13 +2,13 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../../settings/domain/ame_preferences.dart";
 import "../../application/library_workbench_controller.dart";
 import "../coordination/library_duplicate_workspace.dart";
-import "../library_duplicate_strings.dart";
 import "library_main_surface.dart";
 import "library_sidebar_transition.dart";
 import "library_workbench_metrics.dart";
@@ -25,20 +25,22 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
   final ValueChanged<LibraryDuplicateView> onViewChanged;
   final Widget child;
 
-  static const _destinations = [
+  static List<(LibraryDuplicateView, String, IconData)> _destinations(
+    AppLocalizations strings,
+  ) => [
     (
       LibraryDuplicateView.exact,
-      LibraryDuplicateStrings.pendingGroups,
+      strings.duplicateGroups,
       Symbols.file_copy_rounded,
     ),
     (
       LibraryDuplicateView.similar,
-      LibraryDuplicateStrings.similarGroups,
+      strings.similarGroups,
       Symbols.layers_rounded,
     ),
     (
       LibraryDuplicateView.ignored,
-      LibraryDuplicateStrings.ignoredGroups,
+      strings.ignored,
       Symbols.visibility_off_rounded,
     ),
   ];
@@ -61,13 +63,13 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
             NavigationBar(
               backgroundColor: surfaces.chrome,
               indicatorColor: surfaces.selection,
-              selectedIndex: _destinations.indexWhere(
-                (item) => item.$1 == view,
-              ),
+              selectedIndex: _destinations(
+                context.l10n,
+              ).indexWhere((item) => item.$1 == view),
               onDestinationSelected: (index) =>
-                  onViewChanged(_destinations[index].$1),
+                  onViewChanged(_destinations(context.l10n)[index].$1),
               destinations: [
-                for (final (value, label, icon) in _destinations)
+                for (final (value, label, icon) in _destinations(context.l10n))
                   NavigationDestination(
                     key: ValueKey("duplicate-view-${value.name}"),
                     icon: Icon(
@@ -87,10 +89,7 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
         workspace: LibraryWorkspace.duplicates,
         expanded:
             preferences.sidebarExpanded ??
-            constraints.maxWidth +
-                    LibraryWorkbenchMetrics.railWidth +
-                    LibraryWorkbenchMetrics.contentInset >=
-                940,
+            MediaQuery.sizeOf(context).width >= 940,
         sidebarWidth: preferences.sidebarWidth.clamp(
           ameMinimumSidebarWidth,
           ameMaximumSidebarWidth,
@@ -101,7 +100,7 @@ class LibraryDuplicateWorkspaceLayout extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
             children: [
-              for (final (value, label, icon) in _destinations)
+              for (final (value, label, icon) in _destinations(context.l10n))
                 ListTile(
                   key: ValueKey("duplicate-view-${value.name}"),
                   contentPadding: const EdgeInsets.only(left: 16, right: 4),

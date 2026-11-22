@@ -10,15 +10,14 @@ import "package:cedarflake_ame/features/library/application/library_view_prefere
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "support/library_screen_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -113,7 +112,7 @@ void main() {
         ),
         findsNothing,
       );
-      await tester.tap(find.text(LibraryStrings.openInExplorer).last);
+      await tester.tap(find.text(testChinese.openInExplorer).last);
       await tester.pumpAndSettle();
       expect(platformActions.openedLibraryFolders, [
         (rootPath: "C:\\Pictures", relativePath: "Album/Sub"),
@@ -121,7 +120,7 @@ void main() {
 
       await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
       await tester.pumpAndSettle();
-      expect(find.text(LibraryStrings.openInExplorer), findsOneWidget);
+      expect(find.text(testChinese.openInExplorer), findsOneWidget);
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
     },

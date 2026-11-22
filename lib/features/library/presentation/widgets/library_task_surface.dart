@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_feedback_card.dart";
@@ -30,8 +31,8 @@ class LibraryTaskSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final feedback = LibraryPrimaryTaskFeedback(state);
-    final title = feedback.title;
-    final detail = feedback.detail;
+    final title = feedback.title(context.l10n);
+    final detail = feedback.detail(context.l10n);
     final surface = AmeFeedbackCard(
       key: const Key("library-task-surface"),
       title: title,
@@ -45,52 +46,52 @@ class LibraryTaskSurface extends StatelessWidget {
             AmeFeedbackAction(
               key: const Key("library-pause-button"),
               onPressed: onPause,
-              label: "暂停",
+              label: context.l10n.pause,
             ),
           AmeFeedbackAction(
             key: const Key("library-cancel-button"),
             onPressed: onCancel,
-            label: "取消",
+            label: context.l10n.cancel,
           ),
         ] else if (state.status == LibraryStatus.paused) ...[
           AmeFeedbackAction(
             key: const Key("library-resume-button"),
             onPressed: onResume,
-            label: "继续",
+            label: context.l10n.resume,
           ),
           AmeFeedbackAction(
             key: const Key("library-cancel-button"),
             onPressed: onCancel,
-            label: "取消",
+            label: context.l10n.cancel,
           ),
         ] else if (state.status == LibraryStatus.discarding) ...[
-          const AmeFeedbackAction(onPressed: null, label: "继续"),
-          const AmeFeedbackAction(onPressed: null, label: "取消"),
+          AmeFeedbackAction(onPressed: null, label: context.l10n.resume),
+          AmeFeedbackAction(onPressed: null, label: context.l10n.cancel),
         ] else if (state.status == LibraryStatus.failed ||
             state.status == LibraryStatus.cancelled) ...[
           AmeFeedbackAction(
             key: const Key("library-retry-button"),
             onPressed: onRetry,
-            label: feedback.retryLabel,
+            label: feedback.retryLabel(context.l10n),
           ),
           if (!state.isCommittedRemovalReloadPending &&
               !state.primaryScanSnapshot.hasUnresolvedPublication)
             AmeFeedbackAction(
               key: const Key("library-task-dismiss-button"),
               onPressed: onDismiss,
-              label: "关闭",
+              label: context.l10n.close,
             ),
         ] else if (state.status == LibraryStatus.stale)
           AmeFeedbackAction(
             key: const Key("library-retry-button"),
             onPressed: onRetry,
-            label: feedback.retryLabel,
+            label: feedback.retryLabel(context.l10n),
           )
         else if (state.status == LibraryStatus.completed)
           AmeFeedbackAction(
             key: const Key("library-task-dismiss-button"),
             onPressed: onDismiss,
-            label: "关闭",
+            label: context.l10n.close,
           ),
       ],
       progress: state.isTaskProcessing
@@ -108,7 +109,9 @@ class LibraryTaskSurface extends StatelessWidget {
       return surface;
     }
     return LibraryTaskLiveRegion(
-      message: detail == null ? title : "$title。$detail",
+      message: detail == null
+          ? title
+          : [title, detail].join(context.l10n.sentenceSeparator),
       announcementScope:
           "${state.status.name}:${state.isRemovalCommitted}:${state.removingRootId}",
       child: surface,

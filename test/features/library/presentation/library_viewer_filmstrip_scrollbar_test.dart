@@ -1,10 +1,11 @@
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_filmstrip_scrollbar.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_filmstrip_slot.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../../support/localized_test_app.dart";
 
 void main() {
   testWidgets("Windows strip arrows retain hover labels across hiding", (
@@ -19,7 +20,7 @@ void main() {
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     try {
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: Center(
               child: SizedBox(
@@ -51,8 +52,8 @@ void main() {
       for (var cycle = 0; cycle < 2; cycle += 1) {
         for (final direction in ["right", "left"]) {
           final label = direction == "right"
-              ? LibraryStrings.scrollFilmstripRight
-              : LibraryStrings.scrollFilmstripLeft;
+              ? testChinese.scrollFilmstripRight
+              : testChinese.scrollFilmstripLeft;
           final arrow = find.byKey(Key("viewer-filmstrip-scroll-$direction"));
           final tooltip = find.byWidgetPredicate(
             (widget) =>
@@ -74,7 +75,7 @@ void main() {
         }
         visible.value = false;
         await tester.pumpAndSettle();
-        expect(find.text(LibraryStrings.scrollFilmstripLeft), findsNothing);
+        expect(find.text(testChinese.scrollFilmstripLeft), findsNothing);
         await mouse.moveTo(Offset.zero);
         visible.value = true;
         await tester.pumpAndSettle();

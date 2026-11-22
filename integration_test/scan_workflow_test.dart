@@ -19,7 +19,6 @@ import "package:cedarflake_ame/features/library/application/ports/library_synchr
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_query_snapshot.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/pages/unified_library_screen.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/organization_archive_picker.dart";
@@ -34,6 +33,8 @@ import "package:flutter_test/flutter_test.dart";
 import "package:integration_test/integration_test.dart";
 
 import "../test/support/application_test_bindings.dart";
+import "../test/support/desktop_language_workflow.dart";
+import "../test/support/localized_test_app.dart";
 import "support/classification_bindings_workflow.dart";
 import "support/covered_folder_workflow.dart";
 import "support/duplicate_workflow.dart";
@@ -155,7 +156,7 @@ void main() {
       timeout: const Duration(seconds: 10),
     );
     expect(find.byKey(const Key("library-empty-state")), findsOneWidget);
-    expect(find.text(LibraryStrings.emptyLibraryTitle), findsOneWidget);
+    expect(find.text(testChinese.emptyLibraryTitle), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
@@ -303,6 +304,9 @@ void main() {
     expect(storageStatus.activeCatalogPath, catalogPath);
     expect(storageStatus.settingsPath, isNotEmpty);
 
+    await verifyDesktopLanguageWorkflow(tester);
+    expect(await validSource.readAsBytes(), validBytes);
+    expect(await corruptSource.readAsBytes(), corruptBytes);
     await verifyCoveredFolderWorkflow(
       tester,
       container,
@@ -482,7 +486,10 @@ void main() {
             ControlledOrganizationArchivePicker(archive.path),
           ),
           initialAmePreferencesProvider.overrideWithValue(
-            const AmePreferences(exactAnalysisPaused: true),
+            const AmePreferences(
+              exactAnalysisPaused: true,
+              language: AmeLanguagePreference.zhHans,
+            ),
           ),
           initialLibraryStateProvider.overrideWithValue(secondRestoredState),
           librarySynchronizationProvider.overrideWithValue(synchronization),

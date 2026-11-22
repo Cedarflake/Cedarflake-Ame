@@ -1,42 +1,55 @@
+import "../../../app/presentation/ame_localizations.dart";
 import "../application/library_file_operations.dart";
 import "../domain/library_file_operations.dart";
 
 abstract final class LibraryFileStrings {
-  static const changedBeforeDeletion = "文件已更改，未删除。请查看最新图片后重新选择并确认。";
-  static String deletionTitle(LibraryFileSelectionSummary summary) {
+  static String deletionTitle(
+    AppLocalizations strings,
+    LibraryFileSelectionSummary summary,
+  ) {
     if (summary.cleanup != null) {
-      return summary.files == 0 ? "没有可删除的图片" : "即将删除 ${summary.files} 张图片";
+      return summary.files == 0
+          ? strings.noPhotosToDelete
+          : strings.aboutToDeletePhotos(summary.files);
     }
     final groups = summary.mergedGroups;
     if (groups == null || summary.files == groups) {
-      return "删除 ${summary.files} 个文件？";
+      return strings.confirmDeleteFiles(summary.files);
     }
-    if (groups == 1) return "删除这组图片的全部 ${summary.files} 个文件？";
-    return "删除 $groups 组图片，共 ${summary.files} 个文件？";
+    if (groups == 1) return strings.confirmDeleteWholeGroup(summary.files);
+    return strings.confirmDeleteGroups(groups, summary.files);
   }
 
-  static String rule(LibraryFileOrganizationRule rule) => switch (rule) {
-    LibraryFileOrganizationRule.direct => "直接放入目标文件夹",
-    LibraryFileOrganizationRule.category => "按分类",
-    LibraryFileOrganizationRule.album => "按相册",
-    LibraryFileOrganizationRule.date => "按日期",
-    LibraryFileOrganizationRule.source => "按来源文件夹",
-    LibraryFileOrganizationRule.albumYear => "按相册与年份",
+  static String rule(
+    AppLocalizations strings,
+    LibraryFileOrganizationRule rule,
+  ) => switch (rule) {
+    LibraryFileOrganizationRule.direct => strings.destinationFolderDirect,
+    LibraryFileOrganizationRule.category => strings.byCategory,
+    LibraryFileOrganizationRule.album => strings.byAlbum,
+    LibraryFileOrganizationRule.date => strings.byDate,
+    LibraryFileOrganizationRule.source => strings.bySourceFolder,
+    LibraryFileOrganizationRule.albumYear => strings.byAlbumYear,
   };
-  static String ruleDescription(LibraryFileOrganizationRule rule) =>
-      switch (rule) {
-        LibraryFileOrganizationRule.date => "按图库日期建立 YYYY-MM 文件夹；缺少日期的文件会跳过。",
-        LibraryFileOrganizationRule.albumYear => "按图库日期放入相册名／年份文件夹，例如：旅行／2024。",
-        _ => "无法确定目标的文件会跳过，并在目标文件夹中生成结果清单。",
+  static String ruleDescription(
+    AppLocalizations strings,
+    LibraryFileOrganizationRule rule,
+  ) => switch (rule) {
+    LibraryFileOrganizationRule.date => strings.dateFolderRule,
+    LibraryFileOrganizationRule.albumYear => strings.albumYearRule,
+    _ => strings.unknownDestinationRule,
+  };
+  static String action(AppLocalizations strings, LibraryFileAction action) =>
+      switch (action) {
+        LibraryFileAction.copy => strings.copy,
+        LibraryFileAction.move => strings.move,
+        LibraryFileAction.rename => strings.rename,
+        LibraryFileAction.recycle ||
+        LibraryFileAction.deletePermanently => strings.deleteAction,
       };
-  static String action(LibraryFileAction action) => switch (action) {
-    LibraryFileAction.copy => "复制",
-    LibraryFileAction.move => "移动",
-    LibraryFileAction.rename => "重命名",
-    LibraryFileAction.recycle || LibraryFileAction.deletePermanently => "删除",
-  };
 
   static String result(
+    AppLocalizations strings,
     LibraryFileProgress progress,
     LibraryFileAction? action,
   ) {
@@ -45,95 +58,107 @@ abstract final class LibraryFileStrings {
         action == LibraryFileAction.deletePermanently;
     final outcomes = [
       if (progress.published > 0)
-        "${deletion ? '已删除' : '已完成'} ${progress.published} 个文件",
-      if (progress.failed > 0) "未完成 ${progress.failed} 个",
-      if (progress.cancelled > 0) "已停止 ${progress.cancelled} 个",
-      if (progress.skipped > 0) "已跳过 ${progress.skipped} 个",
+        strings.filesCompleted(
+          deletion ? strings.deleted : strings.completed,
+          progress.published,
+        ),
+      if (progress.failed > 0) strings.filesIncomplete(progress.failed),
+      if (progress.cancelled > 0) strings.filesStopped(progress.cancelled),
+      if (progress.skipped > 0) strings.filesSkipped(progress.skipped),
     ];
-    return outcomes.isEmpty ? "未处理任何文件。" : "${outcomes.join('，')}。";
+    return outcomes.isEmpty
+        ? strings.noFilesProcessed
+        : strings.listSentence(outcomes.join(strings.clauseSeparator));
   }
 
-  static String activity(LibraryFileActivity activity) {
+  static String activity(
+    AppLocalizations strings,
+    LibraryFileActivity activity,
+  ) {
     final progress = activity.progress!;
-    if (activity.stopping) return "正在停止";
+    if (activity.stopping) return strings.stopping;
     if (activity.purpose == LibraryFileActivityPurpose.report) {
       if (progress.phase == LibraryFileTaskPhase.finished) {
         return progress.export?.reportState == LibraryFileReportState.notNeeded
-            ? "无需生成结果清单"
-            : "结果清单已保存";
+            ? strings.reportNotNeeded
+            : strings.reportSaved;
       }
       if (progress.phase == LibraryFileTaskPhase.needsAttention) {
-        return "结果清单未能生成";
+        return strings.reportFailed;
       }
     }
     final verb = switch (activity.purpose) {
-      LibraryFileActivityPurpose.action => action(activity.action!),
-      LibraryFileActivityPurpose.recovery => "核对文件操作",
-      LibraryFileActivityPurpose.report => "生成结果清单",
+      LibraryFileActivityPurpose.action => action(strings, activity.action!),
+      LibraryFileActivityPurpose.recovery => strings.checkFileOperation,
+      LibraryFileActivityPurpose.report => strings.generateReport,
     };
     final status = switch (progress.phase) {
-      LibraryFileTaskPhase.preparing => "正在准备$verb",
+      LibraryFileTaskPhase.preparing => strings.preparingOperation(verb),
       LibraryFileTaskPhase.running ||
-      LibraryFileTaskPhase.refreshing => "正在$verb",
-      LibraryFileTaskPhase.stopping => "正在停止",
-      LibraryFileTaskPhase.finished => "$verb已结束",
-      LibraryFileTaskPhase.cancelled => "$verb已停止",
-      LibraryFileTaskPhase.needsAttention => "文件操作需要处理",
+      LibraryFileTaskPhase.refreshing => strings.runningOperation(verb),
+      LibraryFileTaskPhase.stopping => strings.stopping,
+      LibraryFileTaskPhase.finished => strings.operationEnded(verb),
+      LibraryFileTaskPhase.cancelled => strings.operationStoppedLabel(verb),
+      LibraryFileTaskPhase.needsAttention =>
+        strings.fileOperationNeedsAttention,
     };
     if (!progress.isFinished ||
         progress.failure != null ||
         activity.purpose == LibraryFileActivityPurpose.report) {
       return status;
     }
-    final summary = result(progress, activity.action);
+    final summary = result(strings, progress, activity.action);
     return activity.action == LibraryFileAction.recycle ||
             activity.action == LibraryFileAction.deletePermanently
         ? summary
-        : "$status，$summary";
+        : [status, summary].join(strings.clauseSeparator);
   }
 
-  static String phase(LibraryFileRecordPhase phase) => switch (phase) {
-    LibraryFileRecordPhase.prepared ||
-    LibraryFileRecordPhase.nameOccupied => "尚未开始",
-    LibraryFileRecordPhase.executing ||
-    LibraryFileRecordPhase.removingSource => "需要核对结果",
-    LibraryFileRecordPhase.copied => "移动未完成",
-    LibraryFileRecordPhase.nativeCompleted => "文件已处理，图库尚未更新",
-    LibraryFileRecordPhase.published => "已完成",
-    LibraryFileRecordPhase.failed => "未完成",
-    LibraryFileRecordPhase.cancelled => "已停止",
-    LibraryFileRecordPhase.uncertain => "结果待核对",
-  };
+  static String phase(AppLocalizations strings, LibraryFileRecordPhase phase) =>
+      switch (phase) {
+        LibraryFileRecordPhase.prepared ||
+        LibraryFileRecordPhase.nameOccupied => strings.notStarted,
+        LibraryFileRecordPhase.executing ||
+        LibraryFileRecordPhase.removingSource => strings.verifyResults,
+        LibraryFileRecordPhase.copied => strings.moveIncomplete,
+        LibraryFileRecordPhase.nativeCompleted =>
+          strings.filesProcessedRefreshPending,
+        LibraryFileRecordPhase.published => strings.completed,
+        LibraryFileRecordPhase.failed => strings.incomplete,
+        LibraryFileRecordPhase.cancelled => strings.stopped,
+        LibraryFileRecordPhase.uncertain => strings.resultsToVerify,
+      };
 
   static String failure(
+    AppLocalizations strings,
     LibraryFileFailure? failure, {
     LibraryFileAction? action,
   }) => switch (failure?.code) {
-    "organization_evidence_pending" => "重复组尚未核对完成，请稍后重试。",
+    "organization_evidence_pending" => strings.duplicateVerificationPending,
     "organization_selection_changed" ||
-    "file_operation_selection_changed" => "所选图片已变化，请查看当前图库后重新选择。",
+    "file_operation_selection_changed" => strings.selectedPhotosChanged,
     "file_operation_source_changed" =>
       action == LibraryFileAction.recycle ||
               action == LibraryFileAction.deletePermanently
-          ? changedBeforeDeletion
-          : "所选文件已变化，未执行操作。请查看最新文件后重新选择。",
+          ? strings.deleteChangedFile
+          : strings.selectedFilesChanged,
     "file_operation_source_unverified" =>
       action == LibraryFileAction.recycle ||
               action == LibraryFileAction.deletePermanently
-          ? "文件已变化或无法核对，未删除。请查看最新图片后重新选择并确认。"
-          : "文件已变化或无法核对，未执行操作。请查看最新文件后重新选择。",
-    "file_operation_locations_ambiguous" => "所选图片有多个文件位置，请取消多选后，分别在图片右键菜单中操作。",
-    "file_operation_same_destination" => "目标位置与原文件相同，请选择其他文件夹或名称。",
-    "file_operation_destination_unavailable" => "无法打开目标文件夹，请重新选择。",
-    "file_operation_source_unavailable" => "无法读取所选文件，请刷新图库后重新选择。",
-    "file_operation_keep_unavailable" => "要保留的图片已变化或无法读取，尚未删除文件。请重新选择保留图片。",
-    "file_operation_name_invalid" => "文件名不可用，请换一个名称。",
-    "file_operation_preparation_failed" => "未能准备文件操作，请重新选择后重试。",
+          ? strings.deleteFilesUnverified
+          : strings.filesUnverified,
+    "file_operation_locations_ambiguous" => strings.multipleFileLocations,
+    "file_operation_same_destination" => strings.destinationMatchesSource,
+    "file_operation_destination_unavailable" => strings.destinationUnavailable,
+    "file_operation_source_unavailable" => strings.selectedFilesUnreadable,
+    "file_operation_keep_unavailable" => strings.retainedPhotoChanged,
+    "file_operation_name_invalid" => strings.fileNameUnavailable,
+    "file_operation_preparation_failed" => strings.fileOperationPrepareFailed,
     "file_operation_busy" ||
-    "file_operation_selection_busy" => "还有文件操作正在处理，请稍后重试。",
-    "file_operation_inspection_required" => "请在文件操作记录中核对结果后再继续。",
-    "file_operation_selection_closed" => "这次操作已取消。",
-    "file_export_report_failed" => "文件操作结果已保留，但结果清单未能写入。可在记录中重新生成清单。",
-    _ => "部分文件可能尚未处理，请查看文件操作记录。",
+    "file_operation_selection_busy" => strings.fileOperationBusy,
+    "file_operation_inspection_required" => strings.fileHistoryCheckRequired,
+    "file_operation_selection_closed" => strings.fileOperationCancelled,
+    "file_export_report_failed" => strings.reportWriteFailed,
+    _ => strings.fileProcessingUncertain,
   };
 }

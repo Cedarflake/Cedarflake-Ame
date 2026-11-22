@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_flip_transition.dart";
 
@@ -24,7 +25,9 @@ class LibrarySidebarSelectionIcon extends StatelessWidget {
     return Semantics(
       container: true,
       child: AmeTooltip(
-        message: selected ? "取消选择$name" : "选择$name",
+        message: selected
+            ? context.l10n.deselectNamed(name)
+            : context.l10n.selectNamed(name),
         child: IconButton(
           isSelected: selected,
           onPressed: onPressed,

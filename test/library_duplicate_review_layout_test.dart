@@ -2,7 +2,6 @@ import "dart:async";
 
 import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_group_thumbnail.dart";
-
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
@@ -22,6 +21,7 @@ import "package:flutter_test/flutter_test.dart";
 
 import "support/application_test_bindings.dart";
 import "support/duplicate_review_fixtures.dart";
+import "support/localized_test_app.dart";
 import "support/similar_review_fixtures.dart";
 
 void main() {
@@ -30,8 +30,10 @@ void main() {
       testWidgets("review cards and actions fit at $width and ${scale}x text", (
         tester,
       ) async {
-        await tester.binding.setSurfaceSize(Size(width, 900));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
+        tester.view.physicalSize = Size(width, 900);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
         final service = _PagedReview();
         final analysis = LibraryExactAnalysisController(_NoAnalysis());
         final scheduler = LibraryExactAnalysisScheduler(analysis);
@@ -54,7 +56,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp(
+            child: LocalizedTestApp(
               builder: (context, child) => MediaQuery(
                 data: MediaQuery.of(
                   context,
@@ -66,6 +68,10 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+        expect(
+          MediaQuery.sizeOf(tester.element(find.byType(LibraryDuplicatesPage))),
+          Size(width, 900),
+        );
         expect(find.text("重复图片查找"), findsOneWidget);
         expect(find.text("72 个组"), findsOneWidget);
         expect(find.textContaining("范围："), findsNothing);
@@ -308,7 +314,7 @@ void main() {
           overrides: applicationTestOverrides([
             libraryControllerProvider.overrideWith(() => library),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: Center(
                 child: SizedBox(

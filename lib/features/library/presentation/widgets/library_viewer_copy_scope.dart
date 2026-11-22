@@ -2,8 +2,11 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/messages/ame_message.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_feedback_style.dart";
+import "../../../../app/presentation/ame_localizations.dart";
+import "../../../../app/presentation/ame_message_text.dart";
 import "../../../../app/presentation/ame_notification_lifetime.dart";
 import "../../application/library_image_clipboard.dart";
 import "../coordination/library_viewer_clipboard.dart";
@@ -59,12 +62,14 @@ class _LibraryViewerCopyScopeState
         quarterTurns: widget.quarterTurns,
       );
       if (copied && mounted && location == widget.locationId) {
-        _show("图片已复制到剪贴板", AmeNotificationSeverity.success);
+        _show(AmeLabel.photoCopied, AmeNotificationSeverity.success);
       }
     } on Object catch (error) {
       if (!mounted || location != widget.locationId) return;
       _show(
-        error is ViewerClipboardImageTooLarge ? "图片过大，无法复制到剪贴板" : "无法复制图片，请重试",
+        error is ViewerClipboardImageTooLarge
+            ? AmeLabel.photoTooLargeToCopy
+            : AmeLabel.copyPhotoFailed,
         AmeNotificationSeverity.error,
         canRetry: error is! ViewerClipboardImageTooLarge,
       );
@@ -72,7 +77,7 @@ class _LibraryViewerCopyScopeState
   }
 
   void _show(
-    String message,
+    AmeMessage message,
     AmeNotificationSeverity severity, {
     bool canRetry = false,
   }) {
@@ -81,14 +86,14 @@ class _LibraryViewerCopyScopeState
       () => _notice = AmeNotificationEntry(
         id: "viewer-copy-${now.microsecondsSinceEpoch}",
         title: message,
-        message: "",
+        message: const AmeRawMessage(""),
         severity: severity,
         occurredAt: now,
         isUnread: false,
         isActive: true,
         isPersistent: severity == AmeNotificationSeverity.error,
         actionLabel: severity == AmeNotificationSeverity.error
-            ? (canRetry ? "重试" : "知道了")
+            ? (canRetry ? AmeLabel.retry : AmeLabel.acknowledge)
             : null,
       ),
     );
@@ -121,9 +126,9 @@ class _LibraryViewerCopyScopeState
                 onDismiss: _dismiss,
                 child: LibraryViewerNotice(
                   icon: ameNotificationIcon(notice.severity),
-                  message: notice.title,
-                  actionLabel: notice.actionLabel,
-                  onAction: notice.actionLabel == "重试"
+                  message: notice.title.resolve(context.l10n),
+                  actionLabel: notice.actionLabel?.resolve(context.l10n),
+                  onAction: notice.actionLabel == AmeLabel.retry
                       ? _copy
                       : () => _dismiss(notice.id),
                 ),

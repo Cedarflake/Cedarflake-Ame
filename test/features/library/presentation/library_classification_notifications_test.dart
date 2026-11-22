@@ -11,6 +11,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 import "../support/library_organization_fixture.dart";
 
 void main() {
@@ -40,7 +41,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: LibraryAnalysisActivity(
               child: Scaffold(
                 body: LibraryBottomFeedback(
@@ -54,7 +55,10 @@ void main() {
       );
       lifecycle.startInBackground();
       await tester.pumpAndSettle();
-      expect(find.text(libraryClassificationFailureTitle), findsOneWidget);
+      expect(
+        find.text(libraryClassificationFailureTitle.resolve(testChinese)),
+        findsOneWidget,
+      );
       expect(
         container.read(ameNotificationControllerProvider).pendingIds,
         hasLength(1),
@@ -62,7 +66,10 @@ void main() {
       runner.fail = false;
       await lifecycle.changeConfiguration(() async {});
       await tester.pumpAndSettle();
-      expect(find.text(libraryClassificationFailureTitle), findsNothing);
+      expect(
+        find.text(libraryClassificationFailureTitle.resolve(testChinese)),
+        findsNothing,
+      );
       expect(
         container.read(ameNotificationControllerProvider).pendingIds,
         isEmpty,

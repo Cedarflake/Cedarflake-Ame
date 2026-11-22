@@ -4,18 +4,19 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_favorite_button.dart";
+import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/library_organization_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
   testWidgets(
-    "shows committed state and disables duplicate input during save",
+    "clicking a favorite dismisses its tooltip through save and refresh",
     (tester) async {
       final service = OrganizationServiceFixture();
       final committed = Completer<LibraryOrganizationReceipt>();
@@ -23,16 +24,47 @@ void main() {
       await tester.pumpWidget(_host(service, organizationTarget("one")));
       await tester.pumpAndSettle();
       expect(_button(tester).isSelected, isFalse);
-      await tester.tap(find.byKey(const Key("viewer-favorite")));
-      await tester.pump();
-      expect(_button(tester).onPressed, isNull);
-      expect(_button(tester).isSelected, isFalse);
-      committed.complete(service.receipt(service.writes.single.id));
-      await tester.pumpAndSettle();
-      expect(_button(tester).isSelected, isTrue);
-      expect(_button(tester).onPressed, isNotNull);
-      expect(tester.takeException(), isNull);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      try {
+        final target = tester.getCenter(
+          find.byKey(const Key("viewer-favorite")),
+        );
+        await mouse.addPointer(location: const Offset(300, 300));
+        await mouse.moveTo(target);
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.pumpAndSettle();
+        expect(find.text(testChinese.addFavorite), findsOneWidget);
+        await mouse.down(target);
+        await tester.pump();
+        expect(find.text(testChinese.addFavorite), findsNothing);
+        await mouse.up();
+        await tester.pump();
+        expect(_button(tester).onPressed, isNull);
+        expect(_button(tester).isSelected, isFalse);
+        expect(find.text(testChinese.savingChanges), findsNothing);
+        final refreshed = Completer<LibraryOrganizationInspection>();
+        service.inspectTarget = (_) => refreshed.future;
+        committed.complete(service.receipt(service.writes.single.id));
+        await tester.pumpAndSettle();
+        expect(find.text(testChinese.loadingFavoriteStatus), findsNothing);
+        expect(find.text(testChinese.addFavorite), findsNothing);
+        refreshed.complete(organizationInspection(true));
+        await tester.pumpAndSettle();
+        expect(_button(tester).isSelected, isTrue);
+        expect(_button(tester).onPressed, isNotNull);
+        expect(find.text(testChinese.removeFavorite), findsNothing);
+        await mouse.moveTo(const Offset(300, 300));
+        await mouse.moveTo(target);
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.pumpAndSettle();
+        expect(find.text(testChinese.removeFavorite), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      } finally {
+        await mouse.removePointer();
+        await tester.pumpWidget(const SizedBox.shrink());
+      }
     },
+    variant: TargetPlatformVariant.only(TargetPlatform.windows),
   );
 
   testWidgets(
@@ -88,7 +120,7 @@ Widget _host(
     libraryOrganizationProvider.overrideWithValue(service),
     libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
   ]),
-  child: MaterialApp(
+  child: LocalizedTestApp(
     home: Scaffold(body: LibraryFavoriteButton(target: target)),
   ),
 );

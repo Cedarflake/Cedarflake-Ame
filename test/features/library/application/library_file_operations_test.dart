@@ -3,11 +3,9 @@ import "dart:async";
 import "package:cedarflake_ame/features/library/application/directory_picker.dart";
 import "package:cedarflake_ame/features/library/application/ports/directory_picker.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_file_menu.dart";
-
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_group_thumbnail.dart";
 import "package:cedarflake_ame/app/presentation/ame_dialog.dart";
 import "package:cedarflake_ame/app/presentation/ame_loading_indicator.dart";
-
 import "package:cedarflake_ame/features/library/application/library_file_operations.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
@@ -36,9 +34,11 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_sid
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_ui/material_ui.dart";
+
 import "../../../support/application_test_bindings.dart";
 import "../../../support/duplicate_review_fixtures.dart";
 import "../../../support/gallery_group_fixtures.dart";
+import "../../../support/localized_test_app.dart";
 import "../../../support/similar_review_fixtures.dart";
 import "../support/library_organization_fixture.dart";
 
@@ -81,7 +81,7 @@ void main() {
               ),
             ),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: LibraryDuplicateLocationsSheet(
                 galleryGroup: LibraryGalleryGroup(key: key, memberCount: 2),
@@ -145,7 +145,7 @@ void main() {
             libraryFileOperationsProvider.overrideWithValue(backend),
             directoryPickerProvider.overrideWithValue(_ExportPicker()),
           ],
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: LibraryFileMenu(
                 selection: LibraryOrganizationSelection(
@@ -225,7 +225,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: Consumer(
                 builder: (context, ref, _) => TextButton(
@@ -293,7 +293,7 @@ void main() {
             libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
             libraryFileOperationsProvider.overrideWithValue(backend),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: AnimatedBuilder(
                 animation: workspace,
@@ -684,7 +684,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [libraryFileOperationsProvider.overrideWithValue(backend)],
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: Builder(
                 builder: (context) => TextButton(
@@ -728,7 +728,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [libraryFileOperationsProvider.overrideWithValue(backend)],
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: Consumer(
                 builder: (context, ref, _) => TextButton(

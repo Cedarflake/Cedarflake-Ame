@@ -104,6 +104,9 @@ Top notices retain the compact viewport layout: 16-pixel top/side inset, 48-pixe
 width bound without moving the image. Notices without an action use symmetric 14-pixel horizontal
 content padding; notices with an action retain the 6-pixel trailing inset beside the text button.
 Source and original-image recovery keep their current priority.
+Persistent operation or analysis notices without a recovery action use the existing action slot
+for `Got it`. Acknowledgement removes the notice from the pending queue while retaining its history
+and unresolved condition. Ordinary outcomes retain the shared five-second dismissal lifetime.
 The shared style does not merge notification history, task cancellation, source recovery or receipt
 ownership. Persistent failures do not acquire a transient timeout, and Favorite successes still
 leave notification history and unread state unchanged.

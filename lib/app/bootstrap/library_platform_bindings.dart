@@ -12,16 +12,23 @@ import "../../features/library/application/ports/library_platform_actions.dart";
 import "../../features/library/application/ports/library_image_clipboard.dart";
 import "../../features/library/application/ports/library_view_preference_store.dart";
 import "../../features/library/domain/library_view_preferences.dart";
+import "platform_dialog_language.dart";
 
 List<Override> libraryPlatformBindings({
   required LibraryViewPreferenceStore preferenceStore,
   required LibraryViewPreferences initialPreferences,
-  DirectoryPicker directoryPicker = const FileSelectorDirectoryPicker(),
+  DirectoryPicker? directoryPicker,
   LibraryPlatformActions platformActions =
       const WindowsLibraryPlatformActions(),
   LibraryImageClipboard imageClipboard = const WindowsImageClipboard(),
 }) => [
-  directoryPickerProvider.overrideWithValue(directoryPicker),
+  directoryPickerProvider.overrideWith(
+    (ref) =>
+        directoryPicker ??
+        FileSelectorDirectoryPicker(
+          () => platformDialogLanguage(ref).chooseFolder,
+        ),
+  ),
   libraryPlatformActionsProvider.overrideWithValue(platformActions),
   libraryImageClipboardProvider.overrideWithValue(imageClipboard),
   libraryViewPreferenceStoreProvider.overrideWithValue(preferenceStore),

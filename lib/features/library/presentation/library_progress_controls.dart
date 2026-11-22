@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../app/presentation/ame_localizations.dart";
 import "../domain/library_models.dart";
 import "../domain/library_organization.dart";
 import "../domain/library_review.dart";
@@ -21,40 +22,43 @@ class LibraryProgressControl {
 
 class LibraryProgressControls {
   LibraryProgressControls.forDisposition(
+    AppLocalizations strings,
     LibraryOrganizationDisposition disposition, {
     bool hasConflict = false,
     bool multiple = false,
   }) : defer = disposition == LibraryOrganizationDisposition.deferred
            ? LibraryProgressControl(
                LibraryProgressAction.restore,
-               "取消稍后整理",
+               strings.removeFromLater,
                Symbols.remove_circle_rounded,
                !hasConflict,
              )
-           : const LibraryProgressControl(
+           : LibraryProgressControl(
                LibraryProgressAction.defer,
-               "稍后整理",
+               strings.organizeLater,
                Symbols.schedule_rounded,
                true,
              ),
        ignore = disposition == LibraryOrganizationDisposition.ignored
            ? LibraryProgressControl(
                LibraryProgressAction.restore,
-               "取消忽略",
+               strings.unignore,
                Symbols.remove_circle_rounded,
                !hasConflict,
              )
            : LibraryProgressControl(
                LibraryProgressAction.ignore,
-               multiple ? "忽略所选" : "忽略此图",
+               multiple ? strings.ignoreSelected : strings.ignorePhoto,
                Symbols.hide_image_rounded,
                !hasConflict,
              );
 
   factory LibraryProgressControls.forQueue(
+    AppLocalizations strings,
     LibraryOrganizationQueue queue, {
     bool hasConflict = false,
   }) => LibraryProgressControls.forDisposition(
+    strings,
     switch (queue) {
       LibraryOrganizationQueue.pending =>
         LibraryOrganizationDisposition.pending,

@@ -2,7 +2,9 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/messages/ame_message.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../library/application/library_classification_configuration.dart";
 import "../../../library/domain/library_classification_configuration.dart";
 import "settings_section.dart";
@@ -63,9 +65,9 @@ class _AnalysisSettingsSectionState
           .read(ameNotificationControllerProvider.notifier)
           .publish(
             AmeNotificationDraft(
-              title: "GPU 加速设置未能完成",
-              message: "请重试；如果仍无法分析图片，可以关闭 GPU 加速。",
-              detail: error.toString(),
+              title: AmeLabel.gpuSettingFailed,
+              message: AmeLabel.gpuSettingRetry,
+              detail: AmeRawMessage(error.toString()),
               severity: AmeNotificationSeverity.error,
               isPersistent: true,
             ),
@@ -79,19 +81,19 @@ class _AnalysisSettingsSectionState
   Widget build(BuildContext context) {
     final settings = _settings;
     return SettingsSection(
-      title: "智能相册",
+      title: context.l10n.smartAlbums,
       children: [
         SettingsRow(
           icon: Symbols.memory_rounded,
-          title: "GPU 加速",
+          title: context.l10n.gpuAcceleration,
           subtitle: Text(_description),
           trailing: _loadFailed
               ? FilledButton.tonal(
                   onPressed: _loading ? null : _load,
-                  child: const Text("重试"),
+                  child: Text(context.l10n.retry),
                 )
               : Semantics(
-                  label: "GPU 加速",
+                  label: context.l10n.gpuAcceleration,
                   child: Switch(
                     key: const Key("settings-gpu-acceleration"),
                     value: settings?.gpuEnabled ?? true,
@@ -106,14 +108,14 @@ class _AnalysisSettingsSectionState
   }
 
   String get _description {
-    if (_loading) return "正在读取设置";
-    if (_loadFailed) return "无法读取设置，请重试";
-    if (_saving) return "正在切换分析设备";
+    if (_loading) return context.l10n.loadingSettings;
+    if (_loadFailed) return context.l10n.settingsReadFailed;
+    if (_saving) return context.l10n.switchingAnalysisDevice;
     final settings = _settings;
-    if (settings == null) return "正在读取设置";
-    if (!settings.gpuEnabled) return "智能相册当前使用 CPU 分析图片";
+    if (settings == null) return context.l10n.loadingSettings;
+    if (!settings.gpuEnabled) return context.l10n.smartAlbumsCpu;
     final deviceName = settings.deviceName;
-    if (deviceName != null) return "智能相册当前图片分析设备：$deviceName";
-    return "智能相册优先使用可用显卡分析图片";
+    if (deviceName != null) return context.l10n.smartAlbumsDevice(deviceName);
+    return context.l10n.smartAlbumsPreferGpu;
   }
 }

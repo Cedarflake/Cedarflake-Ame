@@ -2,6 +2,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/timeline_ra
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   for (final height in [80.0, 200.0, 600.0, 4000.0]) {
     testWidgets("positional ticks stay spaced and bounded at height $height", (
@@ -10,7 +12,7 @@ void main() {
       await tester.binding.setSurfaceSize(Size(100, height));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
-        const MaterialApp(
+        const LocalizedTestApp(
           home: Align(
             alignment: Alignment.centerRight,
             child: SizedBox(

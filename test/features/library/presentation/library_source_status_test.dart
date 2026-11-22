@@ -16,6 +16,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 
 void main() {
   for (final fails in [false, true]) {
@@ -43,7 +44,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp(
+            child: LocalizedTestApp(
               home: LibraryAnalysisActivity(
                 child: Scaffold(
                   body: SizedBox(

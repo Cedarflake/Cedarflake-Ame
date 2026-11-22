@@ -13,9 +13,9 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../../library/support/library_archive_fixture.dart";
 import "../../library/support/library_organization_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -39,7 +39,7 @@ void main() {
       tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp(
+          child: LocalizedTestApp(
             theme: buildAmeTheme(),
             builder: (context, child) => MediaQuery(
               data: MediaQuery.of(
@@ -118,7 +118,11 @@ void main() {
       expect(find.text("关闭"), findsNothing);
       expect(tester.getTopLeft(find.text("清理未关联记录")), cleanupPosition);
       expect(
-        container.read(ameNotificationControllerProvider).current?.title,
+        container
+            .read(ameNotificationControllerProvider)
+            .current
+            ?.title
+            .resolve(testChinese),
         "整理记录已恢复",
       );
       expect(tester.takeException(), isNull);

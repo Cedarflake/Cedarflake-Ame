@@ -3,12 +3,13 @@ import "dart:ui" show SemanticsAction;
 import "package:cedarflake_ame/features/library/application/library_update_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_task_surface.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_update_dialog.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_update_task_surface.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "../../../support/localized_test_app.dart";
 
 void main() {
   testWidgets("selects multiple configured roots in one update action", (
@@ -25,7 +26,7 @@ void main() {
     ];
     List<LibraryRoot>? selectedRoots;
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Builder(
           builder: (context) => Scaffold(
             body: TextButton(
@@ -112,7 +113,7 @@ void main() {
         },
       );
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: Center(
               child: LibraryUpdateTaskSurface(
@@ -140,7 +141,7 @@ void main() {
       expect(find.bySemanticsLabel("Pictures 更新进度"), findsOneWidget);
       expect(
         tester.getSemantics(find.bySemanticsLabel("Pictures 更新进度")).value,
-        "正在更新，已检查 230400 个文件，已找到 8740 张图片",
+        "正在更新，已检查 230,400 个文件，已找到 8,740 张图片",
       );
 
       final cancelAction = find.bySemanticsLabel("取消更新 Pictures");
@@ -194,7 +195,7 @@ void main() {
     addTearDown(updateState.dispose);
     try {
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: ValueListenableBuilder<LibraryUpdateState>(
               valueListenable: updateState,
@@ -257,7 +258,7 @@ void main() {
 
     Future<void> pumpTask(LibraryState state) {
       return tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: LibraryTaskSurface(
               state: state,
@@ -303,7 +304,7 @@ void main() {
     try {
       Future<void> pumpTask(LibraryState state) {
         return tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             home: Scaffold(
               body: LibraryTaskSurface(
                 state: state,
@@ -328,11 +329,11 @@ void main() {
         ),
       );
       expect(
-        find.text(LibraryStrings.refreshingAfterRemoval("Pictures")),
+        find.text(testChinese.refreshingAfterRemoval("Pictures")),
         findsOneWidget,
       );
       expect(
-        find.text(LibraryStrings.refreshingAfterRemovalDetail),
+        find.text(testChinese.refreshingAfterRemovalDetail),
         findsOneWidget,
       );
       final liveRegion = find.byKey(const Key("library-task-live-region"));
@@ -342,7 +343,7 @@ void main() {
       );
       expect(
         tester.getSemantics(liveRegion).label,
-        contains(LibraryStrings.refreshingAfterRemoval("Pictures")),
+        contains(testChinese.refreshingAfterRemoval("Pictures")),
       );
 
       await pumpTask(
@@ -355,10 +356,7 @@ void main() {
           errorMessage: "catalog_reload_failed",
         ),
       );
-      expect(
-        find.text(LibraryStrings.removedFolderRefreshFailed),
-        findsOneWidget,
-      );
+      expect(find.text(testChinese.removedFolderRefreshFailed), findsOneWidget);
       expect(
         find.byKey(const ValueKey("library-retry-button")),
         findsOneWidget,
@@ -369,7 +367,7 @@ void main() {
       );
       expect(
         tester.getSemantics(liveRegion).label,
-        contains(LibraryStrings.removedFolderRefreshFailed),
+        contains(testChinese.removedFolderRefreshFailed),
       );
     } finally {
       semantics.dispose();

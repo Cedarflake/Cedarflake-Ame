@@ -2,6 +2,8 @@ import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
+
 class LibraryNavigationResizeHandle extends StatefulWidget {
   const LibraryNavigationResizeHandle({
     required this.width,
@@ -51,10 +53,10 @@ class _LibraryNavigationResizeHandleState
     final nextWidth = _bounded(widget.width + _keyboardStep);
     final previousWidth = _bounded(widget.width - _keyboardStep);
     return Semantics(
-      label: "调整侧栏宽度",
-      value: "${widget.width.round()} 像素",
-      increasedValue: "${nextWidth.round()} 像素",
-      decreasedValue: "${previousWidth.round()} 像素",
+      label: context.l10n.resizeSidebar,
+      value: context.l10n.pixelCount(widget.width.round()),
+      increasedValue: context.l10n.pixelCount(nextWidth.round()),
+      decreasedValue: context.l10n.pixelCount(previousWidth.round()),
       onIncrease: () => _setAndCommit(nextWidth),
       onDecrease: () => _setAndCommit(previousWidth),
       child: Focus(

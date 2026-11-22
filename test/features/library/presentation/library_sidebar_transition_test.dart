@@ -4,6 +4,8 @@ import "package:flutter/rendering.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets(
     "content motion preserves clipping and hit targets without relayout",
@@ -13,7 +15,7 @@ void main() {
       var layouts = 0;
       var taps = 0;
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Align(
             alignment: Alignment.topLeft,
             child: SizedBox(
@@ -146,7 +148,7 @@ Widget _fixture(
   ValueNotifier<bool> expanded,
   List<double> widths, {
   bool reducedMotion = false,
-}) => MaterialApp(
+}) => LocalizedTestApp(
   builder: (context, child) => MediaQuery(
     data: MediaQuery.of(context).copyWith(disableAnimations: reducedMotion),
     child: child!,

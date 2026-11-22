@@ -2,6 +2,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/notifications/ame_notification_controller.dart";
+import "../../../../app/presentation/ame_localizations.dart";
+import "../../../../app/presentation/ame_message_text.dart";
 import "../../../../app/presentation/ame_notification_lifetime.dart";
 import "../../../../app/presentation/ame_feedback_style.dart";
 import "../../application/library_organization_actions.dart";
@@ -17,25 +19,36 @@ class LibraryOrganizationFeedback extends ConsumerWidget {
     final saving = ref.watch(
       libraryOrganizationActionsProvider.select((state) => state.saving),
     );
+    void dismiss(String id) {
+      ref.read(libraryOrganizationOutcomeProvider.notifier).dismiss(id);
+      ref.read(ameNotificationControllerProvider.notifier).dismiss(id);
+    }
+
+    var actionLabel = notification.actionLabel?.resolve(context.l10n);
+    VoidCallback? onAction;
+    if (actionLabel == null) {
+      if (notification.isPersistent) {
+        actionLabel = context.l10n.acknowledge;
+        onAction = () => dismiss(notification.id);
+      }
+    } else if (!saving) {
+      onAction = () => ref
+          .read(libraryOrganizationActionsProvider.notifier)
+          .handleNotification(notification);
+    }
     return AmeNotificationLifetime(
       notification: notification,
-      onDismiss: (id) {
-        ref.read(libraryOrganizationOutcomeProvider.notifier).dismiss(id);
-        ref.read(ameNotificationControllerProvider.notifier).dismiss(id);
-      },
+      onDismiss: dismiss,
       child: LibraryViewerNotice(
         icon: ameNotificationIcon(notification.severity),
-        message: notification.message.isEmpty
-            ? notification.title
-            : "${notification.title}：${notification.message}",
-        actionLabel: notification.actionLabel,
-        onAction: saving
-            ? null
-            : () {
-                ref
-                    .read(libraryOrganizationActionsProvider.notifier)
-                    .handleNotification(notification);
-              },
+        message: notification.message.resolve(context.l10n).isEmpty
+            ? notification.title.resolve(context.l10n)
+            : context.l10n.labelAndValue(
+                notification.title.resolve(context.l10n),
+                notification.message.resolve(context.l10n),
+              ),
+        actionLabel: actionLabel,
+        onAction: onAction,
         actionKey: const Key("viewer-organization-action"),
       ),
     );

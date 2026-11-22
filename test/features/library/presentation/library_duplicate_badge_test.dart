@@ -12,8 +12,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/duplicate_review_fixtures.dart";
-
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 
 void main() {
   for (final update in ["catalog revision", "scroll window"]) {
@@ -103,7 +103,7 @@ Widget _host(_Window library, _Annotations service) => ProviderScope(
     libraryControllerProvider.overrideWith(() => library),
     libraryGalleryDuplicatesProvider.overrideWithValue(service),
   ]),
-  child: MaterialApp(
+  child: LocalizedTestApp(
     home: Scaffold(
       body: Consumer(
         builder: (context, ref, _) => Column(

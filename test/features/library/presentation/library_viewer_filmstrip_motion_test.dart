@@ -2,6 +2,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_vie
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("filmstrip motion does not repaint unchanged image surfaces", (
     tester,
@@ -13,7 +15,7 @@ void main() {
     final canvas = CustomPaint(painter: _CountPaints(() => canvasPaints++));
     final strip = CustomPaint(painter: _CountPaints(() => stripPaints++));
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: ValueListenableBuilder(
             valueListenable: visible,

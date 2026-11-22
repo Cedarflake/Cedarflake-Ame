@@ -52,6 +52,9 @@ One backing surface joins the top bar and contextual sidebar, with rounded outer
 Sidebars do not introduce another rounded cutout below the top bar. The main content has its own
 rounded surface and a small outer inset. The frame owns this geometry; sidebar transitions retain
 their existing destination-width rendering and clipping.
+The frame measures the three-destination rail and hamburger as one bounded `IntrinsicWidth` column.
+Its adjacent chrome column contains both the top bar and workspace, so translated labels and enlarged
+text cannot separate their leading edges. The rail's 72-pixel minimum is not a fixed background offset.
 Sidebar materials remain transparent so they cannot paint over the shared backing's outer corners.
 Collapsed sidebars and Settings retain the same eight-pixel content inset. The workspace-width
 owner carries the visible boundary through destination changes, including reversals, while each

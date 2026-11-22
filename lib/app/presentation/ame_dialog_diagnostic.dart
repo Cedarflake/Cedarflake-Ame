@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 
 import "ame_dialog.dart";
+import "ame_localizations.dart";
 
 class AmeDialogDiagnostic extends StatelessWidget {
   const AmeDialogDiagnostic({required this.detail, super.key});
@@ -21,7 +22,10 @@ class AmeDialogDiagnostic extends StatelessWidget {
               : detail.substring(0, suffix.start).trimRight(),
         ),
         if (code != null) ...[
-          AmeDialogField(label: "错误代码", child: SelectableText(code)),
+          AmeDialogField(
+            label: context.l10n.errorCode,
+            child: SelectableText(code),
+          ),
         ],
       ],
     );

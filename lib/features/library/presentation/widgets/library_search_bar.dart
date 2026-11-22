@@ -1,14 +1,13 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_view_preferences.dart";
 import "../coordination/library_search.dart";
-import "../library_search_strings.dart";
-import "../library_strings.dart";
 
 class LibrarySearchBar extends StatelessWidget {
   const LibrarySearchBar({
@@ -29,11 +28,9 @@ class LibrarySearchBar extends StatelessWidget {
     final search = discovery;
     final semantic = search?.mode == LibrarySearchMode.content;
     final hint = switch (search?.referenceName) {
-      final String name => "与 $name 相关的图片",
+      final String name => context.l10n.photosRelatedTo(name),
       null =>
-        semantic
-            ? LibrarySearchStrings.contentHint
-            : LibrarySearchStrings.fileHint,
+        semantic ? context.l10n.contentSearchHint : context.l10n.fileSearchHint,
     };
     return SearchBar(
       key: const Key("library-search"),
@@ -57,8 +54,8 @@ class LibrarySearchBar extends StatelessWidget {
                   (search.hasUpdates || search.error != null)
               ? AmeTooltip(
                   message: search.error != null
-                      ? LibrarySearchStrings.retry
-                      : LibrarySearchStrings.update,
+                      ? context.l10n.retrySearch
+                      : context.l10n.updateSearchResults,
                   child: IconButton(
                     onPressed: enabled ? search.retry : null,
                     icon: const Icon(Symbols.refresh_rounded),
@@ -76,7 +73,7 @@ class LibrarySearchBar extends StatelessWidget {
         ),
         if (controller.text.isNotEmpty || (search?.related ?? false))
           AmeTooltip(
-            message: LibraryStrings.clearSearch,
+            message: context.l10n.clearSearch,
             child: IconButton(
               onPressed: enabled
                   ? () {
@@ -109,40 +106,40 @@ class _SearchMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = search.mode == LibrarySearchMode.content
-        ? LibrarySearchStrings.content
-        : LibrarySearchStrings.fileName;
+        ? context.l10n.searchContent
+        : context.l10n.searchNamePath;
     return AmePopupMenuButton<_SearchChoice>(
-      labels: const [
-        LibrarySearchStrings.content,
-        LibrarySearchStrings.fileName,
-        LibrarySearchStrings.currentScope,
-        LibrarySearchStrings.entireLibrary,
+      labels: [
+        context.l10n.searchContent,
+        context.l10n.searchNamePath,
+        context.l10n.searchCurrentScope,
+        context.l10n.searchEntireLibrary,
       ],
       leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
       items: [
         if (search.available)
           ameMenuChoice(
             value: _SearchChoice.content,
-            label: LibrarySearchStrings.content,
+            label: context.l10n.searchContent,
             icon: Symbols.image_rounded,
             isSelected: search.mode == LibrarySearchMode.content,
           ),
         ameMenuChoice(
           value: _SearchChoice.fileName,
-          label: LibrarySearchStrings.fileName,
+          label: context.l10n.searchNamePath,
           icon: Symbols.text_fields_rounded,
           isSelected: search.mode == LibrarySearchMode.fileName,
         ),
         const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
         ameMenuChoice(
           value: _SearchChoice.currentScope,
-          label: LibrarySearchStrings.currentScope,
+          label: context.l10n.searchCurrentScope,
           icon: Symbols.folder_open_rounded,
           isSelected: !search.wholeLibrary,
         ),
         ameMenuChoice(
           value: _SearchChoice.entireLibrary,
-          label: LibrarySearchStrings.entireLibrary,
+          label: context.l10n.searchEntireLibrary,
           icon: Symbols.photo_library_rounded,
           isSelected: search.wholeLibrary,
         ),
@@ -161,7 +158,7 @@ class _SearchMenu extends StatelessWidget {
       },
       builder: (context, openMenu) => AmeTooltip(
         message:
-            "$label · ${search.wholeLibrary ? LibrarySearchStrings.entireLibrary : LibrarySearchStrings.currentScope}",
+            "$label · ${search.wholeLibrary ? context.l10n.searchEntireLibrary : context.l10n.searchCurrentScope}",
         child: SizedBox.square(
           dimension: 40,
           child: IconButton(

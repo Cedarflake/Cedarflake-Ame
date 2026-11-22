@@ -4,6 +4,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../support/localized_test_app.dart";
+
 void main() {
   for (final scenario in [
     (height: 600.0, textScale: 1.0, itemCount: 2),
@@ -19,7 +21,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       var selected = -1;
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           theme: buildAmeTheme(),
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(

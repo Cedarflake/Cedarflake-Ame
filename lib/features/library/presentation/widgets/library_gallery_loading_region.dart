@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_loading_indicator.dart";
 
@@ -60,16 +61,18 @@ class _LibraryGalleryLoadingRegionState
                   right: 0,
                   child: ExcludeSemantics(
                     excluding: _center,
-                    child: const LinearProgressIndicator(
+                    child: LinearProgressIndicator(
                       key: Key("library-top-loading"),
                       minHeight: 2,
-                      semanticsLabel: "正在加载图片",
+                      semanticsLabel: context.l10n.loadingPhotosShort,
                     ),
                   ),
                 ),
                 if (_center)
-                  const Center(
-                    child: AmeLoadingIndicator(semanticsLabel: "正在加载图片"),
+                  Center(
+                    child: AmeLoadingIndicator(
+                      semanticsLabel: context.l10n.loadingPhotosShort,
+                    ),
                   ),
               ],
             ),

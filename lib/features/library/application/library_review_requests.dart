@@ -1,3 +1,4 @@
+import "../../../app/messages/ame_message.dart";
 import "../domain/library_organization.dart";
 import "../domain/library_review.dart";
 import "library_album_requests.dart";
@@ -18,9 +19,11 @@ class LibraryReviewRequest extends LibraryOrganizationRequest {
       LibraryOrganizationErrorSurface.form;
 
   @override
-  String get successMessage => switch (action) {
+  AmeMessage get successMessage => switch (action) {
     LibraryReviewAlbum(:final album) =>
-      album == null ? "已移出相册" : "已加入“${album.name}”",
+      album == null
+          ? AmeLabel.removedFromAlbum
+          : AmeAddedToAlbumMessage(album.name),
     LibraryReviewProgress(:final action) => libraryProgressMessage(action),
   };
 
@@ -79,8 +82,9 @@ class LibraryReviewAlbumMembership implements LibraryAlbumMembership {
   void dispose() => _attempt?.cancel();
 }
 
-String libraryProgressMessage(LibraryProgressAction action) => switch (action) {
-  LibraryProgressAction.defer => "已移至稍后整理",
-  LibraryProgressAction.ignore => "已忽略",
-  LibraryProgressAction.restore => "已恢复待整理",
-};
+AmeMessage libraryProgressMessage(LibraryProgressAction action) =>
+    switch (action) {
+      LibraryProgressAction.defer => AmeLabel.deferredOrganization,
+      LibraryProgressAction.ignore => AmeLabel.ignored,
+      LibraryProgressAction.restore => AmeLabel.restoredToInbox,
+    };

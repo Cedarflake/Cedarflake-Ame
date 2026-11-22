@@ -30,6 +30,8 @@ width, keeping its state and preview ownership. Respect
 reduced motion and reverse an interrupted toggle from the current boundary. Remember the
 preference, selected source and folder expansion when switching workspaces. Primary-sidebar switches
 to Albums, Duplicates or Settings clear ordinary selection and return the photo wall to the top.
+Returning to the same gallery after changing its display language in Settings preserves selection,
+search scope and browsing position.
 When Library is organizing, those visits retain its mode, queue, source scope, browsing position and
 selection for the return to Library. Albums itself remains ordinary browsing. Reuse the accepted
 theme, global chrome, photo wall and viewer.

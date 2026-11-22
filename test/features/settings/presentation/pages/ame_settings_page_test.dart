@@ -3,6 +3,7 @@ import "dart:ui" show CheckedState;
 
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
+import "package:cedarflake_ame/app/presentation/ame_localizations.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:cedarflake_ame/app/window/ame_build_identity.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
@@ -12,17 +13,84 @@ import "package:cedarflake_ame/features/settings/presentation/pages/ame_settings
 import "package:cedarflake_ame/app/presentation/ame_choice.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/storage_settings_section.dart";
 import "package:cedarflake_ame/features/storage/application/ports/storage_settings_gateway.dart";
+import "package:cedarflake_ame/features/storage/application/ports/storage_directory_picker.dart";
 import "package:cedarflake_ame/features/storage/application/storage_settings.dart";
 import "package:cedarflake_ame/features/storage/domain/storage_models.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
+import "package:flutter/rendering.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../support/application_test_bindings.dart";
+import "../../../../support/localized_test_app.dart";
 
 void main() {
+  for (final locale in ameSupportedLocales) {
+    testWidgets("settings choices remain readable with enlarged $locale", (
+      tester,
+    ) async {
+      final gateway = _FakeStorageSettingsGateway(_status());
+      addTearDown(gateway.dispose);
+      tester.view.physicalSize = const Size(1100, 700);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: applicationTestOverrides([
+            storageSettingsGatewayProvider.overrideWithValue(gateway),
+          ]),
+          child: LocalizedTestApp(
+            locale: locale,
+            theme: buildAmeTheme(),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.5)),
+              child: child!,
+            ),
+            home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      for (final choice
+          in find
+              .byWidgetPredicate((widget) => widget is AmeChoice)
+              .evaluate()
+              .toList()) {
+        final target = find.byElementPredicate((element) => element == choice);
+        await tester.ensureVisible(target);
+        await tester.pumpAndSettle();
+        for (final text
+            in find
+                .descendant(of: target, matching: find.byType(RichText))
+                .evaluate()) {
+          final paragraph = text.renderObject! as RenderParagraph;
+          expect(
+            paragraph.didExceedMaxLines,
+            isFalse,
+            reason: paragraph.text.toPlainText(),
+          );
+        }
+      }
+      final language = find.byKey(const Key("ame-language-choice"));
+      await tester.ensureVisible(language);
+      await tester.pumpAndSettle();
+      await tester.tap(language);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("English"));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: language, matching: find.text("English")),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets("About and licenses use the same executable version", (
     tester,
   ) async {
@@ -36,7 +104,7 @@ void main() {
             const AmeBuildIdentity(name: "0.1.0-beta.1", number: "4"),
           ),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
         ),
@@ -66,7 +134,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
@@ -104,6 +172,7 @@ void main() {
     expect(find.byKey(const Key("ame-settings-page")), findsOneWidget);
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.text("个性化"), findsOneWidget);
+    expect(find.text("应用语言"), findsOneWidget);
     expect(find.text("浏览"), findsOneWidget);
     expect(find.text("智能相册"), findsOneWidget);
     expect(find.text("GPU 加速"), findsOneWidget);
@@ -126,11 +195,11 @@ void main() {
     expect(find.textContaining(r"\\?\C:\AmeData"), findsNothing);
     expect(
       find.byWidgetPredicate((widget) => widget is AmeChoice<Object?>),
-      findsNWidgets(5),
+      findsNWidgets(6),
     );
     expect(
       find.byWidgetPredicate((widget) => widget is AmePopupMenuButton<Object?>),
-      findsNWidgets(5),
+      findsNWidgets(6),
     );
     expect(find.byType(MenuAnchor), findsNothing);
     expect(
@@ -142,7 +211,7 @@ void main() {
         of: find.byWidgetPredicate((widget) => widget is AmeChoice<Object?>),
         matching: find.byIcon(Symbols.arrow_drop_down_rounded),
       ),
-      findsNWidgets(5),
+      findsNWidgets(6),
     );
     expect(
       find.descendant(
@@ -179,7 +248,7 @@ void main() {
           overrides: applicationTestOverrides([
             storageSettingsGatewayProvider.overrideWithValue(gateway),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             theme: buildAmeTheme(),
             home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
           ),
@@ -242,7 +311,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
         ),
@@ -282,7 +351,7 @@ void main() {
           overrides: applicationTestOverrides([
             storageSettingsGatewayProvider.overrideWithValue(gateway),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             theme: buildAmeTheme(),
             home: Scaffold(
               body: AmeSettingsPage(
@@ -340,7 +409,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
         ),
@@ -382,7 +451,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
         ),
@@ -439,7 +508,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: SingleChildScrollView(
               child: StatefulBuilder(
@@ -508,7 +577,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           home: Scaffold(
             body: SingleChildScrollView(
               child: StatefulBuilder(
@@ -571,7 +640,7 @@ void main() {
       int? selected;
       try {
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             theme: buildAmeTheme(),
             home: Scaffold(
               body: Column(
@@ -692,7 +761,7 @@ void main() {
           amePreferenceStoreProvider.overrideWithValue(preferenceStore),
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
@@ -768,7 +837,7 @@ void main() {
           ),
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
@@ -786,9 +855,107 @@ void main() {
     final notification = container
         .read(ameNotificationControllerProvider)
         .current;
-    expect(notification?.title, "无法保存设置");
-    expect(notification?.detail, contains("controlled settings failure"));
+    expect(notification?.title.resolve(testChinese), "无法保存设置");
+    expect(
+      notification?.detail?.resolve(testChinese),
+      contains("controlled settings failure"),
+    );
     expect(notification?.isPersistent, isTrue);
+  });
+
+  testWidgets("storage rejection follows language changes and allows retry", (
+    tester,
+  ) async {
+    const failure = StorageSettingsFailure(
+      code: "storage_path_overlaps_source",
+      message: r"Configured storage overlaps the source root C:\Photos",
+    );
+    final gateway = _FakeStorageSettingsGateway(_status())
+      ..updateError = failure;
+    final picker = _StorageDirectoryPicker(r"C:\Photos\Previews");
+    addTearDown(gateway.dispose);
+
+    Future<void> showSettings(Locale locale) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: applicationTestOverrides([
+            storageSettingsGatewayProvider.overrideWithValue(gateway),
+            storageDirectoryPickerProvider.overrideWithValue(picker),
+          ]),
+          child: LocalizedTestApp(
+            locale: locale,
+            theme: buildAmeTheme(),
+            home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    final changeLocation = find.descendant(
+      of: find.byKey(const Key("preview-location-setting")),
+      matching: find.byType(FilledButton),
+    );
+    final errorRow = find.byKey(const Key("storage-settings-error"));
+    await showSettings(const Locale("ja"));
+    await tester.ensureVisible(changeLocation);
+    await tester.pumpAndSettle();
+    await tester.tap(changeLocation);
+    await tester.pumpAndSettle();
+    expect(gateway.lastPreviewCacheDirectory, picker.directory);
+    expect(gateway.status.requiresRestart, isFalse);
+    expect(find.text(failure.toString()), findsNothing);
+
+    for (final (locale, message) in [
+      (const Locale("ja"), "保存先が追加済みの写真フォルダーと重なっています。保存用に別のフォルダーを選んでください。"),
+      (
+        const Locale("en"),
+        "This storage location overlaps an added photo folder. Choose a separate folder for storage.",
+      ),
+      (
+        const Locale.fromSubtags(languageCode: "zh", scriptCode: "Hans"),
+        "存储位置与已添加的图片文件夹重叠。请选择单独的文件夹。",
+      ),
+    ]) {
+      await showSettings(locale);
+      await tester.ensureVisible(errorRow);
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: errorRow, matching: find.text(message)),
+        findsOneWidget,
+      );
+    }
+    expect(gateway.updateCount, 1);
+    expect(gateway.loadCount, 1);
+    final details = find.descendant(
+      of: errorRow,
+      matching: find.byType(TextButton),
+    );
+    expect(find.text("查看错误详情"), findsOneWidget);
+    await tester.ensureVisible(details);
+    await tester.pumpAndSettle();
+    await tester.tap(details);
+    await tester.pumpAndSettle();
+    expect(find.text(failure.toString()), findsOneWidget);
+    expect(find.text("收起错误详情"), findsOneWidget);
+    await tester.tap(details);
+    await tester.pumpAndSettle();
+    expect(find.text(failure.toString()), findsNothing);
+    expect(find.text("查看错误详情"), findsOneWidget);
+
+    gateway.updateError = null;
+    picker.directory = r"C:\AmePreviews";
+    await tester.ensureVisible(changeLocation);
+    await tester.pumpAndSettle();
+    await tester.tap(changeLocation);
+    await tester.pumpAndSettle();
+    expect(gateway.lastPreviewCacheDirectory, picker.directory);
+    expect(gateway.updateCount, 2);
+    expect(errorRow, findsNothing);
+    expect(
+      find.byKey(const Key("storage-settings-restart-notice")),
+      findsOneWidget,
+    );
   });
 
   testWidgets("saves the preview budget without a dialog save action", (
@@ -802,7 +969,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: false)),
         ),
@@ -849,7 +1016,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
@@ -940,7 +1107,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
@@ -1003,7 +1170,7 @@ void main() {
         overrides: applicationTestOverrides([
           storageSettingsGatewayProvider.overrideWithValue(gateway),
         ]),
-        child: MaterialApp(
+        child: LocalizedTestApp(
           theme: buildAmeTheme(),
           home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
         ),
@@ -1151,6 +1318,9 @@ class _FakeStorageSettingsGateway implements StorageSettingsGateway {
   Future<CatalogReclamationModel>? pendingCatalogReclamation;
   Future<StorageStatusModel>? pendingStorageLoad;
   Object? loadError;
+  Object? updateError;
+  String? lastPreviewCacheDirectory;
+  int updateCount = 0;
   Object? catalogReclamationLoadError;
   int loadCount = 0;
   final cleanupController = StreamController<PreviewCleanupUpdate>.broadcast();
@@ -1228,6 +1398,11 @@ class _FakeStorageSettingsGateway implements StorageSettingsGateway {
     required BigInt previewBudgetBytes,
   }) async {
     lastPreviewBudgetBytes = previewBudgetBytes;
+    lastPreviewCacheDirectory = previewCacheDirectory;
+    updateCount += 1;
+    if (updateError case final error?) {
+      throw error;
+    }
     status = StorageStatusModel(
       settingsPath: status.settingsPath,
       activeCatalogPath: status.activeCatalogPath,
@@ -1247,6 +1422,15 @@ class _FakeStorageSettingsGateway implements StorageSettingsGateway {
     );
     return status;
   }
+}
+
+class _StorageDirectoryPicker implements StorageDirectoryPicker {
+  _StorageDirectoryPicker(this.directory);
+
+  String directory;
+
+  @override
+  Future<String?> pick({required String currentPath}) async => directory;
 }
 
 class _RecordingAmePreferenceStore implements AmePreferenceStore {

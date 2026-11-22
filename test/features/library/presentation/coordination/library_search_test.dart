@@ -13,6 +13,7 @@ import "package:cedarflake_ame/features/library/presentation/coordination/librar
 import "package:cedarflake_ame/features/library/presentation/library_search_notifications.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_search_bar.dart";
 
+import "../../../../support/localized_test_app.dart";
 import "../support/library_screen_fixture.dart";
 
 void main() {
@@ -25,7 +26,7 @@ void main() {
         galleryAsset(id: "reference", captureLocalTime: "2026-11-08T10:00:00"),
       );
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: LibrarySearchBar(
               controller: fixture.text,

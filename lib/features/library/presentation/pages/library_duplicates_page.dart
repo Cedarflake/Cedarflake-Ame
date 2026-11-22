@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_duplicate_review.dart";
@@ -17,7 +18,6 @@ import "../../domain/library_models.dart";
 import "../../domain/library_similar_review.dart";
 import "../coordination/library_duplicate_workspace.dart";
 import "../coordination/library_similar_results_refresh.dart";
-import "../library_duplicate_strings.dart";
 import "../widgets/library_duplicate_degree_menu.dart";
 import "../widgets/library_duplicate_cleanup_action.dart";
 import "../widgets/library_duplicate_locations_sheet.dart";
@@ -156,10 +156,10 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
       if (mounted) {
         showAmeTransientFeedback(
           context,
-          message: LibraryDuplicateStrings.loadFailed,
+          message: context.l10n.resultsUnavailable,
           severity: AmeNotificationSeverity.error,
           action: (
-            label: LibraryDuplicateStrings.retry,
+            label: context.l10n.retry,
             invoke: () => unawaited(_locations(member)),
           ),
         );
@@ -242,12 +242,9 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
       final isEmpty = _workspace.loadFailed || _workspace.itemCount == 0;
       final title = representative == null
           ? switch (_workspace.view) {
-              LibraryDuplicateView.exact =>
-                LibraryDuplicateStrings.workspaceTitle,
-              LibraryDuplicateView.ignored =>
-                LibraryDuplicateStrings.ignoredGroups,
-              LibraryDuplicateView.similar =>
-                LibraryDuplicateStrings.similarGroups,
+              LibraryDuplicateView.exact => context.l10n.duplicateWorkspace,
+              LibraryDuplicateView.ignored => context.l10n.ignored,
+              LibraryDuplicateView.similar => context.l10n.similarGroups,
             }
           : displayLibraryFileName(representative.displayPath);
       return TickerMode(
@@ -311,9 +308,7 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
                                     ? () => unawaited(_compare())
                                     : null,
                                 icon: const Icon(Symbols.compare_rounded),
-                                label: const Text(
-                                  LibraryDuplicateStrings.compare,
-                                ),
+                                label: Text(context.l10n.comparePhotos),
                               ),
                               TextButton.icon(
                                 onPressed:
@@ -329,8 +324,8 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
                                 ),
                                 label: Text(
                                   _workspace.ignored
-                                      ? LibraryDuplicateStrings.restoreGroup
-                                      : LibraryDuplicateStrings.ignore,
+                                      ? context.l10n.restoreGroup
+                                      : context.l10n.ignoreGroup,
                                 ),
                               ),
                             ],
@@ -347,7 +342,7 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
                             : 0,
                       ),
                       child: Text(
-                        LibraryDuplicateStrings.saveFailed,
+                        context.l10n.selectionSaveFailed,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.error,
                         ),
@@ -364,10 +359,10 @@ class _LibraryDuplicatesPageState extends ConsumerState<LibraryDuplicatesPage> {
                 child: _workspace.loadFailed
                     ? LibraryGalleryMessage(
                         icon: Symbols.error_outline_rounded,
-                        title: LibraryDuplicateStrings.loadFailed,
+                        title: context.l10n.resultsUnavailable,
                         action: TextButton(
                           onPressed: () => unawaited(_workspace.refresh()),
-                          child: const Text(LibraryDuplicateStrings.retry),
+                          child: Text(context.l10n.retry),
                         ),
                       )
                     : LibraryDuplicateResults(

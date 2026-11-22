@@ -1,3 +1,4 @@
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../domain/library_models.dart";
 import "library_gallery_layout.dart";
 import "timeline_rail_model.dart";
@@ -8,7 +9,10 @@ class LibrarySortRailProjection {
   final LibraryTimeline? timeline;
   final LibraryGalleryLayoutMetrics? metrics;
 
-  List<TimelineRailBucket> buckets(double maximumOffset) {
+  List<TimelineRailBucket> buckets(
+    AppLocalizations strings,
+    double maximumOffset,
+  ) {
     final summary = timeline;
     if (summary == null || summary.totalItems == 0) return const [];
     final sections = summary.scrollSections;
@@ -48,14 +52,18 @@ class LibrarySortRailProjection {
           id: "sort-${section.key}",
           label: switch (section.kind) {
             LibraryScrollSectionKind.name => _name(section.key),
-            LibraryScrollSectionKind.newArrivals =>
-              "新加入 · ${section.itemCount} 张",
-            LibraryScrollSectionKind.earlier => "此前加入 · ${section.itemCount} 张",
+            LibraryScrollSectionKind.newArrivals => strings.recentlyAddedCount(
+              section.itemCount,
+            ),
+            LibraryScrollSectionKind.earlier => strings.previouslyAddedCount(
+              section.itemCount,
+            ),
           },
           axisLabel: switch (section.kind) {
             LibraryScrollSectionKind.name => _name(section.key),
-            LibraryScrollSectionKind.newArrivals => "新加入",
-            LibraryScrollSectionKind.earlier => hasArrivals ? "此前" : null,
+            LibraryScrollSectionKind.newArrivals => strings.recentlyAdded,
+            LibraryScrollSectionKind.earlier =>
+              hasArrivals ? strings.previouslyAdded : null,
           },
           highlighted: section.kind == LibraryScrollSectionKind.newArrivals,
           year: null,

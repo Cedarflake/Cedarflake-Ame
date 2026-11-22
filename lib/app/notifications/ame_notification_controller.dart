@@ -1,5 +1,7 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../messages/ame_message.dart";
+
 const ameNotificationHistoryLimit = 100;
 
 enum AmeNotificationSeverity { info, success, warning, error }
@@ -20,16 +22,16 @@ class AmeNotificationDraft {
     this.isPersistent = false,
   });
 
-  final String title;
-  final String message;
+  final AmeMessage title;
+  final AmeMessage message;
   final AmeNotificationSeverity severity;
   final String? dedupeKey;
-  final String? detail;
+  final AmeMessage? detail;
   final DateTime? elapsedStartedAt;
   final String? sourcePath;
   final String? technicalCode;
   final String? actionId;
-  final String? actionLabel;
+  final AmeMessage? actionLabel;
   final String? actionContext;
   final bool isPersistent;
 }
@@ -55,27 +57,27 @@ class AmeNotificationEntry {
   });
 
   final String id;
-  final String title;
-  final String message;
+  final AmeMessage title;
+  final AmeMessage message;
   final AmeNotificationSeverity severity;
   final DateTime occurredAt;
   final bool isUnread;
   final bool isActive;
   final bool isPersistent;
   final String? dedupeKey;
-  final String? detail;
+  final AmeMessage? detail;
   final DateTime? elapsedStartedAt;
   final String? sourcePath;
   final String? technicalCode;
   final String? actionId;
-  final String? actionLabel;
+  final AmeMessage? actionLabel;
   final String? actionContext;
 
   bool get isResolvedCondition => dedupeKey != null && !isActive;
 
   AmeNotificationEntry copyWith({
-    String? title,
-    String? message,
+    AmeMessage? title,
+    AmeMessage? message,
     AmeNotificationSeverity? severity,
     DateTime? occurredAt,
     bool? isUnread,
@@ -99,7 +101,7 @@ class AmeNotificationEntry {
       isActive: isActive ?? this.isActive,
       isPersistent: isPersistent ?? this.isPersistent,
       dedupeKey: dedupeKey,
-      detail: detail == _unchanged ? this.detail : detail as String?,
+      detail: detail == _unchanged ? this.detail : detail as AmeMessage?,
       elapsedStartedAt: elapsedStartedAt == _unchanged
           ? this.elapsedStartedAt
           : elapsedStartedAt as DateTime?,
@@ -112,7 +114,7 @@ class AmeNotificationEntry {
       actionId: actionId == _unchanged ? this.actionId : actionId as String?,
       actionLabel: actionLabel == _unchanged
           ? this.actionLabel
-          : actionLabel as String?,
+          : actionLabel as AmeMessage?,
       actionContext: actionContext == _unchanged
           ? this.actionContext
           : actionContext as String?,

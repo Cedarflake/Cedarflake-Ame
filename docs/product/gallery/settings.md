@@ -31,6 +31,7 @@ Initial settings are limited to behavior that is understandable and connected en
 
 ```text
 个性化
+  应用语言                 跟随系统 / 简体中文 / English
   应用主题                 跟随系统 / 浅色 / 深色
 
 浏览

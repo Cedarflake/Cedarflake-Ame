@@ -1,3 +1,4 @@
+import "../../../app/messages/ame_message.dart";
 import "../domain/library_organization.dart";
 import "library_album_requests.dart";
 import "library_organization_actions.dart";
@@ -34,13 +35,13 @@ LibrarySidebarRemoval createSidebarAlbumRemoval({
           return LibrarySidebarRemovalOutcome(
             committed: false,
             error: failure.isStale
-                ? "相册信息已更新，请重试剩余项目。"
-                : "未能删除“${album.name}”，请重试。",
+                ? AmeLabel.albumRemovalRemaining
+                : AmeAlbumRemovalFailedMessage(album.name),
           );
         case LibraryOrganizationRetired():
           return const LibrarySidebarRemovalOutcome(
             committed: false,
-            error: "操作已停止。",
+            error: AmeLabel.operationStopped,
           );
       }
     },

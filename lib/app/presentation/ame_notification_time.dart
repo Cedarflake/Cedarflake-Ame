@@ -1,19 +1,25 @@
-String formatAmeNotificationElapsed(Duration elapsed) {
+import "ame_localizations.dart";
+
+String formatAmeNotificationElapsed(
+  AppLocalizations strings,
+  Duration elapsed,
+) {
   final seconds = elapsed.isNegative ? 0 : elapsed.inSeconds;
   if (seconds < 60) {
-    return "$seconds 秒";
+    return strings.elapsedSeconds(seconds);
   }
   final minutes = seconds ~/ 60;
   if (minutes < 60) {
-    return "$minutes 分 ${seconds % 60} 秒";
+    return strings.elapsedMinutes(minutes, seconds % 60);
   }
   final hours = minutes ~/ 60;
-  return "$hours 小时 ${minutes % 60} 分";
+  return strings.elapsedHours(hours, minutes % 60);
 }
 
-String formatAmeNotificationOccurredAt(DateTime occurredAt) {
+String formatAmeNotificationOccurredAt(
+  AppLocalizations strings,
+  DateTime occurredAt,
+) {
   final local = occurredAt.toLocal();
-  String twoDigits(int value) => value.toString().padLeft(2, "0");
-  return "${local.year}-${twoDigits(local.month)}-${twoDigits(local.day)} "
-      "${twoDigits(local.hour)}:${twoDigits(local.minute)}";
+  return strings.eventDateTime(local, local);
 }

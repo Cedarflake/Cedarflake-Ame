@@ -72,7 +72,12 @@ lib/
 | Feature `presentation/widgets` | Feature-owned visual components, grouped by capability when useful |
 | Feature `presentation/coordination` | View-only state/lifecycle coordination and presentation projections |
 | `lib/app/bootstrap` | Separate feature-binding modules and cross-feature startup/shutdown composition |
+| `lib/app/messages` | Language-independent messages retained by notifications and tasks |
 | `lib/app/presentation` | Shared visual primitives with no feature-policy owner |
+| `lib/app/presentation/l10n` | Simplified Chinese, English and Japanese ARB catalogs and Flutter-generated Dart accessors |
+
+For catalog edits and generated accessors, follow the
+[internationalization standard](internationalization.md#changing-interface-text).
 
 Create only directories with real content. A small capability may keep its files directly in its
 owning layer; introduce capability subdirectories when several collaborators need a clear home.

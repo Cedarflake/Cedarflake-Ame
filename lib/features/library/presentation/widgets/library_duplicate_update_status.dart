@@ -1,10 +1,9 @@
 import "package:flutter/widgets.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../application/library_exact_analysis_controller.dart";
 import "../../application/library_exact_analysis_scheduler.dart";
-import "../library_duplicate_strings.dart";
-import "../library_strings.dart";
 import "library_results_progress.dart";
 
 /// Retained groups share one activity label without marking individual images.
@@ -33,11 +32,11 @@ class LibraryDuplicateUpdateStatus extends ConsumerWidget {
         );
         final String? label;
         if (analysis.isStopping) {
-          label = LibraryDuplicateStrings.stopping;
+          label = context.l10n.stopping;
         } else if (progress == LibraryResultsProgress.analyzing) {
-          label = LibraryStrings.synchronizing;
+          label = context.l10n.synchronizing;
         } else {
-          label = progress.label;
+          label = progress.label(context.l10n);
         }
         return builder(context, label);
       },

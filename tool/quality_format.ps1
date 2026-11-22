@@ -8,7 +8,7 @@ $ErrorActionPreference = "Stop"
 
 $repositoryRoot = Get-AmeRepositoryRoot
 $toolchain = Get-AmeToolchain
-$dartPaths = @("lib", "test", "integration_test", "tool/dependency-boundaries")
+$dartPaths = @("lib", "test", "integration_test", "tool/dependency-boundaries", "tool/localization")
 $toolLock = Enter-AmeRepositoryToolLock
 
 Push-Location $repositoryRoot

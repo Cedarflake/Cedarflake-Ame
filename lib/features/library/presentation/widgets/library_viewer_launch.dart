@@ -46,17 +46,38 @@ class LibraryViewerOrigin {
 
 /// Keeps geometry suppliers only for currently mounted lazy thumbnails.
 class LibraryViewerOrigins {
-  final _sources = <Object, LibraryViewerOrigin? Function(String)>{};
+  final _sources =
+      <
+        Object,
+        ({LibraryViewerOrigin? Function(String) read, bool returnTarget})
+      >{};
 
-  void register(Object owner, LibraryViewerOrigin? Function(String) read) =>
-      _sources[owner] = read;
+  void register(
+    Object owner,
+    LibraryViewerOrigin? Function(String) read, {
+    bool returnTarget = true,
+  }) => _sources[owner] = (read: read, returnTarget: returnTarget);
 
   void unregister(Object owner) => _sources.remove(owner);
 
   LibraryViewerOrigin? find(String locationId) {
-    for (final read in _sources.values) {
-      final origin = read(locationId);
+    for (final source in _sources.values) {
+      if (!source.returnTarget) continue;
+      final origin = source.read(locationId);
       if (origin != null) return origin;
+    }
+    return null;
+  }
+
+  LibraryViewerOrigin? findPreview(
+    String entryId,
+    ImageProvider<Object> image,
+  ) {
+    for (final entry in _sources.values) {
+      final origin = entry.read(entryId);
+      final preview = origin?.previewImage;
+      final source = preview is ResizeImage ? preview.imageProvider : preview;
+      if (source == image) return origin;
     }
     return null;
   }
@@ -84,7 +105,7 @@ class LibraryViewerOriginScope extends InheritedWidget {
 }
 
 /// The registry retires each geometry supplier with its lazy thumbnail.
-class LibraryViewerLaunch extends StatefulWidget {
+class LibraryViewerLaunch extends StatelessWidget {
   const LibraryViewerLaunch({
     required this.locationId,
     this.entryId,
@@ -103,10 +124,44 @@ class LibraryViewerLaunch extends StatefulWidget {
   final Widget Function(BuildContext, Key, VoidCallback) builder;
 
   @override
-  State<LibraryViewerLaunch> createState() => _LibraryViewerLaunchState();
+  Widget build(BuildContext context) => LibraryViewerThumbnail(
+    locationId: locationId,
+    entryId: entryId,
+    fit: fit,
+    radius: radius,
+    isReturnTarget: true,
+    builder: (context, imageKey, readOrigin) => builder(context, imageKey, () {
+      LibraryViewerOriginScope.of(context)?.prepare(readOrigin());
+      onOpen();
+    }),
+  );
 }
 
-class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
+/// Registers only a mounted thumbnail; navigation does not change the return flight.
+class LibraryViewerThumbnail extends StatefulWidget {
+  const LibraryViewerThumbnail({
+    required this.locationId,
+    this.entryId,
+    this.fit = BoxFit.cover,
+    this.radius = 10,
+    this.isReturnTarget = false,
+    required this.builder,
+    super.key,
+  });
+
+  final String locationId;
+  final String? entryId;
+  final BoxFit fit;
+  final double radius;
+  final bool isReturnTarget;
+  final Widget Function(BuildContext, Key, LibraryViewerOrigin? Function())
+  builder;
+
+  @override
+  State<LibraryViewerThumbnail> createState() => _LibraryViewerThumbnailState();
+}
+
+class _LibraryViewerThumbnailState extends State<LibraryViewerThumbnail> {
   final _thumbnailKey = GlobalKey();
   LibraryViewerOrigins? _origins;
   Object? _imageOwner;
@@ -136,7 +191,7 @@ class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
     if (_origins == origins) return;
     _origins?.unregister(this);
     _origins = origins;
-    origins?.register(this, _origin);
+    origins?.register(this, _origin, returnTarget: widget.isReturnTarget);
   }
 
   @override
@@ -197,19 +252,16 @@ class _LibraryViewerLaunchState extends State<LibraryViewerLaunch> {
           );
   }
 
-  void _open() {
-    LibraryViewerOriginScope.of(
-      context,
-    )?.prepare(_origin(widget.entryId ?? widget.locationId));
-    widget.onOpen();
-  }
-
   @override
   Widget build(BuildContext context) => LibraryViewerThumbnailScope(
     publish: _publishImage,
     retire: _retireImage,
     child: Builder(
-      builder: (context) => widget.builder(context, _thumbnailKey, _open),
+      builder: (context) => widget.builder(
+        context,
+        _thumbnailKey,
+        () => _origin(widget.entryId ?? widget.locationId),
+      ),
     ),
   );
 }

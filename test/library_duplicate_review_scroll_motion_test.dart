@@ -6,8 +6,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
-
 import "support/application_test_bindings.dart";
+import "support/localized_test_app.dart";
 
 void main() {
   for (final singleColumn in [false, true]) {
@@ -24,7 +24,7 @@ void main() {
                   ReviewFixtureLibrary.new,
                 ),
               ]),
-              child: MaterialApp(
+              child: LocalizedTestApp(
                 home: MediaQuery(
                   data: MediaQueryData(disableAnimations: reducedMotion),
                   child: Scaffold(

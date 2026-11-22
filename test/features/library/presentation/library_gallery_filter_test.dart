@@ -5,6 +5,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_met
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("folder filters apply directly and preserve browsing scope", (
     tester,
@@ -16,7 +18,7 @@ void main() {
       sortKey: LibraryGallerySortKey.fileName,
     );
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: StatefulBuilder(
             builder: (context, setState) => LibraryGalleryFilter(
@@ -78,7 +80,7 @@ void main() {
     ]) {
       final query = LibraryGalleryQuery(collection: collection);
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: LibraryGalleryFilter(
               query: query,
@@ -127,7 +129,7 @@ void main() {
       );
       var changes = 0;
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: StatefulBuilder(
               builder: (context, setState) {
@@ -142,7 +144,7 @@ void main() {
         ),
       );
       await _edit(tester);
-      await _date(tester, "dateStart", "02/29/2024");
+      await _date(tester, "dateStart", DateTime(2024, 2, 29));
       await tester.tap(find.widgetWithText(FilterChip, "PNG"));
       await tester.tap(find.widgetWithText(FilterChip, "JPG"));
       await _enter(tester, "minimumBytes", "1.5");
@@ -212,7 +214,7 @@ void main() {
     var changes = 0;
     late StateSetter update;
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: StatefulBuilder(
             builder: (context, setState) {
@@ -271,18 +273,19 @@ Future<void> _enter(WidgetTester tester, String field, String text) async {
   await tester.pump();
 }
 
-Future<void> _date(WidgetTester tester, String field, String value) async {
+Future<void> _date(WidgetTester tester, String field, DateTime value) async {
   await tester.tap(find.byKey(ValueKey("library-filter-$field")));
   await tester.pumpAndSettle();
   await tester.tap(find.byIcon(Icons.edit_outlined));
   await tester.pumpAndSettle();
+  final dialog = find.byType(DatePickerDialog);
+  final labels = MaterialLocalizations.of(tester.element(dialog));
   await tester.enterText(
-    find.descendant(
-      of: find.byType(DatePickerDialog),
-      matching: find.byType(TextField),
-    ),
-    value,
+    find.descendant(of: dialog, matching: find.byType(TextField)),
+    labels.formatCompactDate(value),
   );
-  await tester.tap(find.text("OK"));
+  await tester.tap(
+    find.descendant(of: dialog, matching: find.text(labels.okButtonLabel)),
+  );
   await tester.pumpAndSettle();
 }

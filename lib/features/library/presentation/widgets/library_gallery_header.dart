@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
@@ -9,7 +10,6 @@ import "../../../../app/presentation/ame_typography.dart";
 import "../../domain/library_gallery_group.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
-import "../library_strings.dart";
 import "library_gallery_header_actions.dart";
 import "library_sidebar_content.dart";
 import "library_workbench_metrics.dart";
@@ -75,19 +75,31 @@ class LibraryGalleryHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = isSelecting ? "已选择 $selectedCount 个项目" : galleryTitle;
+    final title = isSelecting
+        ? context.l10n.selectedItems(selectedCount)
+        : galleryTitle;
     var subtitle = switch (groupFilter) {
-      LibraryGalleryGroupFilter.exact => "$totalItems 个重复组",
-      LibraryGalleryGroupFilter.similar => "$totalItems 个相似组",
-      LibraryGalleryGroupFilter.unrestricted => "$totalItems 张图片",
+      LibraryGalleryGroupFilter.exact => context.l10n.duplicateGroupCount(
+        totalItems,
+      ),
+      LibraryGalleryGroupFilter.similar => context.l10n.similarGroupCount(
+        totalItems,
+      ),
+      LibraryGalleryGroupFilter.unrestricted => context.l10n.photoCount(
+        totalItems,
+      ),
     };
     if (mergedItems case final count? when count != totalItems) {
-      subtitle = "$subtitle · 去重后 $count 张";
+      subtitle = context.l10n.deduplicatedCount(subtitle, count);
     }
     if (semanticNotice case final notice?) subtitle = "$subtitle · $notice";
     if (reviewCounts case final counts?) {
-      subtitle =
-          "${counts.total} 张图片 · 已整理 ${counts.organized} · 待整理 ${counts.pending} · 已忽略 ${counts.ignored}";
+      subtitle = context.l10n.organizationCounts(
+        counts.total,
+        counts.organized,
+        counts.pending,
+        counts.ignored,
+      );
     } else if (isSelecting) {
       subtitle = galleryTitle;
     }
@@ -118,7 +130,7 @@ class LibraryGalleryHeader extends StatelessWidget {
                   ),
                   if (isReviewing)
                     Text(
-                      "整理模式",
+                      context.l10n.organizationMode,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.primary,
                       ),
@@ -231,7 +243,7 @@ class _BrowsingToolbar extends StatelessWidget {
           key: const Key("library-select-button"),
           onPressed: onBeginSelection,
           icon: const Icon(Symbols.check_box_rounded),
-          label: const Text(LibraryStrings.select),
+          label: Text(context.l10n.choose),
         ),
         if (!relevanceOrder)
           _SortMenu(
@@ -273,7 +285,7 @@ class _SelectionToolbar extends StatelessWidget {
           key: const Key("library-cancel-selection"),
           onPressed: onCancel,
           icon: const Icon(Symbols.close_rounded),
-          label: const Text(LibraryStrings.cancel),
+          label: Text(context.l10n.cancel),
         ),
       ],
     );
@@ -299,44 +311,44 @@ class _SortMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return AmePopupMenuButton<_SortMenuAction>(
       labels: [
-        LibraryStrings.captureDate,
-        LibraryStrings.createdDate,
-        LibraryStrings.modifiedDate,
-        LibraryStrings.fileName,
-        if (isReviewing) LibraryStrings.newestAddedFirst,
-        LibraryStrings.ascending,
-        LibraryStrings.descending,
+        context.l10n.captureDate,
+        context.l10n.createdDate,
+        context.l10n.modifiedDate,
+        context.l10n.fileName,
+        if (isReviewing) context.l10n.newestAddedFirst,
+        context.l10n.ascending,
+        context.l10n.descending,
       ],
       leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
       items: [
         ameMenuChoice(
           value: _SortMenuAction.captureTime,
-          label: LibraryStrings.captureDate,
+          label: context.l10n.captureDate,
           icon: Symbols.calendar_month_rounded,
           isSelected: sortKey == LibraryGallerySortKey.captureTime,
         ),
         ameMenuChoice(
           value: _SortMenuAction.createdTime,
-          label: LibraryStrings.createdDate,
+          label: context.l10n.createdDate,
           icon: Symbols.create_new_folder_rounded,
           isSelected: sortKey == LibraryGallerySortKey.createdTime,
         ),
         ameMenuChoice(
           value: _SortMenuAction.modifiedTime,
-          label: LibraryStrings.modifiedDate,
+          label: context.l10n.modifiedDate,
           icon: Symbols.edit_calendar_rounded,
           isSelected: sortKey == LibraryGallerySortKey.modifiedTime,
         ),
         ameMenuChoice(
           value: _SortMenuAction.fileName,
-          label: LibraryStrings.fileName,
+          label: context.l10n.fileName,
           icon: Symbols.text_fields_rounded,
           isSelected: sortKey == LibraryGallerySortKey.fileName,
         ),
         if (isReviewing)
           ameMenuChoice(
             value: _SortMenuAction.libraryAdmission,
-            label: LibraryStrings.newestAddedFirst,
+            label: context.l10n.newestAddedFirst,
             icon: Symbols.new_releases_rounded,
             isSelected: sortKey == LibraryGallerySortKey.libraryAdmission,
           ),
@@ -344,13 +356,13 @@ class _SortMenu extends StatelessWidget {
           const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
           ameMenuChoice(
             value: _SortMenuAction.ascending,
-            label: LibraryStrings.ascending,
+            label: context.l10n.ascending,
             icon: Symbols.arrow_upward_rounded,
             isSelected: direction == LibraryGallerySortDirection.ascending,
           ),
           ameMenuChoice(
             value: _SortMenuAction.descending,
-            label: LibraryStrings.descending,
+            label: context.l10n.descending,
             icon: Symbols.arrow_downward_rounded,
             isSelected: direction == LibraryGallerySortDirection.descending,
           ),
@@ -375,7 +387,7 @@ class _SortMenu extends StatelessWidget {
         }
       },
       builder: (context, openMenu) => AmeTooltip(
-        message: LibraryStrings.sort,
+        message: context.l10n.sort,
         child: IconButton(
           key: const Key("library-sort-menu"),
           onPressed: openMenu,
@@ -408,43 +420,43 @@ class _LayoutMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AmePopupMenuButton<_LayoutMenuAction>(
-      labels: const [
-        LibraryStrings.equalHeight,
-        LibraryStrings.square,
-        LibraryStrings.small,
-        LibraryStrings.medium,
-        LibraryStrings.large,
+      labels: [
+        context.l10n.equalHeight,
+        context.l10n.square,
+        context.l10n.sizeSmall,
+        context.l10n.sizeMediumLong,
+        context.l10n.sizeLarge,
       ],
       leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
       items: [
         ameMenuChoice(
           value: _LayoutMenuAction.equalHeight,
-          label: LibraryStrings.equalHeight,
+          label: context.l10n.equalHeight,
           icon: Symbols.view_quilt_rounded,
           isSelected: shape == GalleryLayoutShape.equalHeight,
         ),
         ameMenuChoice(
           value: _LayoutMenuAction.square,
-          label: LibraryStrings.square,
+          label: context.l10n.square,
           icon: Symbols.grid_view_rounded,
           isSelected: shape == GalleryLayoutShape.square,
         ),
         const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
         ameMenuChoice(
           value: _LayoutMenuAction.small,
-          label: LibraryStrings.small,
+          label: context.l10n.sizeSmall,
           icon: Symbols.grid_4x4_rounded,
           isSelected: size == GalleryThumbnailSize.small,
         ),
         ameMenuChoice(
           value: _LayoutMenuAction.medium,
-          label: LibraryStrings.medium,
+          label: context.l10n.sizeMediumLong,
           icon: Symbols.grid_view_rounded,
           isSelected: size == GalleryThumbnailSize.medium,
         ),
         ameMenuChoice(
           value: _LayoutMenuAction.large,
-          label: LibraryStrings.large,
+          label: context.l10n.sizeLarge,
           icon: Symbols.crop_square_rounded,
           isSelected: size == GalleryThumbnailSize.large,
         ),
@@ -464,7 +476,7 @@ class _LayoutMenu extends StatelessWidget {
         }
       },
       builder: (context, openMenu) => AmeTooltip(
-        message: LibraryStrings.layout,
+        message: context.l10n.layout,
         child: IconButton(
           key: const Key("library-layout-menu"),
           onPressed: openMenu,
@@ -494,29 +506,31 @@ class _MoreMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reviewLabel = isReviewing ? "退出整理" : "整理模式";
+    final reviewLabel = isReviewing
+        ? context.l10n.exitOrganization
+        : context.l10n.organizationMode;
     return AmePopupMenuButton<_MoreMenuAction>(
       labels: [
-        LibraryStrings.selectAll,
-        "文件操作记录",
+        context.l10n.selectAll,
+        context.l10n.fileOperationHistory,
         if (onToggleReview != null) reviewLabel,
       ],
       shortcuts: const ["Ctrl+A"],
       viewportRightMargin: AmeMenuMetrics.viewportPadding,
       items: [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: _MoreMenuAction.selectAll,
           child: AmeMenuItemContent(
             icon: Symbols.select_all_rounded,
-            label: LibraryStrings.selectAll,
+            label: context.l10n.selectAll,
             shortcut: "Ctrl+A",
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: _MoreMenuAction.fileHistory,
           child: AmeMenuItemContent(
             icon: Symbols.history_rounded,
-            label: "文件操作记录",
+            label: context.l10n.fileOperationHistory,
           ),
         ),
         if (onToggleReview != null)
@@ -539,7 +553,7 @@ class _MoreMenu extends StatelessWidget {
         }
       },
       builder: (context, openMenu) => AmeTooltip(
-        message: LibraryStrings.more,
+        message: context.l10n.more,
         child: IconButton(
           key: const Key("library-more-menu"),
           onPressed: openMenu,

@@ -8,6 +8,8 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_tim
 import "package:material_ui/material_ui.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   for (final geometryDelay in [0, 3]) {
     testWidgets(
@@ -17,7 +19,7 @@ void main() {
         addTearDown(scroll.dispose);
         final key = GlobalKey<_PublicationHarnessState>();
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             home: Scaffold(
               body: SizedBox(
                 height: 300,
@@ -76,7 +78,7 @@ void main() {
       addTearDown(scroll.dispose);
       final key = GlobalKey<_PublicationHarnessState>();
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: SizedBox(
               height: 300,

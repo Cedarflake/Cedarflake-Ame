@@ -31,14 +31,17 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../support/application_test_bindings.dart";
 import "../../../../support/duplicate_review_fixtures.dart";
+import "../../../../support/localized_test_app.dart";
 import "../../../../support/similar_review_fixtures.dart";
 
 void main() {
   testWidgets(
     "running results join ignored groups and preserve comparison until navigation",
     (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1100, 850));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+      tester.view.physicalSize = const Size(1100, 850);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       final exact = ReviewFixtureService()
         ..decision = const LibraryDuplicateDecision(ignored: true);
       final similar = SimilarReviewFixture()
@@ -67,7 +70,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp(
+          child: LocalizedTestApp(
             builder: (context, child) => LibraryViewerSourceScope(
               scheduler: container.read(librarySourceReadSchedulerProvider),
               bufferLoader: source.loadBuffer,
@@ -78,6 +81,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+
+      expect(
+        MediaQuery.sizeOf(tester.element(find.byType(LibraryDuplicatesPage))),
+        const Size(1100, 850),
+      );
 
       Future<void> chooseView(String label) async {
         final view = switch (label) {

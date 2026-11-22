@@ -8,7 +8,6 @@ import "package:cedarflake_ame/features/library/adapters/platform/library_previe
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
@@ -20,6 +19,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 
 void main() {
   testWidgets(
@@ -33,7 +33,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: applicationTestOverrides(),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: LibraryViewerSourceScope(
               scheduler: fixture.scheduler,
               bufferLoader: fixture.loadBuffer,
@@ -114,7 +114,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: applicationTestOverrides(),
-            child: MaterialApp(
+            child: LocalizedTestApp(
               home: LibraryViewerSourceScope(
                 scheduler: fixture.scheduler,
                 bufferLoader: fixture.loadBuffer,
@@ -163,8 +163,8 @@ void main() {
         expect(
           find.text(
             hasPreview
-                ? LibraryStrings.originalImagePreviewFallback
-                : LibraryStrings.originalImageUnavailable,
+                ? testChinese.originalImagePreviewFallback
+                : testChinese.originalImageUnavailable,
           ),
           findsOneWidget,
         );
@@ -294,7 +294,7 @@ void main() {
         sourceReadScheduler: fixture.scheduler,
       );
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: LibraryViewerSourceScope(
             scheduler: fixture.scheduler,
             bufferLoader: fixture.loadBuffer,
@@ -311,7 +311,7 @@ void main() {
           bufferLoader: fixture.loadBuffer,
         ),
       );
-      await tester.pumpWidget(MaterialApp(home: viewer()));
+      await tester.pumpWidget(LocalizedTestApp(home: viewer()));
       expect(
         _sourceProvider(tester),
         LibrarySourceImage(_asset("first"), scheduler: fixture.scheduler),
@@ -484,7 +484,7 @@ class _Fixture {
   );
   final Map<String, Completer<ui.ImmutableBuffer>> buffers = {};
 
-  Widget viewer(String id) => MaterialApp(
+  Widget viewer(String id) => LocalizedTestApp(
     home: Scaffold(
       body: LibraryViewerImage(
         previewImages: createLibraryPreviewImage,
@@ -500,7 +500,7 @@ class _Fixture {
     _Fixture? overrides,
     LibrarySourceBufferLoader? loader,
     LibrarySourceReadScheduler? inheritedScheduler,
-  }) => MaterialApp(
+  }) => LocalizedTestApp(
     home: LibraryViewerSourceScope(
       scheduler: inheritedScheduler ?? scheduler,
       bufferLoader: loader ?? loadBuffer,

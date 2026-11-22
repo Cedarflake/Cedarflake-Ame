@@ -5,6 +5,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   for (final background in [false, true]) {
     testWidgets(
@@ -213,7 +215,7 @@ Widget _duplicateFixture(
   ScrollController scroll,
   List<int> taps, {
   required VoidCallback onTileBuild,
-}) => MaterialApp(
+}) => LocalizedTestApp(
   home: Align(
     alignment: Alignment.topLeft,
     child: ValueListenableBuilder(
@@ -287,7 +289,7 @@ Widget _fixture(
   ScrollController scroll, {
   bool reducedMotion = false,
   String query = "query",
-}) => MaterialApp(
+}) => LocalizedTestApp(
   home: MediaQuery(
     data: MediaQueryData(disableAnimations: reducedMotion),
     child: Align(

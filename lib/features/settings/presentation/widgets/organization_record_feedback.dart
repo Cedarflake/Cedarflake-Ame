@@ -3,6 +3,7 @@ import "dart:async";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_feedback_card.dart";
@@ -20,28 +21,32 @@ Widget? buildOrganizationRecordFeedback(BuildContext context, WidgetRef ref) {
   final cleanupController = ref.read(libraryCleanupControllerProvider.notifier);
   if (archive is LibraryArchiveWorking) {
     return _RecordFeedback(
-      message: archiveProgressMessage(archive),
-      detail: archive.cancelFailed ? "尚未停止，请再次尝试。" : null,
+      message: archiveProgressMessage(context.l10n, archive),
+      detail: archive.cancelFailed ? context.l10n.stopNotConfirmed : null,
       working: true,
-      actionLabel: "取消",
+      actionLabel: context.l10n.cancel,
       actionKey: const Key("settings-archive-cancel"),
       onAction: archive.stopping ? null : archiveController.cancel,
     );
   }
   if (cleanup case LibraryCleanupWorking(request: LibraryCleanupApply())) {
     return _RecordFeedback(
-      message: cleanup.stopping ? "正在停止" : "正在清理记录",
-      detail: cleanup.cancelFailed ? "尚未停止，请再次尝试。" : null,
+      message: cleanup.stopping
+          ? context.l10n.stopping
+          : context.l10n.clearingRecords,
+      detail: cleanup.cancelFailed ? context.l10n.stopNotConfirmed : null,
       working: true,
-      actionLabel: "取消",
+      actionLabel: context.l10n.cancel,
       actionKey: const Key("settings-cleanup-cancel"),
       onAction: cleanup.stopping ? null : cleanupController.cancel,
     );
   }
   if (archive is LibraryArchiveFailed) {
     return _RecordFeedback(
-      message: archiveFailureMessage(archive.failure),
-      actionLabel: archive.failure.requiresInspection ? "重新检查" : "重试",
+      message: archiveFailureMessage(context.l10n, archive.failure),
+      actionLabel: archive.failure.requiresInspection
+          ? context.l10n.checkAgain
+          : context.l10n.retry,
       actionKey: const Key("settings-archive-retry"),
       onAction: () => unawaited(retryOrganizationArchive(context)),
       onDismiss: archiveController.dismiss,
@@ -50,9 +55,11 @@ Widget? buildOrganizationRecordFeedback(BuildContext context, WidgetRef ref) {
   if (cleanup case LibraryCleanupFailed(request: LibraryCleanupApply())) {
     return _RecordFeedback(
       message: cleanup.failure.requiresInspection
-          ? "记录已发生变化，请重新检查后确认。"
-          : "未能确认清理结果，请重试。",
-      actionLabel: cleanup.failure.requiresInspection ? "重新检查" : "重试",
+          ? context.l10n.recordsChanged
+          : context.l10n.cleanupResultUnknown,
+      actionLabel: cleanup.failure.requiresInspection
+          ? context.l10n.checkAgain
+          : context.l10n.retry,
       actionKey: const Key("settings-cleanup-retry"),
       onAction: () => unawaited(
         cleanup.failure.requiresInspection
@@ -101,7 +108,7 @@ class _RecordFeedback extends StatelessWidget {
           label: actionLabel,
         ),
         if (onDismiss != null)
-          AmeFeedbackAction(onPressed: onDismiss, label: "关闭"),
+          AmeFeedbackAction(onPressed: onDismiss, label: context.l10n.close),
       ],
       progress: working ? const AmeLinearProgress() : null,
     ),

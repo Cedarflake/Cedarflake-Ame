@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-18
+Last planning update: 2026-11-21
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -65,6 +65,13 @@ archive compatibility and authorized model-installation recovery. The
 Reuse completed acceptance when its inputs are unchanged; new behavior receives its affected checks.
 
 ## Current execution queue
+
+### Desktop internationalization
+
+Deliver Simplified Chinese, English and Japanese in the Windows application under the
+[desktop internationalization plan](plans/desktop-internationalization.md). The branch includes
+all three languages, their READMEs and [Windows x64 client evidence](acceptance/desktop-internationalization.md).
+Integration precedes R10-04. R10 keeps its existing release criteria.
 
 ### Flutter 3.50 compatibility
 

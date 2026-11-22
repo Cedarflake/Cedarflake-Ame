@@ -1,5 +1,7 @@
 import "package:flutter/foundation.dart";
 
+import "../../../app/messages/ame_message.dart";
+
 class LibrarySidebarRemovalEntry {
   const LibrarySidebarRemovalEntry(this.id, this.name);
   final String id;
@@ -9,7 +11,7 @@ class LibrarySidebarRemovalEntry {
 class LibrarySidebarRemovalOutcome {
   const LibrarySidebarRemovalOutcome({required this.committed, this.error});
   final bool committed;
-  final String? error;
+  final AmeMessage? error;
 }
 
 /// Stops between guarded commands; a committed item is never submitted again.
@@ -25,13 +27,13 @@ class LibrarySidebarRemoval extends ChangeNotifier {
   bool _disposed = false;
   bool _stopping = false;
   bool _running = false;
-  String? _error;
+  AmeMessage? _error;
 
   Set<String> get completed => Set.unmodifiable(_completed);
   bool get isRunning => _running;
   bool get isStopping => _stopping;
   bool get isComplete => _completed.length == entries.length;
-  String? get error => _error;
+  AmeMessage? get error => _error;
 
   Future<void> run() async {
     if (_disposed || _running || isComplete) return;
@@ -51,7 +53,7 @@ class LibrarySidebarRemoval extends ChangeNotifier {
         if (!outcome.committed || _error != null) break;
       }
     } on Object {
-      _error = "未能完成操作，请重试。";
+      _error = AmeLabel.operationIncomplete;
     } finally {
       _running = false;
       if (!_disposed) notifyListeners();

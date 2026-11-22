@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/semantics.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../../../support/semantics/retained_semantics_update_harness.dart";
 
 void main() {
@@ -22,7 +23,7 @@ void main() {
       late StateSetter update;
       try {
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {

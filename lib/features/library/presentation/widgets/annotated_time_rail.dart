@@ -1,6 +1,7 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "timeline_linear_projection.dart";
 import "timeline_rail_layout.dart";
@@ -86,7 +87,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
         children: [
           _buildStepButton(
             key: const Key("timeline-previous"),
-            tooltip: "向上滚动",
+            tooltip: context.l10n.scrollUp,
             icon: Symbols.arrow_drop_up_rounded,
             direction: -1,
           ),
@@ -161,7 +162,9 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                                 ? null
                                 : (visualValue) => _commit(visualValue),
                             semanticLabelFor: (sliderValue) => anchors.isEmpty
-                                ? "滚动位置 ${(sliderValue * 100).round()}%"
+                                ? context.l10n.scrollPosition(
+                                    (sliderValue * 100).round(),
+                                  )
                                 : timelineRailBucketAtValue(
                                     anchors,
                                     sliderValue,
@@ -238,7 +241,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
           ),
           _buildStepButton(
             key: const Key("timeline-next"),
-            tooltip: "向下滚动",
+            tooltip: context.l10n.scrollDown,
             icon: Symbols.arrow_drop_down_rounded,
             direction: 1,
           ),
@@ -317,7 +320,9 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
             alignment: Alignment.centerRight,
             child: Text(
               anchor.bucket.axisLabel ??
-                  (anchor.bucket.isUnknown ? "未知" : "${anchor.bucket.year}"),
+                  (anchor.bucket.isUnknown
+                      ? context.l10n.unknown
+                      : "${anchor.bucket.year}"),
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: isCurrent ? Theme.of(context).colorScheme.primary : null,
                 fontWeight: isCurrent ? FontWeight.w700 : null,

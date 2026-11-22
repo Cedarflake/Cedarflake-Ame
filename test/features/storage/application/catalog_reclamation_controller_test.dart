@@ -5,6 +5,8 @@ import "package:cedarflake_ame/features/storage/domain/storage_models.dart";
 import "package:cedarflake_ame/features/storage/application/catalog_reclamation_controller.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   test(
     "full storage snapshots publish usage and phase atomically without rollback",
@@ -262,7 +264,7 @@ void main() {
       fresh.completeError(StateError("controlled post-save refresh failure"));
       expect(await completion, isTrue);
       expect(
-        controller.state.errorMessage,
+        controller.state.errorMessage?.resolve(testChinese),
         contains("controlled post-save refresh failure"),
       );
       expect(
@@ -434,7 +436,7 @@ void main() {
         await first;
         await second;
         expect(
-          controller.state.errorMessage,
+          controller.state.errorMessage?.resolve(testChinese),
           fails ? contains("controlled retry failure") : isNull,
         );
         if (!fails) {
@@ -717,7 +719,7 @@ void main() {
       failedStorage.completeError(StateError("controlled storage failure"));
       await refreshing;
       expect(
-        controller.state.errorMessage,
+        controller.state.errorMessage?.resolve(testChinese),
         contains("controlled storage failure"),
       );
       expect(refreshed, isEmpty);

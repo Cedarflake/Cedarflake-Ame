@@ -5,14 +5,20 @@ import "../../features/storage/adapters/rust/rust_storage_settings_gateway.dart"
 import "../../features/storage/application/ports/storage_directory_picker.dart";
 import "../../features/storage/application/ports/storage_settings_gateway.dart";
 import "../../features/storage/application/storage_settings.dart";
+import "platform_dialog_language.dart";
 
 List<Override> storageBindings({
   StorageSettingsGateway gateway = const RustStorageSettingsGateway(),
-  StorageDirectoryPicker directoryPicker =
-      const PlatformStorageDirectoryPicker(),
+  StorageDirectoryPicker? directoryPicker,
 }) => [
   storageSettingsGatewayProvider.overrideWithValue(gateway),
-  storageDirectoryPickerProvider.overrideWithValue(directoryPicker),
+  storageDirectoryPickerProvider.overrideWith(
+    (ref) =>
+        directoryPicker ??
+        PlatformStorageDirectoryPicker(
+          () => platformDialogLanguage(ref).chooseThisFolder,
+        ),
+  ),
 ];
 
 final storageRequirements = <ProviderListenable<Object?>>[

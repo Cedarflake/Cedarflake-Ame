@@ -4,6 +4,7 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../../../app/window/ame_window_fullscreen.dart";
@@ -60,7 +61,7 @@ class _LibraryViewerFrameState extends ConsumerState<LibraryViewerFrame> {
       if (mounted) {
         showAmeTransientFeedback(
           context,
-          message: "无法切换全屏，请重试",
+          message: context.l10n.toggleFullscreenFailed,
           severity: AmeNotificationSeverity.error,
         );
       }

@@ -7,6 +7,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets(
     "GPU selection waits for the device change and retains the saved preference across page entry",
@@ -18,7 +20,7 @@ void main() {
             configuration,
           ),
         ],
-        child: const MaterialApp(
+        child: const LocalizedTestApp(
           home: Scaffold(body: AnalysisSettingsSection()),
         ),
       );

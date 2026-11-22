@@ -3,9 +3,9 @@ import "dart:math" as math;
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
-import "../library_strings.dart";
 
 enum _PreviewFeedbackKind { failed, updateRequired, retrying }
 
@@ -37,12 +37,12 @@ class LibraryPreviewFeedback extends StatelessWidget {
   final String? issueCode;
   final _PreviewFeedbackKind _kind;
 
-  String? get _failureDetail {
+  String? _failureDetail(AppLocalizations strings) {
     if (_kind == _PreviewFeedbackKind.updateRequired) {
-      return LibraryStrings.previewUpdateRequired;
+      return strings.previewUpdateRequired;
     }
     return switch (issueCode) {
-      "image_format_unsupported" => LibraryStrings.previewFormatUnrecognized,
+      "image_format_unsupported" => strings.previewFormatUnrecognized,
       _ => null,
     };
   }
@@ -58,7 +58,7 @@ class LibraryPreviewFeedback extends StatelessWidget {
         if (_kind == _PreviewFeedbackKind.retrying) {
           final labelSize = _measure(
             context,
-            LibraryStrings.retryingPreview,
+            context.l10n.retryingPreview,
             bodyStyle,
           );
           final showText =
@@ -67,7 +67,7 @@ class LibraryPreviewFeedback extends StatelessWidget {
           return Semantics(
             container: true,
             liveRegion: true,
-            label: LibraryStrings.retryingPreview,
+            label: context.l10n.retryingPreview,
             child: ExcludeSemantics(
               child: Center(
                 child: Column(
@@ -81,7 +81,7 @@ class LibraryPreviewFeedback extends StatelessWidget {
                     if (showText) ...[
                       const SizedBox(height: 8),
                       Text(
-                        LibraryStrings.retryingPreview,
+                        context.l10n.retryingPreview,
                         style: bodyStyle,
                         softWrap: false,
                       ),
@@ -95,7 +95,7 @@ class LibraryPreviewFeedback extends StatelessWidget {
 
         final labelSize = _measure(
           context,
-          LibraryStrings.retryPreview,
+          context.l10n.retryPreview,
           labelStyle,
         );
         final buttonHeight = math.max(
@@ -107,7 +107,7 @@ class LibraryPreviewFeedback extends StatelessWidget {
           labelSize.width + _buttonPadding.horizontal,
         );
         final updateRequired = _kind == _PreviewFeedbackKind.updateRequired;
-        final guidance = _failureDetail;
+        final guidance = _failureDetail(context.l10n);
         final guidanceHeight = guidance != null
             ? _measure(
                     context,
@@ -126,8 +126,8 @@ class LibraryPreviewFeedback extends StatelessWidget {
                 _iconExtent + 4 + guidanceHeight + buttonHeight;
         if (!showText) {
           final message = guidance != null
-              ? "$guidance\n${LibraryStrings.retryPreview}"
-              : LibraryStrings.retryPreview;
+              ? "$guidance\n${context.l10n.retryPreview}"
+              : context.l10n.retryPreview;
           return Center(
             child: AmeTooltip(
               message: message,
@@ -179,7 +179,7 @@ class LibraryPreviewFeedback extends StatelessWidget {
                   padding: _buttonPadding,
                   textStyle: labelStyle,
                 ),
-                child: const Text(LibraryStrings.retryPreview, softWrap: false),
+                child: Text(context.l10n.retryPreview, softWrap: false),
               ),
             ],
           ),

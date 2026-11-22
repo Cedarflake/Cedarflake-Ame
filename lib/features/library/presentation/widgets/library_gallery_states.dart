@@ -1,16 +1,15 @@
 import "package:material_ui/material_ui.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_state.dart";
 import "../library_first_import_feedback.dart";
-import "../library_search_strings.dart";
-import "../library_strings.dart";
 import "library_gallery_message.dart";
 
 /// 图库中央的空白区域提示入口；按加载、恢复、首次添加及空结果选择对应文案。
-/// 文字集中在 LibraryStrings；首次添加的标题和说明配对见 LibraryFirstImportFeedback。
+/// 首次添加的标题和说明配对见 LibraryFirstImportFeedback。
 class EmptyLibraryGallery extends StatelessWidget {
   const EmptyLibraryGallery({
     required this.state,
@@ -32,20 +31,23 @@ class EmptyLibraryGallery extends StatelessWidget {
     if (_isAwaitingPublishedDisplay) {
       if (state.primaryScanSnapshot.publication ==
           LibraryScanPublication.confirmationPending) {
-        return const _PendingLibraryGallery(
+        return _PendingLibraryGallery(
           "library-scan-confirmation-state",
-          title: LibraryStrings.scanConfirmationPending,
-          detail: LibraryStrings.scanConfirmationDetail,
+          title: context.l10n.scanConfirmationPending,
+          detail: context.l10n.scanConfirmationDetail,
         );
       }
-      return const _PendingLibraryGallery(
+      return _PendingLibraryGallery(
         "library-published-reload-state",
-        title: LibraryStrings.galleryDisplayReloadPending,
-        detail: LibraryStrings.galleryDisplayReloadDetail,
+        title: context.l10n.galleryDisplayReloadPending,
+        detail: context.l10n.galleryDisplayReloadDetail,
       );
     }
     if (_hasUnpublishedSource) {
-      final feedback = LibraryFirstImportFeedback.fromState(state);
+      final feedback = LibraryFirstImportFeedback.fromState(
+        context.l10n,
+        state,
+      );
       return _PendingLibraryGallery(
         "library-first-import-state",
         title: feedback.title,
@@ -149,9 +151,11 @@ class GalleryLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       key: Key("library-query-loading"),
-      child: AmeLoadingProgress(semanticsLabel: "正在加载图片"),
+      child: AmeLoadingProgress(
+        semanticsLabel: context.l10n.loadingPhotosShort,
+      ),
     );
   }
 }
@@ -169,21 +173,21 @@ class NoGalleryResults extends StatelessWidget {
         key: const Key("library-no-results"),
         icon: Symbols.checklist_rounded,
         title: switch (queue) {
-          LibraryOrganizationQueue.pending => "没有待整理图片",
-          LibraryOrganizationQueue.deferred => "没有稍后整理的图片",
-          LibraryOrganizationQueue.ignored => "没有已忽略的图片",
+          LibraryOrganizationQueue.pending => context.l10n.noPendingPhotos,
+          LibraryOrganizationQueue.deferred => context.l10n.noDeferredPhotos,
+          LibraryOrganizationQueue.ignored => context.l10n.noIgnoredPhotos,
         },
-        detail: "可以切换整理队列，或在更多菜单中退出整理模式。",
+        detail: context.l10n.organizationEmptyHint,
       );
     }
     if (query.semanticResults != null || query.metadataFilter.isActive) {
       return LibraryGalleryMessage(
         key: const Key("library-no-results"),
         icon: Symbols.image_search_rounded,
-        title: LibraryStrings.noSearchResults,
+        title: context.l10n.noSearchResults,
         detail: query.semanticResults != null
-            ? LibrarySearchStrings.noResultsHint
-            : LibrarySearchStrings.noFilterResultsHint,
+            ? context.l10n.contentSearchEmptyHint
+            : context.l10n.filterSearchEmptyHint,
       );
     }
     final isSearch = query.searchText.isNotEmpty;
@@ -193,35 +197,35 @@ class NoGalleryResults extends StatelessWidget {
       return LibraryGalleryMessage(
         key: const Key("library-no-results"),
         icon: Symbols.auto_awesome_rounded,
-        title: "还没有这个分类的图片",
-        detail: "可以切换分类或返回图库。",
+        title: context.l10n.noCategoryPhotos,
+        detail: context.l10n.categoryEmptyHint,
       );
     }
     if (wholeCollection && query.collection is LibraryAlbumCollection) {
-      return const LibraryGalleryMessage(
+      return LibraryGalleryMessage(
         key: Key("library-no-results"),
         icon: Symbols.photo_album_rounded,
-        title: "这个相册里还没有图片",
-        detail: "在图库中打开图片后，可以将它加入相册。",
+        title: context.l10n.noAlbumPhotos,
+        detail: context.l10n.albumEmptyHint,
       );
     }
     if (wholeCollection && query.collection is LibraryFavoritesCollection) {
-      return const LibraryGalleryMessage(
+      return LibraryGalleryMessage(
         key: Key("library-no-results"),
         icon: Symbols.favorite_rounded,
-        title: "收藏夹里还没有图片",
-        detail: "打开图片后，可以将它加入收藏夹。",
+        title: context.l10n.noFavoritePhotos,
+        detail: context.l10n.favoritesEmptyHint,
       );
     }
     return LibraryGalleryMessage(
       key: const Key("library-no-results"),
       icon: isSearch ? Symbols.image_search_rounded : Symbols.photo_rounded,
       title: isSearch
-          ? LibraryStrings.noSearchResults
-          : LibraryStrings.noSourceResults,
+          ? context.l10n.noSearchResults
+          : context.l10n.noSourceResults,
       detail: isSearch
-          ? LibraryStrings.noSearchResultsHint
-          : LibraryStrings.noSourceResultsHint,
+          ? context.l10n.noSearchResultsHint
+          : context.l10n.noSourceResultsHint,
     );
   }
 }
@@ -253,15 +257,12 @@ class EmptyLibrary extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                LibraryStrings.emptyLibraryTitle,
+                context.l10n.emptyLibraryTitle,
                 style: Theme.of(context).textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
-              const Text(
-                LibraryStrings.emptyLibraryBody,
-                textAlign: TextAlign.center,
-              ),
+              Text(context.l10n.emptyLibraryBody, textAlign: TextAlign.center),
               const SizedBox(height: 24),
               AbsorbPointer(
                 absorbing: state.isRefreshingQuery,
@@ -274,12 +275,12 @@ class EmptyLibrary extends StatelessWidget {
                           if (!state.isBusy) onImport();
                         },
                   icon: const Icon(Symbols.create_new_folder_rounded),
-                  label: const Text(LibraryStrings.import),
+                  label: Text(context.l10n.importPhotos),
                 ),
               ),
               if (state.hasRetainedScan) ...[
                 const SizedBox(height: 8),
-                const Text("请先继续或取消已暂停的任务"),
+                Text(context.l10n.resumeOrCancelPaused),
               ],
             ],
           ),

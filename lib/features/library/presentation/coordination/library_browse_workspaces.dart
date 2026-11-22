@@ -2,6 +2,7 @@ import "../../application/library_organization_publication.dart";
 import "../../application/library_workbench_controller.dart";
 import "../../domain/library_models.dart";
 import "library_organization_mode.dart";
+import "library_settings_visit.dart";
 
 typedef _WorkspaceBrowse = ({
   LibraryReviewBrowseState browse,
@@ -14,18 +15,33 @@ class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
     required this.surface,
     required this.review,
     required this.publish,
+    required this.readLocaleName,
   });
 
   final LibraryReviewSurface surface;
   final LibraryOrganizationMode review;
   final void Function(LibraryWorkspace) publish;
+  final String Function() readLocaleName;
   final Map<LibraryWorkspace, _WorkspaceBrowse> _saved = {};
   LibraryWorkspace _browsing = LibraryWorkspace.gallery;
   LibraryWorkspace _visible = LibraryWorkspace.gallery;
+  LibrarySettingsVisit? _settingsVisit;
   LibraryWorkspace? _requested;
   ({LibraryWorkspace destination, LibraryGalleryQuery query})? _failed;
   Future<void>? _switching;
   bool _disposed = false;
+
+  bool keepsBrowseForSettings(LibraryWorkspace destination) =>
+      destination == LibraryWorkspace.settings ||
+      (_visible == LibraryWorkspace.settings &&
+          destination == _browsing &&
+          _settingsVisit?.languageChanged == true);
+
+  void observeLocale(String localeName) {
+    if (_visible == LibraryWorkspace.settings) {
+      _settingsVisit?.observeLocale(localeName);
+    }
+  }
 
   Future<void> select(LibraryWorkspace destination) {
     if (_disposed) return Future.value();
@@ -50,11 +66,16 @@ class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
   Future<void> _show(LibraryWorkspace destination) async {
     _failed = null;
     if (!destination.isBrowsing) {
+      if (destination == LibraryWorkspace.settings && _visible != destination) {
+        _settingsVisit = LibrarySettingsVisit(readLocaleName());
+      }
       _visible = destination;
       publish(destination);
       return;
     }
-    final retainsActiveGallery = destination == _browsing && review.isActive;
+    final retainsActiveGallery =
+        destination == _browsing &&
+        (review.isActive || keepsBrowseForSettings(destination));
     if (destination == _visible || retainsActiveGallery) {
       _visible = destination;
       publish(destination);

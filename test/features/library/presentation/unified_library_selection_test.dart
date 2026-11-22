@@ -85,7 +85,7 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump();
 
-    expect(find.text("已选择 79013 个项目"), findsOneWidget);
+    expect(find.text("已选择 79,013 个项目"), findsOneWidget);
   });
 
   testWidgets("reveals a checkbox on hover and keeps selection visible", (
@@ -237,7 +237,7 @@ void main() {
     await tester.tap(find.text("全选"));
     await tester.pumpAndSettle();
 
-    expect(find.text("已选择 79013 个项目"), findsOneWidget);
+    expect(find.text("已选择 79,013 个项目"), findsOneWidget);
     expect(find.byKey(const Key("library-cancel-selection")), findsOneWidget);
   });
 }

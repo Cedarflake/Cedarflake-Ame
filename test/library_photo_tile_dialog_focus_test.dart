@@ -6,7 +6,6 @@ import "package:cedarflake_ame/features/library/application/ports/library_exact_
 import "package:cedarflake_ame/features/library/application/library_gallery_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_asset_information_sheet.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:flutter/gestures.dart";
@@ -16,8 +15,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "support/duplicate_review_fixtures.dart";
-
 import "support/application_test_bindings.dart";
+import "support/localized_test_app.dart";
 
 void main() {
   for (final keyboard in [false, true]) {
@@ -32,7 +31,7 @@ void main() {
                   ReviewFixtureLibrary.new,
                 ),
               ]),
-              child: MaterialApp(
+              child: LocalizedTestApp(
                 home: Scaffold(
                   body: Builder(
                     builder: (context) => Align(
@@ -77,9 +76,9 @@ void main() {
             await mouse.up();
           }
           await tester.pumpAndSettle();
-          expect(find.text(LibraryStrings.viewInformation), findsOneWidget);
+          expect(find.text(testChinese.viewInformation), findsOneWidget);
           if (information) {
-            await tester.tap(find.text(LibraryStrings.viewInformation));
+            await tester.tap(find.text(testChinese.viewInformation));
             await tester.pumpAndSettle();
             expect(find.byType(BottomSheet), findsOneWidget);
           }
@@ -90,7 +89,7 @@ void main() {
             await tester.tapAt(const Offset(790, 10));
           }
           await tester.pumpAndSettle();
-          expect(find.text(LibraryStrings.viewInformation), findsNothing);
+          expect(find.text(testChinese.viewInformation), findsNothing);
           expect(select, keyboard ? findsOneWidget : findsNothing);
           expect(tester.takeException(), isNull);
         },
@@ -114,7 +113,7 @@ void main() {
               ),
               libraryExactDuplicatesProvider.overrideWithValue(_Duplicates()),
             ]),
-            child: MaterialApp(
+            child: LocalizedTestApp(
               home: Scaffold(
                 body: Align(
                   alignment: Alignment.topLeft,

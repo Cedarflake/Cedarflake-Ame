@@ -7,8 +7,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/duplicate_review_fixtures.dart";
-
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 
 void main() {
   testWidgets(
@@ -26,7 +26,7 @@ void main() {
               (ref) async => {"one"},
             ),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: Align(
                 alignment: Alignment.topLeft,

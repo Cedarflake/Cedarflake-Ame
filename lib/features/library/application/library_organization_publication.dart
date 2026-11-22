@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../app/messages/ame_message.dart";
 import "../../../app/notifications/ame_notification_controller.dart";
 import "library_controller.dart";
 
@@ -112,12 +113,12 @@ class LibraryOrganizationPublication {
     } else {
       notifications.publish(
         const AmeNotificationDraft(
-          title: "更改已保存",
-          message: "图库尚未刷新，请重试。",
+          title: AmeLabel.changesSaved,
+          message: AmeLabel.libraryRefreshPending,
           severity: AmeNotificationSeverity.warning,
           dedupeKey: "organization-gallery-refresh",
           actionId: "organization.refresh",
-          actionLabel: "重试",
+          actionLabel: AmeLabel.retry,
           isPersistent: true,
         ),
       );

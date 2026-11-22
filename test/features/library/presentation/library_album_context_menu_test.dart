@@ -6,6 +6,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
+
 void main() {
   testWidgets("album pointer, More and keyboard menus share the same actions", (
     tester,
@@ -13,7 +15,7 @@ void main() {
     final edits = <LibraryAlbumEditKind>[];
     var selected = false;
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: SizedBox(
             width: 300,
@@ -58,7 +60,7 @@ void main() {
     late StateSetter rebuild;
     var edits = 0;
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: StatefulBuilder(
             builder: (context, setState) {

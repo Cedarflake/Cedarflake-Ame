@@ -13,8 +13,8 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../support/library_organization_fixture.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -35,7 +35,7 @@ void main() {
   Future<void> host(WidgetTester tester) => tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: const MaterialApp(
+      child: const LocalizedTestApp(
         home: Scaffold(body: LibraryOrganizationMenu(enabled: true)),
       ),
     ),
@@ -58,7 +58,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp(
+            child: LocalizedTestApp(
               home: Scaffold(
                 body: ValueListenableBuilder(
                   valueListenable: disposition,
@@ -66,9 +66,15 @@ void main() {
                     enabled: true,
                     progress: deferred
                         ? null
-                        : LibraryProgressControls.forDisposition(value).ignore,
+                        : LibraryProgressControls.forDisposition(
+                            testChinese,
+                            value,
+                          ).ignore,
                     defer: deferred
-                        ? LibraryProgressControls.forDisposition(value).defer
+                        ? LibraryProgressControls.forDisposition(
+                            testChinese,
+                            value,
+                          ).defer
                         : null,
                     onProgress: writes.add,
                   ),

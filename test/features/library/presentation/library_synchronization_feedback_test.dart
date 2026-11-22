@@ -5,20 +5,17 @@ import "package:cedarflake_ame/app/notifications/ame_notification_controller.dar
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_synchronization.dart";
-
-import "../../../support/inert_library_synchronization.dart";
-
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/library_synchronization_feedback.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/inert_library_synchronization.dart";
+import "../../../support/localized_test_app.dart";
 import "../support/concurrent_library_scanner.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -34,21 +31,30 @@ void main() {
           retryCount: 0,
         ),
       );
-      expect(feedback.sourceLabel, LibraryStrings.backgroundVerification);
+      expect(
+        feedback.sourceLabel.resolve(testChinese),
+        testChinese.backgroundVerification,
+      );
       expect(feedback.shouldNotify, isFalse);
       expect(feedback.requiresManualLibraryUpdate, isFalse);
       final blocked = LibrarySynchronizationFeedback.fromStatus(
         _status(phase: LibrarySynchronizationPhase.backgroundVerification),
       );
       expect(blocked.shouldNotify, isTrue);
-      expect(blocked.sourceLabel, LibraryStrings.needsReconciliation);
+      expect(
+        blocked.sourceLabel.resolve(testChinese),
+        testChinese.needsReconciliation,
+      );
     },
   );
 
   test("a notification without a loaded folder name uses a readable title", () {
     final feedback = LibrarySynchronizationFeedback.fromStatus(_status());
-    expect(feedback.titleForRoot(null), "图库更新受阻");
-    expect(feedback.titleForRoot("Pictures"), "“Pictures”更新受阻");
+    expect(feedback.titleForRoot(null).resolve(testChinese), "图库更新受阻");
+    expect(
+      feedback.titleForRoot("Pictures").resolve(testChinese),
+      "“Pictures”更新受阻",
+    );
   });
 
   test("active baseline is progress rather than an unresolved fault", () {
@@ -62,13 +68,19 @@ void main() {
         retryCount: 0,
       ),
     );
-    expect(feedback.message, "正在检查目录");
+    expect(feedback.message.resolve(testChinese), "正在检查目录");
     expect(feedback.severity, AmeNotificationSeverity.info);
     expect(feedback.detail, isNull);
     expect(feedback.requiresManualLibraryUpdate, isFalse);
     expect(feedback.shouldNotify, isFalse);
-    expect(feedback.sourceLabel, LibraryStrings.synchronizing);
-    expect(feedback.titleForRoot("Pictures"), "“Pictures”正在更新");
+    expect(
+      feedback.sourceLabel.resolve(testChinese),
+      testChinese.synchronizing,
+    );
+    expect(
+      feedback.titleForRoot("Pictures").resolve(testChinese),
+      "“Pictures”正在更新",
+    );
   });
 
   test("unresolved evidence does not claim recovery is already running", () {
@@ -82,18 +94,21 @@ void main() {
       final feedback = LibrarySynchronizationFeedback.fromStatus(
         _status(recoveryBlocked: false, issueCode: issue, retryCount: 0),
       );
-      expect(feedback.message, isNot(contains("正在自动")));
-      expect(feedback.message, isNot(contains("将自动重试")));
-      expect(feedback.detail, isNot(contains("等待重试")));
+      expect(feedback.message.resolve(testChinese), isNot(contains("正在自动")));
+      expect(feedback.message.resolve(testChinese), isNot(contains("将自动重试")));
+      expect(feedback.detail?.resolve(testChinese), isNot(contains("等待重试")));
     }
   });
 
   test("exhausted directory work does not promise another scheduled retry", () {
     final feedback = LibrarySynchronizationFeedback.fromStatus(_status());
 
-    expect(feedback.message, LibraryStrings.synchronizationRecoveryBlocked);
-    expect(feedback.detail, contains("1 项更新尚未完成"));
-    expect(feedback.detail, isNot(contains("等待重试")));
+    expect(
+      feedback.message.resolve(testChinese),
+      testChinese.synchronizationRecoveryBlocked,
+    );
+    expect(feedback.detail?.resolve(testChinese), contains("1 项更新尚未完成"));
+    expect(feedback.detail?.resolve(testChinese), isNot(contains("等待重试")));
     expect(feedback.requiresManualLibraryUpdate, isFalse);
     expect(feedback.severity, AmeNotificationSeverity.warning);
   });
@@ -112,8 +127,8 @@ void main() {
           _status(issueCode: issue, cause: cause),
         );
         expect(
-          feedback.message,
-          LibraryStrings.synchronizationRecoveryBlocked,
+          feedback.message.resolve(testChinese),
+          testChinese.synchronizationRecoveryBlocked,
           reason: "$issue / $cause",
         );
         expect(feedback.requiresManualLibraryUpdate, isFalse);
@@ -132,7 +147,10 @@ void main() {
         final feedback = LibrarySynchronizationFeedback.fromStatus(
           _status(issueCode: issue),
         );
-        expect(feedback.message, LibraryStrings.synchronizationRecoveryBlocked);
+        expect(
+          feedback.message.resolve(testChinese),
+          testChinese.synchronizationRecoveryBlocked,
+        );
         expect(feedback.severity, AmeNotificationSeverity.error);
         expect(feedback.requiresManualLibraryUpdate, isFalse);
       }
@@ -148,12 +166,18 @@ void main() {
         issueCode: "library_reconciliation_failed",
       ),
     );
-    expect(feedback.message, LibraryStrings.synchronizationAutomaticRetry);
-    expect(feedback.detail, contains("1 项等待重试"));
+    expect(
+      feedback.message.resolve(testChinese),
+      testChinese.synchronizationAutomaticRetry,
+    );
+    expect(feedback.detail?.resolve(testChinese), contains("1 项等待重试"));
     expect(feedback.requiresManualLibraryUpdate, isFalse);
     expect(feedback.shouldNotify, isFalse);
     expect(feedback.severity, AmeNotificationSeverity.info);
-    expect(feedback.sourceLabel, LibraryStrings.synchronizationRetryPending);
+    expect(
+      feedback.sourceLabel.resolve(testChinese),
+      testChinese.synchronizationRetryPending,
+    );
   });
 
   test("updating freshness cannot hide a blocked or failed operation", () {
@@ -174,11 +198,17 @@ void main() {
           ),
         );
         expect(feedback.shouldNotify, isTrue);
-        expect(feedback.sourceLabel, LibraryStrings.needsReconciliation);
-        expect(feedback.titleForRoot("Pictures"), "“Pictures”更新受阻");
-        expect(feedback.detail, "1 项更新尚未完成");
-        expect(feedback.detail, isNot(contains("等待重试")));
-        expect(feedback.message, isNot(contains("正在")));
+        expect(
+          feedback.sourceLabel.resolve(testChinese),
+          testChinese.needsReconciliation,
+        );
+        expect(
+          feedback.titleForRoot("Pictures").resolve(testChinese),
+          "“Pictures”更新受阻",
+        );
+        expect(feedback.detail?.resolve(testChinese), "1 项更新尚未完成");
+        expect(feedback.detail?.resolve(testChinese), isNot(contains("等待重试")));
+        expect(feedback.message.resolve(testChinese), isNot(contains("正在")));
         expect(feedback.severity, isNot(AmeNotificationSeverity.info));
       }
     }
@@ -197,11 +227,17 @@ void main() {
         ),
       );
       expect(feedback.shouldNotify, isTrue);
-      expect(feedback.sourceLabel, LibraryStrings.needsReconciliation);
+      expect(
+        feedback.sourceLabel.resolve(testChinese),
+        testChinese.needsReconciliation,
+      );
       expect(feedback.severity, AmeNotificationSeverity.error);
-      expect(feedback.message, LibraryStrings.synchronizationMonitoringFailed);
-      expect(feedback.detail, "1 项更新尚未完成");
-      expect(feedback.detail, isNot(contains("正在核对")));
+      expect(
+        feedback.message.resolve(testChinese),
+        testChinese.synchronizationSourceUnhealthy,
+      );
+      expect(feedback.detail?.resolve(testChinese), "1 项更新尚未完成");
+      expect(feedback.detail?.resolve(testChinese), isNot(contains("正在核对")));
     },
   );
 
@@ -211,10 +247,16 @@ void main() {
     );
     expect(feedback.shouldNotify, isFalse);
     expect(feedback.severity, AmeNotificationSeverity.info);
-    expect(feedback.titleForRoot("Pictures"), "“Pictures”图库尚未核对");
-    expect(feedback.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
-    expect(feedback.detail, "1 项更新尚未完成 · 还有文件变化待检查");
-    expect(feedback.detail, isNot(contains("等待重试")));
+    expect(
+      feedback.titleForRoot("Pictures").resolve(testChinese),
+      "“Pictures”图库尚未核对",
+    );
+    expect(
+      feedback.sourceLabel.resolve(testChinese),
+      testChinese.synchronizationUnconfirmed,
+    );
+    expect(feedback.detail?.resolve(testChinese), "1 项更新尚未完成 · 还有文件变化待检查");
+    expect(feedback.detail?.resolve(testChinese), isNot(contains("等待重试")));
     expect(feedback.requiresManualLibraryUpdate, isFalse);
   });
 
@@ -228,9 +270,12 @@ void main() {
         retryCount: 0,
       ),
     );
-    expect(feedback.detail, isNot(contains("等待重试")));
-    expect(feedback.message, isNot(contains("等待重试")));
-    expect(feedback.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
+    expect(feedback.detail?.resolve(testChinese), isNot(contains("等待重试")));
+    expect(feedback.message.resolve(testChinese), isNot(contains("等待重试")));
+    expect(
+      feedback.sourceLabel.resolve(testChinese),
+      testChinese.synchronizationUnconfirmed,
+    );
   });
 
   test(
@@ -249,10 +294,13 @@ void main() {
           ),
         );
         expect(feedback.shouldNotify, isFalse);
-        expect(feedback.sourceLabel, LibraryStrings.synchronizing);
         expect(
-          feedback.message,
-          LibraryStrings.synchronizationPhaseInventoryEnumeration,
+          feedback.sourceLabel.resolve(testChinese),
+          testChinese.synchronizing,
+        );
+        expect(
+          feedback.message.resolve(testChinese),
+          testChinese.synchronizationCheckingFolder,
         );
         expect(feedback.severity, AmeNotificationSeverity.info);
       }
@@ -277,19 +325,31 @@ void main() {
         ),
       );
       if (continuity == LibraryContinuityState.catchingUp) {
-        expect(feedback.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
         expect(
-          feedback.message,
-          isNot(LibraryStrings.synchronizationCompleted),
+          feedback.sourceLabel.resolve(testChinese),
+          testChinese.synchronizationUnconfirmed,
+        );
+        expect(
+          feedback.message.resolve(testChinese),
+          isNot(testChinese.synchronizationCompleted),
         );
       } else if (continuity == LibraryContinuityState.liveOnly) {
         expect(feedback.shouldNotify, isFalse);
-        expect(feedback.sourceLabel, LibraryStrings.continuityLiveOnly);
-        expect(feedback.message, LibraryStrings.continuityLiveOnlyDetail);
+        expect(
+          feedback.sourceLabel.resolve(testChinese),
+          testChinese.continuityLiveOnly,
+        );
+        expect(
+          feedback.message.resolve(testChinese),
+          testChinese.manualUpdateDetail,
+        );
         expect(feedback.detail, isNull);
       } else {
         expect(feedback.shouldNotify, isFalse);
-        expect(feedback.message, LibraryStrings.synchronizationCompleted);
+        expect(
+          feedback.message.resolve(testChinese),
+          testChinese.synchronizationCompleted,
+        );
       }
     }
     final unresolved = LibrarySynchronizationFeedback.fromStatus(
@@ -302,7 +362,10 @@ void main() {
         retryCount: 0,
       ),
     );
-    expect(unresolved.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
+    expect(
+      unresolved.sourceLabel.resolve(testChinese),
+      testChinese.synchronizationUnconfirmed,
+    );
   });
 
   test(
@@ -319,8 +382,14 @@ void main() {
           unknownCount: 0,
         ),
       );
-      expect(feedback.sourceLabel, LibraryStrings.synchronized);
-      expect(feedback.message, LibraryStrings.synchronizationCompleted);
+      expect(
+        feedback.sourceLabel.resolve(testChinese),
+        testChinese.synchronized,
+      );
+      expect(
+        feedback.message.resolve(testChinese),
+        testChinese.synchronizationCompleted,
+      );
       expect(feedback.shouldNotify, isFalse);
     },
   );
@@ -329,7 +398,10 @@ void main() {
     final feedback = LibrarySynchronizationFeedback.fromStatus(
       _status(recoveryBlocked: false, issueCode: "catalog_database_busy"),
     );
-    expect(feedback.message, LibraryStrings.synchronizationPersistenceFailed);
+    expect(
+      feedback.message.resolve(testChinese),
+      testChinese.synchronizationPersistenceFailed,
+    );
     expect(feedback.requiresManualLibraryUpdate, isFalse);
     expect(feedback.severity, AmeNotificationSeverity.error);
   });
@@ -347,10 +419,13 @@ void main() {
           phase: LibrarySynchronizationPhase.inventoryComparison,
         ),
       );
-      expect(progress.sourceLabel, LibraryStrings.synchronizing);
       expect(
-        progress.message,
-        LibraryStrings.synchronizationPhaseInventoryComparison,
+        progress.sourceLabel.resolve(testChinese),
+        testChinese.synchronizing,
+      );
+      expect(
+        progress.message.resolve(testChinese),
+        testChinese.synchronizationCheckingChanges,
       );
       expect(progress.shouldNotify, isFalse);
       expect(progress.requiresManualLibraryUpdate, isFalse);
@@ -366,8 +441,14 @@ void main() {
           unknownCount: 0,
         ),
       );
-      expect(completed.sourceLabel, LibraryStrings.synchronized);
-      expect(completed.message, LibraryStrings.synchronizationCompleted);
+      expect(
+        completed.sourceLabel.resolve(testChinese),
+        testChinese.synchronized,
+      );
+      expect(
+        completed.message.resolve(testChinese),
+        testChinese.synchronizationCompleted,
+      );
       expect(completed.shouldNotify, isFalse);
       expect(completed.requiresManualLibraryUpdate, isFalse);
     }
@@ -380,11 +461,17 @@ void main() {
         issueCode: "legacy_recovery_authority_missing",
       ),
     );
-    expect(feedback.sourceLabel, LibraryStrings.sourceUnavailable);
-    expect(feedback.message, LibraryStrings.synchronizationSourceUnavailable);
-    expect(feedback.detail, "1 项更新尚未完成");
+    expect(
+      feedback.sourceLabel.resolve(testChinese),
+      testChinese.sourceUnavailable,
+    );
+    expect(
+      feedback.message.resolve(testChinese),
+      testChinese.synchronizationSourceUnavailable,
+    );
+    expect(feedback.detail?.resolve(testChinese), "1 项更新尚未完成");
     expect(feedback.requiresManualLibraryUpdate, isFalse);
-    expect(feedback.detail, isNot(contains("等待重试")));
+    expect(feedback.detail?.resolve(testChinese), isNot(contains("等待重试")));
   });
 
   test("unavailable phase cannot claim automatic processing", () {
@@ -396,8 +483,14 @@ void main() {
         phase: LibrarySynchronizationPhase.unavailable,
       ),
     );
-    expect(feedback.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
-    expect(feedback.message, LibraryStrings.synchronizationEvidenceGap);
+    expect(
+      feedback.sourceLabel.resolve(testChinese),
+      testChinese.synchronizationUnconfirmed,
+    );
+    expect(
+      feedback.message.resolve(testChinese),
+      testChinese.synchronizationEvidenceGap,
+    );
     expect(feedback.shouldNotify, isFalse);
   });
 
@@ -413,7 +506,10 @@ void main() {
           retryCount: 0,
         ),
       );
-      expect(feedback.message, LibraryStrings.firstImportIncomplete);
+      expect(
+        feedback.message.resolve(testChinese),
+        testChinese.firstImportIncomplete,
+      );
       expect(feedback.detail, isNull);
       expect(feedback.shouldNotify, isFalse);
       expect(feedback.severity, AmeNotificationSeverity.info);
@@ -428,8 +524,8 @@ void main() {
         _status(issueCode: "legacy_recovery_authority_missing"),
       );
       expect(
-        legacy.message,
-        LibraryStrings.synchronizationLegacyRecoveryAuthorityMissing,
+        legacy.message.resolve(testChinese),
+        testChinese.synchronizationLegacyRecoveryAuthorityMissing,
       );
       expect(legacy.requiresManualLibraryUpdate, isTrue);
 
@@ -437,8 +533,8 @@ void main() {
         _status(issueCode: "live_gap_v30_explicit_recovery_required"),
       );
       expect(
-        explicit.message,
-        LibraryStrings.synchronizationExplicitRecoveryRequired,
+        explicit.message.resolve(testChinese),
+        testChinese.synchronizationLegacyRecoveryAuthorityMissing,
       );
       expect(explicit.requiresManualLibraryUpdate, isTrue);
 
@@ -501,8 +597,8 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(find.text(LibraryStrings.synchronizing), findsOneWidget);
-      expect(find.text(LibraryStrings.synchronized), findsNothing);
+      expect(find.text(testChinese.synchronizing), findsOneWidget);
+      expect(find.text(testChinese.synchronized), findsNothing);
 
       synchronization.publish(
         _status(
@@ -518,8 +614,8 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
-      expect(find.text(LibraryStrings.synchronized), findsOneWidget);
-      expect(find.text(LibraryStrings.synchronizing), findsNothing);
+      expect(find.text(testChinese.synchronized), findsOneWidget);
+      expect(find.text(testChinese.synchronizing), findsNothing);
       expect(scanner.startedRootPaths, isEmpty);
       final container = ProviderScope.containerOf(
         tester.element(find.byType(AmeApp)),
@@ -580,10 +676,7 @@ void main() {
         container.read(ameNotificationControllerProvider).history,
         isEmpty,
       );
-      expect(
-        find.text(LibraryStrings.synchronizationUnconfirmed),
-        findsOneWidget,
-      );
+      expect(find.text(testChinese.synchronizationUnconfirmed), findsOneWidget);
       synchronization.publish(_status());
       await tester.pump();
       expect(
@@ -593,13 +686,10 @@ void main() {
       await tester.pump();
 
       expect(
-        find.text(LibraryStrings.synchronizationRecoveryBlocked),
+        find.text(testChinese.synchronizationRecoveryBlocked),
         findsOneWidget,
       );
-      expect(
-        find.text(LibraryStrings.synchronizationEvidenceGap),
-        findsNothing,
-      );
+      expect(find.text(testChinese.synchronizationEvidenceGap), findsNothing);
       expect(find.textContaining("1 项更新尚未完成"), findsOneWidget);
       expect(find.textContaining("1 项等待重试"), findsNothing);
       expect(
@@ -613,8 +703,8 @@ void main() {
       final history = container.read(ameNotificationControllerProvider).history;
       expect(history, hasLength(1));
       expect(
-        history.single.message,
-        LibraryStrings.synchronizationRecoveryBlocked,
+        history.single.message.resolve(testChinese),
+        testChinese.synchronizationRecoveryBlocked,
       );
       expect(history.single.technicalCode, "catalog_database_busy");
       expect(history.single.severity, AmeNotificationSeverity.error);
@@ -631,12 +721,9 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(find.text("“Generated”更新受阻"), findsOneWidget);
+      expect(find.text(testChinese.synchronizationRetryPending), findsNothing);
       expect(
-        find.text(LibraryStrings.synchronizationRetryPending),
-        findsNothing,
-      );
-      expect(
-        find.text(LibraryStrings.synchronizationPhaseInventoryEnumeration),
+        find.text(testChinese.synchronizationCheckingFolder),
         findsNothing,
       );
 
@@ -652,7 +739,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text("“Generated”更新受阻"), findsNothing);
       expect(
-        find.text(LibraryStrings.synchronizationRetryPending),
+        find.text(testChinese.synchronizationRetryPending),
         findsOneWidget,
       );
       expect(
@@ -678,12 +765,12 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(
-        find.text(LibraryStrings.synchronizationRecoveryBlocked),
+        find.text(testChinese.synchronizationRecoveryBlocked),
         findsNothing,
       );
       expect(find.textContaining("更新受阻"), findsNothing);
-      expect(find.text(LibraryStrings.synchronizing), findsOneWidget);
-      expect(find.text(LibraryStrings.synchronized), findsNothing);
+      expect(find.text(testChinese.synchronizing), findsOneWidget);
+      expect(find.text(testChinese.synchronized), findsNothing);
       expect(scanner.startedRootPaths, isEmpty);
 
       synchronization.publish(
@@ -699,8 +786,8 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
-      expect(find.text(LibraryStrings.synchronized), findsOneWidget);
-      expect(find.text(LibraryStrings.synchronizing), findsNothing);
+      expect(find.text(testChinese.synchronized), findsOneWidget);
+      expect(find.text(testChinese.synchronizing), findsNothing);
       expect(
         container.read(ameNotificationControllerProvider).history,
         hasLength(1),

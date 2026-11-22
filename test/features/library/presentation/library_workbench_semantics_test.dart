@@ -12,6 +12,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 import "../../../support/semantics/retained_semantics_update_harness.dart";
 
 void main() {
@@ -28,13 +29,10 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: applicationTestOverrides(),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: LibraryWorkbench(
-                globalBarBuilder: (_, _, toggle) => SizedBox(
-                  height: 64,
-                  child: Align(alignment: Alignment.centerLeft, child: toggle),
-                ),
+                globalBarBuilder: (_, _) => const SizedBox(height: 64),
                 albumsNavigationBuilder: (_) => const Text("Album list"),
                 navigationBuilder: (width) =>
                     SizedBox(width: width, child: const Text("Folders")),
@@ -130,7 +128,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp(
+            child: LocalizedTestApp(
               home: Scaffold(
                 body: ValueListenableBuilder(
                   valueListenable: folded,

@@ -2,6 +2,9 @@ import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/messages/ame_message.dart";
+import "../../../../app/presentation/ame_localizations.dart";
+import "../../../../app/presentation/ame_message_text.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_album_pages.dart";
@@ -35,7 +38,7 @@ Future<LibraryAlbumChoice?> showLibraryAlbumPicker({
   String? explanation,
   LibraryOrganizationTarget? conflictTarget,
   LibraryAlbumMembership? membership,
-  String? initialError,
+  AmeMessage? initialError,
   LibraryOrganizationRequest Function(LibraryProgressAction)?
   progressRequestFactory,
   LibraryProgressControls? progressControls,
@@ -86,7 +89,7 @@ class LibraryAlbumPicker extends ConsumerStatefulWidget {
   final String? explanation;
   final LibraryOrganizationTarget? conflictTarget;
   final LibraryAlbumMembership? membership;
-  final String? initialError;
+  final AmeMessage? initialError;
   final LibraryOrganizationRequest Function(LibraryProgressAction)?
   progressRequestFactory;
   final LibraryProgressControls? progressControls;
@@ -101,7 +104,7 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
   final List<String?> _previous = [];
   bool _saving = false;
   bool _stopping = false;
-  String? _error;
+  AmeMessage? _error;
   LibraryProgressSession? _progress;
 
   @override
@@ -214,9 +217,9 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
     final busy = saving || _saving;
     var saveLabel = widget.actionLabel;
     if (_stopping) {
-      saveLabel = "正在停止";
+      saveLabel = context.l10n.stopping;
     } else if (_saving) {
-      saveLabel = "正在保存";
+      saveLabel = context.l10n.saving;
     }
     return PopScope(
       canPop: !_saving,
@@ -237,12 +240,15 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
               children: [
                 Row(
                   children: [
-                    Text("选择相册", style: Theme.of(context).textTheme.titleLarge),
+                    Text(
+                      context.l10n.chooseAlbum,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                     const SizedBox(width: 12),
                     AmeLoadingProgress(
                       active: page.isLoading && page.hasValue,
                       size: 24,
-                      semanticsLabel: "正在更新相册",
+                      semanticsLabel: context.l10n.updatingAlbums,
                     ),
                   ],
                 ),
@@ -264,7 +270,7 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: Text(
-                                  error,
+                                  error.resolve(context.l10n),
                                   style: TextStyle(
                                     color: Theme.of(context).colorScheme.error,
                                   ),
@@ -277,11 +283,13 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
                                   maxHeight: 360,
                                 ),
                                 child: value.albums.isEmpty
-                                    ? const Padding(
+                                    ? Padding(
                                         padding: EdgeInsets.symmetric(
                                           vertical: 24,
                                         ),
-                                        child: Text("还没有相册，请先新建一个。"),
+                                        child: Text(
+                                          context.l10n.createFirstAlbum,
+                                        ),
                                       )
                                     : AmeScrollMotion(
                                         child: SingleChildScrollView(
@@ -326,23 +334,23 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
                                         ),
                                       ),
                               ),
-                              loading: () => const Padding(
+                              loading: () => Padding(
                                 padding: EdgeInsets.symmetric(vertical: 24),
                                 child: Center(
                                   child: AmeLoadingProgress(
-                                    semanticsLabel: "正在读取相册",
+                                    semanticsLabel: context.l10n.loadingAlbums,
                                   ),
                                 ),
                               ),
                               error: (error, stack) => Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Text("相册暂时无法加载。"),
+                                  Text(context.l10n.albumsLoadFailed),
                                   TextButton(
                                     onPressed: () => ref.invalidate(
                                       libraryAlbumPageProvider(_after),
                                     ),
-                                    child: const Text("重试"),
+                                    child: Text(context.l10n.retry),
                                   ),
                                 ],
                               ),
@@ -362,7 +370,7 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
                                               () => _after = _previous
                                                   .removeLast(),
                                             ),
-                                      child: const Text("上一页"),
+                                      child: Text(context.l10n.previousPage),
                                     ),
                                     const Spacer(),
                                     TextButton(
@@ -375,7 +383,7 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
                                               _previous.add(_after);
                                               _after = value.nextAlbumId;
                                             }),
-                                      child: const Text("下一页"),
+                                      child: Text(context.l10n.nextPage),
                                     ),
                                   ],
                                 ),
@@ -415,7 +423,7 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
                           ? null
                           : () => _create(page.value!.revision),
                       icon: const Icon(Symbols.add_rounded, size: 20),
-                      label: const Text("新建相册"),
+                      label: Text(context.l10n.createAlbum),
                     ),
                     if (widget.clearLabel case final label?)
                       TextButton.icon(

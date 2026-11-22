@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_disclosure.dart";
+import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
@@ -10,6 +11,7 @@ import "../../application/library_classification_settings.dart";
 import "../../application/library_model_installation.dart";
 import "../../domain/library_classification_configuration.dart";
 import "../../domain/library_gallery_collection.dart";
+import "../library_category_label.dart";
 import "library_model_setup.dart";
 import "library_sidebar_section_header.dart";
 import "library_sidebar_section_toggle.dart";
@@ -49,13 +51,13 @@ class _LibrarySmartAlbumNavigationState
       children: [
         LibrarySidebarSectionHeader(
           key: const Key("library-sidebar-smart-heading"),
-          title: "智能相册",
+          title: context.l10n.smartAlbums,
           count: settings.hasValue
               ? settings.value?.visibleCategories.length ?? 0
               : null,
           trailing: LibrarySidebarSectionToggle(
             key: const Key("library-sidebar-smart-expand"),
-            label: "智能相册",
+            label: context.l10n.smartAlbums,
             expanded: _expanded,
             onPressed: () => setState(() => _expanded = !_expanded),
           ),
@@ -81,14 +83,14 @@ class _LibrarySmartAlbumNavigationState
                           ),
                           minLeadingWidth: 24,
                           horizontalTitleGap: 12,
-                          title: const Text(
-                            "还没有分类结果",
+                          title: Text(
+                            context.l10n.noClassificationResults,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           trailing: value?.installationSelected == false
                               ? IconButton(
-                                  tooltip: "下载模型",
+                                  tooltip: context.l10n.downloadModel,
                                   style: IconButton.styleFrom(
                                     fixedSize: const Size.square(36),
                                     iconSize: 20,
@@ -123,13 +125,13 @@ class _LibrarySmartAlbumNavigationState
                           value!.visibleCategories.isNotEmpty)
                         ListTile(
                           leading: const Icon(Symbols.download_rounded),
-                          title: const Text("下载模型"),
+                          title: Text(context.l10n.downloadModel),
                           onTap: canInstall
                               ? () => showLibraryModelSetup(context, ref)
                               : null,
                         ),
                     ],
-                    loading: () => const [
+                    loading: () => [
                       Padding(
                         padding: EdgeInsets.all(16),
                         child: Center(
@@ -137,7 +139,7 @@ class _LibrarySmartAlbumNavigationState
                             dimension: 24,
                             child: AmeCircularProgress(
                               strokeWidth: 2,
-                              semanticsLabel: "正在加载智能相册",
+                              semanticsLabel: context.l10n.loadingSmartAlbums,
                             ),
                           ),
                         ),
@@ -145,14 +147,14 @@ class _LibrarySmartAlbumNavigationState
                     ],
                     error: (error, stack) => [
                       ListTile(
-                        title: const Text("分类暂时无法加载"),
+                        title: Text(context.l10n.categoriesUnavailable),
                         trailing: TextButton(
                           onPressed: () {
                             ref.invalidate(
                               libraryClassificationNavigationProvider,
                             );
                           },
-                          child: const Text("重试"),
+                          child: Text(context.l10n.retry),
                         ),
                       ),
                     ],
@@ -202,7 +204,7 @@ class _SmartAlbumRow extends StatelessWidget {
         }, size: 24),
       ),
       title: Text(
-        category.label,
+        libraryCategoryLabel(context.l10n, category),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: theme.textTheme.bodyLarge?.copyWith(

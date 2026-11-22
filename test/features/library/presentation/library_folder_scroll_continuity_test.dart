@@ -14,6 +14,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../../../support/application_test_bindings.dart";
+import "../../../support/localized_test_app.dart";
 
 void main() {
   testWidgets(
@@ -46,7 +47,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: _Navigation(revision: BigInt.one, transientSource: pending),
             ),
@@ -103,7 +104,7 @@ void main() {
               LibraryState(catalogRevision: BigInt.one, roots: const [_root]),
             ),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: ValueListenableBuilder(
                 valueListenable: revision,
@@ -158,7 +159,7 @@ void main() {
               LibraryState(catalogRevision: BigInt.one, roots: const [_root]),
             ),
           ]),
-          child: MaterialApp(
+          child: LocalizedTestApp(
             home: Scaffold(
               body: ValueListenableBuilder(
                 valueListenable: revision,

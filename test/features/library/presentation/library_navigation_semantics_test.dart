@@ -7,7 +7,6 @@ import "package:cedarflake_ame/features/library/domain/library_folder_models.dar
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
-import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_folder_navigation_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
@@ -18,8 +17,8 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/localized_test_app.dart";
 import "../../../support/semantics/retained_semantics_update_harness.dart";
-
 import "../../../support/application_test_bindings.dart";
 
 void main() {
@@ -31,7 +30,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: buildAmeTheme(),
         home: Scaffold(
           body: _buildNavigation(
@@ -53,7 +52,7 @@ void main() {
     expect(find.byKey(const ValueKey("source-title-root-1")), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
     await tester.pumpAndSettle();
-    expect(find.text(LibraryStrings.openInExplorer), findsOneWidget);
+    expect(find.text(testChinese.openInExplorer), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -62,7 +61,7 @@ void main() {
   ) async {
     final requests = <(String, String)>[];
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: _buildNavigation(
             folderTree: LibraryFolderTreeState(
@@ -91,21 +90,21 @@ void main() {
   testWidgets(
     "source status follows directory synchronization through completion",
     (tester) async {
-      const phases = [
+      final phases = [
         (
           LibraryCatalogFreshness.updating,
           LibrarySynchronizationPhase.queuePublication,
-          LibraryStrings.synchronizing,
+          testChinese.synchronizing,
         ),
         (
           LibraryCatalogFreshness.synchronized,
           LibrarySynchronizationPhase.synchronized,
-          LibraryStrings.synchronized,
+          testChinese.synchronized,
         ),
       ];
       for (final (freshness, phase, label) in phases) {
         await tester.pumpWidget(
-          MaterialApp(
+          LocalizedTestApp(
             theme: buildAmeTheme(),
             home: Scaffold(
               body: _buildNavigation(freshness: freshness, phase: phase),
@@ -114,7 +113,7 @@ void main() {
         );
         expect(find.text(label), findsOneWidget);
         if (freshness != LibraryCatalogFreshness.synchronized) {
-          expect(find.text(LibraryStrings.synchronized), findsNothing);
+          expect(find.text(testChinese.synchronized), findsNothing);
         }
       }
       expect(tester.takeException(), isNull);
@@ -126,7 +125,7 @@ void main() {
   ) async {
     for (final includeStatus in [true, false]) {
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           theme: buildAmeTheme(),
           home: Scaffold(
             body: _buildNavigation(
@@ -140,12 +139,12 @@ void main() {
       expect(
         find.text(
           includeStatus
-              ? LibraryStrings.sourceUnavailable
-              : LibraryStrings.synchronizationUnconfirmed,
+              ? testChinese.sourceUnavailable
+              : testChinese.synchronizationUnconfirmed,
         ),
         findsOneWidget,
       );
-      expect(find.text(LibraryStrings.synchronizing), findsNothing);
+      expect(find.text(testChinese.synchronizing), findsNothing);
     }
   });
 
@@ -153,7 +152,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: buildAmeTheme(),
         home: Scaffold(
           body: SizedBox(
@@ -182,11 +181,8 @@ void main() {
         ),
       ),
     );
-    expect(
-      find.text(LibraryStrings.synchronizationUnconfirmed),
-      findsOneWidget,
-    );
-    expect(find.text(LibraryStrings.synchronizing), findsNothing);
+    expect(find.text(testChinese.synchronizationUnconfirmed), findsOneWidget);
+    expect(find.text(testChinese.synchronizing), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -195,7 +191,7 @@ void main() {
     (tester) async {
       var relocations = 0;
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           theme: buildAmeTheme(),
           home: Scaffold(
             body: SizedBox(
@@ -228,10 +224,10 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey("source-more-moved")));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(LibraryStrings.relocateLibrary));
+      await tester.tap(find.text(testChinese.relocateLibrary));
       await tester.pumpAndSettle();
       expect(relocations, 1);
-      expect(find.text(LibraryStrings.relocateLibrary), findsNothing);
+      expect(find.text(testChinese.relocateLibrary), findsNothing);
     },
   );
 
@@ -248,13 +244,13 @@ void main() {
         await tester.pumpWidget(
           ValueListenableBuilder(
             valueListenable: seedColor,
-            builder: (context, color, child) => MaterialApp(
+            builder: (context, color, child) => LocalizedTestApp(
               theme: buildAmeTheme(seedColor: color),
               home: Scaffold(body: _buildNavigation()),
             ),
           ),
         );
-        expect(find.text(LibraryStrings.synchronized), findsOneWidget);
+        expect(find.text(testChinese.synchronized), findsOneWidget);
         expect(find.byType(MenuAnchor), findsNothing);
 
         seedColor.value = const Color(0xFF8E4D92);
@@ -326,7 +322,7 @@ void main() {
     addTearDown(callbackRevision.dispose);
 
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: ValueListenableBuilder<int>(
             valueListenable: callbackRevision,
@@ -367,7 +363,7 @@ void main() {
     await tester.pumpAndSettle();
     callbackRevision.value = 1;
     await tester.pump();
-    await tester.tap(find.text(LibraryStrings.openInExplorer));
+    await tester.tap(find.text(testChinese.openInExplorer));
     await tester.pumpAndSettle();
 
     expect(openedRevisions, [0]);
@@ -381,7 +377,7 @@ void main() {
     var removeCount = 0;
 
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: buildAmeTheme(),
         home: Scaffold(
           body: Align(
@@ -427,39 +423,30 @@ void main() {
     expect(find.byType(MenuAnchor), findsNothing);
     expect(
       tester
-          .widget<PopupMenuItem<Object?>>(
-            menuItem(LibraryStrings.updateLibrary),
-          )
+          .widget<PopupMenuItem<Object?>>(menuItem(testChinese.updateLibrary))
           .enabled,
       isFalse,
     );
     expect(
       tester
-          .widget<PopupMenuItem<Object?>>(
-            menuItem(LibraryStrings.openInExplorer),
-          )
+          .widget<PopupMenuItem<Object?>>(menuItem(testChinese.openInExplorer))
           .enabled,
       isTrue,
     );
     expect(
       tester
-          .widget<PopupMenuItem<Object?>>(
-            menuItem(LibraryStrings.removeFromAme),
-          )
+          .widget<PopupMenuItem<Object?>>(menuItem(testChinese.removeFromAme))
           .enabled,
       isFalse,
     );
-    await tester.tap(
-      find.text(LibraryStrings.updateLibrary),
-      warnIfMissed: false,
-    );
+    await tester.tap(find.text(testChinese.updateLibrary), warnIfMissed: false);
     await tester.pump();
     expect(updateCount, 0);
     expect(openCount, 0);
     expect(removeCount, 0);
-    expect(find.text(LibraryStrings.openInExplorer), findsOneWidget);
+    expect(find.text(testChinese.openInExplorer), findsOneWidget);
 
-    await tester.tap(find.text(LibraryStrings.openInExplorer));
+    await tester.tap(find.text(testChinese.openInExplorer));
     await tester.pumpAndSettle();
     expect(updateCount, 0);
     expect(openCount, 1);
@@ -489,7 +476,7 @@ void main() {
     addTearDown(roots.dispose);
 
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         theme: buildAmeTheme(),
         home: Scaffold(
           body: ValueListenableBuilder<List<LibraryRoot>>(
@@ -542,7 +529,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(LibraryStrings.removeFromAme));
+    await tester.tap(find.text(testChinese.removeFromAme));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey("source-title-root-1")), findsNothing);
@@ -550,7 +537,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey("source-more-root-2")));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(LibraryStrings.removeFromAme));
+    await tester.tap(find.text(testChinese.removeFromAme));
     await tester.pumpAndSettle();
 
     final libraryEntry = tester.widget<ListTile>(
@@ -563,7 +550,7 @@ void main() {
     final semanticsHandle = tester.ensureSemantics();
     try {
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: ListView(
               children: [
@@ -614,7 +601,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: _buildNavigation(
             hasSynchronizationFailure: true,
@@ -624,8 +611,8 @@ void main() {
       ),
     );
 
-    expect(find.text(LibraryStrings.needsReconciliation), findsOneWidget);
-    expect(find.text(LibraryStrings.synchronizing), findsNothing);
+    expect(find.text(testChinese.needsReconciliation), findsOneWidget);
+    expect(find.text(testChinese.synchronizing), findsNothing);
   });
 
   testWidgets("shows an unfinished import without claiming source failure", (
@@ -647,23 +634,23 @@ void main() {
       lastIssueCode: "library_first_import_required",
     );
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(body: _buildNavigation(statusOverride: status)),
       ),
     );
 
-    expect(find.text(LibraryStrings.firstImportIncomplete), findsOneWidget);
-    expect(find.text(LibraryStrings.sourceUnknown), findsNothing);
-    expect(find.text(LibraryStrings.needsReconciliation), findsNothing);
-    expect(find.text(LibraryStrings.synchronizing), findsNothing);
-    expect(find.text(LibraryStrings.continuityBaselineRequired), findsNothing);
+    expect(find.text(testChinese.firstImportIncomplete), findsOneWidget);
+    expect(find.text(testChinese.sourceUnknown), findsNothing);
+    expect(find.text(testChinese.needsReconciliation), findsNothing);
+    expect(find.text(testChinese.synchronizing), findsNothing);
+    expect(find.text(testChinese.backgroundVerification), findsNothing);
   });
 
   testWidgets(
     "completed automatic verification keeps the sidebar status visible",
     (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        LocalizedTestApp(
           home: Scaffold(
             body: _buildNavigation(
               continuity: LibraryContinuityState.liveOnly,
@@ -672,8 +659,8 @@ void main() {
           ),
         ),
       );
-      expect(find.text(LibraryStrings.synchronized), findsOneWidget);
-      expect(find.text(LibraryStrings.continuityLiveOnly), findsNothing);
+      expect(find.text(testChinese.synchronized), findsOneWidget);
+      expect(find.text(testChinese.continuityLiveOnly), findsNothing);
     },
   );
 
@@ -681,20 +668,20 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: _buildNavigation(continuity: LibraryContinuityState.liveOnly),
         ),
       ),
     );
 
-    expect(find.text(LibraryStrings.continuityLiveOnly), findsNothing);
-    expect(find.text(LibraryStrings.synchronized), findsNothing);
+    expect(find.text(testChinese.continuityLiveOnly), findsNothing);
+    expect(find.text(testChinese.synchronized), findsNothing);
   });
 
   testWidgets("keeps an abnormal live-only status visible", (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: _buildNavigation(
             continuity: LibraryContinuityState.liveOnly,
@@ -706,15 +693,15 @@ void main() {
       ),
     );
 
-    expect(find.text(LibraryStrings.needsReconciliation), findsOneWidget);
-    expect(find.text(LibraryStrings.continuityLiveOnly), findsNothing);
+    expect(find.text(testChinese.needsReconciliation), findsOneWidget);
+    expect(find.text(testChinese.continuityLiveOnly), findsNothing);
   });
 
   testWidgets("prioritizes a manual update over live-only capability", (
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: _buildNavigation(
             continuity: LibraryContinuityState.liveOnly,
@@ -724,16 +711,16 @@ void main() {
       ),
     );
 
-    expect(find.text(LibraryStrings.synchronizing), findsOneWidget);
-    expect(find.text(LibraryStrings.continuityLiveOnly), findsNothing);
-    expect(find.text(LibraryStrings.continuityLiveOnlyDetail), findsNothing);
+    expect(find.text(testChinese.synchronizing), findsOneWidget);
+    expect(find.text(testChinese.continuityLiveOnly), findsNothing);
+    expect(find.text(testChinese.manualUpdateDetail), findsNothing);
   });
 
   testWidgets("prioritizes updating freshness over live-only capability", (
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: _buildNavigation(
             continuity: LibraryContinuityState.liveOnly,
@@ -744,15 +731,15 @@ void main() {
       ),
     );
 
-    expect(find.text(LibraryStrings.synchronizing), findsOneWidget);
-    expect(find.text(LibraryStrings.continuityLiveOnly), findsNothing);
+    expect(find.text(testChinese.synchronizing), findsOneWidget);
+    expect(find.text(testChinese.continuityLiveOnly), findsNothing);
   });
 
   testWidgets("keeps unblocked live-only reconciliation compact", (
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      LocalizedTestApp(
         home: Scaffold(
           body: _buildNavigation(
             continuity: LibraryContinuityState.liveOnly,
@@ -763,12 +750,9 @@ void main() {
       ),
     );
 
-    expect(
-      find.text(LibraryStrings.synchronizationUnconfirmed),
-      findsOneWidget,
-    );
-    expect(find.text(LibraryStrings.continuityLiveOnly), findsNothing);
-    expect(find.text(LibraryStrings.continuityLiveOnlyDetail), findsNothing);
+    expect(find.text(testChinese.synchronizationUnconfirmed), findsOneWidget);
+    expect(find.text(testChinese.continuityLiveOnly), findsNothing);
+    expect(find.text(testChinese.manualUpdateDetail), findsNothing);
   });
 
   testWidgets("keeps the populated application semantics reachable", (
