@@ -27,8 +27,8 @@ fn take_result_at(
     path: &std::path::Path,
     current: &str,
 ) -> Result<Option<ApplicationUpdateResult>, ApplicationUpdateError> {
-    reject_reparse(&path)?;
-    let file = match fs::File::open(&path) {
+    reject_reparse(path)?;
+    let file = match fs::File::open(path) {
         Ok(file) => file,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(error) => return Err(storage(error)),
