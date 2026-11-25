@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-25
+Last planning update: 2026-11-26
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -74,9 +74,10 @@ Settings supplies manual checks, automatic-check/download preferences and an exp
 ADR 0043 retains WiX for the installed product and selects Velopack for portable replacement.
 HTTPS and SHA-256 checks are required; signing and automatic migration of old Alpha installations
 are excluded. Settings, native coordination and both package paths are implemented. Local client,
-portable replacement/recovery and package checks are recorded in the
-[verification owner](acceptance/application-updates.md). Installed handoff verification and
-submitted-commit CI remain pending before delivery.
+portable replacement/recovery, installed handoff, package checks and product-commit CI passed;
+the [verification owner](acceptance/application-updates.md) records their separate inputs and results.
+Closeout retains cleanup of two disposable cloud-test accounts/profiles and marked fixture directories
+after remote authentication becomes available. Integration and release publication remain separate.
 
 ### Desktop internationalization
 

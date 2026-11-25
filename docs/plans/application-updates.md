@@ -61,9 +61,12 @@ before connecting it to the application. Do not relax integrity checks or substi
 ## Verification scope
 
 Use temporary application versions, controlled feeds and disposable user profiles. No real image
-root or existing installed service is a mutation fixture. Use Windows Sandbox or the existing hosted
-installer lifecycle owner for elevated service changes. Reuse the installed Flutter SDK, repository
-locks, existing notification templates and release-candidate manifest verification.
+root or existing installed service is a mutation fixture. Use Windows Sandbox, the authorized cloud
+test computer with normal UAC, or the existing hosted installer lifecycle owner for elevated service
+changes. On a retained test computer, verify that no Ame installation or service exists before
+installing the fixture; remove the owned product and disposable account/profile afterward. Reuse
+the installed Flutter SDK, repository locks, existing notification templates and release-candidate
+manifest verification.
 
 Require SHA-256 verification for both newly downloaded and retained packages before use. Evaluate
 incremental packages only with evidence for their reconstructed payload; they are not a prerequisite

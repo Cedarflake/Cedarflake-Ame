@@ -13,6 +13,14 @@ Local verification used the `codex/app-updates` worktree based on
 `adf2540708e482f2b051a24e4b2eb9251c552659`; local package receipts retain their pre-commit source
 provenance. Hosted results must identify their checked commit separately.
 
+Full hosted verification passed on 2026-11-26 for
+`86b6b61ac03c38c0d7ac4dcda70ee5f970ee4033` in
+[run 45693847746](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/45693847746).
+Static checks, all four Rust partitions, Flutter tests, Windows scan, Windows accessibility,
+Windows build verification and the aggregate Windows Gate passed. Release and synthetic workloads
+were not selected for this run. The subsequent installed-handoff fixture correction and cloud
+execution are recorded separately below.
+
 - Focused Flutter checks cover three-language enlarged-text dialogs, download dismissal and retry,
   channel changes, stale completions, preference persistence/failure and joined window retirement.
 - Native checks cover release/version admission, HTTPS asset restrictions, retained package hashes,
@@ -86,8 +94,8 @@ package receipts. These local artifacts are uncommitted validation builds, not p
 | Update metadata | `ab531b24b2e14c57a8901ab0576802ec60aeb53e592266b1cc1e925bf5fecc57` |
 
 The installed product retains the existing WiX transaction and its
-[upgrade/repair/rollback evidence](r10-upgrade-compatibility.md). The new native MSI handoff still
-requires affected-path verification before this feature is delivered. Its first disposable guest
+[upgrade/repair/rollback evidence](r10-upgrade-compatibility.md). The new native MSI handoff received
+separate affected-path verification. Its first disposable guest
 stopped during the old version's VC runtime prerequisite: a new 180-second fixture bound expired
 after the minimum-runtime MSI succeeded, while the additional-runtime MSI was still active. No Ame
 installer or update helper had started. The fixture now uses the existing baseline owner's
@@ -102,10 +110,33 @@ handle and copies its JSON before reporting a failure; the product helper did no
 The default Sandbox policy has `EnableLUA=0`. A separate ordinary-user probe used the shipping
 helper's `ShellExecuteEx` flags and `runas` verb with the system `whoami.exe`. Windows accepted the
 launch, but the child remained unelevated and no permission prompt appeared. This environment cannot
-establish the installed handoff's elevation behavior. That check remains pending on a Windows test
-environment with normal UAC. All owned guests retired; no host product or service was installed.
+establish the installed handoff's elevation behavior. All owned Sandbox guests retired; these runs
+installed no host product or service.
 The ignored `application-update-token-probe/diagnostic.json` and
 `application-update-runas-probe/result.json` retain the observed tokens and actual API result.
+
+Installed-handoff verification used an authorized clean `cloud-primary` test computer
+with normal UAC. The observed upgrade returned helper exit code 0, admitted the target application's
+exact hash and version, and reopened its window in the same ordinary account and session. The user
+marker and competing-launch rejection evidence remained intact. The broker was configured for manual
+start and was stopped; the fixture's persistent `Running` assertion conflicted with the broker's
+ten-second idle retirement. The corrected fixture requests demand start from its ordinary worker token
+and waits up to five seconds for `Running`, recording the before and after states. The corrected run
+returned helper and installer result 0, reopened `0.1.0-beta.1+4`, and verified the broker's transition
+from `Stopped` to `Running`. The actual upgraded window rendered the empty gallery and responded to
+Settings navigation. The final worker receipt (`2991cec1379d41bb8d26bd93bd3902d9`) records an
+unelevated reopened application, preserved user marker, rejected competing launch and normal
+application closure. The owned application and service were subsequently uninstalled. This run
+uses the same shipping helper and MSI hashes above; only its service assertion differs from the
+fixture in the hosted commit.
+
+Two disposable profiles remained loaded after their processes exited, preventing normal profile
+removal. The test computer restarted normally after sealing the successful worker receipt and exact
+cleanup owners. Remote terminal authentication did not subsequently complete, so those two accounts,
+profiles and their marked fixture directories remain pending cleanup. The protected immediate cleanup
+script requires the original elevated controller, sealed owner identities, no associated logon
+sessions and unloaded profiles. No startup task was registered. This retained test-environment residue
+does not change the passed upgrade result; closeout still requires its removal.
 
 ## Review boundaries
 

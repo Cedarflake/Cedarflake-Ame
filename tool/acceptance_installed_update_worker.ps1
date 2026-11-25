@@ -80,13 +80,27 @@ try {
     if ($null -eq $application) { throw 'The upgraded desktop application did not reopen' }
     $token = & (Join-Path $InputRoot 'parent.exe') --inspect-token $application.Id | ConvertFrom-Json
     if ($LASTEXITCODE -ne 0 -or $token.elevated -ne $false) { throw 'The upgraded application has an elevated token' }
-    if ([IO.File]::ReadAllText($marker) -cne 'preserved installed user decision' -or
-        (Get-Service CedarflakeAmeJournalBroker).Status -ne 'Running' -or
-        -not (Test-Path -LiteralPath (Join-Path $evidence 'startup-guard.txt'))) {
-        throw 'Installed update changed the user marker, broker availability or startup guard'
+    if ([IO.File]::ReadAllText($marker) -cne 'preserved installed user decision') {
+        throw 'Installed update changed the user marker'
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $evidence 'startup-guard.txt'))) {
+        throw 'Installed update lost the competing-launch rejection evidence'
+    }
+    $broker = Get-Service CedarflakeAmeJournalBroker
+    try {
+        if ($broker.StartType -ne 'Manual') { throw 'The installed broker is not configured for demand start' }
+        $brokerBefore = $broker.Status.ToString()
+        if ($broker.Status -eq 'Stopped') { $broker.Start() }
+        $broker.WaitForStatus('Running', [TimeSpan]::FromSeconds(5))
+        $brokerAfter = $broker.Status.ToString()
+    } catch {
+        throw "Installed broker demand-start verification failed: $($_.Exception.Message)"
+    } finally {
+        $broker.Dispose()
     }
     Publish-WorkerJson 'progress.json' @{ phase = 'upgraded-awaiting-ui'; processId = $application.Id
-        version = $plan.applicationVersion; helperExitCode = $helper.ExitCode; resultCode = $resultCode }
+        version = $plan.applicationVersion; helperExitCode = $helper.ExitCode; resultCode = $resultCode
+        brokerStatusBefore = $brokerBefore; brokerStatusAfter = $brokerAfter }
     $deadline = [DateTime]::UtcNow.AddMinutes(5)
     while (-not (Test-Path -LiteralPath (Join-Path $OutputRoot 'ui-verified'))) {
         if (Test-Path -LiteralPath (Join-Path $OutputRoot 'retain-for-user')) { $deadline = [DateTime]::UtcNow.AddMinutes(5) }
@@ -99,7 +113,8 @@ try {
     Publish-WorkerJson 'worker-result.json' @{ format = 'ame-installed-update-acceptance-v1'; status = 'passed'
         elevated = $false; cases = @(@{ mode = 'upgrade'; version = $plan.applicationVersion
             helperExitCode = 0; resultCode = $resultCode; userDataPreserved = $true
-            brokerRunning = $true; competingLaunchRejected = $true; normalClose = $true; uiVerified = $true }) }
+            brokerDemandStartVerified = $true; brokerStatusBefore = $brokerBefore; brokerStatusAfter = $brokerAfter
+            competingLaunchRejected = $true; normalClose = $true; uiVerified = $true }) }
 } catch {
     Publish-WorkerJson 'worker-result.json' @{ format = 'ame-installed-update-acceptance-v1'; status = 'failed'; error = $_.Exception.Message }
     exit 1
